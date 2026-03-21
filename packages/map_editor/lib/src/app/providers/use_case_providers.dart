@@ -10,6 +10,16 @@ CreateProjectUseCase createProjectUseCase(CreateProjectUseCaseRef ref) {
 }
 
 @riverpod
+LoadProjectUseCase loadProjectUseCase(LoadProjectUseCaseRef ref) {
+  return LoadProjectUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+SaveMapUseCase saveMapUseCase(SaveMapUseCaseRef ref) {
+  return SaveMapUseCase(ref.watch(mapRepositoryProvider));
+}
+
+@riverpod
 CreateMapUseCase createMapUseCase(CreateMapUseCaseRef ref) {
   return CreateMapUseCase(
     ref.watch(mapRepositoryProvider),
@@ -20,4 +30,28 @@ CreateMapUseCase createMapUseCase(CreateMapUseCaseRef ref) {
 @riverpod
 LoadMapUseCase loadMapUseCase(LoadMapUseCaseRef ref) {
   return LoadMapUseCase(ref.watch(mapRepositoryProvider));
+}
+
+@riverpod
+RenameMapUseCase renameMapUseCase(RenameMapUseCaseRef ref) {
+  return RenameMapUseCase(
+    ref.watch(mapRepositoryProvider),
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+DeleteMapUseCase deleteMapUseCase(DeleteMapUseCaseRef ref) {
+  return DeleteMapUseCase(
+    ref.watch(mapRepositoryProvider),
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+DuplicateMapUseCase duplicateMapUseCase(DuplicateMapUseCaseRef ref) {
+  return DuplicateMapUseCase(
+    ref.watch(mapRepositoryProvider),
+    ref.watch(projectRepositoryProvider),
+  );
 }

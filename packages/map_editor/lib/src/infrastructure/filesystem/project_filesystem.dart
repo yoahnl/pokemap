@@ -14,6 +14,14 @@ class ProjectFileSystem {
     return p.normalize(p.join(_projectRoot, relativePath));
   }
 
+  String getMapPath(String mapId) {
+    return p.normalize(p.join(_projectRoot, 'maps', '$mapId.json'));
+  }
+
+  String getMapRelativePath(String mapId) {
+    return 'maps/$mapId.json';
+  }
+
   String resolveTilesetPath(String relativePath) {
     return p.normalize(p.join(_projectRoot, relativePath));
   }

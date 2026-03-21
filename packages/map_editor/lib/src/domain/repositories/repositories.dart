@@ -8,6 +8,8 @@ abstract class ProjectRepository {
 abstract class MapRepository {
   Future<void> saveMap(MapData map, String path);
   Future<MapData> loadMap(String path);
+  Future<void> deleteMap(String path);
+  Future<void> renameMap(String oldPath, String newPath);
 }
 
 abstract class TilesetRepository {

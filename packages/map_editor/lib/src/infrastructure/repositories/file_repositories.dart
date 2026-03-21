@@ -62,6 +62,25 @@ class FileMapRepository implements MapRepository {
       throw MapLoadException('Failed to load map: $e');
     }
   }
+
+  @override
+  Future<void> deleteMap(String path) async {
+    debugPrint('FileMapRepository: Deleting map at $path');
+    final file = File(path);
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+
+  @override
+  Future<void> renameMap(String oldPath, String newPath) async {
+    debugPrint('FileMapRepository: Renaming map from $oldPath to $newPath');
+    final file = File(oldPath);
+    if (await file.exists()) {
+      if (!await file.parent.exists()) await file.parent.create(recursive: true);
+      await file.rename(newPath);
+    }
+  }
 }
 
 class FileTilesetRepository implements TilesetRepository {

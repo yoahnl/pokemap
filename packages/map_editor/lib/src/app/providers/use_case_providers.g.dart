@@ -25,6 +25,42 @@ final createProjectUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CreateProjectUseCaseRef = AutoDisposeProviderRef<CreateProjectUseCase>;
+String _$loadProjectUseCaseHash() =>
+    r'75964ea221f264befbf4a28c4249bd2c1b6df85e';
+
+/// See also [loadProjectUseCase].
+@ProviderFor(loadProjectUseCase)
+final loadProjectUseCaseProvider =
+    AutoDisposeProvider<LoadProjectUseCase>.internal(
+  loadProjectUseCase,
+  name: r'loadProjectUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$loadProjectUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef LoadProjectUseCaseRef = AutoDisposeProviderRef<LoadProjectUseCase>;
+String _$saveMapUseCaseHash() => r'6a9741258f17448b6f6fd30e3a84d7e72c7c6adb';
+
+/// See also [saveMapUseCase].
+@ProviderFor(saveMapUseCase)
+final saveMapUseCaseProvider = AutoDisposeProvider<SaveMapUseCase>.internal(
+  saveMapUseCase,
+  name: r'saveMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$saveMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SaveMapUseCaseRef = AutoDisposeProviderRef<SaveMapUseCase>;
 String _$createMapUseCaseHash() => r'f09bed23c981b0caa7ab05eb650e9d2a3e6e2236';
 
 /// See also [createMapUseCase].
@@ -59,5 +95,58 @@ final loadMapUseCaseProvider = AutoDisposeProvider<LoadMapUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LoadMapUseCaseRef = AutoDisposeProviderRef<LoadMapUseCase>;
+String _$renameMapUseCaseHash() => r'dda46cb2e92d7f3b01bd6824f57ebccaa1a3b6b8';
+
+/// See also [renameMapUseCase].
+@ProviderFor(renameMapUseCase)
+final renameMapUseCaseProvider = AutoDisposeProvider<RenameMapUseCase>.internal(
+  renameMapUseCase,
+  name: r'renameMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameMapUseCaseRef = AutoDisposeProviderRef<RenameMapUseCase>;
+String _$deleteMapUseCaseHash() => r'e95a10ea5196d4bfeeed39dcb1dcd5a8d2cf6db8';
+
+/// See also [deleteMapUseCase].
+@ProviderFor(deleteMapUseCase)
+final deleteMapUseCaseProvider = AutoDisposeProvider<DeleteMapUseCase>.internal(
+  deleteMapUseCase,
+  name: r'deleteMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteMapUseCaseRef = AutoDisposeProviderRef<DeleteMapUseCase>;
+String _$duplicateMapUseCaseHash() =>
+    r'76cd21119e036c7e07d4a467f9e2c41aa03f6a37';
+
+/// See also [duplicateMapUseCase].
+@ProviderFor(duplicateMapUseCase)
+final duplicateMapUseCaseProvider =
+    AutoDisposeProvider<DuplicateMapUseCase>.internal(
+  duplicateMapUseCase,
+  name: r'duplicateMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$duplicateMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DuplicateMapUseCaseRef = AutoDisposeProviderRef<DuplicateMapUseCase>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
