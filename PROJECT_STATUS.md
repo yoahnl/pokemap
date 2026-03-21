@@ -11,6 +11,7 @@ Note importante: pour le moment, les tests ne sont pas une priorite. Ne pas en a
 - `packages/map_core`: modeles (Freezed/JSON), exceptions, validation minimale, logique metier pure reutilisable.
 - `packages/map_editor`: application Flutter Desktop (Riverpod), use cases applicatifs, repositories fichiers, UI (toolbar, explorer, canvas).
 - `packages/map_runtime`: runtime Flame (structure en place, rendu/chargement encore minimal).
+- `ProjectFileSystem` gere maintenant aussi l'import physique d'assets tilesets (`assets/tilesets`) avec chemins relatifs persistes.
 
 Flux typique (editor):
 - UI -> `EditorNotifier` (Riverpod) -> `*UseCase` -> `Repository` (filesystem) -> JSON.
@@ -35,14 +36,15 @@ Flux typique (editor):
 - Rester modulaire entre core, editor et runtime
 - Redimensionner une map (tile/collision layers + size) (fait le 2026-03-21)
 - Parametres globaux de projet (tile size/scale + taille map par defaut) + UI d'edition (fait le 2026-03-21)
+- Gestion tilesets projet (import/copie + scope global/groupe + ordre + assignation map) (fait le 2026-03-21)
 
 ## 4. Fonctionnalites partiellement faites
 - Renommer une map: fait cote logique et UI, verification fonctionnelle a faire
 - Supprimer une map: fait cote logique et UI, verification fonctionnelle a faire
 - Dupliquer une map: fait cote logique et UI, verification fonctionnelle a faire
 - Afficher une grille editable (affichage + hover, pas d'edition)
-- Gerer plusieurs tilesets (structure, pas d'UI/usage complet)
-- Associer un tileset a une map (champ `tilesetId`, integration partielle)
+- Gerer plusieurs tilesets (base complete import/organisation/manifest, rendu/palette encore manquants)
+- Associer un tileset a une map (selection UI + persistance ok, controle d'eligibilite global/groupe/parents)
 - Avoir une sauvegarde propre avec etat dirty (isDirty present, workflow a durcir)
 - Verifier les erreurs de coherence (validation tres partielle)
 - Preparer un runtime compatible Flame (squelette present)
@@ -65,7 +67,7 @@ Flux typique (editor):
 - Gerer les assets du projet
 
 ## 6. Tache en cours
-Aucune (derniere tache livree: redimensionnement de map).
+Aucune (derniere tache livree: gestion des tilesets projet).
 
 ## 7. Dernieres modifications realisees
 2026-03-21:
@@ -76,16 +78,24 @@ Aucune (derniere tache livree: redimensionnement de map).
 - Ajout d'une configuration globale `ProjectSettings` dans le manifest (tileWidth, tileHeight, displayScale, defaultMapWidth/Height).
 - Ajout d'un dialog "Project Settings" pour editer le nom du projet + settings et persister dans `project.json`.
 - Le canvas et la creation de map utilisent maintenant les settings globaux (fin du `32` en dur).
+- Evolution du modele `ProjectTilesetEntry` avec `scope`, `groupId`, `sortOrder`, `isWorldTileset`.
+- Ajout de validations tilesets (unicite IDs, coherence scope/group, chemin relatif, unicite du world tileset).
+- Ajout de use cases tilesets: import, update scope/metadata, reorder, suppression protegee, assignation tileset a la map active.
+- UI: import de tileset depuis disque, section tilesets structuree (globaux + par groupe), actions de gestion, selector de tileset pour map active.
 
 ## 8. Prochaines etapes recommandees
 - Verification fonctionnelle rapide des actions map (rename/delete/duplicate/resize) sur un vrai projet.
 - Decide et implementer une strategie de gestion des entites/warps/triggers hors-bounds apres shrink (conserver, tronquer, ou avertir).
 - Commencer la pile "edition tile": rendu tileset, palette, outil pinceau, ecriture dans tile layers.
+- Ajouter une previsualisation reelle de l'image tileset importee et une palette selectionnable.
+- Brancher la logique tilesets dans `map_runtime` pour preparer la coherence editor/runtime.
 
 ## 9. Decisions d'architecture importantes
 - Le resize est une operation pure dans `map_core` (reutilisable) et est invoque via un use case dans `map_editor` (UI -> notifier -> use case).
 - Les layers tile/collision sont des tableaux flatten (row-major attendu: index = y * width + x).
 - Object layers ne sont pas redimensionnees pour le moment (pas de dependance explicite a une grille fixe).
+- Les tilesets sont importes physiquement dans le projet (pas de reference absolue externe) et references via `relativePath` dans le manifest.
+- L'assignation d'un tileset a une map est contrainte par une resolution metier: global + groupe de la map + parents de groupe.
 
 ## 10. Points de vigilance / dette technique / bugs connus
 - En cas de reduction de map, les `entities/warps/triggers` peuvent se retrouver hors de la nouvelle grille: non gere pour l'instant.
@@ -93,6 +103,8 @@ Aucune (derniere tache livree: redimensionnement de map).
 - Le rendu/edition de tiles n'est pas encore implemente: l'indexation flatten devra rester coherente partout.
 - Apres ajout/modif de providers Riverpod, il faut regenerer le code (`build_runner`) pour eviter des erreurs du type `ResizeMapUseCaseRef` inconnu.
 - Modifier les settings globaux impacte visuellement le canvas (ok), mais l'effet sur les maps existantes n'est pas versionne ni historise (a clarifier si besoin).
+- La suppression d'un tileset est bloquee s'il est encore utilise par au moins une map (controle via chargement des maps du manifest).
+- Le rendu visuel de l'image tileset (palette/painting) n'est pas encore implemente malgre l'import et la persistance.
 
 ## Checklist fonctionnelle (etat)
 - Ouvrir un projet existant: fait
@@ -121,7 +133,7 @@ Aucune (derniere tache livree: redimensionnement de map).
 - Avoir une palette de tiles: pas fait
 - Charger et afficher un vrai tileset: pas fait
 - Gerer plusieurs tilesets: partiellement fait
-- Associer un tileset a une map: partiellement fait
+- Associer un tileset a une map: fait
 - Peindre les collisions: pas fait
 - Visualiser les collisions: pas fait
 - Gerer plusieurs types de collisions ou comportements de sol: pas fait
@@ -147,7 +159,7 @@ Aucune (derniere tache livree: redimensionnement de map).
 - Avoir un format JSON propre et stable: fait
 - Valider les donnees metier: fait
 - Verifier les erreurs de coherence: partiellement fait
-- Gerer les assets du projet: pas fait
+- Gerer les assets du projet: partiellement fait
 - Pouvoir editer progressivement routes/villes/interieurs/donjons: partiellement fait
 - Etre pense specifiquement pour un jeu de type Pokemon sur grille: partiellement fait
 - Rester coherent avec une Clean Architecture stricte: partiellement fait
