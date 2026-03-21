@@ -64,6 +64,17 @@ ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(
 }
 
 @riverpod
+UpsertTilesetPaletteEntryUseCase upsertTilesetPaletteEntryUseCase(
+    UpsertTilesetPaletteEntryUseCaseRef ref) {
+  return UpsertTilesetPaletteEntryUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+PaintTileOnMapUseCase paintTileOnMapUseCase(PaintTileOnMapUseCaseRef ref) {
+  return PaintTileOnMapUseCase();
+}
+
+@riverpod
 SaveMapUseCase saveMapUseCase(SaveMapUseCaseRef ref) {
   return SaveMapUseCase(ref.watch(mapRepositoryProvider));
 }

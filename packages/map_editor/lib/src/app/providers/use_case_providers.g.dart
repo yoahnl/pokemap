@@ -184,6 +184,46 @@ final reorderProjectTilesetUseCaseProvider =
 // ignore: unused_element
 typedef ReorderProjectTilesetUseCaseRef
     = AutoDisposeProviderRef<ReorderProjectTilesetUseCase>;
+String _$upsertTilesetPaletteEntryUseCaseHash() =>
+    r'ba1cfa83173d160b932744576bbfceb9a6928ef8';
+
+/// See also [upsertTilesetPaletteEntryUseCase].
+@ProviderFor(upsertTilesetPaletteEntryUseCase)
+final upsertTilesetPaletteEntryUseCaseProvider =
+    AutoDisposeProvider<UpsertTilesetPaletteEntryUseCase>.internal(
+  upsertTilesetPaletteEntryUseCase,
+  name: r'upsertTilesetPaletteEntryUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$upsertTilesetPaletteEntryUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpsertTilesetPaletteEntryUseCaseRef
+    = AutoDisposeProviderRef<UpsertTilesetPaletteEntryUseCase>;
+String _$paintTileOnMapUseCaseHash() =>
+    r'3c5a7cf82da811189b3cc992fb1927827cff5873';
+
+/// See also [paintTileOnMapUseCase].
+@ProviderFor(paintTileOnMapUseCase)
+final paintTileOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintTileOnMapUseCase>.internal(
+  paintTileOnMapUseCase,
+  name: r'paintTileOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintTileOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintTileOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintTileOnMapUseCase>;
 String _$saveMapUseCaseHash() => r'6a9741258f17448b6f6fd30e3a84d7e72c7c6adb';
 
 /// See also [saveMapUseCase].

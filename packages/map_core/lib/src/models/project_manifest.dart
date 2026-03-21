@@ -77,8 +77,35 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
     String? groupId,
     @Default(0) int sortOrder,
     @Default(false) bool isWorldTileset,
+    @Default([]) List<TilesetPaletteEntry> paletteEntries,
   }) = _ProjectTilesetEntry;
 
   factory ProjectTilesetEntry.fromJson(Map<String, dynamic> json) =>
       _$ProjectTilesetEntryFromJson(json);
+}
+
+@freezed
+class TilesetPaletteEntry with _$TilesetPaletteEntry {
+  const factory TilesetPaletteEntry({
+    required String id,
+    @Default(PaletteCategory.uncategorized) PaletteCategory category,
+    required TilesetSourceRect source,
+    String? recommendedLayerId,
+  }) = _TilesetPaletteEntry;
+
+  factory TilesetPaletteEntry.fromJson(Map<String, dynamic> json) =>
+      _$TilesetPaletteEntryFromJson(json);
+}
+
+@freezed
+class TilesetSourceRect with _$TilesetSourceRect {
+  const factory TilesetSourceRect({
+    required int x,
+    required int y,
+    @Default(1) int width,
+    @Default(1) int height,
+  }) = _TilesetSourceRect;
+
+  factory TilesetSourceRect.fromJson(Map<String, dynamic> json) =>
+      _$TilesetSourceRectFromJson(json);
 }

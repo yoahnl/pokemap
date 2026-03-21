@@ -149,6 +149,11 @@ _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
       groupId: json['groupId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       isWorldTileset: json['isWorldTileset'] as bool? ?? false,
+      paletteEntries: (json['paletteEntries'] as List<dynamic>?)
+              ?.map((e) =>
+                  TilesetPaletteEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
@@ -161,9 +166,64 @@ Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
       'groupId': instance.groupId,
       'sortOrder': instance.sortOrder,
       'isWorldTileset': instance.isWorldTileset,
+      'paletteEntries': instance.paletteEntries,
     };
 
 const _$TilesetScopeEnumMap = {
   TilesetScope.global: 'global',
   TilesetScope.group: 'group',
 };
+
+_$TilesetPaletteEntryImpl _$$TilesetPaletteEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetPaletteEntryImpl(
+      id: json['id'] as String,
+      category:
+          $enumDecodeNullable(_$PaletteCategoryEnumMap, json['category']) ??
+              PaletteCategory.uncategorized,
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      recommendedLayerId: json['recommendedLayerId'] as String?,
+    );
+
+Map<String, dynamic> _$$TilesetPaletteEntryImplToJson(
+        _$TilesetPaletteEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'category': _$PaletteCategoryEnumMap[instance.category]!,
+      'source': instance.source,
+      'recommendedLayerId': instance.recommendedLayerId,
+    };
+
+const _$PaletteCategoryEnumMap = {
+  PaletteCategory.floors: 'floors',
+  PaletteCategory.paths: 'paths',
+  PaletteCategory.water: 'water',
+  PaletteCategory.buildings: 'buildings',
+  PaletteCategory.roofs: 'roofs',
+  PaletteCategory.plants: 'plants',
+  PaletteCategory.trees: 'trees',
+  PaletteCategory.cliffs: 'cliffs',
+  PaletteCategory.decorations: 'decorations',
+  PaletteCategory.interiors: 'interiors',
+  PaletteCategory.objects: 'objects',
+  PaletteCategory.uncategorized: 'uncategorized',
+};
+
+_$TilesetSourceRectImpl _$$TilesetSourceRectImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetSourceRectImpl(
+      x: (json['x'] as num).toInt(),
+      y: (json['y'] as num).toInt(),
+      width: (json['width'] as num?)?.toInt() ?? 1,
+      height: (json['height'] as num?)?.toInt() ?? 1,
+    );
+
+Map<String, dynamic> _$$TilesetSourceRectImplToJson(
+        _$TilesetSourceRectImpl instance) =>
+    <String, dynamic>{
+      'x': instance.x,
+      'y': instance.y,
+      'width': instance.width,
+      'height': instance.height,
+    };

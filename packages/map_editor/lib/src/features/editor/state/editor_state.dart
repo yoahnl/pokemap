@@ -22,6 +22,9 @@ class EditorState with _$EditorState {
     @Default(EditorToolType.selection) EditorToolType activeTool,
     String? activeLayerId,
     GridPos? hoveredTile,
+    int? selectedTileId,
+    String? selectedPaletteEntryId,
+    PaletteCategory? paletteCategoryFilter,
 
     // Viewport
     @Default(1.0) double zoom,

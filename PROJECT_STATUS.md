@@ -37,14 +37,19 @@ Flux typique (editor):
 - Redimensionner une map (tile/collision layers + size) (fait le 2026-03-21)
 - Parametres globaux de projet (tile size/scale + taille map par defaut) + UI d'edition (fait le 2026-03-21)
 - Gestion tilesets projet (import/copie + scope global/groupe + ordre + assignation map) (fait le 2026-03-21)
+- Afficher un panneau palette/tileset a droite avec tileset actif de la map (fait le 2026-03-21)
+- Rendu des TileLayer sur le canvas a partir du tileset actif (fait le 2026-03-21)
+- Selection d'un tile dans la palette + peinture unitaire sur TileLayer active (fait le 2026-03-21)
 
 ## 4. Fonctionnalites partiellement faites
 - Renommer une map: fait cote logique et UI, verification fonctionnelle a faire
 - Supprimer une map: fait cote logique et UI, verification fonctionnelle a faire
 - Dupliquer une map: fait cote logique et UI, verification fonctionnelle a faire
 - Afficher une grille editable (affichage + hover, pas d'edition)
-- Gerer plusieurs tilesets (base complete import/organisation/manifest, rendu/palette encore manquants)
+- Gerer plusieurs tilesets (import/organisation/manifest + rendu/palette de base)
 - Associer un tileset a une map (selection UI + persistance ok, controle d'eligibilite global/groupe/parents)
+- Categorie de palette pour tileset (base persistante + filtrage + edition unitaire)
+- Support multi-tile dans le modele palette (rect source), edition/painting multi-tile non encore implemente
 - Avoir une sauvegarde propre avec etat dirty (isDirty present, workflow a durcir)
 - Verifier les erreurs de coherence (validation tres partielle)
 - Preparer un runtime compatible Flame (squelette present)
@@ -55,9 +60,9 @@ Flux typique (editor):
 ## 5. Fonctionnalites non faites
 - Gerer les connexions entre maps
 - Ajouter/renommer/reordonner/masquer/supprimer des layers
-- Peindre/effacer/remplir des tiles
+- Effacer/remplir des tiles
 - Selection rectangulaire + copier-coller
-- Palette de tiles + charger/afficher un vrai tileset
+- Palette avancee (selection rectangulaire, outils avances)
 - Peindre/visualiser collisions + types de collisions/sol
 - Warps/triggers/npc/objets/panneaux/spawn (pose + config)
 - Inspector de proprietes
@@ -67,7 +72,7 @@ Flux typique (editor):
 - Gerer les assets du projet
 
 ## 6. Tache en cours
-Aucune (derniere tache livree: gestion des tilesets projet).
+Aucune (derniere tache livree: workflow palette -> selection -> paint tile).
 
 ## 7. Dernieres modifications realisees
 2026-03-21:
@@ -82,12 +87,17 @@ Aucune (derniere tache livree: gestion des tilesets projet).
 - Ajout de validations tilesets (unicite IDs, coherence scope/group, chemin relatif, unicite du world tileset).
 - Ajout de use cases tilesets: import, update scope/metadata, reorder, suppression protegee, assignation tileset a la map active.
 - UI: import de tileset depuis disque, section tilesets structuree (globaux + par groupe), actions de gestion, selector de tileset pour map active.
+- Ajout d'un modele palette persistant dans le manifest (`TilesetPaletteEntry`, `TilesetSourceRect`, `PaletteCategory`).
+- Ajout d'une operation metier pure de painting tile dans `map_core` et use case dedie dans `map_editor`.
+- Remplacement du panneau droit vide par un panneau palette fonctionnel: categories, target layer, grille de tiles, preview, edition categorie.
+- Rendu reel des TileLayer sur le canvas en utilisant l'image du tileset actif.
+- Painting unitaire sur clic palette + clic map (outil `tilePaint`) avec marquage `isDirty`.
 
 ## 8. Prochaines etapes recommandees
 - Verification fonctionnelle rapide des actions map (rename/delete/duplicate/resize) sur un vrai projet.
 - Decide et implementer une strategie de gestion des entites/warps/triggers hors-bounds apres shrink (conserver, tronquer, ou avertir).
-- Commencer la pile "edition tile": rendu tileset, palette, outil pinceau, ecriture dans tile layers.
-- Ajouter une previsualisation reelle de l'image tileset importee et une palette selectionnable.
+- Ajouter le painting multi-tile (elements composites) en s'appuyant sur `TilesetSourceRect` (width/height > 1).
+- Ajouter les outils d'edition manquants autour du painting (eraser, fill, selection rectangulaire, copier-coller).
 - Brancher la logique tilesets dans `map_runtime` pour preparer la coherence editor/runtime.
 
 ## 9. Decisions d'architecture importantes
@@ -96,11 +106,13 @@ Aucune (derniere tache livree: gestion des tilesets projet).
 - Object layers ne sont pas redimensionnees pour le moment (pas de dependance explicite a une grille fixe).
 - Les tilesets sont importes physiquement dans le projet (pas de reference absolue externe) et references via `relativePath` dans le manifest.
 - L'assignation d'un tileset a une map est contrainte par une resolution metier: global + groupe de la map + parents de groupe.
+- La palette persistante est stockee au niveau `ProjectTilesetEntry` pour preparer categories et elements composites sans coupler la UI.
 
 ## 10. Points de vigilance / dette technique / bugs connus
 - En cas de reduction de map, les `entities/warps/triggers` peuvent se retrouver hors de la nouvelle grille: non gere pour l'instant.
 - La validation metier est minimale (taille positive); les tailles de layers ne sont pas verifiees systematiquement.
-- Le rendu/edition de tiles n'est pas encore implemente: l'indexation flatten devra rester coherente partout.
+- Le rendu des TileLayer considere `tileId <= 0` comme vide; le flux actuel de painting unitaire utilise des IDs >= 1.
+- Le painting multi-tile n'est pas encore active dans les use cases (base modele prete, UI/logic a etendre).
 - Apres ajout/modif de providers Riverpod, il faut regenerer le code (`build_runner`) pour eviter des erreurs du type `ResizeMapUseCaseRef` inconnu.
 - Modifier les settings globaux impacte visuellement le canvas (ok), mais l'effet sur les maps existantes n'est pas versionne ni historise (a clarifier si besoin).
 - La suppression d'un tileset est bloquee s'il est encore utilise par au moins une map (controle via chargement des maps du manifest).
@@ -125,13 +137,13 @@ Aucune (derniere tache livree: gestion des tilesets projet).
 - Selectionner un outil: fait
 - Selectionner une layer active: fait
 - Ajouter/renommer/reordonner/masquer/supprimer des layers: pas fait
-- Peindre des tiles: pas fait
+- Peindre des tiles: partiellement fait
 - Effacer des tiles: pas fait
 - Remplir une zone: pas fait
 - Faire de la selection rectangulaire: pas fait
 - Copier-coller une zone: pas fait
-- Avoir une palette de tiles: pas fait
-- Charger et afficher un vrai tileset: pas fait
+- Avoir une palette de tiles: partiellement fait
+- Charger et afficher un vrai tileset: partiellement fait
 - Gerer plusieurs tilesets: partiellement fait
 - Associer un tileset a une map: fait
 - Peindre les collisions: pas fait

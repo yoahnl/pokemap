@@ -25,7 +25,11 @@ mixin _$EditorState {
       throw _privateConstructorUsedError; // Active Tools & Selection
   EditorToolType get activeTool => throw _privateConstructorUsedError;
   String? get activeLayerId => throw _privateConstructorUsedError;
-  GridPos? get hoveredTile => throw _privateConstructorUsedError; // Viewport
+  GridPos? get hoveredTile => throw _privateConstructorUsedError;
+  int? get selectedTileId => throw _privateConstructorUsedError;
+  String? get selectedPaletteEntryId => throw _privateConstructorUsedError;
+  PaletteCategory? get paletteCategoryFilter =>
+      throw _privateConstructorUsedError; // Viewport
   double get zoom => throw _privateConstructorUsedError;
   Offset get panOffset => throw _privateConstructorUsedError; // Status
   bool get isDirty => throw _privateConstructorUsedError;
@@ -54,6 +58,9 @@ abstract class $EditorStateCopyWith<$Res> {
       EditorToolType activeTool,
       String? activeLayerId,
       GridPos? hoveredTile,
+      int? selectedTileId,
+      String? selectedPaletteEntryId,
+      PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
       bool isDirty,
@@ -88,6 +95,9 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? activeTool = null,
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
+    Object? selectedTileId = freezed,
+    Object? selectedPaletteEntryId = freezed,
+    Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
     Object? isDirty = null,
@@ -124,6 +134,18 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.hoveredTile
           : hoveredTile // ignore: cast_nullable_to_non_nullable
               as GridPos?,
+      selectedTileId: freezed == selectedTileId
+          ? _value.selectedTileId
+          : selectedTileId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      selectedPaletteEntryId: freezed == selectedPaletteEntryId
+          ? _value.selectedPaletteEntryId
+          : selectedPaletteEntryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      paletteCategoryFilter: freezed == paletteCategoryFilter
+          ? _value.paletteCategoryFilter
+          : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
+              as PaletteCategory?,
       zoom: null == zoom
           ? _value.zoom
           : zoom // ignore: cast_nullable_to_non_nullable
@@ -210,6 +232,9 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       EditorToolType activeTool,
       String? activeLayerId,
       GridPos? hoveredTile,
+      int? selectedTileId,
+      String? selectedPaletteEntryId,
+      PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
       bool isDirty,
@@ -245,6 +270,9 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? activeTool = null,
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
+    Object? selectedTileId = freezed,
+    Object? selectedPaletteEntryId = freezed,
+    Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
     Object? isDirty = null,
@@ -281,6 +309,18 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.hoveredTile
           : hoveredTile // ignore: cast_nullable_to_non_nullable
               as GridPos?,
+      selectedTileId: freezed == selectedTileId
+          ? _value.selectedTileId
+          : selectedTileId // ignore: cast_nullable_to_non_nullable
+              as int?,
+      selectedPaletteEntryId: freezed == selectedPaletteEntryId
+          ? _value.selectedPaletteEntryId
+          : selectedPaletteEntryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      paletteCategoryFilter: freezed == paletteCategoryFilter
+          ? _value.paletteCategoryFilter
+          : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
+              as PaletteCategory?,
       zoom: null == zoom
           ? _value.zoom
           : zoom // ignore: cast_nullable_to_non_nullable
@@ -320,6 +360,9 @@ class _$EditorStateImpl implements _EditorState {
       this.activeTool = EditorToolType.selection,
       this.activeLayerId,
       this.hoveredTile,
+      this.selectedTileId,
+      this.selectedPaletteEntryId,
+      this.paletteCategoryFilter,
       this.zoom = 1.0,
       this.panOffset = Offset.zero,
       this.isDirty = false,
@@ -345,6 +388,12 @@ class _$EditorStateImpl implements _EditorState {
   final String? activeLayerId;
   @override
   final GridPos? hoveredTile;
+  @override
+  final int? selectedTileId;
+  @override
+  final String? selectedPaletteEntryId;
+  @override
+  final PaletteCategory? paletteCategoryFilter;
 // Viewport
   @override
   @JsonKey()
@@ -366,7 +415,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -387,6 +436,12 @@ class _$EditorStateImpl implements _EditorState {
                 other.activeLayerId == activeLayerId) &&
             (identical(other.hoveredTile, hoveredTile) ||
                 other.hoveredTile == hoveredTile) &&
+            (identical(other.selectedTileId, selectedTileId) ||
+                other.selectedTileId == selectedTileId) &&
+            (identical(other.selectedPaletteEntryId, selectedPaletteEntryId) ||
+                other.selectedPaletteEntryId == selectedPaletteEntryId) &&
+            (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
+                other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
             (identical(other.panOffset, panOffset) ||
                 other.panOffset == panOffset) &&
@@ -409,6 +464,9 @@ class _$EditorStateImpl implements _EditorState {
       activeTool,
       activeLayerId,
       hoveredTile,
+      selectedTileId,
+      selectedPaletteEntryId,
+      paletteCategoryFilter,
       zoom,
       panOffset,
       isDirty,
@@ -434,6 +492,9 @@ abstract class _EditorState implements EditorState {
       final EditorToolType activeTool,
       final String? activeLayerId,
       final GridPos? hoveredTile,
+      final int? selectedTileId,
+      final String? selectedPaletteEntryId,
+      final PaletteCategory? paletteCategoryFilter,
       final double zoom,
       final Offset panOffset,
       final bool isDirty,
@@ -455,7 +516,13 @@ abstract class _EditorState implements EditorState {
   @override
   String? get activeLayerId;
   @override
-  GridPos? get hoveredTile; // Viewport
+  GridPos? get hoveredTile;
+  @override
+  int? get selectedTileId;
+  @override
+  String? get selectedPaletteEntryId;
+  @override
+  PaletteCategory? get paletteCategoryFilter; // Viewport
   @override
   double get zoom;
   @override

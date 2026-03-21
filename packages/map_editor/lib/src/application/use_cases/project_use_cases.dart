@@ -329,6 +329,53 @@ class AssignTilesetToMapUseCase {
   }
 }
 
+class UpsertTilesetPaletteEntryUseCase {
+  final ProjectRepository _repo;
+
+  UpsertTilesetPaletteEntryUseCase(this._repo);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String tilesetId,
+    required TilesetPaletteEntry entry,
+  }) async {
+    final updatedTilesets = project.tilesets.map((tileset) {
+      if (tileset.id != tilesetId) return tileset;
+      final entries = List<TilesetPaletteEntry>.from(tileset.paletteEntries);
+      final index = entries.indexWhere((e) => e.id == entry.id);
+      if (index >= 0) {
+        entries[index] = entry;
+      } else {
+        entries.add(entry);
+      }
+      return tileset.copyWith(paletteEntries: entries);
+    }).toList();
+
+    final updated = project.copyWith(tilesets: updatedTilesets);
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return updated;
+  }
+}
+
+class PaintTileOnMapUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required GridPos pos,
+    required int tileId,
+  }) {
+    final painted = paintTileOnLayer(
+      map,
+      layerId: layerId,
+      pos: pos,
+      tileId: tileId,
+    );
+    MapValidator.validate(painted);
+    return painted;
+  }
+}
+
 class SaveMapUseCase {
   final MapRepository _repo;
 

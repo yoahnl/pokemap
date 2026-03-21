@@ -91,6 +91,22 @@ class ProjectValidator {
               'World tileset ${tileset.id} must be global');
         }
       }
+
+      final paletteIds = <String>{};
+      for (final entry in tileset.paletteEntries) {
+        if (!paletteIds.add(entry.id)) {
+          throw ValidationException(
+              'Duplicate palette entry ID in tileset ${tileset.id}: ${entry.id}');
+        }
+        if (entry.source.x < 0 || entry.source.y < 0) {
+          throw ValidationException(
+              'Palette entry ${entry.id} in tileset ${tileset.id} has invalid source coordinates');
+        }
+        if (entry.source.width <= 0 || entry.source.height <= 0) {
+          throw ValidationException(
+              'Palette entry ${entry.id} in tileset ${tileset.id} has invalid source size');
+        }
+      }
     }
 
     if (worldTilesetCount > 1) {

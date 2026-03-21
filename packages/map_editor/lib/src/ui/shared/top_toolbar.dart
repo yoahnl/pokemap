@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/tools/editor_tool.dart';
 
 class TopToolbar extends ConsumerWidget {
   const TopToolbar({super.key});
@@ -131,6 +132,29 @@ class TopToolbar extends ConsumerWidget {
               ),
             ),
           ],
+          const VerticalDivider(width: 1, indent: 8, endIndent: 8),
+          IconButton(
+            onPressed: () => notifier.selectTool(EditorToolType.selection),
+            icon: Icon(
+              Icons.select_all_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.selection
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Selection Tool',
+          ),
+          IconButton(
+            onPressed: () => notifier.selectTool(EditorToolType.tilePaint),
+            icon: Icon(
+              Icons.brush_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.tilePaint
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Tile Paint Tool',
+          ),
           const VerticalDivider(width: 1, indent: 8, endIndent: 8),
           IconButton(
             onPressed: () => notifier.zoom(0.1),

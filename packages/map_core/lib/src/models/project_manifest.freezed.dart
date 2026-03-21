@@ -1165,6 +1165,8 @@ mixin _$ProjectTilesetEntry {
   String? get groupId => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
   bool get isWorldTileset => throw _privateConstructorUsedError;
+  List<TilesetPaletteEntry> get paletteEntries =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this ProjectTilesetEntry to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1189,7 +1191,8 @@ abstract class $ProjectTilesetEntryCopyWith<$Res> {
       TilesetScope scope,
       String? groupId,
       int sortOrder,
-      bool isWorldTileset});
+      bool isWorldTileset,
+      List<TilesetPaletteEntry> paletteEntries});
 }
 
 /// @nodoc
@@ -1214,6 +1217,7 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
     Object? groupId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
+    Object? paletteEntries = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -1244,6 +1248,10 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
           ? _value.isWorldTileset
           : isWorldTileset // ignore: cast_nullable_to_non_nullable
               as bool,
+      paletteEntries: null == paletteEntries
+          ? _value.paletteEntries
+          : paletteEntries // ignore: cast_nullable_to_non_nullable
+              as List<TilesetPaletteEntry>,
     ) as $Val);
   }
 }
@@ -1263,7 +1271,8 @@ abstract class _$$ProjectTilesetEntryImplCopyWith<$Res>
       TilesetScope scope,
       String? groupId,
       int sortOrder,
-      bool isWorldTileset});
+      bool isWorldTileset,
+      List<TilesetPaletteEntry> paletteEntries});
 }
 
 /// @nodoc
@@ -1286,6 +1295,7 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
     Object? groupId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
+    Object? paletteEntries = null,
   }) {
     return _then(_$ProjectTilesetEntryImpl(
       id: null == id
@@ -1316,6 +1326,10 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
           ? _value.isWorldTileset
           : isWorldTileset // ignore: cast_nullable_to_non_nullable
               as bool,
+      paletteEntries: null == paletteEntries
+          ? _value._paletteEntries
+          : paletteEntries // ignore: cast_nullable_to_non_nullable
+              as List<TilesetPaletteEntry>,
     ));
   }
 }
@@ -1330,7 +1344,9 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       this.scope = TilesetScope.global,
       this.groupId,
       this.sortOrder = 0,
-      this.isWorldTileset = false});
+      this.isWorldTileset = false,
+      final List<TilesetPaletteEntry> paletteEntries = const []})
+      : _paletteEntries = paletteEntries;
 
   factory _$ProjectTilesetEntryImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectTilesetEntryImplFromJson(json);
@@ -1352,10 +1368,18 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   @override
   @JsonKey()
   final bool isWorldTileset;
+  final List<TilesetPaletteEntry> _paletteEntries;
+  @override
+  @JsonKey()
+  List<TilesetPaletteEntry> get paletteEntries {
+    if (_paletteEntries is EqualUnmodifiableListView) return _paletteEntries;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_paletteEntries);
+  }
 
   @override
   String toString() {
-    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset)';
+    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, paletteEntries: $paletteEntries)';
   }
 
   @override
@@ -1372,13 +1396,23 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
             (identical(other.sortOrder, sortOrder) ||
                 other.sortOrder == sortOrder) &&
             (identical(other.isWorldTileset, isWorldTileset) ||
-                other.isWorldTileset == isWorldTileset));
+                other.isWorldTileset == isWorldTileset) &&
+            const DeepCollectionEquality()
+                .equals(other._paletteEntries, _paletteEntries));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, relativePath, scope,
-      groupId, sortOrder, isWorldTileset);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      relativePath,
+      scope,
+      groupId,
+      sortOrder,
+      isWorldTileset,
+      const DeepCollectionEquality().hash(_paletteEntries));
 
   /// Create a copy of ProjectTilesetEntry
   /// with the given fields replaced by the non-null parameter values.
@@ -1399,13 +1433,15 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
 
 abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   const factory _ProjectTilesetEntry(
-      {required final String id,
-      required final String name,
-      required final String relativePath,
-      final TilesetScope scope,
-      final String? groupId,
-      final int sortOrder,
-      final bool isWorldTileset}) = _$ProjectTilesetEntryImpl;
+          {required final String id,
+          required final String name,
+          required final String relativePath,
+          final TilesetScope scope,
+          final String? groupId,
+          final int sortOrder,
+          final bool isWorldTileset,
+          final List<TilesetPaletteEntry> paletteEntries}) =
+      _$ProjectTilesetEntryImpl;
 
   factory _ProjectTilesetEntry.fromJson(Map<String, dynamic> json) =
       _$ProjectTilesetEntryImpl.fromJson;
@@ -1424,11 +1460,451 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   int get sortOrder;
   @override
   bool get isWorldTileset;
+  @override
+  List<TilesetPaletteEntry> get paletteEntries;
 
   /// Create a copy of ProjectTilesetEntry
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectTilesetEntryImplCopyWith<_$ProjectTilesetEntryImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+TilesetPaletteEntry _$TilesetPaletteEntryFromJson(Map<String, dynamic> json) {
+  return _TilesetPaletteEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$TilesetPaletteEntry {
+  String get id => throw _privateConstructorUsedError;
+  PaletteCategory get category => throw _privateConstructorUsedError;
+  TilesetSourceRect get source => throw _privateConstructorUsedError;
+  String? get recommendedLayerId => throw _privateConstructorUsedError;
+
+  /// Serializes this TilesetPaletteEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of TilesetPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $TilesetPaletteEntryCopyWith<TilesetPaletteEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $TilesetPaletteEntryCopyWith<$Res> {
+  factory $TilesetPaletteEntryCopyWith(
+          TilesetPaletteEntry value, $Res Function(TilesetPaletteEntry) then) =
+      _$TilesetPaletteEntryCopyWithImpl<$Res, TilesetPaletteEntry>;
+  @useResult
+  $Res call(
+      {String id,
+      PaletteCategory category,
+      TilesetSourceRect source,
+      String? recommendedLayerId});
+
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class _$TilesetPaletteEntryCopyWithImpl<$Res, $Val extends TilesetPaletteEntry>
+    implements $TilesetPaletteEntryCopyWith<$Res> {
+  _$TilesetPaletteEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of TilesetPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? category = null,
+    Object? source = null,
+    Object? recommendedLayerId = freezed,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      category: null == category
+          ? _value.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as PaletteCategory,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      recommendedLayerId: freezed == recommendedLayerId
+          ? _value.recommendedLayerId
+          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+
+  /// Create a copy of TilesetPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $TilesetSourceRectCopyWith<$Res> get source {
+    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
+      return _then(_value.copyWith(source: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$TilesetPaletteEntryImplCopyWith<$Res>
+    implements $TilesetPaletteEntryCopyWith<$Res> {
+  factory _$$TilesetPaletteEntryImplCopyWith(_$TilesetPaletteEntryImpl value,
+          $Res Function(_$TilesetPaletteEntryImpl) then) =
+      __$$TilesetPaletteEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      PaletteCategory category,
+      TilesetSourceRect source,
+      String? recommendedLayerId});
+
+  @override
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
+    extends _$TilesetPaletteEntryCopyWithImpl<$Res, _$TilesetPaletteEntryImpl>
+    implements _$$TilesetPaletteEntryImplCopyWith<$Res> {
+  __$$TilesetPaletteEntryImplCopyWithImpl(_$TilesetPaletteEntryImpl _value,
+      $Res Function(_$TilesetPaletteEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of TilesetPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? category = null,
+    Object? source = null,
+    Object? recommendedLayerId = freezed,
+  }) {
+    return _then(_$TilesetPaletteEntryImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      category: null == category
+          ? _value.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as PaletteCategory,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      recommendedLayerId: freezed == recommendedLayerId
+          ? _value.recommendedLayerId
+          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
+  const _$TilesetPaletteEntryImpl(
+      {required this.id,
+      this.category = PaletteCategory.uncategorized,
+      required this.source,
+      this.recommendedLayerId});
+
+  factory _$TilesetPaletteEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$TilesetPaletteEntryImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  @JsonKey()
+  final PaletteCategory category;
+  @override
+  final TilesetSourceRect source;
+  @override
+  final String? recommendedLayerId;
+
+  @override
+  String toString() {
+    return 'TilesetPaletteEntry(id: $id, category: $category, source: $source, recommendedLayerId: $recommendedLayerId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TilesetPaletteEntryImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.category, category) ||
+                other.category == category) &&
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.recommendedLayerId, recommendedLayerId) ||
+                other.recommendedLayerId == recommendedLayerId));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, category, source, recommendedLayerId);
+
+  /// Create a copy of TilesetPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TilesetPaletteEntryImplCopyWith<_$TilesetPaletteEntryImpl> get copyWith =>
+      __$$TilesetPaletteEntryImplCopyWithImpl<_$TilesetPaletteEntryImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$TilesetPaletteEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _TilesetPaletteEntry implements TilesetPaletteEntry {
+  const factory _TilesetPaletteEntry(
+      {required final String id,
+      final PaletteCategory category,
+      required final TilesetSourceRect source,
+      final String? recommendedLayerId}) = _$TilesetPaletteEntryImpl;
+
+  factory _TilesetPaletteEntry.fromJson(Map<String, dynamic> json) =
+      _$TilesetPaletteEntryImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  PaletteCategory get category;
+  @override
+  TilesetSourceRect get source;
+  @override
+  String? get recommendedLayerId;
+
+  /// Create a copy of TilesetPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TilesetPaletteEntryImplCopyWith<_$TilesetPaletteEntryImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+TilesetSourceRect _$TilesetSourceRectFromJson(Map<String, dynamic> json) {
+  return _TilesetSourceRect.fromJson(json);
+}
+
+/// @nodoc
+mixin _$TilesetSourceRect {
+  int get x => throw _privateConstructorUsedError;
+  int get y => throw _privateConstructorUsedError;
+  int get width => throw _privateConstructorUsedError;
+  int get height => throw _privateConstructorUsedError;
+
+  /// Serializes this TilesetSourceRect to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of TilesetSourceRect
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $TilesetSourceRectCopyWith<TilesetSourceRect> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $TilesetSourceRectCopyWith<$Res> {
+  factory $TilesetSourceRectCopyWith(
+          TilesetSourceRect value, $Res Function(TilesetSourceRect) then) =
+      _$TilesetSourceRectCopyWithImpl<$Res, TilesetSourceRect>;
+  @useResult
+  $Res call({int x, int y, int width, int height});
+}
+
+/// @nodoc
+class _$TilesetSourceRectCopyWithImpl<$Res, $Val extends TilesetSourceRect>
+    implements $TilesetSourceRectCopyWith<$Res> {
+  _$TilesetSourceRectCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of TilesetSourceRect
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? x = null,
+    Object? y = null,
+    Object? width = null,
+    Object? height = null,
+  }) {
+    return _then(_value.copyWith(
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as int,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as int,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as int,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$TilesetSourceRectImplCopyWith<$Res>
+    implements $TilesetSourceRectCopyWith<$Res> {
+  factory _$$TilesetSourceRectImplCopyWith(_$TilesetSourceRectImpl value,
+          $Res Function(_$TilesetSourceRectImpl) then) =
+      __$$TilesetSourceRectImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int x, int y, int width, int height});
+}
+
+/// @nodoc
+class __$$TilesetSourceRectImplCopyWithImpl<$Res>
+    extends _$TilesetSourceRectCopyWithImpl<$Res, _$TilesetSourceRectImpl>
+    implements _$$TilesetSourceRectImplCopyWith<$Res> {
+  __$$TilesetSourceRectImplCopyWithImpl(_$TilesetSourceRectImpl _value,
+      $Res Function(_$TilesetSourceRectImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of TilesetSourceRect
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? x = null,
+    Object? y = null,
+    Object? width = null,
+    Object? height = null,
+  }) {
+    return _then(_$TilesetSourceRectImpl(
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as int,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as int,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as int,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$TilesetSourceRectImpl implements _TilesetSourceRect {
+  const _$TilesetSourceRectImpl(
+      {required this.x, required this.y, this.width = 1, this.height = 1});
+
+  factory _$TilesetSourceRectImpl.fromJson(Map<String, dynamic> json) =>
+      _$$TilesetSourceRectImplFromJson(json);
+
+  @override
+  final int x;
+  @override
+  final int y;
+  @override
+  @JsonKey()
+  final int width;
+  @override
+  @JsonKey()
+  final int height;
+
+  @override
+  String toString() {
+    return 'TilesetSourceRect(x: $x, y: $y, width: $width, height: $height)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TilesetSourceRectImpl &&
+            (identical(other.x, x) || other.x == x) &&
+            (identical(other.y, y) || other.y == y) &&
+            (identical(other.width, width) || other.width == width) &&
+            (identical(other.height, height) || other.height == height));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, x, y, width, height);
+
+  /// Create a copy of TilesetSourceRect
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TilesetSourceRectImplCopyWith<_$TilesetSourceRectImpl> get copyWith =>
+      __$$TilesetSourceRectImplCopyWithImpl<_$TilesetSourceRectImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$TilesetSourceRectImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _TilesetSourceRect implements TilesetSourceRect {
+  const factory _TilesetSourceRect(
+      {required final int x,
+      required final int y,
+      final int width,
+      final int height}) = _$TilesetSourceRectImpl;
+
+  factory _TilesetSourceRect.fromJson(Map<String, dynamic> json) =
+      _$TilesetSourceRectImpl.fromJson;
+
+  @override
+  int get x;
+  @override
+  int get y;
+  @override
+  int get width;
+  @override
+  int get height;
+
+  /// Create a copy of TilesetSourceRect
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TilesetSourceRectImplCopyWith<_$TilesetSourceRectImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

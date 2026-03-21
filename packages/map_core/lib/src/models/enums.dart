@@ -76,3 +76,30 @@ enum TilesetScope {
   @JsonValue('group')
   group,
 }
+
+enum PaletteCategory {
+  @JsonValue('floors')
+  floors,
+  @JsonValue('paths')
+  paths,
+  @JsonValue('water')
+  water,
+  @JsonValue('buildings')
+  buildings,
+  @JsonValue('roofs')
+  roofs,
+  @JsonValue('plants')
+  plants,
+  @JsonValue('trees')
+  trees,
+  @JsonValue('cliffs')
+  cliffs,
+  @JsonValue('decorations')
+  decorations,
+  @JsonValue('interiors')
+  interiors,
+  @JsonValue('objects')
+  objects,
+  @JsonValue('uncategorized')
+  uncategorized,
+}

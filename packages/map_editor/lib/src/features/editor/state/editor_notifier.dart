@@ -28,6 +28,9 @@ class EditorNotifier extends _$EditorNotifier {
         fileSystem: ProjectFileSystem(directory),
         activeMap: null,
         activeMapPath: null,
+        selectedTileId: null,
+        selectedPaletteEntryId: null,
+        paletteCategoryFilter: null,
         statusMessage: 'Project "$name" created successfully',
         errorMessage: null,
       );
@@ -49,6 +52,9 @@ class EditorNotifier extends _$EditorNotifier {
         fileSystem: ProjectFileSystem(projectDir),
         activeMap: null,
         activeMapPath: null,
+        selectedTileId: null,
+        selectedPaletteEntryId: null,
+        paletteCategoryFilter: null,
         statusMessage: 'Project "${manifest.name}" loaded',
         errorMessage: null,
       );
@@ -138,6 +144,9 @@ class EditorNotifier extends _$EditorNotifier {
         activeMap: map,
         activeMapPath: fs.getMapPath(id),
         activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
+        selectedTileId: null,
+        selectedPaletteEntryId: null,
+        paletteCategoryFilter: null,
         statusMessage: 'Map "$id" created successfully',
         errorMessage: null,
       );
@@ -160,6 +169,9 @@ class EditorNotifier extends _$EditorNotifier {
         activeMap: map,
         activeMapPath: fs.resolveMapPath(relativePath),
         activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
+        selectedTileId: null,
+        selectedPaletteEntryId: null,
+        paletteCategoryFilter: null,
         statusMessage: 'Map "${map.id}" loaded',
         errorMessage: null,
       );
@@ -250,15 +262,24 @@ class EditorNotifier extends _$EditorNotifier {
 
       MapData? activeMap = state.activeMap;
       String? activePath = state.activeMapPath;
+      int? selectedTileId = state.selectedTileId;
+      String? selectedPaletteEntryId = state.selectedPaletteEntryId;
+      PaletteCategory? paletteCategoryFilter = state.paletteCategoryFilter;
       if (activeMap?.id == mapId) {
         activeMap = null;
         activePath = null;
+        selectedTileId = null;
+        selectedPaletteEntryId = null;
+        paletteCategoryFilter = null;
       }
 
       state = state.copyWith(
         project: updatedProject,
         activeMap: activeMap,
         activeMapPath: activePath,
+        selectedTileId: selectedTileId,
+        selectedPaletteEntryId: selectedPaletteEntryId,
+        paletteCategoryFilter: paletteCategoryFilter,
         statusMessage: 'Map "$mapId" deleted',
         errorMessage: null,
       );
@@ -507,6 +528,9 @@ class EditorNotifier extends _$EditorNotifier {
           await useCase.execute(project, map, mapPath, tilesetId);
       state = state.copyWith(
         activeMap: updatedMap,
+        selectedTileId: null,
+        selectedPaletteEntryId: null,
+        paletteCategoryFilter: null,
         isDirty: false,
         statusMessage:
             'Tileset "${updatedMap.tilesetId}" assigned to "${map.id}"',
@@ -515,6 +539,115 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       debugPrint('EditorNotifier: Error assigning map tileset: $e');
       state = state.copyWith(errorMessage: 'Failed to assign map tileset: $e');
+    }
+  }
+
+  ProjectTilesetEntry? getActiveTilesetEntry() {
+    final project = state.project;
+    final map = state.activeMap;
+    if (project == null || map == null) return null;
+    for (final tileset in project.tilesets) {
+      if (tileset.id == map.tilesetId) {
+        return tileset;
+      }
+    }
+    return null;
+  }
+
+  String? getActiveTilesetAbsolutePath() {
+    final fs = state.fileSystem;
+    final tileset = getActiveTilesetEntry();
+    if (fs == null || tileset == null) return null;
+    return fs.resolveTilesetPath(tileset.relativePath);
+  }
+
+  void setPaletteCategoryFilter(PaletteCategory? category) {
+    state = state.copyWith(paletteCategoryFilter: category);
+  }
+
+  void selectPaletteTile(int tileId, {String? paletteEntryId}) {
+    state = state.copyWith(
+      selectedTileId: tileId,
+      selectedPaletteEntryId: paletteEntryId,
+    );
+  }
+
+  Future<void> upsertPaletteEntryForTile({
+    required int tileId,
+    required int columns,
+    required PaletteCategory category,
+    String? recommendedLayerId,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    final tileset = getActiveTilesetEntry();
+    if (fs == null || project == null || tileset == null) return;
+    if (tileId <= 0 || columns <= 0) return;
+
+    final sourceIndex = tileId - 1;
+    final sourceX = sourceIndex % columns;
+    final sourceY = sourceIndex ~/ columns;
+
+    TilesetPaletteEntry? existing;
+    for (final entry in tileset.paletteEntries) {
+      if (entry.source.width == 1 &&
+          entry.source.height == 1 &&
+          entry.source.x == sourceX &&
+          entry.source.y == sourceY) {
+        existing = entry;
+        break;
+      }
+    }
+
+    final entry = TilesetPaletteEntry(
+      id: existing?.id ?? 'tile_$tileId',
+      category: category,
+      source: TilesetSourceRect(x: sourceX, y: sourceY),
+      recommendedLayerId: recommendedLayerId,
+    );
+
+    try {
+      final useCase = ref.read(upsertTilesetPaletteEntryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tileset.id,
+        entry: entry,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedPaletteEntryId: entry.id,
+        statusMessage: 'Palette entry updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error updating palette entry: $e');
+      state =
+          state.copyWith(errorMessage: 'Failed to update palette entry: $e');
+    }
+  }
+
+  void paintSelectedTileAt(GridPos pos) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    final tileId = state.selectedTileId;
+    if (map == null || layerId == null || tileId == null) return;
+
+    try {
+      final useCase = ref.read(paintTileOnMapUseCaseProvider);
+      final painted = useCase.execute(
+        map,
+        layerId: layerId,
+        pos: pos,
+        tileId: tileId,
+      );
+      state = state.copyWith(
+        activeMap: painted,
+        isDirty: true,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to paint tile: $e');
     }
   }
 
