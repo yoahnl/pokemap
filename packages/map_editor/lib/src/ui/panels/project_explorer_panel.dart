@@ -52,8 +52,8 @@ class ProjectExplorerPanel extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 11,
-                letterSpacing: 1.1,
+                fontSize: 10,
+                letterSpacing: 0.9,
               ),
             ),
           ),
@@ -65,7 +65,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             tooltip: 'Import Tileset',
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
           ),
           IconButton(
             icon: const Icon(Icons.create_new_folder_outlined, size: 18),
@@ -75,7 +75,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             tooltip: 'New Root Group',
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
           ),
         ],
       ),
@@ -110,7 +110,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        _buildTilesetsSection(context, project, notifier),
+        _buildTilesetsSection(context, project, state, notifier),
         const Divider(height: 20),
         ...rootGroups.map((g) => _GroupNode(
             group: g,
@@ -137,8 +137,11 @@ class ProjectExplorerPanel extends ConsumerWidget {
   Widget _buildTilesetsSection(
     BuildContext context,
     ProjectManifest project,
+    dynamic state,
     EditorNotifier notifier,
   ) {
+    final selectedTilesetId =
+        state.selectedTilesetEditorId ?? state.activeMap?.tilesetId;
     final globalTilesets =
         project.tilesets.where((t) => t.scope == TilesetScope.global).toList()
           ..sort((a, b) {
@@ -214,6 +217,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 tileset: tileset,
                 project: project,
                 notifier: notifier,
+                selected: selectedTilesetId == tileset.id,
               )),
         ],
         for (final group in sortedGroups)
@@ -236,6 +240,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
                   tileset: tileset,
                   project: project,
                   notifier: notifier,
+                  selected: selectedTilesetId == tileset.id,
                 )),
           ],
       ],
@@ -828,116 +833,132 @@ class _TilesetNode extends StatelessWidget {
   final ProjectTilesetEntry tileset;
   final ProjectManifest project;
   final EditorNotifier notifier;
+  final bool selected;
 
   const _TilesetNode({
     required this.tileset,
     required this.project,
     required this.notifier,
+    required this.selected,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.only(left: 24, right: 8),
-      leading: Icon(
-        tileset.isWorldTileset
-            ? Icons.public
-            : (tileset.scope == TilesetScope.global
-                ? Icons.language
-                : Icons.category_outlined),
-        size: 16,
-        color: tileset.isWorldTileset ? Colors.amber : Colors.white60,
-      ),
-      title: Text(
-        tileset.name,
-        style: const TextStyle(fontSize: 12, color: Colors.white70),
-      ),
-      subtitle: Text(
-        '${tileset.id} | sort ${tileset.sortOrder}',
-        style: const TextStyle(fontSize: 10, color: Colors.white38),
-      ),
-      trailing: PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert, size: 16),
-        onSelected: (value) {
-          switch (value) {
-            case 'rename':
-              _showRenameTilesetDialog(context);
-              break;
-            case 'make_global':
-              notifier.updateProjectTileset(
-                tilesetId: tileset.id,
-                scope: TilesetScope.global,
-                groupId: null,
-              );
-              break;
-            case 'assign_group':
-              _showAssignGroupDialog(context);
-              break;
-            case 'toggle_world':
-              notifier.updateProjectTileset(
-                tilesetId: tileset.id,
-                isWorldTileset: !tileset.isWorldTileset,
-              );
-              break;
-            case 'move_up':
-              notifier.reorderProjectTileset(tileset.id, -1);
-              break;
-            case 'move_down':
-              notifier.reorderProjectTileset(tileset.id, 1);
-              break;
-            case 'delete':
-              notifier.deleteProjectTileset(tileset.id);
-              break;
-          }
-        },
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'rename',
-            child: _ContextMenuItem(icon: Icons.edit_outlined, label: 'Rename'),
+    return Material(
+      color:
+          selected ? Colors.blue.withValues(alpha: 0.14) : Colors.transparent,
+      child: ListTile(
+        dense: true,
+        visualDensity: VisualDensity.compact,
+        contentPadding: const EdgeInsets.only(left: 24, right: 8),
+        selected: selected,
+        onTap: () => notifier.selectTilesetWorkspace(tileset.id),
+        leading: Icon(
+          tileset.isWorldTileset
+              ? Icons.public
+              : (tileset.scope == TilesetScope.global
+                  ? Icons.language
+                  : Icons.category_outlined),
+          size: 16,
+          color: selected
+              ? Colors.blue.shade200
+              : (tileset.isWorldTileset ? Colors.amber : Colors.white60),
+        ),
+        title: Text(
+          tileset.name,
+          style: TextStyle(
+            fontSize: 12,
+            color: selected ? Colors.blue.shade100 : Colors.white70,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
-          const PopupMenuItem(
-            value: 'move_up',
-            child: _ContextMenuItem(
-                icon: Icons.keyboard_arrow_up, label: 'Move Up'),
-          ),
-          const PopupMenuItem(
-            value: 'move_down',
-            child: _ContextMenuItem(
-                icon: Icons.keyboard_arrow_down, label: 'Move Down'),
-          ),
-          const PopupMenuDivider(),
-          const PopupMenuItem(
-            value: 'make_global',
-            child:
-                _ContextMenuItem(icon: Icons.language, label: 'Set as Global'),
-          ),
-          const PopupMenuItem(
-            value: 'assign_group',
-            child: _ContextMenuItem(
-                icon: Icons.category_outlined, label: 'Attach to Group'),
-          ),
-          if (tileset.scope == TilesetScope.global)
-            PopupMenuItem(
-              value: 'toggle_world',
+        ),
+        subtitle: Text(
+          '${tileset.id} | sort ${tileset.sortOrder}',
+          style: const TextStyle(fontSize: 10, color: Colors.white38),
+        ),
+        trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, size: 16),
+          onSelected: (value) {
+            switch (value) {
+              case 'rename':
+                _showRenameTilesetDialog(context);
+                break;
+              case 'make_global':
+                notifier.updateProjectTileset(
+                  tilesetId: tileset.id,
+                  scope: TilesetScope.global,
+                  groupId: null,
+                );
+                break;
+              case 'assign_group':
+                _showAssignGroupDialog(context);
+                break;
+              case 'toggle_world':
+                notifier.updateProjectTileset(
+                  tilesetId: tileset.id,
+                  isWorldTileset: !tileset.isWorldTileset,
+                );
+                break;
+              case 'move_up':
+                notifier.reorderProjectTileset(tileset.id, -1);
+                break;
+              case 'move_down':
+                notifier.reorderProjectTileset(tileset.id, 1);
+                break;
+              case 'delete':
+                notifier.deleteProjectTileset(tileset.id);
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'rename',
+              child:
+                  _ContextMenuItem(icon: Icons.edit_outlined, label: 'Rename'),
+            ),
+            const PopupMenuItem(
+              value: 'move_up',
               child: _ContextMenuItem(
-                icon: tileset.isWorldTileset ? Icons.public_off : Icons.public,
-                label: tileset.isWorldTileset
-                    ? 'Unset World Tileset'
-                    : 'Set as World Tileset',
+                  icon: Icons.keyboard_arrow_up, label: 'Move Up'),
+            ),
+            const PopupMenuItem(
+              value: 'move_down',
+              child: _ContextMenuItem(
+                  icon: Icons.keyboard_arrow_down, label: 'Move Down'),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'make_global',
+              child: _ContextMenuItem(
+                  icon: Icons.language, label: 'Set as Global'),
+            ),
+            const PopupMenuItem(
+              value: 'assign_group',
+              child: _ContextMenuItem(
+                  icon: Icons.category_outlined, label: 'Attach to Group'),
+            ),
+            if (tileset.scope == TilesetScope.global)
+              PopupMenuItem(
+                value: 'toggle_world',
+                child: _ContextMenuItem(
+                  icon:
+                      tileset.isWorldTileset ? Icons.public_off : Icons.public,
+                  label: tileset.isWorldTileset
+                      ? 'Unset World Tileset'
+                      : 'Set as World Tileset',
+                ),
+              ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'delete',
+              child: _ContextMenuItem(
+                icon: Icons.delete_outline,
+                label: 'Delete Tileset',
+                color: Colors.redAccent,
               ),
             ),
-          const PopupMenuDivider(),
-          const PopupMenuItem(
-            value: 'delete',
-            child: _ContextMenuItem(
-              icon: Icons.delete_outline,
-              label: 'Delete Tileset',
-              color: Colors.redAccent,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

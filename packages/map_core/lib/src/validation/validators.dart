@@ -83,6 +83,7 @@ class ProjectValidator {
     }
 
     var worldTilesetCount = 0;
+    final tilesetElementGroupIdsByTileset = <String, Set<String>>{};
     for (final tileset in manifest.tilesets) {
       _validateRelativePath(tileset.relativePath, 'Tileset ${tileset.id}');
 
@@ -106,6 +107,47 @@ class ProjectValidator {
               'World tileset ${tileset.id} must be global');
         }
       }
+
+      final elementGroupById = <String, TilesetElementGroup>{};
+      for (final group in tileset.elementGroups) {
+        if (group.id.trim().isEmpty) {
+          throw ValidationException(
+              'Tileset ${tileset.id} has an internal group with empty ID');
+        }
+        if (group.name.trim().isEmpty) {
+          throw ValidationException(
+              'Tileset ${tileset.id} internal group ${group.id} has an empty name');
+        }
+        if (elementGroupById.containsKey(group.id)) {
+          throw ValidationException(
+              'Duplicate internal group ID in tileset ${tileset.id}: ${group.id}');
+        }
+        elementGroupById[group.id] = group;
+      }
+
+      for (final group in tileset.elementGroups) {
+        final parentId = group.parentGroupId;
+        if (parentId == null) continue;
+        if (!elementGroupById.containsKey(parentId)) {
+          throw ValidationException(
+              'Tileset ${tileset.id} internal group ${group.id} references missing parent: $parentId');
+        }
+        if (parentId == group.id) {
+          throw ValidationException(
+              'Tileset ${tileset.id} internal group ${group.id} cannot be its own parent');
+        }
+        String? cursor = parentId;
+        final visited = <String>{group.id};
+        while (cursor != null) {
+          if (!visited.add(cursor)) {
+            throw ValidationException(
+                'Cycle detected in tileset ${tileset.id} internal groups at ${group.id}');
+          }
+          cursor = elementGroupById[cursor]?.parentGroupId;
+        }
+      }
+      tilesetElementGroupIdsByTileset[tileset.id] =
+          elementGroupById.keys.toSet();
 
       final paletteIds = <String>{};
       for (final entry in tileset.paletteEntries) {
@@ -185,6 +227,19 @@ class ProjectValidator {
       if (element.groupId != null && !groupIds.contains(element.groupId)) {
         throw ValidationException(
             'Element ${element.id} references missing group: ${element.groupId}');
+      }
+      if (element.tilesetGroupId != null &&
+          element.tilesetGroupId!.trim().isEmpty) {
+        throw ValidationException(
+            'Element ${element.id} has an empty tilesetGroupId');
+      }
+      if (element.tilesetGroupId != null) {
+        final tilesetGroups =
+            tilesetElementGroupIdsByTileset[element.tilesetId] ?? const {};
+        if (!tilesetGroups.contains(element.tilesetGroupId)) {
+          throw ValidationException(
+              'Element ${element.id} references missing tileset group ${element.tilesetGroupId} in tileset ${element.tilesetId}');
+        }
       }
       if (element.source.x < 0 || element.source.y < 0) {
         throw ValidationException(

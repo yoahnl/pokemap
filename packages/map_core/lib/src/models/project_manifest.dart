@@ -79,6 +79,7 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
     String? groupId,
     @Default(0) int sortOrder,
     @Default(false) bool isWorldTileset,
+    @Default([]) List<TilesetElementGroup> elementGroups,
     @Default([]) List<TilesetPaletteEntry> paletteEntries,
   }) = _ProjectTilesetEntry;
 
@@ -114,6 +115,19 @@ class TilesetSourceRect with _$TilesetSourceRect {
 }
 
 @freezed
+class TilesetElementGroup with _$TilesetElementGroup {
+  const factory TilesetElementGroup({
+    required String id,
+    required String name,
+    String? parentGroupId,
+    @Default(0) int sortOrder,
+  }) = _TilesetElementGroup;
+
+  factory TilesetElementGroup.fromJson(Map<String, dynamic> json) =>
+      _$TilesetElementGroupFromJson(json);
+}
+
+@freezed
 class ProjectElementCategory with _$ProjectElementCategory {
   const factory ProjectElementCategory({
     required String id,
@@ -133,6 +147,7 @@ class ProjectElementEntry with _$ProjectElementEntry {
     required String name,
     required String tilesetId,
     required String categoryId,
+    String? tilesetGroupId,
     required TilesetSourceRect source,
     String? groupId,
     String? recommendedLayerId,

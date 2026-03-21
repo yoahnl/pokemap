@@ -25,6 +25,8 @@ class EditorState with _$EditorState {
     int? selectedTileId,
     String? selectedPaletteEntryId,
     String? selectedProjectElementId,
+    String? selectedTilesetEditorId,
+    String? selectedTilesetElementGroupId,
     PaletteCategory? paletteCategoryFilter,
 
     // Viewport

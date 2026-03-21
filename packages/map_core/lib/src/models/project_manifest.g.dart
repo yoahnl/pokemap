@@ -162,6 +162,11 @@ _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
       groupId: json['groupId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       isWorldTileset: json['isWorldTileset'] as bool? ?? false,
+      elementGroups: (json['elementGroups'] as List<dynamic>?)
+              ?.map((e) =>
+                  TilesetElementGroup.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       paletteEntries: (json['paletteEntries'] as List<dynamic>?)
               ?.map((e) =>
                   TilesetPaletteEntry.fromJson(e as Map<String, dynamic>))
@@ -179,6 +184,7 @@ Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
       'groupId': instance.groupId,
       'sortOrder': instance.sortOrder,
       'isWorldTileset': instance.isWorldTileset,
+      'elementGroups': instance.elementGroups,
       'paletteEntries': instance.paletteEntries,
     };
 
@@ -243,6 +249,24 @@ Map<String, dynamic> _$$TilesetSourceRectImplToJson(
       'height': instance.height,
     };
 
+_$TilesetElementGroupImpl _$$TilesetElementGroupImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetElementGroupImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentGroupId: json['parentGroupId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$TilesetElementGroupImplToJson(
+        _$TilesetElementGroupImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentGroupId': instance.parentGroupId,
+      'sortOrder': instance.sortOrder,
+    };
+
 _$ProjectElementCategoryImpl _$$ProjectElementCategoryImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectElementCategoryImpl(
@@ -268,6 +292,7 @@ _$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
       name: json['name'] as String,
       tilesetId: json['tilesetId'] as String,
       categoryId: json['categoryId'] as String,
+      tilesetGroupId: json['tilesetGroupId'] as String?,
       source:
           TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
       groupId: json['groupId'] as String?,
@@ -285,6 +310,7 @@ Map<String, dynamic> _$$ProjectElementEntryImplToJson(
       'name': instance.name,
       'tilesetId': instance.tilesetId,
       'categoryId': instance.categoryId,
+      'tilesetGroupId': instance.tilesetGroupId,
       'source': instance.source,
       'groupId': instance.groupId,
       'recommendedLayerId': instance.recommendedLayerId,

@@ -244,6 +244,66 @@ final renameElementCategoryUseCaseProvider =
 // ignore: unused_element
 typedef RenameElementCategoryUseCaseRef
     = AutoDisposeProviderRef<RenameElementCategoryUseCase>;
+String _$createTilesetElementGroupUseCaseHash() =>
+    r'470a811dbc265fcc350f87ea19e7a005d02c2d43';
+
+/// See also [createTilesetElementGroupUseCase].
+@ProviderFor(createTilesetElementGroupUseCase)
+final createTilesetElementGroupUseCaseProvider =
+    AutoDisposeProvider<CreateTilesetElementGroupUseCase>.internal(
+  createTilesetElementGroupUseCase,
+  name: r'createTilesetElementGroupUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createTilesetElementGroupUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateTilesetElementGroupUseCaseRef
+    = AutoDisposeProviderRef<CreateTilesetElementGroupUseCase>;
+String _$createTilesetElementSubgroupUseCaseHash() =>
+    r'383aee22f6e24b09a168b12f70503fef3fb61bef';
+
+/// See also [createTilesetElementSubgroupUseCase].
+@ProviderFor(createTilesetElementSubgroupUseCase)
+final createTilesetElementSubgroupUseCaseProvider =
+    AutoDisposeProvider<CreateTilesetElementSubgroupUseCase>.internal(
+  createTilesetElementSubgroupUseCase,
+  name: r'createTilesetElementSubgroupUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createTilesetElementSubgroupUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateTilesetElementSubgroupUseCaseRef
+    = AutoDisposeProviderRef<CreateTilesetElementSubgroupUseCase>;
+String _$renameTilesetElementGroupUseCaseHash() =>
+    r'91bd47f43374f5606473c493b466e719578b76d5';
+
+/// See also [renameTilesetElementGroupUseCase].
+@ProviderFor(renameTilesetElementGroupUseCase)
+final renameTilesetElementGroupUseCaseProvider =
+    AutoDisposeProvider<RenameTilesetElementGroupUseCase>.internal(
+  renameTilesetElementGroupUseCase,
+  name: r'renameTilesetElementGroupUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameTilesetElementGroupUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameTilesetElementGroupUseCaseRef
+    = AutoDisposeProviderRef<RenameTilesetElementGroupUseCase>;
 String _$createProjectElementUseCaseHash() =>
     r'd2d1dcc144e3bd287d29f9bfe129d6efd3b3c168';
 
@@ -304,6 +364,26 @@ final resolveVisibleProjectElementsUseCaseProvider =
 // ignore: unused_element
 typedef ResolveVisibleProjectElementsUseCaseRef
     = AutoDisposeProviderRef<ResolveVisibleProjectElementsUseCase>;
+String _$resolveTilesetElementsUseCaseHash() =>
+    r'308afc07ad626c642a1db8ca67b92ecadadb094c';
+
+/// See also [resolveTilesetElementsUseCase].
+@ProviderFor(resolveTilesetElementsUseCase)
+final resolveTilesetElementsUseCaseProvider =
+    AutoDisposeProvider<ResolveTilesetElementsUseCase>.internal(
+  resolveTilesetElementsUseCase,
+  name: r'resolveTilesetElementsUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$resolveTilesetElementsUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ResolveTilesetElementsUseCaseRef
+    = AutoDisposeProviderRef<ResolveTilesetElementsUseCase>;
 String _$upsertTilesetPaletteEntryUseCaseHash() =>
     r'ba1cfa83173d160b932744576bbfceb9a6928ef8';
 

@@ -1226,6 +1226,8 @@ mixin _$ProjectTilesetEntry {
   String? get groupId => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
   bool get isWorldTileset => throw _privateConstructorUsedError;
+  List<TilesetElementGroup> get elementGroups =>
+      throw _privateConstructorUsedError;
   List<TilesetPaletteEntry> get paletteEntries =>
       throw _privateConstructorUsedError;
 
@@ -1253,6 +1255,7 @@ abstract class $ProjectTilesetEntryCopyWith<$Res> {
       String? groupId,
       int sortOrder,
       bool isWorldTileset,
+      List<TilesetElementGroup> elementGroups,
       List<TilesetPaletteEntry> paletteEntries});
 }
 
@@ -1278,6 +1281,7 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
     Object? groupId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
+    Object? elementGroups = null,
     Object? paletteEntries = null,
   }) {
     return _then(_value.copyWith(
@@ -1309,6 +1313,10 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
           ? _value.isWorldTileset
           : isWorldTileset // ignore: cast_nullable_to_non_nullable
               as bool,
+      elementGroups: null == elementGroups
+          ? _value.elementGroups
+          : elementGroups // ignore: cast_nullable_to_non_nullable
+              as List<TilesetElementGroup>,
       paletteEntries: null == paletteEntries
           ? _value.paletteEntries
           : paletteEntries // ignore: cast_nullable_to_non_nullable
@@ -1333,6 +1341,7 @@ abstract class _$$ProjectTilesetEntryImplCopyWith<$Res>
       String? groupId,
       int sortOrder,
       bool isWorldTileset,
+      List<TilesetElementGroup> elementGroups,
       List<TilesetPaletteEntry> paletteEntries});
 }
 
@@ -1356,6 +1365,7 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
     Object? groupId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
+    Object? elementGroups = null,
     Object? paletteEntries = null,
   }) {
     return _then(_$ProjectTilesetEntryImpl(
@@ -1387,6 +1397,10 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
           ? _value.isWorldTileset
           : isWorldTileset // ignore: cast_nullable_to_non_nullable
               as bool,
+      elementGroups: null == elementGroups
+          ? _value._elementGroups
+          : elementGroups // ignore: cast_nullable_to_non_nullable
+              as List<TilesetElementGroup>,
       paletteEntries: null == paletteEntries
           ? _value._paletteEntries
           : paletteEntries // ignore: cast_nullable_to_non_nullable
@@ -1406,8 +1420,10 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       this.groupId,
       this.sortOrder = 0,
       this.isWorldTileset = false,
+      final List<TilesetElementGroup> elementGroups = const [],
       final List<TilesetPaletteEntry> paletteEntries = const []})
-      : _paletteEntries = paletteEntries;
+      : _elementGroups = elementGroups,
+        _paletteEntries = paletteEntries;
 
   factory _$ProjectTilesetEntryImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectTilesetEntryImplFromJson(json);
@@ -1429,6 +1445,15 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   @override
   @JsonKey()
   final bool isWorldTileset;
+  final List<TilesetElementGroup> _elementGroups;
+  @override
+  @JsonKey()
+  List<TilesetElementGroup> get elementGroups {
+    if (_elementGroups is EqualUnmodifiableListView) return _elementGroups;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_elementGroups);
+  }
+
   final List<TilesetPaletteEntry> _paletteEntries;
   @override
   @JsonKey()
@@ -1440,7 +1465,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
 
   @override
   String toString() {
-    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, paletteEntries: $paletteEntries)';
+    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
   }
 
   @override
@@ -1459,6 +1484,8 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
             (identical(other.isWorldTileset, isWorldTileset) ||
                 other.isWorldTileset == isWorldTileset) &&
             const DeepCollectionEquality()
+                .equals(other._elementGroups, _elementGroups) &&
+            const DeepCollectionEquality()
                 .equals(other._paletteEntries, _paletteEntries));
   }
 
@@ -1473,6 +1500,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       groupId,
       sortOrder,
       isWorldTileset,
+      const DeepCollectionEquality().hash(_elementGroups),
       const DeepCollectionEquality().hash(_paletteEntries));
 
   /// Create a copy of ProjectTilesetEntry
@@ -1501,6 +1529,7 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
           final String? groupId,
           final int sortOrder,
           final bool isWorldTileset,
+          final List<TilesetElementGroup> elementGroups,
           final List<TilesetPaletteEntry> paletteEntries}) =
       _$ProjectTilesetEntryImpl;
 
@@ -1521,6 +1550,8 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   int get sortOrder;
   @override
   bool get isWorldTileset;
+  @override
+  List<TilesetElementGroup> get elementGroups;
   @override
   List<TilesetPaletteEntry> get paletteEntries;
 
@@ -1991,6 +2022,216 @@ abstract class _TilesetSourceRect implements TilesetSourceRect {
       throw _privateConstructorUsedError;
 }
 
+TilesetElementGroup _$TilesetElementGroupFromJson(Map<String, dynamic> json) {
+  return _TilesetElementGroup.fromJson(json);
+}
+
+/// @nodoc
+mixin _$TilesetElementGroup {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String? get parentGroupId => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this TilesetElementGroup to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of TilesetElementGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $TilesetElementGroupCopyWith<TilesetElementGroup> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $TilesetElementGroupCopyWith<$Res> {
+  factory $TilesetElementGroupCopyWith(
+          TilesetElementGroup value, $Res Function(TilesetElementGroup) then) =
+      _$TilesetElementGroupCopyWithImpl<$Res, TilesetElementGroup>;
+  @useResult
+  $Res call({String id, String name, String? parentGroupId, int sortOrder});
+}
+
+/// @nodoc
+class _$TilesetElementGroupCopyWithImpl<$Res, $Val extends TilesetElementGroup>
+    implements $TilesetElementGroupCopyWith<$Res> {
+  _$TilesetElementGroupCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of TilesetElementGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentGroupId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentGroupId: freezed == parentGroupId
+          ? _value.parentGroupId
+          : parentGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$TilesetElementGroupImplCopyWith<$Res>
+    implements $TilesetElementGroupCopyWith<$Res> {
+  factory _$$TilesetElementGroupImplCopyWith(_$TilesetElementGroupImpl value,
+          $Res Function(_$TilesetElementGroupImpl) then) =
+      __$$TilesetElementGroupImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, String name, String? parentGroupId, int sortOrder});
+}
+
+/// @nodoc
+class __$$TilesetElementGroupImplCopyWithImpl<$Res>
+    extends _$TilesetElementGroupCopyWithImpl<$Res, _$TilesetElementGroupImpl>
+    implements _$$TilesetElementGroupImplCopyWith<$Res> {
+  __$$TilesetElementGroupImplCopyWithImpl(_$TilesetElementGroupImpl _value,
+      $Res Function(_$TilesetElementGroupImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of TilesetElementGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentGroupId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$TilesetElementGroupImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentGroupId: freezed == parentGroupId
+          ? _value.parentGroupId
+          : parentGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$TilesetElementGroupImpl implements _TilesetElementGroup {
+  const _$TilesetElementGroupImpl(
+      {required this.id,
+      required this.name,
+      this.parentGroupId,
+      this.sortOrder = 0});
+
+  factory _$TilesetElementGroupImpl.fromJson(Map<String, dynamic> json) =>
+      _$$TilesetElementGroupImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final String? parentGroupId;
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'TilesetElementGroup(id: $id, name: $name, parentGroupId: $parentGroupId, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TilesetElementGroupImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.parentGroupId, parentGroupId) ||
+                other.parentGroupId == parentGroupId) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, name, parentGroupId, sortOrder);
+
+  /// Create a copy of TilesetElementGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TilesetElementGroupImplCopyWith<_$TilesetElementGroupImpl> get copyWith =>
+      __$$TilesetElementGroupImplCopyWithImpl<_$TilesetElementGroupImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$TilesetElementGroupImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _TilesetElementGroup implements TilesetElementGroup {
+  const factory _TilesetElementGroup(
+      {required final String id,
+      required final String name,
+      final String? parentGroupId,
+      final int sortOrder}) = _$TilesetElementGroupImpl;
+
+  factory _TilesetElementGroup.fromJson(Map<String, dynamic> json) =
+      _$TilesetElementGroupImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String? get parentGroupId;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of TilesetElementGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TilesetElementGroupImplCopyWith<_$TilesetElementGroupImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 ProjectElementCategory _$ProjectElementCategoryFromJson(
     Map<String, dynamic> json) {
   return _ProjectElementCategory.fromJson(json);
@@ -2216,6 +2457,7 @@ mixin _$ProjectElementEntry {
   String get name => throw _privateConstructorUsedError;
   String get tilesetId => throw _privateConstructorUsedError;
   String get categoryId => throw _privateConstructorUsedError;
+  String? get tilesetGroupId => throw _privateConstructorUsedError;
   TilesetSourceRect get source => throw _privateConstructorUsedError;
   String? get groupId => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
@@ -2243,6 +2485,7 @@ abstract class $ProjectElementEntryCopyWith<$Res> {
       String name,
       String tilesetId,
       String categoryId,
+      String? tilesetGroupId,
       TilesetSourceRect source,
       String? groupId,
       String? recommendedLayerId,
@@ -2271,6 +2514,7 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
     Object? name = null,
     Object? tilesetId = null,
     Object? categoryId = null,
+    Object? tilesetGroupId = freezed,
     Object? source = null,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
@@ -2294,6 +2538,10 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
               as String,
+      tilesetGroupId: freezed == tilesetGroupId
+          ? _value.tilesetGroupId
+          : tilesetGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
       source: null == source
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
@@ -2341,6 +2589,7 @@ abstract class _$$ProjectElementEntryImplCopyWith<$Res>
       String name,
       String tilesetId,
       String categoryId,
+      String? tilesetGroupId,
       TilesetSourceRect source,
       String? groupId,
       String? recommendedLayerId,
@@ -2368,6 +2617,7 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
     Object? name = null,
     Object? tilesetId = null,
     Object? categoryId = null,
+    Object? tilesetGroupId = freezed,
     Object? source = null,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
@@ -2391,6 +2641,10 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
               as String,
+      tilesetGroupId: freezed == tilesetGroupId
+          ? _value.tilesetGroupId
+          : tilesetGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
       source: null == source
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
@@ -2423,6 +2677,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       required this.name,
       required this.tilesetId,
       required this.categoryId,
+      this.tilesetGroupId,
       required this.source,
       this.groupId,
       this.recommendedLayerId,
@@ -2441,6 +2696,8 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
   final String tilesetId;
   @override
   final String categoryId;
+  @override
+  final String? tilesetGroupId;
   @override
   final TilesetSourceRect source;
   @override
@@ -2462,7 +2719,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
 
   @override
   String toString() {
-    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, source: $source, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
+    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, source: $source, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
   }
 
   @override
@@ -2476,6 +2733,8 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
                 other.tilesetId == tilesetId) &&
             (identical(other.categoryId, categoryId) ||
                 other.categoryId == categoryId) &&
+            (identical(other.tilesetGroupId, tilesetGroupId) ||
+                other.tilesetGroupId == tilesetGroupId) &&
             (identical(other.source, source) || other.source == source) &&
             (identical(other.groupId, groupId) || other.groupId == groupId) &&
             (identical(other.recommendedLayerId, recommendedLayerId) ||
@@ -2493,6 +2752,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       name,
       tilesetId,
       categoryId,
+      tilesetGroupId,
       source,
       groupId,
       recommendedLayerId,
@@ -2522,6 +2782,7 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
       required final String name,
       required final String tilesetId,
       required final String categoryId,
+      final String? tilesetGroupId,
       required final TilesetSourceRect source,
       final String? groupId,
       final String? recommendedLayerId,
@@ -2539,6 +2800,8 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
   String get tilesetId;
   @override
   String get categoryId;
+  @override
+  String? get tilesetGroupId;
   @override
   TilesetSourceRect get source;
   @override

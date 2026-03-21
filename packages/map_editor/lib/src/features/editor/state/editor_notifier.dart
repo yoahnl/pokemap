@@ -31,6 +31,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTileId: null,
         selectedPaletteEntryId: null,
         selectedProjectElementId: null,
+        selectedTilesetEditorId: null,
+        selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Project "$name" created successfully',
         errorMessage: null,
@@ -56,6 +58,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTileId: null,
         selectedPaletteEntryId: null,
         selectedProjectElementId: null,
+        selectedTilesetEditorId: null,
+        selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Project "${manifest.name}" loaded',
         errorMessage: null,
@@ -149,6 +153,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTileId: null,
         selectedPaletteEntryId: null,
         selectedProjectElementId: null,
+        selectedTilesetEditorId: map.tilesetId,
+        selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Map "$id" created successfully',
         errorMessage: null,
@@ -175,6 +181,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTileId: null,
         selectedPaletteEntryId: null,
         selectedProjectElementId: null,
+        selectedTilesetEditorId: map.tilesetId,
+        selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Map "${map.id}" loaded',
         errorMessage: null,
@@ -269,6 +277,9 @@ class EditorNotifier extends _$EditorNotifier {
       int? selectedTileId = state.selectedTileId;
       String? selectedPaletteEntryId = state.selectedPaletteEntryId;
       String? selectedProjectElementId = state.selectedProjectElementId;
+      String? selectedTilesetEditorId = state.selectedTilesetEditorId;
+      String? selectedTilesetElementGroupId =
+          state.selectedTilesetElementGroupId;
       PaletteCategory? paletteCategoryFilter = state.paletteCategoryFilter;
       if (activeMap?.id == mapId) {
         activeMap = null;
@@ -276,6 +287,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTileId = null;
         selectedPaletteEntryId = null;
         selectedProjectElementId = null;
+        selectedTilesetEditorId = null;
+        selectedTilesetElementGroupId = null;
         paletteCategoryFilter = null;
       }
 
@@ -286,6 +299,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTileId: selectedTileId,
         selectedPaletteEntryId: selectedPaletteEntryId,
         selectedProjectElementId: selectedProjectElementId,
+        selectedTilesetEditorId: selectedTilesetEditorId,
+        selectedTilesetElementGroupId: selectedTilesetElementGroupId,
         paletteCategoryFilter: paletteCategoryFilter,
         statusMessage: 'Map "$mapId" deleted',
         errorMessage: null,
@@ -436,6 +451,9 @@ class EditorNotifier extends _$EditorNotifier {
       );
       state = state.copyWith(
         project: updated,
+        selectedTilesetEditorId:
+            updated.tilesets.isNotEmpty ? updated.tilesets.last.id : null,
+        selectedTilesetElementGroupId: null,
         statusMessage: 'Tileset "$name" imported',
         errorMessage: null,
       );
@@ -512,8 +530,19 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deleteProjectTilesetUseCaseProvider);
       final updated = await useCase.execute(fs, project, tilesetId);
+      String? selectedTilesetEditorId = state.selectedTilesetEditorId;
+      if (selectedTilesetEditorId == tilesetId) {
+        selectedTilesetEditorId = state.activeMap?.tilesetId;
+        if (selectedTilesetEditorId != null &&
+            !updated.tilesets.any((t) => t.id == selectedTilesetEditorId)) {
+          selectedTilesetEditorId =
+              updated.tilesets.isNotEmpty ? updated.tilesets.first.id : null;
+        }
+      }
       state = state.copyWith(
         project: updated,
+        selectedTilesetEditorId: selectedTilesetEditorId,
+        selectedTilesetElementGroupId: null,
         statusMessage: 'Tileset deleted',
         errorMessage: null,
       );
@@ -538,6 +567,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTileId: null,
         selectedPaletteEntryId: null,
         selectedProjectElementId: null,
+        selectedTilesetEditorId: tilesetId,
+        selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         isDirty: false,
         statusMessage:
@@ -567,6 +598,193 @@ class EditorNotifier extends _$EditorNotifier {
     final tileset = getActiveTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
+  }
+
+  void selectTilesetWorkspace(String? tilesetId) {
+    final project = state.project;
+    if (project == null) return;
+    if (tilesetId != null && !project.tilesets.any((t) => t.id == tilesetId)) {
+      return;
+    }
+    state = state.copyWith(
+      selectedTilesetEditorId: tilesetId,
+      selectedTilesetElementGroupId: null,
+    );
+  }
+
+  ProjectTilesetEntry? getSelectedTilesetEntry() {
+    final project = state.project;
+    if (project == null) return null;
+
+    final selectedId = state.selectedTilesetEditorId;
+    if (selectedId != null) {
+      for (final tileset in project.tilesets) {
+        if (tileset.id == selectedId) {
+          return tileset;
+        }
+      }
+    }
+
+    final mapTilesetId = state.activeMap?.tilesetId;
+    if (mapTilesetId != null) {
+      for (final tileset in project.tilesets) {
+        if (tileset.id == mapTilesetId) {
+          return tileset;
+        }
+      }
+    }
+
+    if (project.tilesets.isEmpty) return null;
+    return project.tilesets.first;
+  }
+
+  String? getSelectedTilesetAbsolutePath() {
+    final fs = state.fileSystem;
+    final tileset = getSelectedTilesetEntry();
+    if (fs == null || tileset == null) return null;
+    return fs.resolveTilesetPath(tileset.relativePath);
+  }
+
+  List<TilesetElementGroup> getSelectedTilesetElementGroups() {
+    final tileset = getSelectedTilesetEntry();
+    if (tileset == null) return const [];
+    final groups = List<TilesetElementGroup>.from(
+      tileset.elementGroups,
+      growable: false,
+    );
+    groups.sort((a, b) {
+      if (a.parentGroupId == b.parentGroupId) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      }
+      final parentA = a.parentGroupId ?? '';
+      final parentB = b.parentGroupId ?? '';
+      final parentCompare = parentA.compareTo(parentB);
+      if (parentCompare != 0) return parentCompare;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return groups;
+  }
+
+  void selectTilesetElementGroupFilter(String? groupId) {
+    final tileset = getSelectedTilesetEntry();
+    if (tileset == null) return;
+    if (groupId != null &&
+        !tileset.elementGroups.any((group) => group.id == groupId)) {
+      return;
+    }
+    state = state.copyWith(selectedTilesetElementGroupId: groupId);
+  }
+
+  Future<void> createTilesetElementGroup(
+    String tilesetId,
+    String name, {
+    String? parentGroupId,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createTilesetElementGroupUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tilesetId,
+        name: name,
+        parentGroupId: parentGroupId,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedTilesetEditorId: tilesetId,
+        statusMessage: 'Tileset group created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to create tileset group: $e',
+      );
+    }
+  }
+
+  Future<void> createTilesetElementSubgroup(
+    String tilesetId,
+    String parentGroupId,
+    String name,
+  ) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createTilesetElementSubgroupUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tilesetId,
+        parentGroupId: parentGroupId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedTilesetEditorId: tilesetId,
+        statusMessage: 'Tileset subgroup created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to create tileset subgroup: $e',
+      );
+    }
+  }
+
+  Future<void> renameTilesetElementGroup(
+    String tilesetId,
+    String groupId,
+    String name,
+  ) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(renameTilesetElementGroupUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tilesetId,
+        groupId: groupId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedTilesetEditorId: tilesetId,
+        statusMessage: 'Tileset group renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to rename tileset group: $e',
+      );
+    }
+  }
+
+  List<ProjectElementEntry> getSelectedTilesetElements({
+    String? tilesetGroupId,
+    bool includeDescendants = true,
+  }) {
+    final project = state.project;
+    final selectedTileset = getSelectedTilesetEntry();
+    if (project == null || selectedTileset == null) return const [];
+    try {
+      final useCase = ref.read(resolveTilesetElementsUseCaseProvider);
+      return useCase.execute(
+        project,
+        tilesetId: selectedTileset.id,
+        tilesetGroupId: tilesetGroupId,
+        includeDescendants: includeDescendants,
+      );
+    } catch (_) {
+      return const [];
+    }
   }
 
   List<ProjectElementCategory> getElementCategories() {
@@ -738,22 +956,30 @@ class EditorNotifier extends _$EditorNotifier {
     required String name,
     required String categoryId,
     required TilesetSourceRect source,
+    String? tilesetId,
+    String? tilesetGroupId,
     String? groupId,
     String? recommendedLayerId,
     List<String> tags = const [],
   }) async {
     final fs = state.fileSystem;
     final project = state.project;
-    final map = state.activeMap;
-    if (fs == null || project == null || map == null) return;
+    if (fs == null || project == null) return;
+    final selectedTileset = getSelectedTilesetEntry();
+    final effectiveTilesetId = tilesetId ?? selectedTileset?.id;
+    if (effectiveTilesetId == null) {
+      state = state.copyWith(errorMessage: 'No tileset selected');
+      return;
+    }
     try {
       final useCase = ref.read(createProjectElementUseCaseProvider);
       final result = await useCase.execute(
         fs,
         project,
         name: name,
-        tilesetId: map.tilesetId,
+        tilesetId: effectiveTilesetId,
         categoryId: categoryId,
+        tilesetGroupId: tilesetGroupId,
         source: source,
         groupId: groupId,
         recommendedLayerId: recommendedLayerId,
@@ -762,6 +988,8 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         project: result.project,
         selectedProjectElementId: result.element.id,
+        selectedTilesetEditorId: result.element.tilesetId,
+        selectedTilesetElementGroupId: result.element.tilesetGroupId,
         selectedPaletteEntryId: null,
         selectedTileId: null,
         statusMessage: 'Element "${result.element.name}" created',
@@ -776,6 +1004,8 @@ class EditorNotifier extends _$EditorNotifier {
     required String elementId,
     String? name,
     String? categoryId,
+    String? tilesetGroupId,
+    bool clearTilesetGroupId = false,
     String? groupId,
     bool clearGroupId = false,
     String? recommendedLayerId,
@@ -794,6 +1024,8 @@ class EditorNotifier extends _$EditorNotifier {
         elementId: elementId,
         name: name,
         categoryId: categoryId,
+        tilesetGroupId: tilesetGroupId,
+        clearTilesetGroupId: clearTilesetGroupId,
         groupId: groupId,
         clearGroupId: clearGroupId,
         recommendedLayerId: recommendedLayerId,
@@ -801,8 +1033,18 @@ class EditorNotifier extends _$EditorNotifier {
         source: source,
         tags: tags,
       );
+      String? selectedTilesetElementGroupId =
+          state.selectedTilesetElementGroupId;
+      if (state.selectedProjectElementId == elementId) {
+        if (clearTilesetGroupId) {
+          selectedTilesetElementGroupId = null;
+        } else if (tilesetGroupId != null) {
+          selectedTilesetElementGroupId = tilesetGroupId;
+        }
+      }
       state = state.copyWith(
         project: updated,
+        selectedTilesetElementGroupId: selectedTilesetElementGroupId,
         statusMessage: 'Element updated',
         errorMessage: null,
       );
@@ -876,6 +1118,8 @@ class EditorNotifier extends _$EditorNotifier {
     }
     state = state.copyWith(
       selectedProjectElementId: element.id,
+      selectedTilesetEditorId: element.tilesetId,
+      selectedTilesetElementGroupId: element.tilesetGroupId,
       selectedPaletteEntryId: null,
       selectedTileId: tileId,
     );

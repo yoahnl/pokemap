@@ -420,6 +420,155 @@ class RenameElementCategoryUseCase {
   }
 }
 
+class CreateTilesetElementGroupUseCase {
+  final ProjectRepository _repo;
+
+  CreateTilesetElementGroupUseCase(this._repo);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String tilesetId,
+    required String name,
+    String? parentGroupId,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Tileset group name cannot be empty');
+    }
+
+    final tileset = project.tilesets.firstWhere(
+      (t) => t.id == tilesetId,
+      orElse: () => throw Exception('Tileset not found: $tilesetId'),
+    );
+    if (parentGroupId != null &&
+        !tileset.elementGroups.any((group) => group.id == parentGroupId)) {
+      throw Exception('Parent tileset group not found: $parentGroupId');
+    }
+
+    final siblings = tileset.elementGroups
+        .where((group) => group.parentGroupId == parentGroupId)
+        .toList(growable: false);
+    final group = TilesetElementGroup(
+      id: _generateUniqueTilesetElementGroupId(tileset, trimmedName),
+      name: trimmedName,
+      parentGroupId: parentGroupId,
+      sortOrder: siblings.length,
+    );
+
+    final updatedTilesets = project.tilesets.map((entry) {
+      if (entry.id != tilesetId) return entry;
+      return entry.copyWith(
+        elementGroups: [...entry.elementGroups, group],
+      );
+    }).toList(growable: false);
+
+    final updated = project.copyWith(tilesets: updatedTilesets);
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return updated;
+  }
+}
+
+class CreateTilesetElementSubgroupUseCase {
+  final CreateTilesetElementGroupUseCase _groupUseCase;
+
+  CreateTilesetElementSubgroupUseCase(this._groupUseCase);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String tilesetId,
+    required String parentGroupId,
+    required String name,
+  }) {
+    return _groupUseCase.execute(
+      fs,
+      project,
+      tilesetId: tilesetId,
+      parentGroupId: parentGroupId,
+      name: name,
+    );
+  }
+}
+
+class RenameTilesetElementGroupUseCase {
+  final ProjectRepository _repo;
+
+  RenameTilesetElementGroupUseCase(this._repo);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String tilesetId,
+    required String groupId,
+    required String name,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Tileset group name cannot be empty');
+    }
+
+    final tileset = project.tilesets.firstWhere(
+      (t) => t.id == tilesetId,
+      orElse: () => throw Exception('Tileset not found: $tilesetId'),
+    );
+    if (!tileset.elementGroups.any((group) => group.id == groupId)) {
+      throw Exception('Tileset group not found: $groupId');
+    }
+
+    final updatedTilesets = project.tilesets.map((entry) {
+      if (entry.id != tilesetId) return entry;
+      final groups = entry.elementGroups.map((group) {
+        if (group.id != groupId) return group;
+        return group.copyWith(name: trimmedName);
+      }).toList(growable: false);
+      return entry.copyWith(elementGroups: groups);
+    }).toList(growable: false);
+
+    final updated = project.copyWith(tilesets: updatedTilesets);
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return updated;
+  }
+}
+
+class ResolveTilesetElementsUseCase {
+  List<ProjectElementEntry> execute(
+    ProjectManifest project, {
+    required String tilesetId,
+    String? tilesetGroupId,
+    bool includeDescendants = true,
+  }) {
+    final tileset = project.tilesets.firstWhere(
+      (t) => t.id == tilesetId,
+      orElse: () => throw Exception('Tileset not found: $tilesetId'),
+    );
+
+    Set<String>? scope;
+    if (tilesetGroupId != null) {
+      if (!tileset.elementGroups.any((group) => group.id == tilesetGroupId)) {
+        throw Exception('Tileset group not found: $tilesetGroupId');
+      }
+      if (includeDescendants) {
+        scope = _collectTilesetGroupScope(
+          groups: tileset.elementGroups,
+          rootGroupId: tilesetGroupId,
+        );
+      } else {
+        scope = {tilesetGroupId};
+      }
+    }
+
+    final elements = project.elements.where((element) {
+      if (element.tilesetId != tilesetId) return false;
+      if (scope == null) return true;
+      return element.tilesetGroupId != null &&
+          scope.contains(element.tilesetGroupId);
+    }).toList(growable: false)
+      ..sort(_projectElementSort);
+    return elements;
+  }
+}
+
 class CreateProjectElementResult {
   final ProjectManifest project;
   final ProjectElementEntry element;
@@ -439,6 +588,7 @@ class CreateProjectElementUseCase {
     required String tilesetId,
     required String categoryId,
     required TilesetSourceRect source,
+    String? tilesetGroupId,
     String? groupId,
     String? recommendedLayerId,
     List<String> tags = const [],
@@ -447,8 +597,13 @@ class CreateProjectElementUseCase {
     if (trimmedName.isEmpty) {
       throw Exception('Element name cannot be empty');
     }
-    if (!project.tilesets.any((t) => t.id == tilesetId)) {
-      throw Exception('Tileset not found: $tilesetId');
+    final tileset = project.tilesets.firstWhere(
+      (t) => t.id == tilesetId,
+      orElse: () => throw Exception('Tileset not found: $tilesetId'),
+    );
+    if (tilesetGroupId != null &&
+        !tileset.elementGroups.any((group) => group.id == tilesetGroupId)) {
+      throw Exception('Tileset group not found: $tilesetGroupId');
     }
     if (!project.elementCategories.any((c) => c.id == categoryId)) {
       throw Exception('Category not found: $categoryId');
@@ -471,13 +626,18 @@ class CreateProjectElementUseCase {
 
     final id = _generateUniqueProjectElementId(project, trimmedName);
     final siblingSort = project.elements
-        .where((e) => e.categoryId == categoryId && e.groupId == groupId)
+        .where((e) =>
+            e.categoryId == categoryId &&
+            e.groupId == groupId &&
+            e.tilesetId == tilesetId &&
+            e.tilesetGroupId == tilesetGroupId)
         .length;
     final element = ProjectElementEntry(
       id: id,
       name: trimmedName,
       tilesetId: tilesetId,
       categoryId: categoryId,
+      tilesetGroupId: tilesetGroupId,
       source: source,
       groupId: groupId,
       recommendedLayerId: recommendedLayerId,
@@ -502,6 +662,8 @@ class UpdateProjectElementUseCase {
     required String elementId,
     String? name,
     String? categoryId,
+    String? tilesetGroupId,
+    bool clearTilesetGroupId = false,
     String? groupId,
     bool clearGroupId = false,
     String? recommendedLayerId,
@@ -521,6 +683,19 @@ class UpdateProjectElementUseCase {
     final nextCategoryId = categoryId ?? current.categoryId;
     if (!project.elementCategories.any((c) => c.id == nextCategoryId)) {
       throw Exception('Category not found: $nextCategoryId');
+    }
+
+    final ownerTileset = project.tilesets.firstWhere(
+      (tileset) => tileset.id == current.tilesetId,
+      orElse: () => throw Exception(
+          'Tileset not found for element: ${current.tilesetId}'),
+    );
+    final nextTilesetGroupId =
+        clearTilesetGroupId ? null : (tilesetGroupId ?? current.tilesetGroupId);
+    if (nextTilesetGroupId != null &&
+        !ownerTileset.elementGroups
+            .any((group) => group.id == nextTilesetGroupId)) {
+      throw Exception('Tileset group not found: $nextTilesetGroupId');
     }
 
     final nextGroupId = clearGroupId ? null : (groupId ?? current.groupId);
@@ -553,6 +728,7 @@ class UpdateProjectElementUseCase {
       return element.copyWith(
         name: nextName ?? element.name,
         categoryId: nextCategoryId,
+        tilesetGroupId: nextTilesetGroupId,
         groupId: nextGroupId,
         source: nextSource,
         recommendedLayerId: nextRecommendedLayerId,
@@ -748,7 +924,7 @@ class CreateMapUseCase {
       ProjectFileSystem fs, ProjectManifest project, String mapId, int w, int h,
       {String? groupId, MapRole role = MapRole.exterior}) async {
     debugPrint(
-        'CreateMapUseCase: Creating map $mapId (${w}x${h}) in group $groupId');
+        'CreateMapUseCase: Creating map $mapId ($w x $h) in group $groupId');
     final defaultTilesetId = _pickDefaultTilesetId(project, groupId);
 
     final map = MapData(
@@ -1149,6 +1325,28 @@ String _generateUniqueElementCategoryId(ProjectManifest project, String seed) {
   return candidate;
 }
 
+String _generateUniqueTilesetElementGroupId(
+  ProjectTilesetEntry tileset,
+  String seed,
+) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'group' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  final existing = tileset.elementGroups.map((group) => group.id).toSet();
+  while (existing.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
 String _generateUniqueProjectElementId(ProjectManifest project, String seed) {
   final normalized = seed
       .trim()
@@ -1174,6 +1372,29 @@ int _projectElementSort(ProjectElementEntry a, ProjectElementEntry b) {
   final nameCompare = a.name.toLowerCase().compareTo(b.name.toLowerCase());
   if (nameCompare != 0) return nameCompare;
   return a.id.compareTo(b.id);
+}
+
+Set<String> _collectTilesetGroupScope({
+  required List<TilesetElementGroup> groups,
+  required String rootGroupId,
+}) {
+  final byParent = <String?, List<TilesetElementGroup>>{};
+  for (final group in groups) {
+    byParent.putIfAbsent(group.parentGroupId, () => []).add(group);
+  }
+
+  final scope = <String>{rootGroupId};
+  final queue = <String>[rootGroupId];
+  while (queue.isNotEmpty) {
+    final current = queue.removeLast();
+    final children = byParent[current] ?? const <TilesetElementGroup>[];
+    for (final child in children) {
+      if (scope.add(child.id)) {
+        queue.add(child.id);
+      }
+    }
+  }
+  return scope;
 }
 
 List<ProjectElementCategory> _defaultElementCategories() {

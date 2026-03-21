@@ -29,6 +29,9 @@ mixin _$EditorState {
   int? get selectedTileId => throw _privateConstructorUsedError;
   String? get selectedPaletteEntryId => throw _privateConstructorUsedError;
   String? get selectedProjectElementId => throw _privateConstructorUsedError;
+  String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
+  String? get selectedTilesetElementGroupId =>
+      throw _privateConstructorUsedError;
   PaletteCategory? get paletteCategoryFilter =>
       throw _privateConstructorUsedError; // Viewport
   double get zoom => throw _privateConstructorUsedError;
@@ -62,6 +65,8 @@ abstract class $EditorStateCopyWith<$Res> {
       int? selectedTileId,
       String? selectedPaletteEntryId,
       String? selectedProjectElementId,
+      String? selectedTilesetEditorId,
+      String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -100,6 +105,8 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedTileId = freezed,
     Object? selectedPaletteEntryId = freezed,
     Object? selectedProjectElementId = freezed,
+    Object? selectedTilesetEditorId = freezed,
+    Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -148,6 +155,14 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedProjectElementId: freezed == selectedProjectElementId
           ? _value.selectedProjectElementId
           : selectedProjectElementId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTilesetEditorId: freezed == selectedTilesetEditorId
+          ? _value.selectedTilesetEditorId
+          : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId
+          ? _value.selectedTilesetElementGroupId
+          : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
               as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
@@ -242,6 +257,8 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       int? selectedTileId,
       String? selectedPaletteEntryId,
       String? selectedProjectElementId,
+      String? selectedTilesetEditorId,
+      String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -281,6 +298,8 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedTileId = freezed,
     Object? selectedPaletteEntryId = freezed,
     Object? selectedProjectElementId = freezed,
+    Object? selectedTilesetEditorId = freezed,
+    Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -330,6 +349,14 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedProjectElementId
           : selectedProjectElementId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedTilesetEditorId: freezed == selectedTilesetEditorId
+          ? _value.selectedTilesetEditorId
+          : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId
+          ? _value.selectedTilesetElementGroupId
+          : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
           : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
@@ -376,6 +403,8 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedTileId,
       this.selectedPaletteEntryId,
       this.selectedProjectElementId,
+      this.selectedTilesetEditorId,
+      this.selectedTilesetElementGroupId,
       this.paletteCategoryFilter,
       this.zoom = 1.0,
       this.panOffset = Offset.zero,
@@ -409,6 +438,10 @@ class _$EditorStateImpl implements _EditorState {
   @override
   final String? selectedProjectElementId;
   @override
+  final String? selectedTilesetEditorId;
+  @override
+  final String? selectedTilesetElementGroupId;
+  @override
   final PaletteCategory? paletteCategoryFilter;
 // Viewport
   @override
@@ -431,7 +464,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, selectedProjectElementId: $selectedProjectElementId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, selectedProjectElementId: $selectedProjectElementId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -459,6 +492,13 @@ class _$EditorStateImpl implements _EditorState {
             (identical(
                     other.selectedProjectElementId, selectedProjectElementId) ||
                 other.selectedProjectElementId == selectedProjectElementId) &&
+            (identical(
+                    other.selectedTilesetEditorId, selectedTilesetEditorId) ||
+                other.selectedTilesetEditorId == selectedTilesetEditorId) &&
+            (identical(other.selectedTilesetElementGroupId,
+                    selectedTilesetElementGroupId) ||
+                other.selectedTilesetElementGroupId ==
+                    selectedTilesetElementGroupId) &&
             (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
                 other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
@@ -474,25 +514,28 @@ class _$EditorStateImpl implements _EditorState {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      fileSystem,
-      project,
-      activeMap,
-      activeMapPath,
-      activeTool,
-      activeLayerId,
-      hoveredTile,
-      selectedTileId,
-      selectedPaletteEntryId,
-      selectedProjectElementId,
-      paletteCategoryFilter,
-      zoom,
-      panOffset,
-      isDirty,
-      isSaving,
-      statusMessage,
-      errorMessage);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        fileSystem,
+        project,
+        activeMap,
+        activeMapPath,
+        activeTool,
+        activeLayerId,
+        hoveredTile,
+        selectedTileId,
+        selectedPaletteEntryId,
+        selectedProjectElementId,
+        selectedTilesetEditorId,
+        selectedTilesetElementGroupId,
+        paletteCategoryFilter,
+        zoom,
+        panOffset,
+        isDirty,
+        isSaving,
+        statusMessage,
+        errorMessage
+      ]);
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.
@@ -515,6 +558,8 @@ abstract class _EditorState implements EditorState {
       final int? selectedTileId,
       final String? selectedPaletteEntryId,
       final String? selectedProjectElementId,
+      final String? selectedTilesetEditorId,
+      final String? selectedTilesetElementGroupId,
       final PaletteCategory? paletteCategoryFilter,
       final double zoom,
       final Offset panOffset,
@@ -544,6 +589,10 @@ abstract class _EditorState implements EditorState {
   String? get selectedPaletteEntryId;
   @override
   String? get selectedProjectElementId;
+  @override
+  String? get selectedTilesetEditorId;
+  @override
+  String? get selectedTilesetElementGroupId;
   @override
   PaletteCategory? get paletteCategoryFilter; // Viewport
   @override

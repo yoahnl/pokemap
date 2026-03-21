@@ -84,6 +84,26 @@ RenameElementCategoryUseCase renameElementCategoryUseCase(
 }
 
 @riverpod
+CreateTilesetElementGroupUseCase createTilesetElementGroupUseCase(
+    CreateTilesetElementGroupUseCaseRef ref) {
+  return CreateTilesetElementGroupUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+CreateTilesetElementSubgroupUseCase createTilesetElementSubgroupUseCase(
+    CreateTilesetElementSubgroupUseCaseRef ref) {
+  return CreateTilesetElementSubgroupUseCase(
+    ref.watch(createTilesetElementGroupUseCaseProvider),
+  );
+}
+
+@riverpod
+RenameTilesetElementGroupUseCase renameTilesetElementGroupUseCase(
+    RenameTilesetElementGroupUseCaseRef ref) {
+  return RenameTilesetElementGroupUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
 CreateProjectElementUseCase createProjectElementUseCase(
     CreateProjectElementUseCaseRef ref) {
   return CreateProjectElementUseCase(ref.watch(projectRepositoryProvider));
@@ -99,6 +119,12 @@ UpdateProjectElementUseCase updateProjectElementUseCase(
 ResolveVisibleProjectElementsUseCase resolveVisibleProjectElementsUseCase(
     ResolveVisibleProjectElementsUseCaseRef ref) {
   return ResolveVisibleProjectElementsUseCase();
+}
+
+@riverpod
+ResolveTilesetElementsUseCase resolveTilesetElementsUseCase(
+    ResolveTilesetElementsUseCaseRef ref) {
+  return ResolveTilesetElementsUseCase();
 }
 
 @riverpod
