@@ -148,5 +148,82 @@ final duplicateMapUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DuplicateMapUseCaseRef = AutoDisposeProviderRef<DuplicateMapUseCase>;
+String _$createGroupUseCaseHash() =>
+    r'5fd43aa5c6d9a3ff78b30e7be301e747dcf6e37b';
+
+/// See also [createGroupUseCase].
+@ProviderFor(createGroupUseCase)
+final createGroupUseCaseProvider =
+    AutoDisposeProvider<CreateGroupUseCase>.internal(
+  createGroupUseCase,
+  name: r'createGroupUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createGroupUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateGroupUseCaseRef = AutoDisposeProviderRef<CreateGroupUseCase>;
+String _$deleteGroupUseCaseHash() =>
+    r'16accc1b192d9bf41c25ba5ae01637b62a3c452f';
+
+/// See also [deleteGroupUseCase].
+@ProviderFor(deleteGroupUseCase)
+final deleteGroupUseCaseProvider =
+    AutoDisposeProvider<DeleteGroupUseCase>.internal(
+  deleteGroupUseCase,
+  name: r'deleteGroupUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteGroupUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteGroupUseCaseRef = AutoDisposeProviderRef<DeleteGroupUseCase>;
+String _$moveMapToGroupUseCaseHash() =>
+    r'0ce0923c88cd3d3203252605b2d3850d455170cf';
+
+/// See also [moveMapToGroupUseCase].
+@ProviderFor(moveMapToGroupUseCase)
+final moveMapToGroupUseCaseProvider =
+    AutoDisposeProvider<MoveMapToGroupUseCase>.internal(
+  moveMapToGroupUseCase,
+  name: r'moveMapToGroupUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$moveMapToGroupUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MoveMapToGroupUseCaseRef
+    = AutoDisposeProviderRef<MoveMapToGroupUseCase>;
+String _$renameGroupUseCaseHash() =>
+    r'ea14a0828c3d92f553c76d661599091be970af33';
+
+/// See also [renameGroupUseCase].
+@ProviderFor(renameGroupUseCase)
+final renameGroupUseCaseProvider =
+    AutoDisposeProvider<RenameGroupUseCase>.internal(
+  renameGroupUseCase,
+  name: r'renameGroupUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameGroupUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameGroupUseCaseRef = AutoDisposeProviderRef<RenameGroupUseCase>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

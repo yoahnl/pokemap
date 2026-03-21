@@ -15,6 +15,10 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       maps: (json['maps'] as List<dynamic>)
           .map((e) => ProjectMapEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
+      groups: (json['groups'] as List<dynamic>?)
+              ?.map((e) => ProjectMapGroup.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       tilesets: (json['tilesets'] as List<dynamic>)
           .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -28,6 +32,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'name': instance.name,
       'version': _$ProjectVersionEnumMap[instance.version]!,
       'maps': instance.maps.map((e) => e.toJson()).toList(),
+      'groups': instance.groups.map((e) => e.toJson()).toList(),
       'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
       'globalProperties': instance.globalProperties,
     };
@@ -36,12 +41,54 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
 };
 
+_$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectMapGroupImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      type: $enumDecode(_$MapGroupTypeEnumMap, json['type']),
+      parentGroupId: json['parentGroupId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      properties: json['properties'] as Map<String, dynamic>? ?? const {},
+    );
+
+Map<String, dynamic> _$$ProjectMapGroupImplToJson(
+        _$ProjectMapGroupImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'type': _$MapGroupTypeEnumMap[instance.type]!,
+      'parentGroupId': instance.parentGroupId,
+      'sortOrder': instance.sortOrder,
+      'tags': instance.tags,
+      'properties': instance.properties,
+    };
+
+const _$MapGroupTypeEnumMap = {
+  MapGroupType.city: 'city',
+  MapGroupType.village: 'village',
+  MapGroupType.route: 'route',
+  MapGroupType.dungeon: 'dungeon',
+  MapGroupType.cave: 'cave',
+  MapGroupType.forest: 'forest',
+  MapGroupType.tower: 'tower',
+  MapGroupType.facility: 'facility',
+  MapGroupType.special: 'special',
+};
+
 _$ProjectMapEntryImpl _$$ProjectMapEntryImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectMapEntryImpl(
       id: json['id'] as String,
       name: json['name'] as String,
       relativePath: json['relativePath'] as String,
+      groupId: json['groupId'] as String?,
+      role: $enumDecodeNullable(_$MapRoleEnumMap, json['role']) ??
+          MapRole.exterior,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$$ProjectMapEntryImplToJson(
@@ -50,7 +97,22 @@ Map<String, dynamic> _$$ProjectMapEntryImplToJson(
       'id': instance.id,
       'name': instance.name,
       'relativePath': instance.relativePath,
+      'groupId': instance.groupId,
+      'role': _$MapRoleEnumMap[instance.role]!,
+      'sortOrder': instance.sortOrder,
     };
+
+const _$MapRoleEnumMap = {
+  MapRole.exterior: 'exterior',
+  MapRole.interior: 'interior',
+  MapRole.basement: 'basement',
+  MapRole.upper_floor: 'upper_floor',
+  MapRole.connector: 'connector',
+  MapRole.gate: 'gate',
+  MapRole.room: 'room',
+  MapRole.section: 'section',
+  MapRole.sub_area: 'sub_area',
+};
 
 _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
         Map<String, dynamic> json) =>

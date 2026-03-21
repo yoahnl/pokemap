@@ -23,6 +23,7 @@ mixin _$ProjectManifest {
   String get name => throw _privateConstructorUsedError;
   ProjectVersion get version => throw _privateConstructorUsedError;
   List<ProjectMapEntry> get maps => throw _privateConstructorUsedError;
+  List<ProjectMapGroup> get groups => throw _privateConstructorUsedError;
   List<ProjectTilesetEntry> get tilesets => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
@@ -47,6 +48,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       {String name,
       ProjectVersion version,
       List<ProjectMapEntry> maps,
+      List<ProjectMapGroup> groups,
       List<ProjectTilesetEntry> tilesets,
       Map<String, dynamic> globalProperties});
 }
@@ -69,6 +71,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? name = null,
     Object? version = null,
     Object? maps = null,
+    Object? groups = null,
     Object? tilesets = null,
     Object? globalProperties = null,
   }) {
@@ -85,6 +88,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.maps
           : maps // ignore: cast_nullable_to_non_nullable
               as List<ProjectMapEntry>,
+      groups: null == groups
+          ? _value.groups
+          : groups // ignore: cast_nullable_to_non_nullable
+              as List<ProjectMapGroup>,
       tilesets: null == tilesets
           ? _value.tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
@@ -109,6 +116,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       {String name,
       ProjectVersion version,
       List<ProjectMapEntry> maps,
+      List<ProjectMapGroup> groups,
       List<ProjectTilesetEntry> tilesets,
       Map<String, dynamic> globalProperties});
 }
@@ -129,6 +137,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? name = null,
     Object? version = null,
     Object? maps = null,
+    Object? groups = null,
     Object? tilesets = null,
     Object? globalProperties = null,
   }) {
@@ -145,6 +154,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._maps
           : maps // ignore: cast_nullable_to_non_nullable
               as List<ProjectMapEntry>,
+      groups: null == groups
+          ? _value._groups
+          : groups // ignore: cast_nullable_to_non_nullable
+              as List<ProjectMapGroup>,
       tilesets: null == tilesets
           ? _value._tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
@@ -165,9 +178,11 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       {required this.name,
       this.version = ProjectVersion.v1,
       required final List<ProjectMapEntry> maps,
+      final List<ProjectMapGroup> groups = const [],
       required final List<ProjectTilesetEntry> tilesets,
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
+        _groups = groups,
         _tilesets = tilesets,
         _globalProperties = globalProperties;
 
@@ -185,6 +200,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     if (_maps is EqualUnmodifiableListView) return _maps;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_maps);
+  }
+
+  final List<ProjectMapGroup> _groups;
+  @override
+  @JsonKey()
+  List<ProjectMapGroup> get groups {
+    if (_groups is EqualUnmodifiableListView) return _groups;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_groups);
   }
 
   final List<ProjectTilesetEntry> _tilesets;
@@ -206,7 +230,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, tilesets: $tilesets, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, globalProperties: $globalProperties)';
   }
 
   @override
@@ -217,6 +241,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.version, version) || other.version == version) &&
             const DeepCollectionEquality().equals(other._maps, _maps) &&
+            const DeepCollectionEquality().equals(other._groups, _groups) &&
             const DeepCollectionEquality().equals(other._tilesets, _tilesets) &&
             const DeepCollectionEquality()
                 .equals(other._globalProperties, _globalProperties));
@@ -229,6 +254,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       name,
       version,
       const DeepCollectionEquality().hash(_maps),
+      const DeepCollectionEquality().hash(_groups),
       const DeepCollectionEquality().hash(_tilesets),
       const DeepCollectionEquality().hash(_globalProperties));
 
@@ -254,6 +280,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       {required final String name,
       final ProjectVersion version,
       required final List<ProjectMapEntry> maps,
+      final List<ProjectMapGroup> groups,
       required final List<ProjectTilesetEntry> tilesets,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
 
@@ -267,6 +294,8 @@ abstract class _ProjectManifest implements ProjectManifest {
   @override
   List<ProjectMapEntry> get maps;
   @override
+  List<ProjectMapGroup> get groups;
+  @override
   List<ProjectTilesetEntry> get tilesets;
   @override
   Map<String, dynamic> get globalProperties;
@@ -279,6 +308,307 @@ abstract class _ProjectManifest implements ProjectManifest {
       throw _privateConstructorUsedError;
 }
 
+ProjectMapGroup _$ProjectMapGroupFromJson(Map<String, dynamic> json) {
+  return _ProjectMapGroup.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectMapGroup {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  MapGroupType get type => throw _privateConstructorUsedError;
+  String? get parentGroupId => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+  Map<String, dynamic> get properties => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectMapGroup to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectMapGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectMapGroupCopyWith<ProjectMapGroup> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectMapGroupCopyWith<$Res> {
+  factory $ProjectMapGroupCopyWith(
+          ProjectMapGroup value, $Res Function(ProjectMapGroup) then) =
+      _$ProjectMapGroupCopyWithImpl<$Res, ProjectMapGroup>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      MapGroupType type,
+      String? parentGroupId,
+      int sortOrder,
+      List<String> tags,
+      Map<String, dynamic> properties});
+}
+
+/// @nodoc
+class _$ProjectMapGroupCopyWithImpl<$Res, $Val extends ProjectMapGroup>
+    implements $ProjectMapGroupCopyWith<$Res> {
+  _$ProjectMapGroupCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectMapGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? type = null,
+    Object? parentGroupId = freezed,
+    Object? sortOrder = null,
+    Object? tags = null,
+    Object? properties = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as MapGroupType,
+      parentGroupId: freezed == parentGroupId
+          ? _value.parentGroupId
+          : parentGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      properties: null == properties
+          ? _value.properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectMapGroupImplCopyWith<$Res>
+    implements $ProjectMapGroupCopyWith<$Res> {
+  factory _$$ProjectMapGroupImplCopyWith(_$ProjectMapGroupImpl value,
+          $Res Function(_$ProjectMapGroupImpl) then) =
+      __$$ProjectMapGroupImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      MapGroupType type,
+      String? parentGroupId,
+      int sortOrder,
+      List<String> tags,
+      Map<String, dynamic> properties});
+}
+
+/// @nodoc
+class __$$ProjectMapGroupImplCopyWithImpl<$Res>
+    extends _$ProjectMapGroupCopyWithImpl<$Res, _$ProjectMapGroupImpl>
+    implements _$$ProjectMapGroupImplCopyWith<$Res> {
+  __$$ProjectMapGroupImplCopyWithImpl(
+      _$ProjectMapGroupImpl _value, $Res Function(_$ProjectMapGroupImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectMapGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? type = null,
+    Object? parentGroupId = freezed,
+    Object? sortOrder = null,
+    Object? tags = null,
+    Object? properties = null,
+  }) {
+    return _then(_$ProjectMapGroupImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as MapGroupType,
+      parentGroupId: freezed == parentGroupId
+          ? _value.parentGroupId
+          : parentGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProjectMapGroupImpl implements _ProjectMapGroup {
+  const _$ProjectMapGroupImpl(
+      {required this.id,
+      required this.name,
+      required this.type,
+      this.parentGroupId,
+      this.sortOrder = 0,
+      final List<String> tags = const [],
+      final Map<String, dynamic> properties = const {}})
+      : _tags = tags,
+        _properties = properties;
+
+  factory _$ProjectMapGroupImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectMapGroupImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final MapGroupType type;
+  @override
+  final String? parentGroupId;
+  @override
+  @JsonKey()
+  final int sortOrder;
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  final Map<String, dynamic> _properties;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @override
+  String toString() {
+    return 'ProjectMapGroup(id: $id, name: $name, type: $type, parentGroupId: $parentGroupId, sortOrder: $sortOrder, tags: $tags, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectMapGroupImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.parentGroupId, parentGroupId) ||
+                other.parentGroupId == parentGroupId) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder) &&
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      type,
+      parentGroupId,
+      sortOrder,
+      const DeepCollectionEquality().hash(_tags),
+      const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of ProjectMapGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectMapGroupImplCopyWith<_$ProjectMapGroupImpl> get copyWith =>
+      __$$ProjectMapGroupImplCopyWithImpl<_$ProjectMapGroupImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectMapGroupImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectMapGroup implements ProjectMapGroup {
+  const factory _ProjectMapGroup(
+      {required final String id,
+      required final String name,
+      required final MapGroupType type,
+      final String? parentGroupId,
+      final int sortOrder,
+      final List<String> tags,
+      final Map<String, dynamic> properties}) = _$ProjectMapGroupImpl;
+
+  factory _ProjectMapGroup.fromJson(Map<String, dynamic> json) =
+      _$ProjectMapGroupImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  MapGroupType get type;
+  @override
+  String? get parentGroupId;
+  @override
+  int get sortOrder;
+  @override
+  List<String> get tags;
+  @override
+  Map<String, dynamic> get properties;
+
+  /// Create a copy of ProjectMapGroup
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectMapGroupImplCopyWith<_$ProjectMapGroupImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 ProjectMapEntry _$ProjectMapEntryFromJson(Map<String, dynamic> json) {
   return _ProjectMapEntry.fromJson(json);
 }
@@ -288,6 +618,9 @@ mixin _$ProjectMapEntry {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get relativePath => throw _privateConstructorUsedError;
+  String? get groupId => throw _privateConstructorUsedError;
+  MapRole get role => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
 
   /// Serializes this ProjectMapEntry to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -305,7 +638,13 @@ abstract class $ProjectMapEntryCopyWith<$Res> {
           ProjectMapEntry value, $Res Function(ProjectMapEntry) then) =
       _$ProjectMapEntryCopyWithImpl<$Res, ProjectMapEntry>;
   @useResult
-  $Res call({String id, String name, String relativePath});
+  $Res call(
+      {String id,
+      String name,
+      String relativePath,
+      String? groupId,
+      MapRole role,
+      int sortOrder});
 }
 
 /// @nodoc
@@ -326,6 +665,9 @@ class _$ProjectMapEntryCopyWithImpl<$Res, $Val extends ProjectMapEntry>
     Object? id = null,
     Object? name = null,
     Object? relativePath = null,
+    Object? groupId = freezed,
+    Object? role = null,
+    Object? sortOrder = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -340,6 +682,18 @@ class _$ProjectMapEntryCopyWithImpl<$Res, $Val extends ProjectMapEntry>
           ? _value.relativePath
           : relativePath // ignore: cast_nullable_to_non_nullable
               as String,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      role: null == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as MapRole,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
     ) as $Val);
   }
 }
@@ -352,7 +706,13 @@ abstract class _$$ProjectMapEntryImplCopyWith<$Res>
       __$$ProjectMapEntryImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String name, String relativePath});
+  $Res call(
+      {String id,
+      String name,
+      String relativePath,
+      String? groupId,
+      MapRole role,
+      int sortOrder});
 }
 
 /// @nodoc
@@ -371,6 +731,9 @@ class __$$ProjectMapEntryImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? relativePath = null,
+    Object? groupId = freezed,
+    Object? role = null,
+    Object? sortOrder = null,
   }) {
     return _then(_$ProjectMapEntryImpl(
       id: null == id
@@ -385,6 +748,18 @@ class __$$ProjectMapEntryImplCopyWithImpl<$Res>
           ? _value.relativePath
           : relativePath // ignore: cast_nullable_to_non_nullable
               as String,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      role: null == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as MapRole,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 }
@@ -393,7 +768,12 @@ class __$$ProjectMapEntryImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ProjectMapEntryImpl implements _ProjectMapEntry {
   const _$ProjectMapEntryImpl(
-      {required this.id, required this.name, required this.relativePath});
+      {required this.id,
+      required this.name,
+      required this.relativePath,
+      this.groupId,
+      this.role = MapRole.exterior,
+      this.sortOrder = 0});
 
   factory _$ProjectMapEntryImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectMapEntryImplFromJson(json);
@@ -404,10 +784,18 @@ class _$ProjectMapEntryImpl implements _ProjectMapEntry {
   final String name;
   @override
   final String relativePath;
+  @override
+  final String? groupId;
+  @override
+  @JsonKey()
+  final MapRole role;
+  @override
+  @JsonKey()
+  final int sortOrder;
 
   @override
   String toString() {
-    return 'ProjectMapEntry(id: $id, name: $name, relativePath: $relativePath)';
+    return 'ProjectMapEntry(id: $id, name: $name, relativePath: $relativePath, groupId: $groupId, role: $role, sortOrder: $sortOrder)';
   }
 
   @override
@@ -418,12 +806,17 @@ class _$ProjectMapEntryImpl implements _ProjectMapEntry {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.relativePath, relativePath) ||
-                other.relativePath == relativePath));
+                other.relativePath == relativePath) &&
+            (identical(other.groupId, groupId) || other.groupId == groupId) &&
+            (identical(other.role, role) || other.role == role) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, relativePath);
+  int get hashCode => Object.hash(
+      runtimeType, id, name, relativePath, groupId, role, sortOrder);
 
   /// Create a copy of ProjectMapEntry
   /// with the given fields replaced by the non-null parameter values.
@@ -446,7 +839,10 @@ abstract class _ProjectMapEntry implements ProjectMapEntry {
   const factory _ProjectMapEntry(
       {required final String id,
       required final String name,
-      required final String relativePath}) = _$ProjectMapEntryImpl;
+      required final String relativePath,
+      final String? groupId,
+      final MapRole role,
+      final int sortOrder}) = _$ProjectMapEntryImpl;
 
   factory _ProjectMapEntry.fromJson(Map<String, dynamic> json) =
       _$ProjectMapEntryImpl.fromJson;
@@ -457,6 +853,12 @@ abstract class _ProjectMapEntry implements ProjectMapEntry {
   String get name;
   @override
   String get relativePath;
+  @override
+  String? get groupId;
+  @override
+  MapRole get role;
+  @override
+  int get sortOrder;
 
   /// Create a copy of ProjectMapEntry
   /// with the given fields replaced by the non-null parameter values.

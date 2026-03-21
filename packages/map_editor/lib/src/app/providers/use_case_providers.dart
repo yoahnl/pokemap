@@ -55,3 +55,23 @@ DuplicateMapUseCase duplicateMapUseCase(DuplicateMapUseCaseRef ref) {
     ref.watch(projectRepositoryProvider),
   );
 }
+
+@riverpod
+CreateGroupUseCase createGroupUseCase(CreateGroupUseCaseRef ref) {
+  return CreateGroupUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteGroupUseCase deleteGroupUseCase(DeleteGroupUseCaseRef ref) {
+  return DeleteGroupUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+MoveMapToGroupUseCase moveMapToGroupUseCase(MoveMapToGroupUseCaseRef ref) {
+  return MoveMapToGroupUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+RenameGroupUseCase renameGroupUseCase(RenameGroupUseCaseRef ref) {
+  return RenameGroupUseCase(ref.watch(projectRepositoryProvider));
+}

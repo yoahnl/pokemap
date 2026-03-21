@@ -11,6 +11,7 @@ class ProjectManifest with _$ProjectManifest {
     required String name,
     @Default(ProjectVersion.v1) ProjectVersion version,
     required List<ProjectMapEntry> maps,
+    @Default([]) List<ProjectMapGroup> groups,
     required List<ProjectTilesetEntry> tilesets,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
@@ -19,11 +20,29 @@ class ProjectManifest with _$ProjectManifest {
 }
 
 @freezed
+class ProjectMapGroup with _$ProjectMapGroup {
+  const factory ProjectMapGroup({
+    required String id,
+    required String name,
+    required MapGroupType type,
+    String? parentGroupId,
+    @Default(0) int sortOrder,
+    @Default([]) List<String> tags,
+    @Default({}) Map<String, dynamic> properties,
+  }) = _ProjectMapGroup;
+
+  factory ProjectMapGroup.fromJson(Map<String, dynamic> json) => _$ProjectMapGroupFromJson(json);
+}
+
+@freezed
 class ProjectMapEntry with _$ProjectMapEntry {
   const factory ProjectMapEntry({
     required String id,
     required String name,
     required String relativePath,
+    String? groupId,
+    @Default(MapRole.exterior) MapRole role,
+    @Default(0) int sortOrder,
   }) = _ProjectMapEntry;
 
   factory ProjectMapEntry.fromJson(Map<String, dynamic> json) => _$ProjectMapEntryFromJson(json);

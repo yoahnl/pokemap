@@ -1,31 +1,53 @@
-import '../models/map_data.dart';
 import '../models/project_manifest.dart';
-import '../models/map_layer.dart';
+import '../models/map_data.dart';
 import '../exceptions/map_exceptions.dart';
 
 class ProjectValidator {
-  static void validate(ProjectManifest project) {
-    if (project.name.isEmpty) {
-      throw const ValidationException('Project name cannot be empty');
-    }
-    
+  static void validate(ProjectManifest manifest) {
+    _validateUniqueness(manifest);
+    _validateHierarchy(manifest);
+  }
+
+  static void _validateUniqueness(ProjectManifest manifest) {
     final mapIds = <String>{};
-    for (final map in project.maps) {
-      if (!mapIds.add(map.id)) {
-        throw ValidationException('Duplicate map ID found: ${map.id}');
+    for (final map in manifest.maps) {
+      if (!mapIds.add(map.id)) throw ValidationException('Duplicate map ID: ${map.id}');
+    }
+
+    final groupIds = <String>{};
+    for (final group in manifest.groups) {
+      if (!groupIds.add(group.id)) throw ValidationException('Duplicate group ID: ${group.id}');
+    }
+  }
+
+  static void _validateHierarchy(ProjectManifest manifest) {
+    final groupIds = manifest.groups.map((g) => g.id).toSet();
+    
+    // Check parent references
+    for (final group in manifest.groups) {
+      if (group.parentGroupId != null && !groupIds.contains(group.parentGroupId)) {
+        throw ValidationException('Group ${group.id} references non-existent parent: ${group.parentGroupId}');
       }
-      if (map.relativePath.isEmpty) {
-        throw ValidationException('Map path cannot be empty for map: ${map.id}');
+      if (group.parentGroupId == group.id) {
+        throw ValidationException('Group ${group.id} cannot be its own parent');
+      }
+      
+      // Basic cycle detection
+      var current = group;
+      final visited = {group.id};
+      while (current.parentGroupId != null) {
+        if (!groupIds.contains(current.parentGroupId)) break;
+        if (!visited.add(current.parentGroupId!)) {
+          throw ValidationException('Cycle detected in group hierarchy at ${group.id}');
+        }
+        current = manifest.groups.firstWhere((g) => g.id == current.parentGroupId);
       }
     }
 
-    final tilesetIds = <String>{};
-    for (final ts in project.tilesets) {
-      if (!tilesetIds.add(ts.id)) {
-        throw ValidationException('Duplicate tileset ID found: ${ts.id}');
-      }
-      if (ts.relativePath.isEmpty) {
-        throw ValidationException('Tileset path cannot be empty for tileset: ${ts.id}');
+    // Check map group references
+    for (final map in manifest.maps) {
+      if (map.groupId != null && !groupIds.contains(map.groupId)) {
+        throw ValidationException('Map ${map.id} references non-existent group: ${map.groupId}');
       }
     }
   }
@@ -33,69 +55,9 @@ class ProjectValidator {
 
 class MapValidator {
   static void validate(MapData map) {
+    if (map.id.isEmpty) throw const ValidationException('Map ID cannot be empty');
     if (map.size.width <= 0 || map.size.height <= 0) {
-      throw const ValidationException('Map dimensions must be positive');
+      throw const ValidationException('Map size must be positive');
     }
-    if (map.tilesetId.isEmpty) {
-      throw const ValidationException('Map must have a tilesetId');
-    }
-
-    final layerIds = <String>{};
-    for (final layer in map.layers) {
-      if (!layerIds.add(layer.id)) {
-        throw ValidationException('Duplicate layer ID found: ${layer.id}');
-      }
-      
-      _validateLayer(layer, map.size.width * map.size.height);
-    }
-
-    final entityIds = <String>{};
-    for (final entity in map.entities) {
-      if (!entityIds.add(entity.id)) {
-        throw ValidationException('Duplicate entity ID found: ${entity.id}');
-      }
-      if (!_isWithinBounds(entity.pos.x, entity.pos.y, map.size.width, map.size.height)) {
-        throw ValidationException('Entity "${entity.id}" is out of bounds');
-      }
-    }
-
-    final warpIds = <String>{};
-    for (final warp in map.warps) {
-      if (!warpIds.add(warp.id)) {
-        throw ValidationException('Duplicate warp ID found: ${warp.id}');
-      }
-    }
-
-    final triggerIds = <String>{};
-    for (final trigger in map.triggers) {
-      if (!triggerIds.add(trigger.id)) {
-        throw ValidationException('Duplicate trigger ID found: ${trigger.id}');
-      }
-      if (!_isWithinBounds(trigger.pos.x, trigger.pos.y, map.size.width, map.size.height)) {
-        throw ValidationException('Trigger "${trigger.id}" is out of bounds');
-      }
-    }
-  }
-
-  static void _validateLayer(MapLayer layer, int expectedSize) {
-    layer.map(
-      tile: (l) {
-        if (l.tiles.length != expectedSize) {
-          throw ValidationException('Tile layer "${l.id}" size mismatch');
-        }
-      },
-      collision: (l) {
-        if (l.collisions.length != expectedSize) {
-          throw ValidationException('Collision layer "${l.id}" size mismatch');
-        }
-      },
-      object: (l) {
-        // No size constraint on object layer itself
-      },
-    );
-  }
-
-  static bool _isWithinBounds(int x, int y, int width, int height) {
-    return x >= 0 && x < width && y >= 0 && y < height;
   }
 }

@@ -85,19 +85,25 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> createMap(String id, int width, int height) async {
-    debugPrint('EditorNotifier: createMap($id, $width, $height)');
+  Future<void> createMap(String id, int width, int height, {String? groupId, MapRole role = MapRole.exterior}) async {
+    debugPrint('EditorNotifier: createMap($id, $width, $height) in group $groupId');
     final fs = state.fileSystem;
     final project = state.project;
     if (fs == null || project == null) return;
 
     try {
       final useCase = ref.read(createMapUseCaseProvider);
-      final map = await useCase.execute(fs, project, id, width, height);
+      final map = await useCase.execute(fs, project, id, width, height, groupId: groupId, role: role);
 
       state = state.copyWith(
         project: project.copyWith(
-          maps: [...project.maps, ProjectMapEntry(id: id, name: id, relativePath: fs.getMapRelativePath(id))]
+          maps: [...project.maps, ProjectMapEntry(
+            id: id, 
+            name: id, 
+            relativePath: fs.getMapRelativePath(id),
+            groupId: groupId,
+            role: role,
+          )]
         ),
         activeMap: map,
         activeMapPath: fs.getMapPath(id),
@@ -143,7 +149,6 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(renameMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, oldId, newId);
       
-      // If the renamed map was active, update state
       MapData? activeMap = state.activeMap;
       String? activePath = state.activeMapPath;
       if (activeMap?.id == oldId) {
@@ -174,7 +179,6 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(deleteMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, mapId);
       
-      // If the deleted map was active, clear it
       MapData? activeMap = state.activeMap;
       String? activePath = state.activeMapPath;
       if (activeMap?.id == mapId) {
@@ -213,6 +217,86 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       debugPrint('EditorNotifier: Error duplicating map: $e');
       state = state.copyWith(errorMessage: 'Failed to duplicate map: $e');
+    }
+  }
+
+  Future<void> createGroup(String name, MapGroupType type, {String? parentId}) async {
+    debugPrint('EditorNotifier: createGroup($name, $type, parent: $parentId)');
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(createGroupUseCaseProvider);
+      final updatedProject = await useCase.execute(fs, project, name, type, parentId: parentId);
+      state = state.copyWith(
+        project: updatedProject,
+        statusMessage: 'Group "$name" created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error creating group: $e');
+      state = state.copyWith(errorMessage: 'Failed to create group: $e');
+    }
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    debugPrint('EditorNotifier: deleteGroup($groupId)');
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(deleteGroupUseCaseProvider);
+      final updatedProject = await useCase.execute(fs, project, groupId);
+      state = state.copyWith(
+        project: updatedProject,
+        statusMessage: 'Group deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error deleting group: $e');
+      state = state.copyWith(errorMessage: 'Failed to delete group: $e');
+    }
+  }
+
+  Future<void> renameGroup(String groupId, String newName) async {
+    debugPrint('EditorNotifier: renameGroup($groupId -> $newName)');
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(renameGroupUseCaseProvider);
+      final updatedProject = await useCase.execute(fs, project, groupId, newName);
+      state = state.copyWith(
+        project: updatedProject,
+        statusMessage: 'Group renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error renaming group: $e');
+      state = state.copyWith(errorMessage: 'Failed to rename group: $e');
+    }
+  }
+
+  Future<void> moveMapToGroup(String mapId, String? groupId) async {
+    debugPrint('EditorNotifier: moveMapToGroup($mapId -> $groupId)');
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(moveMapToGroupUseCaseProvider);
+      final updatedProject = await useCase.execute(fs, project, mapId, groupId);
+      state = state.copyWith(
+        project: updatedProject,
+        statusMessage: 'Map moved',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error moving map: $e');
+      state = state.copyWith(errorMessage: 'Failed to move map: $e');
     }
   }
 

@@ -13,9 +13,9 @@ class CreateProjectUseCase {
       name: name,
       maps: [],
       tilesets: [],
+      groups: [],
     );
     final fs = ProjectFileSystem(directory);
-    // Ensure project directory exists
     final projectFile = fs.projectManifestPath;
     await fs.ensureDirectoryExists(projectFile);
     
@@ -50,8 +50,8 @@ class CreateMapUseCase {
 
   CreateMapUseCase(this._mapRepo, this._projectRepo);
 
-  Future<MapData> execute(ProjectFileSystem fs, ProjectManifest project, String mapId, int w, int h) async {
-    debugPrint('CreateMapUseCase: Creating map $mapId (${w}x${h})');
+  Future<MapData> execute(ProjectFileSystem fs, ProjectManifest project, String mapId, int w, int h, {String? groupId, MapRole role = MapRole.exterior}) async {
+    debugPrint('CreateMapUseCase: Creating map $mapId (${w}x${h}) in group $groupId');
     
     final map = MapData(
       id: mapId,
@@ -79,7 +79,13 @@ class CreateMapUseCase {
     await _mapRepo.saveMap(map, absPath);
 
     final updatedProject = project.copyWith(
-      maps: [...project.maps, ProjectMapEntry(id: mapId, name: mapId, relativePath: mapPath)]
+      maps: [...project.maps, ProjectMapEntry(
+        id: mapId, 
+        name: mapId, 
+        relativePath: mapPath,
+        groupId: groupId,
+        role: role,
+      )]
     );
     
     await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
@@ -119,15 +125,12 @@ class RenameMapUseCase {
     final newPath = fs.getMapPath(newId);
     final newRelativePath = fs.getMapRelativePath(newId);
 
-    // 1. Load the original data
     final mapData = await _mapRepo.loadMap(oldPath);
     final updatedMap = mapData.copyWith(id: newId, name: newId);
 
-    // 2. Save to the new path first
     await _mapRepo.saveMap(updatedMap, newPath);
 
     try {
-      // 3. Update project manifest
       final updatedMaps = project.maps.map((entry) {
         if (entry.id == oldId) {
           return entry.copyWith(id: newId, name: newId, relativePath: newRelativePath);
@@ -138,15 +141,12 @@ class RenameMapUseCase {
       final updatedProject = project.copyWith(maps: updatedMaps);
       await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
 
-      // 4. Delete old file ONLY if manifest update succeeded
-      // and if the path is actually different (case-sensitivity check)
       if (oldPath.toLowerCase() != newPath.toLowerCase()) {
         await _mapRepo.deleteMap(oldPath);
       }
 
       return updatedProject;
     } catch (e) {
-      // Cleanup orphan file if manifest update failed
       await _mapRepo.deleteMap(newPath);
       rethrow;
     }
@@ -197,11 +197,106 @@ class DuplicateMapUseCase {
     final duplicatedMap = mapData.copyWith(id: targetId, name: targetId);
     await _mapRepo.saveMap(duplicatedMap, targetPath);
 
+    final sourceEntry = project.maps.firstWhere((e) => e.id == sourceId);
+
     final updatedProject = project.copyWith(
-      maps: [...project.maps, ProjectMapEntry(id: targetId, name: targetId, relativePath: targetRelativePath)]
+      maps: [...project.maps, ProjectMapEntry(
+        id: targetId, 
+        name: targetId, 
+        relativePath: targetRelativePath,
+        groupId: sourceEntry.groupId,
+        role: sourceEntry.role,
+      )]
     );
     await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
 
+    return updatedProject;
+  }
+}
+
+class CreateGroupUseCase {
+  final ProjectRepository _repo;
+  CreateGroupUseCase(this._repo);
+
+  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project, String name, MapGroupType type, {String? parentId}) async {
+    final id = 'group_${DateTime.now().millisecondsSinceEpoch}';
+    final newGroup = ProjectMapGroup(
+      id: id,
+      name: name,
+      type: type,
+      parentGroupId: parentId,
+      sortOrder: project.groups.length,
+    );
+
+    final updatedProject = project.copyWith(
+      groups: [...project.groups, newGroup],
+    );
+
+    await _repo.saveProject(updatedProject, fs.projectManifestPath);
+    return updatedProject;
+  }
+}
+
+class DeleteGroupUseCase {
+  final ProjectRepository _repo;
+  DeleteGroupUseCase(this._repo);
+
+  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project, String groupId) async {
+    debugPrint('DeleteGroupUseCase: Deleting group $groupId');
+    
+    // 1. Remove the group
+    final updatedGroups = project.groups.where((g) => g.id != groupId).toList();
+    
+    // 2. Detach maps from this group
+    final updatedMaps = project.maps.map((m) {
+      if (m.groupId == groupId) return m.copyWith(groupId: null);
+      return m;
+    }).toList();
+
+    // 3. Move child groups up one level (or to the same level as the deleted group)
+    final parentId = project.groups.any((g) => g.id == groupId) 
+        ? project.groups.firstWhere((g) => g.id == groupId).parentGroupId 
+        : null;
+
+    final finalGroups = updatedGroups.map((g) {
+      if (g.parentGroupId == groupId) return g.copyWith(parentGroupId: parentId);
+      return g;
+    }).toList();
+
+    final updatedProject = project.copyWith(groups: finalGroups, maps: updatedMaps);
+    await _repo.saveProject(updatedProject, fs.projectManifestPath);
+    return updatedProject;
+  }
+}
+
+class MoveMapToGroupUseCase {
+  final ProjectRepository _repo;
+  MoveMapToGroupUseCase(this._repo);
+
+  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project, String mapId, String? groupId) async {
+    final updatedMaps = project.maps.map((m) {
+      if (m.id == mapId) return m.copyWith(groupId: groupId);
+      return m;
+    }).toList();
+
+    final updatedProject = project.copyWith(maps: updatedMaps);
+    await _repo.saveProject(updatedProject, fs.projectManifestPath);
+    return updatedProject;
+  }
+}
+
+class RenameGroupUseCase {
+  final ProjectRepository _repo;
+  RenameGroupUseCase(this._repo);
+
+  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project, String groupId, String newName) async {
+    final updatedGroups = project.groups.map((g) {
+      if (g.id == groupId) return g.copyWith(name: newName);
+      return g;
+    }).toList();
+
+    final updatedProject = project.copyWith(groups: updatedGroups);
+    await _repo.saveProject(updatedProject, fs.projectManifestPath);
     return updatedProject;
   }
 }

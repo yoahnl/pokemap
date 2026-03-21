@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -32,12 +33,9 @@ class TopToolbar extends ConsumerWidget {
           ),
           IconButton(
             onPressed: () async {
-              debugPrint('TopToolbar: Open Project clicked');
               String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-
               if (selectedDirectory != null) {
                 final manifestPath = p.join(selectedDirectory, 'project.json');
-                debugPrint('TopToolbar: Loading project from: $manifestPath');
                 await notifier.loadProject(manifestPath);
               }
             },
@@ -50,7 +48,7 @@ class TopToolbar extends ConsumerWidget {
               ? () => _showNewMapDialog(context, notifier)
               : null,
             icon: const Icon(Icons.add_location_alt, size: 20),
-            tooltip: 'New Map',
+            tooltip: 'New Map (Root)',
           ),
           IconButton(
             onPressed: state.activeMap != null
@@ -76,20 +74,8 @@ class TopToolbar extends ConsumerWidget {
           if (state.statusMessage != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                state.statusMessage!,
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-              ),
+              child: Text(state.statusMessage!, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
             ),
-          if (state.errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                state.errorMessage!,
-                style: const TextStyle(color: Colors.red, fontSize: 12),
-              ),
-            ),
-          const SizedBox(width: 8),
         ],
       ),
     );
@@ -104,7 +90,7 @@ class TopToolbar extends ConsumerWidget {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Project Name'),
+          decoration: const InputDecoration(labelText: 'Project Name', hintText: 'The name of your game'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
@@ -113,13 +99,15 @@ class TopToolbar extends ConsumerWidget {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
                 Navigator.pop(context);
-                String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-                if (selectedDirectory != null) {
-                  await notifier.createProject(name, selectedDirectory);
+                String? baseDir = await FilePicker.platform.getDirectoryPath();
+                if (baseDir != null) {
+                  // Créer un sous-dossier propre pour le projet
+                  final projectDir = p.join(baseDir, name.replaceAll(' ', '_').toLowerCase());
+                  await notifier.createProject(name, projectDir);
                 }
               }
             },
-            child: const Text('Create'),
+            child: const Text('Create Project'),
           ),
         ],
       ),
@@ -131,19 +119,18 @@ class TopToolbar extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Map'),
+        title: const Text('New Root Map'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Map ID (e.g. route_01)'),
+          decoration: const InputDecoration(labelText: 'Map ID'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
-              final id = controller.text.trim();
-              if (id.isNotEmpty) {
-                notifier.createMap(id, 20, 15);
+              if (controller.text.isNotEmpty) {
+                notifier.createMap(controller.text, 20, 15);
                 Navigator.pop(context);
               }
             },
