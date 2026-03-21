@@ -12,10 +12,14 @@ class MapCanvas extends ConsumerWidget {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final activeMap = state.activeMap;
+    final settings = state.project?.settings ?? const ProjectSettings();
 
     if (activeMap == null) {
       return const Center(child: Text('No Map Loaded'));
     }
+
+    final tileWidth = settings.tileWidth * settings.displayScale;
+    final tileHeight = settings.tileHeight * settings.displayScale;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -30,7 +34,13 @@ class MapCanvas extends ConsumerWidget {
             onPointerHover: (event) {
               final localPos = event.localPosition;
               final gridPos = _screenToGrid(
-                  localPos, state.panOffset, state.zoom, activeMap.size);
+                localPos,
+                state.panOffset,
+                state.zoom,
+                activeMap.size,
+                tileWidth,
+                tileHeight,
+              );
               notifier.updateHoveredTile(gridPos);
             },
             onPointerSignal: (event) {
@@ -45,6 +55,8 @@ class MapCanvas extends ConsumerWidget {
                   offset: state.panOffset,
                   hoveredTile: state.hoveredTile,
                   activeLayerId: state.activeLayerId,
+                  tileWidth: tileWidth,
+                  tileHeight: tileHeight,
                 ),
               ),
             ),
@@ -55,12 +67,18 @@ class MapCanvas extends ConsumerWidget {
   }
 
   GridPos? _screenToGrid(
-      Offset screenPos, Offset pan, double zoom, GridSize size) {
+    Offset screenPos,
+    Offset pan,
+    double zoom,
+    GridSize size,
+    double tileWidth,
+    double tileHeight,
+  ) {
     final adjustedX = (screenPos.dx - pan.dx) / zoom;
     final adjustedY = (screenPos.dy - pan.dy) / zoom;
 
-    final tileX = (adjustedX / 32).floor();
-    final tileY = (adjustedY / 32).floor();
+    final tileX = (adjustedX / tileWidth).floor();
+    final tileY = (adjustedY / tileHeight).floor();
 
     if (tileX >= 0 && tileX < size.width && tileY >= 0 && tileY < size.height) {
       return GridPos(x: tileX, y: tileY);
@@ -75,7 +93,8 @@ class MapGridPainter extends CustomPainter {
   final Offset offset;
   final GridPos? hoveredTile;
   final String? activeLayerId;
-  final double tileSize = 32.0;
+  final double tileWidth;
+  final double tileHeight;
 
   MapGridPainter({
     required this.map,
@@ -83,6 +102,8 @@ class MapGridPainter extends CustomPainter {
     required this.offset,
     this.hoveredTile,
     this.activeLayerId,
+    required this.tileWidth,
+    required this.tileHeight,
   });
 
   @override
@@ -91,8 +112,8 @@ class MapGridPainter extends CustomPainter {
     canvas.translate(offset.dx, offset.dy);
     canvas.scale(zoom);
 
-    final gridWidth = map.size.width * tileSize;
-    final gridHeight = map.size.height * tileSize;
+    final gridWidth = map.size.width * tileWidth;
+    final gridHeight = map.size.height * tileHeight;
 
     // Draw Layers
     for (final layer in map.layers) {
@@ -110,11 +131,17 @@ class MapGridPainter extends CustomPainter {
 
     for (int x = 0; x <= map.size.width; x++) {
       canvas.drawLine(
-          Offset(x * tileSize, 0), Offset(x * tileSize, gridHeight), gridPaint);
+        Offset(x * tileWidth, 0),
+        Offset(x * tileWidth, gridHeight),
+        gridPaint,
+      );
     }
     for (int y = 0; y <= map.size.height; y++) {
       canvas.drawLine(
-          Offset(0, y * tileSize), Offset(gridWidth, y * tileSize), gridPaint);
+        Offset(0, y * tileHeight),
+        Offset(gridWidth, y * tileHeight),
+        gridPaint,
+      );
     }
 
     // Draw Hover Cursor
@@ -125,10 +152,10 @@ class MapGridPainter extends CustomPainter {
 
       canvas.drawRect(
         Rect.fromLTWH(
-          hoveredTile!.x * tileSize,
-          hoveredTile!.y * tileSize,
-          tileSize,
-          tileSize,
+          hoveredTile!.x * tileWidth,
+          hoveredTile!.y * tileHeight,
+          tileWidth,
+          tileHeight,
         ),
         hoverPaint,
       );
@@ -141,10 +168,10 @@ class MapGridPainter extends CustomPainter {
 
       canvas.drawRect(
         Rect.fromLTWH(
-          hoveredTile!.x * tileSize,
-          hoveredTile!.y * tileSize,
-          tileSize,
-          tileSize,
+          hoveredTile!.x * tileWidth,
+          hoveredTile!.y * tileHeight,
+          tileWidth,
+          tileHeight,
         ),
         cursorBorder,
       );
@@ -167,6 +194,8 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.zoom != zoom ||
         oldDelegate.offset != offset ||
         oldDelegate.hoveredTile != hoveredTile ||
-        oldDelegate.activeLayerId != activeLayerId;
+        oldDelegate.activeLayerId != activeLayerId ||
+        oldDelegate.tileWidth != tileWidth ||
+        oldDelegate.tileHeight != tileHeight;
   }
 }

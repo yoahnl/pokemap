@@ -25,6 +25,7 @@ mixin _$ProjectManifest {
   List<ProjectMapEntry> get maps => throw _privateConstructorUsedError;
   List<ProjectMapGroup> get groups => throw _privateConstructorUsedError;
   List<ProjectTilesetEntry> get tilesets => throw _privateConstructorUsedError;
+  ProjectSettings get settings => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
 
@@ -50,7 +51,10 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectMapEntry> maps,
       List<ProjectMapGroup> groups,
       List<ProjectTilesetEntry> tilesets,
+      ProjectSettings settings,
       Map<String, dynamic> globalProperties});
+
+  $ProjectSettingsCopyWith<$Res> get settings;
 }
 
 /// @nodoc
@@ -73,6 +77,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? maps = null,
     Object? groups = null,
     Object? tilesets = null,
+    Object? settings = null,
     Object? globalProperties = null,
   }) {
     return _then(_value.copyWith(
@@ -96,11 +101,25 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
               as List<ProjectTilesetEntry>,
+      settings: null == settings
+          ? _value.settings
+          : settings // ignore: cast_nullable_to_non_nullable
+              as ProjectSettings,
       globalProperties: null == globalProperties
           ? _value.globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
     ) as $Val);
+  }
+
+  /// Create a copy of ProjectManifest
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectSettingsCopyWith<$Res> get settings {
+    return $ProjectSettingsCopyWith<$Res>(_value.settings, (value) {
+      return _then(_value.copyWith(settings: value) as $Val);
+    });
   }
 }
 
@@ -118,7 +137,11 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectMapEntry> maps,
       List<ProjectMapGroup> groups,
       List<ProjectTilesetEntry> tilesets,
+      ProjectSettings settings,
       Map<String, dynamic> globalProperties});
+
+  @override
+  $ProjectSettingsCopyWith<$Res> get settings;
 }
 
 /// @nodoc
@@ -139,6 +162,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? maps = null,
     Object? groups = null,
     Object? tilesets = null,
+    Object? settings = null,
     Object? globalProperties = null,
   }) {
     return _then(_$ProjectManifestImpl(
@@ -162,6 +186,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
               as List<ProjectTilesetEntry>,
+      settings: null == settings
+          ? _value.settings
+          : settings // ignore: cast_nullable_to_non_nullable
+              as ProjectSettings,
       globalProperties: null == globalProperties
           ? _value._globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
@@ -180,6 +208,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       required final List<ProjectMapEntry> maps,
       final List<ProjectMapGroup> groups = const [],
       required final List<ProjectTilesetEntry> tilesets,
+      this.settings = const ProjectSettings(),
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
         _groups = groups,
@@ -219,6 +248,9 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_tilesets);
   }
 
+  @override
+  @JsonKey()
+  final ProjectSettings settings;
   final Map<String, dynamic> _globalProperties;
   @override
   @JsonKey()
@@ -230,7 +262,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -243,6 +275,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality().equals(other._maps, _maps) &&
             const DeepCollectionEquality().equals(other._groups, _groups) &&
             const DeepCollectionEquality().equals(other._tilesets, _tilesets) &&
+            (identical(other.settings, settings) ||
+                other.settings == settings) &&
             const DeepCollectionEquality()
                 .equals(other._globalProperties, _globalProperties));
   }
@@ -256,6 +290,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       const DeepCollectionEquality().hash(_maps),
       const DeepCollectionEquality().hash(_groups),
       const DeepCollectionEquality().hash(_tilesets),
+      settings,
       const DeepCollectionEquality().hash(_globalProperties));
 
   /// Create a copy of ProjectManifest
@@ -282,6 +317,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       required final List<ProjectMapEntry> maps,
       final List<ProjectMapGroup> groups,
       required final List<ProjectTilesetEntry> tilesets,
+      final ProjectSettings settings,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
 
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
@@ -298,6 +334,8 @@ abstract class _ProjectManifest implements ProjectManifest {
   @override
   List<ProjectTilesetEntry> get tilesets;
   @override
+  ProjectSettings get settings;
+  @override
   Map<String, dynamic> get globalProperties;
 
   /// Create a copy of ProjectManifest
@@ -305,6 +343,252 @@ abstract class _ProjectManifest implements ProjectManifest {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectManifestImplCopyWith<_$ProjectManifestImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) {
+  return _ProjectSettings.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectSettings {
+  int get tileWidth => throw _privateConstructorUsedError;
+  int get tileHeight => throw _privateConstructorUsedError;
+  double get displayScale => throw _privateConstructorUsedError;
+  int get defaultMapWidth => throw _privateConstructorUsedError;
+  int get defaultMapHeight => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectSettings to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectSettings
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectSettingsCopyWith<ProjectSettings> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectSettingsCopyWith<$Res> {
+  factory $ProjectSettingsCopyWith(
+          ProjectSettings value, $Res Function(ProjectSettings) then) =
+      _$ProjectSettingsCopyWithImpl<$Res, ProjectSettings>;
+  @useResult
+  $Res call(
+      {int tileWidth,
+      int tileHeight,
+      double displayScale,
+      int defaultMapWidth,
+      int defaultMapHeight});
+}
+
+/// @nodoc
+class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
+    implements $ProjectSettingsCopyWith<$Res> {
+  _$ProjectSettingsCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectSettings
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tileWidth = null,
+    Object? tileHeight = null,
+    Object? displayScale = null,
+    Object? defaultMapWidth = null,
+    Object? defaultMapHeight = null,
+  }) {
+    return _then(_value.copyWith(
+      tileWidth: null == tileWidth
+          ? _value.tileWidth
+          : tileWidth // ignore: cast_nullable_to_non_nullable
+              as int,
+      tileHeight: null == tileHeight
+          ? _value.tileHeight
+          : tileHeight // ignore: cast_nullable_to_non_nullable
+              as int,
+      displayScale: null == displayScale
+          ? _value.displayScale
+          : displayScale // ignore: cast_nullable_to_non_nullable
+              as double,
+      defaultMapWidth: null == defaultMapWidth
+          ? _value.defaultMapWidth
+          : defaultMapWidth // ignore: cast_nullable_to_non_nullable
+              as int,
+      defaultMapHeight: null == defaultMapHeight
+          ? _value.defaultMapHeight
+          : defaultMapHeight // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectSettingsImplCopyWith<$Res>
+    implements $ProjectSettingsCopyWith<$Res> {
+  factory _$$ProjectSettingsImplCopyWith(_$ProjectSettingsImpl value,
+          $Res Function(_$ProjectSettingsImpl) then) =
+      __$$ProjectSettingsImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {int tileWidth,
+      int tileHeight,
+      double displayScale,
+      int defaultMapWidth,
+      int defaultMapHeight});
+}
+
+/// @nodoc
+class __$$ProjectSettingsImplCopyWithImpl<$Res>
+    extends _$ProjectSettingsCopyWithImpl<$Res, _$ProjectSettingsImpl>
+    implements _$$ProjectSettingsImplCopyWith<$Res> {
+  __$$ProjectSettingsImplCopyWithImpl(
+      _$ProjectSettingsImpl _value, $Res Function(_$ProjectSettingsImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectSettings
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tileWidth = null,
+    Object? tileHeight = null,
+    Object? displayScale = null,
+    Object? defaultMapWidth = null,
+    Object? defaultMapHeight = null,
+  }) {
+    return _then(_$ProjectSettingsImpl(
+      tileWidth: null == tileWidth
+          ? _value.tileWidth
+          : tileWidth // ignore: cast_nullable_to_non_nullable
+              as int,
+      tileHeight: null == tileHeight
+          ? _value.tileHeight
+          : tileHeight // ignore: cast_nullable_to_non_nullable
+              as int,
+      displayScale: null == displayScale
+          ? _value.displayScale
+          : displayScale // ignore: cast_nullable_to_non_nullable
+              as double,
+      defaultMapWidth: null == defaultMapWidth
+          ? _value.defaultMapWidth
+          : defaultMapWidth // ignore: cast_nullable_to_non_nullable
+              as int,
+      defaultMapHeight: null == defaultMapHeight
+          ? _value.defaultMapHeight
+          : defaultMapHeight // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectSettingsImpl implements _ProjectSettings {
+  const _$ProjectSettingsImpl(
+      {this.tileWidth = 16,
+      this.tileHeight = 16,
+      this.displayScale = 2.0,
+      this.defaultMapWidth = 20,
+      this.defaultMapHeight = 15});
+
+  factory _$ProjectSettingsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectSettingsImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final int tileWidth;
+  @override
+  @JsonKey()
+  final int tileHeight;
+  @override
+  @JsonKey()
+  final double displayScale;
+  @override
+  @JsonKey()
+  final int defaultMapWidth;
+  @override
+  @JsonKey()
+  final int defaultMapHeight;
+
+  @override
+  String toString() {
+    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectSettingsImpl &&
+            (identical(other.tileWidth, tileWidth) ||
+                other.tileWidth == tileWidth) &&
+            (identical(other.tileHeight, tileHeight) ||
+                other.tileHeight == tileHeight) &&
+            (identical(other.displayScale, displayScale) ||
+                other.displayScale == displayScale) &&
+            (identical(other.defaultMapWidth, defaultMapWidth) ||
+                other.defaultMapWidth == defaultMapWidth) &&
+            (identical(other.defaultMapHeight, defaultMapHeight) ||
+                other.defaultMapHeight == defaultMapHeight));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, tileWidth, tileHeight,
+      displayScale, defaultMapWidth, defaultMapHeight);
+
+  /// Create a copy of ProjectSettings
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectSettingsImplCopyWith<_$ProjectSettingsImpl> get copyWith =>
+      __$$ProjectSettingsImplCopyWithImpl<_$ProjectSettingsImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectSettingsImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectSettings implements ProjectSettings {
+  const factory _ProjectSettings(
+      {final int tileWidth,
+      final int tileHeight,
+      final double displayScale,
+      final int defaultMapWidth,
+      final int defaultMapHeight}) = _$ProjectSettingsImpl;
+
+  factory _ProjectSettings.fromJson(Map<String, dynamic> json) =
+      _$ProjectSettingsImpl.fromJson;
+
+  @override
+  int get tileWidth;
+  @override
+  int get tileHeight;
+  @override
+  double get displayScale;
+  @override
+  int get defaultMapWidth;
+  @override
+  int get defaultMapHeight;
+
+  /// Create a copy of ProjectSettings
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectSettingsImplCopyWith<_$ProjectSettingsImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

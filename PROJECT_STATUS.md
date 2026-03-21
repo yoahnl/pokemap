@@ -34,6 +34,7 @@ Flux typique (editor):
 - Valider les donnees metier (validation minimale)
 - Rester modulaire entre core, editor et runtime
 - Redimensionner une map (tile/collision layers + size) (fait le 2026-03-21)
+- Parametres globaux de projet (tile size/scale + taille map par defaut) + UI d'edition (fait le 2026-03-21)
 
 ## 4. Fonctionnalites partiellement faites
 - Renommer une map: fait cote logique et UI, verification fonctionnelle a faire
@@ -72,6 +73,9 @@ Aucune (derniere tache livree: redimensionnement de map).
 - Ajout d'un `ResizeMapUseCase` dans `map_editor` et d'une action UI "Resize Map" dans la toolbar (dialog width/height + validation).
 - Ajout d'un repaint explicite du canvas quand la map change (important pour le resize).
 - Creation de ce fichier `PROJECT_STATUS.md` pour le suivi persistant.
+- Ajout d'une configuration globale `ProjectSettings` dans le manifest (tileWidth, tileHeight, displayScale, defaultMapWidth/Height).
+- Ajout d'un dialog "Project Settings" pour editer le nom du projet + settings et persister dans `project.json`.
+- Le canvas et la creation de map utilisent maintenant les settings globaux (fin du `32` en dur).
 
 ## 8. Prochaines etapes recommandees
 - Verification fonctionnelle rapide des actions map (rename/delete/duplicate/resize) sur un vrai projet.
@@ -88,6 +92,7 @@ Aucune (derniere tache livree: redimensionnement de map).
 - La validation metier est minimale (taille positive); les tailles de layers ne sont pas verifiees systematiquement.
 - Le rendu/edition de tiles n'est pas encore implemente: l'indexation flatten devra rester coherente partout.
 - Apres ajout/modif de providers Riverpod, il faut regenerer le code (`build_runner`) pour eviter des erreurs du type `ResizeMapUseCaseRef` inconnu.
+- Modifier les settings globaux impacte visuellement le canvas (ok), mais l'effet sur les maps existantes n'est pas versionne ni historise (a clarifier si besoin).
 
 ## Checklist fonctionnelle (etat)
 - Ouvrir un projet existant: fait
@@ -130,7 +135,7 @@ Aucune (derniere tache livree: redimensionnement de map).
 - Poser des points de spawn: pas fait
 - Editer les proprietes des entites: pas fait
 - Editer les proprietes des maps: pas fait
-- Editer les proprietes globales du projet: pas fait
+- Editer les proprietes globales du projet: partiellement fait
 - Avoir un inspector de proprietes: pas fait
 - Avoir un explorateur de projet: fait
 - Avoir une toolbar claire: fait

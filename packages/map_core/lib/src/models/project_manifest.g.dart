@@ -22,6 +22,9 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       tilesets: (json['tilesets'] as List<dynamic>)
           .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
+      settings: json['settings'] == null
+          ? const ProjectSettings()
+          : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
       globalProperties:
           json['globalProperties'] as Map<String, dynamic>? ?? const {},
     );
@@ -34,12 +37,33 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'maps': instance.maps.map((e) => e.toJson()).toList(),
       'groups': instance.groups.map((e) => e.toJson()).toList(),
       'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
+      'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
     };
 
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
 };
+
+_$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectSettingsImpl(
+      tileWidth: (json['tileWidth'] as num?)?.toInt() ?? 16,
+      tileHeight: (json['tileHeight'] as num?)?.toInt() ?? 16,
+      displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
+      defaultMapWidth: (json['defaultMapWidth'] as num?)?.toInt() ?? 20,
+      defaultMapHeight: (json['defaultMapHeight'] as num?)?.toInt() ?? 15,
+    );
+
+Map<String, dynamic> _$$ProjectSettingsImplToJson(
+        _$ProjectSettingsImpl instance) =>
+    <String, dynamic>{
+      'tileWidth': instance.tileWidth,
+      'tileHeight': instance.tileHeight,
+      'displayScale': instance.displayScale,
+      'defaultMapWidth': instance.defaultMapWidth,
+      'defaultMapHeight': instance.defaultMapHeight,
+    };
 
 _$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(
         Map<String, dynamic> json) =>

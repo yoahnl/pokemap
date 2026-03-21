@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
@@ -13,6 +14,7 @@ class TopToolbar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final settings = state.project?.settings ?? const ProjectSettings();
 
     return Container(
       height: 48,
@@ -48,10 +50,26 @@ class TopToolbar extends ConsumerWidget {
           const VerticalDivider(width: 1, indent: 8, endIndent: 8),
           IconButton(
             onPressed: state.project != null && state.fileSystem != null
-                ? () => _showNewMapDialog(context, notifier)
+                ? () => _showNewMapDialog(
+                      context,
+                      notifier,
+                      defaultWidth: settings.defaultMapWidth,
+                      defaultHeight: settings.defaultMapHeight,
+                    )
                 : null,
             icon: const Icon(Icons.add_location_alt, size: 20),
             tooltip: 'New Map (Root)',
+          ),
+          IconButton(
+            onPressed: state.project != null
+                ? () => _showProjectSettingsDialog(
+                      context,
+                      notifier,
+                      state.project!,
+                    )
+                : null,
+            icon: const Icon(Icons.settings, size: 20),
+            tooltip: 'Project Settings',
           ),
           IconButton(
             onPressed:
@@ -137,7 +155,12 @@ class TopToolbar extends ConsumerWidget {
     );
   }
 
-  void _showNewMapDialog(BuildContext context, EditorNotifier notifier) {
+  void _showNewMapDialog(
+    BuildContext context,
+    EditorNotifier notifier, {
+    required int defaultWidth,
+    required int defaultHeight,
+  }) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -155,11 +178,142 @@ class TopToolbar extends ConsumerWidget {
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
-                notifier.createMap(controller.text, 20, 15);
+                notifier.createMap(
+                    controller.text, defaultWidth, defaultHeight);
                 Navigator.pop(context);
               }
             },
             child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProjectSettingsDialog(
+    BuildContext context,
+    EditorNotifier notifier,
+    ProjectManifest project,
+  ) {
+    final formKey = GlobalKey<FormState>();
+    final settings = project.settings;
+    final nameController = TextEditingController(text: project.name);
+    final tileWidthController =
+        TextEditingController(text: settings.tileWidth.toString());
+    final tileHeightController =
+        TextEditingController(text: settings.tileHeight.toString());
+    final displayScaleController =
+        TextEditingController(text: settings.displayScale.toString());
+    final defaultMapWidthController =
+        TextEditingController(text: settings.defaultMapWidth.toString());
+    final defaultMapHeightController =
+        TextEditingController(text: settings.defaultMapHeight.toString());
+
+    String? validatePositiveInt(String? v) {
+      final text = (v ?? '').trim();
+      final n = int.tryParse(text);
+      if (n == null) return 'Enter a number';
+      if (n <= 0) return 'Must be > 0';
+      return null;
+    }
+
+    String? validatePositiveDouble(String? v) {
+      final text = (v ?? '').trim();
+      final n = double.tryParse(text);
+      if (n == null) return 'Enter a number';
+      if (n <= 0) return 'Must be > 0';
+      return null;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Project Settings'),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Project Name'),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: tileWidthController,
+                  decoration: const InputDecoration(labelText: 'Tile Width'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: validatePositiveInt,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: tileHeightController,
+                  decoration: const InputDecoration(labelText: 'Tile Height'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: validatePositiveInt,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: displayScaleController,
+                  decoration: const InputDecoration(labelText: 'Display Scale'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
+                  ],
+                  validator: validatePositiveDouble,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: defaultMapWidthController,
+                  decoration:
+                      const InputDecoration(labelText: 'Default Map Width'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: validatePositiveInt,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: defaultMapHeightController,
+                  decoration:
+                      const InputDecoration(labelText: 'Default Map Height'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: validatePositiveInt,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (!(formKey.currentState?.validate() ?? false)) return;
+              final updatedSettings = settings.copyWith(
+                tileWidth: int.parse(tileWidthController.text.trim()),
+                tileHeight: int.parse(tileHeightController.text.trim()),
+                displayScale: double.parse(displayScaleController.text.trim()),
+                defaultMapWidth:
+                    int.parse(defaultMapWidthController.text.trim()),
+                defaultMapHeight:
+                    int.parse(defaultMapHeightController.text.trim()),
+              );
+              final name = nameController.text.trim();
+              Navigator.pop(context);
+              await notifier.updateProjectSettings(
+                name: name,
+                settings: updatedSettings,
+              );
+            },
+            child: const Text('Save'),
           ),
         ],
       ),

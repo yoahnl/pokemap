@@ -16,6 +16,7 @@ class CreateProjectUseCase {
       maps: [],
       tilesets: [],
       groups: [],
+      settings: const ProjectSettings(),
     );
     final fs = ProjectFileSystem(directory);
     final projectFile = fs.projectManifestPath;
@@ -34,6 +35,24 @@ class LoadProjectUseCase {
   Future<ProjectManifest> execute(String manifestPath) async {
     debugPrint('LoadProjectUseCase: Loading project from $manifestPath');
     return await _repo.loadProject(manifestPath);
+  }
+}
+
+class UpdateProjectSettingsUseCase {
+  final ProjectRepository _repo;
+
+  UpdateProjectSettingsUseCase(this._repo);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String name,
+    required ProjectSettings settings,
+  }) async {
+    debugPrint('UpdateProjectSettingsUseCase: Updating project settings');
+    final updated = project.copyWith(name: name, settings: settings);
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return updated;
   }
 }
 

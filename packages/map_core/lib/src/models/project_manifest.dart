@@ -13,10 +13,27 @@ class ProjectManifest with _$ProjectManifest {
     required List<ProjectMapEntry> maps,
     @Default([]) List<ProjectMapGroup> groups,
     required List<ProjectTilesetEntry> tilesets,
+    @Default(ProjectSettings()) ProjectSettings settings,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
 
-  factory ProjectManifest.fromJson(Map<String, dynamic> json) => _$ProjectManifestFromJson(json);
+  factory ProjectManifest.fromJson(Map<String, dynamic> json) =>
+      _$ProjectManifestFromJson(json);
+}
+
+@freezed
+class ProjectSettings with _$ProjectSettings {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectSettings({
+    @Default(16) int tileWidth,
+    @Default(16) int tileHeight,
+    @Default(2.0) double displayScale,
+    @Default(20) int defaultMapWidth,
+    @Default(15) int defaultMapHeight,
+  }) = _ProjectSettings;
+
+  factory ProjectSettings.fromJson(Map<String, dynamic> json) =>
+      _$ProjectSettingsFromJson(json);
 }
 
 @freezed
@@ -31,7 +48,8 @@ class ProjectMapGroup with _$ProjectMapGroup {
     @Default({}) Map<String, dynamic> properties,
   }) = _ProjectMapGroup;
 
-  factory ProjectMapGroup.fromJson(Map<String, dynamic> json) => _$ProjectMapGroupFromJson(json);
+  factory ProjectMapGroup.fromJson(Map<String, dynamic> json) =>
+      _$ProjectMapGroupFromJson(json);
 }
 
 @freezed
@@ -45,7 +63,8 @@ class ProjectMapEntry with _$ProjectMapEntry {
     @Default(0) int sortOrder,
   }) = _ProjectMapEntry;
 
-  factory ProjectMapEntry.fromJson(Map<String, dynamic> json) => _$ProjectMapEntryFromJson(json);
+  factory ProjectMapEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectMapEntryFromJson(json);
 }
 
 @freezed
@@ -56,5 +75,6 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
     required String relativePath,
   }) = _ProjectTilesetEntry;
 
-  factory ProjectTilesetEntry.fromJson(Map<String, dynamic> json) => _$ProjectTilesetEntryFromJson(json);
+  factory ProjectTilesetEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTilesetEntryFromJson(json);
 }

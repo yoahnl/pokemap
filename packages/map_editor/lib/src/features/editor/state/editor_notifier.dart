@@ -58,6 +58,32 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  Future<void> updateProjectSettings({
+    required String name,
+    required ProjectSettings settings,
+  }) async {
+    debugPrint('EditorNotifier: updateProjectSettings()');
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(updateProjectSettingsUseCaseProvider);
+      final updated =
+          await useCase.execute(fs, project, name: name, settings: settings);
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Project settings saved',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error updating project settings: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to update project settings: $e',
+      );
+    }
+  }
+
   Future<void> saveActiveMap() async {
     final map = state.activeMap;
     final path = state.activeMapPath;

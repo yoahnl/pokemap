@@ -24,7 +24,6 @@ final projectRepositoryProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProjectRepositoryRef = AutoDisposeProviderRef<ProjectRepository>;
-
 String _$mapRepositoryHash() => r'178b007eff56b7f29ecacf271b2651227b86b4f2';
 
 /// See also [mapRepository].
@@ -42,7 +41,6 @@ final mapRepositoryProvider = AutoDisposeProvider<MapRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MapRepositoryRef = AutoDisposeProviderRef<MapRepository>;
-
 String _$tilesetRepositoryHash() => r'c899262ca532bb56b6ae7df70e288ca9de109754';
 
 /// See also [tilesetRepository].

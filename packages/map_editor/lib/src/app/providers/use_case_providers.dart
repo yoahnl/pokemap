@@ -16,6 +16,12 @@ LoadProjectUseCase loadProjectUseCase(LoadProjectUseCaseRef ref) {
 }
 
 @riverpod
+UpdateProjectSettingsUseCase updateProjectSettingsUseCase(
+    UpdateProjectSettingsUseCaseRef ref) {
+  return UpdateProjectSettingsUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
 SaveMapUseCase saveMapUseCase(SaveMapUseCaseRef ref) {
   return SaveMapUseCase(ref.watch(mapRepositoryProvider));
 }

@@ -304,6 +304,7 @@ class _GroupNode extends StatelessWidget {
       BuildContext context, String groupId, EditorNotifier notifier) {
     final controller = TextEditingController();
     MapRole selectedRole = MapRole.exterior;
+    final settings = state.project?.settings ?? const ProjectSettings();
 
     showDialog(
       context: context,
@@ -339,8 +340,13 @@ class _GroupNode extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 if (controller.text.isNotEmpty) {
-                  notifier.createMap(controller.text, 20, 15,
-                      groupId: groupId, role: selectedRole);
+                  notifier.createMap(
+                    controller.text,
+                    settings.defaultMapWidth,
+                    settings.defaultMapHeight,
+                    groupId: groupId,
+                    role: selectedRole,
+                  );
                   Navigator.pop(context);
                 }
               },
