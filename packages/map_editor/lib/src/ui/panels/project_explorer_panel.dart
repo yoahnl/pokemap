@@ -1,6 +1,8 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
 
@@ -43,18 +45,37 @@ class ProjectExplorerPanel extends ConsumerWidget {
         children: [
           const Icon(Icons.account_tree_outlined, size: 18, color: Colors.blue),
           const SizedBox(width: 8),
-          const Text('WORLD EXPLORER',
+          const Expanded(
+            child: Text(
+              'WORLD EXPLORER',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.1)),
-          const Spacer(),
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+            onPressed: state.project != null
+                ? () => _showImportTilesetDialog(context, state, notifier)
+                : null,
+            tooltip: 'Import Tileset',
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+          ),
           IconButton(
             icon: const Icon(Icons.create_new_folder_outlined, size: 18),
             onPressed: state.project != null
                 ? () => _showCreateGroupDialog(context, notifier)
                 : null,
             tooltip: 'New Root Group',
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
           ),
         ],
       ),
@@ -66,8 +87,9 @@ class ProjectExplorerPanel extends ConsumerWidget {
     final rootMaps = project.maps.where((m) => m.groupId == null).toList();
     final rootGroups =
         project.groups.where((g) => g.parentGroupId == null).toList();
+    final hasTilesets = project.tilesets.isNotEmpty;
 
-    if (rootMaps.isEmpty && rootGroups.isEmpty) {
+    if (rootMaps.isEmpty && rootGroups.isEmpty && !hasTilesets) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -88,6 +110,8 @@ class ProjectExplorerPanel extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        _buildTilesetsSection(context, project, notifier),
+        const Divider(height: 20),
         ...rootGroups.map((g) => _GroupNode(
             group: g,
             project: project,
@@ -107,6 +131,238 @@ class ProjectExplorerPanel extends ConsumerWidget {
               _MapNode(map: m, state: state, notifier: notifier, depth: 0)),
         ],
       ],
+    );
+  }
+
+  Widget _buildTilesetsSection(
+    BuildContext context,
+    ProjectManifest project,
+    EditorNotifier notifier,
+  ) {
+    final globalTilesets =
+        project.tilesets.where((t) => t.scope == TilesetScope.global).toList()
+          ..sort((a, b) {
+            if (a.isWorldTileset != b.isWorldTileset) {
+              return a.isWorldTileset ? -1 : 1;
+            }
+            final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+            if (sortCompare != 0) return sortCompare;
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          });
+
+    final groupedTilesets = project.tilesets
+        .where((t) => t.scope == TilesetScope.group && t.groupId != null)
+        .toList()
+      ..sort((a, b) {
+        final groupCompare = (a.groupId ?? '').compareTo(b.groupId ?? '');
+        if (groupCompare != 0) return groupCompare;
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+    final tilesetsByGroup = <String, List<ProjectTilesetEntry>>{};
+    for (final tileset in groupedTilesets) {
+      final key = tileset.groupId!;
+      tilesetsByGroup.putIfAbsent(key, () => []).add(tileset);
+    }
+
+    final sortedGroups = project.groups.toList()
+      ..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+    return ExpansionTile(
+      initiallyExpanded: true,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+      childrenPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.grid_view, size: 18, color: Colors.amber),
+      title: const Text(
+        'TILESETS',
+        style: TextStyle(
+          fontSize: 11,
+          color: Colors.white70,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.0,
+        ),
+      ),
+      children: [
+        if (project.tilesets.isEmpty)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 6, 20, 12),
+            child: Text('No tilesets imported',
+                style: TextStyle(color: Colors.white38)),
+          ),
+        if (globalTilesets.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'GLOBAL',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.white38,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          ...globalTilesets.map((tileset) => _TilesetNode(
+                tileset: tileset,
+                project: project,
+                notifier: notifier,
+              )),
+        ],
+        for (final group in sortedGroups)
+          if (tilesetsByGroup[group.id]?.isNotEmpty ?? false) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  group.name.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 9,
+                    color: Colors.white38,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            ...tilesetsByGroup[group.id]!.map((tileset) => _TilesetNode(
+                  tileset: tileset,
+                  project: project,
+                  notifier: notifier,
+                )),
+          ],
+      ],
+    );
+  }
+
+  Future<void> _showImportTilesetDialog(
+    BuildContext context,
+    dynamic state,
+    EditorNotifier notifier,
+  ) async {
+    final project = state.project as ProjectManifest?;
+    if (project == null) return;
+
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'bmp'],
+      withData: false,
+    );
+    final sourcePath = picked?.files.single.path;
+    if (sourcePath == null) return;
+
+    final formKey = GlobalKey<FormState>();
+    final defaultName = p.basenameWithoutExtension(sourcePath);
+    final nameController = TextEditingController(text: defaultName);
+    var scope = TilesetScope.global;
+    String? selectedGroupId =
+        project.groups.isNotEmpty ? project.groups.first.id : null;
+    var isWorld = project.tilesets.every((t) => !t.isWorldTileset);
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Import Tileset'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    p.basename(sourcePath),
+                    style: const TextStyle(fontSize: 12, color: Colors.white60),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Tileset Name'),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<TilesetScope>(
+                  value: scope,
+                  decoration: const InputDecoration(labelText: 'Scope'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: TilesetScope.global,
+                      child: Text('Global'),
+                    ),
+                    DropdownMenuItem(
+                      value: TilesetScope.group,
+                      child: Text('Group'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => scope = value);
+                    }
+                  },
+                ),
+                if (scope == TilesetScope.group) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedGroupId,
+                    decoration: const InputDecoration(labelText: 'Group'),
+                    items: project.groups
+                        .map((group) => DropdownMenuItem(
+                              value: group.id,
+                              child: Text(group.name),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => selectedGroupId = value),
+                  ),
+                ],
+                if (scope == TilesetScope.global) ...[
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: isWorld,
+                    title: const Text('Mark as world tileset'),
+                    onChanged: (value) =>
+                        setState(() => isWorld = value ?? false),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                if (scope == TilesetScope.group && selectedGroupId == null)
+                  return;
+                Navigator.pop(context);
+                await notifier.importProjectTileset(
+                  sourcePath: sourcePath,
+                  name: nameController.text.trim(),
+                  scope: scope,
+                  groupId: scope == TilesetScope.group ? selectedGroupId : null,
+                  isWorldTileset:
+                      scope == TilesetScope.global ? isWorld : false,
+                );
+              },
+              child: const Text('Import'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -563,6 +819,207 @@ class _MapNode extends StatelessWidget {
             child: const Text('Rename'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TilesetNode extends StatelessWidget {
+  final ProjectTilesetEntry tileset;
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+
+  const _TilesetNode({
+    required this.tileset,
+    required this.project,
+    required this.notifier,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.only(left: 24, right: 8),
+      leading: Icon(
+        tileset.isWorldTileset
+            ? Icons.public
+            : (tileset.scope == TilesetScope.global
+                ? Icons.language
+                : Icons.category_outlined),
+        size: 16,
+        color: tileset.isWorldTileset ? Colors.amber : Colors.white60,
+      ),
+      title: Text(
+        tileset.name,
+        style: const TextStyle(fontSize: 12, color: Colors.white70),
+      ),
+      subtitle: Text(
+        '${tileset.id} | sort ${tileset.sortOrder}',
+        style: const TextStyle(fontSize: 10, color: Colors.white38),
+      ),
+      trailing: PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert, size: 16),
+        onSelected: (value) {
+          switch (value) {
+            case 'rename':
+              _showRenameTilesetDialog(context);
+              break;
+            case 'make_global':
+              notifier.updateProjectTileset(
+                tilesetId: tileset.id,
+                scope: TilesetScope.global,
+                groupId: null,
+              );
+              break;
+            case 'assign_group':
+              _showAssignGroupDialog(context);
+              break;
+            case 'toggle_world':
+              notifier.updateProjectTileset(
+                tilesetId: tileset.id,
+                isWorldTileset: !tileset.isWorldTileset,
+              );
+              break;
+            case 'move_up':
+              notifier.reorderProjectTileset(tileset.id, -1);
+              break;
+            case 'move_down':
+              notifier.reorderProjectTileset(tileset.id, 1);
+              break;
+            case 'delete':
+              notifier.deleteProjectTileset(tileset.id);
+              break;
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'rename',
+            child: _ContextMenuItem(icon: Icons.edit_outlined, label: 'Rename'),
+          ),
+          const PopupMenuItem(
+            value: 'move_up',
+            child: _ContextMenuItem(
+                icon: Icons.keyboard_arrow_up, label: 'Move Up'),
+          ),
+          const PopupMenuItem(
+            value: 'move_down',
+            child: _ContextMenuItem(
+                icon: Icons.keyboard_arrow_down, label: 'Move Down'),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'make_global',
+            child:
+                _ContextMenuItem(icon: Icons.language, label: 'Set as Global'),
+          ),
+          const PopupMenuItem(
+            value: 'assign_group',
+            child: _ContextMenuItem(
+                icon: Icons.category_outlined, label: 'Attach to Group'),
+          ),
+          if (tileset.scope == TilesetScope.global)
+            PopupMenuItem(
+              value: 'toggle_world',
+              child: _ContextMenuItem(
+                icon: tileset.isWorldTileset ? Icons.public_off : Icons.public,
+                label: tileset.isWorldTileset
+                    ? 'Unset World Tileset'
+                    : 'Set as World Tileset',
+              ),
+            ),
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'delete',
+            child: _ContextMenuItem(
+              icon: Icons.delete_outline,
+              label: 'Delete Tileset',
+              color: Colors.redAccent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRenameTilesetDialog(BuildContext context) {
+    final controller = TextEditingController(text: tileset.name);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Tileset'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isEmpty) return;
+              notifier.updateProjectTileset(
+                tilesetId: tileset.id,
+                name: value,
+              );
+              Navigator.pop(context);
+            },
+            child: const Text('Rename'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAssignGroupDialog(BuildContext context) {
+    final groups = project.groups.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    if (groups.isEmpty) {
+      notifier.updateProjectTileset(
+        tilesetId: tileset.id,
+        scope: TilesetScope.global,
+      );
+      return;
+    }
+
+    String selectedGroupId = tileset.groupId ?? groups.first.id;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Attach Tileset to Group'),
+          content: DropdownButtonFormField<String>(
+            value: selectedGroupId,
+            items: groups
+                .map((g) => DropdownMenuItem(value: g.id, child: Text(g.name)))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => selectedGroupId = value);
+              }
+            },
+            decoration: const InputDecoration(labelText: 'Group'),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                notifier.updateProjectTileset(
+                  tilesetId: tileset.id,
+                  scope: TilesetScope.group,
+                  groupId: selectedGroupId,
+                );
+                Navigator.pop(context);
+              },
+              child: const Text('Attach'),
+            ),
+          ],
+        ),
       ),
     );
   }

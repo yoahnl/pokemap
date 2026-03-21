@@ -22,6 +22,48 @@ UpdateProjectSettingsUseCase updateProjectSettingsUseCase(
 }
 
 @riverpod
+ImportProjectTilesetUseCase importProjectTilesetUseCase(
+    ImportProjectTilesetUseCaseRef ref) {
+  return ImportProjectTilesetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateProjectTilesetUseCase updateProjectTilesetUseCase(
+    UpdateProjectTilesetUseCaseRef ref) {
+  return UpdateProjectTilesetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+ResolveAssignableTilesetsForMapUseCase resolveAssignableTilesetsForMapUseCase(
+    ResolveAssignableTilesetsForMapUseCaseRef ref) {
+  return ResolveAssignableTilesetsForMapUseCase();
+}
+
+@riverpod
+AssignTilesetToMapUseCase assignTilesetToMapUseCase(
+    AssignTilesetToMapUseCaseRef ref) {
+  return AssignTilesetToMapUseCase(
+    ref.watch(mapRepositoryProvider),
+    ref.watch(resolveAssignableTilesetsForMapUseCaseProvider),
+  );
+}
+
+@riverpod
+DeleteProjectTilesetUseCase deleteProjectTilesetUseCase(
+    DeleteProjectTilesetUseCaseRef ref) {
+  return DeleteProjectTilesetUseCase(
+    ref.watch(projectRepositoryProvider),
+    ref.watch(mapRepositoryProvider),
+  );
+}
+
+@riverpod
+ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(
+    ReorderProjectTilesetUseCaseRef ref) {
+  return ReorderProjectTilesetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
 SaveMapUseCase saveMapUseCase(SaveMapUseCaseRef ref) {
   return SaveMapUseCase(ref.watch(mapRepositoryProvider));
 }

@@ -1161,6 +1161,10 @@ mixin _$ProjectTilesetEntry {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get relativePath => throw _privateConstructorUsedError;
+  TilesetScope get scope => throw _privateConstructorUsedError;
+  String? get groupId => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+  bool get isWorldTileset => throw _privateConstructorUsedError;
 
   /// Serializes this ProjectTilesetEntry to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1178,7 +1182,14 @@ abstract class $ProjectTilesetEntryCopyWith<$Res> {
           ProjectTilesetEntry value, $Res Function(ProjectTilesetEntry) then) =
       _$ProjectTilesetEntryCopyWithImpl<$Res, ProjectTilesetEntry>;
   @useResult
-  $Res call({String id, String name, String relativePath});
+  $Res call(
+      {String id,
+      String name,
+      String relativePath,
+      TilesetScope scope,
+      String? groupId,
+      int sortOrder,
+      bool isWorldTileset});
 }
 
 /// @nodoc
@@ -1199,6 +1210,10 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
     Object? id = null,
     Object? name = null,
     Object? relativePath = null,
+    Object? scope = null,
+    Object? groupId = freezed,
+    Object? sortOrder = null,
+    Object? isWorldTileset = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -1213,6 +1228,22 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
           ? _value.relativePath
           : relativePath // ignore: cast_nullable_to_non_nullable
               as String,
+      scope: null == scope
+          ? _value.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as TilesetScope,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      isWorldTileset: null == isWorldTileset
+          ? _value.isWorldTileset
+          : isWorldTileset // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -1225,7 +1256,14 @@ abstract class _$$ProjectTilesetEntryImplCopyWith<$Res>
       __$$ProjectTilesetEntryImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String name, String relativePath});
+  $Res call(
+      {String id,
+      String name,
+      String relativePath,
+      TilesetScope scope,
+      String? groupId,
+      int sortOrder,
+      bool isWorldTileset});
 }
 
 /// @nodoc
@@ -1244,6 +1282,10 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? relativePath = null,
+    Object? scope = null,
+    Object? groupId = freezed,
+    Object? sortOrder = null,
+    Object? isWorldTileset = null,
   }) {
     return _then(_$ProjectTilesetEntryImpl(
       id: null == id
@@ -1258,6 +1300,22 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
           ? _value.relativePath
           : relativePath // ignore: cast_nullable_to_non_nullable
               as String,
+      scope: null == scope
+          ? _value.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as TilesetScope,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      isWorldTileset: null == isWorldTileset
+          ? _value.isWorldTileset
+          : isWorldTileset // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -1266,7 +1324,13 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   const _$ProjectTilesetEntryImpl(
-      {required this.id, required this.name, required this.relativePath});
+      {required this.id,
+      required this.name,
+      required this.relativePath,
+      this.scope = TilesetScope.global,
+      this.groupId,
+      this.sortOrder = 0,
+      this.isWorldTileset = false});
 
   factory _$ProjectTilesetEntryImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectTilesetEntryImplFromJson(json);
@@ -1277,10 +1341,21 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   final String name;
   @override
   final String relativePath;
+  @override
+  @JsonKey()
+  final TilesetScope scope;
+  @override
+  final String? groupId;
+  @override
+  @JsonKey()
+  final int sortOrder;
+  @override
+  @JsonKey()
+  final bool isWorldTileset;
 
   @override
   String toString() {
-    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath)';
+    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset)';
   }
 
   @override
@@ -1291,12 +1366,19 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.relativePath, relativePath) ||
-                other.relativePath == relativePath));
+                other.relativePath == relativePath) &&
+            (identical(other.scope, scope) || other.scope == scope) &&
+            (identical(other.groupId, groupId) || other.groupId == groupId) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder) &&
+            (identical(other.isWorldTileset, isWorldTileset) ||
+                other.isWorldTileset == isWorldTileset));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, relativePath);
+  int get hashCode => Object.hash(runtimeType, id, name, relativePath, scope,
+      groupId, sortOrder, isWorldTileset);
 
   /// Create a copy of ProjectTilesetEntry
   /// with the given fields replaced by the non-null parameter values.
@@ -1319,7 +1401,11 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   const factory _ProjectTilesetEntry(
       {required final String id,
       required final String name,
-      required final String relativePath}) = _$ProjectTilesetEntryImpl;
+      required final String relativePath,
+      final TilesetScope scope,
+      final String? groupId,
+      final int sortOrder,
+      final bool isWorldTileset}) = _$ProjectTilesetEntryImpl;
 
   factory _ProjectTilesetEntry.fromJson(Map<String, dynamic> json) =
       _$ProjectTilesetEntryImpl.fromJson;
@@ -1330,6 +1416,14 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   String get name;
   @override
   String get relativePath;
+  @override
+  TilesetScope get scope;
+  @override
+  String? get groupId;
+  @override
+  int get sortOrder;
+  @override
+  bool get isWorldTileset;
 
   /// Create a copy of ProjectTilesetEntry
   /// with the given fields replaced by the non-null parameter values.

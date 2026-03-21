@@ -64,6 +64,126 @@ final updateProjectSettingsUseCaseProvider =
 // ignore: unused_element
 typedef UpdateProjectSettingsUseCaseRef
     = AutoDisposeProviderRef<UpdateProjectSettingsUseCase>;
+String _$importProjectTilesetUseCaseHash() =>
+    r'67d709bb556ae2063fe71d24e6dca633513618ea';
+
+/// See also [importProjectTilesetUseCase].
+@ProviderFor(importProjectTilesetUseCase)
+final importProjectTilesetUseCaseProvider =
+    AutoDisposeProvider<ImportProjectTilesetUseCase>.internal(
+  importProjectTilesetUseCase,
+  name: r'importProjectTilesetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$importProjectTilesetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ImportProjectTilesetUseCaseRef
+    = AutoDisposeProviderRef<ImportProjectTilesetUseCase>;
+String _$updateProjectTilesetUseCaseHash() =>
+    r'7f405f5a11be93724904efe961a1d4b65e8f26cb';
+
+/// See also [updateProjectTilesetUseCase].
+@ProviderFor(updateProjectTilesetUseCase)
+final updateProjectTilesetUseCaseProvider =
+    AutoDisposeProvider<UpdateProjectTilesetUseCase>.internal(
+  updateProjectTilesetUseCase,
+  name: r'updateProjectTilesetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateProjectTilesetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateProjectTilesetUseCaseRef
+    = AutoDisposeProviderRef<UpdateProjectTilesetUseCase>;
+String _$resolveAssignableTilesetsForMapUseCaseHash() =>
+    r'1e5fb174ec2b57432daf4cbfd194c866f3c8699a';
+
+/// See also [resolveAssignableTilesetsForMapUseCase].
+@ProviderFor(resolveAssignableTilesetsForMapUseCase)
+final resolveAssignableTilesetsForMapUseCaseProvider =
+    AutoDisposeProvider<ResolveAssignableTilesetsForMapUseCase>.internal(
+  resolveAssignableTilesetsForMapUseCase,
+  name: r'resolveAssignableTilesetsForMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$resolveAssignableTilesetsForMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ResolveAssignableTilesetsForMapUseCaseRef
+    = AutoDisposeProviderRef<ResolveAssignableTilesetsForMapUseCase>;
+String _$assignTilesetToMapUseCaseHash() =>
+    r'da5c28b5eadedbf9b2140eb545c6e4dbfa7f5c8d';
+
+/// See also [assignTilesetToMapUseCase].
+@ProviderFor(assignTilesetToMapUseCase)
+final assignTilesetToMapUseCaseProvider =
+    AutoDisposeProvider<AssignTilesetToMapUseCase>.internal(
+  assignTilesetToMapUseCase,
+  name: r'assignTilesetToMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$assignTilesetToMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AssignTilesetToMapUseCaseRef
+    = AutoDisposeProviderRef<AssignTilesetToMapUseCase>;
+String _$deleteProjectTilesetUseCaseHash() =>
+    r'397b1e52155e283fac87da2888896206192ea6ce';
+
+/// See also [deleteProjectTilesetUseCase].
+@ProviderFor(deleteProjectTilesetUseCase)
+final deleteProjectTilesetUseCaseProvider =
+    AutoDisposeProvider<DeleteProjectTilesetUseCase>.internal(
+  deleteProjectTilesetUseCase,
+  name: r'deleteProjectTilesetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteProjectTilesetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteProjectTilesetUseCaseRef
+    = AutoDisposeProviderRef<DeleteProjectTilesetUseCase>;
+String _$reorderProjectTilesetUseCaseHash() =>
+    r'd948eed70e09d41e56b54024b45dd91b88b15735';
+
+/// See also [reorderProjectTilesetUseCase].
+@ProviderFor(reorderProjectTilesetUseCase)
+final reorderProjectTilesetUseCaseProvider =
+    AutoDisposeProvider<ReorderProjectTilesetUseCase>.internal(
+  reorderProjectTilesetUseCase,
+  name: r'reorderProjectTilesetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$reorderProjectTilesetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ReorderProjectTilesetUseCaseRef
+    = AutoDisposeProviderRef<ReorderProjectTilesetUseCase>;
 String _$saveMapUseCaseHash() => r'6a9741258f17448b6f6fd30e3a84d7e72c7c6adb';
 
 /// See also [saveMapUseCase].

@@ -73,6 +73,10 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
     required String id,
     required String name,
     required String relativePath,
+    @Default(TilesetScope.global) TilesetScope scope,
+    String? groupId,
+    @Default(0) int sortOrder,
+    @Default(false) bool isWorldTileset,
   }) = _ProjectTilesetEntry;
 
   factory ProjectTilesetEntry.fromJson(Map<String, dynamic> json) =>

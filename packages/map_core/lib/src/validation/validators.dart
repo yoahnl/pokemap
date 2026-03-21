@@ -1,5 +1,6 @@
 import '../models/project_manifest.dart';
 import '../models/map_data.dart';
+import '../models/enums.dart';
 import '../exceptions/map_exceptions.dart';
 
 class ProjectValidator {
@@ -20,6 +21,13 @@ class ProjectValidator {
     for (final group in manifest.groups) {
       if (!groupIds.add(group.id))
         throw ValidationException('Duplicate group ID: ${group.id}');
+    }
+
+    final tilesetIds = <String>{};
+    for (final tileset in manifest.tilesets) {
+      if (!tilesetIds.add(tileset.id)) {
+        throw ValidationException('Duplicate tileset ID: ${tileset.id}');
+      }
     }
   }
 
@@ -57,6 +65,52 @@ class ProjectValidator {
         throw ValidationException(
             'Map ${map.id} references non-existent group: ${map.groupId}');
       }
+    }
+
+    var worldTilesetCount = 0;
+    for (final tileset in manifest.tilesets) {
+      _validateRelativePath(tileset.relativePath, 'Tileset ${tileset.id}');
+
+      if (tileset.scope == TilesetScope.global) {
+        if (tileset.groupId != null) {
+          throw ValidationException(
+              'Global tileset ${tileset.id} cannot have groupId');
+        }
+      } else {
+        final groupId = tileset.groupId;
+        if (groupId == null || !groupIds.contains(groupId)) {
+          throw ValidationException(
+              'Group-scoped tileset ${tileset.id} must reference an existing group');
+        }
+      }
+
+      if (tileset.isWorldTileset) {
+        worldTilesetCount++;
+        if (tileset.scope != TilesetScope.global) {
+          throw ValidationException(
+              'World tileset ${tileset.id} must be global');
+        }
+      }
+    }
+
+    if (worldTilesetCount > 1) {
+      throw const ValidationException('Only one world tileset can be defined');
+    }
+  }
+
+  static void _validateRelativePath(String path, String label) {
+    final value = path.trim();
+    if (value.isEmpty) {
+      throw ValidationException('$label has an empty relativePath');
+    }
+    if (value.startsWith('/') || value.startsWith('\\')) {
+      throw ValidationException('$label relativePath must be relative');
+    }
+    if (value.contains(':\\') || value.contains(':/')) {
+      throw ValidationException('$label relativePath must not be absolute');
+    }
+    if (value.contains('..')) {
+      throw ValidationException('$label relativePath must not escape project');
     }
   }
 

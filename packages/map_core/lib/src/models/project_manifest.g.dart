@@ -144,6 +144,11 @@ _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
       id: json['id'] as String,
       name: json['name'] as String,
       relativePath: json['relativePath'] as String,
+      scope: $enumDecodeNullable(_$TilesetScopeEnumMap, json['scope']) ??
+          TilesetScope.global,
+      groupId: json['groupId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      isWorldTileset: json['isWorldTileset'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
@@ -152,4 +157,13 @@ Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
       'id': instance.id,
       'name': instance.name,
       'relativePath': instance.relativePath,
+      'scope': _$TilesetScopeEnumMap[instance.scope]!,
+      'groupId': instance.groupId,
+      'sortOrder': instance.sortOrder,
+      'isWorldTileset': instance.isWorldTileset,
     };
+
+const _$TilesetScopeEnumMap = {
+  TilesetScope.global: 'global',
+  TilesetScope.group: 'group',
+};

@@ -372,6 +372,152 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  List<ProjectTilesetEntry> getAssignableTilesetsForActiveMap() {
+    final project = state.project;
+    final activeMap = state.activeMap;
+    if (project == null || activeMap == null) return const [];
+    try {
+      final useCase = ref.read(resolveAssignableTilesetsForMapUseCaseProvider);
+      return useCase.execute(project, activeMap.id);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> importProjectTileset({
+    required String sourcePath,
+    required String name,
+    required TilesetScope scope,
+    String? groupId,
+    bool isWorldTileset = false,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(importProjectTilesetUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        sourcePath: sourcePath,
+        name: name,
+        scope: scope,
+        groupId: groupId,
+        isWorldTileset: isWorldTileset,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset "$name" imported',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error importing tileset: $e');
+      state = state.copyWith(errorMessage: 'Failed to import tileset: $e');
+    }
+  }
+
+  Future<void> updateProjectTileset({
+    required String tilesetId,
+    String? name,
+    TilesetScope? scope,
+    String? groupId,
+    bool? isWorldTileset,
+    int? sortOrder,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(updateProjectTilesetUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tilesetId,
+        name: name,
+        scope: scope,
+        groupId: groupId,
+        isWorldTileset: isWorldTileset,
+        sortOrder: sortOrder,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error updating tileset: $e');
+      state = state.copyWith(errorMessage: 'Failed to update tileset: $e');
+    }
+  }
+
+  Future<void> reorderProjectTileset(String tilesetId, int direction) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(reorderProjectTilesetUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tilesetId,
+        direction: direction,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset reordered',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error reordering tileset: $e');
+      state = state.copyWith(errorMessage: 'Failed to reorder tileset: $e');
+    }
+  }
+
+  Future<void> deleteProjectTileset(String tilesetId) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+
+    try {
+      final useCase = ref.read(deleteProjectTilesetUseCaseProvider);
+      final updated = await useCase.execute(fs, project, tilesetId);
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error deleting tileset: $e');
+      state = state.copyWith(errorMessage: 'Failed to delete tileset: $e');
+    }
+  }
+
+  Future<void> assignTilesetToActiveMap(String tilesetId) async {
+    final project = state.project;
+    final map = state.activeMap;
+    final mapPath = state.activeMapPath;
+    if (project == null || map == null || mapPath == null) return;
+
+    try {
+      final useCase = ref.read(assignTilesetToMapUseCaseProvider);
+      final updatedMap =
+          await useCase.execute(project, map, mapPath, tilesetId);
+      state = state.copyWith(
+        activeMap: updatedMap,
+        isDirty: false,
+        statusMessage:
+            'Tileset "${updatedMap.tilesetId}" assigned to "${map.id}"',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error assigning map tileset: $e');
+      state = state.copyWith(errorMessage: 'Failed to assign map tileset: $e');
+    }
+  }
+
   void selectTool(EditorToolType tool) {
     state = state.copyWith(activeTool: tool);
   }
