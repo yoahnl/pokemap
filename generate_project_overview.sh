@@ -1,60 +1,119 @@
 #!/bin/bash
 
-# Variables
 OUTPUT_FILE="project_overview.txt"
 
-# Vérifier si le fichier existe et le vider si c'est le cas
-if [ -f "$OUTPUT_FILE" ]; then
-    > "$OUTPUT_FILE"
-fi
+> "$OUTPUT_FILE"
 
-# Fonction pour ajouter l'arborescence du projet
-echo "Generating project tree..."
+should_exclude() {
+    local path="$1"
+    local base
+    base="$(basename "$path")"
+
+    [[ "$path" == *"/.git/"* ]] && return 0
+    [[ "$path" == *"/.dart_tool/"* ]] && return 0
+    [[ "$path" == *"/.idea/"* ]] && return 0
+    [[ "$path" == *"/build/"* ]] && return 0
+    [[ "$path" == *"/dist/"* ]] && return 0
+    [[ "$path" == *"/node_modules/"* ]] && return 0
+    [[ "$path" == *"/coverage/"* ]] && return 0
+    [[ "$path" == *"/coverage-e2e/"* ]] && return 0
+    [[ "$path" == *"/logs/"* ]] && return 0
+    [[ "$path" == *"/migrations/"* ]] && return 0
+    [[ "$path" == *"/android/"* ]] && return 0
+    [[ "$path" == *"/ios/"* ]] && return 0
+    [[ "$path" == *"/linux/"* ]] && return 0
+    [[ "$path" == *"/macos/"* ]] && return 0
+    [[ "$path" == *"/windows/"* ]] && return 0
+    [[ "$path" == *"/web/"* ]] && return 0
+    [[ "$path" == *"/assets/"* ]] && return 0
+    [[ "$path" == *"/public/"* ]] && return 0
+    [[ "$path" == *"/style/"* ]] && return 0
+
+    [[ "$base" == ".DS_Store" ]] && return 0
+    [[ "$base" == "pubspec.lock" ]] && return 0
+    [[ "$base" == "package-lock.json" ]] && return 0
+    [[ "$base" == *.iml ]] && return 0
+    [[ "$base" == *.log ]] && return 0
+    [[ "$base" == *.png ]] && return 0
+    [[ "$base" == *.jpg ]] && return 0
+    [[ "$base" == *.jpeg ]] && return 0
+    [[ "$base" == *.gif ]] && return 0
+    [[ "$base" == *.webp ]] && return 0
+    [[ "$base" == *.svg ]] && return 0
+    [[ "$base" == *.db ]] && return 0
+    [[ "$base" == *.db-journal ]] && return 0
+    [[ "$base" == *.env ]] && return 0
+    [[ "$base" == ".env.example" ]] && return 0
+    [[ "$base" == *.freezed.dart ]] && return 0
+    [[ "$base" == *.g.dart ]] && return 0
+
+    return 1
+}
+
+should_include_file() {
+    local file="$1"
+    local base
+    base="$(basename "$file")"
+
+    [[ "$base" == "pubspec.yaml" ]] && return 0
+    [[ "$base" == "analysis_options.yaml" ]] && return 0
+    [[ "$base" == "README.md" ]] && return 0
+    [[ "$base" == "GEMINI.md" ]] && return 0
+    [[ "$base" == "melos.yaml" ]] && return 0
+    [[ "$base" == "dart_test.yaml" ]] && return 0
+
+    [[ "$file" == *.dart ]] && return 0
+    [[ "$file" == *.yaml ]] && return 0
+    [[ "$file" == *.yml ]] && return 0
+    [[ "$file" == *.json ]] && return 0
+    [[ "$file" == *.md ]] && return 0
+
+    return 1
+}
 
 generate_tree() {
     local current_dir="$1"
     local indent="$2"
 
-    for file in "$current_dir"/*; do
-        # Exclure certains dossiers et fichiers
-        if [[ "$file" == *"node_modules"* || "$file" == *"windows"* || "$file" == *"web"* || "$file" == *"linux"* || "$file" == *"macos"* || "$file" == *"build"* ||"$file" == *"migrations"* || "$file" == *"logs"* || "$file" == *"dist"* || "$file" == *"www"* || "$file" == *"coverage"* || "$file" == *"coverage-e2e"* ||  "$file" == *".env"* || "$file" == *".env.example"* || "$file" == *".idea"* || "$file" == *"package-lock.json"* || "$file" == *".DS_Store"* || "$file" == *".git"* || "$file" == *.sh || "$file" == *.txt || "$file" == *.png || "$file" == *.db || "$file" == *.db-journal || "$file" == *"assets"* || "$file" == *"public"* || "$file" == *"style"* ]]; then
-            continue
-        fi
+    local entries=()
+    while IFS= read -r entry; do
+        entries+=("$entry")
+    done < <(find "$current_dir" -mindepth 1 -maxdepth 1 | sort)
 
-        # Si c'est un dossier, afficher et appeler récursivement
-        if [ -d "$file" ]; then
-            echo "${indent}|-- $(basename "$file")" >> "$OUTPUT_FILE"
-            generate_tree "$file" "$indent    "
-        elif [ -f "$file" ]; then
-            echo "${indent}|-- $(basename "$file")" >> "$OUTPUT_FILE"
+    for entry in "${entries[@]}"; do
+        should_exclude "$entry" && continue
+
+        if [ -d "$entry" ]; then
+            if find "$entry" \( -type f -o -type d \) | while IFS= read -r sub; do
+                should_exclude "$sub" && continue
+                if [ -f "$sub" ] && should_include_file "$sub"; then
+                    exit 1
+                fi
+            done; [ $? -eq 1 ]; then
+                echo "${indent}|-- $(basename "$entry")" >> "$OUTPUT_FILE"
+                generate_tree "$entry" "$indent    "
+            fi
+        elif [ -f "$entry" ]; then
+            if should_include_file "$entry"; then
+                echo "${indent}|-- $(basename "$entry")" >> "$OUTPUT_FILE"
+            fi
         fi
     done
 }
-
-# Fonction pour copier le contenu des fichiers
-echo "Copying file contents..."
 
 copy_file_contents() {
-    local current_dir="$1"
+    local root="$1"
 
-    for file in "$current_dir"/*; do
-        # Exclure certains dossiers et fichiers
-        if [[ "$file" == *"node_modules"* || "$file" == *"windows"* || "$file" == *"web"* || "$file" == *"linux"* || "$file" == *"macos"* || "$file" == *"build"* ||"$file" == *"migrations"* || "$file" == *"logs"* || "$file" == *"dist"* || "$file" == *"www"* || "$file" == *"coverage"* || "$file" == *"coverage-e2e"* ||  "$file" == *".env"* || "$file" == *".env.example"* || "$file" == *".idea"* || "$file" == *"package-lock.json"* || "$file" == *".DS_Store"* || "$file" == *".git"* || "$file" == *.sh || "$file" == *.txt || "$file" == *.png || "$file" == *.db || "$file" == *.db-journal || "$file" == *"assets"* || "$file" == *"public"* || "$file" == *"style"* ]]; then
-            continue
-        fi
+    while IFS= read -r file; do
+        should_exclude "$file" && continue
+        should_include_file "$file" || continue
 
-        # Si c'est un fichier, ajouter son contenu
-        if [ -f "$file" ]; then
-            echo -e "\n------ Content of: $file ------\n" >> "$OUTPUT_FILE"
-            cat "$file" >> "$OUTPUT_FILE"
-            echo -e "\n\n" >> "$OUTPUT_FILE"
-        elif [ -d "$file" ]; then
-            copy_file_contents "$file"
-        fi
-    done
+        echo -e "\n------ Content of: ./${file#./} ------\n" >> "$OUTPUT_FILE"
+        cat "$file" >> "$OUTPUT_FILE"
+        echo -e "\n" >> "$OUTPUT_FILE"
+    done < <(find "$root" -type f | sort)
 }
 
-# Démarrer depuis le répertoire courant
 echo "------ Project Tree ------" >> "$OUTPUT_FILE"
 generate_tree "." ""
 
