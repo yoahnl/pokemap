@@ -70,8 +70,20 @@ UpsertTilesetPaletteEntryUseCase upsertTilesetPaletteEntryUseCase(
 }
 
 @riverpod
+CreateTilesetPaletteEntryUseCase createTilesetPaletteEntryUseCase(
+    CreateTilesetPaletteEntryUseCaseRef ref) {
+  return CreateTilesetPaletteEntryUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
 PaintTileOnMapUseCase paintTileOnMapUseCase(PaintTileOnMapUseCaseRef ref) {
   return PaintTileOnMapUseCase();
+}
+
+@riverpod
+PaintTilePatternOnMapUseCase paintTilePatternOnMapUseCase(
+    PaintTilePatternOnMapUseCaseRef ref) {
+  return PaintTilePatternOnMapUseCase();
 }
 
 @riverpod

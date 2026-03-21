@@ -178,6 +178,7 @@ _$TilesetPaletteEntryImpl _$$TilesetPaletteEntryImplFromJson(
         Map<String, dynamic> json) =>
     _$TilesetPaletteEntryImpl(
       id: json['id'] as String,
+      name: json['name'] as String? ?? '',
       category:
           $enumDecodeNullable(_$PaletteCategoryEnumMap, json['category']) ??
               PaletteCategory.uncategorized,
@@ -190,6 +191,7 @@ Map<String, dynamic> _$$TilesetPaletteEntryImplToJson(
         _$TilesetPaletteEntryImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'name': instance.name,
       'category': _$PaletteCategoryEnumMap[instance.category]!,
       'source': instance.source,
       'recommendedLayerId': instance.recommendedLayerId,

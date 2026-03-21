@@ -204,6 +204,26 @@ final upsertTilesetPaletteEntryUseCaseProvider =
 // ignore: unused_element
 typedef UpsertTilesetPaletteEntryUseCaseRef
     = AutoDisposeProviderRef<UpsertTilesetPaletteEntryUseCase>;
+String _$createTilesetPaletteEntryUseCaseHash() =>
+    r'bfc09a5604f46e0b5b30b47d2a2411fb96b6336a';
+
+/// See also [createTilesetPaletteEntryUseCase].
+@ProviderFor(createTilesetPaletteEntryUseCase)
+final createTilesetPaletteEntryUseCaseProvider =
+    AutoDisposeProvider<CreateTilesetPaletteEntryUseCase>.internal(
+  createTilesetPaletteEntryUseCase,
+  name: r'createTilesetPaletteEntryUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createTilesetPaletteEntryUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateTilesetPaletteEntryUseCaseRef
+    = AutoDisposeProviderRef<CreateTilesetPaletteEntryUseCase>;
 String _$paintTileOnMapUseCaseHash() =>
     r'3c5a7cf82da811189b3cc992fb1927827cff5873';
 
@@ -224,6 +244,26 @@ final paintTileOnMapUseCaseProvider =
 // ignore: unused_element
 typedef PaintTileOnMapUseCaseRef
     = AutoDisposeProviderRef<PaintTileOnMapUseCase>;
+String _$paintTilePatternOnMapUseCaseHash() =>
+    r'be0386492f680a2fb8a9129bfbebd35cdcf4ff70';
+
+/// See also [paintTilePatternOnMapUseCase].
+@ProviderFor(paintTilePatternOnMapUseCase)
+final paintTilePatternOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintTilePatternOnMapUseCase>.internal(
+  paintTilePatternOnMapUseCase,
+  name: r'paintTilePatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintTilePatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintTilePatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintTilePatternOnMapUseCase>;
 String _$saveMapUseCaseHash() => r'6a9741258f17448b6f6fd30e3a84d7e72c7c6adb';
 
 /// See also [saveMapUseCase].

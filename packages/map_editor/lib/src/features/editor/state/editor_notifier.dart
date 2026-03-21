@@ -561,6 +561,23 @@ class EditorNotifier extends _$EditorNotifier {
     return fs.resolveTilesetPath(tileset.relativePath);
   }
 
+  List<TilesetPaletteEntry> getActivePaletteEntries() {
+    final tileset = getActiveTilesetEntry();
+    if (tileset == null) return const [];
+    return List<TilesetPaletteEntry>.unmodifiable(tileset.paletteEntries);
+  }
+
+  TilesetPaletteEntry? getActivePaletteEntryById(String entryId) {
+    final tileset = getActiveTilesetEntry();
+    if (tileset == null) return null;
+    for (final entry in tileset.paletteEntries) {
+      if (entry.id == entryId) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
   void setPaletteCategoryFilter(PaletteCategory? category) {
     state = state.copyWith(paletteCategoryFilter: category);
   }
@@ -570,6 +587,61 @@ class EditorNotifier extends _$EditorNotifier {
       selectedTileId: tileId,
       selectedPaletteEntryId: paletteEntryId,
     );
+  }
+
+  void selectPaletteEntry(
+    String entryId, {
+    int? tilesetColumns,
+  }) {
+    final entry = getActivePaletteEntryById(entryId);
+    if (entry == null) return;
+    int? tileId = state.selectedTileId;
+    if (entry.source.width == 1 && entry.source.height == 1) {
+      if (tilesetColumns != null && tilesetColumns > 0) {
+        tileId = entry.source.y * tilesetColumns + entry.source.x + 1;
+      }
+    } else {
+      tileId = null;
+    }
+    state = state.copyWith(
+      selectedPaletteEntryId: entryId,
+      selectedTileId: tileId,
+    );
+  }
+
+  Future<void> createPaletteEntry({
+    required String name,
+    required PaletteCategory category,
+    required TilesetSourceRect source,
+    String? recommendedLayerId,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    final tileset = getActiveTilesetEntry();
+    if (fs == null || project == null || tileset == null) return;
+
+    try {
+      final useCase = ref.read(createTilesetPaletteEntryUseCaseProvider);
+      final result = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tileset.id,
+        name: name,
+        category: category,
+        source: source,
+        recommendedLayerId: recommendedLayerId,
+      );
+      state = state.copyWith(
+        project: result.project,
+        selectedPaletteEntryId: result.entry.id,
+        selectedTileId: null,
+        statusMessage: 'Palette element "${result.entry.name}" created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error creating palette entry: $e');
+      state = state.copyWith(errorMessage: 'Failed to create element: $e');
+    }
   }
 
   Future<void> upsertPaletteEntryForTile({
@@ -601,6 +673,7 @@ class EditorNotifier extends _$EditorNotifier {
 
     final entry = TilesetPaletteEntry(
       id: existing?.id ?? 'tile_$tileId',
+      name: existing?.name.isNotEmpty == true ? existing!.name : 'tile_$tileId',
       category: category,
       source: TilesetSourceRect(x: sourceX, y: sourceY),
       recommendedLayerId: recommendedLayerId,
@@ -627,12 +700,50 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  void paintSelectedTileAt(GridPos pos) {
+  void paintSelectedBrushAt(GridPos pos, {required int tilesetColumns}) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
-    final tileId = state.selectedTileId;
-    if (map == null || layerId == null || tileId == null) return;
+    if (map == null || layerId == null) return;
 
+    final entryId = state.selectedPaletteEntryId;
+    if (entryId != null) {
+      final entry = getActivePaletteEntryById(entryId);
+      if (entry != null && tilesetColumns > 0) {
+        final width = entry.source.width;
+        final height = entry.source.height;
+        final pattern = List<int>.filled(width * height, 0, growable: false);
+        for (var y = 0; y < height; y++) {
+          for (var x = 0; x < width; x++) {
+            final sourceX = entry.source.x + x;
+            final sourceY = entry.source.y + y;
+            pattern[y * width + x] = sourceY * tilesetColumns + sourceX + 1;
+          }
+        }
+        try {
+          final useCase = ref.read(paintTilePatternOnMapUseCaseProvider);
+          final painted = useCase.execute(
+            map,
+            layerId: layerId,
+            pos: pos,
+            patternSize: GridSize(width: width, height: height),
+            tiles: pattern,
+            clipToMapBounds: true,
+          );
+          state = state.copyWith(
+            activeMap: painted,
+            isDirty: true,
+            errorMessage: null,
+          );
+          return;
+        } catch (e) {
+          state = state.copyWith(errorMessage: 'Failed to paint element: $e');
+          return;
+        }
+      }
+    }
+
+    final tileId = state.selectedTileId;
+    if (tileId == null) return;
     try {
       final useCase = ref.read(paintTileOnMapUseCaseProvider);
       final painted = useCase.execute(
@@ -649,6 +760,10 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to paint tile: $e');
     }
+  }
+
+  void paintSelectedTileAt(GridPos pos) {
+    paintSelectedBrushAt(pos, tilesetColumns: 0);
   }
 
   void selectTool(EditorToolType tool) {

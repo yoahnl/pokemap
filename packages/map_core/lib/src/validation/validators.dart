@@ -94,6 +94,10 @@ class ProjectValidator {
 
       final paletteIds = <String>{};
       for (final entry in tileset.paletteEntries) {
+        if (entry.id.trim().isEmpty) {
+          throw ValidationException(
+              'Palette entry in tileset ${tileset.id} has an empty ID');
+        }
         if (!paletteIds.add(entry.id)) {
           throw ValidationException(
               'Duplicate palette entry ID in tileset ${tileset.id}: ${entry.id}');

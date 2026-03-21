@@ -12,11 +12,35 @@ MapData paintTileOnLayer(
   if (tileId < 0) {
     throw const ValidationException('Tile ID must be >= 0');
   }
-  if (pos.x < 0 ||
-      pos.y < 0 ||
-      pos.x >= map.size.width ||
-      pos.y >= map.size.height) {
-    throw const ValidationException('Paint position is outside map bounds');
+  return paintTilePatternOnLayer(
+    map,
+    layerId: layerId,
+    pos: pos,
+    patternSize: const GridSize(width: 1, height: 1),
+    tiles: [tileId],
+    clipToMapBounds: false,
+  );
+}
+
+MapData paintTilePatternOnLayer(
+  MapData map, {
+  required String layerId,
+  required GridPos pos,
+  required GridSize patternSize,
+  required List<int> tiles,
+  bool clipToMapBounds = true,
+}) {
+  if (patternSize.width <= 0 || patternSize.height <= 0) {
+    throw const ValidationException('Pattern size must be positive');
+  }
+  final patternLength = patternSize.width * patternSize.height;
+  if (tiles.length < patternLength) {
+    throw const ValidationException('Pattern tile data is incomplete');
+  }
+  for (var i = 0; i < patternLength; i++) {
+    if (tiles[i] < 0) {
+      throw const ValidationException('Pattern tile IDs must be >= 0');
+    }
   }
 
   final layerIndex = map.layers.indexWhere((layer) => layer.id == layerId);
@@ -30,18 +54,35 @@ MapData paintTileOnLayer(
   }
 
   final expectedLength = map.size.width * map.size.height;
-  final tiles = List<int>.filled(expectedLength, 0, growable: false);
-  final source = target.tiles;
-  final limit = source.length < expectedLength ? source.length : expectedLength;
-  for (var i = 0; i < limit; i++) {
-    tiles[i] = source[i];
+  final nextTiles = List<int>.filled(expectedLength, 0, growable: false);
+  final sourceTiles = target.tiles;
+  final copyLimit =
+      sourceTiles.length < expectedLength ? sourceTiles.length : expectedLength;
+  for (var i = 0; i < copyLimit; i++) {
+    nextTiles[i] = sourceTiles[i];
   }
 
-  final index = pos.y * map.size.width + pos.x;
-  tiles[index] = tileId;
+  for (var y = 0; y < patternSize.height; y++) {
+    for (var x = 0; x < patternSize.width; x++) {
+      final mapX = pos.x + x;
+      final mapY = pos.y + y;
+      if (mapX < 0 ||
+          mapY < 0 ||
+          mapX >= map.size.width ||
+          mapY >= map.size.height) {
+        if (clipToMapBounds) {
+          continue;
+        }
+        throw const ValidationException('Paint position is outside map bounds');
+      }
+
+      final patternIndex = y * patternSize.width + x;
+      final mapIndex = mapY * map.size.width + mapX;
+      nextTiles[mapIndex] = tiles[patternIndex];
+    }
+  }
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
-  updatedLayers[layerIndex] = target.copyWith(tiles: tiles);
-
+  updatedLayers[layerIndex] = target.copyWith(tiles: nextTiles);
   return map.copyWith(layers: updatedLayers);
 }

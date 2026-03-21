@@ -3,120 +3,105 @@
 Last updated: 2026-03-21
 
 ## 1. Resume du projet
-Editeur de maps sur grille pour un RPG/Pokemon-like, base sur Flutter/Dart, organise en monorepo avec un `core` (modele + validation), un `editor` (UI + workflows) et un `runtime` (execution/preview in-game).
+Editeur de maps Pokemon-like/RPG sur grille en monorepo Flutter/Dart avec separation `map_core` / `map_editor` / `map_runtime`.
 
-Note importante: pour le moment, les tests ne sont pas une priorite. Ne pas en ajouter / ne pas etendre la couverture dans les taches courantes, sauf demande explicite.
+Note importante: pour le moment, les tests ne sont pas une priorite. Ne pas ajouter de tests et ne pas investir de temps sur la couverture dans les taches courantes, sauf demande explicite.
 
 ## 2. Architecture actuelle
-- `packages/map_core`: modeles (Freezed/JSON), exceptions, validation minimale, logique metier pure reutilisable.
-- `packages/map_editor`: application Flutter Desktop (Riverpod), use cases applicatifs, repositories fichiers, UI (toolbar, explorer, canvas).
-- `packages/map_runtime`: runtime Flame (structure en place, rendu/chargement encore minimal).
-- `ProjectFileSystem` gere maintenant aussi l'import physique d'assets tilesets (`assets/tilesets`) avec chemins relatifs persistes.
-
-Flux typique (editor):
-- UI -> `EditorNotifier` (Riverpod) -> `*UseCase` -> `Repository` (filesystem) -> JSON.
+- `packages/map_core`: modeles metier, serialization JSON, validation, operations pures (resize, paint).
+- `packages/map_editor`: UI Flutter Desktop, Riverpod, use cases applicatifs, persistence fichiers.
+- `packages/map_runtime`: base runtime Flame encore minimale.
+- Flux principal: UI -> `EditorNotifier` -> use cases -> repositories filesystem -> JSON.
+- Les assets tilesets sont importes physiquement dans le projet (`assets/tilesets`) et references en chemin relatif dans le manifest.
 
 ## 3. Fonctionnalites faites
-- Ouvrir un projet existant
-- Sauvegarder un projet
-- Gerer un manifest de projet
-- Creer une map
-- Charger une map
-- Sauvegarder une map
-- Gerer plusieurs maps dans un meme projet
-- Se deplacer dans le canvas
-- Zoomer dans le canvas
-- Selectionner un outil
-- Selectionner une layer active (basique)
-- Avoir un explorateur de projet
-- Avoir une toolbar claire
-- Avoir une barre de statut
-- Avoir un format JSON propre et stable
-- Valider les donnees metier (validation minimale)
-- Rester modulaire entre core, editor et runtime
-- Redimensionner une map (tile/collision layers + size) (fait le 2026-03-21)
-- Parametres globaux de projet (tile size/scale + taille map par defaut) + UI d'edition (fait le 2026-03-21)
-- Gestion tilesets projet (import/copie + scope global/groupe + ordre + assignation map) (fait le 2026-03-21)
-- Afficher un panneau palette/tileset a droite avec tileset actif de la map (fait le 2026-03-21)
-- Rendu des TileLayer sur le canvas a partir du tileset actif (fait le 2026-03-21)
-- Selection d'un tile dans la palette + peinture unitaire sur TileLayer active (fait le 2026-03-21)
+- Ouvrir un projet existant.
+- Sauvegarder un projet.
+- Gerer un manifest de projet.
+- Creer / charger / sauvegarder une map.
+- Gerer plusieurs maps dans un meme projet.
+- Redimensionner une map (resize tile/collision + conservation des donnees + troncature).
+- Renommer / supprimer / dupliquer une map (logique + UI).
+- Parametres globaux projet (`tileWidth`, `tileHeight`, `displayScale`, `defaultMapWidth`, `defaultMapHeight`) avec persistance.
+- Toolbar avec action `Project Settings` et action `Resize Map`.
+- Import tileset (copie locale + manifest), scope global/groupe, ordre (`sortOrder`), assignation a une map.
+- Rendu des TileLayers sur le canvas a partir du tileset actif.
+- Palette tiles fonctionnelle (selection tile unitaire + peinture sur map).
+- Mode creation d element de palette par selection rectangulaire dans le tileset (clic+drag).
+- Creation d elements de palette nommes/categorises, persistes dans `project.json`.
+- Palette d elements categorises (onglet Elements) avec preview visuel et selection de brush.
+- Peinture multi-tile depuis un element de palette sur la layer tile active.
+- Modularite core/editor/runtime maintenue.
 
 ## 4. Fonctionnalites partiellement faites
-- Renommer une map: fait cote logique et UI, verification fonctionnelle a faire
-- Supprimer une map: fait cote logique et UI, verification fonctionnelle a faire
-- Dupliquer une map: fait cote logique et UI, verification fonctionnelle a faire
-- Afficher une grille editable (affichage + hover, pas d'edition)
-- Gerer plusieurs tilesets (import/organisation/manifest + rendu/palette de base)
-- Associer un tileset a une map (selection UI + persistance ok, controle d'eligibilite global/groupe/parents)
-- Categorie de palette pour tileset (base persistante + filtrage + edition unitaire)
-- Support multi-tile dans le modele palette (rect source), edition/painting multi-tile non encore implemente
-- Avoir une sauvegarde propre avec etat dirty (isDirty present, workflow a durcir)
-- Verifier les erreurs de coherence (validation tres partielle)
-- Preparer un runtime compatible Flame (squelette present)
-- Pouvoir editer progressivement routes/villes/interieurs/donjons (base de structure)
-- Pense specifique Pokemon sur grille (base de modele + direction)
-- Coherence Clean Architecture stricte (globalement visee, mais pas totalement appliquee partout)
+- Gestion multi-tilesets: base solide en place, UX de gestion encore basique.
+- Categorie palette: structure persistante en place, edition UX encore simple.
+- Selection rectangulaire: faite dans la grille du tileset, pas encore sur le canvas map.
+- Sauvegarde avec etat dirty: fonctionne sur les flux principaux, a durcir sur tous les cas limites.
+- Verification de coherence metier: utile mais encore partielle.
+- Runtime Flame: squelette present, integration editor/runtime incomplete.
+- Orientation Pokemon-like: base metier prete, outils de mapping avances encore manquants.
+- Clean Architecture stricte: direction respecte, quelques simplifications existent dans le notifier/UI.
 
 ## 5. Fonctionnalites non faites
-- Gerer les connexions entre maps
-- Ajouter/renommer/reordonner/masquer/supprimer des layers
-- Effacer/remplir des tiles
-- Selection rectangulaire + copier-coller
-- Palette avancee (selection rectangulaire, outils avances)
-- Peindre/visualiser collisions + types de collisions/sol
-- Warps/triggers/npc/objets/panneaux/spawn (pose + config)
-- Inspector de proprietes
-- Editer proprietes des maps / globales du projet / entites
-- Undo/redo
-- Previsualiser le rendu in-game (runtime preview)
-- Gerer les assets du projet
+- Connexions entre maps.
+- Edition complete des layers (ajouter/renommer/reordonner/masquer/supprimer).
+- Outils avances (eraser, fill, selection map, copier-coller de zone, undo/redo).
+- Collisions avancees (peinture/visualisation/types de sol).
+- Entites gameplay (warps, triggers, PNJ, objets, panneaux, spawns) et leurs editeurs.
+- Inspector de proprietes complet (map, projet, entites).
+- Gestion assets projet plus large (hors tilesets).
+- Preview in-game runtime.
 
 ## 6. Tache en cours
-Aucune (derniere tache livree: workflow palette -> selection -> paint tile).
+Terminee: elements de palette metier + selection rectangulaire tileset + palette categorisee + peinture multi-tile.
 
 ## 7. Dernieres modifications realisees
 2026-03-21:
-- Ajout d'une logique metier de resize dans `map_core` (`resizeMapData`) pour redimensionner les layers tile/collision en preservant les donnees.
-- Ajout d'un `ResizeMapUseCase` dans `map_editor` et d'une action UI "Resize Map" dans la toolbar (dialog width/height + validation).
-- Ajout d'un repaint explicite du canvas quand la map change (important pour le resize).
-- Creation de ce fichier `PROJECT_STATUS.md` pour le suivi persistant.
-- Ajout d'une configuration globale `ProjectSettings` dans le manifest (tileWidth, tileHeight, displayScale, defaultMapWidth/Height).
-- Ajout d'un dialog "Project Settings" pour editer le nom du projet + settings et persister dans `project.json`.
-- Le canvas et la creation de map utilisent maintenant les settings globaux (fin du `32` en dur).
-- Evolution du modele `ProjectTilesetEntry` avec `scope`, `groupId`, `sortOrder`, `isWorldTileset`.
-- Ajout de validations tilesets (unicite IDs, coherence scope/group, chemin relatif, unicite du world tileset).
-- Ajout de use cases tilesets: import, update scope/metadata, reorder, suppression protegee, assignation tileset a la map active.
-- UI: import de tileset depuis disque, section tilesets structuree (globaux + par groupe), actions de gestion, selector de tileset pour map active.
-- Ajout d'un modele palette persistant dans le manifest (`TilesetPaletteEntry`, `TilesetSourceRect`, `PaletteCategory`).
-- Ajout d'une operation metier pure de painting tile dans `map_core` et use case dedie dans `map_editor`.
-- Remplacement du panneau droit vide par un panneau palette fonctionnel: categories, target layer, grille de tiles, preview, edition categorie.
-- Rendu reel des TileLayer sur le canvas en utilisant l'image du tileset actif.
-- Painting unitaire sur clic palette + clic map (outil `tilePaint`) avec marquage `isDirty`.
+- `map_core`:
+  - `TilesetPaletteEntry` enrichi avec `name`.
+  - Ajout de `paintTilePatternOnLayer` pour peindre un motif multi-tile sur une TileLayer.
+  - `paintTileOnLayer` s appuie desormais sur la logique pattern.
+  - Validation palette renforcee (ID non vide + unicite deja en place).
+- `map_editor`:
+  - Nouveaux use cases:
+    - creation d un element de palette nomme (`CreateTilesetPaletteEntryUseCase`),
+    - peinture pattern multi-tile (`PaintTilePatternOnMapUseCase`).
+  - Providers Riverpod ajoutes pour ces use cases.
+  - `EditorNotifier` etendu:
+    - gestion des entrees palette actives,
+    - selection d un element comme brush,
+    - creation d element depuis une zone source,
+    - peinture du brush actif (tile unitaire ou element multi-tile).
+  - `MapCanvas` branche sur la peinture du brush actif.
+  - `TilesetPalettePanel` refondu:
+    - onglets `Tiles` / `Elements`,
+    - mode creation d element avec selection rectangle clic+drag,
+    - dialog de creation (nom, categorie, layer recommandee),
+    - liste d elements categorises avec previews.
+- Codegen regenere (`freezed` / `json_serializable` / `riverpod_generator`).
 
 ## 8. Prochaines etapes recommandees
-- Verification fonctionnelle rapide des actions map (rename/delete/duplicate/resize) sur un vrai projet.
-- Decide et implementer une strategie de gestion des entites/warps/triggers hors-bounds apres shrink (conserver, tronquer, ou avertir).
-- Ajouter le painting multi-tile (elements composites) en s'appuyant sur `TilesetSourceRect` (width/height > 1).
-- Ajouter les outils d'edition manquants autour du painting (eraser, fill, selection rectangulaire, copier-coller).
-- Brancher la logique tilesets dans `map_runtime` pour preparer la coherence editor/runtime.
+- Ajouter la suppression/edition/reordonancement des elements de palette.
+- Ajouter une logique de layer recommandee plus exploitee dans l UX (proposition auto de layer cible).
+- Ajouter des elements composites plus riches (meta supplementaires, variantes, contraintes de pose).
+- Ameliorer l UX painting (preview ghost de la taille de l element sous la souris, feedback de clipping).
+- Commencer les outils map manquants prioritaires (eraser, fill, selection/copy-paste).
 
-## 9. Decisions d'architecture importantes
-- Le resize est une operation pure dans `map_core` (reutilisable) et est invoque via un use case dans `map_editor` (UI -> notifier -> use case).
-- Les layers tile/collision sont des tableaux flatten (row-major attendu: index = y * width + x).
-- Object layers ne sont pas redimensionnees pour le moment (pas de dependance explicite a une grille fixe).
-- Les tilesets sont importes physiquement dans le projet (pas de reference absolue externe) et references via `relativePath` dans le manifest.
-- L'assignation d'un tileset a une map est contrainte par une resolution metier: global + groupe de la map + parents de groupe.
-- La palette persistante est stockee au niveau `ProjectTilesetEntry` pour preparer categories et elements composites sans coupler la UI.
+## 9. Decisions d architecture importantes
+- La peinture map reste dans le coeur metier (`map_core`) via operations pures reutilisables.
+- Les traitements applicatifs restent dans les use cases (`map_editor/src/application/use_cases`).
+- L UI ne persiste pas directement: elle passe par `EditorNotifier` puis use cases/repositories.
+- Les elements de palette sont persistes au niveau `ProjectTilesetEntry.paletteEntries`.
+- Un element de palette est defini par un rectangle source dans le tileset (`x`, `y`, `width`, `height`) + metadonnees (`id`, `name`, `category`, `recommendedLayerId`).
+- Politique hors limites pour la pose multi-tile: clipping (on peint uniquement les cellules dans la map).
 
 ## 10. Points de vigilance / dette technique / bugs connus
-- En cas de reduction de map, les `entities/warps/triggers` peuvent se retrouver hors de la nouvelle grille: non gere pour l'instant.
-- La validation metier est minimale (taille positive); les tailles de layers ne sont pas verifiees systematiquement.
-- Le rendu des TileLayer considere `tileId <= 0` comme vide; le flux actuel de painting unitaire utilise des IDs >= 1.
-- Le painting multi-tile n'est pas encore active dans les use cases (base modele prete, UI/logic a etendre).
-- Apres ajout/modif de providers Riverpod, il faut regenerer le code (`build_runner`) pour eviter des erreurs du type `ResizeMapUseCaseRef` inconnu.
-- Modifier les settings globaux impacte visuellement le canvas (ok), mais l'effet sur les maps existantes n'est pas versionne ni historise (a clarifier si besoin).
-- La suppression d'un tileset est bloquee s'il est encore utilise par au moins une map (controle via chargement des maps du manifest).
-- Le rendu visuel de l'image tileset (palette/painting) n'est pas encore implemente malgre l'import et la persistance.
+- Le clipping hors limites est pratique mais silencieux: pas encore de feedback explicite quand une partie est coupee.
+- Pas encore de suppression/renommage d element de palette cote UI.
+- La validation metier ne couvre pas encore tous les cas de coherence possibles (ex: dependances futures entre palette/layers/metadonnees gameplay).
+- Le rendu/peinture est fonctionnel mais sans optimisations de performance avancees.
+- Les warnings analyse existants (deprecations Riverpod/Flutter FormField APIs) ne sont pas traites dans cette tache.
 
 ## Checklist fonctionnelle (etat)
 - Ouvrir un projet existant: fait
@@ -125,9 +110,9 @@ Aucune (derniere tache livree: workflow palette -> selection -> paint tile).
 - Creer une map: fait
 - Charger une map: fait
 - Sauvegarder une map: fait
-- Renommer une map: partiellement fait
-- Supprimer une map: partiellement fait
-- Dupliquer une map: partiellement fait
+- Renommer une map: fait
+- Supprimer une map: fait
+- Dupliquer une map: fait
 - Redimensionner une map: fait
 - Gerer plusieurs maps dans un meme projet: fait
 - Gerer les connexions entre maps: pas fait
@@ -137,13 +122,13 @@ Aucune (derniere tache livree: workflow palette -> selection -> paint tile).
 - Selectionner un outil: fait
 - Selectionner une layer active: fait
 - Ajouter/renommer/reordonner/masquer/supprimer des layers: pas fait
-- Peindre des tiles: partiellement fait
+- Peindre des tiles: fait
 - Effacer des tiles: pas fait
 - Remplir une zone: pas fait
-- Faire de la selection rectangulaire: pas fait
+- Faire de la selection rectangulaire: partiellement fait
 - Copier-coller une zone: pas fait
-- Avoir une palette de tiles: partiellement fait
-- Charger et afficher un vrai tileset: partiellement fait
+- Avoir une palette de tiles: fait
+- Charger et afficher un vrai tileset: fait
 - Gerer plusieurs tilesets: partiellement fait
 - Associer un tileset a une map: fait
 - Peindre les collisions: pas fait
@@ -164,7 +149,7 @@ Aucune (derniere tache livree: workflow palette -> selection -> paint tile).
 - Avoir un explorateur de projet: fait
 - Avoir une toolbar claire: fait
 - Avoir une barre de statut: fait
-- Supporter l'undo/redo: pas fait
+- Supporter l undo/redo: pas fait
 - Avoir une sauvegarde propre avec etat dirty: partiellement fait
 - Pouvoir previsualiser le rendu in-game: pas fait
 - Preparer un runtime compatible Flame: partiellement fait

@@ -88,6 +88,7 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
 class TilesetPaletteEntry with _$TilesetPaletteEntry {
   const factory TilesetPaletteEntry({
     required String id,
+    @Default('') String name,
     @Default(PaletteCategory.uncategorized) PaletteCategory category,
     required TilesetSourceRect source,
     String? recommendedLayerId,

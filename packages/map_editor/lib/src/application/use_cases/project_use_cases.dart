@@ -358,6 +358,63 @@ class UpsertTilesetPaletteEntryUseCase {
   }
 }
 
+class CreateTilesetPaletteEntryResult {
+  final ProjectManifest project;
+  final TilesetPaletteEntry entry;
+
+  const CreateTilesetPaletteEntryResult(this.project, this.entry);
+}
+
+class CreateTilesetPaletteEntryUseCase {
+  final ProjectRepository _repo;
+
+  CreateTilesetPaletteEntryUseCase(this._repo);
+
+  Future<CreateTilesetPaletteEntryResult> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String tilesetId,
+    required String name,
+    required PaletteCategory category,
+    required TilesetSourceRect source,
+    String? recommendedLayerId,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Palette entry name cannot be empty');
+    }
+    if (source.width <= 0 || source.height <= 0) {
+      throw Exception('Palette entry source size must be positive');
+    }
+    if (source.x < 0 || source.y < 0) {
+      throw Exception('Palette entry source coordinates must be >= 0');
+    }
+
+    final tileset = project.tilesets.firstWhere(
+      (t) => t.id == tilesetId,
+      orElse: () => throw Exception('Tileset not found: $tilesetId'),
+    );
+    final existingIds = tileset.paletteEntries.map((e) => e.id).toSet();
+    final id = _generateUniquePaletteEntryId(existingIds, trimmedName);
+    final entry = TilesetPaletteEntry(
+      id: id,
+      name: trimmedName,
+      category: category,
+      source: source,
+      recommendedLayerId: recommendedLayerId,
+    );
+
+    final updatedTilesets = project.tilesets.map((t) {
+      if (t.id != tilesetId) return t;
+      return t.copyWith(paletteEntries: [...t.paletteEntries, entry]);
+    }).toList(growable: false);
+    final updated = project.copyWith(tilesets: updatedTilesets);
+
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return CreateTilesetPaletteEntryResult(updated, entry);
+  }
+}
+
 class PaintTileOnMapUseCase {
   MapData execute(
     MapData map, {
@@ -370,6 +427,28 @@ class PaintTileOnMapUseCase {
       layerId: layerId,
       pos: pos,
       tileId: tileId,
+    );
+    MapValidator.validate(painted);
+    return painted;
+  }
+}
+
+class PaintTilePatternOnMapUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    required List<int> tiles,
+    bool clipToMapBounds = true,
+  }) {
+    final painted = paintTilePatternOnLayer(
+      map,
+      layerId: layerId,
+      pos: pos,
+      patternSize: patternSize,
+      tiles: tiles,
+      clipToMapBounds: clipToMapBounds,
     );
     MapValidator.validate(painted);
     return painted;
@@ -759,4 +838,22 @@ String _pickDefaultTilesetId(ProjectManifest project, String? groupId) {
   if (global.isNotEmpty) return global.first.id;
 
   return project.tilesets.first.id;
+}
+
+String _generateUniquePaletteEntryId(Set<String> existingIds, String seed) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'element' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  while (existingIds.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
 }

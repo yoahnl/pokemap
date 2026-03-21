@@ -1478,6 +1478,7 @@ TilesetPaletteEntry _$TilesetPaletteEntryFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$TilesetPaletteEntry {
   String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
   PaletteCategory get category => throw _privateConstructorUsedError;
   TilesetSourceRect get source => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
@@ -1500,6 +1501,7 @@ abstract class $TilesetPaletteEntryCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
+      String name,
       PaletteCategory category,
       TilesetSourceRect source,
       String? recommendedLayerId});
@@ -1523,6 +1525,7 @@ class _$TilesetPaletteEntryCopyWithImpl<$Res, $Val extends TilesetPaletteEntry>
   @override
   $Res call({
     Object? id = null,
+    Object? name = null,
     Object? category = null,
     Object? source = null,
     Object? recommendedLayerId = freezed,
@@ -1531,6 +1534,10 @@ class _$TilesetPaletteEntryCopyWithImpl<$Res, $Val extends TilesetPaletteEntry>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
               as String,
       category: null == category
           ? _value.category
@@ -1568,6 +1575,7 @@ abstract class _$$TilesetPaletteEntryImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
+      String name,
       PaletteCategory category,
       TilesetSourceRect source,
       String? recommendedLayerId});
@@ -1590,6 +1598,7 @@ class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? name = null,
     Object? category = null,
     Object? source = null,
     Object? recommendedLayerId = freezed,
@@ -1598,6 +1607,10 @@ class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
               as String,
       category: null == category
           ? _value.category
@@ -1620,6 +1633,7 @@ class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
 class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
   const _$TilesetPaletteEntryImpl(
       {required this.id,
+      this.name = '',
       this.category = PaletteCategory.uncategorized,
       required this.source,
       this.recommendedLayerId});
@@ -1631,6 +1645,9 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
   final String id;
   @override
   @JsonKey()
+  final String name;
+  @override
+  @JsonKey()
   final PaletteCategory category;
   @override
   final TilesetSourceRect source;
@@ -1639,7 +1656,7 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
 
   @override
   String toString() {
-    return 'TilesetPaletteEntry(id: $id, category: $category, source: $source, recommendedLayerId: $recommendedLayerId)';
+    return 'TilesetPaletteEntry(id: $id, name: $name, category: $category, source: $source, recommendedLayerId: $recommendedLayerId)';
   }
 
   @override
@@ -1648,6 +1665,7 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
         (other.runtimeType == runtimeType &&
             other is _$TilesetPaletteEntryImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
             (identical(other.category, category) ||
                 other.category == category) &&
             (identical(other.source, source) || other.source == source) &&
@@ -1658,7 +1676,7 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
-      Object.hash(runtimeType, id, category, source, recommendedLayerId);
+      Object.hash(runtimeType, id, name, category, source, recommendedLayerId);
 
   /// Create a copy of TilesetPaletteEntry
   /// with the given fields replaced by the non-null parameter values.
@@ -1680,6 +1698,7 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
 abstract class _TilesetPaletteEntry implements TilesetPaletteEntry {
   const factory _TilesetPaletteEntry(
       {required final String id,
+      final String name,
       final PaletteCategory category,
       required final TilesetSourceRect source,
       final String? recommendedLayerId}) = _$TilesetPaletteEntryImpl;
@@ -1689,6 +1708,8 @@ abstract class _TilesetPaletteEntry implements TilesetPaletteEntry {
 
   @override
   String get id;
+  @override
+  String get name;
   @override
   PaletteCategory get category;
   @override

@@ -46,7 +46,10 @@ class MapCanvas extends ConsumerWidget {
               tileHeight,
             );
             if (gridPos != null) {
-              notifier.paintSelectedTileAt(gridPos);
+              notifier.paintSelectedBrushAt(
+                gridPos,
+                tilesetColumns: tilesPerRow,
+              );
             }
           },
           onPanUpdate: (details) {
@@ -60,7 +63,10 @@ class MapCanvas extends ConsumerWidget {
                 tileHeight,
               );
               if (gridPos != null) {
-                notifier.paintSelectedTileAt(gridPos);
+                notifier.paintSelectedBrushAt(
+                  gridPos,
+                  tilesetColumns: tilesPerRow,
+                );
               }
               return;
             }
