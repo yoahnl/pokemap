@@ -17,6 +17,8 @@ class CreateProjectUseCase {
       maps: [],
       tilesets: [],
       groups: [],
+      elementCategories: _defaultElementCategories(),
+      elements: const [],
       settings: const ProjectSettings(),
     );
     final fs = ProjectFileSystem(directory);
@@ -35,7 +37,8 @@ class LoadProjectUseCase {
 
   Future<ProjectManifest> execute(String manifestPath) async {
     debugPrint('LoadProjectUseCase: Loading project from $manifestPath');
-    return await _repo.loadProject(manifestPath);
+    final loaded = await _repo.loadProject(manifestPath);
+    return _withDefaultElementLibrary(loaded);
   }
 }
 
@@ -326,6 +329,275 @@ class AssignTilesetToMapUseCase {
     MapValidator.validate(updatedMap);
     await _mapRepo.saveMap(updatedMap, mapPath);
     return updatedMap;
+  }
+}
+
+class CreateElementCategoryUseCase {
+  final ProjectRepository _repo;
+
+  CreateElementCategoryUseCase(this._repo);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String name,
+    String? parentCategoryId,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Category name cannot be empty');
+    }
+    if (parentCategoryId != null &&
+        !project.elementCategories.any((c) => c.id == parentCategoryId)) {
+      throw Exception('Parent category not found: $parentCategoryId');
+    }
+
+    final siblings = project.elementCategories
+        .where((c) => c.parentCategoryId == parentCategoryId)
+        .toList(growable: false);
+    final id = _generateUniqueElementCategoryId(project, trimmedName);
+    final category = ProjectElementCategory(
+      id: id,
+      name: trimmedName,
+      parentCategoryId: parentCategoryId,
+      sortOrder: siblings.length,
+    );
+    final updated = project.copyWith(
+      elementCategories: [...project.elementCategories, category],
+    );
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return updated;
+  }
+}
+
+class CreateElementSubcategoryUseCase {
+  final CreateElementCategoryUseCase _categoryUseCase;
+
+  CreateElementSubcategoryUseCase(this._categoryUseCase);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String parentCategoryId,
+    required String name,
+  }) {
+    return _categoryUseCase.execute(
+      fs,
+      project,
+      name: name,
+      parentCategoryId: parentCategoryId,
+    );
+  }
+}
+
+class RenameElementCategoryUseCase {
+  final ProjectRepository _repo;
+
+  RenameElementCategoryUseCase(this._repo);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String categoryId,
+    required String name,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Category name cannot be empty');
+    }
+    final found = project.elementCategories.any((c) => c.id == categoryId);
+    if (!found) {
+      throw Exception('Category not found: $categoryId');
+    }
+
+    final updatedCategories = project.elementCategories.map((category) {
+      if (category.id != categoryId) return category;
+      return category.copyWith(name: trimmedName);
+    }).toList(growable: false);
+    final updated = project.copyWith(elementCategories: updatedCategories);
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return updated;
+  }
+}
+
+class CreateProjectElementResult {
+  final ProjectManifest project;
+  final ProjectElementEntry element;
+
+  const CreateProjectElementResult(this.project, this.element);
+}
+
+class CreateProjectElementUseCase {
+  final ProjectRepository _repo;
+
+  CreateProjectElementUseCase(this._repo);
+
+  Future<CreateProjectElementResult> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String name,
+    required String tilesetId,
+    required String categoryId,
+    required TilesetSourceRect source,
+    String? groupId,
+    String? recommendedLayerId,
+    List<String> tags = const [],
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw Exception('Element name cannot be empty');
+    }
+    if (!project.tilesets.any((t) => t.id == tilesetId)) {
+      throw Exception('Tileset not found: $tilesetId');
+    }
+    if (!project.elementCategories.any((c) => c.id == categoryId)) {
+      throw Exception('Category not found: $categoryId');
+    }
+    if (groupId != null && !project.groups.any((g) => g.id == groupId)) {
+      throw Exception('Group not found: $groupId');
+    }
+    if (source.width <= 0 || source.height <= 0) {
+      throw Exception('Element source rect must be positive');
+    }
+    if (source.x < 0 || source.y < 0) {
+      throw Exception('Element source coordinates must be >= 0');
+    }
+
+    final normalizedTags = tags
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+
+    final id = _generateUniqueProjectElementId(project, trimmedName);
+    final siblingSort = project.elements
+        .where((e) => e.categoryId == categoryId && e.groupId == groupId)
+        .length;
+    final element = ProjectElementEntry(
+      id: id,
+      name: trimmedName,
+      tilesetId: tilesetId,
+      categoryId: categoryId,
+      source: source,
+      groupId: groupId,
+      recommendedLayerId: recommendedLayerId,
+      tags: normalizedTags,
+      sortOrder: siblingSort,
+    );
+
+    final updated = project.copyWith(elements: [...project.elements, element]);
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return CreateProjectElementResult(updated, element);
+  }
+}
+
+class UpdateProjectElementUseCase {
+  final ProjectRepository _repo;
+
+  UpdateProjectElementUseCase(this._repo);
+
+  Future<ProjectManifest> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required String elementId,
+    String? name,
+    String? categoryId,
+    String? groupId,
+    bool clearGroupId = false,
+    String? recommendedLayerId,
+    bool clearRecommendedLayerId = false,
+    TilesetSourceRect? source,
+    List<String>? tags,
+  }) async {
+    final current = project.elements.firstWhere(
+      (e) => e.id == elementId,
+      orElse: () => throw Exception('Element not found: $elementId'),
+    );
+
+    final nextName = name?.trim();
+    if (nextName != null && nextName.isEmpty) {
+      throw Exception('Element name cannot be empty');
+    }
+    final nextCategoryId = categoryId ?? current.categoryId;
+    if (!project.elementCategories.any((c) => c.id == nextCategoryId)) {
+      throw Exception('Category not found: $nextCategoryId');
+    }
+
+    final nextGroupId = clearGroupId ? null : (groupId ?? current.groupId);
+    if (nextGroupId != null &&
+        !project.groups.any((g) => g.id == nextGroupId)) {
+      throw Exception('Group not found: $nextGroupId');
+    }
+
+    final nextSource = source ?? current.source;
+    if (nextSource.width <= 0 ||
+        nextSource.height <= 0 ||
+        nextSource.x < 0 ||
+        nextSource.y < 0) {
+      throw Exception('Element source rect is invalid');
+    }
+
+    final nextTags = tags == null
+        ? current.tags
+        : tags
+            .map((tag) => tag.trim())
+            .where((tag) => tag.isNotEmpty)
+            .toSet()
+            .toList(growable: false);
+    final nextRecommendedLayerId = clearRecommendedLayerId
+        ? null
+        : (recommendedLayerId ?? current.recommendedLayerId);
+
+    final updatedElements = project.elements.map((element) {
+      if (element.id != elementId) return element;
+      return element.copyWith(
+        name: nextName ?? element.name,
+        categoryId: nextCategoryId,
+        groupId: nextGroupId,
+        source: nextSource,
+        recommendedLayerId: nextRecommendedLayerId,
+        tags: nextTags,
+      );
+    }).toList(growable: false);
+
+    final updated = project.copyWith(elements: updatedElements);
+    await _repo.saveProject(updated, fs.projectManifestPath);
+    return updated;
+  }
+}
+
+class ResolveVisibleProjectElementsUseCase {
+  List<ProjectElementEntry> execute(
+    ProjectManifest project, {
+    String? tilesetId,
+    String? mapId,
+  }) {
+    final groupScope = <String>{};
+    if (mapId != null) {
+      final mapEntry = project.maps.firstWhere(
+        (m) => m.id == mapId,
+        orElse: () => throw Exception('Map not found in manifest: $mapId'),
+      );
+      String? cursor = mapEntry.groupId;
+      final visited = <String>{};
+      while (cursor != null && visited.add(cursor)) {
+        groupScope.add(cursor);
+        final group = project.groups.firstWhere(
+          (g) => g.id == cursor,
+          orElse: () =>
+              throw Exception('Unknown group referenced by map: $cursor'),
+        );
+        cursor = group.parentGroupId;
+      }
+    }
+
+    final result = project.elements.where((element) {
+      if (tilesetId != null && element.tilesetId != tilesetId) return false;
+      if (element.groupId == null) return true;
+      return groupScope.contains(element.groupId);
+    }).toList(growable: false)
+      ..sort(_projectElementSort);
+    return result;
   }
 }
 
@@ -856,4 +1128,207 @@ String _generateUniquePaletteEntryId(Set<String> existingIds, String seed) {
     suffix++;
   }
   return candidate;
+}
+
+String _generateUniqueElementCategoryId(ProjectManifest project, String seed) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'category' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  final existing = project.elementCategories.map((c) => c.id).toSet();
+  while (existing.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
+String _generateUniqueProjectElementId(ProjectManifest project, String seed) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'element' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  final existing = project.elements.map((e) => e.id).toSet();
+  while (existing.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
+int _projectElementSort(ProjectElementEntry a, ProjectElementEntry b) {
+  final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+  if (sortCompare != 0) return sortCompare;
+  final nameCompare = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+  if (nameCompare != 0) return nameCompare;
+  return a.id.compareTo(b.id);
+}
+
+List<ProjectElementCategory> _defaultElementCategories() {
+  return const [
+    ProjectElementCategory(
+      id: 'nature',
+      name: 'Nature',
+      sortOrder: 0,
+    ),
+    ProjectElementCategory(
+      id: 'nature_trees',
+      name: 'Trees',
+      parentCategoryId: 'nature',
+      sortOrder: 0,
+    ),
+    ProjectElementCategory(
+      id: 'nature_bushes',
+      name: 'Bushes',
+      parentCategoryId: 'nature',
+      sortOrder: 1,
+    ),
+    ProjectElementCategory(
+      id: 'nature_flowers',
+      name: 'Flowers',
+      parentCategoryId: 'nature',
+      sortOrder: 2,
+    ),
+    ProjectElementCategory(
+      id: 'nature_plants',
+      name: 'Plants',
+      parentCategoryId: 'nature',
+      sortOrder: 3,
+    ),
+    ProjectElementCategory(
+      id: 'ground',
+      name: 'Ground',
+      sortOrder: 1,
+    ),
+    ProjectElementCategory(
+      id: 'ground_grass',
+      name: 'Grass',
+      parentCategoryId: 'ground',
+      sortOrder: 0,
+    ),
+    ProjectElementCategory(
+      id: 'ground_dirt',
+      name: 'Dirt',
+      parentCategoryId: 'ground',
+      sortOrder: 1,
+    ),
+    ProjectElementCategory(
+      id: 'ground_paths',
+      name: 'Paths',
+      parentCategoryId: 'ground',
+      sortOrder: 2,
+    ),
+    ProjectElementCategory(
+      id: 'ground_sand',
+      name: 'Sand',
+      parentCategoryId: 'ground',
+      sortOrder: 3,
+    ),
+    ProjectElementCategory(
+      id: 'ground_water_edges',
+      name: 'WaterEdges',
+      parentCategoryId: 'ground',
+      sortOrder: 4,
+    ),
+    ProjectElementCategory(
+      id: 'buildings',
+      name: 'Buildings',
+      sortOrder: 2,
+    ),
+    ProjectElementCategory(
+      id: 'buildings_houses',
+      name: 'Houses',
+      parentCategoryId: 'buildings',
+      sortOrder: 0,
+    ),
+    ProjectElementCategory(
+      id: 'buildings_shops',
+      name: 'Shops',
+      parentCategoryId: 'buildings',
+      sortOrder: 1,
+    ),
+    ProjectElementCategory(
+      id: 'buildings_pokemon_center',
+      name: 'PokemonCenter',
+      parentCategoryId: 'buildings',
+      sortOrder: 2,
+    ),
+    ProjectElementCategory(
+      id: 'buildings_mart',
+      name: 'Mart',
+      parentCategoryId: 'buildings',
+      sortOrder: 3,
+    ),
+    ProjectElementCategory(
+      id: 'buildings_special',
+      name: 'SpecialBuildings',
+      parentCategoryId: 'buildings',
+      sortOrder: 4,
+    ),
+    ProjectElementCategory(
+      id: 'decorations',
+      name: 'Decorations',
+      sortOrder: 3,
+    ),
+    ProjectElementCategory(
+      id: 'decorations_signs',
+      name: 'Signs',
+      parentCategoryId: 'decorations',
+      sortOrder: 0,
+    ),
+    ProjectElementCategory(
+      id: 'decorations_fences',
+      name: 'Fences',
+      parentCategoryId: 'decorations',
+      sortOrder: 1,
+    ),
+    ProjectElementCategory(
+      id: 'decorations_lamps',
+      name: 'Lamps',
+      parentCategoryId: 'decorations',
+      sortOrder: 2,
+    ),
+    ProjectElementCategory(
+      id: 'interior',
+      name: 'Interior',
+      sortOrder: 4,
+    ),
+    ProjectElementCategory(
+      id: 'interior_furniture',
+      name: 'Furniture',
+      parentCategoryId: 'interior',
+      sortOrder: 0,
+    ),
+    ProjectElementCategory(
+      id: 'interior_walls',
+      name: 'Walls',
+      parentCategoryId: 'interior',
+      sortOrder: 1,
+    ),
+    ProjectElementCategory(
+      id: 'interior_floor_patterns',
+      name: 'FloorPatterns',
+      parentCategoryId: 'interior',
+      sortOrder: 2,
+    ),
+  ];
+}
+
+ProjectManifest _withDefaultElementLibrary(ProjectManifest project) {
+  if (project.elementCategories.isNotEmpty) {
+    return project;
+  }
+  return project.copyWith(elementCategories: _defaultElementCategories());
 }

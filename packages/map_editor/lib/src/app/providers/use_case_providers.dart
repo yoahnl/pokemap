@@ -64,6 +64,44 @@ ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(
 }
 
 @riverpod
+CreateElementCategoryUseCase createElementCategoryUseCase(
+    CreateElementCategoryUseCaseRef ref) {
+  return CreateElementCategoryUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+CreateElementSubcategoryUseCase createElementSubcategoryUseCase(
+    CreateElementSubcategoryUseCaseRef ref) {
+  return CreateElementSubcategoryUseCase(
+    ref.watch(createElementCategoryUseCaseProvider),
+  );
+}
+
+@riverpod
+RenameElementCategoryUseCase renameElementCategoryUseCase(
+    RenameElementCategoryUseCaseRef ref) {
+  return RenameElementCategoryUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+CreateProjectElementUseCase createProjectElementUseCase(
+    CreateProjectElementUseCaseRef ref) {
+  return CreateProjectElementUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateProjectElementUseCase updateProjectElementUseCase(
+    UpdateProjectElementUseCaseRef ref) {
+  return UpdateProjectElementUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+ResolveVisibleProjectElementsUseCase resolveVisibleProjectElementsUseCase(
+    ResolveVisibleProjectElementsUseCaseRef ref) {
+  return ResolveVisibleProjectElementsUseCase();
+}
+
+@riverpod
 UpsertTilesetPaletteEntryUseCase upsertTilesetPaletteEntryUseCase(
     UpsertTilesetPaletteEntryUseCaseRef ref) {
   return UpsertTilesetPaletteEntryUseCase(ref.watch(projectRepositoryProvider));

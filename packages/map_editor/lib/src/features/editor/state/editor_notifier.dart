@@ -30,6 +30,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         selectedTileId: null,
         selectedPaletteEntryId: null,
+        selectedProjectElementId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Project "$name" created successfully',
         errorMessage: null,
@@ -54,6 +55,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         selectedTileId: null,
         selectedPaletteEntryId: null,
+        selectedProjectElementId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Project "${manifest.name}" loaded',
         errorMessage: null,
@@ -146,6 +148,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
         selectedTileId: null,
         selectedPaletteEntryId: null,
+        selectedProjectElementId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Map "$id" created successfully',
         errorMessage: null,
@@ -171,6 +174,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
         selectedTileId: null,
         selectedPaletteEntryId: null,
+        selectedProjectElementId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Map "${map.id}" loaded',
         errorMessage: null,
@@ -264,12 +268,14 @@ class EditorNotifier extends _$EditorNotifier {
       String? activePath = state.activeMapPath;
       int? selectedTileId = state.selectedTileId;
       String? selectedPaletteEntryId = state.selectedPaletteEntryId;
+      String? selectedProjectElementId = state.selectedProjectElementId;
       PaletteCategory? paletteCategoryFilter = state.paletteCategoryFilter;
       if (activeMap?.id == mapId) {
         activeMap = null;
         activePath = null;
         selectedTileId = null;
         selectedPaletteEntryId = null;
+        selectedProjectElementId = null;
         paletteCategoryFilter = null;
       }
 
@@ -279,6 +285,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: activePath,
         selectedTileId: selectedTileId,
         selectedPaletteEntryId: selectedPaletteEntryId,
+        selectedProjectElementId: selectedProjectElementId,
         paletteCategoryFilter: paletteCategoryFilter,
         statusMessage: 'Map "$mapId" deleted',
         errorMessage: null,
@@ -530,6 +537,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMap: updatedMap,
         selectedTileId: null,
         selectedPaletteEntryId: null,
+        selectedProjectElementId: null,
         paletteCategoryFilter: null,
         isDirty: false,
         statusMessage:
@@ -561,6 +569,248 @@ class EditorNotifier extends _$EditorNotifier {
     return fs.resolveTilesetPath(tileset.relativePath);
   }
 
+  List<ProjectElementCategory> getElementCategories() {
+    final project = state.project;
+    if (project == null) return const [];
+    final categories = List<ProjectElementCategory>.from(
+      project.elementCategories,
+      growable: false,
+    );
+    categories.sort((a, b) {
+      if (a.parentCategoryId == b.parentCategoryId) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      }
+      final parentA = a.parentCategoryId ?? '';
+      final parentB = b.parentCategoryId ?? '';
+      final parentCompare = parentA.compareTo(parentB);
+      if (parentCompare != 0) return parentCompare;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return categories;
+  }
+
+  ProjectElementCategory? getElementCategoryById(String categoryId) {
+    final project = state.project;
+    if (project == null) return null;
+    for (final category in project.elementCategories) {
+      if (category.id == categoryId) {
+        return category;
+      }
+    }
+    return null;
+  }
+
+  ProjectElementEntry? getProjectElementById(String elementId) {
+    final project = state.project;
+    if (project == null) return null;
+    for (final element in project.elements) {
+      if (element.id == elementId) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  List<ProjectElementEntry> getVisibleProjectElementsForActiveMap({
+    bool includeAll = false,
+    bool globalOnly = false,
+    bool acrossAllTilesets = false,
+  }) {
+    final project = state.project;
+    final map = state.activeMap;
+    if (project == null || map == null) return const [];
+
+    List<ProjectElementEntry> resolved;
+    final activeTilesetId = map.tilesetId;
+    if (includeAll) {
+      resolved = project.elements.where((element) {
+        if (!acrossAllTilesets && element.tilesetId != activeTilesetId) {
+          return false;
+        }
+        return true;
+      }).toList(growable: false);
+    } else if (globalOnly) {
+      resolved = project.elements
+          .where(
+            (element) =>
+                (acrossAllTilesets || element.tilesetId == activeTilesetId) &&
+                element.groupId == null,
+          )
+          .toList(growable: false);
+    } else {
+      try {
+        final useCase = ref.read(resolveVisibleProjectElementsUseCaseProvider);
+        resolved = useCase.execute(
+          project,
+          tilesetId: acrossAllTilesets ? null : activeTilesetId,
+          mapId: map.id,
+        );
+      } catch (_) {
+        resolved = const [];
+      }
+    }
+
+    resolved.sort((a, b) {
+      final categoryCompare = a.categoryId.compareTo(b.categoryId);
+      if (categoryCompare != 0) return categoryCompare;
+      final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+      if (sortCompare != 0) return sortCompare;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return resolved;
+  }
+
+  Future<void> createElementCategory(
+    String name, {
+    String? parentCategoryId,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createElementCategoryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        parentCategoryId: parentCategoryId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Element category created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create category: $e');
+    }
+  }
+
+  Future<void> createElementSubcategory(
+    String parentCategoryId,
+    String name,
+  ) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createElementSubcategoryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        parentCategoryId: parentCategoryId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Element subcategory created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create subcategory: $e');
+    }
+  }
+
+  Future<void> renameElementCategory(String categoryId, String name) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(renameElementCategoryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        categoryId: categoryId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Element category renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to rename category: $e');
+    }
+  }
+
+  Future<void> createProjectElement({
+    required String name,
+    required String categoryId,
+    required TilesetSourceRect source,
+    String? groupId,
+    String? recommendedLayerId,
+    List<String> tags = const [],
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    final map = state.activeMap;
+    if (fs == null || project == null || map == null) return;
+    try {
+      final useCase = ref.read(createProjectElementUseCaseProvider);
+      final result = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        tilesetId: map.tilesetId,
+        categoryId: categoryId,
+        source: source,
+        groupId: groupId,
+        recommendedLayerId: recommendedLayerId,
+        tags: tags,
+      );
+      state = state.copyWith(
+        project: result.project,
+        selectedProjectElementId: result.element.id,
+        selectedPaletteEntryId: null,
+        selectedTileId: null,
+        statusMessage: 'Element "${result.element.name}" created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create element: $e');
+    }
+  }
+
+  Future<void> updateProjectElement({
+    required String elementId,
+    String? name,
+    String? categoryId,
+    String? groupId,
+    bool clearGroupId = false,
+    String? recommendedLayerId,
+    bool clearRecommendedLayerId = false,
+    TilesetSourceRect? source,
+    List<String>? tags,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateProjectElementUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        elementId: elementId,
+        name: name,
+        categoryId: categoryId,
+        groupId: groupId,
+        clearGroupId: clearGroupId,
+        recommendedLayerId: recommendedLayerId,
+        clearRecommendedLayerId: clearRecommendedLayerId,
+        source: source,
+        tags: tags,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Element updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update element: $e');
+    }
+  }
+
   List<TilesetPaletteEntry> getActivePaletteEntries() {
     final tileset = getActiveTilesetEntry();
     if (tileset == null) return const [];
@@ -586,6 +836,7 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       selectedTileId: tileId,
       selectedPaletteEntryId: paletteEntryId,
+      selectedProjectElementId: null,
     );
   }
 
@@ -605,6 +856,27 @@ class EditorNotifier extends _$EditorNotifier {
     }
     state = state.copyWith(
       selectedPaletteEntryId: entryId,
+      selectedTileId: tileId,
+      selectedProjectElementId: null,
+    );
+  }
+
+  void selectProjectElement(
+    String elementId, {
+    int? tilesetColumns,
+  }) {
+    final element = getProjectElementById(elementId);
+    if (element == null) return;
+    int? tileId;
+    if (element.source.width == 1 &&
+        element.source.height == 1 &&
+        tilesetColumns != null &&
+        tilesetColumns > 0) {
+      tileId = element.source.y * tilesetColumns + element.source.x + 1;
+    }
+    state = state.copyWith(
+      selectedProjectElementId: element.id,
+      selectedPaletteEntryId: null,
       selectedTileId: tileId,
     );
   }
@@ -634,6 +906,7 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         project: result.project,
         selectedPaletteEntryId: result.entry.id,
+        selectedProjectElementId: null,
         selectedTileId: null,
         statusMessage: 'Palette element "${result.entry.name}" created',
         errorMessage: null,
@@ -690,6 +963,7 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         project: updated,
         selectedPaletteEntryId: entry.id,
+        selectedProjectElementId: null,
         statusMessage: 'Palette entry updated',
         errorMessage: null,
       );
@@ -704,6 +978,56 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
     if (map == null || layerId == null) return;
+
+    final selectedProjectElementId = state.selectedProjectElementId;
+    if (selectedProjectElementId != null) {
+      final element = getProjectElementById(selectedProjectElementId);
+      if (element != null) {
+        if (element.tilesetId != map.tilesetId) {
+          state = state.copyWith(
+            errorMessage:
+                'Element "${element.name}" belongs to another tileset',
+          );
+          return;
+        }
+        if (tilesetColumns <= 0) {
+          state = state.copyWith(
+            errorMessage: 'Active tileset image is not available',
+          );
+          return;
+        }
+        final width = element.source.width;
+        final height = element.source.height;
+        final pattern = List<int>.filled(width * height, 0, growable: false);
+        for (var y = 0; y < height; y++) {
+          for (var x = 0; x < width; x++) {
+            final sourceX = element.source.x + x;
+            final sourceY = element.source.y + y;
+            pattern[y * width + x] = sourceY * tilesetColumns + sourceX + 1;
+          }
+        }
+        try {
+          final useCase = ref.read(paintTilePatternOnMapUseCaseProvider);
+          final painted = useCase.execute(
+            map,
+            layerId: layerId,
+            pos: pos,
+            patternSize: GridSize(width: width, height: height),
+            tiles: pattern,
+            clipToMapBounds: true,
+          );
+          state = state.copyWith(
+            activeMap: painted,
+            isDirty: true,
+            errorMessage: null,
+          );
+          return;
+        } catch (e) {
+          state = state.copyWith(errorMessage: 'Failed to paint element: $e');
+          return;
+        }
+      }
+    }
 
     final entryId = state.selectedPaletteEntryId;
     if (entryId != null) {

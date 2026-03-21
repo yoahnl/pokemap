@@ -24,6 +24,7 @@ class EditorState with _$EditorState {
     GridPos? hoveredTile,
     int? selectedTileId,
     String? selectedPaletteEntryId,
+    String? selectedProjectElementId,
     PaletteCategory? paletteCategoryFilter,
 
     // Viewport

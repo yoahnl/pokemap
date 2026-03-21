@@ -25,6 +25,9 @@ mixin _$ProjectManifest {
   List<ProjectMapEntry> get maps => throw _privateConstructorUsedError;
   List<ProjectMapGroup> get groups => throw _privateConstructorUsedError;
   List<ProjectTilesetEntry> get tilesets => throw _privateConstructorUsedError;
+  List<ProjectElementCategory> get elementCategories =>
+      throw _privateConstructorUsedError;
+  List<ProjectElementEntry> get elements => throw _privateConstructorUsedError;
   ProjectSettings get settings => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
@@ -51,6 +54,8 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectMapEntry> maps,
       List<ProjectMapGroup> groups,
       List<ProjectTilesetEntry> tilesets,
+      List<ProjectElementCategory> elementCategories,
+      List<ProjectElementEntry> elements,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -77,6 +82,8 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? maps = null,
     Object? groups = null,
     Object? tilesets = null,
+    Object? elementCategories = null,
+    Object? elements = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -101,6 +108,14 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
               as List<ProjectTilesetEntry>,
+      elementCategories: null == elementCategories
+          ? _value.elementCategories
+          : elementCategories // ignore: cast_nullable_to_non_nullable
+              as List<ProjectElementCategory>,
+      elements: null == elements
+          ? _value.elements
+          : elements // ignore: cast_nullable_to_non_nullable
+              as List<ProjectElementEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -137,6 +152,8 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectMapEntry> maps,
       List<ProjectMapGroup> groups,
       List<ProjectTilesetEntry> tilesets,
+      List<ProjectElementCategory> elementCategories,
+      List<ProjectElementEntry> elements,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -162,6 +179,8 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? maps = null,
     Object? groups = null,
     Object? tilesets = null,
+    Object? elementCategories = null,
+    Object? elements = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -186,6 +205,14 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
               as List<ProjectTilesetEntry>,
+      elementCategories: null == elementCategories
+          ? _value._elementCategories
+          : elementCategories // ignore: cast_nullable_to_non_nullable
+              as List<ProjectElementCategory>,
+      elements: null == elements
+          ? _value._elements
+          : elements // ignore: cast_nullable_to_non_nullable
+              as List<ProjectElementEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -208,11 +235,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       required final List<ProjectMapEntry> maps,
       final List<ProjectMapGroup> groups = const [],
       required final List<ProjectTilesetEntry> tilesets,
+      final List<ProjectElementCategory> elementCategories = const [],
+      final List<ProjectElementEntry> elements = const [],
       this.settings = const ProjectSettings(),
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
         _groups = groups,
         _tilesets = tilesets,
+        _elementCategories = elementCategories,
+        _elements = elements,
         _globalProperties = globalProperties;
 
   factory _$ProjectManifestImpl.fromJson(Map<String, dynamic> json) =>
@@ -248,6 +279,25 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_tilesets);
   }
 
+  final List<ProjectElementCategory> _elementCategories;
+  @override
+  @JsonKey()
+  List<ProjectElementCategory> get elementCategories {
+    if (_elementCategories is EqualUnmodifiableListView)
+      return _elementCategories;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_elementCategories);
+  }
+
+  final List<ProjectElementEntry> _elements;
+  @override
+  @JsonKey()
+  List<ProjectElementEntry> get elements {
+    if (_elements is EqualUnmodifiableListView) return _elements;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_elements);
+  }
+
   @override
   @JsonKey()
   final ProjectSettings settings;
@@ -262,7 +312,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -275,6 +325,9 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality().equals(other._maps, _maps) &&
             const DeepCollectionEquality().equals(other._groups, _groups) &&
             const DeepCollectionEquality().equals(other._tilesets, _tilesets) &&
+            const DeepCollectionEquality()
+                .equals(other._elementCategories, _elementCategories) &&
+            const DeepCollectionEquality().equals(other._elements, _elements) &&
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
             const DeepCollectionEquality()
@@ -290,6 +343,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       const DeepCollectionEquality().hash(_maps),
       const DeepCollectionEquality().hash(_groups),
       const DeepCollectionEquality().hash(_tilesets),
+      const DeepCollectionEquality().hash(_elementCategories),
+      const DeepCollectionEquality().hash(_elements),
       settings,
       const DeepCollectionEquality().hash(_globalProperties));
 
@@ -317,6 +372,8 @@ abstract class _ProjectManifest implements ProjectManifest {
       required final List<ProjectMapEntry> maps,
       final List<ProjectMapGroup> groups,
       required final List<ProjectTilesetEntry> tilesets,
+      final List<ProjectElementCategory> elementCategories,
+      final List<ProjectElementEntry> elements,
       final ProjectSettings settings,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
 
@@ -333,6 +390,10 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectMapGroup> get groups;
   @override
   List<ProjectTilesetEntry> get tilesets;
+  @override
+  List<ProjectElementCategory> get elementCategories;
+  @override
+  List<ProjectElementEntry> get elements;
   @override
   ProjectSettings get settings;
   @override
@@ -1927,5 +1988,572 @@ abstract class _TilesetSourceRect implements TilesetSourceRect {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TilesetSourceRectImplCopyWith<_$TilesetSourceRectImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ProjectElementCategory _$ProjectElementCategoryFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectElementCategory.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectElementCategory {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String? get parentCategoryId => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectElementCategory to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectElementCategory
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectElementCategoryCopyWith<ProjectElementCategory> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectElementCategoryCopyWith<$Res> {
+  factory $ProjectElementCategoryCopyWith(ProjectElementCategory value,
+          $Res Function(ProjectElementCategory) then) =
+      _$ProjectElementCategoryCopyWithImpl<$Res, ProjectElementCategory>;
+  @useResult
+  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
+}
+
+/// @nodoc
+class _$ProjectElementCategoryCopyWithImpl<$Res,
+        $Val extends ProjectElementCategory>
+    implements $ProjectElementCategoryCopyWith<$Res> {
+  _$ProjectElementCategoryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectElementCategory
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentCategoryId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentCategoryId: freezed == parentCategoryId
+          ? _value.parentCategoryId
+          : parentCategoryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectElementCategoryImplCopyWith<$Res>
+    implements $ProjectElementCategoryCopyWith<$Res> {
+  factory _$$ProjectElementCategoryImplCopyWith(
+          _$ProjectElementCategoryImpl value,
+          $Res Function(_$ProjectElementCategoryImpl) then) =
+      __$$ProjectElementCategoryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
+}
+
+/// @nodoc
+class __$$ProjectElementCategoryImplCopyWithImpl<$Res>
+    extends _$ProjectElementCategoryCopyWithImpl<$Res,
+        _$ProjectElementCategoryImpl>
+    implements _$$ProjectElementCategoryImplCopyWith<$Res> {
+  __$$ProjectElementCategoryImplCopyWithImpl(
+      _$ProjectElementCategoryImpl _value,
+      $Res Function(_$ProjectElementCategoryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectElementCategory
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentCategoryId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$ProjectElementCategoryImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentCategoryId: freezed == parentCategoryId
+          ? _value.parentCategoryId
+          : parentCategoryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProjectElementCategoryImpl implements _ProjectElementCategory {
+  const _$ProjectElementCategoryImpl(
+      {required this.id,
+      required this.name,
+      this.parentCategoryId,
+      this.sortOrder = 0});
+
+  factory _$ProjectElementCategoryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectElementCategoryImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final String? parentCategoryId;
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'ProjectElementCategory(id: $id, name: $name, parentCategoryId: $parentCategoryId, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectElementCategoryImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.parentCategoryId, parentCategoryId) ||
+                other.parentCategoryId == parentCategoryId) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, name, parentCategoryId, sortOrder);
+
+  /// Create a copy of ProjectElementCategory
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectElementCategoryImplCopyWith<_$ProjectElementCategoryImpl>
+      get copyWith => __$$ProjectElementCategoryImplCopyWithImpl<
+          _$ProjectElementCategoryImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectElementCategoryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectElementCategory implements ProjectElementCategory {
+  const factory _ProjectElementCategory(
+      {required final String id,
+      required final String name,
+      final String? parentCategoryId,
+      final int sortOrder}) = _$ProjectElementCategoryImpl;
+
+  factory _ProjectElementCategory.fromJson(Map<String, dynamic> json) =
+      _$ProjectElementCategoryImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String? get parentCategoryId;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of ProjectElementCategory
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectElementCategoryImplCopyWith<_$ProjectElementCategoryImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectElementEntry _$ProjectElementEntryFromJson(Map<String, dynamic> json) {
+  return _ProjectElementEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectElementEntry {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String get tilesetId => throw _privateConstructorUsedError;
+  String get categoryId => throw _privateConstructorUsedError;
+  TilesetSourceRect get source => throw _privateConstructorUsedError;
+  String? get groupId => throw _privateConstructorUsedError;
+  String? get recommendedLayerId => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectElementEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectElementEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectElementEntryCopyWith<ProjectElementEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectElementEntryCopyWith<$Res> {
+  factory $ProjectElementEntryCopyWith(
+          ProjectElementEntry value, $Res Function(ProjectElementEntry) then) =
+      _$ProjectElementEntryCopyWithImpl<$Res, ProjectElementEntry>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String tilesetId,
+      String categoryId,
+      TilesetSourceRect source,
+      String? groupId,
+      String? recommendedLayerId,
+      List<String> tags,
+      int sortOrder});
+
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
+    implements $ProjectElementEntryCopyWith<$Res> {
+  _$ProjectElementEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectElementEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? tilesetId = null,
+    Object? categoryId = null,
+    Object? source = null,
+    Object? groupId = freezed,
+    Object? recommendedLayerId = freezed,
+    Object? tags = null,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      recommendedLayerId: freezed == recommendedLayerId
+          ? _value.recommendedLayerId
+          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+
+  /// Create a copy of ProjectElementEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $TilesetSourceRectCopyWith<$Res> get source {
+    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
+      return _then(_value.copyWith(source: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectElementEntryImplCopyWith<$Res>
+    implements $ProjectElementEntryCopyWith<$Res> {
+  factory _$$ProjectElementEntryImplCopyWith(_$ProjectElementEntryImpl value,
+          $Res Function(_$ProjectElementEntryImpl) then) =
+      __$$ProjectElementEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String tilesetId,
+      String categoryId,
+      TilesetSourceRect source,
+      String? groupId,
+      String? recommendedLayerId,
+      List<String> tags,
+      int sortOrder});
+
+  @override
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class __$$ProjectElementEntryImplCopyWithImpl<$Res>
+    extends _$ProjectElementEntryCopyWithImpl<$Res, _$ProjectElementEntryImpl>
+    implements _$$ProjectElementEntryImplCopyWith<$Res> {
+  __$$ProjectElementEntryImplCopyWithImpl(_$ProjectElementEntryImpl _value,
+      $Res Function(_$ProjectElementEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectElementEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? tilesetId = null,
+    Object? categoryId = null,
+    Object? source = null,
+    Object? groupId = freezed,
+    Object? recommendedLayerId = freezed,
+    Object? tags = null,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$ProjectElementEntryImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      groupId: freezed == groupId
+          ? _value.groupId
+          : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      recommendedLayerId: freezed == recommendedLayerId
+          ? _value.recommendedLayerId
+          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProjectElementEntryImpl implements _ProjectElementEntry {
+  const _$ProjectElementEntryImpl(
+      {required this.id,
+      required this.name,
+      required this.tilesetId,
+      required this.categoryId,
+      required this.source,
+      this.groupId,
+      this.recommendedLayerId,
+      final List<String> tags = const [],
+      this.sortOrder = 0})
+      : _tags = tags;
+
+  factory _$ProjectElementEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectElementEntryImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final String tilesetId;
+  @override
+  final String categoryId;
+  @override
+  final TilesetSourceRect source;
+  @override
+  final String? groupId;
+  @override
+  final String? recommendedLayerId;
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, source: $source, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectElementEntryImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.tilesetId, tilesetId) ||
+                other.tilesetId == tilesetId) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.groupId, groupId) || other.groupId == groupId) &&
+            (identical(other.recommendedLayerId, recommendedLayerId) ||
+                other.recommendedLayerId == recommendedLayerId) &&
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      tilesetId,
+      categoryId,
+      source,
+      groupId,
+      recommendedLayerId,
+      const DeepCollectionEquality().hash(_tags),
+      sortOrder);
+
+  /// Create a copy of ProjectElementEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectElementEntryImplCopyWith<_$ProjectElementEntryImpl> get copyWith =>
+      __$$ProjectElementEntryImplCopyWithImpl<_$ProjectElementEntryImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectElementEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectElementEntry implements ProjectElementEntry {
+  const factory _ProjectElementEntry(
+      {required final String id,
+      required final String name,
+      required final String tilesetId,
+      required final String categoryId,
+      required final TilesetSourceRect source,
+      final String? groupId,
+      final String? recommendedLayerId,
+      final List<String> tags,
+      final int sortOrder}) = _$ProjectElementEntryImpl;
+
+  factory _ProjectElementEntry.fromJson(Map<String, dynamic> json) =
+      _$ProjectElementEntryImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String get tilesetId;
+  @override
+  String get categoryId;
+  @override
+  TilesetSourceRect get source;
+  @override
+  String? get groupId;
+  @override
+  String? get recommendedLayerId;
+  @override
+  List<String> get tags;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of ProjectElementEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectElementEntryImplCopyWith<_$ProjectElementEntryImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

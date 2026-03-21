@@ -13,6 +13,8 @@ class ProjectManifest with _$ProjectManifest {
     required List<ProjectMapEntry> maps,
     @Default([]) List<ProjectMapGroup> groups,
     required List<ProjectTilesetEntry> tilesets,
+    @Default([]) List<ProjectElementCategory> elementCategories,
+    @Default([]) List<ProjectElementEntry> elements,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
@@ -109,4 +111,35 @@ class TilesetSourceRect with _$TilesetSourceRect {
 
   factory TilesetSourceRect.fromJson(Map<String, dynamic> json) =>
       _$TilesetSourceRectFromJson(json);
+}
+
+@freezed
+class ProjectElementCategory with _$ProjectElementCategory {
+  const factory ProjectElementCategory({
+    required String id,
+    required String name,
+    String? parentCategoryId,
+    @Default(0) int sortOrder,
+  }) = _ProjectElementCategory;
+
+  factory ProjectElementCategory.fromJson(Map<String, dynamic> json) =>
+      _$ProjectElementCategoryFromJson(json);
+}
+
+@freezed
+class ProjectElementEntry with _$ProjectElementEntry {
+  const factory ProjectElementEntry({
+    required String id,
+    required String name,
+    required String tilesetId,
+    required String categoryId,
+    required TilesetSourceRect source,
+    String? groupId,
+    String? recommendedLayerId,
+    @Default([]) List<String> tags,
+    @Default(0) int sortOrder,
+  }) = _ProjectElementEntry;
+
+  factory ProjectElementEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectElementEntryFromJson(json);
 }

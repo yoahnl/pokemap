@@ -22,6 +22,16 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       tilesets: (json['tilesets'] as List<dynamic>)
           .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
+      elementCategories: (json['elementCategories'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectElementCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      elements: (json['elements'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectElementEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -37,6 +47,9 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'maps': instance.maps.map((e) => e.toJson()).toList(),
       'groups': instance.groups.map((e) => e.toJson()).toList(),
       'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
+      'elementCategories':
+          instance.elementCategories.map((e) => e.toJson()).toList(),
+      'elements': instance.elements.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
     };
@@ -228,4 +241,53 @@ Map<String, dynamic> _$$TilesetSourceRectImplToJson(
       'y': instance.y,
       'width': instance.width,
       'height': instance.height,
+    };
+
+_$ProjectElementCategoryImpl _$$ProjectElementCategoryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectElementCategoryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentCategoryId: json['parentCategoryId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectElementCategoryImplToJson(
+        _$ProjectElementCategoryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentCategoryId': instance.parentCategoryId,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectElementEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      tilesetId: json['tilesetId'] as String,
+      categoryId: json['categoryId'] as String,
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      groupId: json['groupId'] as String?,
+      recommendedLayerId: json['recommendedLayerId'] as String?,
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectElementEntryImplToJson(
+        _$ProjectElementEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'tilesetId': instance.tilesetId,
+      'categoryId': instance.categoryId,
+      'source': instance.source,
+      'groupId': instance.groupId,
+      'recommendedLayerId': instance.recommendedLayerId,
+      'tags': instance.tags,
+      'sortOrder': instance.sortOrder,
     };

@@ -29,6 +29,21 @@ class ProjectValidator {
         throw ValidationException('Duplicate tileset ID: ${tileset.id}');
       }
     }
+
+    final categoryIds = <String>{};
+    for (final category in manifest.elementCategories) {
+      if (!categoryIds.add(category.id)) {
+        throw ValidationException(
+            'Duplicate element category ID: ${category.id}');
+      }
+    }
+
+    final elementIds = <String>{};
+    for (final element in manifest.elements) {
+      if (!elementIds.add(element.id)) {
+        throw ValidationException('Duplicate element ID: ${element.id}');
+      }
+    }
   }
 
   static void _validateHierarchy(ProjectManifest manifest) {
@@ -115,6 +130,69 @@ class ProjectValidator {
 
     if (worldTilesetCount > 1) {
       throw const ValidationException('Only one world tileset can be defined');
+    }
+
+    final categoryById = <String, ProjectElementCategory>{};
+    for (final category in manifest.elementCategories) {
+      if (category.id.trim().isEmpty) {
+        throw const ValidationException('Element category ID cannot be empty');
+      }
+      if (category.name.trim().isEmpty) {
+        throw ValidationException(
+            'Element category ${category.id} has an empty name');
+      }
+      categoryById[category.id] = category;
+    }
+
+    for (final category in manifest.elementCategories) {
+      final parentId = category.parentCategoryId;
+      if (parentId == null) continue;
+      if (!categoryById.containsKey(parentId)) {
+        throw ValidationException(
+            'Element category ${category.id} references missing parent: $parentId');
+      }
+      if (parentId == category.id) {
+        throw ValidationException(
+            'Element category ${category.id} cannot be its own parent');
+      }
+      String? cursor = parentId;
+      final visited = <String>{category.id};
+      while (cursor != null) {
+        if (!visited.add(cursor)) {
+          throw ValidationException(
+              'Cycle detected in element categories at ${category.id}');
+        }
+        cursor = categoryById[cursor]?.parentCategoryId;
+      }
+    }
+
+    final tilesetIds = manifest.tilesets.map((t) => t.id).toSet();
+    for (final element in manifest.elements) {
+      if (element.id.trim().isEmpty) {
+        throw const ValidationException('Element ID cannot be empty');
+      }
+      if (element.name.trim().isEmpty) {
+        throw ValidationException('Element ${element.id} has an empty name');
+      }
+      if (!tilesetIds.contains(element.tilesetId)) {
+        throw ValidationException(
+            'Element ${element.id} references missing tileset: ${element.tilesetId}');
+      }
+      if (!categoryById.containsKey(element.categoryId)) {
+        throw ValidationException(
+            'Element ${element.id} references missing category: ${element.categoryId}');
+      }
+      if (element.groupId != null && !groupIds.contains(element.groupId)) {
+        throw ValidationException(
+            'Element ${element.id} references missing group: ${element.groupId}');
+      }
+      if (element.source.x < 0 || element.source.y < 0) {
+        throw ValidationException(
+            'Element ${element.id} has invalid source coordinates');
+      }
+      if (element.source.width <= 0 || element.source.height <= 0) {
+        throw ValidationException('Element ${element.id} has invalid size');
+      }
     }
   }
 

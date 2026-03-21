@@ -10,6 +10,12 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
+enum _ElementVisibilityMode {
+  context,
+  globalOnly,
+  all,
+}
+
 class TilesetPalettePanel extends ConsumerStatefulWidget {
   const TilesetPalettePanel({super.key});
 
@@ -22,6 +28,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   bool _creationMode = false;
   GridPos? _selectionStart;
   GridPos? _selectionEnd;
+  String? _selectedCategoryId;
+  _ElementVisibilityMode _visibilityMode = _ElementVisibilityMode.context;
+  bool _showAllTilesets = false;
+  final Set<String> _expandedCategories = <String>{};
 
   TilesetSourceRect? get _selectionRect {
     final start = _selectionStart;
@@ -39,10 +49,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
   }
 
-  void _setCreationMode(bool value) {
-    if (_creationMode == value) return;
+  void _setCreationMode(bool enabled) {
     setState(() {
-      _creationMode = value;
+      _creationMode = enabled;
       _selectionStart = null;
       _selectionEnd = null;
     });
@@ -77,9 +86,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       );
     }
 
-    final tileset = notifier.getActiveTilesetEntry();
-    final tilesetPath = notifier.getActiveTilesetAbsolutePath();
-    if (tileset == null || tilesetPath == null) {
+    final activeTileset = notifier.getActiveTilesetEntry();
+    final activeTilesetPath = notifier.getActiveTilesetAbsolutePath();
+    if (activeTileset == null || activeTilesetPath == null) {
       return const Center(
         child:
             Text('No active tileset', style: TextStyle(color: Colors.white38)),
@@ -88,9 +97,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 
     final tileLayers =
         map.layers.whereType<TileLayer>().toList(growable: false);
+    final categories = notifier.getElementCategories();
+    if (_selectedCategoryId != null &&
+        !categories.any((c) => c.id == _selectedCategoryId)) {
+      _selectedCategoryId = null;
+    }
 
     return FutureBuilder<ui.Image?>(
-      future: _PaletteImageCache.load(tilesetPath),
+      future: _PaletteImageCache.load(activeTilesetPath),
       builder: (context, snapshot) {
         final image = snapshot.data;
         if (image == null) {
@@ -100,9 +114,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  tileset.name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14),
+                  activeTileset.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -119,29 +132,13 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         final rows =
             settings.tileHeight > 0 ? image.height ~/ settings.tileHeight : 0;
         if (columns <= 0 || rows <= 0) {
-          return Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tileset.name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Invalid tile size for this tileset image',
-                  style: TextStyle(color: Colors.white54),
-                ),
-              ],
+          return const Center(
+            child: Text(
+              'Invalid tile size for active tileset',
+              style: TextStyle(color: Colors.white54),
             ),
           );
         }
-
-        final allEntries =
-            List<TilesetPaletteEntry>.from(tileset.paletteEntries)
-              ..sort(_paletteEntrySort);
 
         return DefaultTabController(
           length: 2,
@@ -153,16 +150,26 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Text(
+                      'ELEMENT LIBRARY',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     Text(
-                      tileset.name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14),
+                      activeTileset.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 4),
                     Text(
-                      '${columns * rows} tiles  •  ${allEntries.length} elements',
+                      '${columns * rows} tiles',
                       style:
                           const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
@@ -196,31 +203,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 ),
               ),
               const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButtonFormField<PaletteCategory?>(
-                  value: state.paletteCategoryFilter,
-                  decoration: const InputDecoration(
-                    labelText: 'Category Filter',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: [
-                    const DropdownMenuItem<PaletteCategory?>(
-                      value: null,
-                      child: Text('All'),
-                    ),
-                    ...PaletteCategory.values.map(
-                      (category) => DropdownMenuItem<PaletteCategory?>(
-                        value: category,
-                        child: Text(_categoryLabel(category)),
-                      ),
-                    ),
-                  ],
-                  onChanged: notifier.setPaletteCategoryFilter,
-                ),
-              ),
-              const SizedBox(height: 8),
               const TabBar(
                 tabs: [
                   Tab(text: 'Tiles'),
@@ -231,23 +213,26 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 child: TabBarView(
                   children: [
                     _buildTilesTab(
-                      context,
                       state: state,
                       notifier: notifier,
                       image: image,
+                      project: project,
+                      tileLayers: tileLayers,
                       columns: columns,
                       rows: rows,
                       settings: settings,
-                      tileset: tileset,
+                      activeTileset: activeTileset,
                     ),
                     _buildElementsTab(
-                      notifier: notifier,
                       state: state,
+                      notifier: notifier,
                       image: image,
+                      project: project,
+                      categories: categories,
                       columns: columns,
                       tileWidth: settings.tileWidth,
                       tileHeight: settings.tileHeight,
-                      entries: allEntries,
+                      activeTilesetId: activeTileset.id,
                     ),
                   ],
                 ),
@@ -259,18 +244,19 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
   }
 
-  Widget _buildTilesTab(
-    BuildContext context, {
+  Widget _buildTilesTab({
     required EditorState state,
     required EditorNotifier notifier,
     required ui.Image image,
+    required ProjectManifest project,
+    required List<TileLayer> tileLayers,
     required int columns,
     required int rows,
     required ProjectSettings settings,
-    required ProjectTilesetEntry tileset,
+    required ProjectTilesetEntry activeTileset,
   }) {
     final unitEntryByTileId = <int, TilesetPaletteEntry>{};
-    for (final entry in tileset.paletteEntries) {
+    for (final entry in activeTileset.paletteEntries) {
       if (entry.source.width != 1 || entry.source.height != 1) continue;
       final tileId = entry.source.y * columns + entry.source.x + 1;
       if (tileId > 0 && tileId <= columns * rows) {
@@ -307,6 +293,30 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: DropdownButtonFormField<PaletteCategory?>(
+            value: filter,
+            decoration: const InputDecoration(
+              labelText: 'Tile Category Filter',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: [
+              const DropdownMenuItem<PaletteCategory?>(
+                value: null,
+                child: Text('All'),
+              ),
+              ...PaletteCategory.values.map(
+                (category) => DropdownMenuItem<PaletteCategory?>(
+                  value: category,
+                  child: Text(_legacyCategoryLabel(category)),
+                ),
+              ),
+            ],
+            onChanged: notifier.setPaletteCategoryFilter,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           child: Row(
             children: [
               Expanded(
@@ -314,7 +324,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   onPressed: () => _setCreationMode(!_creationMode),
                   icon: Icon(_creationMode ? Icons.close : Icons.crop_square),
                   label: Text(
-                    _creationMode ? 'Exit Element Mode' : 'Create Element',
+                    _creationMode ? 'Exit Element Creation' : 'Create Element',
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -326,12 +336,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     : () => _showCreateElementDialog(
                           context,
                           notifier: notifier,
+                          project: project,
                           source: selectionRect,
                           activeLayerId: state.activeLayerId,
-                          tileLayers: state.activeMap?.layers
-                                  .whereType<TileLayer>()
-                                  .toList(growable: false) ??
-                              const [],
+                          tileLayers: tileLayers,
                         ),
                 child: const Text('Save'),
               ),
@@ -448,7 +456,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         DropdownButtonFormField<PaletteCategory>(
                           value: selectedCategory,
                           decoration: const InputDecoration(
-                            labelText: 'Category',
+                            labelText: 'Tile Category',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
@@ -456,7 +464,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                               .map(
                                 (category) => DropdownMenuItem(
                                   value: category,
-                                  child: Text(_categoryLabel(category)),
+                                  child: Text(_legacyCategoryLabel(category)),
                                 ),
                               )
                               .toList(),
@@ -486,80 +494,362 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }
 
   Widget _buildElementsTab({
-    required EditorNotifier notifier,
     required EditorState state,
+    required EditorNotifier notifier,
     required ui.Image image,
+    required ProjectManifest project,
+    required List<ProjectElementCategory> categories,
     required int columns,
     required int tileWidth,
     required int tileHeight,
-    required List<TilesetPaletteEntry> entries,
+    required String activeTilesetId,
   }) {
-    final filter = state.paletteCategoryFilter;
-    final filteredEntries = entries.where((entry) {
-      if (filter == null) return true;
-      return entry.category == filter;
-    }).toList(growable: false);
-
-    if (filteredEntries.isEmpty) {
-      return const Center(
-        child: Text(
-          'No elements for this filter',
-          style: TextStyle(color: Colors.white38),
-        ),
-      );
+    final categoriesById = <String, ProjectElementCategory>{
+      for (final category in categories) category.id: category,
+    };
+    final categoriesByParent = <String?, List<ProjectElementCategory>>{};
+    for (final category in categories) {
+      final key = category.parentCategoryId;
+      categoriesByParent.putIfAbsent(key, () => []).add(category);
     }
-
-    final grouped = <PaletteCategory, List<TilesetPaletteEntry>>{};
-    for (final entry in filteredEntries) {
-      grouped.putIfAbsent(entry.category, () => []).add(entry);
-    }
-    for (final list in grouped.values) {
+    for (final list in categoriesByParent.values) {
       list.sort((a, b) {
-        final nameA = a.name.trim().isEmpty ? a.id : a.name.trim();
-        final nameB = b.name.trim().isEmpty ? b.id : b.name.trim();
-        return nameA.toLowerCase().compareTo(nameB.toLowerCase());
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+    final visibleElements = notifier.getVisibleProjectElementsForActiveMap(
+      includeAll: _visibilityMode == _ElementVisibilityMode.all,
+      globalOnly: _visibilityMode == _ElementVisibilityMode.globalOnly,
+      acrossAllTilesets: _showAllTilesets,
+    );
+
+    final selectedCategoryId = _selectedCategoryId;
+    Set<String>? categoryScope;
+    if (selectedCategoryId != null) {
+      categoryScope =
+          _collectCategoryScope(categoriesByParent, selectedCategoryId);
+    }
+
+    final filteredElements = visibleElements.where((element) {
+      if (categoryScope != null &&
+          !categoryScope.contains(element.categoryId)) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
+
+    final tilesetById = <String, ProjectTilesetEntry>{
+      for (final tileset in project.tilesets) tileset.id: tileset,
+    };
+    final groupById = <String, ProjectMapGroup>{
+      for (final group in project.groups) group.id: group,
+    };
+
+    final treeRows = <Widget>[
+      _CategoryTreeRow(
+        depth: 0,
+        selected: selectedCategoryId == null,
+        label: 'All Categories',
+        hasChildren: false,
+        expanded: false,
+        onTap: () {
+          setState(() {
+            _selectedCategoryId = null;
+          });
+        },
+      ),
+      const Divider(height: 1),
+      ..._buildCategoryRows(
+        categoriesByParent: categoriesByParent,
+        parentCategoryId: null,
+        depth: 0,
+      ),
+    ];
+
+    return Column(
       children: [
-        for (final category in PaletteCategory.values)
-          if ((grouped[category]?.isNotEmpty ?? false)) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                _categoryLabel(category).toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.white54,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
-            ...grouped[category]!.map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _PaletteElementCard(
-                  image: image,
-                  entry: entry,
-                  tileWidth: tileWidth,
-                  tileHeight: tileHeight,
-                  selected: state.selectedPaletteEntryId == entry.id,
-                  onTap: () {
-                    notifier.selectPaletteEntry(
-                      entry.id,
-                      tilesetColumns: columns,
-                    );
-                    notifier.selectTool(EditorToolType.tilePaint);
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<_ElementVisibilityMode>(
+                  value: _visibilityMode,
+                  decoration: const InputDecoration(
+                    labelText: 'Visibility',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: _ElementVisibilityMode.context,
+                      child: Text('Context'),
+                    ),
+                    DropdownMenuItem(
+                      value: _ElementVisibilityMode.globalOnly,
+                      child: Text('Global'),
+                    ),
+                    DropdownMenuItem(
+                      value: _ElementVisibilityMode.all,
+                      child: Text('All'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _visibilityMode = value;
+                      });
+                    }
                   },
                 ),
               ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _showCreateCategoryDialog(
+                  context,
+                  notifier: notifier,
+                  parentCategoryId: null,
+                ),
+                icon: const Icon(Icons.create_new_folder_outlined),
+                tooltip: 'New Category',
+              ),
+              IconButton(
+                onPressed: _selectedCategoryId == null
+                    ? null
+                    : () => _showCreateCategoryDialog(
+                          context,
+                          notifier: notifier,
+                          parentCategoryId: _selectedCategoryId,
+                        ),
+                icon: const Icon(Icons.create_new_folder),
+                tooltip: 'New Subcategory',
+              ),
+              IconButton(
+                onPressed: _selectedCategoryId == null
+                    ? null
+                    : () => _showRenameCategoryDialog(
+                          context,
+                          notifier: notifier,
+                          categoryId: _selectedCategoryId!,
+                          currentName:
+                              categoriesById[_selectedCategoryId]?.name ?? '',
+                        ),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Rename Category',
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: CheckboxListTile(
+            value: _showAllTilesets,
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('All tilesets'),
+            onChanged: (value) {
+              setState(() {
+                _showAllTilesets = value ?? false;
+              });
+            },
+          ),
+        ),
+        Container(
+          height: 170,
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.white10),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: ListView(
+            children: treeRows,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${filteredElements.length} elements',
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
             ),
-          ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Expanded(
+          child: filteredElements.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No element for current filters',
+                    style: TextStyle(color: Colors.white38),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  itemCount: filteredElements.length,
+                  itemBuilder: (context, index) {
+                    final element = filteredElements[index];
+                    final categoryPath = _buildCategoryPathLabel(
+                      categoriesById: categoriesById,
+                      categoryId: element.categoryId,
+                    );
+                    final tilesetName = tilesetById[element.tilesetId]?.name ??
+                        element.tilesetId;
+                    final groupLabel = element.groupId == null
+                        ? 'Global'
+                        : 'Group: ${_buildGroupPathLabel(groupById, element.groupId!)}';
+                    final selectColumns =
+                        element.tilesetId == activeTilesetId ? columns : null;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _ProjectElementCard(
+                        image: image,
+                        element: element,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                        selected: state.selectedProjectElementId == element.id,
+                        categoryPath: categoryPath,
+                        tilesetName: tilesetName,
+                        groupLabel: groupLabel,
+                        onTap: () {
+                          notifier.selectProjectElement(
+                            element.id,
+                            tilesetColumns: selectColumns,
+                          );
+                          if (element.recommendedLayerId != null &&
+                              (state.activeMap?.layers.any(
+                                    (layer) =>
+                                        layer is TileLayer &&
+                                        layer.id == element.recommendedLayerId,
+                                  ) ??
+                                  false)) {
+                            notifier
+                                .setActiveLayer(element.recommendedLayerId!);
+                          }
+                          notifier.selectTool(EditorToolType.tilePaint);
+                        },
+                        onEdit: () => _showEditElementDialog(
+                          context,
+                          notifier: notifier,
+                          project: project,
+                          element: element,
+                          categories: categories,
+                          tileLayers: state.activeMap?.layers
+                                  .whereType<TileLayer>()
+                                  .toList(growable: false) ??
+                              const [],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
       ],
     );
+  }
+
+  List<Widget> _buildCategoryRows({
+    required Map<String?, List<ProjectElementCategory>> categoriesByParent,
+    required String? parentCategoryId,
+    required int depth,
+  }) {
+    final rows = <Widget>[];
+    final children = categoriesByParent[parentCategoryId] ?? const [];
+    for (final category in children) {
+      final grandChildren = categoriesByParent[category.id] ?? const [];
+      final hasChildren = grandChildren.isNotEmpty;
+      final expanded = _expandedCategories.contains(category.id);
+
+      rows.add(
+        _CategoryTreeRow(
+          depth: depth,
+          selected: _selectedCategoryId == category.id,
+          label: category.name,
+          hasChildren: hasChildren,
+          expanded: expanded,
+          onTap: () {
+            setState(() {
+              _selectedCategoryId = category.id;
+            });
+          },
+          onToggleExpanded: hasChildren
+              ? () {
+                  setState(() {
+                    if (expanded) {
+                      _expandedCategories.remove(category.id);
+                    } else {
+                      _expandedCategories.add(category.id);
+                    }
+                  });
+                }
+              : null,
+        ),
+      );
+      if (hasChildren && expanded) {
+        rows.addAll(
+          _buildCategoryRows(
+            categoriesByParent: categoriesByParent,
+            parentCategoryId: category.id,
+            depth: depth + 1,
+          ),
+        );
+      }
+    }
+    return rows;
+  }
+
+  Set<String> _collectCategoryScope(
+    Map<String?, List<ProjectElementCategory>> byParent,
+    String rootId,
+  ) {
+    final scope = <String>{rootId};
+    final queue = <String>[rootId];
+    while (queue.isNotEmpty) {
+      final current = queue.removeLast();
+      final children = byParent[current] ?? const [];
+      for (final child in children) {
+        if (scope.add(child.id)) {
+          queue.add(child.id);
+        }
+      }
+    }
+    return scope;
+  }
+
+  String _buildCategoryPathLabel({
+    required Map<String, ProjectElementCategory> categoriesById,
+    required String categoryId,
+  }) {
+    final labels = <String>[];
+    String? cursor = categoryId;
+    final visited = <String>{};
+    while (cursor != null && visited.add(cursor)) {
+      final category = categoriesById[cursor];
+      if (category == null) break;
+      labels.add(category.name);
+      cursor = category.parentCategoryId;
+    }
+    return labels.reversed.join(' / ');
+  }
+
+  String _buildGroupPathLabel(
+    Map<String, ProjectMapGroup> groupById,
+    String groupId,
+  ) {
+    final labels = <String>[];
+    String? cursor = groupId;
+    final visited = <String>{};
+    while (cursor != null && visited.add(cursor)) {
+      final group = groupById[cursor];
+      if (group == null) break;
+      labels.add(group.name);
+      cursor = group.parentGroupId;
+    }
+    return labels.reversed.join(' / ');
   }
 
   Widget _buildSelectionCanvas({
@@ -622,23 +912,132 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
   }
 
+  Future<void> _showCreateCategoryDialog(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required String? parentCategoryId,
+  }) async {
+    final controller = TextEditingController();
+    var shouldSave = false;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title:
+            Text(parentCategoryId == null ? 'New Category' : 'New Subcategory'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isEmpty) return;
+              shouldSave = true;
+              Navigator.pop(context);
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+    if (!shouldSave) return;
+    if (parentCategoryId == null) {
+      await notifier.createElementCategory(controller.text.trim());
+    } else {
+      await notifier.createElementSubcategory(
+        parentCategoryId,
+        controller.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _expandedCategories.add(parentCategoryId);
+      });
+    }
+  }
+
+  Future<void> _showRenameCategoryDialog(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required String categoryId,
+    required String currentName,
+  }) async {
+    final controller = TextEditingController(text: currentName);
+    var shouldSave = false;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Category'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isEmpty) return;
+              shouldSave = true;
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (!shouldSave) return;
+    await notifier.renameElementCategory(categoryId, controller.text.trim());
+  }
+
   Future<void> _showCreateElementDialog(
     BuildContext context, {
     required EditorNotifier notifier,
+    required ProjectManifest project,
     required TilesetSourceRect source,
     required String? activeLayerId,
     required List<TileLayer> tileLayers,
   }) async {
+    final categories = notifier.getElementCategories();
+    if (categories.isEmpty) {
+      return;
+    }
+    final categoriesById = <String, ProjectElementCategory>{
+      for (final category in categories) category.id: category,
+    };
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(
       text: 'element_${source.x}_${source.y}',
     );
-    PaletteCategory category = PaletteCategory.uncategorized;
-    String? recommendedLayer = activeLayerId;
-    if (recommendedLayer != null &&
-        !tileLayers.any((layer) => layer.id == recommendedLayer)) {
-      recommendedLayer = null;
+    final tagsController = TextEditingController();
+    var selectedCategoryId = _selectedCategoryId;
+    if (selectedCategoryId == null ||
+        !categories.any((category) => category.id == selectedCategoryId)) {
+      selectedCategoryId = categories.first.id;
     }
+    String? selectedGroupId = _activeMapGroupId();
+    String? selectedLayerId = activeLayerId;
+    if (selectedLayerId != null &&
+        !tileLayers.any((layer) => layer.id == selectedLayerId)) {
+      selectedLayerId = null;
+    }
+
+    final groups = List<ProjectMapGroup>.from(project.groups)
+      ..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    final groupById = <String, ProjectMapGroup>{
+      for (final group in groups) group.id: group,
+    };
 
     var shouldSave = false;
     await showDialog(
@@ -663,40 +1062,69 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   controller: nameController,
                   autofocus: true,
                   decoration: const InputDecoration(labelText: 'Name'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Required';
-                    }
-                    return null;
-                  },
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Required'
+                      : null,
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<PaletteCategory>(
-                  value: category,
+                DropdownButtonFormField<String>(
+                  value: selectedCategoryId,
                   decoration: const InputDecoration(
                     labelText: 'Category',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
-                  items: PaletteCategory.values
+                  items: categories
                       .map(
-                        (value) => DropdownMenuItem(
-                          value: value,
-                          child: Text(_categoryLabel(value)),
+                        (category) => DropdownMenuItem<String>(
+                          value: category.id,
+                          child: Text(
+                            _buildCategoryPathLabel(
+                              categoriesById: categoriesById,
+                              categoryId: category.id,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       )
-                      .toList(),
+                      .toList(growable: false),
                   onChanged: (value) {
                     if (value != null) {
                       setStateDialog(() {
-                        category = value;
+                        selectedCategoryId = value;
                       });
                     }
                   },
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String?>(
-                  value: recommendedLayer,
+                  value: selectedGroupId,
+                  decoration: const InputDecoration(
+                    labelText: 'Scope Group',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Global'),
+                    ),
+                    ...groups.map(
+                      (group) => DropdownMenuItem<String?>(
+                        value: group.id,
+                        child: Text(_buildGroupPathLabel(groupById, group.id)),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setStateDialog(() {
+                      selectedGroupId = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  value: selectedLayerId,
                   decoration: const InputDecoration(
                     labelText: 'Recommended Layer',
                     border: OutlineInputBorder(),
@@ -716,9 +1144,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   ],
                   onChanged: (value) {
                     setStateDialog(() {
-                      recommendedLayer = value;
+                      selectedLayerId = value;
                     });
                   },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: tagsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Tags',
+                    hintText: 'tree,outdoor,oak',
+                  ),
                 ),
               ],
             ),
@@ -741,12 +1177,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       ),
     );
 
-    if (!shouldSave) return;
-    await notifier.createPaletteEntry(
+    if (!shouldSave || selectedCategoryId == null) return;
+    await notifier.createProjectElement(
       name: nameController.text.trim(),
-      category: category,
+      categoryId: selectedCategoryId!,
       source: source,
-      recommendedLayerId: recommendedLayer,
+      groupId: selectedGroupId,
+      recommendedLayerId: selectedLayerId,
+      tags: _parseTags(tagsController.text),
     );
     notifier.selectTool(EditorToolType.tilePaint);
     if (!mounted) return;
@@ -756,29 +1194,327 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       _selectionEnd = null;
     });
   }
+
+  Future<void> _showEditElementDialog(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ProjectElementEntry element,
+    required List<ProjectElementCategory> categories,
+    required List<TileLayer> tileLayers,
+  }) async {
+    final categoriesById = <String, ProjectElementCategory>{
+      for (final category in categories) category.id: category,
+    };
+    final groups = List<ProjectMapGroup>.from(project.groups)
+      ..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    final groupById = <String, ProjectMapGroup>{
+      for (final group in groups) group.id: group,
+    };
+
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController(text: element.name);
+    final tagsController = TextEditingController(text: element.tags.join(','));
+    String selectedCategoryId = element.categoryId;
+    String? selectedGroupId = element.groupId;
+    String? selectedLayerId = element.recommendedLayerId;
+    if (selectedLayerId != null &&
+        !tileLayers.any((layer) => layer.id == selectedLayerId)) {
+      selectedLayerId = null;
+    }
+    var shouldSave = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Edit Element'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Required'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedCategoryId,
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: categories
+                      .map(
+                        (category) => DropdownMenuItem<String>(
+                          value: category.id,
+                          child: Text(
+                            _buildCategoryPathLabel(
+                              categoriesById: categoriesById,
+                              categoryId: category.id,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setStateDialog(() {
+                        selectedCategoryId = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  value: selectedGroupId,
+                  decoration: const InputDecoration(
+                    labelText: 'Scope Group',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Global'),
+                    ),
+                    ...groups.map(
+                      (group) => DropdownMenuItem<String?>(
+                        value: group.id,
+                        child: Text(_buildGroupPathLabel(groupById, group.id)),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setStateDialog(() {
+                      selectedGroupId = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  value: selectedLayerId,
+                  decoration: const InputDecoration(
+                    labelText: 'Recommended Layer',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...tileLayers.map(
+                      (layer) => DropdownMenuItem<String?>(
+                        value: layer.id,
+                        child: Text(layer.name),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setStateDialog(() {
+                      selectedLayerId = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: tagsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Tags',
+                    hintText: 'tree,outdoor,oak',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                shouldSave = true;
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!shouldSave) return;
+    await notifier.updateProjectElement(
+      elementId: element.id,
+      name: nameController.text.trim(),
+      categoryId: selectedCategoryId,
+      groupId: selectedGroupId,
+      clearGroupId: selectedGroupId == null,
+      recommendedLayerId: selectedLayerId,
+      clearRecommendedLayerId: selectedLayerId == null,
+      tags: _parseTags(tagsController.text),
+    );
+  }
+
+  List<String> _parseTags(String value) {
+    return value
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
+  String? _activeMapGroupId() {
+    final project = ref.read(editorNotifierProvider).project;
+    final map = ref.read(editorNotifierProvider).activeMap;
+    if (project == null || map == null) return null;
+    for (final entry in project.maps) {
+      if (entry.id == map.id) {
+        return entry.groupId;
+      }
+    }
+    return null;
+  }
+
+  String _legacyCategoryLabel(PaletteCategory category) {
+    switch (category) {
+      case PaletteCategory.floors:
+        return 'Sols';
+      case PaletteCategory.paths:
+        return 'Chemins';
+      case PaletteCategory.water:
+        return 'Eau';
+      case PaletteCategory.buildings:
+        return 'Batiments';
+      case PaletteCategory.roofs:
+        return 'Toits';
+      case PaletteCategory.plants:
+        return 'Plantes';
+      case PaletteCategory.trees:
+        return 'Arbres';
+      case PaletteCategory.cliffs:
+        return 'Falaises';
+      case PaletteCategory.decorations:
+        return 'Decorations';
+      case PaletteCategory.interiors:
+        return 'Interieurs';
+      case PaletteCategory.objects:
+        return 'Objets';
+      case PaletteCategory.uncategorized:
+        return 'Non classes';
+    }
+  }
 }
 
-class _PaletteElementCard extends StatelessWidget {
-  final ui.Image image;
-  final TilesetPaletteEntry entry;
-  final int tileWidth;
-  final int tileHeight;
+class _CategoryTreeRow extends StatelessWidget {
+  final int depth;
   final bool selected;
+  final String label;
+  final bool hasChildren;
+  final bool expanded;
   final VoidCallback onTap;
+  final VoidCallback? onToggleExpanded;
 
-  const _PaletteElementCard({
-    required this.image,
-    required this.entry,
-    required this.tileWidth,
-    required this.tileHeight,
+  const _CategoryTreeRow({
+    required this.depth,
     required this.selected,
+    required this.label,
+    required this.hasChildren,
+    required this.expanded,
     required this.onTap,
+    this.onToggleExpanded,
   });
 
   @override
   Widget build(BuildContext context) {
-    final label = entry.name.trim().isEmpty ? entry.id : entry.name.trim();
-    final recommended = entry.recommendedLayerId;
+    final background =
+        selected ? Colors.blue.withValues(alpha: 0.2) : Colors.transparent;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: background,
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            SizedBox(width: 12.0 * depth),
+            SizedBox(
+              width: 24,
+              child: hasChildren
+                  ? IconButton(
+                      onPressed: onToggleExpanded,
+                      icon: Icon(
+                        expanded
+                            ? Icons.expand_more_outlined
+                            : Icons.chevron_right_outlined,
+                        size: 16,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 24,
+                        height: 24,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: selected ? Colors.blue.shade200 : Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProjectElementCard extends StatelessWidget {
+  final ui.Image image;
+  final ProjectElementEntry element;
+  final int tileWidth;
+  final int tileHeight;
+  final bool selected;
+  final String categoryPath;
+  final String tilesetName;
+  final String groupLabel;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+
+  const _ProjectElementCard({
+    required this.image,
+    required this.element,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.selected,
+    required this.categoryPath,
+    required this.tilesetName,
+    required this.groupLabel,
+    required this.onTap,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final baseColor =
         selected ? Colors.blue.withValues(alpha: 0.18) : Colors.transparent;
     return Material(
@@ -804,7 +1540,7 @@ class _PaletteElementCard extends StatelessWidget {
                   ),
                   child: _PaletteRectPreview(
                     image: image,
-                    source: entry.source,
+                    source: element.source,
                     tileWidth: tileWidth,
                     tileHeight: tileHeight,
                   ),
@@ -817,22 +1553,37 @@ class _PaletteElementCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      label,
+                      element.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${entry.source.width}x${entry.source.height} • ${_categoryLabel(entry.category)}',
+                      categoryPath,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:
                           const TextStyle(color: Colors.white60, fontSize: 11),
                     ),
-                    if (recommended != null && recommended.trim().isNotEmpty)
+                    Text(
+                      tilesetName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(color: Colors.white60, fontSize: 11),
+                    ),
+                    Text(
+                      groupLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
+                    if (element.recommendedLayerId != null &&
+                        element.recommendedLayerId!.isNotEmpty)
                       Text(
-                        'Layer: $recommended',
+                        'Layer: ${element.recommendedLayerId}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -840,6 +1591,13 @@ class _PaletteElementCard extends StatelessWidget {
                       ),
                   ],
                 ),
+              ),
+              IconButton(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                constraints:
+                    const BoxConstraints.tightFor(width: 30, height: 30),
+                padding: EdgeInsets.zero,
               ),
             ],
           ),
@@ -1148,44 +1906,5 @@ class _PaletteImageCache {
         return null;
       }
     });
-  }
-}
-
-int _paletteEntrySort(TilesetPaletteEntry a, TilesetPaletteEntry b) {
-  final categoryCompare = a.category.index.compareTo(b.category.index);
-  if (categoryCompare != 0) return categoryCompare;
-  final nameA = a.name.trim().isEmpty ? a.id : a.name.trim();
-  final nameB = b.name.trim().isEmpty ? b.id : b.name.trim();
-  final nameCompare = nameA.toLowerCase().compareTo(nameB.toLowerCase());
-  if (nameCompare != 0) return nameCompare;
-  return a.id.compareTo(b.id);
-}
-
-String _categoryLabel(PaletteCategory category) {
-  switch (category) {
-    case PaletteCategory.floors:
-      return 'Sols';
-    case PaletteCategory.paths:
-      return 'Chemins';
-    case PaletteCategory.water:
-      return 'Eau';
-    case PaletteCategory.buildings:
-      return 'Batiments';
-    case PaletteCategory.roofs:
-      return 'Toits';
-    case PaletteCategory.plants:
-      return 'Plantes';
-    case PaletteCategory.trees:
-      return 'Arbres';
-    case PaletteCategory.cliffs:
-      return 'Falaises';
-    case PaletteCategory.decorations:
-      return 'Decorations';
-    case PaletteCategory.interiors:
-      return 'Interieurs';
-    case PaletteCategory.objects:
-      return 'Objets';
-    case PaletteCategory.uncategorized:
-      return 'Non classes';
   }
 }

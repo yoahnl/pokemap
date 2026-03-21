@@ -28,6 +28,7 @@ mixin _$EditorState {
   GridPos? get hoveredTile => throw _privateConstructorUsedError;
   int? get selectedTileId => throw _privateConstructorUsedError;
   String? get selectedPaletteEntryId => throw _privateConstructorUsedError;
+  String? get selectedProjectElementId => throw _privateConstructorUsedError;
   PaletteCategory? get paletteCategoryFilter =>
       throw _privateConstructorUsedError; // Viewport
   double get zoom => throw _privateConstructorUsedError;
@@ -60,6 +61,7 @@ abstract class $EditorStateCopyWith<$Res> {
       GridPos? hoveredTile,
       int? selectedTileId,
       String? selectedPaletteEntryId,
+      String? selectedProjectElementId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -97,6 +99,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? hoveredTile = freezed,
     Object? selectedTileId = freezed,
     Object? selectedPaletteEntryId = freezed,
+    Object? selectedProjectElementId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -141,6 +144,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedPaletteEntryId: freezed == selectedPaletteEntryId
           ? _value.selectedPaletteEntryId
           : selectedPaletteEntryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedProjectElementId: freezed == selectedProjectElementId
+          ? _value.selectedProjectElementId
+          : selectedProjectElementId // ignore: cast_nullable_to_non_nullable
               as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
@@ -234,6 +241,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       GridPos? hoveredTile,
       int? selectedTileId,
       String? selectedPaletteEntryId,
+      String? selectedProjectElementId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -272,6 +280,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? hoveredTile = freezed,
     Object? selectedTileId = freezed,
     Object? selectedPaletteEntryId = freezed,
+    Object? selectedProjectElementId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -316,6 +325,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
       selectedPaletteEntryId: freezed == selectedPaletteEntryId
           ? _value.selectedPaletteEntryId
           : selectedPaletteEntryId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedProjectElementId: freezed == selectedProjectElementId
+          ? _value.selectedProjectElementId
+          : selectedProjectElementId // ignore: cast_nullable_to_non_nullable
               as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
@@ -362,6 +375,7 @@ class _$EditorStateImpl implements _EditorState {
       this.hoveredTile,
       this.selectedTileId,
       this.selectedPaletteEntryId,
+      this.selectedProjectElementId,
       this.paletteCategoryFilter,
       this.zoom = 1.0,
       this.panOffset = Offset.zero,
@@ -393,6 +407,8 @@ class _$EditorStateImpl implements _EditorState {
   @override
   final String? selectedPaletteEntryId;
   @override
+  final String? selectedProjectElementId;
+  @override
   final PaletteCategory? paletteCategoryFilter;
 // Viewport
   @override
@@ -415,7 +431,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, selectedProjectElementId: $selectedProjectElementId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -440,6 +456,9 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedTileId == selectedTileId) &&
             (identical(other.selectedPaletteEntryId, selectedPaletteEntryId) ||
                 other.selectedPaletteEntryId == selectedPaletteEntryId) &&
+            (identical(
+                    other.selectedProjectElementId, selectedProjectElementId) ||
+                other.selectedProjectElementId == selectedProjectElementId) &&
             (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
                 other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
@@ -466,6 +485,7 @@ class _$EditorStateImpl implements _EditorState {
       hoveredTile,
       selectedTileId,
       selectedPaletteEntryId,
+      selectedProjectElementId,
       paletteCategoryFilter,
       zoom,
       panOffset,
@@ -494,6 +514,7 @@ abstract class _EditorState implements EditorState {
       final GridPos? hoveredTile,
       final int? selectedTileId,
       final String? selectedPaletteEntryId,
+      final String? selectedProjectElementId,
       final PaletteCategory? paletteCategoryFilter,
       final double zoom,
       final Offset panOffset,
@@ -521,6 +542,8 @@ abstract class _EditorState implements EditorState {
   int? get selectedTileId;
   @override
   String? get selectedPaletteEntryId;
+  @override
+  String? get selectedProjectElementId;
   @override
   PaletteCategory? get paletteCategoryFilter; // Viewport
   @override
