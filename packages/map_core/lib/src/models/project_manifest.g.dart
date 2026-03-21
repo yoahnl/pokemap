@@ -10,7 +10,8 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectManifestImpl(
       name: json['name'] as String,
-      version: json['version'] as String? ?? 'v1',
+      version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
+          ProjectVersion.v1,
       maps: (json['maps'] as List<dynamic>)
           .map((e) => ProjectMapEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -25,11 +26,15 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
         _$ProjectManifestImpl instance) =>
     <String, dynamic>{
       'name': instance.name,
-      'version': instance.version,
+      'version': _$ProjectVersionEnumMap[instance.version]!,
       'maps': instance.maps.map((e) => e.toJson()).toList(),
       'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
       'globalProperties': instance.globalProperties,
     };
+
+const _$ProjectVersionEnumMap = {
+  ProjectVersion.v1: 'v1',
+};
 
 _$ProjectMapEntryImpl _$$ProjectMapEntryImplFromJson(
         Map<String, dynamic> json) =>

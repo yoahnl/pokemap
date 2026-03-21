@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'enums.dart';
 
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
@@ -8,7 +9,7 @@ class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectManifest({
     required String name,
-    @Default('v1') String version,
+    @Default(ProjectVersion.v1) ProjectVersion version,
     required List<ProjectMapEntry> maps,
     required List<ProjectTilesetEntry> tilesets,
     @Default({}) Map<String, dynamic> globalProperties,
@@ -22,7 +23,7 @@ class ProjectMapEntry with _$ProjectMapEntry {
   const factory ProjectMapEntry({
     required String id,
     required String name,
-    required String relativePath, // path to .map.json
+    required String relativePath,
   }) = _ProjectMapEntry;
 
   factory ProjectMapEntry.fromJson(Map<String, dynamic> json) => _$ProjectMapEntryFromJson(json);
@@ -33,7 +34,7 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
   const factory ProjectTilesetEntry({
     required String id,
     required String name,
-    required String relativePath, // path to .tileset.json
+    required String relativePath,
   }) = _ProjectTilesetEntry;
 
   factory ProjectTilesetEntry.fromJson(Map<String, dynamic> json) => _$ProjectTilesetEntryFromJson(json);

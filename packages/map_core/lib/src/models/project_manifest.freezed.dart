@@ -21,7 +21,7 @@ ProjectManifest _$ProjectManifestFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$ProjectManifest {
   String get name => throw _privateConstructorUsedError;
-  String get version => throw _privateConstructorUsedError;
+  ProjectVersion get version => throw _privateConstructorUsedError;
   List<ProjectMapEntry> get maps => throw _privateConstructorUsedError;
   List<ProjectTilesetEntry> get tilesets => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
@@ -45,7 +45,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
   @useResult
   $Res call(
       {String name,
-      String version,
+      ProjectVersion version,
       List<ProjectMapEntry> maps,
       List<ProjectTilesetEntry> tilesets,
       Map<String, dynamic> globalProperties});
@@ -80,7 +80,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
       version: null == version
           ? _value.version
           : version // ignore: cast_nullable_to_non_nullable
-              as String,
+              as ProjectVersion,
       maps: null == maps
           ? _value.maps
           : maps // ignore: cast_nullable_to_non_nullable
@@ -107,7 +107,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
   @useResult
   $Res call(
       {String name,
-      String version,
+      ProjectVersion version,
       List<ProjectMapEntry> maps,
       List<ProjectTilesetEntry> tilesets,
       Map<String, dynamic> globalProperties});
@@ -140,7 +140,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
       version: null == version
           ? _value.version
           : version // ignore: cast_nullable_to_non_nullable
-              as String,
+              as ProjectVersion,
       maps: null == maps
           ? _value._maps
           : maps // ignore: cast_nullable_to_non_nullable
@@ -163,7 +163,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
 class _$ProjectManifestImpl implements _ProjectManifest {
   const _$ProjectManifestImpl(
       {required this.name,
-      this.version = 'v1',
+      this.version = ProjectVersion.v1,
       required final List<ProjectMapEntry> maps,
       required final List<ProjectTilesetEntry> tilesets,
       final Map<String, dynamic> globalProperties = const {}})
@@ -178,7 +178,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
   final String name;
   @override
   @JsonKey()
-  final String version;
+  final ProjectVersion version;
   final List<ProjectMapEntry> _maps;
   @override
   List<ProjectMapEntry> get maps {
@@ -252,7 +252,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 abstract class _ProjectManifest implements ProjectManifest {
   const factory _ProjectManifest(
       {required final String name,
-      final String version,
+      final ProjectVersion version,
       required final List<ProjectMapEntry> maps,
       required final List<ProjectTilesetEntry> tilesets,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
@@ -263,7 +263,7 @@ abstract class _ProjectManifest implements ProjectManifest {
   @override
   String get name;
   @override
-  String get version;
+  ProjectVersion get version;
   @override
   List<ProjectMapEntry> get maps;
   @override

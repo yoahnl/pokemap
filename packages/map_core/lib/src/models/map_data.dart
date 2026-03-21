@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'geometry.dart';
 import 'enums.dart';
+import 'map_layer.dart';
 
 part 'map_data.freezed.dart';
 part 'map_data.g.dart';
@@ -12,9 +13,9 @@ class MapData with _$MapData {
     required String id,
     required String name,
     required GridSize size,
-    @Default('v1') String version,
+    @Default(ProjectVersion.v1) ProjectVersion version,
     required String tilesetId,
-    @Default([]) List<MapLayerData> layers,
+    @Default([]) List<MapLayer> layers,
     @Default([]) List<MapEntity> entities,
     @Default([]) List<MapWarp> warps,
     @Default([]) List<MapTrigger> triggers,
@@ -22,24 +23,6 @@ class MapData with _$MapData {
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) => _$MapDataFromJson(json);
-}
-
-@freezed
-class MapLayerData with _$MapLayerData {
-  @JsonSerializable(explicitToJson: true)
-  const factory MapLayerData({
-    required String id,
-    required String name,
-    required LayerType type,
-    @Default(true) bool isVisible,
-    @Default(1.0) double opacity,
-    // For Tile Layers
-    @Default([]) List<int> tiles, // Flattened array
-    // For Collision Layers
-    @Default([]) List<bool> collisions, // Flattened array
-  }) = _MapLayerData;
-
-  factory MapLayerData.fromJson(Map<String, dynamic> json) => _$MapLayerDataFromJson(json);
 }
 
 @freezed
@@ -75,7 +58,7 @@ class MapTrigger with _$MapTrigger {
     required String id,
     required TriggerType type,
     required GridPos pos,
-    required MapRect zone, // Triggers can be zones
+    required MapRect zone,
     @Default({}) Map<String, dynamic> properties,
   }) = _MapTrigger;
 

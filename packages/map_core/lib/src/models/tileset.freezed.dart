@@ -22,9 +22,12 @@ TilesetConfig _$TilesetConfigFromJson(Map<String, dynamic> json) {
 mixin _$TilesetConfig {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  String get relativePath => throw _privateConstructorUsedError;
+  String get relativePath =>
+      throw _privateConstructorUsedError; // path to the image asset
   int get tileSize => throw _privateConstructorUsedError;
   List<TileProperties> get tileProperties => throw _privateConstructorUsedError;
+  Map<String, dynamic> get customProperties =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this TilesetConfig to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -47,7 +50,8 @@ abstract class $TilesetConfigCopyWith<$Res> {
       String name,
       String relativePath,
       int tileSize,
-      List<TileProperties> tileProperties});
+      List<TileProperties> tileProperties,
+      Map<String, dynamic> customProperties});
 }
 
 /// @nodoc
@@ -70,6 +74,7 @@ class _$TilesetConfigCopyWithImpl<$Res, $Val extends TilesetConfig>
     Object? relativePath = null,
     Object? tileSize = null,
     Object? tileProperties = null,
+    Object? customProperties = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -92,6 +97,10 @@ class _$TilesetConfigCopyWithImpl<$Res, $Val extends TilesetConfig>
           ? _value.tileProperties
           : tileProperties // ignore: cast_nullable_to_non_nullable
               as List<TileProperties>,
+      customProperties: null == customProperties
+          ? _value.customProperties
+          : customProperties // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ) as $Val);
   }
 }
@@ -109,7 +118,8 @@ abstract class _$$TilesetConfigImplCopyWith<$Res>
       String name,
       String relativePath,
       int tileSize,
-      List<TileProperties> tileProperties});
+      List<TileProperties> tileProperties,
+      Map<String, dynamic> customProperties});
 }
 
 /// @nodoc
@@ -130,6 +140,7 @@ class __$$TilesetConfigImplCopyWithImpl<$Res>
     Object? relativePath = null,
     Object? tileSize = null,
     Object? tileProperties = null,
+    Object? customProperties = null,
   }) {
     return _then(_$TilesetConfigImpl(
       id: null == id
@@ -152,20 +163,27 @@ class __$$TilesetConfigImplCopyWithImpl<$Res>
           ? _value._tileProperties
           : tileProperties // ignore: cast_nullable_to_non_nullable
               as List<TileProperties>,
+      customProperties: null == customProperties
+          ? _value._customProperties
+          : customProperties // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ));
   }
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$TilesetConfigImpl implements _TilesetConfig {
   const _$TilesetConfigImpl(
       {required this.id,
       required this.name,
       required this.relativePath,
-      required this.tileSize,
-      final List<TileProperties> tileProperties = const []})
-      : _tileProperties = tileProperties;
+      this.tileSize = 32,
+      final List<TileProperties> tileProperties = const [],
+      final Map<String, dynamic> customProperties = const {}})
+      : _tileProperties = tileProperties,
+        _customProperties = customProperties;
 
   factory _$TilesetConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$TilesetConfigImplFromJson(json);
@@ -176,7 +194,9 @@ class _$TilesetConfigImpl implements _TilesetConfig {
   final String name;
   @override
   final String relativePath;
+// path to the image asset
   @override
+  @JsonKey()
   final int tileSize;
   final List<TileProperties> _tileProperties;
   @override
@@ -187,9 +207,18 @@ class _$TilesetConfigImpl implements _TilesetConfig {
     return EqualUnmodifiableListView(_tileProperties);
   }
 
+  final Map<String, dynamic> _customProperties;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get customProperties {
+    if (_customProperties is EqualUnmodifiableMapView) return _customProperties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_customProperties);
+  }
+
   @override
   String toString() {
-    return 'TilesetConfig(id: $id, name: $name, relativePath: $relativePath, tileSize: $tileSize, tileProperties: $tileProperties)';
+    return 'TilesetConfig(id: $id, name: $name, relativePath: $relativePath, tileSize: $tileSize, tileProperties: $tileProperties, customProperties: $customProperties)';
   }
 
   @override
@@ -204,13 +233,21 @@ class _$TilesetConfigImpl implements _TilesetConfig {
             (identical(other.tileSize, tileSize) ||
                 other.tileSize == tileSize) &&
             const DeepCollectionEquality()
-                .equals(other._tileProperties, _tileProperties));
+                .equals(other._tileProperties, _tileProperties) &&
+            const DeepCollectionEquality()
+                .equals(other._customProperties, _customProperties));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, relativePath, tileSize,
-      const DeepCollectionEquality().hash(_tileProperties));
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      relativePath,
+      tileSize,
+      const DeepCollectionEquality().hash(_tileProperties),
+      const DeepCollectionEquality().hash(_customProperties));
 
   /// Create a copy of TilesetConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -233,8 +270,9 @@ abstract class _TilesetConfig implements TilesetConfig {
       {required final String id,
       required final String name,
       required final String relativePath,
-      required final int tileSize,
-      final List<TileProperties> tileProperties}) = _$TilesetConfigImpl;
+      final int tileSize,
+      final List<TileProperties> tileProperties,
+      final Map<String, dynamic> customProperties}) = _$TilesetConfigImpl;
 
   factory _TilesetConfig.fromJson(Map<String, dynamic> json) =
       _$TilesetConfigImpl.fromJson;
@@ -244,11 +282,13 @@ abstract class _TilesetConfig implements TilesetConfig {
   @override
   String get name;
   @override
-  String get relativePath;
+  String get relativePath; // path to the image asset
   @override
   int get tileSize;
   @override
   List<TileProperties> get tileProperties;
+  @override
+  Map<String, dynamic> get customProperties;
 
   /// Create a copy of TilesetConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -264,10 +304,9 @@ TileProperties _$TilePropertiesFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$TileProperties {
-  int get id => throw _privateConstructorUsedError;
-  Map<String, dynamic> get customProperties =>
-      throw _privateConstructorUsedError;
+  int get tileId => throw _privateConstructorUsedError;
   bool get isPassable => throw _privateConstructorUsedError;
+  Map<String, dynamic> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this TileProperties to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -285,7 +324,7 @@ abstract class $TilePropertiesCopyWith<$Res> {
           TileProperties value, $Res Function(TileProperties) then) =
       _$TilePropertiesCopyWithImpl<$Res, TileProperties>;
   @useResult
-  $Res call({int id, Map<String, dynamic> customProperties, bool isPassable});
+  $Res call({int tileId, bool isPassable, Map<String, dynamic> properties});
 }
 
 /// @nodoc
@@ -303,23 +342,23 @@ class _$TilePropertiesCopyWithImpl<$Res, $Val extends TileProperties>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
-    Object? customProperties = null,
+    Object? tileId = null,
     Object? isPassable = null,
+    Object? properties = null,
   }) {
     return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
+      tileId: null == tileId
+          ? _value.tileId
+          : tileId // ignore: cast_nullable_to_non_nullable
               as int,
-      customProperties: null == customProperties
-          ? _value.customProperties
-          : customProperties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
       isPassable: null == isPassable
           ? _value.isPassable
           : isPassable // ignore: cast_nullable_to_non_nullable
               as bool,
+      properties: null == properties
+          ? _value.properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ) as $Val);
   }
 }
@@ -332,7 +371,7 @@ abstract class _$$TilePropertiesImplCopyWith<$Res>
       __$$TilePropertiesImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({int id, Map<String, dynamic> customProperties, bool isPassable});
+  $Res call({int tileId, bool isPassable, Map<String, dynamic> properties});
 }
 
 /// @nodoc
@@ -348,23 +387,23 @@ class __$$TilePropertiesImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
-    Object? customProperties = null,
+    Object? tileId = null,
     Object? isPassable = null,
+    Object? properties = null,
   }) {
     return _then(_$TilePropertiesImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
+      tileId: null == tileId
+          ? _value.tileId
+          : tileId // ignore: cast_nullable_to_non_nullable
               as int,
-      customProperties: null == customProperties
-          ? _value._customProperties
-          : customProperties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
       isPassable: null == isPassable
           ? _value.isPassable
           : isPassable // ignore: cast_nullable_to_non_nullable
               as bool,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ));
   }
 }
@@ -373,32 +412,31 @@ class __$$TilePropertiesImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$TilePropertiesImpl implements _TileProperties {
   const _$TilePropertiesImpl(
-      {required this.id,
-      final Map<String, dynamic> customProperties = const {},
-      this.isPassable = false})
-      : _customProperties = customProperties;
+      {required this.tileId,
+      this.isPassable = true,
+      final Map<String, dynamic> properties = const {}})
+      : _properties = properties;
 
   factory _$TilePropertiesImpl.fromJson(Map<String, dynamic> json) =>
       _$$TilePropertiesImplFromJson(json);
 
   @override
-  final int id;
-  final Map<String, dynamic> _customProperties;
-  @override
-  @JsonKey()
-  Map<String, dynamic> get customProperties {
-    if (_customProperties is EqualUnmodifiableMapView) return _customProperties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_customProperties);
-  }
-
+  final int tileId;
   @override
   @JsonKey()
   final bool isPassable;
+  final Map<String, dynamic> _properties;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
 
   @override
   String toString() {
-    return 'TileProperties(id: $id, customProperties: $customProperties, isPassable: $isPassable)';
+    return 'TileProperties(tileId: $tileId, isPassable: $isPassable, properties: $properties)';
   }
 
   @override
@@ -406,17 +444,17 @@ class _$TilePropertiesImpl implements _TileProperties {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$TilePropertiesImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            const DeepCollectionEquality()
-                .equals(other._customProperties, _customProperties) &&
+            (identical(other.tileId, tileId) || other.tileId == tileId) &&
             (identical(other.isPassable, isPassable) ||
-                other.isPassable == isPassable));
+                other.isPassable == isPassable) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id,
-      const DeepCollectionEquality().hash(_customProperties), isPassable);
+  int get hashCode => Object.hash(runtimeType, tileId, isPassable,
+      const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of TileProperties
   /// with the given fields replaced by the non-null parameter values.
@@ -437,19 +475,19 @@ class _$TilePropertiesImpl implements _TileProperties {
 
 abstract class _TileProperties implements TileProperties {
   const factory _TileProperties(
-      {required final int id,
-      final Map<String, dynamic> customProperties,
-      final bool isPassable}) = _$TilePropertiesImpl;
+      {required final int tileId,
+      final bool isPassable,
+      final Map<String, dynamic> properties}) = _$TilePropertiesImpl;
 
   factory _TileProperties.fromJson(Map<String, dynamic> json) =
       _$TilePropertiesImpl.fromJson;
 
   @override
-  int get id;
-  @override
-  Map<String, dynamic> get customProperties;
+  int get tileId;
   @override
   bool get isPassable;
+  @override
+  Map<String, dynamic> get properties;
 
   /// Create a copy of TileProperties
   /// with the given fields replaced by the non-null parameter values.

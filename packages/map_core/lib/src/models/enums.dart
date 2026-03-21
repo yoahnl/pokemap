@@ -1,19 +1,5 @@
-enum EditorToolType {
-  selection,
-  tilePaint,
-  collisionPaint,
-  entityPlacement,
-  warpPlacement,
-  triggerPlacement,
-  eraser,
-}
-
-enum LayerType {
-  tile,
-  collision,
-  entity,
-  warp,
-  trigger,
+enum ProjectVersion {
+  v1,
 }
 
 enum EntityType {
@@ -30,8 +16,4 @@ enum TriggerType {
   cutscene,
   battle,
   custom,
-}
-
-enum ProjectVersion {
-  v1,
 }

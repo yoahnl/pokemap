@@ -23,9 +23,9 @@ mixin _$MapData {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   GridSize get size => throw _privateConstructorUsedError;
-  String get version => throw _privateConstructorUsedError;
+  ProjectVersion get version => throw _privateConstructorUsedError;
   String get tilesetId => throw _privateConstructorUsedError;
-  List<MapLayerData> get layers => throw _privateConstructorUsedError;
+  List<MapLayer> get layers => throw _privateConstructorUsedError;
   List<MapEntity> get entities => throw _privateConstructorUsedError;
   List<MapWarp> get warps => throw _privateConstructorUsedError;
   List<MapTrigger> get triggers => throw _privateConstructorUsedError;
@@ -49,9 +49,9 @@ abstract class $MapDataCopyWith<$Res> {
       {String id,
       String name,
       GridSize size,
-      String version,
+      ProjectVersion version,
       String tilesetId,
-      List<MapLayerData> layers,
+      List<MapLayer> layers,
       List<MapEntity> entities,
       List<MapWarp> warps,
       List<MapTrigger> triggers,
@@ -102,7 +102,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
       version: null == version
           ? _value.version
           : version // ignore: cast_nullable_to_non_nullable
-              as String,
+              as ProjectVersion,
       tilesetId: null == tilesetId
           ? _value.tilesetId
           : tilesetId // ignore: cast_nullable_to_non_nullable
@@ -110,7 +110,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
       layers: null == layers
           ? _value.layers
           : layers // ignore: cast_nullable_to_non_nullable
-              as List<MapLayerData>,
+              as List<MapLayer>,
       entities: null == entities
           ? _value.entities
           : entities // ignore: cast_nullable_to_non_nullable
@@ -152,9 +152,9 @@ abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
       {String id,
       String name,
       GridSize size,
-      String version,
+      ProjectVersion version,
       String tilesetId,
-      List<MapLayerData> layers,
+      List<MapLayer> layers,
       List<MapEntity> entities,
       List<MapWarp> warps,
       List<MapTrigger> triggers,
@@ -204,7 +204,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
       version: null == version
           ? _value.version
           : version // ignore: cast_nullable_to_non_nullable
-              as String,
+              as ProjectVersion,
       tilesetId: null == tilesetId
           ? _value.tilesetId
           : tilesetId // ignore: cast_nullable_to_non_nullable
@@ -212,7 +212,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
       layers: null == layers
           ? _value._layers
           : layers // ignore: cast_nullable_to_non_nullable
-              as List<MapLayerData>,
+              as List<MapLayer>,
       entities: null == entities
           ? _value._entities
           : entities // ignore: cast_nullable_to_non_nullable
@@ -241,9 +241,9 @@ class _$MapDataImpl implements _MapData {
       {required this.id,
       required this.name,
       required this.size,
-      this.version = 'v1',
+      this.version = ProjectVersion.v1,
       required this.tilesetId,
-      final List<MapLayerData> layers = const [],
+      final List<MapLayer> layers = const [],
       final List<MapEntity> entities = const [],
       final List<MapWarp> warps = const [],
       final List<MapTrigger> triggers = const [],
@@ -265,13 +265,13 @@ class _$MapDataImpl implements _MapData {
   final GridSize size;
   @override
   @JsonKey()
-  final String version;
+  final ProjectVersion version;
   @override
   final String tilesetId;
-  final List<MapLayerData> _layers;
+  final List<MapLayer> _layers;
   @override
   @JsonKey()
-  List<MapLayerData> get layers {
+  List<MapLayer> get layers {
     if (_layers is EqualUnmodifiableListView) return _layers;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_layers);
@@ -373,9 +373,9 @@ abstract class _MapData implements MapData {
       {required final String id,
       required final String name,
       required final GridSize size,
-      final String version,
+      final ProjectVersion version,
       required final String tilesetId,
-      final List<MapLayerData> layers,
+      final List<MapLayer> layers,
       final List<MapEntity> entities,
       final List<MapWarp> warps,
       final List<MapTrigger> triggers,
@@ -390,11 +390,11 @@ abstract class _MapData implements MapData {
   @override
   GridSize get size;
   @override
-  String get version;
+  ProjectVersion get version;
   @override
   String get tilesetId;
   @override
-  List<MapLayerData> get layers;
+  List<MapLayer> get layers;
   @override
   List<MapEntity> get entities;
   @override
@@ -409,315 +409,6 @@ abstract class _MapData implements MapData {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$MapDataImplCopyWith<_$MapDataImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-MapLayerData _$MapLayerDataFromJson(Map<String, dynamic> json) {
-  return _MapLayerData.fromJson(json);
-}
-
-/// @nodoc
-mixin _$MapLayerData {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  LayerType get type => throw _privateConstructorUsedError;
-  bool get isVisible => throw _privateConstructorUsedError;
-  double get opacity => throw _privateConstructorUsedError; // For Tile Layers
-  List<int> get tiles => throw _privateConstructorUsedError; // Flattened array
-// For Collision Layers
-  List<bool> get collisions => throw _privateConstructorUsedError;
-
-  /// Serializes this MapLayerData to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of MapLayerData
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapLayerDataCopyWith<MapLayerData> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $MapLayerDataCopyWith<$Res> {
-  factory $MapLayerDataCopyWith(
-          MapLayerData value, $Res Function(MapLayerData) then) =
-      _$MapLayerDataCopyWithImpl<$Res, MapLayerData>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      LayerType type,
-      bool isVisible,
-      double opacity,
-      List<int> tiles,
-      List<bool> collisions});
-}
-
-/// @nodoc
-class _$MapLayerDataCopyWithImpl<$Res, $Val extends MapLayerData>
-    implements $MapLayerDataCopyWith<$Res> {
-  _$MapLayerDataCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of MapLayerData
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? type = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? tiles = null,
-    Object? collisions = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as LayerType,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      tiles: null == tiles
-          ? _value.tiles
-          : tiles // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      collisions: null == collisions
-          ? _value.collisions
-          : collisions // ignore: cast_nullable_to_non_nullable
-              as List<bool>,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$MapLayerDataImplCopyWith<$Res>
-    implements $MapLayerDataCopyWith<$Res> {
-  factory _$$MapLayerDataImplCopyWith(
-          _$MapLayerDataImpl value, $Res Function(_$MapLayerDataImpl) then) =
-      __$$MapLayerDataImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      LayerType type,
-      bool isVisible,
-      double opacity,
-      List<int> tiles,
-      List<bool> collisions});
-}
-
-/// @nodoc
-class __$$MapLayerDataImplCopyWithImpl<$Res>
-    extends _$MapLayerDataCopyWithImpl<$Res, _$MapLayerDataImpl>
-    implements _$$MapLayerDataImplCopyWith<$Res> {
-  __$$MapLayerDataImplCopyWithImpl(
-      _$MapLayerDataImpl _value, $Res Function(_$MapLayerDataImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapLayerData
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? type = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? tiles = null,
-    Object? collisions = null,
-  }) {
-    return _then(_$MapLayerDataImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as LayerType,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      tiles: null == tiles
-          ? _value._tiles
-          : tiles // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      collisions: null == collisions
-          ? _value._collisions
-          : collisions // ignore: cast_nullable_to_non_nullable
-              as List<bool>,
-    ));
-  }
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class _$MapLayerDataImpl implements _MapLayerData {
-  const _$MapLayerDataImpl(
-      {required this.id,
-      required this.name,
-      required this.type,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      final List<int> tiles = const [],
-      final List<bool> collisions = const []})
-      : _tiles = tiles,
-        _collisions = collisions;
-
-  factory _$MapLayerDataImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapLayerDataImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final LayerType type;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-// For Tile Layers
-  final List<int> _tiles;
-// For Tile Layers
-  @override
-  @JsonKey()
-  List<int> get tiles {
-    if (_tiles is EqualUnmodifiableListView) return _tiles;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tiles);
-  }
-
-// Flattened array
-// For Collision Layers
-  final List<bool> _collisions;
-// Flattened array
-// For Collision Layers
-  @override
-  @JsonKey()
-  List<bool> get collisions {
-    if (_collisions is EqualUnmodifiableListView) return _collisions;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_collisions);
-  }
-
-  @override
-  String toString() {
-    return 'MapLayerData(id: $id, name: $name, type: $type, isVisible: $isVisible, opacity: $opacity, tiles: $tiles, collisions: $collisions)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapLayerDataImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.type, type) || other.type == type) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            const DeepCollectionEquality().equals(other._tiles, _tiles) &&
-            const DeepCollectionEquality()
-                .equals(other._collisions, _collisions));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      type,
-      isVisible,
-      opacity,
-      const DeepCollectionEquality().hash(_tiles),
-      const DeepCollectionEquality().hash(_collisions));
-
-  /// Create a copy of MapLayerData
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapLayerDataImplCopyWith<_$MapLayerDataImpl> get copyWith =>
-      __$$MapLayerDataImplCopyWithImpl<_$MapLayerDataImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapLayerDataImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _MapLayerData implements MapLayerData {
-  const factory _MapLayerData(
-      {required final String id,
-      required final String name,
-      required final LayerType type,
-      final bool isVisible,
-      final double opacity,
-      final List<int> tiles,
-      final List<bool> collisions}) = _$MapLayerDataImpl;
-
-  factory _MapLayerData.fromJson(Map<String, dynamic> json) =
-      _$MapLayerDataImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  LayerType get type;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity; // For Tile Layers
-  @override
-  List<int> get tiles; // Flattened array
-// For Collision Layers
-  @override
-  List<bool> get collisions;
-
-  /// Create a copy of MapLayerData
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapLayerDataImplCopyWith<_$MapLayerDataImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -1199,8 +890,7 @@ mixin _$MapTrigger {
   String get id => throw _privateConstructorUsedError;
   TriggerType get type => throw _privateConstructorUsedError;
   GridPos get pos => throw _privateConstructorUsedError;
-  MapRect get zone =>
-      throw _privateConstructorUsedError; // Triggers can be zones
+  MapRect get zone => throw _privateConstructorUsedError;
   Map<String, dynamic> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapTrigger to a JSON map.
@@ -1384,9 +1074,7 @@ class _$MapTriggerImpl implements _MapTrigger {
   final GridPos pos;
   @override
   final MapRect zone;
-// Triggers can be zones
   final Map<String, dynamic> _properties;
-// Triggers can be zones
   @override
   @JsonKey()
   Map<String, dynamic> get properties {
@@ -1452,7 +1140,7 @@ abstract class _MapTrigger implements MapTrigger {
   @override
   GridPos get pos;
   @override
-  MapRect get zone; // Triggers can be zones
+  MapRect get zone;
   @override
   Map<String, dynamic> get properties;
 

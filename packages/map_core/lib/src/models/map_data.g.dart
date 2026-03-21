@@ -11,10 +11,11 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       name: json['name'] as String,
       size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
-      version: json['version'] as String? ?? 'v1',
+      version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
+          ProjectVersion.v1,
       tilesetId: json['tilesetId'] as String,
       layers: (json['layers'] as List<dynamic>?)
-              ?.map((e) => MapLayerData.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => MapLayer.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       entities: (json['entities'] as List<dynamic>?)
@@ -37,7 +38,7 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'id': instance.id,
       'name': instance.name,
       'size': instance.size.toJson(),
-      'version': instance.version,
+      'version': _$ProjectVersionEnumMap[instance.version]!,
       'tilesetId': instance.tilesetId,
       'layers': instance.layers.map((e) => e.toJson()).toList(),
       'entities': instance.entities.map((e) => e.toJson()).toList(),
@@ -46,40 +47,8 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'properties': instance.properties,
     };
 
-_$MapLayerDataImpl _$$MapLayerDataImplFromJson(Map<String, dynamic> json) =>
-    _$MapLayerDataImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      type: $enumDecode(_$LayerTypeEnumMap, json['type']),
-      isVisible: json['isVisible'] as bool? ?? true,
-      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
-      tiles: (json['tiles'] as List<dynamic>?)
-              ?.map((e) => (e as num).toInt())
-              .toList() ??
-          const [],
-      collisions: (json['collisions'] as List<dynamic>?)
-              ?.map((e) => e as bool)
-              .toList() ??
-          const [],
-    );
-
-Map<String, dynamic> _$$MapLayerDataImplToJson(_$MapLayerDataImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'type': _$LayerTypeEnumMap[instance.type]!,
-      'isVisible': instance.isVisible,
-      'opacity': instance.opacity,
-      'tiles': instance.tiles,
-      'collisions': instance.collisions,
-    };
-
-const _$LayerTypeEnumMap = {
-  LayerType.tile: 'tile',
-  LayerType.collision: 'collision',
-  LayerType.entity: 'entity',
-  LayerType.warp: 'warp',
-  LayerType.trigger: 'trigger',
+const _$ProjectVersionEnumMap = {
+  ProjectVersion.v1: 'v1',
 };
 
 _$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
