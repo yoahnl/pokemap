@@ -10,7 +10,8 @@ enum EditorToolType {
 
 abstract class EditorTool {
   final EditorToolType type;
+
   const EditorTool(this.type);
-  
-  // Future methods for interaction
+
+// Future methods for interaction
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
 
 class ProjectFileSystem {
@@ -7,7 +8,7 @@ class ProjectFileSystem {
   ProjectFileSystem(this._projectRoot);
 
   String get projectRoot => _projectRoot;
-  
+
   String get projectManifestPath => p.join(_projectRoot, 'project.json');
 
   String resolveMapPath(String relativePath) {

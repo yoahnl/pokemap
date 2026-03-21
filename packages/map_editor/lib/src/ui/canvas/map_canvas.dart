@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+
 import '../../features/editor/state/editor_notifier.dart';
 
 class MapCanvas extends ConsumerWidget {
@@ -29,11 +30,7 @@ class MapCanvas extends ConsumerWidget {
             onPointerHover: (event) {
               final localPos = event.localPosition;
               final gridPos = _screenToGrid(
-                localPos, 
-                state.panOffset, 
-                state.zoom, 
-                activeMap.size
-              );
+                  localPos, state.panOffset, state.zoom, activeMap.size);
               notifier.updateHoveredTile(gridPos);
             },
             onPointerSignal: (event) {
@@ -57,10 +54,11 @@ class MapCanvas extends ConsumerWidget {
     );
   }
 
-  GridPos? _screenToGrid(Offset screenPos, Offset pan, double zoom, GridSize size) {
+  GridPos? _screenToGrid(
+      Offset screenPos, Offset pan, double zoom, GridSize size) {
     final adjustedX = (screenPos.dx - pan.dx) / zoom;
     final adjustedY = (screenPos.dy - pan.dy) / zoom;
-    
+
     final tileX = (adjustedX / 32).floor();
     final tileY = (adjustedY / 32).floor();
 
@@ -99,7 +97,7 @@ class MapGridPainter extends CustomPainter {
     // Draw Layers
     for (final layer in map.layers) {
       if (!layer.isVisible) continue;
-      
+
       // Highlight active layer border slightly?
       // Implementation of tile rendering would go here
     }
@@ -111,10 +109,12 @@ class MapGridPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     for (int x = 0; x <= map.size.width; x++) {
-      canvas.drawLine(Offset(x * tileSize, 0), Offset(x * tileSize, gridHeight), gridPaint);
+      canvas.drawLine(
+          Offset(x * tileSize, 0), Offset(x * tileSize, gridHeight), gridPaint);
     }
     for (int y = 0; y <= map.size.height; y++) {
-      canvas.drawLine(Offset(0, y * tileSize), Offset(gridWidth, y * tileSize), gridPaint);
+      canvas.drawLine(
+          Offset(0, y * tileSize), Offset(gridWidth, y * tileSize), gridPaint);
     }
 
     // Draw Hover Cursor
@@ -122,7 +122,7 @@ class MapGridPainter extends CustomPainter {
       final hoverPaint = Paint()
         ..color = Colors.cyanAccent.withOpacity(0.3)
         ..style = PaintingStyle.fill;
-      
+
       canvas.drawRect(
         Rect.fromLTWH(
           hoveredTile!.x * tileSize,
@@ -132,13 +132,13 @@ class MapGridPainter extends CustomPainter {
         ),
         hoverPaint,
       );
-      
+
       // Cursor Border
       final cursorBorder = Paint()
         ..color = Colors.cyanAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom;
-        
+
       canvas.drawRect(
         Rect.fromLTWH(
           hoveredTile!.x * tileSize,
@@ -153,7 +153,9 @@ class MapGridPainter extends CustomPainter {
     // Draw Map Border
     canvas.drawRect(
       Rect.fromLTWH(0, 0, gridWidth, gridHeight),
-      Paint()..color = Colors.white..style = PaintingStyle.stroke,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke,
     );
 
     canvas.restore();
@@ -161,9 +163,10 @@ class MapGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant MapGridPainter oldDelegate) {
-    return oldDelegate.zoom != zoom ||
-           oldDelegate.offset != offset ||
-           oldDelegate.hoveredTile != hoveredTile ||
-           oldDelegate.activeLayerId != activeLayerId;
+    return oldDelegate.map != map ||
+        oldDelegate.zoom != zoom ||
+        oldDelegate.offset != offset ||
+        oldDelegate.hoveredTile != hoveredTile ||
+        oldDelegate.activeLayerId != activeLayerId;
   }
 }

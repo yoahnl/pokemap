@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
+
 import '../../domain/repositories/repositories.dart';
 
 class FileProjectRepository implements ProjectRepository {
@@ -77,7 +79,8 @@ class FileMapRepository implements MapRepository {
     debugPrint('FileMapRepository: Renaming map from $oldPath to $newPath');
     final file = File(oldPath);
     if (await file.exists()) {
-      if (!await file.parent.exists()) await file.parent.create(recursive: true);
+      if (!await file.parent.exists())
+        await file.parent.create(recursive: true);
       await file.rename(newPath);
     }
   }

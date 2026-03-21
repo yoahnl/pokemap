@@ -25,6 +25,7 @@ final createProjectUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CreateProjectUseCaseRef = AutoDisposeProviderRef<CreateProjectUseCase>;
+
 String _$loadProjectUseCaseHash() =>
     r'75964ea221f264befbf4a28c4249bd2c1b6df85e';
 
@@ -44,6 +45,7 @@ final loadProjectUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LoadProjectUseCaseRef = AutoDisposeProviderRef<LoadProjectUseCase>;
+
 String _$saveMapUseCaseHash() => r'6a9741258f17448b6f6fd30e3a84d7e72c7c6adb';
 
 /// See also [saveMapUseCase].
@@ -61,6 +63,7 @@ final saveMapUseCaseProvider = AutoDisposeProvider<SaveMapUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SaveMapUseCaseRef = AutoDisposeProviderRef<SaveMapUseCase>;
+
 String _$createMapUseCaseHash() => r'f09bed23c981b0caa7ab05eb650e9d2a3e6e2236';
 
 /// See also [createMapUseCase].
@@ -78,6 +81,7 @@ final createMapUseCaseProvider = AutoDisposeProvider<CreateMapUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CreateMapUseCaseRef = AutoDisposeProviderRef<CreateMapUseCase>;
+
 String _$loadMapUseCaseHash() => r'ba1effc9dac5f2650af52c0fb8eaea7369f57508';
 
 /// See also [loadMapUseCase].
@@ -95,6 +99,25 @@ final loadMapUseCaseProvider = AutoDisposeProvider<LoadMapUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LoadMapUseCaseRef = AutoDisposeProviderRef<LoadMapUseCase>;
+
+String _$resizeMapUseCaseHash() => r'2c4137885b870c1b23a119a1dfe1a68ea606ae00';
+
+/// See also [resizeMapUseCase].
+@ProviderFor(resizeMapUseCase)
+final resizeMapUseCaseProvider = AutoDisposeProvider<ResizeMapUseCase>.internal(
+  resizeMapUseCase,
+  name: r'resizeMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$resizeMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ResizeMapUseCaseRef = AutoDisposeProviderRef<ResizeMapUseCase>;
+
 String _$renameMapUseCaseHash() => r'dda46cb2e92d7f3b01bd6824f57ebccaa1a3b6b8';
 
 /// See also [renameMapUseCase].
@@ -112,6 +135,7 @@ final renameMapUseCaseProvider = AutoDisposeProvider<RenameMapUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RenameMapUseCaseRef = AutoDisposeProviderRef<RenameMapUseCase>;
+
 String _$deleteMapUseCaseHash() => r'e95a10ea5196d4bfeeed39dcb1dcd5a8d2cf6db8';
 
 /// See also [deleteMapUseCase].
@@ -129,6 +153,7 @@ final deleteMapUseCaseProvider = AutoDisposeProvider<DeleteMapUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DeleteMapUseCaseRef = AutoDisposeProviderRef<DeleteMapUseCase>;
+
 String _$duplicateMapUseCaseHash() =>
     r'76cd21119e036c7e07d4a467f9e2c41aa03f6a37';
 
@@ -148,6 +173,7 @@ final duplicateMapUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DuplicateMapUseCaseRef = AutoDisposeProviderRef<DuplicateMapUseCase>;
+
 String _$createGroupUseCaseHash() =>
     r'5fd43aa5c6d9a3ff78b30e7be301e747dcf6e37b';
 
@@ -167,6 +193,7 @@ final createGroupUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CreateGroupUseCaseRef = AutoDisposeProviderRef<CreateGroupUseCase>;
+
 String _$deleteGroupUseCaseHash() =>
     r'16accc1b192d9bf41c25ba5ae01637b62a3c452f';
 
@@ -186,6 +213,7 @@ final deleteGroupUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DeleteGroupUseCaseRef = AutoDisposeProviderRef<DeleteGroupUseCase>;
+
 String _$moveMapToGroupUseCaseHash() =>
     r'0ce0923c88cd3d3203252605b2d3850d455170cf';
 
@@ -206,6 +234,7 @@ final moveMapToGroupUseCaseProvider =
 // ignore: unused_element
 typedef MoveMapToGroupUseCaseRef
     = AutoDisposeProviderRef<MoveMapToGroupUseCase>;
+
 String _$renameGroupUseCaseHash() =>
     r'ea14a0828c3d92f553c76d661599091be970af33';
 

@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../../../app/providers/use_case_providers.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../tools/editor_tool.dart';
@@ -22,7 +22,7 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(createProjectUseCaseProvider);
       final manifest = await useCase.execute(name, directory);
-      
+
       state = state.copyWith(
         project: manifest,
         fileSystem: ProjectFileSystem(directory),
@@ -43,7 +43,7 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(loadProjectUseCaseProvider);
       final manifest = await useCase.execute(manifestPath);
       final projectDir = p.dirname(manifestPath);
-      
+
       state = state.copyWith(
         project: manifest,
         fileSystem: ProjectFileSystem(projectDir),
@@ -65,11 +65,11 @@ class EditorNotifier extends _$EditorNotifier {
 
     debugPrint('EditorNotifier: saveActiveMap()');
     state = state.copyWith(isSaving: true);
-    
+
     try {
       final useCase = ref.read(saveMapUseCaseProvider);
       await useCase.execute(map, path);
-      
+
       state = state.copyWith(
         isSaving: false,
         isDirty: false,
@@ -85,26 +85,30 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> createMap(String id, int width, int height, {String? groupId, MapRole role = MapRole.exterior}) async {
-    debugPrint('EditorNotifier: createMap($id, $width, $height) in group $groupId');
+  Future<void> createMap(String id, int width, int height,
+      {String? groupId, MapRole role = MapRole.exterior}) async {
+    debugPrint(
+        'EditorNotifier: createMap($id, $width, $height) in group $groupId');
     final fs = state.fileSystem;
     final project = state.project;
     if (fs == null || project == null) return;
 
     try {
       final useCase = ref.read(createMapUseCaseProvider);
-      final map = await useCase.execute(fs, project, id, width, height, groupId: groupId, role: role);
+      final map = await useCase.execute(fs, project, id, width, height,
+          groupId: groupId, role: role);
 
       state = state.copyWith(
-        project: project.copyWith(
-          maps: [...project.maps, ProjectMapEntry(
-            id: id, 
-            name: id, 
+        project: project.copyWith(maps: [
+          ...project.maps,
+          ProjectMapEntry(
+            id: id,
+            name: id,
             relativePath: fs.getMapRelativePath(id),
             groupId: groupId,
             role: role,
-          )]
-        ),
+          )
+        ]),
         activeMap: map,
         activeMapPath: fs.getMapPath(id),
         activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
@@ -125,7 +129,7 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(loadMapUseCaseProvider);
       final map = await useCase.execute(fs, relativePath);
-      
+
       state = state.copyWith(
         activeMap: map,
         activeMapPath: fs.resolveMapPath(relativePath),
@@ -139,6 +143,45 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  Future<void> resizeActiveMap(int width, int height) async {
+    final map = state.activeMap;
+    if (map == null) return;
+
+    debugPrint('EditorNotifier: resizeActiveMap(${width}x$height)');
+    try {
+      final useCase = ref.read(resizeMapUseCaseProvider);
+      final resized = useCase.execute(map, width, height);
+
+      if (resized == map) {
+        state = state.copyWith(
+          statusMessage: 'Map "${map.id}" is already ${width}x$height',
+          errorMessage: null,
+        );
+        return;
+      }
+
+      final hovered = state.hoveredTile;
+      final nextHovered = (hovered != null &&
+              (hovered.x < 0 ||
+                  hovered.y < 0 ||
+                  hovered.x >= width ||
+                  hovered.y >= height))
+          ? null
+          : hovered;
+
+      state = state.copyWith(
+        activeMap: resized,
+        hoveredTile: nextHovered,
+        isDirty: true,
+        statusMessage: 'Map "${map.id}" resized to ${width}x$height',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error resizing map: $e');
+      state = state.copyWith(errorMessage: 'Failed to resize map: $e');
+    }
+  }
+
   Future<void> renameMap(String oldId, String newId) async {
     debugPrint('EditorNotifier: renameMap($oldId -> $newId)');
     final fs = state.fileSystem;
@@ -148,7 +191,7 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(renameMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, oldId, newId);
-      
+
       MapData? activeMap = state.activeMap;
       String? activePath = state.activeMapPath;
       if (activeMap?.id == oldId) {
@@ -178,7 +221,7 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deleteMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, mapId);
-      
+
       MapData? activeMap = state.activeMap;
       String? activePath = state.activeMapPath;
       if (activeMap?.id == mapId) {
@@ -208,7 +251,7 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(duplicateMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, sourceId);
-      
+
       state = state.copyWith(
         project: updatedProject,
         statusMessage: 'Map "$sourceId" duplicated',
@@ -220,7 +263,8 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> createGroup(String name, MapGroupType type, {String? parentId}) async {
+  Future<void> createGroup(String name, MapGroupType type,
+      {String? parentId}) async {
     debugPrint('EditorNotifier: createGroup($name, $type, parent: $parentId)');
     final fs = state.fileSystem;
     final project = state.project;
@@ -228,7 +272,8 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final useCase = ref.read(createGroupUseCaseProvider);
-      final updatedProject = await useCase.execute(fs, project, name, type, parentId: parentId);
+      final updatedProject =
+          await useCase.execute(fs, project, name, type, parentId: parentId);
       state = state.copyWith(
         project: updatedProject,
         statusMessage: 'Group "$name" created',
@@ -268,7 +313,8 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final useCase = ref.read(renameGroupUseCaseProvider);
-      final updatedProject = await useCase.execute(fs, project, groupId, newName);
+      final updatedProject =
+          await useCase.execute(fs, project, groupId, newName);
       state = state.copyWith(
         project: updatedProject,
         statusMessage: 'Group renamed',

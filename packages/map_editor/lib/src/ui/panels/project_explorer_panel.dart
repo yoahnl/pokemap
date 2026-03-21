@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+
 import '../../features/editor/state/editor_notifier.dart';
 
 class ProjectExplorerPanel extends ConsumerWidget {
@@ -24,7 +25,9 @@ class ProjectExplorerPanel extends ConsumerWidget {
           const Divider(height: 1),
           Expanded(
             child: project == null
-                ? const Center(child: Text('No project loaded', style: TextStyle(color: Colors.white24)))
+                ? const Center(
+                    child: Text('No project loaded',
+                        style: TextStyle(color: Colors.white24)))
                 : _buildTree(context, project, state, notifier),
           ),
         ],
@@ -32,18 +35,25 @@ class ProjectExplorerPanel extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, dynamic state, EditorNotifier notifier) {
+  Widget _buildHeader(
+      BuildContext context, dynamic state, EditorNotifier notifier) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Row(
         children: [
           const Icon(Icons.account_tree_outlined, size: 18, color: Colors.blue),
           const SizedBox(width: 8),
-          const Text('WORLD EXPLORER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.1)),
+          const Text('WORLD EXPLORER',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.1)),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.create_new_folder_outlined, size: 18),
-            onPressed: state.project != null ? () => _showCreateGroupDialog(context, notifier) : null,
+            onPressed: state.project != null
+                ? () => _showCreateGroupDialog(context, notifier)
+                : null,
             tooltip: 'New Root Group',
           ),
         ],
@@ -51,16 +61,19 @@ class ProjectExplorerPanel extends ConsumerWidget {
     );
   }
 
-  Widget _buildTree(BuildContext context, ProjectManifest project, dynamic state, EditorNotifier notifier) {
+  Widget _buildTree(BuildContext context, ProjectManifest project,
+      dynamic state, EditorNotifier notifier) {
     final rootMaps = project.maps.where((m) => m.groupId == null).toList();
-    final rootGroups = project.groups.where((g) => g.parentGroupId == null).toList();
+    final rootGroups =
+        project.groups.where((g) => g.parentGroupId == null).toList();
 
     if (rootMaps.isEmpty && rootGroups.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('World is empty', style: TextStyle(color: Colors.white24)),
+            const Text('World is empty',
+                style: TextStyle(color: Colors.white24)),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () => _showCreateGroupDialog(context, notifier),
@@ -75,19 +88,30 @@ class ProjectExplorerPanel extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        ...rootGroups.map((g) => _GroupNode(group: g, project: project, state: state, notifier: notifier, depth: 0)),
+        ...rootGroups.map((g) => _GroupNode(
+            group: g,
+            project: project,
+            state: state,
+            notifier: notifier,
+            depth: 0)),
         if (rootMaps.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('UNGROUPED MAPS', style: TextStyle(fontSize: 9, color: Colors.white38, fontWeight: FontWeight.bold)),
+            child: Text('UNGROUPED MAPS',
+                style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.white38,
+                    fontWeight: FontWeight.bold)),
           ),
-          ...rootMaps.map((m) => _MapNode(map: m, state: state, notifier: notifier, depth: 0)),
+          ...rootMaps.map((m) =>
+              _MapNode(map: m, state: state, notifier: notifier, depth: 0)),
         ],
       ],
     );
   }
 
-  void _showCreateGroupDialog(BuildContext context, EditorNotifier notifier, {String? parentId}) {
+  void _showCreateGroupDialog(BuildContext context, EditorNotifier notifier,
+      {String? parentId}) {
     final nameController = TextEditingController();
     MapGroupType selectedType = MapGroupType.city;
 
@@ -100,28 +124,33 @@ class ProjectExplorerPanel extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: nameController, 
-                autofocus: true, 
+                controller: nameController,
+                autofocus: true,
                 decoration: const InputDecoration(labelText: 'Group Name'),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<MapGroupType>(
                 value: selectedType,
-                items: MapGroupType.values.map((t) => DropdownMenuItem(
-                  value: t, 
-                  child: Text(t.name.toUpperCase()),
-                )).toList(),
+                items: MapGroupType.values
+                    .map((t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t.name.toUpperCase()),
+                        ))
+                    .toList(),
                 onChanged: (v) => setState(() => selectedType = v!),
                 decoration: const InputDecoration(labelText: 'Group Type'),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
-                  notifier.createGroup(nameController.text, selectedType, parentId: parentId);
+                  notifier.createGroup(nameController.text, selectedType,
+                      parentId: parentId);
                   Navigator.pop(context);
                 }
               },
@@ -142,24 +171,29 @@ class _GroupNode extends StatelessWidget {
   final int depth;
 
   const _GroupNode({
-    required this.group, 
-    required this.project, 
-    required this.state, 
-    required this.notifier, 
+    required this.group,
+    required this.project,
+    required this.state,
+    required this.notifier,
     required this.depth,
   });
 
   @override
   Widget build(BuildContext context) {
-    final childrenGroups = project.groups.where((g) => g.parentGroupId == group.id).toList();
-    final childrenMaps = project.maps.where((m) => m.groupId == group.id).toList();
+    final childrenGroups =
+        project.groups.where((g) => g.parentGroupId == group.id).toList();
+    final childrenMaps =
+        project.maps.where((m) => m.groupId == group.id).toList();
 
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
-        leading: Icon(_getGroupIcon(group.type), size: 18, color: _getGroupColor(group.type)),
-        title: Text(group.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-        subtitle: Text(group.type.name.toUpperCase(), style: const TextStyle(fontSize: 9, color: Colors.white38)),
+        leading: Icon(_getGroupIcon(group.type),
+            size: 18, color: _getGroupColor(group.type)),
+        title: Text(group.name,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        subtitle: Text(group.type.name.toUpperCase(),
+            style: const TextStyle(fontSize: 9, color: Colors.white38)),
         tilePadding: EdgeInsets.only(left: 16.0 * depth + 8.0, right: 8.0),
         childrenPadding: EdgeInsets.zero,
         shape: const RoundedRectangleBorder(),
@@ -169,8 +203,14 @@ class _GroupNode extends StatelessWidget {
           onPressed: () => _showGroupContextMenu(context, group, notifier),
         ),
         children: [
-          ...childrenGroups.map((g) => _GroupNode(group: g, project: project, state: state, notifier: notifier, depth: depth + 1)),
-          ...childrenMaps.map((m) => _MapNode(map: m, state: state, notifier: notifier, depth: depth + 1)),
+          ...childrenGroups.map((g) => _GroupNode(
+              group: g,
+              project: project,
+              state: state,
+              notifier: notifier,
+              depth: depth + 1)),
+          ...childrenMaps.map((m) => _MapNode(
+              map: m, state: state, notifier: notifier, depth: depth + 1)),
         ],
       ),
     );
@@ -178,32 +218,50 @@ class _GroupNode extends StatelessWidget {
 
   IconData _getGroupIcon(MapGroupType type) {
     switch (type) {
-      case MapGroupType.city: return Icons.location_city;
-      case MapGroupType.village: return Icons.holiday_village;
-      case MapGroupType.route: return Icons.map;
-      case MapGroupType.dungeon: return Icons.castle;
-      case MapGroupType.cave: return Icons.landscape;
-      case MapGroupType.forest: return Icons.park;
-      case MapGroupType.tower: return Icons.fort;
-      case MapGroupType.facility: return Icons.business;
-      case MapGroupType.special: return Icons.star;
+      case MapGroupType.city:
+        return Icons.location_city;
+      case MapGroupType.village:
+        return Icons.holiday_village;
+      case MapGroupType.route:
+        return Icons.map;
+      case MapGroupType.dungeon:
+        return Icons.castle;
+      case MapGroupType.cave:
+        return Icons.landscape;
+      case MapGroupType.forest:
+        return Icons.park;
+      case MapGroupType.tower:
+        return Icons.fort;
+      case MapGroupType.facility:
+        return Icons.business;
+      case MapGroupType.special:
+        return Icons.star;
     }
   }
 
   Color _getGroupColor(MapGroupType type) {
     switch (type) {
-      case MapGroupType.city: return Colors.orangeAccent;
-      case MapGroupType.route: return Colors.greenAccent;
-      case MapGroupType.dungeon: return Colors.redAccent;
-      case MapGroupType.cave: return Colors.brown;
-      case MapGroupType.forest: return Colors.green;
-      default: return Colors.blueAccent;
+      case MapGroupType.city:
+        return Colors.orangeAccent;
+      case MapGroupType.route:
+        return Colors.greenAccent;
+      case MapGroupType.dungeon:
+        return Colors.redAccent;
+      case MapGroupType.cave:
+        return Colors.brown;
+      case MapGroupType.forest:
+        return Colors.green;
+      default:
+        return Colors.blueAccent;
     }
   }
 
-  void _showGroupContextMenu(BuildContext context, ProjectMapGroup group, EditorNotifier notifier) {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final position = (context.findRenderObject() as RenderBox).localToGlobal(Offset.zero);
+  void _showGroupContextMenu(
+      BuildContext context, ProjectMapGroup group, EditorNotifier notifier) {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position =
+        (context.findRenderObject() as RenderBox).localToGlobal(Offset.zero);
 
     showMenu<String>(
       context: context,
@@ -213,27 +271,37 @@ class _GroupNode extends StatelessWidget {
       ),
       items: [
         PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero, () => _showCreateMapDialog(context, group.id, notifier)),
-          child: const _ContextMenuItem(icon: Icons.add_location_alt_outlined, label: 'Add Map'),
+          onTap: () => Future.delayed(Duration.zero,
+              () => _showCreateMapDialog(context, group.id, notifier)),
+          child: const _ContextMenuItem(
+              icon: Icons.add_location_alt_outlined, label: 'Add Map'),
         ),
         PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero, () => _showCreateSubGroupDialog(context, group.id, notifier)),
-          child: const _ContextMenuItem(icon: Icons.create_new_folder_outlined, label: 'Add Sub-Group'),
+          onTap: () => Future.delayed(Duration.zero,
+              () => _showCreateSubGroupDialog(context, group.id, notifier)),
+          child: const _ContextMenuItem(
+              icon: Icons.create_new_folder_outlined, label: 'Add Sub-Group'),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero, () => _showRenameGroupDialog(context, group, notifier)),
-          child: const _ContextMenuItem(icon: Icons.edit_outlined, label: 'Rename Group'),
+          onTap: () => Future.delayed(Duration.zero,
+              () => _showRenameGroupDialog(context, group, notifier)),
+          child: const _ContextMenuItem(
+              icon: Icons.edit_outlined, label: 'Rename Group'),
         ),
         PopupMenuItem(
           onTap: () => notifier.deleteGroup(group.id),
-          child: const _ContextMenuItem(icon: Icons.delete_outline, label: 'Delete Group', color: Colors.redAccent),
+          child: const _ContextMenuItem(
+              icon: Icons.delete_outline,
+              label: 'Delete Group',
+              color: Colors.redAccent),
         ),
       ],
     );
   }
 
-  void _showCreateMapDialog(BuildContext context, String groupId, EditorNotifier notifier) {
+  void _showCreateMapDialog(
+      BuildContext context, String groupId, EditorNotifier notifier) {
     final controller = TextEditingController();
     MapRole selectedRole = MapRole.exterior;
 
@@ -246,28 +314,33 @@ class _GroupNode extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: controller, 
-                autofocus: true, 
+                controller: controller,
+                autofocus: true,
                 decoration: const InputDecoration(labelText: 'Map ID'),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<MapRole>(
                 value: selectedRole,
-                items: MapRole.values.map((r) => DropdownMenuItem(
-                  value: r, 
-                  child: Text(r.name.toUpperCase()),
-                )).toList(),
+                items: MapRole.values
+                    .map((r) => DropdownMenuItem(
+                          value: r,
+                          child: Text(r.name.toUpperCase()),
+                        ))
+                    .toList(),
                 onChanged: (v) => setState(() => selectedRole = v!),
                 decoration: const InputDecoration(labelText: 'Map Role'),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () {
                 if (controller.text.isNotEmpty) {
-                  notifier.createMap(controller.text, 20, 15, groupId: groupId, role: selectedRole);
+                  notifier.createMap(controller.text, 20, 15,
+                      groupId: groupId, role: selectedRole);
                   Navigator.pop(context);
                 }
               },
@@ -279,7 +352,8 @@ class _GroupNode extends StatelessWidget {
     );
   }
 
-  void _showCreateSubGroupDialog(BuildContext context, String parentId, EditorNotifier notifier) {
+  void _showCreateSubGroupDialog(
+      BuildContext context, String parentId, EditorNotifier notifier) {
     final nameController = TextEditingController();
     MapGroupType selectedType = MapGroupType.facility;
 
@@ -292,28 +366,33 @@ class _GroupNode extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: nameController, 
-                autofocus: true, 
+                controller: nameController,
+                autofocus: true,
                 decoration: const InputDecoration(labelText: 'Group Name'),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<MapGroupType>(
                 value: selectedType,
-                items: MapGroupType.values.map((t) => DropdownMenuItem(
-                  value: t, 
-                  child: Text(t.name.toUpperCase()),
-                )).toList(),
+                items: MapGroupType.values
+                    .map((t) => DropdownMenuItem(
+                          value: t,
+                          child: Text(t.name.toUpperCase()),
+                        ))
+                    .toList(),
                 onChanged: (v) => setState(() => selectedType = v!),
                 decoration: const InputDecoration(labelText: 'Group Type'),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
-                  notifier.createGroup(nameController.text, selectedType, parentId: parentId);
+                  notifier.createGroup(nameController.text, selectedType,
+                      parentId: parentId);
                   Navigator.pop(context);
                 }
               },
@@ -325,7 +404,8 @@ class _GroupNode extends StatelessWidget {
     );
   }
 
-  void _showRenameGroupDialog(BuildContext context, ProjectMapGroup group, EditorNotifier notifier) {
+  void _showRenameGroupDialog(
+      BuildContext context, ProjectMapGroup group, EditorNotifier notifier) {
     final controller = TextEditingController(text: group.name);
     showDialog(
       context: context,
@@ -337,7 +417,9 @@ class _GroupNode extends StatelessWidget {
           decoration: const InputDecoration(labelText: 'New Name'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
@@ -360,9 +442,9 @@ class _MapNode extends StatelessWidget {
   final int depth;
 
   const _MapNode({
-    required this.map, 
-    required this.state, 
-    required this.notifier, 
+    required this.map,
+    required this.state,
+    required this.notifier,
     required this.depth,
   });
 
@@ -371,40 +453,53 @@ class _MapNode extends StatelessWidget {
     final isSelected = state.activeMap?.id == map.id;
 
     return GestureDetector(
-      onSecondaryTapDown: (details) => _showMapContextMenu(context, details.globalPosition, map, notifier),
+      onSecondaryTapDown: (details) =>
+          _showMapContextMenu(context, details.globalPosition, map, notifier),
       child: ListTile(
         contentPadding: EdgeInsets.only(left: 32.0 + (16.0 * depth), right: 16),
         dense: true,
         visualDensity: VisualDensity.compact,
-        leading: Icon(_getRoleIcon(map.role), size: 16, color: isSelected ? Colors.blue : Colors.white54),
+        leading: Icon(_getRoleIcon(map.role),
+            size: 16, color: isSelected ? Colors.blue : Colors.white54),
         title: Text(
-          map.name, 
+          map.name,
           style: TextStyle(
-            fontSize: 13, 
+            fontSize: 13,
             color: isSelected ? Colors.blue : Colors.white70,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         onTap: () => notifier.loadMap(map.relativePath),
-        trailing: isSelected ? const Icon(Icons.edit, size: 12, color: Colors.blue) : null,
+        trailing: isSelected
+            ? const Icon(Icons.edit, size: 12, color: Colors.blue)
+            : null,
       ),
     );
   }
 
   IconData _getRoleIcon(MapRole role) {
     switch (role) {
-      case MapRole.exterior: return Icons.wb_sunny_outlined;
-      case MapRole.interior: return Icons.home_outlined;
-      case MapRole.gate: return Icons.door_front_door_outlined;
-      case MapRole.section: return Icons.segment;
-      case MapRole.room: return Icons.meeting_room_outlined;
-      case MapRole.sub_area: return Icons.layers_outlined;
-      default: return Icons.insert_drive_file_outlined;
+      case MapRole.exterior:
+        return Icons.wb_sunny_outlined;
+      case MapRole.interior:
+        return Icons.home_outlined;
+      case MapRole.gate:
+        return Icons.door_front_door_outlined;
+      case MapRole.section:
+        return Icons.segment;
+      case MapRole.room:
+        return Icons.meeting_room_outlined;
+      case MapRole.sub_area:
+        return Icons.layers_outlined;
+      default:
+        return Icons.insert_drive_file_outlined;
     }
   }
 
-  void _showMapContextMenu(BuildContext context, Offset position, ProjectMapEntry mapEntry, EditorNotifier notifier) {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  void _showMapContextMenu(BuildContext context, Offset position,
+      ProjectMapEntry mapEntry, EditorNotifier notifier) {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
     showMenu<String>(
       context: context,
@@ -414,23 +509,30 @@ class _MapNode extends StatelessWidget {
       ),
       items: [
         PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero, () => _showRenameMapDialog(context, mapEntry, notifier)),
-          child: const _ContextMenuItem(icon: Icons.edit_outlined, label: 'Rename Map'),
+          onTap: () => Future.delayed(Duration.zero,
+              () => _showRenameMapDialog(context, mapEntry, notifier)),
+          child: const _ContextMenuItem(
+              icon: Icons.edit_outlined, label: 'Rename Map'),
         ),
         PopupMenuItem(
           onTap: () => notifier.duplicateMap(mapEntry.id),
-          child: const _ContextMenuItem(icon: Icons.copy_outlined, label: 'Duplicate Map'),
+          child: const _ContextMenuItem(
+              icon: Icons.copy_outlined, label: 'Duplicate Map'),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
           onTap: () => notifier.deleteMap(mapEntry.id),
-          child: const _ContextMenuItem(icon: Icons.delete_outline, label: 'Delete Map', color: Colors.redAccent),
+          child: const _ContextMenuItem(
+              icon: Icons.delete_outline,
+              label: 'Delete Map',
+              color: Colors.redAccent),
         ),
       ],
     );
   }
 
-  void _showRenameMapDialog(BuildContext context, ProjectMapEntry mapEntry, EditorNotifier notifier) {
+  void _showRenameMapDialog(
+      BuildContext context, ProjectMapEntry mapEntry, EditorNotifier notifier) {
     final controller = TextEditingController(text: mapEntry.id);
     showDialog(
       context: context,
@@ -442,7 +544,9 @@ class _MapNode extends StatelessWidget {
           decoration: const InputDecoration(labelText: 'New ID'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
@@ -462,14 +566,15 @@ class _ContextMenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color? color;
+
   const _ContextMenuItem({required this.icon, required this.label, this.color});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: color), 
-        const SizedBox(width: 12), 
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 12),
         Text(label, style: TextStyle(color: color)),
       ],
     );

@@ -18,19 +18,27 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$EditorState {
 // Context
   ProjectFileSystem? get fileSystem => throw _privateConstructorUsedError;
+
   ProjectManifest? get project =>
       throw _privateConstructorUsedError; // Active Map
   MapData? get activeMap => throw _privateConstructorUsedError;
+
   String? get activeMapPath =>
       throw _privateConstructorUsedError; // Active Tools & Selection
   EditorToolType get activeTool => throw _privateConstructorUsedError;
+
   String? get activeLayerId => throw _privateConstructorUsedError;
+
   GridPos? get hoveredTile => throw _privateConstructorUsedError; // Viewport
   double get zoom => throw _privateConstructorUsedError;
+
   Offset get panOffset => throw _privateConstructorUsedError; // Status
   bool get isDirty => throw _privateConstructorUsedError;
+
   bool get isSaving => throw _privateConstructorUsedError;
+
   String? get statusMessage => throw _privateConstructorUsedError;
+
   String? get errorMessage => throw _privateConstructorUsedError;
 
   /// Create a copy of EditorState
@@ -45,6 +53,7 @@ abstract class $EditorStateCopyWith<$Res> {
   factory $EditorStateCopyWith(
           EditorState value, $Res Function(EditorState) then) =
       _$EditorStateCopyWithImpl<$Res, EditorState>;
+
   @useResult
   $Res call(
       {ProjectFileSystem? fileSystem,
@@ -62,7 +71,9 @@ abstract class $EditorStateCopyWith<$Res> {
       String? errorMessage});
 
   $ProjectManifestCopyWith<$Res>? get project;
+
   $MapDataCopyWith<$Res>? get activeMap;
+
   $GridPosCopyWith<$Res>? get hoveredTile;
 }
 
@@ -73,6 +84,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
 
   // ignore: unused_field
   final $Val _value;
+
   // ignore: unused_field
   final $Res Function($Val) _then;
 
@@ -200,6 +212,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   factory _$$EditorStateImplCopyWith(
           _$EditorStateImpl value, $Res Function(_$EditorStateImpl) then) =
       __$$EditorStateImplCopyWithImpl<$Res>;
+
   @override
   @useResult
   $Res call(
@@ -219,8 +232,10 @@ abstract class _$$EditorStateImplCopyWith<$Res>
 
   @override
   $ProjectManifestCopyWith<$Res>? get project;
+
   @override
   $MapDataCopyWith<$Res>? get activeMap;
+
   @override
   $GridPosCopyWith<$Res>? get hoveredTile;
 }
@@ -332,11 +347,13 @@ class _$EditorStateImpl implements _EditorState {
   final ProjectFileSystem? fileSystem;
   @override
   final ProjectManifest? project;
+
 // Active Map
   @override
   final MapData? activeMap;
   @override
   final String? activeMapPath;
+
 // Active Tools & Selection
   @override
   @JsonKey()
@@ -345,6 +362,7 @@ class _$EditorStateImpl implements _EditorState {
   final String? activeLayerId;
   @override
   final GridPos? hoveredTile;
+
 // Viewport
   @override
   @JsonKey()
@@ -352,6 +370,7 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final Offset panOffset;
+
 // Status
   @override
   @JsonKey()
@@ -444,28 +463,36 @@ abstract class _EditorState implements EditorState {
 // Context
   @override
   ProjectFileSystem? get fileSystem;
+
   @override
   ProjectManifest? get project; // Active Map
   @override
   MapData? get activeMap;
+
   @override
   String? get activeMapPath; // Active Tools & Selection
   @override
   EditorToolType get activeTool;
+
   @override
   String? get activeLayerId;
+
   @override
   GridPos? get hoveredTile; // Viewport
   @override
   double get zoom;
+
   @override
   Offset get panOffset; // Status
   @override
   bool get isDirty;
+
   @override
   bool get isSaving;
+
   @override
   String? get statusMessage;
+
   @override
   String? get errorMessage;
 
