@@ -1,0 +1,149 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'map_data.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
+    _$MapDataImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
+      version: json['version'] as String? ?? 'v1',
+      tilesetId: json['tilesetId'] as String,
+      layers: (json['layers'] as List<dynamic>?)
+              ?.map((e) => MapLayerData.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      entities: (json['entities'] as List<dynamic>?)
+              ?.map((e) => MapEntity.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      warps: (json['warps'] as List<dynamic>?)
+              ?.map((e) => MapWarp.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      triggers: (json['triggers'] as List<dynamic>?)
+              ?.map((e) => MapTrigger.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      properties: json['properties'] as Map<String, dynamic>? ?? const {},
+    );
+
+Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'size': instance.size.toJson(),
+      'version': instance.version,
+      'tilesetId': instance.tilesetId,
+      'layers': instance.layers.map((e) => e.toJson()).toList(),
+      'entities': instance.entities.map((e) => e.toJson()).toList(),
+      'warps': instance.warps.map((e) => e.toJson()).toList(),
+      'triggers': instance.triggers.map((e) => e.toJson()).toList(),
+      'properties': instance.properties,
+    };
+
+_$MapLayerDataImpl _$$MapLayerDataImplFromJson(Map<String, dynamic> json) =>
+    _$MapLayerDataImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      type: $enumDecode(_$LayerTypeEnumMap, json['type']),
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      tiles: (json['tiles'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [],
+      collisions: (json['collisions'] as List<dynamic>?)
+              ?.map((e) => e as bool)
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$MapLayerDataImplToJson(_$MapLayerDataImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'type': _$LayerTypeEnumMap[instance.type]!,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'tiles': instance.tiles,
+      'collisions': instance.collisions,
+    };
+
+const _$LayerTypeEnumMap = {
+  LayerType.tile: 'tile',
+  LayerType.collision: 'collision',
+  LayerType.entity: 'entity',
+  LayerType.warp: 'warp',
+  LayerType.trigger: 'trigger',
+};
+
+_$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
+    _$MapEntityImpl(
+      id: json['id'] as String,
+      type: $enumDecode(_$EntityTypeEnumMap, json['type']),
+      pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+      properties: json['properties'] as Map<String, dynamic>? ?? const {},
+    );
+
+Map<String, dynamic> _$$MapEntityImplToJson(_$MapEntityImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': _$EntityTypeEnumMap[instance.type]!,
+      'pos': instance.pos.toJson(),
+      'properties': instance.properties,
+    };
+
+const _$EntityTypeEnumMap = {
+  EntityType.npc: 'npc',
+  EntityType.monster: 'monster',
+  EntityType.chest: 'chest',
+  EntityType.sign: 'sign',
+  EntityType.custom: 'custom',
+};
+
+_$MapWarpImpl _$$MapWarpImplFromJson(Map<String, dynamic> json) =>
+    _$MapWarpImpl(
+      id: json['id'] as String,
+      pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+      targetMapId: json['targetMapId'] as String,
+      targetPos: GridPos.fromJson(json['targetPos'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$MapWarpImplToJson(_$MapWarpImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'pos': instance.pos.toJson(),
+      'targetMapId': instance.targetMapId,
+      'targetPos': instance.targetPos.toJson(),
+    };
+
+_$MapTriggerImpl _$$MapTriggerImplFromJson(Map<String, dynamic> json) =>
+    _$MapTriggerImpl(
+      id: json['id'] as String,
+      type: $enumDecode(_$TriggerTypeEnumMap, json['type']),
+      pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+      zone: MapRect.fromJson(json['zone'] as Map<String, dynamic>),
+      properties: json['properties'] as Map<String, dynamic>? ?? const {},
+    );
+
+Map<String, dynamic> _$$MapTriggerImplToJson(_$MapTriggerImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': _$TriggerTypeEnumMap[instance.type]!,
+      'pos': instance.pos.toJson(),
+      'zone': instance.zone.toJson(),
+      'properties': instance.properties,
+    };
+
+const _$TriggerTypeEnumMap = {
+  TriggerType.script: 'script',
+  TriggerType.sound: 'sound',
+  TriggerType.cutscene: 'cutscene',
+  TriggerType.battle: 'battle',
+  TriggerType.custom: 'custom',
+};
