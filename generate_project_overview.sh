@@ -42,6 +42,7 @@ should_exclude() {
     [[ "$base" == *.svg ]] && return 0
     [[ "$base" == *.db ]] && return 0
     [[ "$base" == *.db-journal ]] && return 0
+    [[ "$base" == *.md ]] && return 0
     [[ "$base" == *.env ]] && return 0
     [[ "$base" == ".env.example" ]] && return 0
     [[ "$base" == *.freezed.dart ]] && return 0
