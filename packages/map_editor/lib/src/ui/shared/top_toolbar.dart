@@ -141,6 +141,18 @@ class TopToolbar extends ConsumerWidget {
             ),
             tooltip: 'Terrain Paint Tool',
           ),
+          IconButton(
+            onPressed: notifier.selectPathPaintMode,
+            icon: Icon(
+              Icons.route_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.terrainPaint &&
+                      state.selectedTerrainType == TerrainType.path
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Path Paint Tool',
+          ),
           PopupMenuButton<TerrainType>(
             tooltip:
                 'Terrain Type: ${_terrainTypeLabel(state.selectedTerrainType)}',
@@ -298,6 +310,7 @@ class TopToolbar extends ConsumerWidget {
     return switch (type) {
       TerrainType.none => Icons.block_outlined,
       TerrainType.normal => Icons.square_outlined,
+      TerrainType.path => Icons.route_outlined,
       TerrainType.water => Icons.water_outlined,
       TerrainType.tallGrass => Icons.grass_outlined,
       TerrainType.sand => Icons.landscape_outlined,
@@ -309,6 +322,7 @@ class TopToolbar extends ConsumerWidget {
     return switch (type) {
       TerrainType.none => 'None',
       TerrainType.normal => 'Normal',
+      TerrainType.path => 'Path',
       TerrainType.water => 'Water',
       TerrainType.tallGrass => 'TallGrass',
       TerrainType.sand => 'Sand',

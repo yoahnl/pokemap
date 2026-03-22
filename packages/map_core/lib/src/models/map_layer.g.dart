@@ -82,6 +82,7 @@ Map<String, dynamic> _$$TerrainLayerImplToJson(_$TerrainLayerImpl instance) =>
 const _$TerrainTypeEnumMap = {
   TerrainType.none: 'none',
   TerrainType.normal: 'normal',
+  TerrainType.path: 'path',
   TerrainType.water: 'water',
   TerrainType.tallGrass: 'tallGrass',
   TerrainType.sand: 'sand',

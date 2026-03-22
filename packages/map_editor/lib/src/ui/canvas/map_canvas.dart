@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/terrain/path_autotile_set.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
 class MapCanvas extends ConsumerWidget {
@@ -18,7 +19,12 @@ class MapCanvas extends ConsumerWidget {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
-    final tilesetPathsById = _collectLayerTilesetPaths(activeMap, notifier);
+    final pathAutotileSet = notifier.getPathAutotileSet();
+    final tilesetPathsById = _collectLayerTilesetPaths(
+      activeMap,
+      notifier,
+      pathAutotileSet: pathAutotileSet,
+    );
 
     if (activeMap == null) {
       return const Center(child: Text('No Map Loaded'));
@@ -168,6 +174,7 @@ class MapCanvas extends ConsumerWidget {
                   toolPreview: toolPreview,
                   warps: activeMap.warps,
                   selectedWarpId: state.selectedWarpId,
+                  pathAutotileSet: pathAutotileSet,
                 ),
               ),
             ),
@@ -179,8 +186,9 @@ class MapCanvas extends ConsumerWidget {
 
   Map<String, String> _collectLayerTilesetPaths(
     MapData? map,
-    EditorNotifier notifier,
-  ) {
+    EditorNotifier notifier, {
+    PathAutotileSet? pathAutotileSet,
+  }) {
     final result = <String, String>{};
     if (map != null) {
       for (final layer in map.layers) {
@@ -197,6 +205,16 @@ class MapCanvas extends ConsumerWidget {
       final brushPath = notifier.getTilesetAbsolutePathById(brushTilesetId);
       if (brushPath != null && brushPath.isNotEmpty) {
         result[brushTilesetId] = brushPath;
+      }
+    }
+    final pathTilesetId = pathAutotileSet?.tilesetId.trim();
+    if (pathTilesetId != null &&
+        pathTilesetId.isNotEmpty &&
+        !result.containsKey(pathTilesetId)) {
+      final pathTilesetPath =
+          notifier.getTilesetAbsolutePathById(pathTilesetId);
+      if (pathTilesetPath != null && pathTilesetPath.isNotEmpty) {
+        result[pathTilesetId] = pathTilesetPath;
       }
     }
     return result;
@@ -238,6 +256,7 @@ class MapGridPainter extends CustomPainter {
   final MapToolPreview? toolPreview;
   final List<MapWarp> warps;
   final String? selectedWarpId;
+  final PathAutotileSet? pathAutotileSet;
 
   MapGridPainter({
     required this.map,
@@ -254,6 +273,7 @@ class MapGridPainter extends CustomPainter {
     this.toolPreview,
     required this.warps,
     this.selectedWarpId,
+    this.pathAutotileSet,
   });
 
   @override
@@ -709,6 +729,7 @@ class MapGridPainter extends CustomPainter {
   }) {
     if (layer.terrains.isEmpty) return;
     final activeBoost = isActive ? 1.0 : 0.85;
+    final pathCellAlpha = 0.95 * layer.opacity * activeBoost;
     for (var y = 0; y < map.size.height; y++) {
       final rowStart = y * map.size.width;
       for (var x = 0; x < map.size.width; x++) {
@@ -716,6 +737,18 @@ class MapGridPainter extends CustomPainter {
         if (index < 0 || index >= layer.terrains.length) continue;
         final terrain = layer.terrains[index];
         if (terrain == TerrainType.none) continue;
+        if (terrain == TerrainType.path) {
+          final pathDrawn = _paintPathAutotileCell(
+            canvas,
+            layer,
+            x: x,
+            y: y,
+            alpha: pathCellAlpha,
+          );
+          if (pathDrawn) {
+            continue;
+          }
+        }
         final fillColor = _terrainColor(terrain).withValues(
           alpha: 0.16 * layer.opacity * activeBoost,
         );
@@ -745,10 +778,69 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
+  bool _paintPathAutotileCell(
+    Canvas canvas,
+    TerrainLayer layer, {
+    required int x,
+    required int y,
+    required double alpha,
+  }) {
+    final autotileSet = pathAutotileSet;
+    if (autotileSet == null) return false;
+    final tilesetId = autotileSet.tilesetId.trim();
+    if (tilesetId.isEmpty) return false;
+    final tilesetImage = tilesetImagesById[tilesetId];
+    final tilesPerRow = tilesPerRowById[tilesetId] ?? 0;
+    if (tilesetImage == null ||
+        tilesPerRow <= 0 ||
+        sourceTileWidth <= 0 ||
+        sourceTileHeight <= 0) {
+      return false;
+    }
+
+    final variant = resolveTerrainPathVariantAt(
+      terrains: layer.terrains,
+      mapSize: map.size,
+      pos: GridPos(x: x, y: y),
+    );
+    final source = autotileSet.sourceForVariant(variant);
+    if (source == null) return false;
+
+    final sourceX = source.x * sourceTileWidth;
+    final sourceY = source.y * sourceTileHeight;
+    if (sourceX < 0 ||
+        sourceY < 0 ||
+        sourceX + sourceTileWidth > tilesetImage.width ||
+        sourceY + sourceTileHeight > tilesetImage.height) {
+      return false;
+    }
+
+    final srcRect = Rect.fromLTWH(
+      sourceX.toDouble(),
+      sourceY.toDouble(),
+      sourceTileWidth.toDouble(),
+      sourceTileHeight.toDouble(),
+    );
+    final dstRect = Rect.fromLTWH(
+      x * tileWidth,
+      y * tileHeight,
+      tileWidth,
+      tileHeight,
+    );
+    canvas.drawImageRect(
+      tilesetImage,
+      srcRect,
+      dstRect,
+      Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
+    );
+    return true;
+  }
+
   Color _terrainColor(TerrainType terrain) {
     return switch (terrain) {
       TerrainType.none => Colors.transparent,
       TerrainType.normal => Colors.white70,
+      TerrainType.path => Colors.brown,
       TerrainType.water => Colors.lightBlueAccent,
       TerrainType.tallGrass => Colors.lightGreenAccent,
       TerrainType.sand => Colors.amberAccent,
@@ -768,6 +860,7 @@ class MapGridPainter extends CustomPainter {
         !_sameToolPreview(oldDelegate.toolPreview, toolPreview) ||
         oldDelegate.selectedWarpId != selectedWarpId ||
         !listEquals(oldDelegate.warps, warps) ||
+        !_samePathAutotileSet(oldDelegate.pathAutotileSet, pathAutotileSet) ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||
@@ -785,6 +878,18 @@ class MapGridPainter extends CustomPainter {
         previous.validity == next.validity &&
         previous.reason == next.reason &&
         listEquals(previous.tiles, next.tiles);
+  }
+
+  bool _samePathAutotileSet(PathAutotileSet? previous, PathAutotileSet? next) {
+    if (identical(previous, next)) return true;
+    if (previous == null || next == null) return previous == next;
+    if (previous.tilesetId != next.tilesetId) return false;
+    if (previous.variants.length != next.variants.length) return false;
+    for (final entry in previous.variants.entries) {
+      final other = next.variants[entry.key];
+      if (other != entry.value) return false;
+    }
+    return true;
   }
 }
 

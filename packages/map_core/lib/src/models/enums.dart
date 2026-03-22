@@ -86,6 +86,8 @@ enum TerrainType {
   none,
   @JsonValue('normal')
   normal,
+  @JsonValue('path')
+  path,
   @JsonValue('water')
   water,
   @JsonValue('tallGrass')
@@ -94,6 +96,25 @@ enum TerrainType {
   sand,
   @JsonValue('ice')
   ice,
+}
+
+enum TerrainPathVariant {
+  isolated,
+  endNorth,
+  endEast,
+  endSouth,
+  endWest,
+  horizontal,
+  vertical,
+  cornerNE,
+  cornerSE,
+  cornerSW,
+  cornerNW,
+  teeNorth,
+  teeEast,
+  teeSouth,
+  teeWest,
+  cross,
 }
 
 enum TilesetScope {

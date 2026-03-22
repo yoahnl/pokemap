@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/providers/use_case_providers.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
+import '../terrain/path_autotile_set.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 
@@ -695,6 +696,30 @@ class EditorNotifier extends _$EditorNotifier {
     final tileset = getActiveTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
+  }
+
+  PathAutotileSet? getPathAutotileSet() {
+    final map = state.activeMap;
+    if (map == null) return null;
+
+    final selectedTilesetId = state.selectedTilesetEditorId?.trim();
+    if (selectedTilesetId != null &&
+        selectedTilesetId.isNotEmpty &&
+        getTilesetById(selectedTilesetId) != null) {
+      return PathAutotileSet.defaultForTileset(selectedTilesetId);
+    }
+
+    final fallbackTilesetId = _resolveSelectedTilesetIdForMap(
+      map,
+      preferredLayerId: state.activeLayerId,
+    );
+    if (fallbackTilesetId == null || fallbackTilesetId.trim().isEmpty) {
+      return null;
+    }
+    if (getTilesetById(fallbackTilesetId) == null) {
+      return null;
+    }
+    return PathAutotileSet.defaultForTileset(fallbackTilesetId);
   }
 
   void selectTilesetWorkspace(String? tilesetId) {
@@ -2807,6 +2832,15 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       selectedTerrainType: terrain,
       statusMessage: 'Terrain type: ${terrain.name}',
+      errorMessage: null,
+    );
+  }
+
+  void selectPathPaintMode() {
+    state = state.copyWith(
+      activeTool: EditorToolType.terrainPaint,
+      selectedTerrainType: TerrainType.path,
+      statusMessage: 'Terrain type: path',
       errorMessage: null,
     );
   }

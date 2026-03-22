@@ -10,6 +10,7 @@ export 'src/operations/map_resize.dart';
 export 'src/operations/map_paint.dart';
 export 'src/operations/map_collision.dart';
 export 'src/operations/map_terrain.dart';
+export 'src/operations/map_terrain_autotile.dart';
 export 'src/operations/map_layers.dart';
 export 'src/operations/map_warps.dart';
 export 'src/validation/validators.dart';
