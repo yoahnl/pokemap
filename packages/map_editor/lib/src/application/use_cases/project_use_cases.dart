@@ -929,6 +929,42 @@ class PaintTilePatternOnMapUseCase {
   }
 }
 
+class EraseTileOnMapUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required GridPos pos,
+  }) {
+    final erased = eraseTileOnLayer(
+      map,
+      layerId: layerId,
+      pos: pos,
+    );
+    MapValidator.validate(erased);
+    return erased;
+  }
+}
+
+class EraseTilePatternOnMapUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    bool clipToMapBounds = true,
+  }) {
+    final erased = eraseTilePatternOnLayer(
+      map,
+      layerId: layerId,
+      pos: pos,
+      patternSize: patternSize,
+      clipToMapBounds: clipToMapBounds,
+    );
+    MapValidator.validate(erased);
+    return erased;
+  }
+}
+
 class AddMapLayerResult {
   final MapData map;
   final MapLayer layer;

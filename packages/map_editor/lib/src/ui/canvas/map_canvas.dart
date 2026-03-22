@@ -41,14 +41,12 @@ class MapCanvas extends ConsumerWidget {
             }
           });
         }
-        final activeBrushTilesetId = notifier.getActiveBrushTilesetId();
-        final activeBrushTilesetColumns = activeBrushTilesetId == null
-            ? 0
-            : (tilesPerRowById[activeBrushTilesetId] ?? 0);
+        final toolPreview = notifier.resolveMapToolPreview(
+          tilesetColumnsById: tilesPerRowById,
+        );
 
         return GestureDetector(
           onTapDown: (details) {
-            if (state.activeTool != EditorToolType.tilePaint) return;
             final gridPos = _screenToGrid(
               details.localPosition,
               state.panOffset,
@@ -57,15 +55,24 @@ class MapCanvas extends ConsumerWidget {
               tileWidth,
               tileHeight,
             );
-            if (gridPos != null) {
+            if (gridPos == null) return;
+            if (state.activeTool == EditorToolType.tilePaint) {
               notifier.paintSelectedBrushAt(
                 gridPos,
-                tilesetColumns: activeBrushTilesetColumns,
+                tilesetColumnsById: tilesPerRowById,
+              );
+              return;
+            }
+            if (state.activeTool == EditorToolType.eraser) {
+              notifier.eraseAt(
+                gridPos,
+                tilesetColumnsById: tilesPerRowById,
               );
             }
           },
           onPanUpdate: (details) {
-            if (state.activeTool == EditorToolType.tilePaint) {
+            if (state.activeTool == EditorToolType.tilePaint ||
+                state.activeTool == EditorToolType.eraser) {
               final gridPos = _screenToGrid(
                 details.localPosition,
                 state.panOffset,
@@ -75,10 +82,17 @@ class MapCanvas extends ConsumerWidget {
                 tileHeight,
               );
               if (gridPos != null) {
-                notifier.paintSelectedBrushAt(
-                  gridPos,
-                  tilesetColumns: activeBrushTilesetColumns,
-                );
+                if (state.activeTool == EditorToolType.tilePaint) {
+                  notifier.paintSelectedBrushAt(
+                    gridPos,
+                    tilesetColumnsById: tilesPerRowById,
+                  );
+                } else {
+                  notifier.eraseAt(
+                    gridPos,
+                    tilesetColumnsById: tilesPerRowById,
+                  );
+                }
               }
               return;
             }
@@ -111,6 +125,7 @@ class MapCanvas extends ConsumerWidget {
                   sourceTileWidth: settings.tileWidth,
                   sourceTileHeight: settings.tileHeight,
                   tilesPerRowById: tilesPerRowById,
+                  toolPreview: toolPreview,
                 ),
               ),
             ),
@@ -178,6 +193,7 @@ class MapGridPainter extends CustomPainter {
   final int sourceTileWidth;
   final int sourceTileHeight;
   final Map<String, int> tilesPerRowById;
+  final MapToolPreview? toolPreview;
 
   MapGridPainter({
     required this.map,
@@ -191,6 +207,7 @@ class MapGridPainter extends CustomPainter {
     required this.sourceTileWidth,
     required this.sourceTileHeight,
     required this.tilesPerRowById,
+    this.toolPreview,
   });
 
   @override
@@ -265,6 +282,8 @@ class MapGridPainter extends CustomPainter {
       );
     }
 
+    _paintToolPreview(canvas);
+
     canvas.drawRect(
       Rect.fromLTWH(0, 0, gridWidth, gridHeight),
       Paint()
@@ -273,6 +292,128 @@ class MapGridPainter extends CustomPainter {
     );
 
     canvas.restore();
+  }
+
+  void _paintToolPreview(Canvas canvas) {
+    final preview = toolPreview;
+    if (preview == null) return;
+    if (preview.mode == MapToolPreviewMode.paint) {
+      _paintPaintPreview(canvas, preview);
+      return;
+    }
+    _paintErasePreview(canvas, preview);
+  }
+
+  void _paintPaintPreview(Canvas canvas, MapToolPreview preview) {
+    final tiles = preview.tiles;
+    final tilesetId = preview.tilesetId;
+    if (tiles == null || tilesetId == null) return;
+    final tilesetImage = tilesetImagesById[tilesetId];
+    final tilesPerRow = tilesPerRowById[tilesetId] ?? 0;
+    if (tilesetImage != null &&
+        tilesPerRow > 0 &&
+        sourceTileWidth > 0 &&
+        sourceTileHeight > 0) {
+      final alpha =
+          preview.validity == MapToolPreviewValidity.valid ? 0.6 : 0.3;
+      final tilePaint = Paint()..color = Colors.white.withValues(alpha: alpha);
+      for (var y = 0; y < preview.size.height; y++) {
+        for (var x = 0; x < preview.size.width; x++) {
+          final mapX = preview.origin.x + x;
+          final mapY = preview.origin.y + y;
+          if (mapX < 0 ||
+              mapY < 0 ||
+              mapX >= map.size.width ||
+              mapY >= map.size.height) {
+            continue;
+          }
+          final patternIndex = y * preview.size.width + x;
+          if (patternIndex < 0 || patternIndex >= tiles.length) continue;
+          final tileId = tiles[patternIndex];
+          if (tileId <= 0) continue;
+          final sourceIndex = tileId - 1;
+          final sourceX = (sourceIndex % tilesPerRow) * sourceTileWidth;
+          final sourceY = (sourceIndex ~/ tilesPerRow) * sourceTileHeight;
+          if (sourceX < 0 ||
+              sourceY < 0 ||
+              sourceX + sourceTileWidth > tilesetImage.width ||
+              sourceY + sourceTileHeight > tilesetImage.height) {
+            continue;
+          }
+          final srcRect = Rect.fromLTWH(
+            sourceX.toDouble(),
+            sourceY.toDouble(),
+            sourceTileWidth.toDouble(),
+            sourceTileHeight.toDouble(),
+          );
+          final dstRect = Rect.fromLTWH(
+            mapX * tileWidth,
+            mapY * tileHeight,
+            tileWidth,
+            tileHeight,
+          );
+          canvas.drawImageRect(tilesetImage, srcRect, dstRect, tilePaint);
+        }
+      }
+    }
+
+    final previewRect = _computePreviewRect(preview.origin, preview.size);
+    if (previewRect == null) return;
+    if (preview.validity == MapToolPreviewValidity.invalid) {
+      canvas.drawRect(
+        previewRect,
+        Paint()
+          ..color = Colors.redAccent.withValues(alpha: 0.22)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        previewRect,
+        Paint()
+          ..color = Colors.redAccent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0 / zoom,
+      );
+      return;
+    }
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5 / zoom,
+    );
+  }
+
+  void _paintErasePreview(Canvas canvas, MapToolPreview preview) {
+    final previewRect = _computePreviewRect(preview.origin, preview.size);
+    if (previewRect == null) return;
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.redAccent.withValues(alpha: 0.20)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.redAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 / zoom,
+    );
+  }
+
+  Rect? _computePreviewRect(GridPos origin, GridSize size) {
+    final left = origin.x.clamp(0, map.size.width);
+    final top = origin.y.clamp(0, map.size.height);
+    final right = (origin.x + size.width).clamp(0, map.size.width);
+    final bottom = (origin.y + size.height).clamp(0, map.size.height);
+    if (right <= left || bottom <= top) return null;
+    return Rect.fromLTWH(
+      left * tileWidth,
+      top * tileHeight,
+      (right - left) * tileWidth,
+      (bottom - top) * tileHeight,
+    );
   }
 
   void _paintTileLayer(Canvas canvas, TileLayer layer) {
@@ -353,10 +494,23 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.activeLayerId != activeLayerId ||
         oldDelegate.tileWidth != tileWidth ||
         oldDelegate.tileHeight != tileHeight ||
+        !_sameToolPreview(oldDelegate.toolPreview, toolPreview) ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById);
+  }
+
+  bool _sameToolPreview(MapToolPreview? previous, MapToolPreview? next) {
+    if (identical(previous, next)) return true;
+    if (previous == null || next == null) return previous == next;
+    return previous.mode == next.mode &&
+        previous.origin == next.origin &&
+        previous.size == next.size &&
+        previous.tilesetId == next.tilesetId &&
+        previous.validity == next.validity &&
+        previous.reason == next.reason &&
+        listEquals(previous.tiles, next.tiles);
   }
 }
 

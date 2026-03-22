@@ -464,6 +464,46 @@ final paintTilePatternOnMapUseCaseProvider =
 // ignore: unused_element
 typedef PaintTilePatternOnMapUseCaseRef
     = AutoDisposeProviderRef<PaintTilePatternOnMapUseCase>;
+String _$eraseTileOnMapUseCaseHash() =>
+    r'c06a7e0030de17f6a8cf262baa2a938dc3b1e001';
+
+/// See also [eraseTileOnMapUseCase].
+@ProviderFor(eraseTileOnMapUseCase)
+final eraseTileOnMapUseCaseProvider =
+    AutoDisposeProvider<EraseTileOnMapUseCase>.internal(
+  eraseTileOnMapUseCase,
+  name: r'eraseTileOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$eraseTileOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EraseTileOnMapUseCaseRef
+    = AutoDisposeProviderRef<EraseTileOnMapUseCase>;
+String _$eraseTilePatternOnMapUseCaseHash() =>
+    r'78c4aed35e65a050f6def1b45c329fd309fe59aa';
+
+/// See also [eraseTilePatternOnMapUseCase].
+@ProviderFor(eraseTilePatternOnMapUseCase)
+final eraseTilePatternOnMapUseCaseProvider =
+    AutoDisposeProvider<EraseTilePatternOnMapUseCase>.internal(
+  eraseTilePatternOnMapUseCase,
+  name: r'eraseTilePatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$eraseTilePatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EraseTilePatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<EraseTilePatternOnMapUseCase>;
 String _$addMapLayerUseCaseHash() =>
     r'9d7129cee987442d8a9e36905876a797b1873ed5';
 

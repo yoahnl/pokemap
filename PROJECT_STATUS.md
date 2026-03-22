@@ -33,6 +33,18 @@ Separations metier explicites:
 - Parametres globaux projet (`tileWidth`, `tileHeight`, `displayScale`, `defaultMapWidth`, `defaultMapHeight`).
 - Import tilesets (copie locale + chemin relatif), scope global/groupe, assignation a une `TileLayer`.
 - Rendu des tile layers sur canvas + peinture tile unitaire et multi-tile.
+- Ghost preview map operationnel:
+  - preview paint pour tile simple, palette entry et project element,
+  - statut visuel valide/invalide selon compatibilite de tileset avec la `TileLayer` active,
+  - preview erase dedie avec rendu distinct.
+- Outil eraser operationnel:
+  - clic + drag,
+  - effacement 1x1 sans brush selectionne,
+  - effacement multi-tiles base sur la taille du brush courant.
+- Resolution commune du brush dans `EditorNotifier`:
+  - partagee entre paint, erase et preview,
+  - meme logique de pattern/tileset/source rect,
+  - aucune emission d erreur au simple hover.
 - Systeme de layers operationnel sur map active:
   - ajout / renommage / suppression / reorder (avant/arriere),
   - action "supprimer tous les layers" avec map pouvant rester a zero layer,
@@ -85,7 +97,6 @@ Separations metier explicites:
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
-- Systeme de brush: source de verite unifiee en place, enrichissements UX possibles (preview cross-tileset, invalidation proactive selon contexte).
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -96,7 +107,7 @@ Separations metier explicites:
 ## 5. Fonctionnalites non faites
 - Connexions entre maps.
 - Edition avancee des layers (locks/groupes/presets/layers specialisees).
-- Outils avances map (eraser/fill/selection rect map/copy-paste/undo-redo).
+- Outils avances map (fill/selection rect map/copy-paste/undo-redo).
 - Collisions avancees (types/comportements).
 - Warps/triggers/NPC/objets/panneaux/spawn (pose + edition).
 - Inspector de proprietes complet.
@@ -105,11 +116,34 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-finalisation de la refonte layers:
-- coherences ordre UI (Haut/Bas) corrigees dans le panneau layers,
-- ordre de rendu canvas aligne sur la hierarchie affichee des layers.
+ghost preview + outil erase sur map:
+- preview paint/erase coherent avec le brush actif,
+- statut preview valide/invalide selon compatibilite de tileset/layer,
+- effacement clic + drag avec fallback 1x1 sans brush.
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (ghost preview + erase):
+- `map_core`:
+  - nouvelles operations pures dans `map_paint.dart`:
+    - `eraseTileOnLayer(...)`,
+    - `eraseTilePatternOnLayer(...)`.
+- `map_editor`:
+  - nouveaux use cases:
+    - `EraseTileOnMapUseCase`,
+    - `EraseTilePatternOnMapUseCase`.
+  - nouveaux providers Riverpod associes.
+  - `EditorNotifier`:
+    - refactor de resolution brush partagee (paint/preview/erase),
+    - ajout `resolveMapToolPreview(...)` (preview paint/erase),
+    - ajout `eraseAt(...)` (clic + drag),
+    - compatibilite tileset/layer evaluee pour distinguer preview valide/invalide,
+    - aucun spam `errorMessage` lors du hover.
+  - `MapCanvas` / `MapGridPainter`:
+    - routing gestures `tilePaint` et `eraser`,
+    - rendu du ghost preview paint semi-transparent,
+    - rendu preview invalide avec overlay de refus,
+    - rendu preview erase dedie.
+
 2026-03-22 (correctifs fin d etape layers):
 - `map_editor`:
   - `LayersPanel`: correction des actions de reorder pour que:
@@ -257,15 +291,14 @@ finalisation de la refonte layers:
 
 ## 8. Prochaines etapes recommandees
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
-- Ajouter un resolveur de brush partage entre panneau droit et canvas pour la previsualisation ghost avant peinture.
 - Ajouter locks, duplication et eventuel grouping de layers.
 - Ajouter edition collisions dediee (outil collision + rendu overlay collision).
 - Ajouter suppression et reorder des groupes internes de tileset.
 - Ajouter drag/drop de classement des elements dans un tileset.
 - Ajouter filtres rapides (tags, recherche texte, layer recommandee).
-- Ajouter preview ghost de l element sous curseur avant pose sur la map.
 - Ajouter edition/suppression des elements directement depuis le workspace.
 - Ajouter des interactions de navigation plus avancees dans `TilesetEditorCanvas` (panning dedie, raccourcis).
+- Ajouter un feedback explicite de la raison d invalidite directement dans l UI quand la preview est en mode refuse.
 - Ajouter ensuite des validations de coherence inter-maps au niveau projet (ex: existence reelle des `targetMapId` des warps) dans la validation projet.
 
 ## 9. Decisions d architecture importantes
@@ -274,7 +307,10 @@ finalisation de la refonte layers:
   - tile unitaire (`tileId` + `tilesetId`),
   - palette entry (`entryId` + `tilesetId`),
   - project element (`elementId`).
+- La resolution de brush est mutualisee dans `EditorNotifier` et reutilisee par paint/erase/preview.
 - La peinture map ne lit plus de champs de selection concurrents; elle ne consomme que `activeBrush`.
+- Le ghost preview est pilote cote notifier avec un statut explicite (`valid` / `invalid`) et rendu cote painter.
+- L eraser reutilise la taille du brush courant, avec fallback 1x1 quand `activeBrush` vaut `none`.
 - Les mutations de layers sont centralisees via operations pures `map_core` + use cases `map_editor`.
 - `activeLayerId` reste pilote cote notifier et est resolu automatiquement vers une layer valide, ou `null` si la map n a plus de layer.
 - Les groupes internes de tileset sont separes des groupes du monde et des layers.
@@ -290,8 +326,8 @@ finalisation de la refonte layers:
   - bibliotheque d elements deja en place.
 
 ## 10. Points de vigilance / dette technique / bugs connus
-- Le rendu de preview/selection reste distribue entre widgets; une unification de la resolution visuelle du brush ameliorerait la maintenabilite.
-- Les brushes lies a un tileset different sont bloques a la peinture (volontaire), mais l UX peut encore mieux guider l utilisateur avant le clic.
+- Le ghost preview invalide pre-vient le refus avant clic, mais la raison detaillee n est pas encore affichee directement dans l UI.
+- Les brushes lies a un tileset different restent bloques a la peinture si la layer active ne peut pas etre rebindee.
 - Les layers `collision` et `object` sont gerables en pile mais leur rendu visuel dedie reste minimal (pas d overlay collision avancee ni d objets editoriaux).
 - Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
 - Une map peut maintenant etre volontairement sans layers; toute action de peinture est alors no-op tant qu aucune layer active tile n est selectionnee.
@@ -323,7 +359,9 @@ finalisation de la refonte layers:
 - Selectionner une layer active: fait
 - Ajouter/renommer/reordonner/masquer/supprimer des layers: fait
 - Peindre des tiles: fait
-- Effacer des tiles: pas fait
+- Effacer des tiles: fait
+- Ghost preview brush: fait
+- Preview d effacement: fait
 - Remplir une zone: pas fait
 - Faire de la selection rectangulaire: fait
 - Copier-coller une zone: pas fait
@@ -372,6 +410,7 @@ finalisation de la refonte layers:
 - Rester modulaire entre core, editor et runtime: fait
 
 ## Mini tableau priorites (etat)
+- Ghost preview + erase: fait
 - Systeme de brush: fait
 - Layers: fait (base MVP), evolutions avancees non faites
 - Collisions: pas fait

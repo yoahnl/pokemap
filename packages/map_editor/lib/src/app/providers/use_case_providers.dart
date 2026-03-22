@@ -151,6 +151,17 @@ PaintTilePatternOnMapUseCase paintTilePatternOnMapUseCase(
 }
 
 @riverpod
+EraseTileOnMapUseCase eraseTileOnMapUseCase(EraseTileOnMapUseCaseRef ref) {
+  return EraseTileOnMapUseCase();
+}
+
+@riverpod
+EraseTilePatternOnMapUseCase eraseTilePatternOnMapUseCase(
+    EraseTilePatternOnMapUseCaseRef ref) {
+  return EraseTilePatternOnMapUseCase();
+}
+
+@riverpod
 AddMapLayerUseCase addMapLayerUseCase(AddMapLayerUseCaseRef ref) {
   return AddMapLayerUseCase();
 }

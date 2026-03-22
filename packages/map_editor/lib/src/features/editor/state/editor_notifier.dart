@@ -1286,109 +1286,101 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  void paintSelectedBrushAt(GridPos pos, {required int tilesetColumns}) {
-    var map = state.activeMap;
-    final layerId = state.activeLayerId;
-    if (map == null || layerId == null) return;
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer == null) {
-      _setPaintError('Active layer not found: $layerId');
-      return;
+  void paintSelectedBrushAt(
+    GridPos pos, {
+    required Map<String, int> tilesetColumnsById,
+  }) {
+    final layerContext = _resolveActiveTileLayerContext(emitErrors: true);
+    if (layerContext == null) return;
+    final resolvedBrush = _resolveActiveBrushPattern(
+      tilesetColumnsById: tilesetColumnsById,
+      emitErrors: true,
+    );
+    if (resolvedBrush == null) return;
+    final preparedMap = _prepareMapForBrushTileset(
+      map: layerContext.map,
+      layerId: layerContext.layerId,
+      activeLayer: layerContext.layer,
+      brushTilesetId: resolvedBrush.tilesetId,
+    );
+    if (preparedMap == null) return;
+    _paintPattern(
+      map: preparedMap,
+      layerId: layerContext.layerId,
+      pos: pos,
+      pattern: resolvedBrush.pattern,
+      failureLabel: resolvedBrush.failureLabel,
+    );
+  }
+
+  void eraseAt(
+    GridPos pos, {
+    required Map<String, int> tilesetColumnsById,
+  }) {
+    final layerContext = _resolveActiveTileLayerContext(emitErrors: true);
+    if (layerContext == null) return;
+    final pattern = _resolveErasePattern(
+      tilesetColumnsById: tilesetColumnsById,
+      emitErrors: true,
+    );
+    if (pattern == null) return;
+    _erasePattern(
+      map: layerContext.map,
+      layerId: layerContext.layerId,
+      pos: pos,
+      patternSize: pattern.size,
+      failureLabel: pattern.failureLabel,
+    );
+  }
+
+  MapToolPreview? resolveMapToolPreview({
+    required Map<String, int> tilesetColumnsById,
+  }) {
+    final hoveredTile = state.hoveredTile;
+    if (hoveredTile == null) return null;
+    final tool = state.activeTool;
+    if (tool != EditorToolType.tilePaint && tool != EditorToolType.eraser) {
+      return null;
     }
-    if (activeLayer is! TileLayer) {
-      _setPaintError('Active layer "${activeLayer.name}" is not a tile layer');
-      return;
+    final layerContext = _resolveActiveTileLayerContext(emitErrors: false);
+    if (layerContext == null) return null;
+
+    if (tool == EditorToolType.eraser) {
+      final erasePattern = _resolveErasePattern(
+        tilesetColumnsById: tilesetColumnsById,
+        emitErrors: false,
+      );
+      if (erasePattern == null) return null;
+      return MapToolPreview.erase(
+        origin: hoveredTile,
+        size: erasePattern.size,
+        validity: MapToolPreviewValidity.valid,
+      );
     }
 
-    final brush = state.activeBrush;
-    if (brush is NoEditorBrush) return;
-
-    if (brush is TileEditorBrush) {
-      map = _prepareMapForBrushTileset(
-        map: map,
-        layerId: layerId,
-        activeLayer: activeLayer,
-        brushTilesetId: brush.tilesetId,
-      );
-      if (map == null) return;
-      if (brush.tileId <= 0) {
-        _setPaintError('Selected tile brush is invalid');
-        return;
-      }
-      _paintTile(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        tileId: brush.tileId,
-      );
-      return;
-    }
-
-    if (brush is PaletteEntryEditorBrush) {
-      map = _prepareMapForBrushTileset(
-        map: map,
-        layerId: layerId,
-        activeLayer: activeLayer,
-        brushTilesetId: brush.tilesetId,
-      );
-      if (map == null) return;
-      if (tilesetColumns <= 0) {
-        _setPaintError('Selected brush tileset image is not available');
-        return;
-      }
-      final entry = getPaletteEntryById(
-        tilesetId: brush.tilesetId,
-        entryId: brush.entryId,
-      );
-      if (entry == null) {
-        _setPaintError('Selected palette entry is no longer available');
-        return;
-      }
-      final pattern =
-          _buildPatternFromSource(entry.source, tilesetColumns: tilesetColumns);
-      _paintPattern(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        pattern: pattern,
-        failureLabel: 'palette entry',
-      );
-      return;
-    }
-
-    if (brush is ProjectElementEditorBrush) {
-      final element = getProjectElementById(brush.elementId);
-      if (element == null) {
-        _setPaintError('Selected project element is no longer available');
-        return;
-      }
-      map = _prepareMapForBrushTileset(
-        map: map,
-        layerId: layerId,
-        activeLayer: activeLayer,
-        brushTilesetId: element.tilesetId,
-      );
-      if (map == null) return;
-      if (tilesetColumns <= 0) {
-        _setPaintError('Selected brush tileset image is not available');
-        return;
-      }
-      final pattern = _buildPatternFromSource(
-        element.source,
-        tilesetColumns: tilesetColumns,
-      );
-      _paintPattern(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        pattern: pattern,
-        failureLabel: 'element',
-      );
-    }
+    final resolvedBrush = _resolveActiveBrushPattern(
+      tilesetColumnsById: tilesetColumnsById,
+      emitErrors: false,
+    );
+    if (resolvedBrush == null) return null;
+    final compatibility = _resolveLayerBrushCompatibility(
+      layerContext.layer,
+      resolvedBrush.tilesetId,
+    );
+    final validity = compatibility == _BrushLayerCompatibility.incompatible
+        ? MapToolPreviewValidity.invalid
+        : MapToolPreviewValidity.valid;
+    return MapToolPreview.paint(
+      origin: hoveredTile,
+      size: resolvedBrush.pattern.size,
+      tilesetId: resolvedBrush.tilesetId,
+      tiles: resolvedBrush.pattern.tiles,
+      validity: validity,
+    );
   }
 
   void paintSelectedTileAt(GridPos pos) {
-    paintSelectedBrushAt(pos, tilesetColumns: 0);
+    paintSelectedBrushAt(pos, tilesetColumnsById: const {});
   }
 
   EditorBrush _clearBrushIfTilesetRemoved(EditorBrush brush, String tilesetId) {
@@ -1429,6 +1421,131 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  _ResolvedBrushPattern? _resolveActiveBrushPattern({
+    required Map<String, int> tilesetColumnsById,
+    required bool emitErrors,
+  }) {
+    final brush = state.activeBrush;
+    if (brush is NoEditorBrush) return null;
+
+    if (brush is TileEditorBrush) {
+      final tilesetId = brush.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        if (emitErrors) {
+          _setPaintError('Selected tile brush does not have a valid tileset');
+        }
+        return null;
+      }
+      if (brush.tileId <= 0) {
+        if (emitErrors) {
+          _setPaintError('Selected tile brush is invalid');
+        }
+        return null;
+      }
+      return _ResolvedBrushPattern(
+        tilesetId: tilesetId,
+        failureLabel: 'tile',
+        pattern: _PaintPattern(
+          size: const GridSize(width: 1, height: 1),
+          tiles: <int>[brush.tileId],
+        ),
+      );
+    }
+
+    if (brush is PaletteEntryEditorBrush) {
+      final tilesetId = brush.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        if (emitErrors) {
+          _setPaintError(
+            'Selected palette brush does not have a valid tileset',
+          );
+        }
+        return null;
+      }
+      final entry = getPaletteEntryById(
+        tilesetId: tilesetId,
+        entryId: brush.entryId,
+      );
+      if (entry == null) {
+        if (emitErrors) {
+          _setPaintError('Selected palette entry is no longer available');
+        }
+        return null;
+      }
+      final tilesetColumns = tilesetColumnsById[tilesetId] ?? 0;
+      if (tilesetColumns <= 0) {
+        if (emitErrors) {
+          _setPaintError('Selected brush tileset image is not available');
+        }
+        return null;
+      }
+      return _ResolvedBrushPattern(
+        tilesetId: tilesetId,
+        failureLabel: 'palette entry',
+        pattern: _buildPatternFromSource(
+          entry.source,
+          tilesetColumns: tilesetColumns,
+        ),
+      );
+    }
+
+    if (brush is ProjectElementEditorBrush) {
+      final element = getProjectElementById(brush.elementId);
+      if (element == null) {
+        if (emitErrors) {
+          _setPaintError('Selected project element is no longer available');
+        }
+        return null;
+      }
+      final tilesetId = element.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        if (emitErrors) {
+          _setPaintError('Selected project element does not have a tileset');
+        }
+        return null;
+      }
+      final tilesetColumns = tilesetColumnsById[tilesetId] ?? 0;
+      if (tilesetColumns <= 0) {
+        if (emitErrors) {
+          _setPaintError('Selected brush tileset image is not available');
+        }
+        return null;
+      }
+      return _ResolvedBrushPattern(
+        tilesetId: tilesetId,
+        failureLabel: 'element',
+        pattern: _buildPatternFromSource(
+          element.source,
+          tilesetColumns: tilesetColumns,
+        ),
+      );
+    }
+
+    return null;
+  }
+
+  _ErasePattern? _resolveErasePattern({
+    required Map<String, int> tilesetColumnsById,
+    required bool emitErrors,
+  }) {
+    final brush = state.activeBrush;
+    if (brush is NoEditorBrush) {
+      return const _ErasePattern(
+        size: GridSize(width: 1, height: 1),
+        failureLabel: 'tile',
+      );
+    }
+    final resolvedBrush = _resolveActiveBrushPattern(
+      tilesetColumnsById: tilesetColumnsById,
+      emitErrors: emitErrors,
+    );
+    if (resolvedBrush == null) return null;
+    return _ErasePattern(
+      size: resolvedBrush.pattern.size,
+      failureLabel: resolvedBrush.failureLabel,
+    );
+  }
+
   void _paintPattern({
     required MapData map,
     required String layerId,
@@ -1456,32 +1573,97 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  void _paintTile({
+  void _erasePattern({
     required MapData map,
     required String layerId,
     required GridPos pos,
-    required int tileId,
+    required GridSize patternSize,
+    required String failureLabel,
   }) {
     try {
-      final useCase = ref.read(paintTileOnMapUseCaseProvider);
-      final painted = useCase.execute(
+      if (patternSize.width == 1 && patternSize.height == 1) {
+        final useCase = ref.read(eraseTileOnMapUseCaseProvider);
+        final erased = useCase.execute(
+          map,
+          layerId: layerId,
+          pos: pos,
+        );
+        state = state.copyWith(
+          activeMap: erased,
+          isDirty: true,
+          errorMessage: null,
+        );
+        return;
+      }
+
+      final useCase = ref.read(eraseTilePatternOnMapUseCaseProvider);
+      final erased = useCase.execute(
         map,
         layerId: layerId,
         pos: pos,
-        tileId: tileId,
+        patternSize: patternSize,
+        clipToMapBounds: true,
       );
       state = state.copyWith(
-        activeMap: painted,
+        activeMap: erased,
         isDirty: true,
         errorMessage: null,
       );
     } catch (e) {
-      _setPaintError('Failed to paint tile: $e');
+      _setPaintError('Failed to erase $failureLabel: $e');
     }
   }
 
   void _setPaintError(String message) {
     state = state.copyWith(errorMessage: message);
+  }
+
+  _ActiveTileLayerContext? _resolveActiveTileLayerContext({
+    required bool emitErrors,
+  }) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      if (emitErrors) {
+        _setPaintError('No active tile layer selected');
+      }
+      return null;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) {
+      if (emitErrors) {
+        _setPaintError('Active layer not found: $layerId');
+      }
+      return null;
+    }
+    if (activeLayer is! TileLayer) {
+      if (emitErrors) {
+        _setPaintError(
+            'Active layer "${activeLayer.name}" is not a tile layer');
+      }
+      return null;
+    }
+    return _ActiveTileLayerContext(
+      map: map,
+      layerId: layerId,
+      layer: activeLayer,
+    );
+  }
+
+  _BrushLayerCompatibility _resolveLayerBrushCompatibility(
+    TileLayer activeLayer,
+    String brushTilesetId,
+  ) {
+    final currentTilesetId = activeLayer.tilesetId?.trim();
+    if (currentTilesetId == brushTilesetId) {
+      return _BrushLayerCompatibility.compatible;
+    }
+    if (currentTilesetId == null ||
+        currentTilesetId.isEmpty ||
+        _isTileLayerEmpty(activeLayer)) {
+      return _BrushLayerCompatibility.rebindable;
+    }
+    return _BrushLayerCompatibility.incompatible;
   }
 
   MapData? _prepareMapForBrushTileset({
@@ -1490,14 +1672,14 @@ class EditorNotifier extends _$EditorNotifier {
     required TileLayer activeLayer,
     required String brushTilesetId,
   }) {
-    final currentTilesetId = activeLayer.tilesetId?.trim();
-    if (currentTilesetId == brushTilesetId) {
+    final compatibility = _resolveLayerBrushCompatibility(
+      activeLayer,
+      brushTilesetId,
+    );
+    if (compatibility == _BrushLayerCompatibility.compatible) {
       return map;
     }
-    final canRebind = currentTilesetId == null ||
-        currentTilesetId.isEmpty ||
-        _isTileLayerEmpty(activeLayer);
-    if (!canRebind) {
+    if (compatibility == _BrushLayerCompatibility.incompatible) {
       _setPaintError(
         'Layer "${activeLayer.name}" already contains tiles from another source',
       );
@@ -1849,4 +2031,82 @@ class _PaintPattern {
 
   final GridSize size;
   final List<int> tiles;
+}
+
+enum MapToolPreviewMode {
+  paint,
+  erase,
+}
+
+enum MapToolPreviewValidity {
+  valid,
+  invalid,
+}
+
+class MapToolPreview {
+  const MapToolPreview.paint({
+    required this.origin,
+    required this.size,
+    required this.tilesetId,
+    required this.tiles,
+    required this.validity,
+    this.reason,
+  }) : mode = MapToolPreviewMode.paint;
+
+  const MapToolPreview.erase({
+    required this.origin,
+    required this.size,
+    required this.validity,
+    this.reason,
+  })  : mode = MapToolPreviewMode.erase,
+        tilesetId = null,
+        tiles = null;
+
+  final MapToolPreviewMode mode;
+  final GridPos origin;
+  final GridSize size;
+  final String? tilesetId;
+  final List<int>? tiles;
+  final MapToolPreviewValidity validity;
+  final String? reason;
+}
+
+enum _BrushLayerCompatibility {
+  compatible,
+  rebindable,
+  incompatible,
+}
+
+class _ResolvedBrushPattern {
+  const _ResolvedBrushPattern({
+    required this.tilesetId,
+    required this.failureLabel,
+    required this.pattern,
+  });
+
+  final String tilesetId;
+  final String failureLabel;
+  final _PaintPattern pattern;
+}
+
+class _ErasePattern {
+  const _ErasePattern({
+    required this.size,
+    required this.failureLabel,
+  });
+
+  final GridSize size;
+  final String failureLabel;
+}
+
+class _ActiveTileLayerContext {
+  const _ActiveTileLayerContext({
+    required this.map,
+    required this.layerId,
+    required this.layer,
+  });
+
+  final MapData map;
+  final String layerId;
+  final TileLayer layer;
 }
