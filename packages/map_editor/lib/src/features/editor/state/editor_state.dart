@@ -29,6 +29,14 @@ sealed class EditorBrush with _$EditorBrush {
 }
 
 @freezed
+class MapHistorySnapshot with _$MapHistorySnapshot {
+  const factory MapHistorySnapshot({
+    required MapData map,
+    String? activeLayerId,
+  }) = _MapHistorySnapshot;
+}
+
+@freezed
 class EditorState with _$EditorState {
   const factory EditorState({
     // Context
@@ -54,6 +62,12 @@ class EditorState with _$EditorState {
     @Default(Offset.zero) Offset panOffset,
 
     // Status
+    @Default([]) List<MapHistorySnapshot> mapUndoStack,
+    @Default([]) List<MapHistorySnapshot> mapRedoStack,
+    MapHistorySnapshot? mapStrokeStart,
+    MapData? savedMapSnapshot,
+    @Default(false) bool canUndoMap,
+    @Default(false) bool canRedoMap,
     @Default(false) bool isDirty,
     @Default(false) bool isSaving,
     String? statusMessage,

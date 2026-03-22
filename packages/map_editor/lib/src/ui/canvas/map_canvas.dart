@@ -46,7 +46,7 @@ class MapCanvas extends ConsumerWidget {
         );
 
         return GestureDetector(
-          onTapDown: (details) {
+          onTapUp: (details) {
             final gridPos = _screenToGrid(
               details.localPosition,
               state.panOffset,
@@ -57,13 +57,44 @@ class MapCanvas extends ConsumerWidget {
             );
             if (gridPos == null) return;
             if (state.activeTool == EditorToolType.tilePaint) {
+              notifier.beginMapStroke();
               notifier.paintSelectedBrushAt(
                 gridPos,
                 tilesetColumnsById: tilesPerRowById,
               );
+              notifier.endMapStroke();
               return;
             }
             if (state.activeTool == EditorToolType.eraser) {
+              notifier.beginMapStroke();
+              notifier.eraseAt(
+                gridPos,
+                tilesetColumnsById: tilesPerRowById,
+              );
+              notifier.endMapStroke();
+            }
+          },
+          onPanStart: (details) {
+            if (state.activeTool != EditorToolType.tilePaint &&
+                state.activeTool != EditorToolType.eraser) {
+              return;
+            }
+            final gridPos = _screenToGrid(
+              details.localPosition,
+              state.panOffset,
+              state.zoom,
+              activeMap.size,
+              tileWidth,
+              tileHeight,
+            );
+            if (gridPos == null) return;
+            notifier.beginMapStroke();
+            if (state.activeTool == EditorToolType.tilePaint) {
+              notifier.paintSelectedBrushAt(
+                gridPos,
+                tilesetColumnsById: tilesPerRowById,
+              );
+            } else {
               notifier.eraseAt(
                 gridPos,
                 tilesetColumnsById: tilesPerRowById,
@@ -97,6 +128,18 @@ class MapCanvas extends ConsumerWidget {
               return;
             }
             notifier.pan(details.delta);
+          },
+          onPanEnd: (_) {
+            if (state.activeTool == EditorToolType.tilePaint ||
+                state.activeTool == EditorToolType.eraser) {
+              notifier.endMapStroke();
+            }
+          },
+          onPanCancel: () {
+            if (state.activeTool == EditorToolType.tilePaint ||
+                state.activeTool == EditorToolType.eraser) {
+              notifier.endMapStroke();
+            }
           },
           child: Listener(
             onPointerHover: (event) {

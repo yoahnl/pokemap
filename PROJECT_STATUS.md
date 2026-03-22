@@ -92,7 +92,29 @@ Separations metier explicites:
   - unicite IDs internes (layers/entities/warps/triggers),
   - validation complete des layers (opacity, tailles de grilles, tile IDs non negatifs),
   - validation des positions entites/warps/triggers et des zones de triggers,
-  - map valide meme avec zero layer (choix explicite de conception pour ce projet).
+- map valide meme avec zero layer (choix explicite de conception pour ce projet).
+- Undo/redo map-level operationnel pour la map active:
+  - paint/erase tile et pattern,
+  - mutations layers (add/rename/delete/delete all/reorder/visibility/opacity),
+  - resize map,
+  - assignation tileset a la layer active,
+  - piles `undo/redo` limitees et coherentes avec l etat dirty,
+  - drag paint/erase groupe en une seule entree d historique (stroke).
+- Raccourcis clavier desktop operationnels:
+  - macOS: `Cmd+Z`, `Cmd+Shift+Z`, `Cmd+Y`,
+  - Windows/Linux: `Ctrl+Z`, `Ctrl+Shift+Z`, `Ctrl+Y`,
+  - sauvegarde: `Cmd+S` (macOS), `Ctrl+S` (Windows/Linux),
+  - raccourcis ignores quand un champ texte est focus.
+- Suppression d element projet operationnelle:
+  - use case dedie + provider + integration notifier,
+  - action UI explicite sur chaque carte d element,
+  - nettoyage automatique du brush si l element supprime etait selectionne.
+- Refactor structurel engage sur les use cases:
+  - extraction de `paint`, `layer`, `map` dans des fichiers dedies:
+    - `paint_use_cases.dart`,
+    - `layer_use_cases.dart`,
+    - `map_use_cases.dart`,
+  - `project_use_cases.dart` reste point d entree, avec `part` pour ces blocs.
 
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
@@ -107,7 +129,8 @@ Separations metier explicites:
 ## 5. Fonctionnalites non faites
 - Connexions entre maps.
 - Edition avancee des layers (locks/groupes/presets/layers specialisees).
-- Outils avances map (fill/selection rect map/copy-paste/undo-redo).
+- Outils avances map (fill/selection rect map/copy-paste).
+- Undo/redo global projet (au-dela de la map active).
 - Collisions avancees (types/comportements).
 - Warps/triggers/NPC/objets/panneaux/spawn (pose + edition).
 - Inspector de proprietes complet.
@@ -116,10 +139,10 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-ghost preview + outil erase sur map:
-- preview paint/erase coherent avec le brush actif,
-- statut preview valide/invalide selon compatibilite de tileset/layer,
-- effacement clic + drag avec fallback 1x1 sans brush.
+- undo/redo map-level robuste avec regroupement des strokes paint/erase,
+- raccourcis desktop undo/redo,
+- suppression d elements projet depuis l UI,
+- nettoyage structurel initial des use cases (`paint`/`layer`/`map`).
 
 ## 7. Dernieres modifications realisees
 2026-03-22 (ghost preview + erase):
@@ -143,6 +166,38 @@ ghost preview + outil erase sur map:
     - rendu du ghost preview paint semi-transparent,
     - rendu preview invalide avec overlay de refus,
     - rendu preview erase dedie.
+
+2026-03-22 (undo/redo + shortcuts + delete element):
+- `map_editor`:
+  - `EditorState`:
+    - ajout de l historique map active (`mapUndoStack`, `mapRedoStack`),
+    - ajout de `mapStrokeStart`,
+    - ajout de `savedMapSnapshot`,
+    - ajout des flags `canUndoMap` / `canRedoMap`.
+  - `EditorNotifier`:
+    - ajout `beginMapStroke()`, `endMapStroke()`, `undoMap()`, `redoMap()`,
+    - centralisation des mutations map via `_applyMapMutation(...)`,
+    - invalidation redo sur nouvelle mutation,
+    - coherence dirty/snapshot apres undo/redo/save,
+    - integration stroke dans paint/erase pour produire une seule entree par drag.
+  - `MapCanvas`:
+    - integration cycle stroke en gestures (tap/pan start/update/end/cancel),
+    - drag paint/erase agrège en une seule action undo.
+  - `EditorShellPage`:
+    - ajout du systeme `Shortcuts`/`Actions` pour undo/redo desktop,
+    - ajout du raccourci sauvegarde desktop (`Cmd+S` / `Ctrl+S`),
+    - garde contre declenchement quand un champ texte est focus.
+  - `TopToolbar`:
+    - ajout boutons `Undo` / `Redo` relies a `canUndoMap` / `canRedoMap`.
+  - Elements:
+    - ajout `DeleteProjectElementUseCase` + provider,
+    - ajout `deleteProjectElement(...)` dans le notifier,
+    - action de suppression UI dans `TilesetPalettePanel` avec confirmation.
+  - Refactor use cases:
+    - extraction dans fichiers dedies:
+      - `map_use_cases.dart`,
+      - `layer_use_cases.dart`,
+      - `paint_use_cases.dart`.
 
 2026-03-22 (correctifs fin d etape layers):
 - `map_editor`:
@@ -290,13 +345,14 @@ ghost preview + outil erase sur map:
     - liste des elements du tileset avec metadonnees (groupe monde + groupe interne + layer).
 
 ## 8. Prochaines etapes recommandees
+- Finaliser l eclatement complet du monolithe `project_use_cases.dart` (tilesets/elements/projet) pour aligner toute la couche application sur la meme granularite.
+- Ajouter suppression/reorder des groupes internes de tileset et suppression de palette entries.
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
 - Ajouter locks, duplication et eventuel grouping de layers.
 - Ajouter edition collisions dediee (outil collision + rendu overlay collision).
-- Ajouter suppression et reorder des groupes internes de tileset.
 - Ajouter drag/drop de classement des elements dans un tileset.
 - Ajouter filtres rapides (tags, recherche texte, layer recommandee).
-- Ajouter edition/suppression des elements directement depuis le workspace.
+- Ajouter edition/suppression des elements directement depuis le workspace central tileset.
 - Ajouter des interactions de navigation plus avancees dans `TilesetEditorCanvas` (panning dedie, raccourcis).
 - Ajouter un feedback explicite de la raison d invalidite directement dans l UI quand la preview est en mode refuse.
 - Ajouter ensuite des validations de coherence inter-maps au niveau projet (ex: existence reelle des `targetMapId` des warps) dans la validation projet.
@@ -320,6 +376,10 @@ ghost preview + outil erase sur map:
 - La validation map stricte reste centralisee dans `map_core` via `MapValidator`.
 - La logique de resolution/liste des elements d un tileset reste cote use cases, pas dans les widgets.
 - Les tilesets sont portes par les `TileLayer`; `MapData.tilesetId` reste seulement en fallback legacy.
+- L historique undo/redo est volontairement scope a la map active (pas d historique global projet pour cette iteration).
+- Toute mutation map passe par `_applyMapMutation(...)` dans le notifier pour garder un seul pipeline de coherence (undo/redo, dirty, layer active, tileset selectionne).
+- Les strokes paint/erase sont traites comme des transactions logiques (begin/end) pour eviter une entree d historique par cellule.
+- Les raccourcis undo/redo sont geres au shell via `Shortcuts/Actions` avec garde de focus texte.
 - La compatibilite avec l existant est conservee:
   - import/assign tileset,
   - painting tile unitaire/multi-tile,
@@ -333,6 +393,9 @@ ghost preview + outil erase sur map:
 - Une map peut maintenant etre volontairement sans layers; toute action de peinture est alors no-op tant qu aucune layer active tile n est selectionnee.
 - Les anciennes maps restent lisibles via fallback legacy `map.tilesetId`; la migration complete du champ legacy n est pas encore supprimee du schema.
 - Suppression/reparentage de groupes internes non implemente dans cette iteration.
+- Undo/redo reste limite a la map active:
+  - pas d historique cross-map,
+  - pas de persistance d historique entre changements de map.
 - Quelques lints/deprecations preexistants dans le projet restent presents (hors scope).
 - La logique visuelle tileset est maintenant centrale; le panneau droit reste mixte (outils + bibliotheque) et peut encore etre simplifie.
 - Le paint d un element d un autre tileset que celui de la map active est bloque cote notifier avec message d erreur (comportement volontaire).
@@ -396,7 +459,7 @@ ghost preview + outil erase sur map:
 - Avoir un explorateur de projet: fait
 - Avoir une toolbar claire: fait
 - Avoir une barre de statut: fait
-- Supporter l undo/redo: pas fait
+- Supporter l undo/redo: fait (map active)
 - Avoir une sauvegarde propre avec etat dirty: partiellement fait
 - Pouvoir previsualiser le rendu in-game: pas fait
 - Preparer un runtime compatible Flame: partiellement fait
@@ -414,5 +477,5 @@ ghost preview + outil erase sur map:
 - Systeme de brush: fait
 - Layers: fait (base MVP), evolutions avancees non faites
 - Collisions: pas fait
-- Undo/redo: pas fait
+- Undo/redo: fait (map active)
 - Warps/triggers/entities: pas fait

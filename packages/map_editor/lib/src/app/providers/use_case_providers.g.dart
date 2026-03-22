@@ -344,6 +344,26 @@ final updateProjectElementUseCaseProvider =
 // ignore: unused_element
 typedef UpdateProjectElementUseCaseRef
     = AutoDisposeProviderRef<UpdateProjectElementUseCase>;
+String _$deleteProjectElementUseCaseHash() =>
+    r'3f317bd0dca7413bfc8d889ce22c7f61a10b9b3b';
+
+/// See also [deleteProjectElementUseCase].
+@ProviderFor(deleteProjectElementUseCase)
+final deleteProjectElementUseCaseProvider =
+    AutoDisposeProvider<DeleteProjectElementUseCase>.internal(
+  deleteProjectElementUseCase,
+  name: r'deleteProjectElementUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteProjectElementUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteProjectElementUseCaseRef
+    = AutoDisposeProviderRef<DeleteProjectElementUseCase>;
 String _$resolveVisibleProjectElementsUseCaseHash() =>
     r'a49179a83ab10f4b7a6ff2c913c5acb2b6433c1c';
 

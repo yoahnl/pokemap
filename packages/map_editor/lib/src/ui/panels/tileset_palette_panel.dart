@@ -835,6 +835,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           tileLayers: tileLayers,
                           tilesetGroups: tilesetGroups,
                         ),
+                        onDelete: () => _showDeleteElementDialog(
+                          context,
+                          notifier: notifier,
+                          element: element,
+                        ),
                       ),
                     );
                   },
@@ -1771,6 +1776,36 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
   }
 
+  Future<void> _showDeleteElementDialog(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required ProjectElementEntry element,
+  }) async {
+    var shouldDelete = false;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Element'),
+        content: Text('Delete "${element.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              shouldDelete = true;
+              Navigator.pop(context);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (!shouldDelete) return;
+    await notifier.deleteProjectElement(element.id);
+  }
+
   List<String> _parseTags(String value) {
     return value
         .split(',')
@@ -1902,6 +1937,7 @@ class _ProjectElementCard extends StatelessWidget {
   final String tilesetGroupLabel;
   final VoidCallback onTap;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const _ProjectElementCard({
     required this.image,
@@ -1915,6 +1951,7 @@ class _ProjectElementCard extends StatelessWidget {
     required this.tilesetGroupLabel,
     required this.onTap,
     required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -2006,6 +2043,13 @@ class _ProjectElementCard extends StatelessWidget {
               IconButton(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined, size: 18),
+                constraints:
+                    const BoxConstraints.tightFor(width: 30, height: 30),
+                padding: EdgeInsets.zero,
+              ),
+              IconButton(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 18),
                 constraints:
                     const BoxConstraints.tightFor(width: 30, height: 30),
                 padding: EdgeInsets.zero,

@@ -116,6 +116,12 @@ UpdateProjectElementUseCase updateProjectElementUseCase(
 }
 
 @riverpod
+DeleteProjectElementUseCase deleteProjectElementUseCase(
+    DeleteProjectElementUseCaseRef ref) {
+  return DeleteProjectElementUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
 ResolveVisibleProjectElementsUseCase resolveVisibleProjectElementsUseCase(
     ResolveVisibleProjectElementsUseCaseRef ref) {
   return ResolveVisibleProjectElementsUseCase();

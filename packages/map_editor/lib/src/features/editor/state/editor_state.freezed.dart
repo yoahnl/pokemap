@@ -697,6 +697,169 @@ abstract class ProjectElementEditorBrush implements EditorBrush {
 }
 
 /// @nodoc
+mixin _$MapHistorySnapshot {
+  MapData get map => throw _privateConstructorUsedError;
+  String? get activeLayerId => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapHistorySnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapHistorySnapshotCopyWith<MapHistorySnapshot> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapHistorySnapshotCopyWith<$Res> {
+  factory $MapHistorySnapshotCopyWith(
+          MapHistorySnapshot value, $Res Function(MapHistorySnapshot) then) =
+      _$MapHistorySnapshotCopyWithImpl<$Res, MapHistorySnapshot>;
+  @useResult
+  $Res call({MapData map, String? activeLayerId});
+
+  $MapDataCopyWith<$Res> get map;
+}
+
+/// @nodoc
+class _$MapHistorySnapshotCopyWithImpl<$Res, $Val extends MapHistorySnapshot>
+    implements $MapHistorySnapshotCopyWith<$Res> {
+  _$MapHistorySnapshotCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapHistorySnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? map = null,
+    Object? activeLayerId = freezed,
+  }) {
+    return _then(_value.copyWith(
+      map: null == map
+          ? _value.map
+          : map // ignore: cast_nullable_to_non_nullable
+              as MapData,
+      activeLayerId: freezed == activeLayerId
+          ? _value.activeLayerId
+          : activeLayerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+
+  /// Create a copy of MapHistorySnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapDataCopyWith<$Res> get map {
+    return $MapDataCopyWith<$Res>(_value.map, (value) {
+      return _then(_value.copyWith(map: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$MapHistorySnapshotImplCopyWith<$Res>
+    implements $MapHistorySnapshotCopyWith<$Res> {
+  factory _$$MapHistorySnapshotImplCopyWith(_$MapHistorySnapshotImpl value,
+          $Res Function(_$MapHistorySnapshotImpl) then) =
+      __$$MapHistorySnapshotImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({MapData map, String? activeLayerId});
+
+  @override
+  $MapDataCopyWith<$Res> get map;
+}
+
+/// @nodoc
+class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
+    extends _$MapHistorySnapshotCopyWithImpl<$Res, _$MapHistorySnapshotImpl>
+    implements _$$MapHistorySnapshotImplCopyWith<$Res> {
+  __$$MapHistorySnapshotImplCopyWithImpl(_$MapHistorySnapshotImpl _value,
+      $Res Function(_$MapHistorySnapshotImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapHistorySnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? map = null,
+    Object? activeLayerId = freezed,
+  }) {
+    return _then(_$MapHistorySnapshotImpl(
+      map: null == map
+          ? _value.map
+          : map // ignore: cast_nullable_to_non_nullable
+              as MapData,
+      activeLayerId: freezed == activeLayerId
+          ? _value.activeLayerId
+          : activeLayerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
+  const _$MapHistorySnapshotImpl({required this.map, this.activeLayerId});
+
+  @override
+  final MapData map;
+  @override
+  final String? activeLayerId;
+
+  @override
+  String toString() {
+    return 'MapHistorySnapshot(map: $map, activeLayerId: $activeLayerId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapHistorySnapshotImpl &&
+            (identical(other.map, map) || other.map == map) &&
+            (identical(other.activeLayerId, activeLayerId) ||
+                other.activeLayerId == activeLayerId));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, map, activeLayerId);
+
+  /// Create a copy of MapHistorySnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapHistorySnapshotImplCopyWith<_$MapHistorySnapshotImpl> get copyWith =>
+      __$$MapHistorySnapshotImplCopyWithImpl<_$MapHistorySnapshotImpl>(
+          this, _$identity);
+}
+
+abstract class _MapHistorySnapshot implements MapHistorySnapshot {
+  const factory _MapHistorySnapshot(
+      {required final MapData map,
+      final String? activeLayerId}) = _$MapHistorySnapshotImpl;
+
+  @override
+  MapData get map;
+  @override
+  String? get activeLayerId;
+
+  /// Create a copy of MapHistorySnapshot
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapHistorySnapshotImplCopyWith<_$MapHistorySnapshotImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$EditorState {
 // Context
   ProjectFileSystem? get fileSystem => throw _privateConstructorUsedError;
@@ -717,6 +880,14 @@ mixin _$EditorState {
       throw _privateConstructorUsedError; // Viewport
   double get zoom => throw _privateConstructorUsedError;
   Offset get panOffset => throw _privateConstructorUsedError; // Status
+  List<MapHistorySnapshot> get mapUndoStack =>
+      throw _privateConstructorUsedError;
+  List<MapHistorySnapshot> get mapRedoStack =>
+      throw _privateConstructorUsedError;
+  MapHistorySnapshot? get mapStrokeStart => throw _privateConstructorUsedError;
+  MapData? get savedMapSnapshot => throw _privateConstructorUsedError;
+  bool get canUndoMap => throw _privateConstructorUsedError;
+  bool get canRedoMap => throw _privateConstructorUsedError;
   bool get isDirty => throw _privateConstructorUsedError;
   bool get isSaving => throw _privateConstructorUsedError;
   String? get statusMessage => throw _privateConstructorUsedError;
@@ -750,6 +921,12 @@ abstract class $EditorStateCopyWith<$Res> {
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
+      List<MapHistorySnapshot> mapUndoStack,
+      List<MapHistorySnapshot> mapRedoStack,
+      MapHistorySnapshot? mapStrokeStart,
+      MapData? savedMapSnapshot,
+      bool canUndoMap,
+      bool canRedoMap,
       bool isDirty,
       bool isSaving,
       String? statusMessage,
@@ -759,6 +936,8 @@ abstract class $EditorStateCopyWith<$Res> {
   $MapDataCopyWith<$Res>? get activeMap;
   $GridPosCopyWith<$Res>? get hoveredTile;
   $EditorBrushCopyWith<$Res> get activeBrush;
+  $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
+  $MapDataCopyWith<$Res>? get savedMapSnapshot;
 }
 
 /// @nodoc
@@ -790,6 +969,12 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
+    Object? mapUndoStack = null,
+    Object? mapRedoStack = null,
+    Object? mapStrokeStart = freezed,
+    Object? savedMapSnapshot = freezed,
+    Object? canUndoMap = null,
+    Object? canRedoMap = null,
     Object? isDirty = null,
     Object? isSaving = null,
     Object? statusMessage = freezed,
@@ -852,6 +1037,30 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.panOffset
           : panOffset // ignore: cast_nullable_to_non_nullable
               as Offset,
+      mapUndoStack: null == mapUndoStack
+          ? _value.mapUndoStack
+          : mapUndoStack // ignore: cast_nullable_to_non_nullable
+              as List<MapHistorySnapshot>,
+      mapRedoStack: null == mapRedoStack
+          ? _value.mapRedoStack
+          : mapRedoStack // ignore: cast_nullable_to_non_nullable
+              as List<MapHistorySnapshot>,
+      mapStrokeStart: freezed == mapStrokeStart
+          ? _value.mapStrokeStart
+          : mapStrokeStart // ignore: cast_nullable_to_non_nullable
+              as MapHistorySnapshot?,
+      savedMapSnapshot: freezed == savedMapSnapshot
+          ? _value.savedMapSnapshot
+          : savedMapSnapshot // ignore: cast_nullable_to_non_nullable
+              as MapData?,
+      canUndoMap: null == canUndoMap
+          ? _value.canUndoMap
+          : canUndoMap // ignore: cast_nullable_to_non_nullable
+              as bool,
+      canRedoMap: null == canRedoMap
+          ? _value.canRedoMap
+          : canRedoMap // ignore: cast_nullable_to_non_nullable
+              as bool,
       isDirty: null == isDirty
           ? _value.isDirty
           : isDirty // ignore: cast_nullable_to_non_nullable
@@ -922,6 +1131,34 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       return _then(_value.copyWith(activeBrush: value) as $Val);
     });
   }
+
+  /// Create a copy of EditorState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart {
+    if (_value.mapStrokeStart == null) {
+      return null;
+    }
+
+    return $MapHistorySnapshotCopyWith<$Res>(_value.mapStrokeStart!, (value) {
+      return _then(_value.copyWith(mapStrokeStart: value) as $Val);
+    });
+  }
+
+  /// Create a copy of EditorState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapDataCopyWith<$Res>? get savedMapSnapshot {
+    if (_value.savedMapSnapshot == null) {
+      return null;
+    }
+
+    return $MapDataCopyWith<$Res>(_value.savedMapSnapshot!, (value) {
+      return _then(_value.copyWith(savedMapSnapshot: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -947,6 +1184,12 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
+      List<MapHistorySnapshot> mapUndoStack,
+      List<MapHistorySnapshot> mapRedoStack,
+      MapHistorySnapshot? mapStrokeStart,
+      MapData? savedMapSnapshot,
+      bool canUndoMap,
+      bool canRedoMap,
       bool isDirty,
       bool isSaving,
       String? statusMessage,
@@ -960,6 +1203,10 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   $GridPosCopyWith<$Res>? get hoveredTile;
   @override
   $EditorBrushCopyWith<$Res> get activeBrush;
+  @override
+  $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
+  @override
+  $MapDataCopyWith<$Res>? get savedMapSnapshot;
 }
 
 /// @nodoc
@@ -989,6 +1236,12 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
+    Object? mapUndoStack = null,
+    Object? mapRedoStack = null,
+    Object? mapStrokeStart = freezed,
+    Object? savedMapSnapshot = freezed,
+    Object? canUndoMap = null,
+    Object? canRedoMap = null,
     Object? isDirty = null,
     Object? isSaving = null,
     Object? statusMessage = freezed,
@@ -1051,6 +1304,30 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.panOffset
           : panOffset // ignore: cast_nullable_to_non_nullable
               as Offset,
+      mapUndoStack: null == mapUndoStack
+          ? _value._mapUndoStack
+          : mapUndoStack // ignore: cast_nullable_to_non_nullable
+              as List<MapHistorySnapshot>,
+      mapRedoStack: null == mapRedoStack
+          ? _value._mapRedoStack
+          : mapRedoStack // ignore: cast_nullable_to_non_nullable
+              as List<MapHistorySnapshot>,
+      mapStrokeStart: freezed == mapStrokeStart
+          ? _value.mapStrokeStart
+          : mapStrokeStart // ignore: cast_nullable_to_non_nullable
+              as MapHistorySnapshot?,
+      savedMapSnapshot: freezed == savedMapSnapshot
+          ? _value.savedMapSnapshot
+          : savedMapSnapshot // ignore: cast_nullable_to_non_nullable
+              as MapData?,
+      canUndoMap: null == canUndoMap
+          ? _value.canUndoMap
+          : canUndoMap // ignore: cast_nullable_to_non_nullable
+              as bool,
+      canRedoMap: null == canRedoMap
+          ? _value.canRedoMap
+          : canRedoMap // ignore: cast_nullable_to_non_nullable
+              as bool,
       isDirty: null == isDirty
           ? _value.isDirty
           : isDirty // ignore: cast_nullable_to_non_nullable
@@ -1089,10 +1366,18 @@ class _$EditorStateImpl implements _EditorState {
       this.paletteCategoryFilter,
       this.zoom = 1.0,
       this.panOffset = Offset.zero,
+      final List<MapHistorySnapshot> mapUndoStack = const [],
+      final List<MapHistorySnapshot> mapRedoStack = const [],
+      this.mapStrokeStart,
+      this.savedMapSnapshot,
+      this.canUndoMap = false,
+      this.canRedoMap = false,
       this.isDirty = false,
       this.isSaving = false,
       this.statusMessage,
-      this.errorMessage});
+      this.errorMessage})
+      : _mapUndoStack = mapUndoStack,
+        _mapRedoStack = mapRedoStack;
 
 // Context
   @override
@@ -1132,6 +1417,35 @@ class _$EditorStateImpl implements _EditorState {
   @JsonKey()
   final Offset panOffset;
 // Status
+  final List<MapHistorySnapshot> _mapUndoStack;
+// Status
+  @override
+  @JsonKey()
+  List<MapHistorySnapshot> get mapUndoStack {
+    if (_mapUndoStack is EqualUnmodifiableListView) return _mapUndoStack;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_mapUndoStack);
+  }
+
+  final List<MapHistorySnapshot> _mapRedoStack;
+  @override
+  @JsonKey()
+  List<MapHistorySnapshot> get mapRedoStack {
+    if (_mapRedoStack is EqualUnmodifiableListView) return _mapRedoStack;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_mapRedoStack);
+  }
+
+  @override
+  final MapHistorySnapshot? mapStrokeStart;
+  @override
+  final MapData? savedMapSnapshot;
+  @override
+  @JsonKey()
+  final bool canUndoMap;
+  @override
+  @JsonKey()
+  final bool canRedoMap;
   @override
   @JsonKey()
   final bool isDirty;
@@ -1145,7 +1459,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1182,6 +1496,18 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
             (identical(other.panOffset, panOffset) ||
                 other.panOffset == panOffset) &&
+            const DeepCollectionEquality()
+                .equals(other._mapUndoStack, _mapUndoStack) &&
+            const DeepCollectionEquality()
+                .equals(other._mapRedoStack, _mapRedoStack) &&
+            (identical(other.mapStrokeStart, mapStrokeStart) ||
+                other.mapStrokeStart == mapStrokeStart) &&
+            (identical(other.savedMapSnapshot, savedMapSnapshot) ||
+                other.savedMapSnapshot == savedMapSnapshot) &&
+            (identical(other.canUndoMap, canUndoMap) ||
+                other.canUndoMap == canUndoMap) &&
+            (identical(other.canRedoMap, canRedoMap) ||
+                other.canRedoMap == canRedoMap) &&
             (identical(other.isDirty, isDirty) || other.isDirty == isDirty) &&
             (identical(other.isSaving, isSaving) ||
                 other.isSaving == isSaving) &&
@@ -1192,26 +1518,33 @@ class _$EditorStateImpl implements _EditorState {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      fileSystem,
-      project,
-      workspaceMode,
-      activeMap,
-      activeMapPath,
-      activeTool,
-      activeLayerId,
-      hoveredTile,
-      activeBrush,
-      selectedTilesetEditorId,
-      selectedTilesetElementGroupId,
-      paletteCategoryFilter,
-      zoom,
-      panOffset,
-      isDirty,
-      isSaving,
-      statusMessage,
-      errorMessage);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        fileSystem,
+        project,
+        workspaceMode,
+        activeMap,
+        activeMapPath,
+        activeTool,
+        activeLayerId,
+        hoveredTile,
+        activeBrush,
+        selectedTilesetEditorId,
+        selectedTilesetElementGroupId,
+        paletteCategoryFilter,
+        zoom,
+        panOffset,
+        const DeepCollectionEquality().hash(_mapUndoStack),
+        const DeepCollectionEquality().hash(_mapRedoStack),
+        mapStrokeStart,
+        savedMapSnapshot,
+        canUndoMap,
+        canRedoMap,
+        isDirty,
+        isSaving,
+        statusMessage,
+        errorMessage
+      ]);
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.
@@ -1238,6 +1571,12 @@ abstract class _EditorState implements EditorState {
       final PaletteCategory? paletteCategoryFilter,
       final double zoom,
       final Offset panOffset,
+      final List<MapHistorySnapshot> mapUndoStack,
+      final List<MapHistorySnapshot> mapRedoStack,
+      final MapHistorySnapshot? mapStrokeStart,
+      final MapData? savedMapSnapshot,
+      final bool canUndoMap,
+      final bool canRedoMap,
       final bool isDirty,
       final bool isSaving,
       final String? statusMessage,
@@ -1272,6 +1611,18 @@ abstract class _EditorState implements EditorState {
   double get zoom;
   @override
   Offset get panOffset; // Status
+  @override
+  List<MapHistorySnapshot> get mapUndoStack;
+  @override
+  List<MapHistorySnapshot> get mapRedoStack;
+  @override
+  MapHistorySnapshot? get mapStrokeStart;
+  @override
+  MapData? get savedMapSnapshot;
+  @override
+  bool get canUndoMap;
+  @override
+  bool get canRedoMap;
   @override
   bool get isDirty;
   @override

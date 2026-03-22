@@ -85,6 +85,16 @@ class TopToolbar extends ConsumerWidget {
             tooltip: 'Save Map',
           ),
           IconButton(
+            onPressed: state.canUndoMap ? notifier.undoMap : null,
+            icon: const Icon(Icons.undo, size: 20),
+            tooltip: 'Undo',
+          ),
+          IconButton(
+            onPressed: state.canRedoMap ? notifier.redoMap : null,
+            icon: const Icon(Icons.redo, size: 20),
+            tooltip: 'Redo',
+          ),
+          IconButton(
             onPressed: state.activeMap != null
                 ? () => _showResizeMapDialog(
                       context,

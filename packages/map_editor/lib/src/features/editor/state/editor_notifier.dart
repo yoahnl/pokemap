@@ -12,6 +12,8 @@ part 'editor_notifier.g.dart';
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
+  static const int _maxMapHistoryEntries = 100;
+
   @override
   EditorState build() {
     return const EditorState();
@@ -34,6 +36,13 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
+        mapUndoStack: const [],
+        mapRedoStack: const [],
+        mapStrokeStart: null,
+        savedMapSnapshot: null,
+        canUndoMap: false,
+        canRedoMap: false,
+        isDirty: false,
         statusMessage: 'Project "$name" created successfully',
         errorMessage: null,
       );
@@ -61,6 +70,13 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
+        mapUndoStack: const [],
+        mapRedoStack: const [],
+        mapStrokeStart: null,
+        savedMapSnapshot: null,
+        canUndoMap: false,
+        canRedoMap: false,
+        isDirty: false,
         statusMessage: 'Project "${manifest.name}" loaded',
         errorMessage: null,
       );
@@ -97,6 +113,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> saveActiveMap() async {
+    endMapStroke();
     final map = state.activeMap;
     final path = state.activeMapPath;
     if (map == null || path == null) return;
@@ -111,6 +128,7 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         isSaving: false,
         isDirty: false,
+        savedMapSnapshot: map,
         statusMessage: 'Map "${map.id}" saved',
         errorMessage: null,
       );
@@ -155,6 +173,13 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
+        mapUndoStack: const [],
+        mapRedoStack: const [],
+        mapStrokeStart: null,
+        savedMapSnapshot: map,
+        canUndoMap: false,
+        canRedoMap: false,
+        isDirty: false,
         statusMessage: 'Map "$id" created successfully',
         errorMessage: null,
       );
@@ -182,6 +207,13 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
+        mapUndoStack: const [],
+        mapRedoStack: const [],
+        mapStrokeStart: null,
+        savedMapSnapshot: map,
+        canUndoMap: false,
+        canRedoMap: false,
+        isDirty: false,
         statusMessage: 'Map "${map.id}" loaded',
         errorMessage: null,
       );
@@ -216,17 +248,13 @@ class EditorNotifier extends _$EditorNotifier {
                   hovered.y >= height))
           ? null
           : hovered;
-
-      state = state.copyWith(
-        activeMap: resized,
-        activeLayerId: _resolveActiveLayerId(
-          resized,
-          preferredLayerId: state.activeLayerId,
-        ),
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: resized,
+        preferredActiveLayerId: state.activeLayerId,
         hoveredTile: nextHovered,
-        isDirty: true,
+        updateHoveredTile: true,
         statusMessage: 'Map "${map.id}" resized to ${width}x$height',
-        errorMessage: null,
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error resizing map: $e');
@@ -246,15 +274,36 @@ class EditorNotifier extends _$EditorNotifier {
 
       MapData? activeMap = state.activeMap;
       String? activePath = state.activeMapPath;
+      var mapUndoStack = state.mapUndoStack;
+      var mapRedoStack = state.mapRedoStack;
+      MapHistorySnapshot? mapStrokeStart = state.mapStrokeStart;
+      MapData? savedMapSnapshot = state.savedMapSnapshot;
+      var canUndoMap = state.canUndoMap;
+      var canRedoMap = state.canRedoMap;
+      var isDirty = state.isDirty;
       if (activeMap?.id == oldId) {
         activeMap = activeMap?.copyWith(id: newId, name: newId);
         activePath = fs.getMapPath(newId);
+        mapUndoStack = const [];
+        mapRedoStack = const [];
+        mapStrokeStart = null;
+        savedMapSnapshot = activeMap;
+        canUndoMap = false;
+        canRedoMap = false;
+        isDirty = false;
       }
 
       state = state.copyWith(
         project: updatedProject,
         activeMap: activeMap,
         activeMapPath: activePath,
+        mapUndoStack: mapUndoStack,
+        mapRedoStack: mapRedoStack,
+        mapStrokeStart: mapStrokeStart,
+        savedMapSnapshot: savedMapSnapshot,
+        canUndoMap: canUndoMap,
+        canRedoMap: canRedoMap,
+        isDirty: isDirty,
         statusMessage: 'Map renamed to "$newId"',
         errorMessage: null,
       );
@@ -289,6 +338,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetElementGroupId = null;
         paletteCategoryFilter = null;
       }
+      final mapCleared = activeMap == null;
 
       state = state.copyWith(
         project: updatedProject,
@@ -300,6 +350,13 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: selectedTilesetElementGroupId,
         paletteCategoryFilter: paletteCategoryFilter,
+        mapUndoStack: mapCleared ? const [] : state.mapUndoStack,
+        mapRedoStack: mapCleared ? const [] : state.mapRedoStack,
+        mapStrokeStart: mapCleared ? null : state.mapStrokeStart,
+        savedMapSnapshot: mapCleared ? null : state.savedMapSnapshot,
+        canUndoMap: mapCleared ? false : state.canUndoMap,
+        canRedoMap: mapCleared ? false : state.canRedoMap,
+        isDirty: mapCleared ? false : state.isDirty,
         statusMessage: 'Map "$mapId" deleted',
         errorMessage: null,
       );
@@ -586,20 +643,19 @@ class EditorNotifier extends _$EditorNotifier {
         layerId,
         tilesetId,
       );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Tileset "$tilesetId" assigned to layer "${layer.name}"',
+        updateSavedSnapshot: true,
+      );
       state = state.copyWith(
-        activeMap: updatedMap,
         workspaceMode: EditorWorkspaceMode.map,
-        activeLayerId: _resolveActiveLayerId(
-          updatedMap,
-          preferredLayerId: state.activeLayerId,
-        ),
         activeBrush: const EditorBrush.none(),
         selectedTilesetEditorId: tilesetId,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
-        isDirty: false,
-        statusMessage: 'Tileset "$tilesetId" assigned to layer "${layer.name}"',
-        errorMessage: null,
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error assigning layer tileset: $e');
@@ -1107,6 +1163,34 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  Future<void> deleteProjectElement(String elementId) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteProjectElementUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        elementId: elementId,
+      );
+      final activeBrush = state.activeBrush.maybeMap(
+        projectElement: (brush) => brush.elementId == elementId
+            ? const EditorBrush.none()
+            : state.activeBrush,
+        orElse: () => state.activeBrush,
+      );
+      state = state.copyWith(
+        project: updated,
+        activeBrush: activeBrush,
+        statusMessage: 'Element deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete element: $e');
+    }
+  }
+
   List<TilesetPaletteEntry> getActivePaletteEntries() {
     final tilesetId = getSelectedTilesetEntry()?.id;
     if (tilesetId == null) return const [];
@@ -1380,7 +1464,114 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void paintSelectedTileAt(GridPos pos) {
+    beginMapStroke();
     paintSelectedBrushAt(pos, tilesetColumnsById: const {});
+    endMapStroke();
+  }
+
+  void beginMapStroke() {
+    final map = state.activeMap;
+    if (map == null || state.mapStrokeStart != null) return;
+    state = state.copyWith(
+      mapStrokeStart: MapHistorySnapshot(
+        map: map,
+        activeLayerId: state.activeLayerId,
+      ),
+    );
+  }
+
+  void endMapStroke() {
+    final strokeStart = state.mapStrokeStart;
+    final currentMap = state.activeMap;
+    if (strokeStart == null) return;
+    if (currentMap == null) {
+      state = state.copyWith(mapStrokeStart: null);
+      return;
+    }
+    if (currentMap == strokeStart.map) {
+      state = state.copyWith(mapStrokeStart: null);
+      return;
+    }
+
+    final undoStack = _pushHistorySnapshot(state.mapUndoStack, strokeStart);
+    final savedSnapshot = state.savedMapSnapshot;
+    state = state.copyWith(
+      mapUndoStack: undoStack,
+      mapRedoStack: const [],
+      mapStrokeStart: null,
+      canUndoMap: undoStack.isNotEmpty,
+      canRedoMap: false,
+      isDirty: savedSnapshot == null ? true : currentMap != savedSnapshot,
+      errorMessage: null,
+    );
+  }
+
+  void undoMap() {
+    endMapStroke();
+    final map = state.activeMap;
+    if (map == null || state.mapUndoStack.isEmpty) return;
+    final undoStack = List<MapHistorySnapshot>.from(state.mapUndoStack);
+    final snapshot = undoStack.removeLast();
+    final redoStack = _pushHistorySnapshot(
+      state.mapRedoStack,
+      MapHistorySnapshot(map: map, activeLayerId: state.activeLayerId),
+    );
+    final restoredMap = snapshot.map;
+    final nextActiveLayerId = _resolveActiveLayerId(
+      restoredMap,
+      preferredLayerId: snapshot.activeLayerId,
+    );
+    final savedSnapshot = state.savedMapSnapshot;
+    state = state.copyWith(
+      activeMap: restoredMap,
+      activeLayerId: nextActiveLayerId,
+      selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
+        restoredMap,
+        preferredLayerId: nextActiveLayerId,
+      ),
+      mapUndoStack: undoStack,
+      mapRedoStack: redoStack,
+      mapStrokeStart: null,
+      canUndoMap: undoStack.isNotEmpty,
+      canRedoMap: redoStack.isNotEmpty,
+      isDirty: savedSnapshot == null ? true : restoredMap != savedSnapshot,
+      statusMessage: 'Undo',
+      errorMessage: null,
+    );
+  }
+
+  void redoMap() {
+    endMapStroke();
+    final map = state.activeMap;
+    if (map == null || state.mapRedoStack.isEmpty) return;
+    final redoStack = List<MapHistorySnapshot>.from(state.mapRedoStack);
+    final snapshot = redoStack.removeLast();
+    final undoStack = _pushHistorySnapshot(
+      state.mapUndoStack,
+      MapHistorySnapshot(map: map, activeLayerId: state.activeLayerId),
+    );
+    final restoredMap = snapshot.map;
+    final nextActiveLayerId = _resolveActiveLayerId(
+      restoredMap,
+      preferredLayerId: snapshot.activeLayerId,
+    );
+    final savedSnapshot = state.savedMapSnapshot;
+    state = state.copyWith(
+      activeMap: restoredMap,
+      activeLayerId: nextActiveLayerId,
+      selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
+        restoredMap,
+        preferredLayerId: nextActiveLayerId,
+      ),
+      mapUndoStack: undoStack,
+      mapRedoStack: redoStack,
+      mapStrokeStart: null,
+      canUndoMap: undoStack.isNotEmpty,
+      canRedoMap: redoStack.isNotEmpty,
+      isDirty: savedSnapshot == null ? true : restoredMap != savedSnapshot,
+      statusMessage: 'Redo',
+      errorMessage: null,
+    );
   }
 
   EditorBrush _clearBrushIfTilesetRemoved(EditorBrush brush, String tilesetId) {
@@ -1563,10 +1754,11 @@ class EditorNotifier extends _$EditorNotifier {
         tiles: pattern.tiles,
         clipToMapBounds: true,
       );
-      state = state.copyWith(
-        activeMap: painted,
-        isDirty: true,
-        errorMessage: null,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: painted,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
       );
     } catch (e) {
       _setPaintError('Failed to paint $failureLabel: $e');
@@ -1588,10 +1780,11 @@ class EditorNotifier extends _$EditorNotifier {
           layerId: layerId,
           pos: pos,
         );
-        state = state.copyWith(
-          activeMap: erased,
-          isDirty: true,
-          errorMessage: null,
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: erased,
+          preferredActiveLayerId: layerId,
+          partOfStroke: true,
         );
         return;
       }
@@ -1604,10 +1797,11 @@ class EditorNotifier extends _$EditorNotifier {
         patternSize: patternSize,
         clipToMapBounds: true,
       );
-      state = state.copyWith(
-        activeMap: erased,
-        isDirty: true,
-        errorMessage: null,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: erased,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
       );
     } catch (e) {
       _setPaintError('Failed to erase $failureLabel: $e');
@@ -1702,14 +1896,17 @@ class EditorNotifier extends _$EditorNotifier {
       layers: updatedLayers,
       tilesetId: map.tilesetId.trim().isEmpty ? brushTilesetId : map.tilesetId,
     );
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: updatedMap,
+      preferredActiveLayerId: layerId,
+      statusMessage: 'Layer "${activeLayer.name}" updated for current brush',
+      partOfStroke: true,
+    );
     state = state.copyWith(
-      activeMap: updatedMap,
       selectedTilesetEditorId: brushTilesetId,
       selectedTilesetElementGroupId: null,
       paletteCategoryFilter: null,
-      isDirty: true,
-      statusMessage: 'Layer "${activeLayer.name}" updated for current brush',
-      errorMessage: null,
     );
     return updatedMap;
   }
@@ -1736,12 +1933,11 @@ class EditorNotifier extends _$EditorNotifier {
         name: name,
         tileTilesetId: tileTilesetId,
       );
-      state = state.copyWith(
-        activeMap: result.map,
-        activeLayerId: result.layer.id,
-        isDirty: true,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.layer.id,
         statusMessage: 'Layer "${result.layer.name}" added',
-        errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to add layer: $e');
@@ -1758,15 +1954,11 @@ class EditorNotifier extends _$EditorNotifier {
         layerId: layerId,
         name: name,
       );
-      state = state.copyWith(
-        activeMap: updated,
-        activeLayerId: _resolveActiveLayerId(
-          updated,
-          preferredLayerId: state.activeLayerId,
-        ),
-        isDirty: true,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
         statusMessage: 'Layer renamed',
-        errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to rename layer: $e');
@@ -1790,12 +1982,11 @@ class EditorNotifier extends _$EditorNotifier {
               updated,
               preferredLayerId: state.activeLayerId,
             );
-      state = state.copyWith(
-        activeMap: updated,
-        activeLayerId: nextActiveLayerId,
-        isDirty: true,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: nextActiveLayerId,
         statusMessage: 'Layer deleted',
-        errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete layer: $e');
@@ -1808,12 +1999,11 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deleteAllMapLayersUseCaseProvider);
       final updated = useCase.execute(map);
-      state = state.copyWith(
-        activeMap: updated,
-        activeLayerId: _resolveActiveLayerId(updated),
-        isDirty: true,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: _resolveActiveLayerId(updated),
         statusMessage: 'All layers removed',
-        errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to remove all layers: $e');
@@ -1846,16 +2036,16 @@ class EditorNotifier extends _$EditorNotifier {
         layerId: layerId,
         direction: direction,
       );
-      state = state.copyWith(
-        activeMap: updated,
-        activeLayerId: _resolveActiveLayerId(
-          updated,
-          preferredLayerId: state.activeLayerId,
-        ),
-        isDirty: updated != map ? true : state.isDirty,
-        statusMessage: updated == map ? null : 'Layer reordered',
-        errorMessage: null,
-      );
+      if (updated != map) {
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: updated,
+          preferredActiveLayerId: state.activeLayerId,
+          statusMessage: 'Layer reordered',
+        );
+      } else {
+        state = state.copyWith(errorMessage: null);
+      }
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to reorder layer: $e');
     }
@@ -1871,15 +2061,11 @@ class EditorNotifier extends _$EditorNotifier {
         layerId: layerId,
         isVisible: isVisible,
       );
-      state = state.copyWith(
-        activeMap: updated,
-        activeLayerId: _resolveActiveLayerId(
-          updated,
-          preferredLayerId: state.activeLayerId,
-        ),
-        isDirty: true,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
         statusMessage: isVisible ? 'Layer shown' : 'Layer hidden',
-        errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update layer: $e');
@@ -1896,15 +2082,10 @@ class EditorNotifier extends _$EditorNotifier {
         layerId: layerId,
         opacity: opacity,
       );
-      state = state.copyWith(
-        activeMap: updated,
-        activeLayerId: _resolveActiveLayerId(
-          updated,
-          preferredLayerId: state.activeLayerId,
-        ),
-        isDirty: true,
-        statusMessage: null,
-        errorMessage: null,
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
       );
     } catch (e) {
       state =
@@ -1943,6 +2124,89 @@ class EditorNotifier extends _$EditorNotifier {
   void zoom(double delta) {
     final newZoom = (state.zoom + delta).clamp(0.1, 5.0);
     state = state.copyWith(zoom: newZoom);
+  }
+
+  void _applyMapMutation({
+    required MapData previousMap,
+    required MapData updatedMap,
+    required String? preferredActiveLayerId,
+    bool partOfStroke = false,
+    bool updateSavedSnapshot = false,
+    GridPos? hoveredTile,
+    bool updateHoveredTile = false,
+    String? statusMessage,
+  }) {
+    if (identical(previousMap, updatedMap) || previousMap == updatedMap) {
+      return;
+    }
+
+    if (!partOfStroke && state.mapStrokeStart != null) {
+      endMapStroke();
+    }
+
+    var undoStack = state.mapUndoStack;
+    var redoStack = state.mapRedoStack;
+    var strokeStart = state.mapStrokeStart;
+    if (partOfStroke) {
+      strokeStart ??= MapHistorySnapshot(
+        map: previousMap,
+        activeLayerId: state.activeLayerId,
+      );
+    } else {
+      undoStack = _pushHistorySnapshot(
+        undoStack,
+        MapHistorySnapshot(
+          map: previousMap,
+          activeLayerId: state.activeLayerId,
+        ),
+      );
+      redoStack = const [];
+      strokeStart = null;
+    }
+
+    final nextActiveLayerId = _resolveActiveLayerId(
+      updatedMap,
+      preferredLayerId: preferredActiveLayerId,
+    );
+    final nextSavedSnapshot =
+        updateSavedSnapshot ? updatedMap : state.savedMapSnapshot;
+    state = state.copyWith(
+      activeMap: updatedMap,
+      activeLayerId: nextActiveLayerId,
+      selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
+        updatedMap,
+        preferredLayerId: nextActiveLayerId,
+      ),
+      hoveredTile: updateHoveredTile ? hoveredTile : state.hoveredTile,
+      mapUndoStack: undoStack,
+      mapRedoStack: redoStack,
+      mapStrokeStart: strokeStart,
+      savedMapSnapshot: nextSavedSnapshot,
+      canUndoMap: undoStack.isNotEmpty,
+      canRedoMap: redoStack.isNotEmpty,
+      isDirty:
+          nextSavedSnapshot == null ? true : updatedMap != nextSavedSnapshot,
+      statusMessage: statusMessage ?? state.statusMessage,
+      errorMessage: null,
+    );
+  }
+
+  List<MapHistorySnapshot> _pushHistorySnapshot(
+    List<MapHistorySnapshot> source,
+    MapHistorySnapshot snapshot,
+  ) {
+    if (source.isNotEmpty) {
+      final last = source.last;
+      if (last.map == snapshot.map &&
+          last.activeLayerId == snapshot.activeLayerId) {
+        return source;
+      }
+    }
+    final next = List<MapHistorySnapshot>.from(source)..add(snapshot);
+    if (next.length > _maxMapHistoryEntries) {
+      next.removeRange(0, next.length - _maxMapHistoryEntries);
+    }
+    return List<MapHistorySnapshot>.unmodifiable(next);
   }
 
   String? _resolveActiveLayerId(
