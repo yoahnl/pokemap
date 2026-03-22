@@ -15,6 +15,9 @@ class ProjectManifest with _$ProjectManifest {
     required List<ProjectTilesetEntry> tilesets,
     @Default([]) List<ProjectElementCategory> elementCategories,
     @Default([]) List<ProjectElementEntry> elements,
+    @Default([]) List<ProjectTerrainPresetCategory> terrainPresetCategories,
+    @Default([]) List<ProjectTerrainPreset> terrainPresets,
+    @Default([]) List<ProjectPathPreset> pathPresets,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
@@ -157,4 +160,72 @@ class ProjectElementEntry with _$ProjectElementEntry {
 
   factory ProjectElementEntry.fromJson(Map<String, dynamic> json) =>
       _$ProjectElementEntryFromJson(json);
+}
+
+@freezed
+class ProjectTerrainPreset with _$ProjectTerrainPreset {
+  const factory ProjectTerrainPreset({
+    required String id,
+    required String name,
+    required TerrainType terrainType,
+    String? categoryId,
+    @Default('') String tilesetId,
+    @Default([]) List<TerrainPresetVariant> variants,
+    @Default(0) int sortOrder,
+  }) = _ProjectTerrainPreset;
+
+  factory ProjectTerrainPreset.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTerrainPresetFromJson(json);
+}
+
+@freezed
+class TerrainPresetVariant with _$TerrainPresetVariant {
+  const factory TerrainPresetVariant({
+    required TilesetSourceRect source,
+    @Default(1) int weight,
+  }) = _TerrainPresetVariant;
+
+  factory TerrainPresetVariant.fromJson(Map<String, dynamic> json) =>
+      _$TerrainPresetVariantFromJson(json);
+}
+
+@freezed
+class ProjectPathPreset with _$ProjectPathPreset {
+  const factory ProjectPathPreset({
+    required String id,
+    required String name,
+    @Default(TerrainType.normal) TerrainType groundTerrainType,
+    String? categoryId,
+    @Default('') String tilesetId,
+    @Default([]) List<PathPresetVariantMapping> variants,
+    @Default(0) int sortOrder,
+  }) = _ProjectPathPreset;
+
+  factory ProjectPathPreset.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPathPresetFromJson(json);
+}
+
+@freezed
+class PathPresetVariantMapping with _$PathPresetVariantMapping {
+  const factory PathPresetVariantMapping({
+    required TerrainPathVariant variant,
+    required TilesetSourceRect source,
+  }) = _PathPresetVariantMapping;
+
+  factory PathPresetVariantMapping.fromJson(Map<String, dynamic> json) =>
+      _$PathPresetVariantMappingFromJson(json);
+}
+
+@freezed
+class ProjectTerrainPresetCategory with _$ProjectTerrainPresetCategory {
+  const factory ProjectTerrainPresetCategory({
+    required String id,
+    required String name,
+    required TerrainPresetCategoryKind kind,
+    String? parentCategoryId,
+    @Default(0) int sortOrder,
+  }) = _ProjectTerrainPresetCategory;
+
+  factory ProjectTerrainPresetCategory.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTerrainPresetCategoryFromJson(json);
 }

@@ -60,6 +60,9 @@ class EditorState with _$EditorState {
     GridPos? hoveredTile,
     @Default(EditorBrush.none()) EditorBrush activeBrush,
     @Default(TerrainType.normal) TerrainType selectedTerrainType,
+    String? selectedTerrainPresetId,
+    String? selectedPathPresetId,
+    @Default({}) Map<TerrainType, String> selectedTerrainPresetByType,
     @Default(CollisionBrushSizeMode.brushFootprint)
     CollisionBrushSizeMode collisionBrushSizeMode,
     String? selectedWarpId,

@@ -32,6 +32,22 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectElementEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      terrainPresetCategories:
+          (json['terrainPresetCategories'] as List<dynamic>?)
+                  ?.map((e) => ProjectTerrainPresetCategory.fromJson(
+                      e as Map<String, dynamic>))
+                  .toList() ??
+              const [],
+      terrainPresets: (json['terrainPresets'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectTerrainPreset.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      pathPresets: (json['pathPresets'] as List<dynamic>?)
+              ?.map(
+                  (e) => ProjectPathPreset.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -50,6 +66,10 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'elementCategories':
           instance.elementCategories.map((e) => e.toJson()).toList(),
       'elements': instance.elements.map((e) => e.toJson()).toList(),
+      'terrainPresetCategories':
+          instance.terrainPresetCategories.map((e) => e.toJson()).toList(),
+      'terrainPresets': instance.terrainPresets.map((e) => e.toJson()).toList(),
+      'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
     };
@@ -317,3 +337,145 @@ Map<String, dynamic> _$$ProjectElementEntryImplToJson(
       'tags': instance.tags,
       'sortOrder': instance.sortOrder,
     };
+
+_$ProjectTerrainPresetImpl _$$ProjectTerrainPresetImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTerrainPresetImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      terrainType: $enumDecode(_$TerrainTypeEnumMap, json['terrainType']),
+      categoryId: json['categoryId'] as String?,
+      tilesetId: json['tilesetId'] as String? ?? '',
+      variants: (json['variants'] as List<dynamic>?)
+              ?.map((e) =>
+                  TerrainPresetVariant.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectTerrainPresetImplToJson(
+        _$ProjectTerrainPresetImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'terrainType': _$TerrainTypeEnumMap[instance.terrainType]!,
+      'categoryId': instance.categoryId,
+      'tilesetId': instance.tilesetId,
+      'variants': instance.variants,
+      'sortOrder': instance.sortOrder,
+    };
+
+const _$TerrainTypeEnumMap = {
+  TerrainType.none: 'none',
+  TerrainType.normal: 'normal',
+  TerrainType.path: 'path',
+  TerrainType.water: 'water',
+  TerrainType.tallGrass: 'tallGrass',
+  TerrainType.sand: 'sand',
+  TerrainType.ice: 'ice',
+};
+
+_$TerrainPresetVariantImpl _$$TerrainPresetVariantImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TerrainPresetVariantImpl(
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      weight: (json['weight'] as num?)?.toInt() ?? 1,
+    );
+
+Map<String, dynamic> _$$TerrainPresetVariantImplToJson(
+        _$TerrainPresetVariantImpl instance) =>
+    <String, dynamic>{
+      'source': instance.source,
+      'weight': instance.weight,
+    };
+
+_$ProjectPathPresetImpl _$$ProjectPathPresetImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectPathPresetImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      groundTerrainType: $enumDecodeNullable(
+              _$TerrainTypeEnumMap, json['groundTerrainType']) ??
+          TerrainType.normal,
+      categoryId: json['categoryId'] as String?,
+      tilesetId: json['tilesetId'] as String? ?? '',
+      variants: (json['variants'] as List<dynamic>?)
+              ?.map((e) =>
+                  PathPresetVariantMapping.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectPathPresetImplToJson(
+        _$ProjectPathPresetImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'groundTerrainType': _$TerrainTypeEnumMap[instance.groundTerrainType]!,
+      'categoryId': instance.categoryId,
+      'tilesetId': instance.tilesetId,
+      'variants': instance.variants,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$PathPresetVariantMappingImpl _$$PathPresetVariantMappingImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PathPresetVariantMappingImpl(
+      variant: $enumDecode(_$TerrainPathVariantEnumMap, json['variant']),
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$PathPresetVariantMappingImplToJson(
+        _$PathPresetVariantMappingImpl instance) =>
+    <String, dynamic>{
+      'variant': _$TerrainPathVariantEnumMap[instance.variant]!,
+      'source': instance.source,
+    };
+
+const _$TerrainPathVariantEnumMap = {
+  TerrainPathVariant.isolated: 'isolated',
+  TerrainPathVariant.endNorth: 'endNorth',
+  TerrainPathVariant.endEast: 'endEast',
+  TerrainPathVariant.endSouth: 'endSouth',
+  TerrainPathVariant.endWest: 'endWest',
+  TerrainPathVariant.horizontal: 'horizontal',
+  TerrainPathVariant.vertical: 'vertical',
+  TerrainPathVariant.cornerNE: 'cornerNE',
+  TerrainPathVariant.cornerSE: 'cornerSE',
+  TerrainPathVariant.cornerSW: 'cornerSW',
+  TerrainPathVariant.cornerNW: 'cornerNW',
+  TerrainPathVariant.teeNorth: 'teeNorth',
+  TerrainPathVariant.teeEast: 'teeEast',
+  TerrainPathVariant.teeSouth: 'teeSouth',
+  TerrainPathVariant.teeWest: 'teeWest',
+  TerrainPathVariant.cross: 'cross',
+};
+
+_$ProjectTerrainPresetCategoryImpl _$$ProjectTerrainPresetCategoryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTerrainPresetCategoryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      kind: $enumDecode(_$TerrainPresetCategoryKindEnumMap, json['kind']),
+      parentCategoryId: json['parentCategoryId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectTerrainPresetCategoryImplToJson(
+        _$ProjectTerrainPresetCategoryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'kind': _$TerrainPresetCategoryKindEnumMap[instance.kind]!,
+      'parentCategoryId': instance.parentCategoryId,
+      'sortOrder': instance.sortOrder,
+    };
+
+const _$TerrainPresetCategoryKindEnumMap = {
+  TerrainPresetCategoryKind.terrain: 'terrain',
+  TerrainPresetCategoryKind.path: 'path',
+};

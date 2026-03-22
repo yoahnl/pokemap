@@ -364,6 +364,166 @@ final deleteProjectElementUseCaseProvider =
 // ignore: unused_element
 typedef DeleteProjectElementUseCaseRef
     = AutoDisposeProviderRef<DeleteProjectElementUseCase>;
+String _$createTerrainPresetUseCaseHash() =>
+    r'36de6a0e5c853d8a68552aee6d4a136f8304d382';
+
+/// See also [createTerrainPresetUseCase].
+@ProviderFor(createTerrainPresetUseCase)
+final createTerrainPresetUseCaseProvider =
+    AutoDisposeProvider<CreateTerrainPresetUseCase>.internal(
+  createTerrainPresetUseCase,
+  name: r'createTerrainPresetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createTerrainPresetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateTerrainPresetUseCaseRef
+    = AutoDisposeProviderRef<CreateTerrainPresetUseCase>;
+String _$updateTerrainPresetUseCaseHash() =>
+    r'0a9e36825f303d2e5d437cdd9ad0949c54df41c0';
+
+/// See also [updateTerrainPresetUseCase].
+@ProviderFor(updateTerrainPresetUseCase)
+final updateTerrainPresetUseCaseProvider =
+    AutoDisposeProvider<UpdateTerrainPresetUseCase>.internal(
+  updateTerrainPresetUseCase,
+  name: r'updateTerrainPresetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateTerrainPresetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateTerrainPresetUseCaseRef
+    = AutoDisposeProviderRef<UpdateTerrainPresetUseCase>;
+String _$deleteTerrainPresetUseCaseHash() =>
+    r'49e8ee44df4a7059a4f4b4b838a95f49d1d7a17b';
+
+/// See also [deleteTerrainPresetUseCase].
+@ProviderFor(deleteTerrainPresetUseCase)
+final deleteTerrainPresetUseCaseProvider =
+    AutoDisposeProvider<DeleteTerrainPresetUseCase>.internal(
+  deleteTerrainPresetUseCase,
+  name: r'deleteTerrainPresetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteTerrainPresetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteTerrainPresetUseCaseRef
+    = AutoDisposeProviderRef<DeleteTerrainPresetUseCase>;
+String _$createPathPresetUseCaseHash() =>
+    r'4ad2c6dcda171c77cc4491b6174a39b39fa95e29';
+
+/// See also [createPathPresetUseCase].
+@ProviderFor(createPathPresetUseCase)
+final createPathPresetUseCaseProvider =
+    AutoDisposeProvider<CreatePathPresetUseCase>.internal(
+  createPathPresetUseCase,
+  name: r'createPathPresetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createPathPresetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreatePathPresetUseCaseRef
+    = AutoDisposeProviderRef<CreatePathPresetUseCase>;
+String _$updatePathPresetUseCaseHash() =>
+    r'46fbb79a5f94d2deded47f95b45b14c7ab65145f';
+
+/// See also [updatePathPresetUseCase].
+@ProviderFor(updatePathPresetUseCase)
+final updatePathPresetUseCaseProvider =
+    AutoDisposeProvider<UpdatePathPresetUseCase>.internal(
+  updatePathPresetUseCase,
+  name: r'updatePathPresetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updatePathPresetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdatePathPresetUseCaseRef
+    = AutoDisposeProviderRef<UpdatePathPresetUseCase>;
+String _$deletePathPresetUseCaseHash() =>
+    r'125d25f4c7ace1780e7fbb0d18343523b12b43f0';
+
+/// See also [deletePathPresetUseCase].
+@ProviderFor(deletePathPresetUseCase)
+final deletePathPresetUseCaseProvider =
+    AutoDisposeProvider<DeletePathPresetUseCase>.internal(
+  deletePathPresetUseCase,
+  name: r'deletePathPresetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deletePathPresetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeletePathPresetUseCaseRef
+    = AutoDisposeProviderRef<DeletePathPresetUseCase>;
+String _$createTerrainPresetCategoryUseCaseHash() =>
+    r'307d5a91a1b938a9179360790b7b9400a4699ff5';
+
+/// See also [createTerrainPresetCategoryUseCase].
+@ProviderFor(createTerrainPresetCategoryUseCase)
+final createTerrainPresetCategoryUseCaseProvider =
+    AutoDisposeProvider<CreateTerrainPresetCategoryUseCase>.internal(
+  createTerrainPresetCategoryUseCase,
+  name: r'createTerrainPresetCategoryUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createTerrainPresetCategoryUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateTerrainPresetCategoryUseCaseRef
+    = AutoDisposeProviderRef<CreateTerrainPresetCategoryUseCase>;
+String _$renameTerrainPresetCategoryUseCaseHash() =>
+    r'd374b203d3509b2ed04bbad9ce09d171368f46cd';
+
+/// See also [renameTerrainPresetCategoryUseCase].
+@ProviderFor(renameTerrainPresetCategoryUseCase)
+final renameTerrainPresetCategoryUseCaseProvider =
+    AutoDisposeProvider<RenameTerrainPresetCategoryUseCase>.internal(
+  renameTerrainPresetCategoryUseCase,
+  name: r'renameTerrainPresetCategoryUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameTerrainPresetCategoryUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameTerrainPresetCategoryUseCaseRef
+    = AutoDisposeProviderRef<RenameTerrainPresetCategoryUseCase>;
 String _$resolveVisibleProjectElementsUseCaseHash() =>
     r'a49179a83ab10f4b7a6ff2c913c5acb2b6433c1c';
 

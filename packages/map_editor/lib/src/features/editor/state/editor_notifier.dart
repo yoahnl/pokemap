@@ -34,6 +34,11 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
+        selectedTerrainPresetId: _resolveInitialTerrainPresetId(manifest),
+        selectedPathPresetId: _resolveInitialPathPresetId(manifest),
+        selectedTerrainPresetByType: _resolveInitialTerrainPresetByType(
+          manifest,
+        ),
         selectedWarpId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -69,6 +74,11 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
+        selectedTerrainPresetId: _resolveInitialTerrainPresetId(manifest),
+        selectedPathPresetId: _resolveInitialPathPresetId(manifest),
+        selectedTerrainPresetByType: _resolveInitialTerrainPresetByType(
+          manifest,
+        ),
         selectedWarpId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -173,6 +183,19 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
+        selectedTerrainPresetId: _resolveSelectedTerrainPresetId(
+          project: project,
+          terrainType: state.selectedTerrainType,
+          preferredPresetId: state.selectedTerrainPresetId,
+        ),
+        selectedPathPresetId: _resolveSelectedPathPresetId(
+          project: project,
+          preferredPresetId: state.selectedPathPresetId,
+        ),
+        selectedTerrainPresetByType: _sanitizeTerrainPresetSelectionByType(
+          project: project,
+          current: state.selectedTerrainPresetByType,
+        ),
         selectedWarpId: null,
         selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
@@ -219,6 +242,21 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
+        selectedTerrainPresetId: _resolveSelectedTerrainPresetId(
+          project: project,
+          terrainType: state.selectedTerrainType,
+          preferredPresetId: state.selectedTerrainPresetId,
+        ),
+        selectedPathPresetId: _resolveSelectedPathPresetId(
+          project: project,
+          preferredPresetId: state.selectedPathPresetId,
+        ),
+        selectedTerrainPresetByType: project == null
+            ? state.selectedTerrainPresetByType
+            : _sanitizeTerrainPresetSelectionByType(
+                project: project,
+                current: state.selectedTerrainPresetByType,
+              ),
         selectedWarpId: null,
         selectedTilesetEditorId: nextSelectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
@@ -628,6 +666,19 @@ class EditorNotifier extends _$EditorNotifier {
         activeBrush: activeBrush,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
+        selectedTerrainPresetId: _resolveSelectedTerrainPresetId(
+          project: updated,
+          terrainType: state.selectedTerrainType,
+          preferredPresetId: state.selectedTerrainPresetId,
+        ),
+        selectedPathPresetId: _resolveSelectedPathPresetId(
+          project: updated,
+          preferredPresetId: state.selectedPathPresetId,
+        ),
+        selectedTerrainPresetByType: _sanitizeTerrainPresetSelectionByType(
+          project: updated,
+          current: state.selectedTerrainPresetByType,
+        ),
         statusMessage: 'Tileset deleted',
         errorMessage: null,
       );
@@ -699,6 +750,14 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   PathAutotileSet? getPathAutotileSet() {
+    final selectedPreset = getSelectedPathPreset();
+    if (selectedPreset != null) {
+      final mapped = PathAutotileSet.fromPreset(selectedPreset);
+      if (mapped.tilesetId.isNotEmpty && mapped.variants.isNotEmpty) {
+        return mapped;
+      }
+    }
+
     final map = state.activeMap;
     if (map == null) return null;
 
@@ -720,6 +779,150 @@ class EditorNotifier extends _$EditorNotifier {
       return null;
     }
     return PathAutotileSet.defaultForTileset(fallbackTilesetId);
+  }
+
+  List<ProjectTerrainPreset> getTerrainPresets({TerrainType? terrainType}) {
+    final project = state.project;
+    if (project == null) return const [];
+    final presets = project.terrainPresets.where((preset) {
+      if (terrainType == null) return true;
+      return preset.terrainType == terrainType;
+    }).toList(growable: false)
+      ..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return presets;
+  }
+
+  List<ProjectPathPreset> getPathPresets() {
+    final project = state.project;
+    if (project == null) return const [];
+    final presets = List<ProjectPathPreset>.from(
+      project.pathPresets,
+      growable: false,
+    )..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return presets;
+  }
+
+  List<ProjectTerrainPresetCategory> getTerrainPresetCategories({
+    TerrainPresetCategoryKind? kind,
+    String? parentCategoryId,
+  }) {
+    final project = state.project;
+    if (project == null) return const [];
+    final normalizedParentId = parentCategoryId?.trim();
+    final categories = project.terrainPresetCategories.where((category) {
+      if (kind != null && category.kind != kind) return false;
+      if (normalizedParentId == null) return true;
+      return category.parentCategoryId == normalizedParentId;
+    }).toList(growable: false)
+      ..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return categories;
+  }
+
+  ProjectTerrainPresetCategory? getTerrainPresetCategoryById(
+      String? categoryId) {
+    final id = categoryId?.trim();
+    final project = state.project;
+    if (id == null || id.isEmpty || project == null) return null;
+    for (final category in project.terrainPresetCategories) {
+      if (category.id == id) return category;
+    }
+    return null;
+  }
+
+  String? resolveTerrainPresetCategoryPath(String? categoryId) {
+    final id = categoryId?.trim();
+    if (id == null || id.isEmpty) return null;
+    final project = state.project;
+    if (project == null) return null;
+    final byId = <String, ProjectTerrainPresetCategory>{
+      for (final category in project.terrainPresetCategories)
+        category.id: category,
+    };
+    final category = byId[id];
+    if (category == null) return null;
+    final segments = <String>[category.name];
+    var cursor = category.parentCategoryId;
+    final visited = <String>{category.id};
+    while (cursor != null && visited.add(cursor)) {
+      final parent = byId[cursor];
+      if (parent == null) break;
+      segments.insert(0, parent.name);
+      cursor = parent.parentCategoryId;
+    }
+    return segments.join(' / ');
+  }
+
+  ProjectTerrainPreset? getTerrainPresetById(String? presetId) {
+    final id = presetId?.trim();
+    final project = state.project;
+    if (id == null || id.isEmpty || project == null) return null;
+    for (final preset in project.terrainPresets) {
+      if (preset.id == id) return preset;
+    }
+    return null;
+  }
+
+  ProjectPathPreset? getPathPresetById(String? presetId) {
+    final id = presetId?.trim();
+    final project = state.project;
+    if (id == null || id.isEmpty || project == null) return null;
+    for (final preset in project.pathPresets) {
+      if (preset.id == id) return preset;
+    }
+    return null;
+  }
+
+  ProjectTerrainPreset? getSelectedTerrainPreset({TerrainType? terrainType}) {
+    final type = terrainType ?? state.selectedTerrainType;
+    if (type == TerrainType.path) return null;
+    final selectedByTypeId = state.selectedTerrainPresetByType[type];
+    if (selectedByTypeId != null) {
+      final selectedByType = getTerrainPresetById(selectedByTypeId);
+      if (selectedByType != null && selectedByType.terrainType == type) {
+        return selectedByType;
+      }
+    }
+    if (state.selectedTerrainPresetId != null) {
+      final selected = getTerrainPresetById(state.selectedTerrainPresetId);
+      if (selected != null && selected.terrainType == type) {
+        return selected;
+      }
+    }
+    final presets = getTerrainPresets(terrainType: type);
+    if (presets.isEmpty) return null;
+    return presets.first;
+  }
+
+  ProjectPathPreset? getSelectedPathPreset() {
+    final selected = getPathPresetById(state.selectedPathPresetId);
+    if (selected != null) return selected;
+    final presets = getPathPresets();
+    if (presets.isEmpty) return null;
+    return presets.first;
+  }
+
+  Map<TerrainType, ProjectTerrainPreset> getTerrainPresetByType() {
+    final result = <TerrainType, ProjectTerrainPreset>{};
+    for (final type in TerrainType.values) {
+      if (type == TerrainType.none || type == TerrainType.path) continue;
+      final preset = getSelectedTerrainPreset(terrainType: type);
+      if (preset != null) {
+        result[type] = preset;
+      }
+    }
+    return result;
   }
 
   void selectTilesetWorkspace(String? tilesetId) {
@@ -2867,9 +3070,55 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectTerrainType(TerrainType terrain) {
     if (state.selectedTerrainType == terrain) return;
+    final nextTerrainPresetId = terrain == TerrainType.path
+        ? state.selectedTerrainPresetId
+        : _resolveSelectedTerrainPresetId(
+            project: state.project,
+            terrainType: terrain,
+            preferredPresetId: state.selectedTerrainPresetByType[terrain] ??
+                state.selectedTerrainPresetId,
+          );
     state = state.copyWith(
       selectedTerrainType: terrain,
+      selectedTerrainPresetId: nextTerrainPresetId,
       statusMessage: 'Terrain type: ${terrain.name}',
+      errorMessage: null,
+    );
+  }
+
+  void selectTerrainPreset(String? presetId) {
+    final preset = getTerrainPresetById(presetId);
+    if (preset == null) {
+      state = state.copyWith(
+        errorMessage: 'Terrain preset not found',
+      );
+      return;
+    }
+    final nextByType = Map<TerrainType, String>.from(
+      state.selectedTerrainPresetByType,
+    );
+    nextByType[preset.terrainType] = preset.id;
+    state = state.copyWith(
+      selectedTerrainType: preset.terrainType,
+      selectedTerrainPresetId: preset.id,
+      selectedTerrainPresetByType: nextByType,
+      activeTool: EditorToolType.terrainPaint,
+      statusMessage: 'Terrain preset: ${preset.name}',
+      errorMessage: null,
+    );
+  }
+
+  void selectPathPreset(String? presetId) {
+    final preset = getPathPresetById(presetId);
+    if (preset == null) {
+      state = state.copyWith(errorMessage: 'Path preset not found');
+      return;
+    }
+    state = state.copyWith(
+      selectedPathPresetId: preset.id,
+      selectedTerrainType: TerrainType.path,
+      activeTool: EditorToolType.terrainPaint,
+      statusMessage: 'Path preset: ${preset.name}',
       errorMessage: null,
     );
   }
@@ -2878,16 +3127,328 @@ class EditorNotifier extends _$EditorNotifier {
     TerrainType? terrainType,
   }) {
     final nextTerrain = terrainType ?? state.selectedTerrainType;
+    final nextPresetId = nextTerrain == TerrainType.path
+        ? state.selectedTerrainPresetId
+        : _resolveSelectedTerrainPresetId(
+            project: state.project,
+            terrainType: nextTerrain,
+            preferredPresetId: state.selectedTerrainPresetByType[nextTerrain] ??
+                state.selectedTerrainPresetId,
+          );
     state = state.copyWith(
       activeTool: EditorToolType.terrainPaint,
       selectedTerrainType: nextTerrain,
+      selectedTerrainPresetId: nextPresetId,
       statusMessage: 'Terrain type: ${nextTerrain.name}',
       errorMessage: null,
     );
   }
 
   void selectPathPaintMode() {
-    selectTerrainPaintMode(terrainType: TerrainType.path);
+    final selectedPathPreset = getSelectedPathPreset();
+    state = state.copyWith(
+      activeTool: EditorToolType.terrainPaint,
+      selectedTerrainType: TerrainType.path,
+      selectedPathPresetId:
+          selectedPathPreset?.id ?? state.selectedPathPresetId,
+      statusMessage: selectedPathPreset == null
+          ? 'Terrain type: path'
+          : 'Path preset: ${selectedPathPreset.name}',
+      errorMessage: null,
+    );
+  }
+
+  Future<void> createTerrainPreset({
+    required String name,
+    required TerrainType terrainType,
+    String? categoryId,
+    String tilesetId = '',
+    List<TerrainPresetVariant> variants = const [],
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createTerrainPresetUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        terrainType: terrainType,
+        categoryId: categoryId,
+        tilesetId: tilesetId,
+        variants: variants,
+      );
+      final created = _findLastCreatedTerrainPreset(project, updated);
+      final nextByType = Map<TerrainType, String>.from(
+        state.selectedTerrainPresetByType,
+      );
+      if (created != null) {
+        nextByType[created.terrainType] = created.id;
+      }
+      state = state.copyWith(
+        project: updated,
+        selectedTerrainType: created?.terrainType ?? state.selectedTerrainType,
+        selectedTerrainPresetId: created?.id ?? state.selectedTerrainPresetId,
+        selectedTerrainPresetByType: nextByType,
+        statusMessage: 'Terrain preset created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to create terrain preset: $e',
+      );
+    }
+  }
+
+  Future<void> updateTerrainPreset({
+    required String presetId,
+    String? name,
+    TerrainType? terrainType,
+    String? categoryId,
+    bool clearCategoryId = false,
+    String? tilesetId,
+    bool clearTilesetId = false,
+    List<TerrainPresetVariant>? variants,
+    bool clearVariants = false,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateTerrainPresetUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        presetId: presetId,
+        name: name,
+        terrainType: terrainType,
+        categoryId: categoryId,
+        clearCategoryId: clearCategoryId,
+        tilesetId: tilesetId,
+        clearTilesetId: clearTilesetId,
+        variants: variants,
+        clearVariants: clearVariants,
+      );
+      final selectedPreset =
+          _findTerrainPresetByIdInProject(updated, presetId) ??
+              (throw Exception('Terrain preset not found: $presetId'));
+      final nextByType = _sanitizeTerrainPresetSelectionByType(
+        project: updated,
+        current: state.selectedTerrainPresetByType,
+      );
+      nextByType[selectedPreset.terrainType] = selectedPreset.id;
+      state = state.copyWith(
+        project: updated,
+        selectedTerrainType: selectedPreset.terrainType,
+        selectedTerrainPresetId: selectedPreset.id,
+        selectedTerrainPresetByType: nextByType,
+        statusMessage: 'Terrain preset updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to update terrain preset: $e',
+      );
+    }
+  }
+
+  Future<void> deleteTerrainPreset(String presetId) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteTerrainPresetUseCaseProvider);
+      final updated = await useCase.execute(fs, project, presetId: presetId);
+      final nextByType = _sanitizeTerrainPresetSelectionByType(
+        project: updated,
+        current: state.selectedTerrainPresetByType,
+      );
+      String? nextSelectedTerrainPresetId = state.selectedTerrainPresetId;
+      if (nextSelectedTerrainPresetId == presetId ||
+          _findTerrainPresetByIdInProject(
+                updated,
+                nextSelectedTerrainPresetId,
+              ) ==
+              null) {
+        final fallback = _listTerrainPresetsFromProject(
+          updated,
+          terrainType: state.selectedTerrainType == TerrainType.path
+              ? TerrainType.normal
+              : state.selectedTerrainType,
+        );
+        nextSelectedTerrainPresetId =
+            fallback.isEmpty ? null : fallback.first.id;
+      }
+      state = state.copyWith(
+        project: updated,
+        selectedTerrainPresetId: nextSelectedTerrainPresetId,
+        selectedTerrainPresetByType: nextByType,
+        statusMessage: 'Terrain preset deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to delete terrain preset: $e',
+      );
+    }
+  }
+
+  Future<void> createPathPreset({
+    required String name,
+    TerrainType groundTerrainType = TerrainType.normal,
+    String? categoryId,
+    String tilesetId = '',
+    List<PathPresetVariantMapping> variants = const [],
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createPathPresetUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        groundTerrainType: groundTerrainType,
+        categoryId: categoryId,
+        tilesetId: tilesetId,
+        variants: variants,
+      );
+      final created = _findLastCreatedPathPreset(project, updated);
+      state = state.copyWith(
+        project: updated,
+        selectedPathPresetId: created?.id ?? state.selectedPathPresetId,
+        selectedTerrainType: TerrainType.path,
+        activeTool: EditorToolType.terrainPaint,
+        statusMessage: 'Path preset created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create path preset: $e');
+    }
+  }
+
+  Future<void> updatePathPreset({
+    required String presetId,
+    String? name,
+    TerrainType? groundTerrainType,
+    String? categoryId,
+    bool clearCategoryId = false,
+    String? tilesetId,
+    bool clearTilesetId = false,
+    List<PathPresetVariantMapping>? variants,
+    bool clearVariants = false,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updatePathPresetUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        presetId: presetId,
+        name: name,
+        groundTerrainType: groundTerrainType,
+        categoryId: categoryId,
+        clearCategoryId: clearCategoryId,
+        tilesetId: tilesetId,
+        clearTilesetId: clearTilesetId,
+        variants: variants,
+        clearVariants: clearVariants,
+      );
+      final selected = updated.pathPresets.firstWhere(
+        (preset) => preset.id == presetId,
+        orElse: () => throw Exception('Path preset not found: $presetId'),
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedPathPresetId: selected.id,
+        selectedTerrainType: TerrainType.path,
+        statusMessage: 'Path preset updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update path preset: $e');
+    }
+  }
+
+  Future<void> deletePathPreset(String presetId) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deletePathPresetUseCaseProvider);
+      final updated = await useCase.execute(fs, project, presetId: presetId);
+      String? nextSelectedPathPresetId = state.selectedPathPresetId;
+      if (nextSelectedPathPresetId == presetId ||
+          _findPathPresetByIdInProject(updated, nextSelectedPathPresetId) ==
+              null) {
+        nextSelectedPathPresetId =
+            updated.pathPresets.isEmpty ? null : updated.pathPresets.first.id;
+      }
+      state = state.copyWith(
+        project: updated,
+        selectedPathPresetId: nextSelectedPathPresetId,
+        statusMessage: 'Path preset deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete path preset: $e');
+    }
+  }
+
+  Future<void> createTerrainPresetCategory({
+    required String name,
+    required TerrainPresetCategoryKind kind,
+    String? parentCategoryId,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createTerrainPresetCategoryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        kind: kind,
+        parentCategoryId: parentCategoryId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Category created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create category: $e');
+    }
+  }
+
+  Future<void> renameTerrainPresetCategory({
+    required String categoryId,
+    required String name,
+  }) async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(renameTerrainPresetCategoryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        categoryId: categoryId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Category renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to rename category: $e');
+    }
   }
 
   void activateFirstTerrainLayer({
@@ -3137,6 +3698,191 @@ class EditorNotifier extends _$EditorNotifier {
     final legacyTilesetId = map.tilesetId.trim();
     if (legacyTilesetId.isNotEmpty) {
       return legacyTilesetId;
+    }
+    return null;
+  }
+
+  String? _resolveInitialTerrainPresetId(ProjectManifest project) {
+    final presets = _listTerrainPresetsFromProject(
+      project,
+      terrainType: TerrainType.normal,
+    );
+    if (presets.isNotEmpty) {
+      return presets.first.id;
+    }
+    if (project.terrainPresets.isEmpty) return null;
+    final all = List<ProjectTerrainPreset>.from(
+      project.terrainPresets,
+      growable: false,
+    )..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return all.first.id;
+  }
+
+  String? _resolveInitialPathPresetId(ProjectManifest project) {
+    if (project.pathPresets.isEmpty) return null;
+    final all = List<ProjectPathPreset>.from(
+      project.pathPresets,
+      growable: false,
+    )..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return all.first.id;
+  }
+
+  Map<TerrainType, String> _resolveInitialTerrainPresetByType(
+    ProjectManifest project,
+  ) {
+    final result = <TerrainType, String>{};
+    for (final type in TerrainType.values) {
+      if (type == TerrainType.none || type == TerrainType.path) continue;
+      final presets =
+          _listTerrainPresetsFromProject(project, terrainType: type);
+      if (presets.isNotEmpty) {
+        result[type] = presets.first.id;
+      }
+    }
+    return result;
+  }
+
+  String? _resolveSelectedTerrainPresetId({
+    required ProjectManifest? project,
+    required TerrainType terrainType,
+    required String? preferredPresetId,
+  }) {
+    if (project == null || terrainType == TerrainType.path) {
+      return preferredPresetId;
+    }
+    final preferred =
+        _findTerrainPresetByIdInProject(project, preferredPresetId);
+    if (preferred != null && preferred.terrainType == terrainType) {
+      return preferred.id;
+    }
+    final byType = state.selectedTerrainPresetByType[terrainType];
+    final preferredByType = _findTerrainPresetByIdInProject(project, byType);
+    if (preferredByType != null && preferredByType.terrainType == terrainType) {
+      return preferredByType.id;
+    }
+    final candidates =
+        _listTerrainPresetsFromProject(project, terrainType: terrainType);
+    if (candidates.isNotEmpty) {
+      return candidates.first.id;
+    }
+    return preferredPresetId;
+  }
+
+  String? _resolveSelectedPathPresetId({
+    required ProjectManifest? project,
+    required String? preferredPresetId,
+  }) {
+    if (project == null) return preferredPresetId;
+    final preferred = _findPathPresetByIdInProject(project, preferredPresetId);
+    if (preferred != null) return preferred.id;
+    if (project.pathPresets.isEmpty) return null;
+    final presets = List<ProjectPathPreset>.from(
+      project.pathPresets,
+      growable: false,
+    )..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return presets.first.id;
+  }
+
+  Map<TerrainType, String> _sanitizeTerrainPresetSelectionByType({
+    required ProjectManifest project,
+    required Map<TerrainType, String> current,
+  }) {
+    final sanitized = <TerrainType, String>{};
+    for (final entry in current.entries) {
+      if (entry.key == TerrainType.none || entry.key == TerrainType.path) {
+        continue;
+      }
+      final preset = _findTerrainPresetByIdInProject(project, entry.value);
+      if (preset == null || preset.terrainType != entry.key) continue;
+      sanitized[entry.key] = preset.id;
+    }
+    for (final type in TerrainType.values) {
+      if (type == TerrainType.none || type == TerrainType.path) continue;
+      if (sanitized.containsKey(type)) continue;
+      final presets =
+          _listTerrainPresetsFromProject(project, terrainType: type);
+      if (presets.isNotEmpty) {
+        sanitized[type] = presets.first.id;
+      }
+    }
+    return sanitized;
+  }
+
+  List<ProjectTerrainPreset> _listTerrainPresetsFromProject(
+    ProjectManifest project, {
+    TerrainType? terrainType,
+  }) {
+    final presets = project.terrainPresets.where((preset) {
+      if (terrainType == null) return true;
+      return preset.terrainType == terrainType;
+    }).toList(growable: false)
+      ..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return presets;
+  }
+
+  ProjectTerrainPreset? _findTerrainPresetByIdInProject(
+    ProjectManifest project,
+    String? presetId,
+  ) {
+    final id = presetId?.trim();
+    if (id == null || id.isEmpty) return null;
+    for (final preset in project.terrainPresets) {
+      if (preset.id == id) return preset;
+    }
+    return null;
+  }
+
+  ProjectPathPreset? _findPathPresetByIdInProject(
+    ProjectManifest project,
+    String? presetId,
+  ) {
+    final id = presetId?.trim();
+    if (id == null || id.isEmpty) return null;
+    for (final preset in project.pathPresets) {
+      if (preset.id == id) return preset;
+    }
+    return null;
+  }
+
+  ProjectTerrainPreset? _findLastCreatedTerrainPreset(
+    ProjectManifest previous,
+    ProjectManifest updated,
+  ) {
+    final previousIds =
+        previous.terrainPresets.map((preset) => preset.id).toSet();
+    for (final preset in updated.terrainPresets) {
+      if (!previousIds.contains(preset.id)) {
+        return preset;
+      }
+    }
+    return null;
+  }
+
+  ProjectPathPreset? _findLastCreatedPathPreset(
+    ProjectManifest previous,
+    ProjectManifest updated,
+  ) {
+    final previousIds = previous.pathPresets.map((preset) => preset.id).toSet();
+    for (final preset in updated.pathPresets) {
+      if (!previousIds.contains(preset.id)) {
+        return preset;
+      }
     }
     return null;
   }

@@ -8,6 +8,7 @@ import '../../infrastructure/filesystem/project_filesystem.dart';
 part 'paint_use_cases.dart';
 part 'collision_use_cases.dart';
 part 'terrain_use_cases.dart';
+part 'terrain_preset_use_cases.dart';
 part 'layer_use_cases.dart';
 part 'map_use_cases.dart';
 part 'warp_use_cases.dart';
@@ -26,6 +27,9 @@ class CreateProjectUseCase {
       groups: [],
       elementCategories: _defaultElementCategories(),
       elements: const [],
+      terrainPresetCategories: _defaultTerrainPresetCategories(),
+      terrainPresets: _defaultTerrainPresets(),
+      pathPresets: _defaultPathPresets(),
       settings: const ProjectSettings(),
     );
     final fs = ProjectFileSystem(directory);
@@ -45,7 +49,7 @@ class LoadProjectUseCase {
   Future<ProjectManifest> execute(String manifestPath) async {
     debugPrint('LoadProjectUseCase: Loading project from $manifestPath');
     final loaded = await _repo.loadProject(manifestPath);
-    return _withDefaultElementLibrary(loaded);
+    return _withDefaultProjectLibrary(loaded);
   }
 }
 
@@ -219,7 +223,21 @@ class DeleteProjectTilesetUseCase {
 
     final remainingTilesets =
         project.tilesets.where((t) => t.id != tilesetId).toList();
-    final updatedProject = project.copyWith(tilesets: remainingTilesets);
+    final updatedTerrainPresets = project.terrainPresets
+        .map((preset) => preset.tilesetId == tilesetId
+            ? preset.copyWith(tilesetId: '', variants: const [])
+            : preset)
+        .toList(growable: false);
+    final updatedPathPresets = project.pathPresets
+        .map((preset) => preset.tilesetId == tilesetId
+            ? preset.copyWith(tilesetId: '', variants: const [])
+            : preset)
+        .toList(growable: false);
+    final updatedProject = project.copyWith(
+      tilesets: remainingTilesets,
+      terrainPresets: updatedTerrainPresets,
+      pathPresets: updatedPathPresets,
+    );
     await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
 
     final stillUsedPath =
@@ -1179,6 +1197,60 @@ String _generateUniqueProjectElementId(ProjectManifest project, String seed) {
   return candidate;
 }
 
+String _generateUniqueTerrainPresetId(ProjectManifest project, String seed) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'terrain_preset' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  final existing = project.terrainPresets.map((p) => p.id).toSet();
+  while (existing.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
+String _generateUniquePathPresetId(ProjectManifest project, String seed) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'path_preset' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  final existing = project.pathPresets.map((p) => p.id).toSet();
+  while (existing.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
+int _nextTerrainPresetSortOrder(ProjectManifest project) {
+  if (project.terrainPresets.isEmpty) return 0;
+  return project.terrainPresets
+          .map((preset) => preset.sortOrder)
+          .reduce((a, b) => a > b ? a : b) +
+      1;
+}
+
+int _nextPathPresetSortOrder(ProjectManifest project) {
+  if (project.pathPresets.isEmpty) return 0;
+  return project.pathPresets
+          .map((preset) => preset.sortOrder)
+          .reduce((a, b) => a > b ? a : b) +
+      1;
+}
+
 int _projectElementSort(ProjectElementEntry a, ProjectElementEntry b) {
   final sortCompare = a.sortOrder.compareTo(b.sortOrder);
   if (sortCompare != 0) return sortCompare;
@@ -1360,9 +1432,111 @@ List<ProjectElementCategory> _defaultElementCategories() {
   ];
 }
 
-ProjectManifest _withDefaultElementLibrary(ProjectManifest project) {
-  if (project.elementCategories.isNotEmpty) {
+List<ProjectTerrainPreset> _defaultTerrainPresets() {
+  return const [
+    ProjectTerrainPreset(
+      id: 'terrain_normal',
+      name: 'Normal Ground',
+      terrainType: TerrainType.normal,
+      categoryId: 'terrain_ground',
+      sortOrder: 0,
+    ),
+    ProjectTerrainPreset(
+      id: 'terrain_water',
+      name: 'Water',
+      terrainType: TerrainType.water,
+      categoryId: 'terrain_ground',
+      sortOrder: 1,
+    ),
+    ProjectTerrainPreset(
+      id: 'terrain_tall_grass',
+      name: 'Tall Grass',
+      terrainType: TerrainType.tallGrass,
+      categoryId: 'terrain_ground',
+      sortOrder: 2,
+    ),
+    ProjectTerrainPreset(
+      id: 'terrain_sand',
+      name: 'Sand',
+      terrainType: TerrainType.sand,
+      categoryId: 'terrain_ground',
+      sortOrder: 3,
+    ),
+    ProjectTerrainPreset(
+      id: 'terrain_ice',
+      name: 'Ice',
+      terrainType: TerrainType.ice,
+      categoryId: 'terrain_ground',
+      sortOrder: 4,
+    ),
+  ];
+}
+
+List<ProjectTerrainPresetCategory> _defaultTerrainPresetCategories() {
+  return const [
+    ProjectTerrainPresetCategory(
+      id: 'terrain',
+      name: 'Terrains',
+      kind: TerrainPresetCategoryKind.terrain,
+      sortOrder: 0,
+    ),
+    ProjectTerrainPresetCategory(
+      id: 'terrain_ground',
+      name: 'Ground',
+      kind: TerrainPresetCategoryKind.terrain,
+      parentCategoryId: 'terrain',
+      sortOrder: 0,
+    ),
+    ProjectTerrainPresetCategory(
+      id: 'path',
+      name: 'Paths',
+      kind: TerrainPresetCategoryKind.path,
+      sortOrder: 0,
+    ),
+    ProjectTerrainPresetCategory(
+      id: 'path_main',
+      name: 'Main Paths',
+      kind: TerrainPresetCategoryKind.path,
+      parentCategoryId: 'path',
+      sortOrder: 0,
+    ),
+  ];
+}
+
+List<ProjectPathPreset> _defaultPathPresets() {
+  return const [
+    ProjectPathPreset(
+      id: 'path_default',
+      name: 'Default Path',
+      categoryId: 'path_main',
+      groundTerrainType: TerrainType.normal,
+      sortOrder: 0,
+    ),
+  ];
+}
+
+ProjectManifest _withDefaultProjectLibrary(ProjectManifest project) {
+  final categories = project.elementCategories.isEmpty
+      ? _defaultElementCategories()
+      : project.elementCategories;
+  final terrainPresetCategories = project.terrainPresetCategories.isEmpty
+      ? _defaultTerrainPresetCategories()
+      : project.terrainPresetCategories;
+  final terrainPresets = project.terrainPresets.isEmpty
+      ? _defaultTerrainPresets()
+      : project.terrainPresets;
+  final pathPresets =
+      project.pathPresets.isEmpty ? _defaultPathPresets() : project.pathPresets;
+  if (identical(categories, project.elementCategories) &&
+      identical(terrainPresetCategories, project.terrainPresetCategories) &&
+      identical(terrainPresets, project.terrainPresets) &&
+      identical(pathPresets, project.pathPresets)) {
     return project;
   }
-  return project.copyWith(elementCategories: _defaultElementCategories());
+  return project.copyWith(
+    elementCategories: categories,
+    terrainPresetCategories: terrainPresetCategories,
+    terrainPresets: terrainPresets,
+    pathPresets: pathPresets,
+  );
 }

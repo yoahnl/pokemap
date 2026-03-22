@@ -2,12 +2,14 @@ import 'package:map_core/map_core.dart';
 
 class PathAutotileSet {
   const PathAutotileSet({
+    required this.id,
     required this.tilesetId,
     required this.variants,
   });
 
   factory PathAutotileSet.defaultForTileset(String tilesetId) {
     return PathAutotileSet(
+      id: 'default_$tilesetId',
       tilesetId: tilesetId,
       variants: const {
         TerrainPathVariant.isolated: TilesetSourceRect(x: 0, y: 0),
@@ -30,6 +32,19 @@ class PathAutotileSet {
     );
   }
 
+  factory PathAutotileSet.fromPreset(ProjectPathPreset preset) {
+    final mapping = <TerrainPathVariant, TilesetSourceRect>{};
+    for (final entry in preset.variants) {
+      mapping[entry.variant] = entry.source;
+    }
+    return PathAutotileSet(
+      id: preset.id,
+      tilesetId: preset.tilesetId.trim(),
+      variants: mapping,
+    );
+  }
+
+  final String id;
   final String tilesetId;
   final Map<TerrainPathVariant, TilesetSourceRect> variants;
 

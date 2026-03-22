@@ -5,6 +5,7 @@ import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/layers_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/terrain_editor_panel.dart';
+import 'package:map_editor/src/ui/panels/terrain_map_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/panels/warp_properties_panel.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
@@ -90,8 +91,16 @@ class EditorShellPage extends ConsumerWidget {
                   child: Row(
                     children: [
                       const SizedBox(
-                        width: 250,
-                        child: ProjectExplorerPanel(),
+                        width: 340,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: ProjectExplorerPanel(),
+                            ),
+                            Divider(height: 1),
+                            SizedBox(height: 420, child: TerrainEditorPanel()),
+                          ],
+                        ),
                       ),
                       const VerticalDivider(width: 1),
                       const Expanded(
@@ -118,8 +127,8 @@ class EditorShellPage extends ConsumerWidget {
                                           child: LayersPanel(),
                                         ),
                                         const SizedBox(
-                                          height: 340,
-                                          child: TerrainEditorPanel(),
+                                          height: 320,
+                                          child: TerrainMapPanel(),
                                         ),
                                         const SizedBox(
                                           height: 260,

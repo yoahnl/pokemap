@@ -46,6 +46,29 @@ class ProjectValidator {
         throw ValidationException('Duplicate element ID: ${element.id}');
       }
     }
+
+    final terrainPresetIds = <String>{};
+    for (final preset in manifest.terrainPresets) {
+      if (!terrainPresetIds.add(preset.id)) {
+        throw ValidationException('Duplicate terrain preset ID: ${preset.id}');
+      }
+    }
+
+    final pathPresetIds = <String>{};
+    for (final preset in manifest.pathPresets) {
+      if (!pathPresetIds.add(preset.id)) {
+        throw ValidationException('Duplicate path preset ID: ${preset.id}');
+      }
+    }
+
+    final terrainPresetCategoryIds = <String>{};
+    for (final category in manifest.terrainPresetCategories) {
+      if (!terrainPresetCategoryIds.add(category.id)) {
+        throw ValidationException(
+          'Duplicate terrain/path preset category ID: ${category.id}',
+        );
+      }
+    }
   }
 
   static void _validateHierarchy(ProjectManifest manifest) {
@@ -246,6 +269,161 @@ class ProjectValidator {
       }
       if (element.source.width <= 0 || element.source.height <= 0) {
         throw ValidationException('Element ${element.id} has invalid size');
+      }
+    }
+
+    final terrainPresetCategoryById = <String, ProjectTerrainPresetCategory>{};
+    for (final category in manifest.terrainPresetCategories) {
+      if (category.id.trim().isEmpty) {
+        throw const ValidationException(
+          'Terrain/path preset category ID cannot be empty',
+        );
+      }
+      if (category.name.trim().isEmpty) {
+        throw ValidationException(
+          'Terrain/path preset category ${category.id} has an empty name',
+        );
+      }
+      terrainPresetCategoryById[category.id] = category;
+    }
+
+    for (final category in manifest.terrainPresetCategories) {
+      final parentId = category.parentCategoryId;
+      if (parentId == null) continue;
+      final parent = terrainPresetCategoryById[parentId];
+      if (parent == null) {
+        throw ValidationException(
+          'Terrain/path preset category ${category.id} references missing parent: $parentId',
+        );
+      }
+      if (parent.kind != category.kind) {
+        throw ValidationException(
+          'Terrain/path preset category ${category.id} parent kind mismatch',
+        );
+      }
+      if (parentId == category.id) {
+        throw ValidationException(
+          'Terrain/path preset category ${category.id} cannot be its own parent',
+        );
+      }
+      String? cursor = parentId;
+      final visited = <String>{category.id};
+      while (cursor != null) {
+        if (!visited.add(cursor)) {
+          throw ValidationException(
+            'Cycle detected in terrain/path preset categories at ${category.id}',
+          );
+        }
+        cursor = terrainPresetCategoryById[cursor]?.parentCategoryId;
+      }
+    }
+
+    for (final preset in manifest.terrainPresets) {
+      if (preset.id.trim().isEmpty) {
+        throw const ValidationException('Terrain preset ID cannot be empty');
+      }
+      if (preset.name.trim().isEmpty) {
+        throw ValidationException(
+            'Terrain preset ${preset.id} has an empty name');
+      }
+      if (preset.terrainType == TerrainType.none) {
+        throw ValidationException(
+            'Terrain preset ${preset.id} cannot target terrain type "none"');
+      }
+      final tilesetId = preset.tilesetId.trim();
+      if (tilesetId.isNotEmpty && !tilesetIds.contains(tilesetId)) {
+        throw ValidationException(
+            'Terrain preset ${preset.id} references missing tileset: $tilesetId');
+      }
+      final categoryId = preset.categoryId?.trim();
+      if (categoryId != null && categoryId.isNotEmpty) {
+        final category = terrainPresetCategoryById[categoryId];
+        if (category == null) {
+          throw ValidationException(
+            'Terrain preset ${preset.id} references missing category: $categoryId',
+          );
+        }
+        if (category.kind != TerrainPresetCategoryKind.terrain) {
+          throw ValidationException(
+            'Terrain preset ${preset.id} category must be of kind terrain',
+          );
+        }
+      }
+      for (final variant in preset.variants) {
+        if (variant.weight <= 0) {
+          throw ValidationException(
+              'Terrain preset ${preset.id} has an invalid variant weight');
+        }
+        if (variant.source.x < 0 || variant.source.y < 0) {
+          throw ValidationException(
+              'Terrain preset ${preset.id} has invalid variant source coordinates');
+        }
+        if (variant.source.width <= 0 || variant.source.height <= 0) {
+          throw ValidationException(
+              'Terrain preset ${preset.id} has an invalid variant source size');
+        }
+      }
+    }
+
+    for (final preset in manifest.pathPresets) {
+      if (preset.id.trim().isEmpty) {
+        throw const ValidationException('Path preset ID cannot be empty');
+      }
+      if (preset.name.trim().isEmpty) {
+        throw ValidationException('Path preset ${preset.id} has an empty name');
+      }
+      if (preset.groundTerrainType == TerrainType.none ||
+          preset.groundTerrainType == TerrainType.path) {
+        throw ValidationException(
+          'Path preset ${preset.id} has an invalid ground terrain type',
+        );
+      }
+      final tilesetId = preset.tilesetId.trim();
+      if (tilesetId.isNotEmpty && !tilesetIds.contains(tilesetId)) {
+        throw ValidationException(
+            'Path preset ${preset.id} references missing tileset: $tilesetId');
+      }
+      final categoryId = preset.categoryId?.trim();
+      if (categoryId != null && categoryId.isNotEmpty) {
+        final category = terrainPresetCategoryById[categoryId];
+        if (category == null) {
+          throw ValidationException(
+            'Path preset ${preset.id} references missing category: $categoryId',
+          );
+        }
+        if (category.kind != TerrainPresetCategoryKind.path) {
+          throw ValidationException(
+            'Path preset ${preset.id} category must be of kind path',
+          );
+        }
+      }
+      final variants = <TerrainPathVariant>{};
+      for (final mapping in preset.variants) {
+        if (!variants.add(mapping.variant)) {
+          throw ValidationException(
+              'Path preset ${preset.id} has duplicate variant mapping: ${mapping.variant.name}');
+        }
+        if (mapping.source.x < 0 || mapping.source.y < 0) {
+          throw ValidationException(
+              'Path preset ${preset.id} has invalid variant source coordinates');
+        }
+        if (mapping.source.width <= 0 || mapping.source.height <= 0) {
+          throw ValidationException(
+              'Path preset ${preset.id} has an invalid variant source size');
+        }
+      }
+    }
+
+    final terrainTilesetIds = manifest.terrainPresets
+        .map((preset) => preset.tilesetId.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    for (final preset in manifest.pathPresets) {
+      final tilesetId = preset.tilesetId.trim();
+      if (tilesetId.isNotEmpty && terrainTilesetIds.contains(tilesetId)) {
+        throw ValidationException(
+          'Tileset $tilesetId cannot be shared between terrain and path presets',
+        );
       }
     }
   }

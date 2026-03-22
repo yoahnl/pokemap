@@ -151,6 +151,62 @@ Separations metier explicites:
   - ghost preview terrain paint/erase dedie,
   - resize map compatible (conserve les terrains existants, nouvelles cellules a `none`),
   - validation map etendue pour verifier la taille des grilles terrain.
+- Terrains/Paths presets (v2) operationnels:
+  - `ProjectManifest` enrichi avec:
+    - `terrainPresets`,
+    - `pathPresets`,
+    - `terrainPresetCategories`,
+  - modeles `ProjectTerrainPreset`, `TerrainPresetVariant`, `ProjectPathPreset`, `PathPresetVariantMapping`,
+  - modele de categories presets:
+    - `ProjectTerrainPresetCategory` avec hierarchie (`parentCategoryId`) et portee (`kind: terrain|path`),
+  - presets par defaut ajoutes a la creation/chargement de projet (`Normal Ground`, `Water`, `Tall Grass`, `Sand`, `Ice`, `Default Path`),
+  - use cases dedies:
+    - create/update/delete terrain preset,
+    - create/update/delete path preset,
+    - create/rename category terrain/path,
+  - providers Riverpod dedies exposes dans `use_case_providers.dart`,
+  - validation metier `map_core` etendue pour presets:
+    - unicite des IDs,
+    - unicite/coherence des categories terrain/path (parent, kind, cycles),
+    - coherence preset -> categorie (terrain avec categorie terrain, path avec categorie path),
+    - coherence des tilesets references,
+    - variants valides (coordonnees/taille/poids),
+    - unicite des mappings de variantes path,
+    - type de path valide (`groundTerrainType` != `none` et != `path`),
+  - panneau `TerrainEditorPanel` refondu en bibliotheque visuelle:
+    - selection claire de preset de fond,
+    - selection claire de preset de chemin,
+    - creation/edition/suppression de presets,
+    - choix de categorie/sous-categorie sur les presets,
+    - creation de categories/sous-categories terrain/path,
+    - edition des variantes visuelles terrain (multi-tiles + poids),
+    - edition du mapping complet des variantes path (16 cas),
+    - selection visuelle des variantes terrain depuis l image du tileset (picker rectangulaire),
+    - import direct de fichiers image depuis le panneau terrain/path (sans passer par le menu tileset),
+    - type de path configurable dans l edition (`Normal Ground`, `Water`, `Tall Grass`, `Sand`, `Ice`),
+  - rendu canvas et preview relies aux presets:
+    - rendu terrain hors path via variantes de preset (selection stable par cellule),
+    - rendu path auto-connecte via preset path selectionne,
+    - fallback coherent vers overlays si ressources preset indisponibles,
+  - suppression de tileset securisee:
+    - nettoyage automatique des references `tilesetId` dans presets concernes.
+  - integration UI:
+    - panneau `Terrains & Paths` deplace dans la colonne gauche et visible en mode map/tileset,
+    - edition de presets possible meme sans map active (mode bibliotheque),
+    - panneau terrain/path independant du panneau tilesets/elements de droite.
+  - bibliotheque terrain/path clarifiee:
+    - liste explicite des terrains nommes,
+    - liste explicite des chemins nommes,
+    - actions de creation directe pour chaque liste.
+  - edition map (colonne droite) enrichie:
+    - nouveau panneau `TerrainMapPanel`,
+    - acces direct a la liste des presets terrain + chemins en mode map via pickers (dropdown),
+    - affichage de la categorie complete dans les pickers (`Parent / Enfant`),
+    - affichage explicite du type de chemin selectionne (`groundTerrainType`),
+    - application immediate sur `TerrainLayer` (paint/fill) depuis le panneau map.
+  - regle metier ajoutee:
+    - separation stricte des tilesets de presets terrain et de presets chemin,
+    - validation appliquee dans les use cases editor et dans `ProjectValidator`.
 - Warps MVP operationnels:
   - operations pures `map_core` dediees (`add/update/remove`) avec validations metier explicites,
   - use cases + providers Riverpod dedies dans `map_editor`,
@@ -172,7 +228,7 @@ Separations metier explicites:
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
-- Terrains/Sols: base solide (types + paint/erase + path auto-connecte + panel UX dedie), comportements gameplay/runtime non implementes.
+- Terrains/Sols: base forte (paint/erase + path auto-connecte + presets visuels terrains/paths), comportements gameplay/runtime non implementes.
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -194,15 +250,184 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-- Terrains/Sols - Terrain Editor UX:
-  - ajout `TerrainType.path`,
-  - logique pure d autotiling path dans `map_core`,
-  - rendu auto-connecte path dans `MapGridPainter` + preview path amelioree,
-  - panneau `TerrainEditorPanel` avec workflow explicite fond/chemin,
-  - UX de dessin de chemins via `Path Paint Tool`,
-  - conservation du pipeline map-level (undo/redo/dirty/selection).
+- categories/sous-categories terrains & chemins + selection map par picker:
+  - categories hierarchiques dediees aux presets terrain/path (comme logique de groupes),
+  - attribution de categorie sur les presets terrain et path,
+  - pickers dropdown dans le panneau map pour choisir terrain/path,
+  - type de path explicite et configurable (`Normal Ground`, `Water`, `Tall Grass`, `Sand`, `Ice`),
+  - persistance complete dans `project.json`.
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (categories terrain/path + pickers map + type de path):
+- `map_core`:
+  - ajout `TerrainPresetCategoryKind` (`terrain`, `path`) dans `enums.dart`,
+  - `ProjectManifest` enrichi avec:
+    - `terrainPresetCategories`,
+    - `ProjectTerrainPreset.categoryId`,
+    - `ProjectPathPreset.categoryId`,
+    - `ProjectPathPreset.groundTerrainType`,
+    - modele `ProjectTerrainPresetCategory`,
+  - `ProjectValidator` etendu:
+    - unicite IDs categories presets,
+    - coherence parent/enfant et detection de cycles,
+    - coherence du `kind` des categories,
+    - coherence preset -> categorie,
+    - validation du type de path (`groundTerrainType`),
+    - maintien de la separation stricte tilesets terrain/path.
+- `map_editor`:
+  - use cases:
+    - `CreateTerrainPresetCategoryUseCase`,
+    - `RenameTerrainPresetCategoryUseCase`,
+    - extension create/update presets terrain/path avec `categoryId` et `groundTerrainType`,
+  - providers Riverpod ajoutes pour les categories presets,
+  - `EditorNotifier` enrichi:
+    - listing/lookup des categories terrain/path,
+    - resolution du chemin de categorie (`Parent / Enfant`),
+    - APIs create/rename categories,
+    - integration des nouveaux champs sur create/update presets,
+  - `TerrainEditorPanel`:
+    - creation de categories terrain/path (avec parent optionnel),
+    - choix de categorie dans les dialogs terrain/path,
+    - type de path selectable dans creation/edition de preset,
+    - affichage de la categorie et du type dans les listes/details,
+  - `TerrainMapPanel`:
+    - selection des presets terrain/path via dropdown (plus robuste qu une liste libre),
+    - affichage des chemins de categories dans les options,
+    - affichage du type du path selectionne.
+- impact:
+  - modele metier categorie/sous-categorie en place pour terrains/paths,
+  - selection map orientee picker demandee,
+  - type de chemin explicite au niveau preset et dans l UX map.
+
+2026-03-22 (listes terrains/chemins + panneau map droit + separation tilesets):
+- `map_editor`:
+  - nouveau panneau `TerrainMapPanel` ajoute en mode map dans la colonne droite:
+    - statut de `TerrainLayer` active,
+    - liste des presets terrain,
+    - liste des presets chemin,
+    - actions `Paint` et `Fill Layer` appliquees au preset selectionne.
+  - `EditorShellPage`:
+    - integration du panneau `TerrainMapPanel` dans la colonne droite map,
+    - zone gauche `Terrains & Paths` agrandie pour mieux exposer la bibliotheque.
+  - `TerrainEditorPanel`:
+    - simplifie en bibliotheque independante de la map:
+      - section `Terrains` (liste + creation + edition),
+      - section `Paths` (liste + creation + edition),
+    - suppression des actions de peinture map dans ce panneau (deplacees a droite),
+    - filtres de choix de tileset ajustes pour respecter la separation terrain/path.
+  - `terrain_preset_use_cases.dart`:
+    - validation metier ajoutee pour refuser un tileset deja utilise par l autre famille de preset.
+- `map_core`:
+  - `ProjectValidator` etendu pour refuser un tileset partage entre `terrainPresets` et `pathPresets`.
+- Impact:
+  - workflow demande par produit respecte:
+    - gauche = bibliotheque terrain/path,
+    - droite (map) = choix rapide des presets a appliquer sur `TerrainLayer`,
+  - coherence metier renforcee sur la separation des assets terrain vs chemins.
+
+2026-03-22 (terrain/path editor independant + assistants de mapping):
+- `map_editor`:
+  - `EditorShellPage`:
+    - colonne gauche fixe avec:
+      - `ProjectExplorerPanel`,
+      - `TerrainEditorPanel`,
+    - panneau terrain/path accessible en mode map et en mode tileset.
+  - `TerrainEditorPanel`:
+    - mode bibliotheque actif meme sans map chargee,
+    - liste terrain selectionnable (style liste) + details du terrain selectionne,
+    - preview image du tileset du terrain selectionne,
+    - import direct de tileset terrain/path depuis les dialogs de presets,
+    - assistant `Add Members` pour terrains (selection de zones successives dans l image),
+    - assistant `Map All Variants` pour path (mapping guide variante par variante),
+    - mapping path via selection visuelle case/zone depuis le tileset.
+- Impact:
+  - workflow terrain/path decouple de la creation/edition immediate de map,
+  - creation de presets plus proche d un editeur type Tiled (source image + selection guidee),
+  - persistance inchangee: donnees presets toujours sauvegardees dans `project.json`.
+
+2026-03-22 (terrain editor independant + import direct):
+- `map_editor`:
+  - `TerrainEditorPanel`:
+    - mode bibliotheque disponible meme sans map active,
+    - import direct d images pour terrains et paths depuis les dialogs de preset,
+    - mapping path: bouton `Pick From Tileset` ajoute dans le dialog de variante,
+    - creation/edit terrain: variantes visuelles selectionnables directement dans le tileset,
+  - `EditorShellPage`:
+    - panneau `Terrains & Paths` fixe dans la colonne gauche pour separer clairement:
+      - bibliotheque terrain/path (gauche),
+      - edition elements/tilesets (droite).
+- Impact:
+  - edition terrain/path decouplee du flux de creation/map active,
+  - workflow proche d un terrain editor dedie:
+    - import source,
+    - selection des cases,
+    - creation de presets reutilisables persistants.
+
+2026-03-22 (terrain presets - picker visuel + panneau gauche):
+- `map_editor`:
+  - `TerrainEditorPanel`:
+    - ajout d un picker visuel de rect depuis un tileset pour les variantes terrain,
+    - prise en charge create + edit de preset terrain avec variantes des la creation,
+    - conservation de la saisie manuelle `x/y/width/height` en fallback,
+    - clear des variantes temporaires lors du changement de tileset dans le dialog de creation.
+  - `EditorShellPage`:
+    - panneau `Terrains & Paths` ajoute dans la colonne gauche en mode map,
+    - retrait du panneau terrain de la colonne droite pour eviter la redondance,
+    - panneau terrain/path desormais separe du workflow tileset/elements.
+- Impact:
+  - creation de terrains visuels beaucoup plus rapide (selection directe dans le tileset),
+  - UX plus claire entre bibliotheque terrain/path (gauche) et edition elements tileset (droite),
+  - persistance inchangee: les presets restent sauvegardes dans `project.json`.
+
+2026-03-22 (terrains/paths presets v2):
+- `map_core`:
+  - `ProjectManifest` enrichi avec `terrainPresets` et `pathPresets`,
+  - nouveaux modeles:
+    - `ProjectTerrainPreset`,
+    - `TerrainPresetVariant`,
+    - `ProjectPathPreset`,
+    - `PathPresetVariantMapping`,
+  - validation metier etendue:
+    - unicite IDs presets,
+    - references tileset valides,
+    - coherence des variants (coordonnees, taille, poids),
+    - unicite des mappings de variantes path.
+- `map_editor`:
+  - nouveaux use cases dedies presets:
+    - `CreateTerrainPresetUseCase`, `UpdateTerrainPresetUseCase`, `DeleteTerrainPresetUseCase`,
+    - `CreatePathPresetUseCase`, `UpdatePathPresetUseCase`, `DeletePathPresetUseCase`,
+  - providers Riverpod associes ajoutes et codegen regenere,
+  - creation/chargement projet:
+    - injection automatique de presets par defaut quand absents,
+  - suppression tileset:
+    - nettoyage automatique des references presets vers le tileset supprime,
+  - `EditorState` enrichi:
+    - `selectedTerrainPresetId`,
+    - `selectedPathPresetId`,
+    - `selectedTerrainPresetByType`,
+  - `EditorNotifier` enrichi:
+    - resolution/listing des presets,
+    - selection explicite des presets actifs,
+    - CRUD presets (avec persistance),
+    - normalisation de la selection apres chargement/projet/mutations,
+  - `PathAutotileSet`:
+    - support `fromPreset(ProjectPathPreset)`,
+  - `MapCanvas` / `MapGridPainter`:
+    - rendu terrains non-path via presets multi-variants,
+    - selection stable des variantes par cellule (ponderee),
+    - rendu path auto-connecte via preset path selectionne,
+    - previews paint/erase adaptees aux presets,
+  - `TerrainEditorPanel`:
+    - refonte UI en panneau complet `Terrains & Paths`,
+    - sections presets background/path,
+    - creation/edition/suppression de presets,
+    - edition des variantes terrain et du mapping path 16 variantes.
+- Impact:
+  - workflow terrain plus proche d un editeur type Tiled (bibliotheque + presets reutilisables),
+  - rendu moins repetitif pour les sols grace aux variantes visuelles,
+  - configuration explicite des chemins auto-connectes,
+  - compatibilite preservee avec undo/redo, dirty state, hover preview et pipeline `_applyMapMutation(...)`.
+
 2026-03-22 (terrains - terrain editor UX):
 - `map_editor`:
   - nouveau panneau `TerrainEditorPanel`:
@@ -643,8 +868,8 @@ Terminee pour cette etape:
 - Etendre les terrains apres MVP:
   - support de comportements de sol (tags/proprietes),
   - interactions gameplay (rencontres, surf, glissade) cote runtime,
-  - configuration editor du mapping visuel des variantes path (au-dela du preset par defaut),
-  - separation plus fine entre rendu terrain editor et rendu runtime (eau animee, autotiles et transitions).
+  - gestion de presets plus avances (biomes, import/export, duplication, tri/recherche),
+  - separation plus fine entre rendu terrain editor et rendu runtime (eau animee, autotiles de transition, blending).
 - Finaliser l eclatement complet du monolithe `project_use_cases.dart` (tilesets/elements/projet) pour aligner toute la couche application sur la meme granularite.
 - Ajouter suppression/reorder des groupes internes de tileset et suppression de palette entries.
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
@@ -695,7 +920,18 @@ Terminee pour cette etape:
   - paint `path` force un footprint 1x1 pour stabiliser le dessin de routes,
   - paint/erase des autres terrains base sur le footprint du brush actif (fallback 1x1 si aucun brush),
   - rendu path auto-connecte base sur les voisins cardinaux, sans stocker la variante visuelle dans les donnees map,
-  - overlay terrain (hors path) rendu au-dessus des tiles et sous collisions/warps.
+  - separation explicite metier/rendu:
+    - `TerrainType` stocke la donnee logique par cellule,
+    - presets terrain/path stockent la configuration visuelle,
+  - categories terrain/path persistees et separees par `kind`:
+    - `terrain` pour presets de fond,
+    - `path` pour presets de chemin,
+    - hierarchie parent/enfant disponible pour organiser la bibliotheque,
+  - presets persistes dans le `ProjectManifest` (pas d etat UI temporaire),
+  - edition terrain/path positionnee dans un panneau dedie de la colonne gauche (mode map), distinct du panneau tileset/elements,
+  - creation de variantes terrain supporte la selection visuelle depuis le tileset (rect picker),
+  - rendu terrain (hors path) peut utiliser des variantes visuelles multi-tiles avec poids,
+  - choix des variantes terrain stable par cellule (seed deterministic) pour eviter le flicker en edition.
 - Decision UX warps:
   - outil dedie `warpPlacement`,
   - clic sur cellule avec warp existant => selection,
@@ -716,14 +952,12 @@ Terminee pour cette etape:
 - Les brushes lies a un tileset different restent bloques a la peinture si la layer active ne peut pas etre rebindee.
 - Les layers `collision` sont maintenant rendues en overlay, mais le rendu reste volontairement simple (bool), sans typage avance.
 - Les layers `terrain` restent en rendu MVP:
-  - `path` a un autotiling logique rendu en editor,
-  - les autres terrains restent en overlay simple (pas d animation/blending).
-- Le rendu path auto-connecte utilise un mapping visuel par defaut 4x4 dans l editeur:
-  - pas encore d UI de configuration du mapping,
-  - pas encore de persistance de ce mapping dans le manifest projet.
-- Le panneau terrain est fonctionnel et lisible, mais reste une version 1:
-  - pas encore de presets par biome/projet,
-  - pas encore de palette visuelle de variantes path.
+  - `path` a un autotiling logique rendu en editor, configurable via preset,
+  - terrains non-path peuvent etre rendus via presets visuels, avec fallback overlay.
+- Le systeme de presets est operationnel mais reste MVP:
+  - pas encore de gestion avancee des biomes (profiles globaux, inheritance),
+  - pas encore d outils batch (rebind de tileset, migration de presets),
+  - pas encore de mapping de transitions entre terrains (blend/edges).
 - Les layers `object` restent sans rendu editorial dedie.
 - Le Warp MVP n interdit pas explicitement plusieurs warps sur la meme case dans les donnees importees; en UI, le clic selectionne le premier warp trouve sur la case.
 - Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
@@ -788,7 +1022,14 @@ Terminee pour cette etape:
 - Effacer des terrains/sols: fait (MVP)
 - Dessiner des chemins auto-connectes: fait (MVP)
 - Visualiser les terrains/sols: fait (MVP overlay + path autotile)
-- Avoir un vrai editeur terrain (fond + chemins): fait (v1)
+- Avoir un vrai editeur terrain (fond + chemins): fait (v2 presets)
+- Presets de terrain visuels (multi-variants): fait
+- Presets de chemins configurables (mapping complet des variantes): fait
+- Categories/sous-categories de presets terrain: fait
+- Categories/sous-categories de presets path: fait
+- Picker terrain en mode map: fait
+- Picker path en mode map: fait
+- Type de path configurable (`Normal Ground`/`Water`/`Tall Grass`/`Sand`/`Ice`): fait
 - Poser des warps: fait (MVP)
 - Configurer les warps: partiellement fait (picker map cible + id/targetPos + resume destination + suppression + creation retour assistee; lien persistant bidirectionnel non fait)
 - Poser des triggers: pas fait
@@ -821,7 +1062,7 @@ Terminee pour cette etape:
 - Ghost preview + erase: fait
 - Systeme de brush: fait
 - Layers: fait (base MVP), evolutions avancees non faites
-- Terrains/Sols: fait (MVP + path auto-connecte + terrain editor UX), comportements gameplay/runtime non faits
+- Terrains/Sols: fait (MVP + path auto-connecte + terrain editor UX + presets terrains/paths persistants), comportements gameplay/runtime non faits
 - Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
 - Undo/redo: fait (map active)
 - Warps/triggers/entities: partiellement fait (warps MVP fait, triggers/entities non faits)

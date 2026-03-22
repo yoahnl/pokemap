@@ -117,6 +117,13 @@ enum TerrainPathVariant {
   cross,
 }
 
+enum TerrainPresetCategoryKind {
+  @JsonValue('terrain')
+  terrain,
+  @JsonValue('path')
+  path,
+}
+
 enum TilesetScope {
   @JsonValue('global')
   global,

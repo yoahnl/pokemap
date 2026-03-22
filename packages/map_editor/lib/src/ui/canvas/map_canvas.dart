@@ -20,10 +20,12 @@ class MapCanvas extends ConsumerWidget {
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
     final pathAutotileSet = notifier.getPathAutotileSet();
+    final terrainPresetsByType = notifier.getTerrainPresetByType();
     final tilesetPathsById = _collectLayerTilesetPaths(
       activeMap,
       notifier,
       pathAutotileSet: pathAutotileSet,
+      terrainPresetsByType: terrainPresetsByType,
     );
 
     if (activeMap == null) {
@@ -175,6 +177,7 @@ class MapCanvas extends ConsumerWidget {
                   warps: activeMap.warps,
                   selectedWarpId: state.selectedWarpId,
                   pathAutotileSet: pathAutotileSet,
+                  terrainPresetsByType: terrainPresetsByType,
                 ),
               ),
             ),
@@ -188,6 +191,7 @@ class MapCanvas extends ConsumerWidget {
     MapData? map,
     EditorNotifier notifier, {
     PathAutotileSet? pathAutotileSet,
+    required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
   }) {
     final result = <String, String>{};
     if (map != null) {
@@ -215,6 +219,17 @@ class MapCanvas extends ConsumerWidget {
           notifier.getTilesetAbsolutePathById(pathTilesetId);
       if (pathTilesetPath != null && pathTilesetPath.isNotEmpty) {
         result[pathTilesetId] = pathTilesetPath;
+      }
+    }
+    for (final preset in terrainPresetsByType.values) {
+      final terrainTilesetId = preset.tilesetId.trim();
+      if (terrainTilesetId.isEmpty || result.containsKey(terrainTilesetId)) {
+        continue;
+      }
+      final terrainTilesetPath =
+          notifier.getTilesetAbsolutePathById(terrainTilesetId);
+      if (terrainTilesetPath != null && terrainTilesetPath.isNotEmpty) {
+        result[terrainTilesetId] = terrainTilesetPath;
       }
     }
     return result;
@@ -257,6 +272,7 @@ class MapGridPainter extends CustomPainter {
   final List<MapWarp> warps;
   final String? selectedWarpId;
   final PathAutotileSet? pathAutotileSet;
+  final Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType;
 
   MapGridPainter({
     required this.map,
@@ -274,6 +290,7 @@ class MapGridPainter extends CustomPainter {
     required this.warps,
     this.selectedWarpId,
     this.pathAutotileSet,
+    required this.terrainPresetsByType,
   });
 
   @override
@@ -555,6 +572,11 @@ class MapGridPainter extends CustomPainter {
     if (pathPreviewPainted) {
       return;
     }
+    final terrainPresetPreviewPainted =
+        _paintTerrainPresetPreview(canvas, preview);
+    if (terrainPresetPreviewPainted) {
+      return;
+    }
     final previewRect = _computePreviewRect(preview.origin, preview.size);
     if (previewRect == null) return;
     final terrainColor = _terrainColor(preview.terrain ?? TerrainType.normal);
@@ -667,6 +689,84 @@ class MapGridPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
+    return true;
+  }
+
+  bool _paintTerrainPresetPreview(Canvas canvas, MapToolPreview preview) {
+    final terrain = preview.terrain;
+    if (terrain == null ||
+        terrain == TerrainType.none ||
+        terrain == TerrainType.path) {
+      return false;
+    }
+    final preset = terrainPresetsByType[terrain];
+    if (preset == null || preset.variants.isEmpty) {
+      return false;
+    }
+    final tilesetId = preset.tilesetId.trim();
+    if (tilesetId.isEmpty) {
+      return false;
+    }
+    final tilesetImage = tilesetImagesById[tilesetId];
+    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+      return false;
+    }
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.62);
+    var rendered = false;
+    for (var y = 0; y < preview.size.height; y++) {
+      for (var x = 0; x < preview.size.width; x++) {
+        final mapX = preview.origin.x + x;
+        final mapY = preview.origin.y + y;
+        if (mapX < 0 ||
+            mapY < 0 ||
+            mapX >= map.size.width ||
+            mapY >= map.size.height) {
+          continue;
+        }
+        final sourceTile = _resolveTerrainPresetSourceTile(
+          preset: preset,
+          x: mapX,
+          y: mapY,
+        );
+        if (sourceTile == null) continue;
+        final sourceX = sourceTile.dx * sourceTileWidth;
+        final sourceY = sourceTile.dy * sourceTileHeight;
+        if (sourceX < 0 ||
+            sourceY < 0 ||
+            sourceX + sourceTileWidth > tilesetImage.width ||
+            sourceY + sourceTileHeight > tilesetImage.height) {
+          continue;
+        }
+        canvas.drawImageRect(
+          tilesetImage,
+          Rect.fromLTWH(
+            sourceX.toDouble(),
+            sourceY.toDouble(),
+            sourceTileWidth.toDouble(),
+            sourceTileHeight.toDouble(),
+          ),
+          Rect.fromLTWH(
+            mapX * tileWidth,
+            mapY * tileHeight,
+            tileWidth,
+            tileHeight,
+          ),
+          paint,
+        );
+        rendered = true;
+      }
+    }
+    if (!rendered) return false;
+    final previewRect = _computePreviewRect(preview.origin, preview.size);
+    if (previewRect != null) {
+      canvas.drawRect(
+        previewRect,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6 / zoom,
+      );
+    }
     return true;
   }
 
@@ -850,6 +950,16 @@ class MapGridPainter extends CustomPainter {
             continue;
           }
         }
+        final terrainPresetDrawn = _paintTerrainPresetCell(
+          canvas,
+          terrain,
+          x: x,
+          y: y,
+          alpha: 0.95 * layer.opacity * activeBoost,
+        );
+        if (terrainPresetDrawn) {
+          continue;
+        }
         final fillColor = _terrainColor(terrain).withValues(
           alpha: 0.16 * layer.opacity * activeBoost,
         );
@@ -937,6 +1047,111 @@ class MapGridPainter extends CustomPainter {
     return true;
   }
 
+  bool _paintTerrainPresetCell(
+    Canvas canvas,
+    TerrainType terrain, {
+    required int x,
+    required int y,
+    required double alpha,
+  }) {
+    final preset = terrainPresetsByType[terrain];
+    if (preset == null || preset.variants.isEmpty) {
+      return false;
+    }
+    final tilesetId = preset.tilesetId.trim();
+    if (tilesetId.isEmpty) {
+      return false;
+    }
+    final tilesetImage = tilesetImagesById[tilesetId];
+    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+      return false;
+    }
+    final sourceTile = _resolveTerrainPresetSourceTile(
+      preset: preset,
+      x: x,
+      y: y,
+    );
+    if (sourceTile == null) return false;
+    final sourceX = sourceTile.dx * sourceTileWidth;
+    final sourceY = sourceTile.dy * sourceTileHeight;
+    if (sourceX < 0 ||
+        sourceY < 0 ||
+        sourceX + sourceTileWidth > tilesetImage.width ||
+        sourceY + sourceTileHeight > tilesetImage.height) {
+      return false;
+    }
+
+    final srcRect = Rect.fromLTWH(
+      sourceX.toDouble(),
+      sourceY.toDouble(),
+      sourceTileWidth.toDouble(),
+      sourceTileHeight.toDouble(),
+    );
+    final dstRect = Rect.fromLTWH(
+      x * tileWidth,
+      y * tileHeight,
+      tileWidth,
+      tileHeight,
+    );
+    canvas.drawImageRect(
+      tilesetImage,
+      srcRect,
+      dstRect,
+      Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
+    );
+    return true;
+  }
+
+  Offset? _resolveTerrainPresetSourceTile({
+    required ProjectTerrainPreset preset,
+    required int x,
+    required int y,
+  }) {
+    final variants = preset.variants;
+    if (variants.isEmpty) return null;
+    var totalWeight = 0;
+    for (final variant in variants) {
+      totalWeight += variant.weight <= 0 ? 1 : variant.weight;
+    }
+    if (totalWeight <= 0) return null;
+
+    final seed = _stableCellSeed(x: x, y: y, salt: preset.id.hashCode);
+    var selectedWeight = seed % totalWeight;
+    TerrainPresetVariant chosen = variants.first;
+    for (final variant in variants) {
+      final weight = variant.weight <= 0 ? 1 : variant.weight;
+      if (selectedWeight < weight) {
+        chosen = variant;
+        break;
+      }
+      selectedWeight -= weight;
+    }
+
+    final width = chosen.source.width <= 0 ? 1 : chosen.source.width;
+    final height = chosen.source.height <= 0 ? 1 : chosen.source.height;
+    final cellSeed = _stableCellSeed(
+      x: x,
+      y: y,
+      salt: chosen.source.x * 73856093 + chosen.source.y * 19349663,
+    );
+    final tileIndex = cellSeed % (width * height);
+    final offsetX = tileIndex % width;
+    final offsetY = tileIndex ~/ width;
+    return Offset(
+      (chosen.source.x + offsetX).toDouble(),
+      (chosen.source.y + offsetY).toDouble(),
+    );
+  }
+
+  int _stableCellSeed({
+    required int x,
+    required int y,
+    required int salt,
+  }) {
+    final raw = ((x + 1) * 73856093) ^ ((y + 1) * 19349663) ^ salt;
+    return raw & 0x7fffffff;
+  }
+
   TerrainLayer? _resolveActiveTerrainLayer() {
     final id = activeLayerId;
     if (id == null) {
@@ -975,6 +1190,7 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.selectedWarpId != selectedWarpId ||
         !listEquals(oldDelegate.warps, warps) ||
         !_samePathAutotileSet(oldDelegate.pathAutotileSet, pathAutotileSet) ||
+        !mapEquals(oldDelegate.terrainPresetsByType, terrainPresetsByType) ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||
@@ -997,6 +1213,7 @@ class MapGridPainter extends CustomPainter {
   bool _samePathAutotileSet(PathAutotileSet? previous, PathAutotileSet? next) {
     if (identical(previous, next)) return true;
     if (previous == null || next == null) return previous == next;
+    if (previous.id != next.id) return false;
     if (previous.tilesetId != next.tilesetId) return false;
     if (previous.variants.length != next.variants.length) return false;
     for (final entry in previous.variants.entries) {

@@ -894,6 +894,10 @@ mixin _$EditorState {
   GridPos? get hoveredTile => throw _privateConstructorUsedError;
   EditorBrush get activeBrush => throw _privateConstructorUsedError;
   TerrainType get selectedTerrainType => throw _privateConstructorUsedError;
+  String? get selectedTerrainPresetId => throw _privateConstructorUsedError;
+  String? get selectedPathPresetId => throw _privateConstructorUsedError;
+  Map<TerrainType, String> get selectedTerrainPresetByType =>
+      throw _privateConstructorUsedError;
   CollisionBrushSizeMode get collisionBrushSizeMode =>
       throw _privateConstructorUsedError;
   String? get selectedWarpId => throw _privateConstructorUsedError;
@@ -941,6 +945,9 @@ abstract class $EditorStateCopyWith<$Res> {
       GridPos? hoveredTile,
       EditorBrush activeBrush,
       TerrainType selectedTerrainType,
+      String? selectedTerrainPresetId,
+      String? selectedPathPresetId,
+      Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedWarpId,
       String? selectedTilesetEditorId,
@@ -992,6 +999,9 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
     Object? selectedTerrainType = null,
+    Object? selectedTerrainPresetId = freezed,
+    Object? selectedPathPresetId = freezed,
+    Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedWarpId = freezed,
     Object? selectedTilesetEditorId = freezed,
@@ -1051,6 +1061,18 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.selectedTerrainType
           : selectedTerrainType // ignore: cast_nullable_to_non_nullable
               as TerrainType,
+      selectedTerrainPresetId: freezed == selectedTerrainPresetId
+          ? _value.selectedTerrainPresetId
+          : selectedTerrainPresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedPathPresetId: freezed == selectedPathPresetId
+          ? _value.selectedPathPresetId
+          : selectedPathPresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTerrainPresetByType: null == selectedTerrainPresetByType
+          ? _value.selectedTerrainPresetByType
+          : selectedTerrainPresetByType // ignore: cast_nullable_to_non_nullable
+              as Map<TerrainType, String>,
       collisionBrushSizeMode: null == collisionBrushSizeMode
           ? _value.collisionBrushSizeMode
           : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
@@ -1222,6 +1244,9 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       GridPos? hoveredTile,
       EditorBrush activeBrush,
       TerrainType selectedTerrainType,
+      String? selectedTerrainPresetId,
+      String? selectedPathPresetId,
+      Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedWarpId,
       String? selectedTilesetEditorId,
@@ -1277,6 +1302,9 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
     Object? selectedTerrainType = null,
+    Object? selectedTerrainPresetId = freezed,
+    Object? selectedPathPresetId = freezed,
+    Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedWarpId = freezed,
     Object? selectedTilesetEditorId = freezed,
@@ -1336,6 +1364,18 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedTerrainType
           : selectedTerrainType // ignore: cast_nullable_to_non_nullable
               as TerrainType,
+      selectedTerrainPresetId: freezed == selectedTerrainPresetId
+          ? _value.selectedTerrainPresetId
+          : selectedTerrainPresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedPathPresetId: freezed == selectedPathPresetId
+          ? _value.selectedPathPresetId
+          : selectedPathPresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTerrainPresetByType: null == selectedTerrainPresetByType
+          ? _value._selectedTerrainPresetByType
+          : selectedTerrainPresetByType // ignore: cast_nullable_to_non_nullable
+              as Map<TerrainType, String>,
       collisionBrushSizeMode: null == collisionBrushSizeMode
           ? _value.collisionBrushSizeMode
           : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
@@ -1422,6 +1462,9 @@ class _$EditorStateImpl implements _EditorState {
       this.hoveredTile,
       this.activeBrush = const EditorBrush.none(),
       this.selectedTerrainType = TerrainType.normal,
+      this.selectedTerrainPresetId,
+      this.selectedPathPresetId,
+      final Map<TerrainType, String> selectedTerrainPresetByType = const {},
       this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
       this.selectedWarpId,
       this.selectedTilesetEditorId,
@@ -1439,7 +1482,8 @@ class _$EditorStateImpl implements _EditorState {
       this.isSaving = false,
       this.statusMessage,
       this.errorMessage})
-      : _mapUndoStack = mapUndoStack,
+      : _selectedTerrainPresetByType = selectedTerrainPresetByType,
+        _mapUndoStack = mapUndoStack,
         _mapRedoStack = mapRedoStack;
 
 // Context
@@ -1469,6 +1513,20 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final TerrainType selectedTerrainType;
+  @override
+  final String? selectedTerrainPresetId;
+  @override
+  final String? selectedPathPresetId;
+  final Map<TerrainType, String> _selectedTerrainPresetByType;
+  @override
+  @JsonKey()
+  Map<TerrainType, String> get selectedTerrainPresetByType {
+    if (_selectedTerrainPresetByType is EqualUnmodifiableMapView)
+      return _selectedTerrainPresetByType;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_selectedTerrainPresetByType);
+  }
+
   @override
   @JsonKey()
   final CollisionBrushSizeMode collisionBrushSizeMode;
@@ -1530,7 +1588,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTerrainType: $selectedTerrainType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1557,12 +1615,18 @@ class _$EditorStateImpl implements _EditorState {
                 other.activeBrush == activeBrush) &&
             (identical(other.selectedTerrainType, selectedTerrainType) ||
                 other.selectedTerrainType == selectedTerrainType) &&
+            (identical(other.selectedTerrainPresetId, selectedTerrainPresetId) ||
+                other.selectedTerrainPresetId == selectedTerrainPresetId) &&
+            (identical(other.selectedPathPresetId, selectedPathPresetId) ||
+                other.selectedPathPresetId == selectedPathPresetId) &&
+            const DeepCollectionEquality().equals(
+                other._selectedTerrainPresetByType,
+                _selectedTerrainPresetByType) &&
             (identical(other.collisionBrushSizeMode, collisionBrushSizeMode) ||
                 other.collisionBrushSizeMode == collisionBrushSizeMode) &&
             (identical(other.selectedWarpId, selectedWarpId) ||
                 other.selectedWarpId == selectedWarpId) &&
-            (identical(
-                    other.selectedTilesetEditorId, selectedTilesetEditorId) ||
+            (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) ||
                 other.selectedTilesetEditorId == selectedTilesetEditorId) &&
             (identical(other.selectedTilesetElementGroupId,
                     selectedTilesetElementGroupId) ||
@@ -1607,6 +1671,9 @@ class _$EditorStateImpl implements _EditorState {
         hoveredTile,
         activeBrush,
         selectedTerrainType,
+        selectedTerrainPresetId,
+        selectedPathPresetId,
+        const DeepCollectionEquality().hash(_selectedTerrainPresetByType),
         collisionBrushSizeMode,
         selectedWarpId,
         selectedTilesetEditorId,
@@ -1647,6 +1714,9 @@ abstract class _EditorState implements EditorState {
       final GridPos? hoveredTile,
       final EditorBrush activeBrush,
       final TerrainType selectedTerrainType,
+      final String? selectedTerrainPresetId,
+      final String? selectedPathPresetId,
+      final Map<TerrainType, String> selectedTerrainPresetByType,
       final CollisionBrushSizeMode collisionBrushSizeMode,
       final String? selectedWarpId,
       final String? selectedTilesetEditorId,
@@ -1686,6 +1756,12 @@ abstract class _EditorState implements EditorState {
   EditorBrush get activeBrush;
   @override
   TerrainType get selectedTerrainType;
+  @override
+  String? get selectedTerrainPresetId;
+  @override
+  String? get selectedPathPresetId;
+  @override
+  Map<TerrainType, String> get selectedTerrainPresetByType;
   @override
   CollisionBrushSizeMode get collisionBrushSizeMode;
   @override

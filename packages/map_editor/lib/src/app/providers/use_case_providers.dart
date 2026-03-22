@@ -122,6 +122,58 @@ DeleteProjectElementUseCase deleteProjectElementUseCase(
 }
 
 @riverpod
+CreateTerrainPresetUseCase createTerrainPresetUseCase(
+    CreateTerrainPresetUseCaseRef ref) {
+  return CreateTerrainPresetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateTerrainPresetUseCase updateTerrainPresetUseCase(
+    UpdateTerrainPresetUseCaseRef ref) {
+  return UpdateTerrainPresetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteTerrainPresetUseCase deleteTerrainPresetUseCase(
+    DeleteTerrainPresetUseCaseRef ref) {
+  return DeleteTerrainPresetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+CreatePathPresetUseCase createPathPresetUseCase(
+    CreatePathPresetUseCaseRef ref) {
+  return CreatePathPresetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdatePathPresetUseCase updatePathPresetUseCase(
+    UpdatePathPresetUseCaseRef ref) {
+  return UpdatePathPresetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeletePathPresetUseCase deletePathPresetUseCase(
+    DeletePathPresetUseCaseRef ref) {
+  return DeletePathPresetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+CreateTerrainPresetCategoryUseCase createTerrainPresetCategoryUseCase(
+    CreateTerrainPresetCategoryUseCaseRef ref) {
+  return CreateTerrainPresetCategoryUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+RenameTerrainPresetCategoryUseCase renameTerrainPresetCategoryUseCase(
+    RenameTerrainPresetCategoryUseCaseRef ref) {
+  return RenameTerrainPresetCategoryUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
 ResolveVisibleProjectElementsUseCase resolveVisibleProjectElementsUseCase(
     ResolveVisibleProjectElementsUseCaseRef ref) {
   return ResolveVisibleProjectElementsUseCase();
