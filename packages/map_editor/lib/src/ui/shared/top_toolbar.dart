@@ -129,6 +129,28 @@ class TopToolbar extends ConsumerWidget {
             ),
             tooltip: 'Tile Paint Tool',
           ),
+          IconButton(
+            onPressed: () => notifier.selectTool(EditorToolType.collisionPaint),
+            icon: Icon(
+              Icons.grid_view_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.collisionPaint
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Collision Paint Tool',
+          ),
+          IconButton(
+            onPressed: () => notifier.selectTool(EditorToolType.eraser),
+            icon: Icon(
+              Icons.cleaning_services_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.eraser
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Eraser Tool',
+          ),
           const VerticalDivider(width: 1, indent: 8, endIndent: 8),
           IconButton(
             onPressed: () => notifier.zoom(0.1),

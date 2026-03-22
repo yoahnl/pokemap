@@ -1397,24 +1397,55 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
-  void eraseAt(
-    GridPos pos, {
-    required Map<String, int> tilesetColumnsById,
-  }) {
-    final layerContext = _resolveActiveTileLayerContext(emitErrors: true);
+  void paintCollisionAt(GridPos pos) {
+    final layerContext = _resolveActiveCollisionLayerContext(emitErrors: true);
     if (layerContext == null) return;
-    final pattern = _resolveErasePattern(
-      tilesetColumnsById: tilesetColumnsById,
-      emitErrors: true,
-    );
-    if (pattern == null) return;
-    _erasePattern(
+    final footprint = _resolveBrushFootprint(emitErrors: true);
+    if (footprint == null) return;
+    _paintCollisionPattern(
       map: layerContext.map,
       layerId: layerContext.layerId,
       pos: pos,
-      patternSize: pattern.size,
-      failureLabel: pattern.failureLabel,
+      patternSize: footprint.size,
+      failureLabel: footprint.failureLabel,
     );
+  }
+
+  void eraseAt(GridPos pos) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      _setPaintError('No active layer selected');
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) {
+      _setPaintError('Active layer not found: $layerId');
+      return;
+    }
+    final pattern = _resolveErasePattern(emitErrors: true);
+    if (pattern == null) return;
+    if (activeLayer is TileLayer) {
+      _erasePattern(
+        map: map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: pattern.size,
+        failureLabel: pattern.failureLabel,
+      );
+      return;
+    }
+    if (activeLayer is CollisionLayer) {
+      _eraseCollisionPattern(
+        map: map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: pattern.size,
+        failureLabel: pattern.failureLabel,
+      );
+      return;
+    }
+    _setPaintError('Active layer "${activeLayer.name}" is not editable');
   }
 
   MapToolPreview? resolveMapToolPreview({
@@ -1423,44 +1454,67 @@ class EditorNotifier extends _$EditorNotifier {
     final hoveredTile = state.hoveredTile;
     if (hoveredTile == null) return null;
     final tool = state.activeTool;
-    if (tool != EditorToolType.tilePaint && tool != EditorToolType.eraser) {
+    if (tool != EditorToolType.tilePaint &&
+        tool != EditorToolType.collisionPaint &&
+        tool != EditorToolType.eraser) {
       return null;
     }
-    final layerContext = _resolveActiveTileLayerContext(emitErrors: false);
-    if (layerContext == null) return null;
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) return null;
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) return null;
 
-    if (tool == EditorToolType.eraser) {
-      final erasePattern = _resolveErasePattern(
+    if (tool == EditorToolType.tilePaint) {
+      if (activeLayer is! TileLayer) return null;
+      final resolvedBrush = _resolveActiveBrushPattern(
         tilesetColumnsById: tilesetColumnsById,
         emitErrors: false,
       );
-      if (erasePattern == null) return null;
-      return MapToolPreview.erase(
+      if (resolvedBrush == null) return null;
+      final compatibility = _resolveLayerBrushCompatibility(
+        activeLayer,
+        resolvedBrush.tilesetId,
+      );
+      final validity = compatibility == _BrushLayerCompatibility.incompatible
+          ? MapToolPreviewValidity.invalid
+          : MapToolPreviewValidity.valid;
+      return MapToolPreview.paint(
+        origin: hoveredTile,
+        size: resolvedBrush.pattern.size,
+        tilesetId: resolvedBrush.tilesetId,
+        tiles: resolvedBrush.pattern.tiles,
+        validity: validity,
+      );
+    }
+
+    final erasePattern = _resolveErasePattern(emitErrors: false);
+    if (erasePattern == null) return null;
+
+    if (tool == EditorToolType.collisionPaint) {
+      if (activeLayer is! CollisionLayer) return null;
+      return MapToolPreview.collisionPaint(
         origin: hoveredTile,
         size: erasePattern.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
 
-    final resolvedBrush = _resolveActiveBrushPattern(
-      tilesetColumnsById: tilesetColumnsById,
-      emitErrors: false,
-    );
-    if (resolvedBrush == null) return null;
-    final compatibility = _resolveLayerBrushCompatibility(
-      layerContext.layer,
-      resolvedBrush.tilesetId,
-    );
-    final validity = compatibility == _BrushLayerCompatibility.incompatible
-        ? MapToolPreviewValidity.invalid
-        : MapToolPreviewValidity.valid;
-    return MapToolPreview.paint(
-      origin: hoveredTile,
-      size: resolvedBrush.pattern.size,
-      tilesetId: resolvedBrush.tilesetId,
-      tiles: resolvedBrush.pattern.tiles,
-      validity: validity,
-    );
+    if (activeLayer is TileLayer) {
+      return MapToolPreview.erase(
+        origin: hoveredTile,
+        size: erasePattern.size,
+        validity: MapToolPreviewValidity.valid,
+      );
+    }
+    if (activeLayer is CollisionLayer) {
+      return MapToolPreview.collisionErase(
+        origin: hoveredTile,
+        size: erasePattern.size,
+        validity: MapToolPreviewValidity.valid,
+      );
+    }
+    return null;
   }
 
   void paintSelectedTileAt(GridPos pos) {
@@ -1716,25 +1770,82 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   _ErasePattern? _resolveErasePattern({
-    required Map<String, int> tilesetColumnsById,
+    required bool emitErrors,
+  }) {
+    final footprint = _resolveBrushFootprint(emitErrors: emitErrors);
+    if (footprint == null) return null;
+    return _ErasePattern(
+      size: footprint.size,
+      failureLabel: footprint.failureLabel,
+    );
+  }
+
+  _ResolvedBrushFootprint? _resolveBrushFootprint({
     required bool emitErrors,
   }) {
     final brush = state.activeBrush;
     if (brush is NoEditorBrush) {
-      return const _ErasePattern(
+      return const _ResolvedBrushFootprint(
         size: GridSize(width: 1, height: 1),
         failureLabel: 'tile',
       );
     }
-    final resolvedBrush = _resolveActiveBrushPattern(
-      tilesetColumnsById: tilesetColumnsById,
-      emitErrors: emitErrors,
-    );
-    if (resolvedBrush == null) return null;
-    return _ErasePattern(
-      size: resolvedBrush.pattern.size,
-      failureLabel: resolvedBrush.failureLabel,
-    );
+    if (brush is TileEditorBrush) {
+      if (brush.tileId <= 0) {
+        if (emitErrors) {
+          _setPaintError('Selected tile brush is invalid');
+        }
+        return null;
+      }
+      return const _ResolvedBrushFootprint(
+        size: GridSize(width: 1, height: 1),
+        failureLabel: 'tile',
+      );
+    }
+    if (brush is PaletteEntryEditorBrush) {
+      final tilesetId = brush.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        if (emitErrors) {
+          _setPaintError(
+              'Selected palette brush does not have a valid tileset');
+        }
+        return null;
+      }
+      final entry = getPaletteEntryById(
+        tilesetId: tilesetId,
+        entryId: brush.entryId,
+      );
+      if (entry == null) {
+        if (emitErrors) {
+          _setPaintError('Selected palette entry is no longer available');
+        }
+        return null;
+      }
+      return _ResolvedBrushFootprint(
+        size: GridSize(
+          width: entry.source.width,
+          height: entry.source.height,
+        ),
+        failureLabel: 'palette entry',
+      );
+    }
+    if (brush is ProjectElementEditorBrush) {
+      final element = getProjectElementById(brush.elementId);
+      if (element == null) {
+        if (emitErrors) {
+          _setPaintError('Selected project element is no longer available');
+        }
+        return null;
+      }
+      return _ResolvedBrushFootprint(
+        size: GridSize(
+          width: element.source.width,
+          height: element.source.height,
+        ),
+        failureLabel: 'element',
+      );
+    }
+    return null;
   }
 
   void _paintPattern({
@@ -1808,6 +1919,90 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void _paintCollisionPattern({
+    required MapData map,
+    required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    required String failureLabel,
+  }) {
+    try {
+      if (patternSize.width == 1 && patternSize.height == 1) {
+        final useCase = ref.read(paintCollisionOnMapUseCaseProvider);
+        final painted = useCase.execute(
+          map,
+          layerId: layerId,
+          pos: pos,
+        );
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: painted,
+          preferredActiveLayerId: layerId,
+          partOfStroke: true,
+        );
+        return;
+      }
+      final useCase = ref.read(paintCollisionPatternOnMapUseCaseProvider);
+      final painted = useCase.execute(
+        map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: patternSize,
+        clipToMapBounds: true,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: painted,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to paint collision $failureLabel: $e');
+    }
+  }
+
+  void _eraseCollisionPattern({
+    required MapData map,
+    required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    required String failureLabel,
+  }) {
+    try {
+      if (patternSize.width == 1 && patternSize.height == 1) {
+        final useCase = ref.read(eraseCollisionOnMapUseCaseProvider);
+        final erased = useCase.execute(
+          map,
+          layerId: layerId,
+          pos: pos,
+        );
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: erased,
+          preferredActiveLayerId: layerId,
+          partOfStroke: true,
+        );
+        return;
+      }
+      final useCase = ref.read(eraseCollisionPatternOnMapUseCaseProvider);
+      final erased = useCase.execute(
+        map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: patternSize,
+        clipToMapBounds: true,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: erased,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to erase collision $failureLabel: $e');
+    }
+  }
+
   void _setPaintError(String message) {
     state = state.copyWith(errorMessage: message);
   }
@@ -1838,6 +2033,38 @@ class EditorNotifier extends _$EditorNotifier {
       return null;
     }
     return _ActiveTileLayerContext(
+      map: map,
+      layerId: layerId,
+      layer: activeLayer,
+    );
+  }
+
+  _ActiveCollisionLayerContext? _resolveActiveCollisionLayerContext({
+    required bool emitErrors,
+  }) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      if (emitErrors) {
+        _setPaintError('No active collision layer selected');
+      }
+      return null;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) {
+      if (emitErrors) {
+        _setPaintError('Active layer not found: $layerId');
+      }
+      return null;
+    }
+    if (activeLayer is! CollisionLayer) {
+      if (emitErrors) {
+        _setPaintError(
+            'Active layer "${activeLayer.name}" is not a collision layer');
+      }
+      return null;
+    }
+    return _ActiveCollisionLayerContext(
       map: map,
       layerId: layerId,
       layer: activeLayer,
@@ -2300,6 +2527,8 @@ class _PaintPattern {
 enum MapToolPreviewMode {
   paint,
   erase,
+  collisionPaint,
+  collisionErase,
 }
 
 enum MapToolPreviewValidity {
@@ -2323,6 +2552,24 @@ class MapToolPreview {
     required this.validity,
     this.reason,
   })  : mode = MapToolPreviewMode.erase,
+        tilesetId = null,
+        tiles = null;
+
+  const MapToolPreview.collisionPaint({
+    required this.origin,
+    required this.size,
+    required this.validity,
+    this.reason,
+  })  : mode = MapToolPreviewMode.collisionPaint,
+        tilesetId = null,
+        tiles = null;
+
+  const MapToolPreview.collisionErase({
+    required this.origin,
+    required this.size,
+    required this.validity,
+    this.reason,
+  })  : mode = MapToolPreviewMode.collisionErase,
         tilesetId = null,
         tiles = null;
 
@@ -2353,6 +2600,16 @@ class _ResolvedBrushPattern {
   final _PaintPattern pattern;
 }
 
+class _ResolvedBrushFootprint {
+  const _ResolvedBrushFootprint({
+    required this.size,
+    required this.failureLabel,
+  });
+
+  final GridSize size;
+  final String failureLabel;
+}
+
 class _ErasePattern {
   const _ErasePattern({
     required this.size,
@@ -2373,4 +2630,16 @@ class _ActiveTileLayerContext {
   final MapData map;
   final String layerId;
   final TileLayer layer;
+}
+
+class _ActiveCollisionLayerContext {
+  const _ActiveCollisionLayerContext({
+    required this.map,
+    required this.layerId,
+    required this.layer,
+  });
+
+  final MapData map;
+  final String layerId;
+  final CollisionLayer layer;
 }

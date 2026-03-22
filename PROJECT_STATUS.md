@@ -115,11 +115,18 @@ Separations metier explicites:
     - `layer_use_cases.dart`,
     - `map_use_cases.dart`,
   - `project_use_cases.dart` reste point d entree, avec `part` pour ces blocs.
+- Collisions MVP operationnelles:
+  - outil `collisionPaint` dedie,
+  - `eraser` contextuel: efface les collisions si la layer active est une `CollisionLayer`,
+  - paint/erase collision au clic + drag avec regroupement stroke dans l historique,
+  - overlay collision visible dans le canvas map (au-dessus des tiles),
+  - ghost preview collision paint/erase distinct du preview tile.
 
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
+- Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
 - Interaction selection vs scroll dans le canvas tileset: base solide, raffinements UX possibles.
@@ -143,6 +150,7 @@ Terminee pour cette etape:
 - raccourcis desktop undo/redo,
 - suppression d elements projet depuis l UI,
 - nettoyage structurel initial des use cases (`paint`/`layer`/`map`).
+- collisions MVP (paint/erase/overlay/preview) integrees au pipeline map-level.
 
 ## 7. Dernieres modifications realisees
 2026-03-22 (ghost preview + erase):
@@ -198,6 +206,38 @@ Terminee pour cette etape:
       - `map_use_cases.dart`,
       - `layer_use_cases.dart`,
       - `paint_use_cases.dart`.
+
+2026-03-22 (collisions MVP):
+- `map_core`:
+  - ajout des operations pures collisions:
+    - `paintCollisionOnLayer(...)`,
+    - `paintCollisionPatternOnLayer(...)`,
+    - `eraseCollisionOnLayer(...)`,
+    - `eraseCollisionPatternOnLayer(...)`.
+  - operations purement immuables avec validations (layer type, bounds, pattern size, clipping).
+- `map_editor`:
+  - use cases collisions dedies:
+    - `PaintCollisionOnMapUseCase`,
+    - `PaintCollisionPatternOnMapUseCase`,
+    - `EraseCollisionOnMapUseCase`,
+    - `EraseCollisionPatternOnMapUseCase`.
+  - providers Riverpod associes.
+  - `EditorNotifier`:
+    - ajout `paintCollisionAt(...)`,
+    - `eraseAt(...)` devient contextuel selon le type de layer active (`TileLayer` ou `CollisionLayer`),
+    - preview outillage etendu avec modes collision paint/erase,
+    - integration complete au pipeline central `_applyMapMutation(...)` + strokes undo/redo.
+  - `MapCanvas`:
+    - routing gestuel etendu pour `collisionPaint`,
+    - drag collision groupe en un seul stroke.
+  - `MapGridPainter`:
+    - rendu overlay des `CollisionLayer` visibles (avec opacite),
+    - preview collision paint/erase dedie.
+  - `TopToolbar`:
+    - ajout bouton `collisionPaint`,
+    - bouton `eraser` explicite.
+  - refactor use cases:
+    - ajout `collision_use_cases.dart` et eclatement poursuivi du monolithe.
 
 2026-03-22 (correctifs fin d etape layers):
 - `map_editor`:
@@ -349,7 +389,7 @@ Terminee pour cette etape:
 - Ajouter suppression/reorder des groupes internes de tileset et suppression de palette entries.
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
 - Ajouter locks, duplication et eventuel grouping de layers.
-- Ajouter edition collisions dediee (outil collision + rendu overlay collision).
+- Etendre les collisions au-dela du bool (types de collisions, comportements de sol, presets).
 - Ajouter drag/drop de classement des elements dans un tileset.
 - Ajouter filtres rapides (tags, recherche texte, layer recommandee).
 - Ajouter edition/suppression des elements directement depuis le workspace central tileset.
@@ -380,6 +420,12 @@ Terminee pour cette etape:
 - Toute mutation map passe par `_applyMapMutation(...)` dans le notifier pour garder un seul pipeline de coherence (undo/redo, dirty, layer active, tileset selectionne).
 - Les strokes paint/erase sont traites comme des transactions logiques (begin/end) pour eviter une entree d historique par cellule.
 - Les raccourcis undo/redo sont geres au shell via `Shortcuts/Actions` avec garde de focus texte.
+- Decision UX collisions:
+  - outil dedie `collisionPaint` pour poser des collisions,
+  - `eraser` reste unique et efface selon le type de layer active:
+    - tile -> effacement de tiles,
+    - collision -> effacement de collisions.
+  - overlay collision rendu au-dessus des tiles pour garder la lisibilite d edition.
 - La compatibilite avec l existant est conservee:
   - import/assign tileset,
   - painting tile unitaire/multi-tile,
@@ -388,7 +434,8 @@ Terminee pour cette etape:
 ## 10. Points de vigilance / dette technique / bugs connus
 - Le ghost preview invalide pre-vient le refus avant clic, mais la raison detaillee n est pas encore affichee directement dans l UI.
 - Les brushes lies a un tileset different restent bloques a la peinture si la layer active ne peut pas etre rebindee.
-- Les layers `collision` et `object` sont gerables en pile mais leur rendu visuel dedie reste minimal (pas d overlay collision avancee ni d objets editoriaux).
+- Les layers `collision` sont maintenant rendues en overlay, mais le rendu reste volontairement simple (bool), sans typage avance.
+- Les layers `object` restent sans rendu editorial dedie.
 - Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
 - Une map peut maintenant etre volontairement sans layers; toute action de peinture est alors no-op tant qu aucune layer active tile n est selectionnee.
 - Les anciennes maps restent lisibles via fallback legacy `map.tilesetId`; la migration complete du champ legacy n est pas encore supprimee du schema.
@@ -441,8 +488,8 @@ Terminee pour cette etape:
 - Creation d element depuis tileset: fait
 - Edition d element (nom/categorie/groupe monde/groupe interne/layer/tags): fait
 - Resolution des elements par tileset + groupe interne: fait
-- Peindre les collisions: pas fait
-- Visualiser les collisions: pas fait
+- Peindre les collisions: fait (MVP bool)
+- Visualiser les collisions: fait (MVP overlay)
 - Gerer plusieurs types de collisions ou comportements de sol: pas fait
 - Poser des warps: pas fait
 - Configurer les warps: pas fait
@@ -476,6 +523,6 @@ Terminee pour cette etape:
 - Ghost preview + erase: fait
 - Systeme de brush: fait
 - Layers: fait (base MVP), evolutions avancees non faites
-- Collisions: pas fait
+- Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
 - Undo/redo: fait (map active)
 - Warps/triggers/entities: pas fait

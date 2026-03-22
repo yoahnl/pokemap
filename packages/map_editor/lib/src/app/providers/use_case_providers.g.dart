@@ -524,6 +524,86 @@ final eraseTilePatternOnMapUseCaseProvider =
 // ignore: unused_element
 typedef EraseTilePatternOnMapUseCaseRef
     = AutoDisposeProviderRef<EraseTilePatternOnMapUseCase>;
+String _$paintCollisionOnMapUseCaseHash() =>
+    r'770acf23467f056932e72af9e7cd3f1b53779674';
+
+/// See also [paintCollisionOnMapUseCase].
+@ProviderFor(paintCollisionOnMapUseCase)
+final paintCollisionOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintCollisionOnMapUseCase>.internal(
+  paintCollisionOnMapUseCase,
+  name: r'paintCollisionOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintCollisionOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintCollisionOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintCollisionOnMapUseCase>;
+String _$paintCollisionPatternOnMapUseCaseHash() =>
+    r'cc5413fc67d061788efb76881a02a52adc5c28ce';
+
+/// See also [paintCollisionPatternOnMapUseCase].
+@ProviderFor(paintCollisionPatternOnMapUseCase)
+final paintCollisionPatternOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintCollisionPatternOnMapUseCase>.internal(
+  paintCollisionPatternOnMapUseCase,
+  name: r'paintCollisionPatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintCollisionPatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintCollisionPatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintCollisionPatternOnMapUseCase>;
+String _$eraseCollisionOnMapUseCaseHash() =>
+    r'602fe8e9acdf78ae1b9358c30796232bc4fc5141';
+
+/// See also [eraseCollisionOnMapUseCase].
+@ProviderFor(eraseCollisionOnMapUseCase)
+final eraseCollisionOnMapUseCaseProvider =
+    AutoDisposeProvider<EraseCollisionOnMapUseCase>.internal(
+  eraseCollisionOnMapUseCase,
+  name: r'eraseCollisionOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$eraseCollisionOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EraseCollisionOnMapUseCaseRef
+    = AutoDisposeProviderRef<EraseCollisionOnMapUseCase>;
+String _$eraseCollisionPatternOnMapUseCaseHash() =>
+    r'be35dc7057489d4d3c1f2106c7671ce8b99ec0e0';
+
+/// See also [eraseCollisionPatternOnMapUseCase].
+@ProviderFor(eraseCollisionPatternOnMapUseCase)
+final eraseCollisionPatternOnMapUseCaseProvider =
+    AutoDisposeProvider<EraseCollisionPatternOnMapUseCase>.internal(
+  eraseCollisionPatternOnMapUseCase,
+  name: r'eraseCollisionPatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$eraseCollisionPatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EraseCollisionPatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<EraseCollisionPatternOnMapUseCase>;
 String _$addMapLayerUseCaseHash() =>
     r'9d7129cee987442d8a9e36905876a797b1873ed5';
 

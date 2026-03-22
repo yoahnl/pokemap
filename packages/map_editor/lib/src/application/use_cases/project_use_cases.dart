@@ -6,6 +6,7 @@ import '../../domain/repositories/repositories.dart';
 import '../../infrastructure/filesystem/project_filesystem.dart';
 
 part 'paint_use_cases.dart';
+part 'collision_use_cases.dart';
 part 'layer_use_cases.dart';
 part 'map_use_cases.dart';
 

@@ -168,6 +168,30 @@ EraseTilePatternOnMapUseCase eraseTilePatternOnMapUseCase(
 }
 
 @riverpod
+PaintCollisionOnMapUseCase paintCollisionOnMapUseCase(
+    PaintCollisionOnMapUseCaseRef ref) {
+  return PaintCollisionOnMapUseCase();
+}
+
+@riverpod
+PaintCollisionPatternOnMapUseCase paintCollisionPatternOnMapUseCase(
+    PaintCollisionPatternOnMapUseCaseRef ref) {
+  return PaintCollisionPatternOnMapUseCase();
+}
+
+@riverpod
+EraseCollisionOnMapUseCase eraseCollisionOnMapUseCase(
+    EraseCollisionOnMapUseCaseRef ref) {
+  return EraseCollisionOnMapUseCase();
+}
+
+@riverpod
+EraseCollisionPatternOnMapUseCase eraseCollisionPatternOnMapUseCase(
+    EraseCollisionPatternOnMapUseCaseRef ref) {
+  return EraseCollisionPatternOnMapUseCase();
+}
+
+@riverpod
 AddMapLayerUseCase addMapLayerUseCase(AddMapLayerUseCaseRef ref) {
   return AddMapLayerUseCase();
 }

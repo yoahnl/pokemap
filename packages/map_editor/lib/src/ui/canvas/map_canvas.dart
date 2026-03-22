@@ -44,41 +44,30 @@ class MapCanvas extends ConsumerWidget {
         final toolPreview = notifier.resolveMapToolPreview(
           tilesetColumnsById: tilesPerRowById,
         );
+        final isMapEditingTool = state.activeTool == EditorToolType.tilePaint ||
+            state.activeTool == EditorToolType.collisionPaint ||
+            state.activeTool == EditorToolType.eraser;
+
+        void applyToolAt(GridPos gridPos) {
+          if (state.activeTool == EditorToolType.tilePaint) {
+            notifier.paintSelectedBrushAt(
+              gridPos,
+              tilesetColumnsById: tilesPerRowById,
+            );
+            return;
+          }
+          if (state.activeTool == EditorToolType.collisionPaint) {
+            notifier.paintCollisionAt(gridPos);
+            return;
+          }
+          if (state.activeTool == EditorToolType.eraser) {
+            notifier.eraseAt(gridPos);
+          }
+        }
 
         return GestureDetector(
           onTapUp: (details) {
-            final gridPos = _screenToGrid(
-              details.localPosition,
-              state.panOffset,
-              state.zoom,
-              activeMap.size,
-              tileWidth,
-              tileHeight,
-            );
-            if (gridPos == null) return;
-            if (state.activeTool == EditorToolType.tilePaint) {
-              notifier.beginMapStroke();
-              notifier.paintSelectedBrushAt(
-                gridPos,
-                tilesetColumnsById: tilesPerRowById,
-              );
-              notifier.endMapStroke();
-              return;
-            }
-            if (state.activeTool == EditorToolType.eraser) {
-              notifier.beginMapStroke();
-              notifier.eraseAt(
-                gridPos,
-                tilesetColumnsById: tilesPerRowById,
-              );
-              notifier.endMapStroke();
-            }
-          },
-          onPanStart: (details) {
-            if (state.activeTool != EditorToolType.tilePaint &&
-                state.activeTool != EditorToolType.eraser) {
-              return;
-            }
+            if (!isMapEditingTool) return;
             final gridPos = _screenToGrid(
               details.localPosition,
               state.panOffset,
@@ -89,21 +78,25 @@ class MapCanvas extends ConsumerWidget {
             );
             if (gridPos == null) return;
             notifier.beginMapStroke();
-            if (state.activeTool == EditorToolType.tilePaint) {
-              notifier.paintSelectedBrushAt(
-                gridPos,
-                tilesetColumnsById: tilesPerRowById,
-              );
-            } else {
-              notifier.eraseAt(
-                gridPos,
-                tilesetColumnsById: tilesPerRowById,
-              );
-            }
+            applyToolAt(gridPos);
+            notifier.endMapStroke();
+          },
+          onPanStart: (details) {
+            if (!isMapEditingTool) return;
+            final gridPos = _screenToGrid(
+              details.localPosition,
+              state.panOffset,
+              state.zoom,
+              activeMap.size,
+              tileWidth,
+              tileHeight,
+            );
+            if (gridPos == null) return;
+            notifier.beginMapStroke();
+            applyToolAt(gridPos);
           },
           onPanUpdate: (details) {
-            if (state.activeTool == EditorToolType.tilePaint ||
-                state.activeTool == EditorToolType.eraser) {
+            if (isMapEditingTool) {
               final gridPos = _screenToGrid(
                 details.localPosition,
                 state.panOffset,
@@ -113,31 +106,19 @@ class MapCanvas extends ConsumerWidget {
                 tileHeight,
               );
               if (gridPos != null) {
-                if (state.activeTool == EditorToolType.tilePaint) {
-                  notifier.paintSelectedBrushAt(
-                    gridPos,
-                    tilesetColumnsById: tilesPerRowById,
-                  );
-                } else {
-                  notifier.eraseAt(
-                    gridPos,
-                    tilesetColumnsById: tilesPerRowById,
-                  );
-                }
+                applyToolAt(gridPos);
               }
               return;
             }
             notifier.pan(details.delta);
           },
           onPanEnd: (_) {
-            if (state.activeTool == EditorToolType.tilePaint ||
-                state.activeTool == EditorToolType.eraser) {
+            if (isMapEditingTool) {
               notifier.endMapStroke();
             }
           },
           onPanCancel: () {
-            if (state.activeTool == EditorToolType.tilePaint ||
-                state.activeTool == EditorToolType.eraser) {
+            if (isMapEditingTool) {
               notifier.endMapStroke();
             }
           },
@@ -264,13 +245,16 @@ class MapGridPainter extends CustomPainter {
 
     for (var index = map.layers.length - 1; index >= 0; index--) {
       final layer = map.layers[index];
-      if (!layer.isVisible) continue;
-      layer.map(
-        tile: (tileLayer) {
-          _paintTileLayer(canvas, tileLayer);
-        },
-        collision: (_) {},
-        object: (_) {},
+      if (!layer.isVisible || layer is! TileLayer) continue;
+      _paintTileLayer(canvas, layer);
+    }
+    for (var index = map.layers.length - 1; index >= 0; index--) {
+      final layer = map.layers[index];
+      if (!layer.isVisible || layer is! CollisionLayer) continue;
+      _paintCollisionLayer(
+        canvas,
+        layer,
+        isActive: layer.id == activeLayerId,
       );
     }
 
@@ -344,7 +328,15 @@ class MapGridPainter extends CustomPainter {
       _paintPaintPreview(canvas, preview);
       return;
     }
-    _paintErasePreview(canvas, preview);
+    if (preview.mode == MapToolPreviewMode.erase) {
+      _paintErasePreview(canvas, preview);
+      return;
+    }
+    if (preview.mode == MapToolPreviewMode.collisionPaint) {
+      _paintCollisionPaintPreview(canvas, preview);
+      return;
+    }
+    _paintCollisionErasePreview(canvas, preview);
   }
 
   void _paintPaintPreview(Canvas canvas, MapToolPreview preview) {
@@ -445,6 +437,42 @@ class MapGridPainter extends CustomPainter {
     );
   }
 
+  void _paintCollisionPaintPreview(Canvas canvas, MapToolPreview preview) {
+    final previewRect = _computePreviewRect(preview.origin, preview.size);
+    if (previewRect == null) return;
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.orangeAccent.withValues(alpha: 0.24)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.orangeAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 / zoom,
+    );
+  }
+
+  void _paintCollisionErasePreview(Canvas canvas, MapToolPreview preview) {
+    final previewRect = _computePreviewRect(preview.origin, preview.size);
+    if (previewRect == null) return;
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.lightBlueAccent.withValues(alpha: 0.24)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.lightBlueAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 / zoom,
+    );
+  }
+
   Rect? _computePreviewRect(GridPos origin, GridSize size) {
     final left = origin.x.clamp(0, map.size.width);
     final top = origin.y.clamp(0, map.size.height);
@@ -525,6 +553,40 @@ class MapGridPainter extends CustomPainter {
 
     if (needsOpacityLayer) {
       canvas.restore();
+    }
+  }
+
+  void _paintCollisionLayer(
+    Canvas canvas,
+    CollisionLayer layer, {
+    required bool isActive,
+  }) {
+    if (layer.collisions.isEmpty) return;
+    final fillAlpha = (isActive ? 0.34 : 0.24) * layer.opacity;
+    final borderAlpha = (isActive ? 0.75 : 0.5) * layer.opacity;
+    final fillPaint = Paint()
+      ..color = Colors.deepOrange.withValues(alpha: fillAlpha)
+      ..style = PaintingStyle.fill;
+    final borderPaint = Paint()
+      ..color = Colors.deepOrangeAccent.withValues(alpha: borderAlpha)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2 / zoom;
+
+    for (var y = 0; y < map.size.height; y++) {
+      final rowStart = y * map.size.width;
+      for (var x = 0; x < map.size.width; x++) {
+        final index = rowStart + x;
+        if (index < 0 || index >= layer.collisions.length) continue;
+        if (!layer.collisions[index]) continue;
+        final cell = Rect.fromLTWH(
+          x * tileWidth,
+          y * tileHeight,
+          tileWidth,
+          tileHeight,
+        );
+        canvas.drawRect(cell, fillPaint);
+        canvas.drawRect(cell, borderPaint);
+      }
     }
   }
 
