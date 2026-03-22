@@ -244,6 +244,7 @@
         <entry key="flutter">
           <value>
             <list>
+              <option value="/opt/homebrew/share/flutter/packages/flutter/lib" />
               <option value="$USER_HOME$/develop/flutter/packages/flutter/lib" />
             </list>
           </value>
@@ -272,6 +273,7 @@
         <entry key="flutter_test">
           <value>
             <list>
+              <option value="/opt/homebrew/share/flutter/packages/flutter_test/lib" />
               <option value="$USER_HOME$/develop/flutter/packages/flutter_test/lib" />
             </list>
           </value>
@@ -279,7 +281,7 @@
         <entry key="flutter_web_plugins">
           <value>
             <list>
-              <option value="$USER_HOME$/develop/flutter/packages/flutter_web_plugins/lib" />
+              <option value="/opt/homebrew/share/flutter/packages/flutter_web_plugins/lib" />
             </list>
           </value>
         </entry>
@@ -617,6 +619,7 @@
         <entry key="sky_engine">
           <value>
             <list>
+              <option value="/opt/homebrew/share/flutter/bin/cache/pkg/sky_engine/lib" />
               <option value="$USER_HOME$/develop/flutter/bin/cache/pkg/sky_engine/lib" />
             </list>
           </value>
@@ -930,7 +933,10 @@
       <root url="file://$USER_HOME$/develop/flutter/bin/cache/pkg/sky_engine/lib" />
       <root url="file://$USER_HOME$/develop/flutter/packages/flutter/lib" />
       <root url="file://$USER_HOME$/develop/flutter/packages/flutter_test/lib" />
-      <root url="file://$USER_HOME$/develop/flutter/packages/flutter_web_plugins/lib" />
+      <root url="file:///opt/homebrew/share/flutter/bin/cache/pkg/sky_engine/lib" />
+      <root url="file:///opt/homebrew/share/flutter/packages/flutter/lib" />
+      <root url="file:///opt/homebrew/share/flutter/packages/flutter_test/lib" />
+      <root url="file:///opt/homebrew/share/flutter/packages/flutter_web_plugins/lib" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
