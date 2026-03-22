@@ -229,8 +229,8 @@ class _LayerList extends StatelessWidget {
       itemBuilder: (context, index) {
         final layer = map.layers[index];
         final isActive = layer.id == activeLayerId;
-        final canMoveForward = index < map.layers.length - 1;
-        final canMoveBackward = index > 0;
+        final canMoveUp = index > 0;
+        final canMoveDown = index < map.layers.length - 1;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -294,18 +294,18 @@ class _LayerList extends StatelessWidget {
                         tooltip: layer.isVisible ? 'Hide layer' : 'Show layer',
                       ),
                       IconButton(
-                        onPressed: canMoveForward
-                            ? () => notifier.moveMapLayerForward(layer.id)
+                        onPressed: canMoveUp
+                            ? () => notifier.moveMapLayerUp(layer.id)
                             : null,
                         icon: const Icon(Icons.arrow_upward, size: 18),
-                        tooltip: 'Move forward',
+                        tooltip: 'Move up',
                       ),
                       IconButton(
-                        onPressed: canMoveBackward
-                            ? () => notifier.moveMapLayerBackward(layer.id)
+                        onPressed: canMoveDown
+                            ? () => notifier.moveMapLayerDown(layer.id)
                             : null,
                         icon: const Icon(Icons.arrow_downward, size: 18),
-                        tooltip: 'Move backward',
+                        tooltip: 'Move down',
                       ),
                       IconButton(
                         onPressed: () => _showRenameLayerDialog(
