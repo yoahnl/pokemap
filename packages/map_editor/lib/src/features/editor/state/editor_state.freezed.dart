@@ -18,7 +18,8 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$EditorState {
 // Context
   ProjectFileSystem? get fileSystem => throw _privateConstructorUsedError;
-  ProjectManifest? get project =>
+  ProjectManifest? get project => throw _privateConstructorUsedError;
+  EditorWorkspaceMode get workspaceMode =>
       throw _privateConstructorUsedError; // Active Map
   MapData? get activeMap => throw _privateConstructorUsedError;
   String? get activeMapPath =>
@@ -57,6 +58,7 @@ abstract class $EditorStateCopyWith<$Res> {
   $Res call(
       {ProjectFileSystem? fileSystem,
       ProjectManifest? project,
+      EditorWorkspaceMode workspaceMode,
       MapData? activeMap,
       String? activeMapPath,
       EditorToolType activeTool,
@@ -97,6 +99,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
   $Res call({
     Object? fileSystem = freezed,
     Object? project = freezed,
+    Object? workspaceMode = null,
     Object? activeMap = freezed,
     Object? activeMapPath = freezed,
     Object? activeTool = null,
@@ -124,6 +127,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.project
           : project // ignore: cast_nullable_to_non_nullable
               as ProjectManifest?,
+      workspaceMode: null == workspaceMode
+          ? _value.workspaceMode
+          : workspaceMode // ignore: cast_nullable_to_non_nullable
+              as EditorWorkspaceMode,
       activeMap: freezed == activeMap
           ? _value.activeMap
           : activeMap // ignore: cast_nullable_to_non_nullable
@@ -249,6 +256,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   $Res call(
       {ProjectFileSystem? fileSystem,
       ProjectManifest? project,
+      EditorWorkspaceMode workspaceMode,
       MapData? activeMap,
       String? activeMapPath,
       EditorToolType activeTool,
@@ -290,6 +298,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
   $Res call({
     Object? fileSystem = freezed,
     Object? project = freezed,
+    Object? workspaceMode = null,
     Object? activeMap = freezed,
     Object? activeMapPath = freezed,
     Object? activeTool = null,
@@ -317,6 +326,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.project
           : project // ignore: cast_nullable_to_non_nullable
               as ProjectManifest?,
+      workspaceMode: null == workspaceMode
+          ? _value.workspaceMode
+          : workspaceMode // ignore: cast_nullable_to_non_nullable
+              as EditorWorkspaceMode,
       activeMap: freezed == activeMap
           ? _value.activeMap
           : activeMap // ignore: cast_nullable_to_non_nullable
@@ -395,6 +408,7 @@ class _$EditorStateImpl implements _EditorState {
   const _$EditorStateImpl(
       {this.fileSystem,
       this.project,
+      this.workspaceMode = EditorWorkspaceMode.map,
       this.activeMap,
       this.activeMapPath,
       this.activeTool = EditorToolType.selection,
@@ -418,6 +432,9 @@ class _$EditorStateImpl implements _EditorState {
   final ProjectFileSystem? fileSystem;
   @override
   final ProjectManifest? project;
+  @override
+  @JsonKey()
+  final EditorWorkspaceMode workspaceMode;
 // Active Map
   @override
   final MapData? activeMap;
@@ -464,7 +481,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, selectedProjectElementId: $selectedProjectElementId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, selectedProjectElementId: $selectedProjectElementId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -475,6 +492,8 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.fileSystem, fileSystem) ||
                 other.fileSystem == fileSystem) &&
             (identical(other.project, project) || other.project == project) &&
+            (identical(other.workspaceMode, workspaceMode) ||
+                other.workspaceMode == workspaceMode) &&
             (identical(other.activeMap, activeMap) ||
                 other.activeMap == activeMap) &&
             (identical(other.activeMapPath, activeMapPath) ||
@@ -518,6 +537,7 @@ class _$EditorStateImpl implements _EditorState {
         runtimeType,
         fileSystem,
         project,
+        workspaceMode,
         activeMap,
         activeMapPath,
         activeTool,
@@ -550,6 +570,7 @@ abstract class _EditorState implements EditorState {
   const factory _EditorState(
       {final ProjectFileSystem? fileSystem,
       final ProjectManifest? project,
+      final EditorWorkspaceMode workspaceMode,
       final MapData? activeMap,
       final String? activeMapPath,
       final EditorToolType activeTool,
@@ -572,7 +593,9 @@ abstract class _EditorState implements EditorState {
   @override
   ProjectFileSystem? get fileSystem;
   @override
-  ProjectManifest? get project; // Active Map
+  ProjectManifest? get project;
+  @override
+  EditorWorkspaceMode get workspaceMode; // Active Map
   @override
   MapData? get activeMap;
   @override

@@ -138,8 +138,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           );
         }
 
+        final showTilesTab = state.workspaceMode == EditorWorkspaceMode.map;
         return DefaultTabController(
-          length: 2,
+          length: showTilesTab ? 2 : 1,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -207,26 +208,27 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   ),
                 ),
               const SizedBox(height: 8),
-              const TabBar(
+              TabBar(
                 tabs: [
-                  Tab(text: 'Tiles'),
-                  Tab(text: 'Elements'),
+                  if (showTilesTab) const Tab(text: 'Tiles'),
+                  const Tab(text: 'Elements'),
                 ],
               ),
               Expanded(
                 child: TabBarView(
                   children: [
-                    _buildTilesTab(
-                      state: state,
-                      notifier: notifier,
-                      image: image,
-                      project: project,
-                      tileLayers: tileLayers,
-                      columns: columns,
-                      rows: rows,
-                      settings: settings,
-                      activeTileset: selectedTileset,
-                    ),
+                    if (showTilesTab)
+                      _buildTilesTab(
+                        state: state,
+                        notifier: notifier,
+                        image: image,
+                        project: project,
+                        tileLayers: tileLayers,
+                        columns: columns,
+                        rows: rows,
+                        settings: settings,
+                        activeTileset: selectedTileset,
+                      ),
                     _buildElementsTab(
                       state: state,
                       notifier: notifier,

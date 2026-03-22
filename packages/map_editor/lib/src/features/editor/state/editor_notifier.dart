@@ -26,6 +26,7 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         project: manifest,
         fileSystem: ProjectFileSystem(directory),
+        workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
         selectedTileId: null,
@@ -53,6 +54,7 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         project: manifest,
         fileSystem: ProjectFileSystem(projectDir),
+        workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
         selectedTileId: null,
@@ -149,6 +151,7 @@ class EditorNotifier extends _$EditorNotifier {
         ]),
         activeMap: map,
         activeMapPath: fs.getMapPath(id),
+        workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
         selectedTileId: null,
         selectedPaletteEntryId: null,
@@ -177,6 +180,7 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         activeMap: map,
         activeMapPath: fs.resolveMapPath(relativePath),
+        workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
         selectedTileId: null,
         selectedPaletteEntryId: null,
@@ -531,6 +535,7 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(deleteProjectTilesetUseCaseProvider);
       final updated = await useCase.execute(fs, project, tilesetId);
       String? selectedTilesetEditorId = state.selectedTilesetEditorId;
+      var workspaceMode = state.workspaceMode;
       if (selectedTilesetEditorId == tilesetId) {
         selectedTilesetEditorId = state.activeMap?.tilesetId;
         if (selectedTilesetEditorId != null &&
@@ -538,9 +543,13 @@ class EditorNotifier extends _$EditorNotifier {
           selectedTilesetEditorId =
               updated.tilesets.isNotEmpty ? updated.tilesets.first.id : null;
         }
+        if (selectedTilesetEditorId == null) {
+          workspaceMode = EditorWorkspaceMode.map;
+        }
       }
       state = state.copyWith(
         project: updated,
+        workspaceMode: workspaceMode,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
         statusMessage: 'Tileset deleted',
@@ -564,6 +573,7 @@ class EditorNotifier extends _$EditorNotifier {
           await useCase.execute(project, map, mapPath, tilesetId);
       state = state.copyWith(
         activeMap: updatedMap,
+        workspaceMode: EditorWorkspaceMode.map,
         selectedTileId: null,
         selectedPaletteEntryId: null,
         selectedProjectElementId: null,
@@ -607,6 +617,9 @@ class EditorNotifier extends _$EditorNotifier {
       return;
     }
     state = state.copyWith(
+      workspaceMode: tilesetId == null
+          ? EditorWorkspaceMode.map
+          : EditorWorkspaceMode.tileset,
       selectedTilesetEditorId: tilesetId,
       selectedTilesetElementGroupId: null,
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:map_editor/src/ui/canvas/map_canvas.dart';
+import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
@@ -46,7 +46,7 @@ class EditorShellPage extends ConsumerWidget {
                 ),
                 const VerticalDivider(width: 1),
                 const Expanded(
-                  child: MapCanvas(),
+                  child: EditorCanvasHost(),
                 ),
                 const VerticalDivider(width: 1),
                 const SizedBox(

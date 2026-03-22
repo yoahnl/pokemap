@@ -1,0 +1,21 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
+import 'map_canvas.dart';
+import 'tileset_editor_canvas.dart';
+
+class EditorCanvasHost extends ConsumerWidget {
+  const EditorCanvasHost({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(editorNotifierProvider);
+
+    if (state.workspaceMode == EditorWorkspaceMode.tileset) {
+      return const TilesetEditorCanvas();
+    }
+    return const MapCanvas();
+  }
+}

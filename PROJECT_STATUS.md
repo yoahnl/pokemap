@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-21
+Last updated: 2026-03-22
 
 ## 1. Resume du projet
 Editeur de maps Pokemon-like/RPG sur grille en monorepo Flutter/Dart:
@@ -43,6 +43,12 @@ Separations metier explicites:
   - affichage image complete du tileset avec grille + scroll,
   - creation d element depuis selection rectangulaire,
   - listing des elements du tileset selectionne.
+- Modes de workspace central:
+  - mode `map`: le canvas central affiche et edite la map selectionnee,
+  - mode `tileset`: le canvas central affiche et edite le tileset selectionne.
+- Canvas central polymorphe:
+  - `EditorCanvasHost` route vers `MapCanvas` ou `TilesetEditorCanvas` selon le mode,
+  - en mode tileset, la map active peut rester en memoire mais n est plus affichee.
 - Groupes internes de tileset persistes:
   - modele `TilesetElementGroup` par tileset,
   - sous-groupes via `parentGroupId`,
@@ -59,6 +65,7 @@ Separations metier explicites:
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
+- Interaction selection vs scroll dans le canvas tileset: base solide, raffinements UX possibles.
 - Dirty state: operationnel sur les flux principaux, a homogeniser.
 - Runtime Flame: base en place, integration preview in-game non terminee.
 
@@ -74,9 +81,25 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-transformer la section Tilesets en workspace d edition avec groupes internes de tileset persistes et edition d elements lies au tileset selectionne.
+basculer explicitement entre map mode et tileset mode, et afficher l editeur visuel de tileset dans le canvas central.
 
 ## 7. Dernieres modifications realisees
+2026-03-22:
+- `map_editor` etat/notifier:
+  - ajout du mode explicite `EditorWorkspaceMode` (`map` / `tileset`) dans `EditorState`,
+  - `loadMap(...)` force le mode `map`,
+  - `selectTilesetWorkspace(...)` force le mode `tileset`.
+- UI shell:
+  - ajout d un host central `EditorCanvasHost`,
+  - le centre n affiche plus toujours `MapCanvas`.
+- Nouveau canvas central tileset:
+  - ajout de `TilesetEditorCanvas`,
+  - affichage principal de l image tileset + grille + scroll + selection rectangulaire,
+  - creation d element depuis selection directement dans le canvas central.
+- Panneau droit:
+  - `TilesetPalettePanel` rendu secondaire en mode tileset (onglet `Elements` uniquement),
+  - l edition visuelle principale du tileset est deplacee au centre.
+
 2026-03-21:
 - `map_core`:
   - `ProjectTilesetEntry` enrichi avec `elementGroups`.
@@ -118,11 +141,13 @@ transformer la section Tilesets en workspace d edition avec groupes internes de 
 - Ajouter filtres rapides (tags, recherche texte, layer recommandee).
 - Ajouter preview ghost de l element sous curseur avant pose sur la map.
 - Ajouter edition/suppression des elements directement depuis le workspace.
+- Ajouter des interactions de navigation plus avancees dans `TilesetEditorCanvas` (panning dedie, raccourcis).
 
 ## 9. Decisions d architecture importantes
 - Les groupes internes de tileset sont separes des groupes du monde et des layers.
 - Le lien element -> groupe interne est persiste via `tilesetGroupId`.
-- Le workspace tileset est pilote par l etat (`selectedTilesetEditorId`) dans `EditorNotifier`.
+- Le workspace central est pilote par un mode explicite (`EditorWorkspaceMode`).
+- Le tileset cible est pilote par `selectedTilesetEditorId` dans `EditorNotifier`.
 - La logique de resolution/liste des elements d un tileset reste cote use cases, pas dans les widgets.
 - La compatibilite avec l existant est conservee:
   - import/assign tileset,
@@ -132,7 +157,7 @@ transformer la section Tilesets en workspace d edition avec groupes internes de 
 ## 10. Points de vigilance / dette technique / bugs connus
 - Suppression/reparentage de groupes internes non implemente dans cette iteration.
 - Quelques lints/deprecations preexistants dans le projet restent presents (hors scope).
-- Le panneau droit combine encore deux niveaux (palette brute + bibliotheque metier), une convergence UX reste a faire.
+- La logique visuelle tileset est maintenant centrale; le panneau droit reste mixte (outils + bibliotheque) et peut encore etre simplifie.
 - Le paint d un element d un autre tileset que celui de la map active est bloque cote notifier avec message d erreur (comportement volontaire).
 
 ## Checklist fonctionnelle (etat)
@@ -164,6 +189,8 @@ transformer la section Tilesets en workspace d edition avec groupes internes de 
 - Gerer plusieurs tilesets: fait
 - Associer un tileset a une map: fait
 - Workspace d edition de tileset: fait
+- Mode explicite map/tileset du canvas central: fait
+- Affichage du tileset selectionne dans le canvas central: fait
 - Groupes internes de tileset (categorie/sous-categorie): fait
 - Creation d element depuis tileset: fait
 - Edition d element (nom/categorie/groupe monde/groupe interne/layer/tags): fait

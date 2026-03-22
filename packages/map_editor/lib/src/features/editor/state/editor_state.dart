@@ -7,12 +7,18 @@ import '../tools/editor_tool.dart';
 
 part 'editor_state.freezed.dart';
 
+enum EditorWorkspaceMode {
+  map,
+  tileset,
+}
+
 @freezed
 class EditorState with _$EditorState {
   const factory EditorState({
     // Context
     ProjectFileSystem? fileSystem,
     ProjectManifest? project,
+    @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
 
     // Active Map
     MapData? activeMap,
