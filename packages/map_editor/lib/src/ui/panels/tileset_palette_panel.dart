@@ -149,114 +149,87 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           );
         }
 
-        final showTilesTab = state.workspaceMode == EditorWorkspaceMode.map;
-        return DefaultTabController(
-          length: showTilesTab ? 2 : 1,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'TILESET WORKSPACE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.0,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white70,
-                      ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'ELEMENTS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 1.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white70,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      selectedTileset.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      '${columns * rows} tiles',
-                      style:
-                          const TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                    if (map == null)
-                      const Text(
-                        'No active map: edition mode only',
-                        style: TextStyle(color: Colors.white54, fontSize: 11),
-                      ),
-                  ],
-                ),
-              ),
-              if (tileLayers.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: DropdownButtonFormField<String>(
-                    value: tileLayers.any((l) => l.id == state.activeLayerId)
-                        ? state.activeLayerId
-                        : (tileLayers.isNotEmpty ? tileLayers.first.id : null),
-                    decoration: const InputDecoration(
-                      labelText: 'Target Layer',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: tileLayers
-                        .map(
-                          (layer) => DropdownMenuItem<String>(
-                            value: layer.id,
-                            child: Text(layer.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        notifier.setActiveLayer(value);
-                      }
-                    },
                   ),
-                ),
-              const SizedBox(height: 8),
-              TabBar(
-                tabs: [
-                  if (showTilesTab) const Tab(text: 'Tiles'),
-                  const Tab(text: 'Elements'),
+                  const SizedBox(height: 6),
+                  Text(
+                    selectedTileset.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${columns * rows} tiles',
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  if (map == null)
+                    const Text(
+                      'No active map: edition mode only',
+                      style: TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
                 ],
               ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    if (showTilesTab)
-                      _buildTilesTab(
-                        state: state,
-                        notifier: notifier,
-                        image: image,
-                        project: project,
-                        tileLayers: tileLayers,
-                        columns: columns,
-                        rows: rows,
-                        settings: settings,
-                        activeTileset: selectedTileset,
-                      ),
-                    _buildElementsTab(
-                      state: state,
-                      notifier: notifier,
-                      image: image,
-                      project: project,
-                      categories: categories,
-                      columns: columns,
-                      tileWidth: settings.tileWidth,
-                      tileHeight: settings.tileHeight,
-                      activeTileset: selectedTileset,
-                      tileLayers: tileLayers,
-                    ),
-                  ],
+            ),
+            if (tileLayers.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonFormField<String>(
+                  value: tileLayers.any((l) => l.id == state.activeLayerId)
+                      ? state.activeLayerId
+                      : (tileLayers.isNotEmpty ? tileLayers.first.id : null),
+                  decoration: const InputDecoration(
+                    labelText: 'Target Layer',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: tileLayers
+                      .map(
+                        (layer) => DropdownMenuItem<String>(
+                          value: layer.id,
+                          child: Text(layer.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      notifier.setActiveLayer(value);
+                    }
+                  },
                 ),
               ),
-            ],
-          ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _buildElementsTab(
+                state: state,
+                notifier: notifier,
+                image: image,
+                project: project,
+                categories: categories,
+                columns: columns,
+                tileWidth: settings.tileWidth,
+                tileHeight: settings.tileHeight,
+                activeTileset: selectedTileset,
+                tileLayers: tileLayers,
+              ),
+            ),
+          ],
         );
       },
     );
