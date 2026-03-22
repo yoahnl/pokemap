@@ -49,3 +49,22 @@ class DeleteWarpFromMapUseCase {
     return updated;
   }
 }
+
+class ValidateWarpTargetMapUseCase {
+  ProjectMapEntry execute(
+    ProjectManifest project,
+    String targetMapId,
+  ) {
+    final normalizedTargetMapId = targetMapId.trim();
+    if (normalizedTargetMapId.isEmpty) {
+      throw Exception('Warp target map cannot be empty');
+    }
+    for (final mapEntry in project.maps) {
+      if (mapEntry.id == normalizedTargetMapId) {
+        return mapEntry;
+      }
+    }
+    throw Exception(
+        'Warp target map not found in project: $normalizedTargetMapId');
+  }
+}

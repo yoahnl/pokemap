@@ -1544,7 +1544,8 @@ class EditorNotifier extends _$EditorNotifier {
 
   void addWarpAt(GridPos pos) {
     final map = state.activeMap;
-    if (map == null) return;
+    final project = state.project;
+    if (map == null || project == null) return;
     final warpId = _generateUniqueWarpId(map);
     final warp = MapWarp(
       id: warpId,
@@ -1553,6 +1554,7 @@ class EditorNotifier extends _$EditorNotifier {
       targetPos: pos,
     );
     try {
+      _validateWarpTargetMap(project, warp.targetMapId);
       final useCase = ref.read(addWarpToMapUseCaseProvider);
       final updated = useCase.execute(
         map,
@@ -1615,15 +1617,22 @@ class EditorNotifier extends _$EditorNotifier {
     GridPos? targetPos,
   }) {
     final map = state.activeMap;
-    if (map == null) return;
+    final project = state.project;
+    if (map == null || project == null) return;
     try {
+      final currentWarp = _findWarpById(map, warpId);
+      final effectiveTargetMapId = targetMapId ?? currentWarp?.targetMapId;
+      if (effectiveTargetMapId == null || effectiveTargetMapId.trim().isEmpty) {
+        throw Exception('Warp target map cannot be empty');
+      }
+      _validateWarpTargetMap(project, effectiveTargetMapId);
       final useCase = ref.read(updateWarpOnMapUseCaseProvider);
       final updated = useCase.execute(
         map,
         warpId: warpId,
         id: id,
         pos: pos,
-        targetMapId: targetMapId,
+        targetMapId: targetMapId?.trim(),
         targetPos: targetPos,
       );
       final nextSelectedWarpId =
@@ -1638,6 +1647,11 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update warp: $e');
     }
+  }
+
+  void _validateWarpTargetMap(ProjectManifest project, String targetMapId) {
+    final useCase = ref.read(validateWarpTargetMapUseCaseProvider);
+    useCase.execute(project, targetMapId);
   }
 
   void deleteSelectedWarp() {

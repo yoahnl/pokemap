@@ -14,15 +14,14 @@ class WarpPropertiesPanel extends ConsumerStatefulWidget {
 
 class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
   final _idController = TextEditingController();
-  final _targetMapIdController = TextEditingController();
   final _targetXController = TextEditingController();
   final _targetYController = TextEditingController();
   String? _boundWarpId;
+  String? _selectedTargetMapId;
 
   @override
   void dispose() {
     _idController.dispose();
-    _targetMapIdController.dispose();
     _targetXController.dispose();
     _targetYController.dispose();
     super.dispose();
@@ -33,6 +32,17 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
+    final project = state.project;
+    final projectMaps =
+        project == null ? <ProjectMapEntry>[] : List<ProjectMapEntry>.from(project.maps);
+    projectMaps.sort((a, b) {
+      final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+      if (sortCompare != 0) return sortCompare;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    final projectMapById = <String, ProjectMapEntry>{
+      for (final mapEntry in projectMaps) mapEntry.id: mapEntry,
+    };
     final selectedWarp = notifier.getSelectedWarp();
     _syncControllers(selectedWarp);
 
@@ -120,7 +130,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                             ),
                           ),
                           subtitle: Text(
-                            '(${warp.pos.x}, ${warp.pos.y}) -> ${warp.targetMapId} (${warp.targetPos.x}, ${warp.targetPos.y})',
+                            '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
                             style: const TextStyle(
                               fontSize: 11,
                               color: Colors.white54,
@@ -143,6 +153,8 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                       context: context,
                       notifier: notifier,
                       selectedWarp: selectedWarp,
+                      projectMaps: projectMaps,
+                      projectMapById: projectMapById,
                     ),
                 ],
               ),
@@ -156,7 +168,17 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     required BuildContext context,
     required EditorNotifier notifier,
     required MapWarp selectedWarp,
+    required List<ProjectMapEntry> projectMaps,
+    required Map<String, ProjectMapEntry> projectMapById,
   }) {
+    final currentTargetMapEntry = projectMapById[selectedWarp.targetMapId];
+    final currentTargetMapLabel = currentTargetMapEntry == null
+        ? 'Missing map: ${selectedWarp.targetMapId}'
+        : '${currentTargetMapEntry.name} (${currentTargetMapEntry.id})';
+    final pickedTargetMapId = _selectedTargetMapId;
+    final pickedTargetMapExists = pickedTargetMapId != null &&
+        projectMapById.containsKey(pickedTargetMapId);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -173,6 +195,15 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
           'Map position: (${selectedWarp.pos.x}, ${selectedWarp.pos.y})',
           style: const TextStyle(fontSize: 11, color: Colors.white54),
         ),
+        const SizedBox(height: 4),
+        Text(
+          'Destination: $currentTargetMapLabel at (${selectedWarp.targetPos.x}, ${selectedWarp.targetPos.y})',
+          style: TextStyle(
+            fontSize: 11,
+            color:
+                currentTargetMapEntry == null ? Colors.amber : Colors.white54,
+          ),
+        ),
         const SizedBox(height: 8),
         TextField(
           controller: _idController,
@@ -183,14 +214,45 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _targetMapIdController,
+        DropdownButtonFormField<String>(
+          key: ValueKey('warp_target_map_${_boundWarpId ?? 'none'}'),
+          initialValue: pickedTargetMapExists ? pickedTargetMapId : null,
+          isDense: true,
           decoration: const InputDecoration(
-            labelText: 'Target Map ID',
+            labelText: 'Target Map',
             isDense: true,
             border: OutlineInputBorder(),
           ),
+          hint: Text(
+            pickedTargetMapId == null
+                ? 'Select target map'
+                : 'Missing: $pickedTargetMapId',
+            overflow: TextOverflow.ellipsis,
+          ),
+          items: projectMaps
+              .map(
+                (mapEntry) => DropdownMenuItem<String>(
+                  value: mapEntry.id,
+                  child: Text(
+                    '${mapEntry.name} (${mapEntry.id})',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            setState(() {
+              _selectedTargetMapId = value;
+            });
+          },
         ),
+        if (pickedTargetMapId != null && !pickedTargetMapExists) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Current target map is missing from project: $pickedTargetMapId',
+            style: const TextStyle(fontSize: 11, color: Colors.amber),
+          ),
+        ],
         const SizedBox(height: 8),
         Row(
           children: [
@@ -235,9 +297,18 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                     );
                     return;
                   }
+                  final targetMapId = _selectedTargetMapId?.trim();
+                  if (targetMapId == null || targetMapId.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Select a target map'),
+                      ),
+                    );
+                    return;
+                  }
                   notifier.updateSelectedWarp(
                     id: _idController.text.trim(),
-                    targetMapId: _targetMapIdController.text.trim(),
+                    targetMapId: targetMapId,
                     targetPosX: x,
                     targetPosY: y,
                   );
@@ -263,14 +334,25 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     _boundWarpId = currentId;
     if (selectedWarp == null) {
       _idController.text = '';
-      _targetMapIdController.text = '';
       _targetXController.text = '';
       _targetYController.text = '';
+      _selectedTargetMapId = null;
       return;
     }
     _idController.text = selectedWarp.id;
-    _targetMapIdController.text = selectedWarp.targetMapId;
+    _selectedTargetMapId = selectedWarp.targetMapId;
     _targetXController.text = selectedWarp.targetPos.x.toString();
     _targetYController.text = selectedWarp.targetPos.y.toString();
+  }
+
+  String _buildTargetMapLabel(
+    String targetMapId,
+    Map<String, ProjectMapEntry> projectMapById,
+  ) {
+    final targetMapEntry = projectMapById[targetMapId];
+    if (targetMapEntry == null) {
+      return '$targetMapId (missing)';
+    }
+    return '${targetMapEntry.name} (${targetMapEntry.id})';
   }
 }

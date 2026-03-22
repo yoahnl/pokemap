@@ -232,6 +232,12 @@ DeleteWarpFromMapUseCase deleteWarpFromMapUseCase(
 }
 
 @riverpod
+ValidateWarpTargetMapUseCase validateWarpTargetMapUseCase(
+    ValidateWarpTargetMapUseCaseRef ref) {
+  return ValidateWarpTargetMapUseCase();
+}
+
+@riverpod
 AddMapLayerUseCase addMapLayerUseCase(AddMapLayerUseCaseRef ref) {
   return AddMapLayerUseCase();
 }
