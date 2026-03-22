@@ -13,6 +13,22 @@ enum EditorWorkspaceMode {
 }
 
 @freezed
+sealed class EditorBrush with _$EditorBrush {
+  const factory EditorBrush.none() = NoEditorBrush;
+  const factory EditorBrush.tile({
+    required int tileId,
+    required String tilesetId,
+  }) = TileEditorBrush;
+  const factory EditorBrush.paletteEntry({
+    required String entryId,
+    required String tilesetId,
+  }) = PaletteEntryEditorBrush;
+  const factory EditorBrush.projectElement({
+    required String elementId,
+  }) = ProjectElementEditorBrush;
+}
+
+@freezed
 class EditorState with _$EditorState {
   const factory EditorState({
     // Context
@@ -28,9 +44,7 @@ class EditorState with _$EditorState {
     @Default(EditorToolType.selection) EditorToolType activeTool,
     String? activeLayerId,
     GridPos? hoveredTile,
-    int? selectedTileId,
-    String? selectedPaletteEntryId,
-    String? selectedProjectElementId,
+    @Default(EditorBrush.none()) EditorBrush activeBrush,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
     PaletteCategory? paletteCategoryFilter,

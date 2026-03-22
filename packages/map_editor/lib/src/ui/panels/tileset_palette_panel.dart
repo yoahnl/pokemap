@@ -288,7 +288,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       }
     }
 
-    final selectedTileId = state.selectedTileId;
+    final selectedTileId = state.activeBrush.maybeMap(
+      tile: (brush) =>
+          brush.tilesetId == activeTileset.id ? brush.tileId : null,
+      orElse: () => null,
+    );
     final selectedEntry =
         selectedTileId == null ? null : unitEntryByTileId[selectedTileId];
     final selectedCategory =
@@ -402,7 +406,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                               ),
                               itemBuilder: (context, index) {
                                 final tileId = filteredTileIds[index];
-                                final entry = unitEntryByTileId[tileId];
                                 return _PaletteTileCell(
                                   image: image,
                                   tileId: tileId,
@@ -411,10 +414,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                   columns: columns,
                                   selected: tileId == selectedTileId,
                                   onTap: () {
-                                    notifier.selectPaletteTile(
-                                      tileId,
-                                      paletteEntryId: entry?.id,
-                                    );
+                                    notifier.selectPaletteTile(tileId);
                                     notifier
                                         .selectTool(EditorToolType.tilePaint);
                                   },
@@ -803,16 +803,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         element: element,
                         tileWidth: tileWidth,
                         tileHeight: tileHeight,
-                        selected: state.selectedProjectElementId == element.id,
+                        selected: state.activeBrush.maybeMap(
+                          projectElement: (brush) =>
+                              brush.elementId == element.id,
+                          orElse: () => false,
+                        ),
                         categoryPath: categoryPath,
                         tilesetName: tilesetName,
                         groupLabel: groupLabel,
                         tilesetGroupLabel: tilesetGroupLabel,
                         onTap: () {
-                          notifier.selectProjectElement(
-                            element.id,
-                            tilesetColumns: columns,
-                          );
+                          notifier.selectProjectElement(element.id);
                           if (element.recommendedLayerId != null &&
                               (state.activeMap?.layers.any(
                                     (layer) =>

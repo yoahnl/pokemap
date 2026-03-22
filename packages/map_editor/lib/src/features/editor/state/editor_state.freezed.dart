@@ -15,6 +15,688 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
+mixin _$EditorBrush {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() none,
+    required TResult Function(int tileId, String tilesetId) tile,
+    required TResult Function(String entryId, String tilesetId) paletteEntry,
+    required TResult Function(String elementId) projectElement,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? none,
+    TResult? Function(int tileId, String tilesetId)? tile,
+    TResult? Function(String entryId, String tilesetId)? paletteEntry,
+    TResult? Function(String elementId)? projectElement,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? none,
+    TResult Function(int tileId, String tilesetId)? tile,
+    TResult Function(String entryId, String tilesetId)? paletteEntry,
+    TResult Function(String elementId)? projectElement,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NoEditorBrush value) none,
+    required TResult Function(TileEditorBrush value) tile,
+    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
+    required TResult Function(ProjectElementEditorBrush value) projectElement,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NoEditorBrush value)? none,
+    TResult? Function(TileEditorBrush value)? tile,
+    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult? Function(ProjectElementEditorBrush value)? projectElement,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NoEditorBrush value)? none,
+    TResult Function(TileEditorBrush value)? tile,
+    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult Function(ProjectElementEditorBrush value)? projectElement,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $EditorBrushCopyWith<$Res> {
+  factory $EditorBrushCopyWith(
+          EditorBrush value, $Res Function(EditorBrush) then) =
+      _$EditorBrushCopyWithImpl<$Res, EditorBrush>;
+}
+
+/// @nodoc
+class _$EditorBrushCopyWithImpl<$Res, $Val extends EditorBrush>
+    implements $EditorBrushCopyWith<$Res> {
+  _$EditorBrushCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+abstract class _$$NoEditorBrushImplCopyWith<$Res> {
+  factory _$$NoEditorBrushImplCopyWith(
+          _$NoEditorBrushImpl value, $Res Function(_$NoEditorBrushImpl) then) =
+      __$$NoEditorBrushImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$NoEditorBrushImplCopyWithImpl<$Res>
+    extends _$EditorBrushCopyWithImpl<$Res, _$NoEditorBrushImpl>
+    implements _$$NoEditorBrushImplCopyWith<$Res> {
+  __$$NoEditorBrushImplCopyWithImpl(
+      _$NoEditorBrushImpl _value, $Res Function(_$NoEditorBrushImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$NoEditorBrushImpl implements NoEditorBrush {
+  const _$NoEditorBrushImpl();
+
+  @override
+  String toString() {
+    return 'EditorBrush.none()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$NoEditorBrushImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() none,
+    required TResult Function(int tileId, String tilesetId) tile,
+    required TResult Function(String entryId, String tilesetId) paletteEntry,
+    required TResult Function(String elementId) projectElement,
+  }) {
+    return none();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? none,
+    TResult? Function(int tileId, String tilesetId)? tile,
+    TResult? Function(String entryId, String tilesetId)? paletteEntry,
+    TResult? Function(String elementId)? projectElement,
+  }) {
+    return none?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? none,
+    TResult Function(int tileId, String tilesetId)? tile,
+    TResult Function(String entryId, String tilesetId)? paletteEntry,
+    TResult Function(String elementId)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (none != null) {
+      return none();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NoEditorBrush value) none,
+    required TResult Function(TileEditorBrush value) tile,
+    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
+    required TResult Function(ProjectElementEditorBrush value) projectElement,
+  }) {
+    return none(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NoEditorBrush value)? none,
+    TResult? Function(TileEditorBrush value)? tile,
+    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult? Function(ProjectElementEditorBrush value)? projectElement,
+  }) {
+    return none?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NoEditorBrush value)? none,
+    TResult Function(TileEditorBrush value)? tile,
+    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult Function(ProjectElementEditorBrush value)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (none != null) {
+      return none(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class NoEditorBrush implements EditorBrush {
+  const factory NoEditorBrush() = _$NoEditorBrushImpl;
+}
+
+/// @nodoc
+abstract class _$$TileEditorBrushImplCopyWith<$Res> {
+  factory _$$TileEditorBrushImplCopyWith(_$TileEditorBrushImpl value,
+          $Res Function(_$TileEditorBrushImpl) then) =
+      __$$TileEditorBrushImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({int tileId, String tilesetId});
+}
+
+/// @nodoc
+class __$$TileEditorBrushImplCopyWithImpl<$Res>
+    extends _$EditorBrushCopyWithImpl<$Res, _$TileEditorBrushImpl>
+    implements _$$TileEditorBrushImplCopyWith<$Res> {
+  __$$TileEditorBrushImplCopyWithImpl(
+      _$TileEditorBrushImpl _value, $Res Function(_$TileEditorBrushImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tileId = null,
+    Object? tilesetId = null,
+  }) {
+    return _then(_$TileEditorBrushImpl(
+      tileId: null == tileId
+          ? _value.tileId
+          : tileId // ignore: cast_nullable_to_non_nullable
+              as int,
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$TileEditorBrushImpl implements TileEditorBrush {
+  const _$TileEditorBrushImpl({required this.tileId, required this.tilesetId});
+
+  @override
+  final int tileId;
+  @override
+  final String tilesetId;
+
+  @override
+  String toString() {
+    return 'EditorBrush.tile(tileId: $tileId, tilesetId: $tilesetId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TileEditorBrushImpl &&
+            (identical(other.tileId, tileId) || other.tileId == tileId) &&
+            (identical(other.tilesetId, tilesetId) ||
+                other.tilesetId == tilesetId));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, tileId, tilesetId);
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TileEditorBrushImplCopyWith<_$TileEditorBrushImpl> get copyWith =>
+      __$$TileEditorBrushImplCopyWithImpl<_$TileEditorBrushImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() none,
+    required TResult Function(int tileId, String tilesetId) tile,
+    required TResult Function(String entryId, String tilesetId) paletteEntry,
+    required TResult Function(String elementId) projectElement,
+  }) {
+    return tile(tileId, tilesetId);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? none,
+    TResult? Function(int tileId, String tilesetId)? tile,
+    TResult? Function(String entryId, String tilesetId)? paletteEntry,
+    TResult? Function(String elementId)? projectElement,
+  }) {
+    return tile?.call(tileId, tilesetId);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? none,
+    TResult Function(int tileId, String tilesetId)? tile,
+    TResult Function(String entryId, String tilesetId)? paletteEntry,
+    TResult Function(String elementId)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (tile != null) {
+      return tile(tileId, tilesetId);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NoEditorBrush value) none,
+    required TResult Function(TileEditorBrush value) tile,
+    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
+    required TResult Function(ProjectElementEditorBrush value) projectElement,
+  }) {
+    return tile(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NoEditorBrush value)? none,
+    TResult? Function(TileEditorBrush value)? tile,
+    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult? Function(ProjectElementEditorBrush value)? projectElement,
+  }) {
+    return tile?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NoEditorBrush value)? none,
+    TResult Function(TileEditorBrush value)? tile,
+    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult Function(ProjectElementEditorBrush value)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (tile != null) {
+      return tile(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class TileEditorBrush implements EditorBrush {
+  const factory TileEditorBrush(
+      {required final int tileId,
+      required final String tilesetId}) = _$TileEditorBrushImpl;
+
+  int get tileId;
+  String get tilesetId;
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TileEditorBrushImplCopyWith<_$TileEditorBrushImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$PaletteEntryEditorBrushImplCopyWith<$Res> {
+  factory _$$PaletteEntryEditorBrushImplCopyWith(
+          _$PaletteEntryEditorBrushImpl value,
+          $Res Function(_$PaletteEntryEditorBrushImpl) then) =
+      __$$PaletteEntryEditorBrushImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String entryId, String tilesetId});
+}
+
+/// @nodoc
+class __$$PaletteEntryEditorBrushImplCopyWithImpl<$Res>
+    extends _$EditorBrushCopyWithImpl<$Res, _$PaletteEntryEditorBrushImpl>
+    implements _$$PaletteEntryEditorBrushImplCopyWith<$Res> {
+  __$$PaletteEntryEditorBrushImplCopyWithImpl(
+      _$PaletteEntryEditorBrushImpl _value,
+      $Res Function(_$PaletteEntryEditorBrushImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? entryId = null,
+    Object? tilesetId = null,
+  }) {
+    return _then(_$PaletteEntryEditorBrushImpl(
+      entryId: null == entryId
+          ? _value.entryId
+          : entryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$PaletteEntryEditorBrushImpl implements PaletteEntryEditorBrush {
+  const _$PaletteEntryEditorBrushImpl(
+      {required this.entryId, required this.tilesetId});
+
+  @override
+  final String entryId;
+  @override
+  final String tilesetId;
+
+  @override
+  String toString() {
+    return 'EditorBrush.paletteEntry(entryId: $entryId, tilesetId: $tilesetId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PaletteEntryEditorBrushImpl &&
+            (identical(other.entryId, entryId) || other.entryId == entryId) &&
+            (identical(other.tilesetId, tilesetId) ||
+                other.tilesetId == tilesetId));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, entryId, tilesetId);
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PaletteEntryEditorBrushImplCopyWith<_$PaletteEntryEditorBrushImpl>
+      get copyWith => __$$PaletteEntryEditorBrushImplCopyWithImpl<
+          _$PaletteEntryEditorBrushImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() none,
+    required TResult Function(int tileId, String tilesetId) tile,
+    required TResult Function(String entryId, String tilesetId) paletteEntry,
+    required TResult Function(String elementId) projectElement,
+  }) {
+    return paletteEntry(entryId, tilesetId);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? none,
+    TResult? Function(int tileId, String tilesetId)? tile,
+    TResult? Function(String entryId, String tilesetId)? paletteEntry,
+    TResult? Function(String elementId)? projectElement,
+  }) {
+    return paletteEntry?.call(entryId, tilesetId);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? none,
+    TResult Function(int tileId, String tilesetId)? tile,
+    TResult Function(String entryId, String tilesetId)? paletteEntry,
+    TResult Function(String elementId)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (paletteEntry != null) {
+      return paletteEntry(entryId, tilesetId);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NoEditorBrush value) none,
+    required TResult Function(TileEditorBrush value) tile,
+    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
+    required TResult Function(ProjectElementEditorBrush value) projectElement,
+  }) {
+    return paletteEntry(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NoEditorBrush value)? none,
+    TResult? Function(TileEditorBrush value)? tile,
+    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult? Function(ProjectElementEditorBrush value)? projectElement,
+  }) {
+    return paletteEntry?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NoEditorBrush value)? none,
+    TResult Function(TileEditorBrush value)? tile,
+    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult Function(ProjectElementEditorBrush value)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (paletteEntry != null) {
+      return paletteEntry(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class PaletteEntryEditorBrush implements EditorBrush {
+  const factory PaletteEntryEditorBrush(
+      {required final String entryId,
+      required final String tilesetId}) = _$PaletteEntryEditorBrushImpl;
+
+  String get entryId;
+  String get tilesetId;
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PaletteEntryEditorBrushImplCopyWith<_$PaletteEntryEditorBrushImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$ProjectElementEditorBrushImplCopyWith<$Res> {
+  factory _$$ProjectElementEditorBrushImplCopyWith(
+          _$ProjectElementEditorBrushImpl value,
+          $Res Function(_$ProjectElementEditorBrushImpl) then) =
+      __$$ProjectElementEditorBrushImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String elementId});
+}
+
+/// @nodoc
+class __$$ProjectElementEditorBrushImplCopyWithImpl<$Res>
+    extends _$EditorBrushCopyWithImpl<$Res, _$ProjectElementEditorBrushImpl>
+    implements _$$ProjectElementEditorBrushImplCopyWith<$Res> {
+  __$$ProjectElementEditorBrushImplCopyWithImpl(
+      _$ProjectElementEditorBrushImpl _value,
+      $Res Function(_$ProjectElementEditorBrushImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? elementId = null,
+  }) {
+    return _then(_$ProjectElementEditorBrushImpl(
+      elementId: null == elementId
+          ? _value.elementId
+          : elementId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$ProjectElementEditorBrushImpl implements ProjectElementEditorBrush {
+  const _$ProjectElementEditorBrushImpl({required this.elementId});
+
+  @override
+  final String elementId;
+
+  @override
+  String toString() {
+    return 'EditorBrush.projectElement(elementId: $elementId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectElementEditorBrushImpl &&
+            (identical(other.elementId, elementId) ||
+                other.elementId == elementId));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, elementId);
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectElementEditorBrushImplCopyWith<_$ProjectElementEditorBrushImpl>
+      get copyWith => __$$ProjectElementEditorBrushImplCopyWithImpl<
+          _$ProjectElementEditorBrushImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() none,
+    required TResult Function(int tileId, String tilesetId) tile,
+    required TResult Function(String entryId, String tilesetId) paletteEntry,
+    required TResult Function(String elementId) projectElement,
+  }) {
+    return projectElement(elementId);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? none,
+    TResult? Function(int tileId, String tilesetId)? tile,
+    TResult? Function(String entryId, String tilesetId)? paletteEntry,
+    TResult? Function(String elementId)? projectElement,
+  }) {
+    return projectElement?.call(elementId);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? none,
+    TResult Function(int tileId, String tilesetId)? tile,
+    TResult Function(String entryId, String tilesetId)? paletteEntry,
+    TResult Function(String elementId)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (projectElement != null) {
+      return projectElement(elementId);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NoEditorBrush value) none,
+    required TResult Function(TileEditorBrush value) tile,
+    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
+    required TResult Function(ProjectElementEditorBrush value) projectElement,
+  }) {
+    return projectElement(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NoEditorBrush value)? none,
+    TResult? Function(TileEditorBrush value)? tile,
+    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult? Function(ProjectElementEditorBrush value)? projectElement,
+  }) {
+    return projectElement?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NoEditorBrush value)? none,
+    TResult Function(TileEditorBrush value)? tile,
+    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
+    TResult Function(ProjectElementEditorBrush value)? projectElement,
+    required TResult orElse(),
+  }) {
+    if (projectElement != null) {
+      return projectElement(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ProjectElementEditorBrush implements EditorBrush {
+  const factory ProjectElementEditorBrush({required final String elementId}) =
+      _$ProjectElementEditorBrushImpl;
+
+  String get elementId;
+
+  /// Create a copy of EditorBrush
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectElementEditorBrushImplCopyWith<_$ProjectElementEditorBrushImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$EditorState {
 // Context
   ProjectFileSystem? get fileSystem => throw _privateConstructorUsedError;
@@ -27,9 +709,7 @@ mixin _$EditorState {
   EditorToolType get activeTool => throw _privateConstructorUsedError;
   String? get activeLayerId => throw _privateConstructorUsedError;
   GridPos? get hoveredTile => throw _privateConstructorUsedError;
-  int? get selectedTileId => throw _privateConstructorUsedError;
-  String? get selectedPaletteEntryId => throw _privateConstructorUsedError;
-  String? get selectedProjectElementId => throw _privateConstructorUsedError;
+  EditorBrush get activeBrush => throw _privateConstructorUsedError;
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
@@ -64,9 +744,7 @@ abstract class $EditorStateCopyWith<$Res> {
       EditorToolType activeTool,
       String? activeLayerId,
       GridPos? hoveredTile,
-      int? selectedTileId,
-      String? selectedPaletteEntryId,
-      String? selectedProjectElementId,
+      EditorBrush activeBrush,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -80,6 +758,7 @@ abstract class $EditorStateCopyWith<$Res> {
   $ProjectManifestCopyWith<$Res>? get project;
   $MapDataCopyWith<$Res>? get activeMap;
   $GridPosCopyWith<$Res>? get hoveredTile;
+  $EditorBrushCopyWith<$Res> get activeBrush;
 }
 
 /// @nodoc
@@ -105,9 +784,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? activeTool = null,
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
-    Object? selectedTileId = freezed,
-    Object? selectedPaletteEntryId = freezed,
-    Object? selectedProjectElementId = freezed,
+    Object? activeBrush = null,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -151,18 +828,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.hoveredTile
           : hoveredTile // ignore: cast_nullable_to_non_nullable
               as GridPos?,
-      selectedTileId: freezed == selectedTileId
-          ? _value.selectedTileId
-          : selectedTileId // ignore: cast_nullable_to_non_nullable
-              as int?,
-      selectedPaletteEntryId: freezed == selectedPaletteEntryId
-          ? _value.selectedPaletteEntryId
-          : selectedPaletteEntryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedProjectElementId: freezed == selectedProjectElementId
-          ? _value.selectedProjectElementId
-          : selectedProjectElementId // ignore: cast_nullable_to_non_nullable
-              as String?,
+      activeBrush: null == activeBrush
+          ? _value.activeBrush
+          : activeBrush // ignore: cast_nullable_to_non_nullable
+              as EditorBrush,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
           : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
@@ -243,6 +912,16 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       return _then(_value.copyWith(hoveredTile: value) as $Val);
     });
   }
+
+  /// Create a copy of EditorState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $EditorBrushCopyWith<$Res> get activeBrush {
+    return $EditorBrushCopyWith<$Res>(_value.activeBrush, (value) {
+      return _then(_value.copyWith(activeBrush: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -262,9 +941,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       EditorToolType activeTool,
       String? activeLayerId,
       GridPos? hoveredTile,
-      int? selectedTileId,
-      String? selectedPaletteEntryId,
-      String? selectedProjectElementId,
+      EditorBrush activeBrush,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -281,6 +958,8 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   $MapDataCopyWith<$Res>? get activeMap;
   @override
   $GridPosCopyWith<$Res>? get hoveredTile;
+  @override
+  $EditorBrushCopyWith<$Res> get activeBrush;
 }
 
 /// @nodoc
@@ -304,9 +983,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? activeTool = null,
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
-    Object? selectedTileId = freezed,
-    Object? selectedPaletteEntryId = freezed,
-    Object? selectedProjectElementId = freezed,
+    Object? activeBrush = null,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -350,18 +1027,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.hoveredTile
           : hoveredTile // ignore: cast_nullable_to_non_nullable
               as GridPos?,
-      selectedTileId: freezed == selectedTileId
-          ? _value.selectedTileId
-          : selectedTileId // ignore: cast_nullable_to_non_nullable
-              as int?,
-      selectedPaletteEntryId: freezed == selectedPaletteEntryId
-          ? _value.selectedPaletteEntryId
-          : selectedPaletteEntryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedProjectElementId: freezed == selectedProjectElementId
-          ? _value.selectedProjectElementId
-          : selectedProjectElementId // ignore: cast_nullable_to_non_nullable
-              as String?,
+      activeBrush: null == activeBrush
+          ? _value.activeBrush
+          : activeBrush // ignore: cast_nullable_to_non_nullable
+              as EditorBrush,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
           : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
@@ -414,9 +1083,7 @@ class _$EditorStateImpl implements _EditorState {
       this.activeTool = EditorToolType.selection,
       this.activeLayerId,
       this.hoveredTile,
-      this.selectedTileId,
-      this.selectedPaletteEntryId,
-      this.selectedProjectElementId,
+      this.activeBrush = const EditorBrush.none(),
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
       this.paletteCategoryFilter,
@@ -449,11 +1116,8 @@ class _$EditorStateImpl implements _EditorState {
   @override
   final GridPos? hoveredTile;
   @override
-  final int? selectedTileId;
-  @override
-  final String? selectedPaletteEntryId;
-  @override
-  final String? selectedProjectElementId;
+  @JsonKey()
+  final EditorBrush activeBrush;
   @override
   final String? selectedTilesetEditorId;
   @override
@@ -481,7 +1145,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, selectedTileId: $selectedTileId, selectedPaletteEntryId: $selectedPaletteEntryId, selectedProjectElementId: $selectedProjectElementId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -504,13 +1168,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.activeLayerId == activeLayerId) &&
             (identical(other.hoveredTile, hoveredTile) ||
                 other.hoveredTile == hoveredTile) &&
-            (identical(other.selectedTileId, selectedTileId) ||
-                other.selectedTileId == selectedTileId) &&
-            (identical(other.selectedPaletteEntryId, selectedPaletteEntryId) ||
-                other.selectedPaletteEntryId == selectedPaletteEntryId) &&
-            (identical(
-                    other.selectedProjectElementId, selectedProjectElementId) ||
-                other.selectedProjectElementId == selectedProjectElementId) &&
+            (identical(other.activeBrush, activeBrush) ||
+                other.activeBrush == activeBrush) &&
             (identical(
                     other.selectedTilesetEditorId, selectedTilesetEditorId) ||
                 other.selectedTilesetEditorId == selectedTilesetEditorId) &&
@@ -533,29 +1192,26 @@ class _$EditorStateImpl implements _EditorState {
   }
 
   @override
-  int get hashCode => Object.hashAll([
-        runtimeType,
-        fileSystem,
-        project,
-        workspaceMode,
-        activeMap,
-        activeMapPath,
-        activeTool,
-        activeLayerId,
-        hoveredTile,
-        selectedTileId,
-        selectedPaletteEntryId,
-        selectedProjectElementId,
-        selectedTilesetEditorId,
-        selectedTilesetElementGroupId,
-        paletteCategoryFilter,
-        zoom,
-        panOffset,
-        isDirty,
-        isSaving,
-        statusMessage,
-        errorMessage
-      ]);
+  int get hashCode => Object.hash(
+      runtimeType,
+      fileSystem,
+      project,
+      workspaceMode,
+      activeMap,
+      activeMapPath,
+      activeTool,
+      activeLayerId,
+      hoveredTile,
+      activeBrush,
+      selectedTilesetEditorId,
+      selectedTilesetElementGroupId,
+      paletteCategoryFilter,
+      zoom,
+      panOffset,
+      isDirty,
+      isSaving,
+      statusMessage,
+      errorMessage);
 
   /// Create a copy of EditorState
   /// with the given fields replaced by the non-null parameter values.
@@ -576,9 +1232,7 @@ abstract class _EditorState implements EditorState {
       final EditorToolType activeTool,
       final String? activeLayerId,
       final GridPos? hoveredTile,
-      final int? selectedTileId,
-      final String? selectedPaletteEntryId,
-      final String? selectedProjectElementId,
+      final EditorBrush activeBrush,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
       final PaletteCategory? paletteCategoryFilter,
@@ -607,11 +1261,7 @@ abstract class _EditorState implements EditorState {
   @override
   GridPos? get hoveredTile;
   @override
-  int? get selectedTileId;
-  @override
-  String? get selectedPaletteEntryId;
-  @override
-  String? get selectedProjectElementId;
+  EditorBrush get activeBrush;
   @override
   String? get selectedTilesetEditorId;
   @override

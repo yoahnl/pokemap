@@ -1,6 +1,8 @@
 import '../models/project_manifest.dart';
 import '../models/map_data.dart';
+import '../models/map_layer.dart';
 import '../models/enums.dart';
+import '../models/geometry.dart';
 import '../exceptions/map_exceptions.dart';
 
 class ProjectValidator {
@@ -49,7 +51,6 @@ class ProjectValidator {
   static void _validateHierarchy(ProjectManifest manifest) {
     final groupIds = manifest.groups.map((g) => g.id).toSet();
 
-    // Check parent references
     for (final group in manifest.groups) {
       if (group.parentGroupId != null &&
           !groupIds.contains(group.parentGroupId)) {
@@ -60,7 +61,6 @@ class ProjectValidator {
         throw ValidationException('Group ${group.id} cannot be its own parent');
       }
 
-      // Basic cycle detection
       var current = group;
       final visited = {group.id};
       while (current.parentGroupId != null) {
@@ -74,7 +74,6 @@ class ProjectValidator {
       }
     }
 
-    // Check map group references
     for (final map in manifest.maps) {
       if (map.groupId != null && !groupIds.contains(map.groupId)) {
         throw ValidationException(
@@ -282,10 +281,171 @@ class ProjectValidator {
 
 class MapValidator {
   static void validate(MapData map) {
-    if (map.id.isEmpty)
-      throw const ValidationException('Map ID cannot be empty');
+    final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
+    _requireNonBlank(map.name, 'Map name cannot be empty');
+    _requireNonBlank(map.tilesetId, 'Map tilesetId cannot be empty');
     if (map.size.width <= 0 || map.size.height <= 0) {
-      throw const ValidationException('Map size must be positive');
+      throw ValidationException(
+          'Map $mapId has invalid size: ${map.size.width}x${map.size.height}');
+    }
+
+    final expectedCellCount = map.size.width * map.size.height;
+    if (map.layers.isEmpty) {
+      throw ValidationException('Map $mapId must contain at least one layer');
+    }
+
+    var hasTileLayer = false;
+    for (final layer in map.layers) {
+      if (_validateLayer(layer, expectedCellCount)) {
+        hasTileLayer = true;
+      }
+    }
+    if (!hasTileLayer) {
+      throw ValidationException(
+          'Map $mapId must contain at least one tile layer');
+    }
+
+    _validateUniqueIds(
+      map.layers,
+      (layer) => layer.id,
+      duplicateMessagePrefix: 'Duplicate layer ID',
+    );
+
+    for (final entity in map.entities) {
+      final entityId = _requireNonBlank(entity.id, 'Entity ID cannot be empty');
+      _validatePositionInBounds(
+        entity.pos,
+        map.size,
+        errorLabel: 'Entity $entityId',
+      );
+    }
+    _validateUniqueIds(
+      map.entities,
+      (entity) => entity.id,
+      duplicateMessagePrefix: 'Duplicate entity ID',
+    );
+
+    for (final warp in map.warps) {
+      final warpId = _requireNonBlank(warp.id, 'Warp ID cannot be empty');
+      _requireNonBlank(
+        warp.targetMapId,
+        'Warp $warpId has empty targetMapId',
+      );
+      _validatePositionInBounds(
+        warp.pos,
+        map.size,
+        errorLabel: 'Warp $warpId',
+      );
+      if (warp.targetPos.x < 0 || warp.targetPos.y < 0) {
+        throw ValidationException(
+            'Warp $warpId has invalid target position: (${warp.targetPos.x}, ${warp.targetPos.y})');
+      }
+    }
+    _validateUniqueIds(
+      map.warps,
+      (warp) => warp.id,
+      duplicateMessagePrefix: 'Duplicate warp ID',
+    );
+
+    for (final trigger in map.triggers) {
+      final triggerId =
+          _requireNonBlank(trigger.id, 'Trigger ID cannot be empty');
+      _validatePositionInBounds(
+        trigger.pos,
+        map.size,
+        errorLabel: 'Trigger $triggerId',
+      );
+      _validatePositionInBounds(
+        trigger.zone.pos,
+        map.size,
+        errorLabel: 'Trigger $triggerId zone origin',
+      );
+      if (trigger.zone.size.width <= 0 || trigger.zone.size.height <= 0) {
+        throw ValidationException(
+            'Trigger $triggerId has invalid zone size: (${trigger.zone.size.width}x${trigger.zone.size.height})');
+      }
+
+      final zoneRight = trigger.zone.pos.x + trigger.zone.size.width;
+      final zoneBottom = trigger.zone.pos.y + trigger.zone.size.height;
+      if (zoneRight > map.size.width || zoneBottom > map.size.height) {
+        throw ValidationException(
+            'Trigger $triggerId has an invalid zone extending outside map bounds');
+      }
+    }
+    _validateUniqueIds(
+      map.triggers,
+      (trigger) => trigger.id,
+      duplicateMessagePrefix: 'Duplicate trigger ID',
+    );
+  }
+
+  static bool _validateLayer(MapLayer layer, int expectedCellCount) {
+    final layerId = _requireNonBlank(layer.id, 'Layer ID cannot be empty');
+    _requireNonBlank(layer.name, 'Layer $layerId name cannot be empty');
+    if (layer.opacity < 0.0 || layer.opacity > 1.0) {
+      throw ValidationException(
+          'Layer $layerId has invalid opacity: ${layer.opacity}');
+    }
+
+    return layer.map(
+      tile: (tileLayer) {
+        if (tileLayer.tiles.length != expectedCellCount) {
+          throw ValidationException(
+              'Tile layer $layerId has invalid tile count: expected $expectedCellCount, got ${tileLayer.tiles.length}');
+        }
+        for (var i = 0; i < tileLayer.tiles.length; i++) {
+          if (tileLayer.tiles[i] < 0) {
+            throw ValidationException(
+                'Tile layer $layerId has negative tile ID at index $i: ${tileLayer.tiles[i]}');
+          }
+        }
+        return true;
+      },
+      collision: (collisionLayer) {
+        if (collisionLayer.collisions.length != expectedCellCount) {
+          throw ValidationException(
+              'Collision layer $layerId has invalid collision count: expected $expectedCellCount, got ${collisionLayer.collisions.length}');
+        }
+        return false;
+      },
+      object: (_) => false,
+    );
+  }
+
+  static String _requireNonBlank(String value, String message) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      throw ValidationException(message);
+    }
+    return trimmed;
+  }
+
+  static void _validatePositionInBounds(
+    GridPos pos,
+    GridSize mapSize, {
+    required String errorLabel,
+  }) {
+    if (pos.x < 0 ||
+        pos.y < 0 ||
+        pos.x >= mapSize.width ||
+        pos.y >= mapSize.height) {
+      throw ValidationException(
+          '$errorLabel is out of map bounds at (${pos.x}, ${pos.y})');
+    }
+  }
+
+  static void _validateUniqueIds<T>(
+    List<T> items,
+    String Function(T item) idSelector, {
+    required String duplicateMessagePrefix,
+  }) {
+    final ids = <String>{};
+    for (final item in items) {
+      final id = idSelector(item).trim();
+      if (id.isEmpty) continue;
+      if (!ids.add(id)) {
+        throw ValidationException('$duplicateMessagePrefix: $id');
+      }
     }
   }
 }
