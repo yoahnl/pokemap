@@ -192,6 +192,22 @@ EraseCollisionPatternOnMapUseCase eraseCollisionPatternOnMapUseCase(
 }
 
 @riverpod
+AddWarpToMapUseCase addWarpToMapUseCase(AddWarpToMapUseCaseRef ref) {
+  return AddWarpToMapUseCase();
+}
+
+@riverpod
+UpdateWarpOnMapUseCase updateWarpOnMapUseCase(UpdateWarpOnMapUseCaseRef ref) {
+  return UpdateWarpOnMapUseCase();
+}
+
+@riverpod
+DeleteWarpFromMapUseCase deleteWarpFromMapUseCase(
+    DeleteWarpFromMapUseCaseRef ref) {
+  return DeleteWarpFromMapUseCase();
+}
+
+@riverpod
 AddMapLayerUseCase addMapLayerUseCase(AddMapLayerUseCaseRef ref) {
   return AddMapLayerUseCase();
 }

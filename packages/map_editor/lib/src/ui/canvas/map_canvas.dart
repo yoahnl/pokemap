@@ -44,9 +44,12 @@ class MapCanvas extends ConsumerWidget {
         final toolPreview = notifier.resolveMapToolPreview(
           tilesetColumnsById: tilesPerRowById,
         );
-        final isMapEditingTool = state.activeTool == EditorToolType.tilePaint ||
-            state.activeTool == EditorToolType.collisionPaint ||
-            state.activeTool == EditorToolType.eraser;
+        final isStrokeEditingTool =
+            state.activeTool == EditorToolType.tilePaint ||
+                state.activeTool == EditorToolType.collisionPaint ||
+                state.activeTool == EditorToolType.eraser;
+        final isTapEditingTool = isStrokeEditingTool ||
+            state.activeTool == EditorToolType.warpPlacement;
 
         void applyToolAt(GridPos gridPos) {
           if (state.activeTool == EditorToolType.tilePaint) {
@@ -62,12 +65,16 @@ class MapCanvas extends ConsumerWidget {
           }
           if (state.activeTool == EditorToolType.eraser) {
             notifier.eraseAt(gridPos);
+            return;
+          }
+          if (state.activeTool == EditorToolType.warpPlacement) {
+            notifier.placeOrSelectWarpAt(gridPos);
           }
         }
 
         return GestureDetector(
           onTapUp: (details) {
-            if (!isMapEditingTool) return;
+            if (!isTapEditingTool) return;
             final gridPos = _screenToGrid(
               details.localPosition,
               state.panOffset,
@@ -77,12 +84,16 @@ class MapCanvas extends ConsumerWidget {
               tileHeight,
             );
             if (gridPos == null) return;
-            notifier.beginMapStroke();
+            if (isStrokeEditingTool) {
+              notifier.beginMapStroke();
+            }
             applyToolAt(gridPos);
-            notifier.endMapStroke();
+            if (isStrokeEditingTool) {
+              notifier.endMapStroke();
+            }
           },
           onPanStart: (details) {
-            if (!isMapEditingTool) return;
+            if (!isStrokeEditingTool) return;
             final gridPos = _screenToGrid(
               details.localPosition,
               state.panOffset,
@@ -96,7 +107,7 @@ class MapCanvas extends ConsumerWidget {
             applyToolAt(gridPos);
           },
           onPanUpdate: (details) {
-            if (isMapEditingTool) {
+            if (isStrokeEditingTool) {
               final gridPos = _screenToGrid(
                 details.localPosition,
                 state.panOffset,
@@ -113,12 +124,12 @@ class MapCanvas extends ConsumerWidget {
             notifier.pan(details.delta);
           },
           onPanEnd: (_) {
-            if (isMapEditingTool) {
+            if (isStrokeEditingTool) {
               notifier.endMapStroke();
             }
           },
           onPanCancel: () {
-            if (isMapEditingTool) {
+            if (isStrokeEditingTool) {
               notifier.endMapStroke();
             }
           },
@@ -150,6 +161,8 @@ class MapCanvas extends ConsumerWidget {
                   sourceTileHeight: settings.tileHeight,
                   tilesPerRowById: tilesPerRowById,
                   toolPreview: toolPreview,
+                  warps: activeMap.warps,
+                  selectedWarpId: state.selectedWarpId,
                 ),
               ),
             ),
@@ -218,6 +231,8 @@ class MapGridPainter extends CustomPainter {
   final int sourceTileHeight;
   final Map<String, int> tilesPerRowById;
   final MapToolPreview? toolPreview;
+  final List<MapWarp> warps;
+  final String? selectedWarpId;
 
   MapGridPainter({
     required this.map,
@@ -232,6 +247,8 @@ class MapGridPainter extends CustomPainter {
     required this.sourceTileHeight,
     required this.tilesPerRowById,
     this.toolPreview,
+    required this.warps,
+    this.selectedWarpId,
   });
 
   @override
@@ -310,6 +327,7 @@ class MapGridPainter extends CustomPainter {
     }
 
     _paintToolPreview(canvas);
+    _paintWarps(canvas);
 
     canvas.drawRect(
       Rect.fromLTWH(0, 0, gridWidth, gridHeight),
@@ -319,6 +337,41 @@ class MapGridPainter extends CustomPainter {
     );
 
     canvas.restore();
+  }
+
+  void _paintWarps(Canvas canvas) {
+    if (warps.isEmpty) return;
+    for (final warp in warps) {
+      if (warp.pos.x < 0 ||
+          warp.pos.y < 0 ||
+          warp.pos.x >= map.size.width ||
+          warp.pos.y >= map.size.height) {
+        continue;
+      }
+      final isSelected = warp.id == selectedWarpId;
+      final rect = Rect.fromLTWH(
+        warp.pos.x * tileWidth,
+        warp.pos.y * tileHeight,
+        tileWidth,
+        tileHeight,
+      );
+      final fillPaint = Paint()
+        ..color = (isSelected ? Colors.cyanAccent : Colors.purpleAccent)
+            .withValues(alpha: isSelected ? 0.42 : 0.34)
+        ..style = PaintingStyle.fill;
+      final borderPaint = Paint()
+        ..color = isSelected ? Colors.white : Colors.purpleAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
+      canvas.drawRect(rect, fillPaint);
+      canvas.drawRect(rect, borderPaint);
+      final center = Offset(rect.center.dx, rect.center.dy);
+      canvas.drawCircle(
+        center,
+        (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.14,
+        Paint()..color = isSelected ? Colors.white : Colors.purple.shade100,
+      );
+    }
   }
 
   void _paintToolPreview(Canvas canvas) {
@@ -600,6 +653,8 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.tileWidth != tileWidth ||
         oldDelegate.tileHeight != tileHeight ||
         !_sameToolPreview(oldDelegate.toolPreview, toolPreview) ||
+        oldDelegate.selectedWarpId != selectedWarpId ||
+        !listEquals(oldDelegate.warps, warps) ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||

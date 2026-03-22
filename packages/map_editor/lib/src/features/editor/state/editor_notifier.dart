@@ -33,6 +33,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
+        selectedWarpId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -67,6 +68,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
+        selectedWarpId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -170,6 +172,7 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
+        selectedWarpId: null,
         selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -204,6 +207,7 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
+        selectedWarpId: null,
         selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -330,10 +334,12 @@ class EditorNotifier extends _$EditorNotifier {
       String? selectedTilesetElementGroupId =
           state.selectedTilesetElementGroupId;
       PaletteCategory? paletteCategoryFilter = state.paletteCategoryFilter;
+      String? selectedWarpId = state.selectedWarpId;
       if (activeMap?.id == mapId) {
         activeMap = null;
         activePath = null;
         activeBrush = const EditorBrush.none();
+        selectedWarpId = null;
         selectedTilesetEditorId = null;
         selectedTilesetElementGroupId = null;
         paletteCategoryFilter = null;
@@ -347,6 +353,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeLayerId:
             activeMap == null ? null : _resolveActiveLayerId(activeMap),
         activeBrush: activeBrush,
+        selectedWarpId: selectedWarpId,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: selectedTilesetElementGroupId,
         paletteCategoryFilter: paletteCategoryFilter,
@@ -1448,6 +1455,150 @@ class EditorNotifier extends _$EditorNotifier {
     _setPaintError('Active layer "${activeLayer.name}" is not editable');
   }
 
+  MapWarp? getSelectedWarp() {
+    final map = state.activeMap;
+    final selectedWarpId = state.selectedWarpId;
+    if (map == null || selectedWarpId == null) return null;
+    return _findWarpById(map, selectedWarpId);
+  }
+
+  void placeOrSelectWarpAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final existing = _findWarpAtPos(map, pos);
+    if (existing != null) {
+      selectWarp(existing.id);
+      return;
+    }
+    addWarpAt(pos);
+  }
+
+  void addWarpAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final warpId = _generateUniqueWarpId(map);
+    final warp = MapWarp(
+      id: warpId,
+      pos: pos,
+      targetMapId: map.id,
+      targetPos: pos,
+    );
+    try {
+      final useCase = ref.read(addWarpToMapUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        warp: warp,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId: warp.id,
+        statusMessage: 'Warp "${warp.id}" created',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create warp: $e');
+    }
+  }
+
+  void selectWarp(String? warpId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    if (warpId == null) {
+      state = state.copyWith(
+        selectedWarpId: null,
+        errorMessage: null,
+      );
+      return;
+    }
+    final warp = _findWarpById(map, warpId);
+    if (warp == null) {
+      state = state.copyWith(errorMessage: 'Warp not found: $warpId');
+      return;
+    }
+    state = state.copyWith(
+      selectedWarpId: warp.id,
+      errorMessage: null,
+    );
+  }
+
+  void updateSelectedWarp({
+    required String id,
+    required String targetMapId,
+    required int targetPosX,
+    required int targetPosY,
+  }) {
+    final selectedWarpId = state.selectedWarpId;
+    if (selectedWarpId == null) return;
+    updateWarp(
+      warpId: selectedWarpId,
+      id: id,
+      targetMapId: targetMapId,
+      targetPos: GridPos(x: targetPosX, y: targetPosY),
+    );
+  }
+
+  void updateWarp({
+    required String warpId,
+    String? id,
+    GridPos? pos,
+    String? targetMapId,
+    GridPos? targetPos,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(updateWarpOnMapUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        warpId: warpId,
+        id: id,
+        pos: pos,
+        targetMapId: targetMapId,
+        targetPos: targetPos,
+      );
+      final nextSelectedWarpId =
+          id?.trim().isNotEmpty == true ? id!.trim() : warpId;
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId: nextSelectedWarpId,
+        statusMessage: 'Warp updated',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update warp: $e');
+    }
+  }
+
+  void deleteSelectedWarp() {
+    final selectedWarpId = state.selectedWarpId;
+    if (selectedWarpId == null) return;
+    deleteWarp(selectedWarpId);
+  }
+
+  void deleteWarp(String warpId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(deleteWarpFromMapUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        warpId: warpId,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId:
+            state.selectedWarpId == warpId ? null : state.selectedWarpId,
+        statusMessage: 'Warp deleted',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete warp: $e');
+    }
+  }
+
   MapToolPreview? resolveMapToolPreview({
     required Map<String, int> tilesetColumnsById,
   }) {
@@ -1530,6 +1681,7 @@ class EditorNotifier extends _$EditorNotifier {
       mapStrokeStart: MapHistorySnapshot(
         map: map,
         activeLayerId: state.activeLayerId,
+        selectedWarpId: state.selectedWarpId,
       ),
     );
   }
@@ -1568,17 +1720,26 @@ class EditorNotifier extends _$EditorNotifier {
     final snapshot = undoStack.removeLast();
     final redoStack = _pushHistorySnapshot(
       state.mapRedoStack,
-      MapHistorySnapshot(map: map, activeLayerId: state.activeLayerId),
+      MapHistorySnapshot(
+        map: map,
+        activeLayerId: state.activeLayerId,
+        selectedWarpId: state.selectedWarpId,
+      ),
     );
     final restoredMap = snapshot.map;
     final nextActiveLayerId = _resolveActiveLayerId(
       restoredMap,
       preferredLayerId: snapshot.activeLayerId,
     );
+    final nextSelectedWarpId = _resolveSelectedWarpId(
+      restoredMap,
+      preferredWarpId: snapshot.selectedWarpId,
+    );
     final savedSnapshot = state.savedMapSnapshot;
     state = state.copyWith(
       activeMap: restoredMap,
       activeLayerId: nextActiveLayerId,
+      selectedWarpId: nextSelectedWarpId,
       selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
         restoredMap,
         preferredLayerId: nextActiveLayerId,
@@ -1602,17 +1763,26 @@ class EditorNotifier extends _$EditorNotifier {
     final snapshot = redoStack.removeLast();
     final undoStack = _pushHistorySnapshot(
       state.mapUndoStack,
-      MapHistorySnapshot(map: map, activeLayerId: state.activeLayerId),
+      MapHistorySnapshot(
+        map: map,
+        activeLayerId: state.activeLayerId,
+        selectedWarpId: state.selectedWarpId,
+      ),
     );
     final restoredMap = snapshot.map;
     final nextActiveLayerId = _resolveActiveLayerId(
       restoredMap,
       preferredLayerId: snapshot.activeLayerId,
     );
+    final nextSelectedWarpId = _resolveSelectedWarpId(
+      restoredMap,
+      preferredWarpId: snapshot.selectedWarpId,
+    );
     final savedSnapshot = state.savedMapSnapshot;
     state = state.copyWith(
       activeMap: restoredMap,
       activeLayerId: nextActiveLayerId,
+      selectedWarpId: nextSelectedWarpId,
       selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
         restoredMap,
         preferredLayerId: nextActiveLayerId,
@@ -2357,6 +2527,7 @@ class EditorNotifier extends _$EditorNotifier {
     required MapData previousMap,
     required MapData updatedMap,
     required String? preferredActiveLayerId,
+    String? preferredSelectedWarpId,
     bool partOfStroke = false,
     bool updateSavedSnapshot = false,
     GridPos? hoveredTile,
@@ -2378,6 +2549,7 @@ class EditorNotifier extends _$EditorNotifier {
       strokeStart ??= MapHistorySnapshot(
         map: previousMap,
         activeLayerId: state.activeLayerId,
+        selectedWarpId: state.selectedWarpId,
       );
     } else {
       undoStack = _pushHistorySnapshot(
@@ -2385,6 +2557,7 @@ class EditorNotifier extends _$EditorNotifier {
         MapHistorySnapshot(
           map: previousMap,
           activeLayerId: state.activeLayerId,
+          selectedWarpId: state.selectedWarpId,
         ),
       );
       redoStack = const [];
@@ -2395,11 +2568,16 @@ class EditorNotifier extends _$EditorNotifier {
       updatedMap,
       preferredLayerId: preferredActiveLayerId,
     );
+    final nextSelectedWarpId = _resolveSelectedWarpId(
+      updatedMap,
+      preferredWarpId: preferredSelectedWarpId ?? state.selectedWarpId,
+    );
     final nextSavedSnapshot =
         updateSavedSnapshot ? updatedMap : state.savedMapSnapshot;
     state = state.copyWith(
       activeMap: updatedMap,
       activeLayerId: nextActiveLayerId,
+      selectedWarpId: nextSelectedWarpId,
       selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
         updatedMap,
         preferredLayerId: nextActiveLayerId,
@@ -2425,7 +2603,8 @@ class EditorNotifier extends _$EditorNotifier {
     if (source.isNotEmpty) {
       final last = source.last;
       if (last.map == snapshot.map &&
-          last.activeLayerId == snapshot.activeLayerId) {
+          last.activeLayerId == snapshot.activeLayerId &&
+          last.selectedWarpId == snapshot.selectedWarpId) {
         return source;
       }
     }
@@ -2467,6 +2646,19 @@ class EditorNotifier extends _$EditorNotifier {
       return candidateLayer.id;
     }
     return _resolveActiveLayerId(map);
+  }
+
+  String? _resolveSelectedWarpId(
+    MapData map, {
+    String? preferredWarpId,
+  }) {
+    if (preferredWarpId == null) return null;
+    final normalized = preferredWarpId.trim();
+    if (normalized.isEmpty) return null;
+    if (map.warps.any((warp) => warp.id == normalized)) {
+      return normalized;
+    }
+    return null;
   }
 
   String? _resolveSelectedTilesetIdForMap(
@@ -2511,6 +2703,34 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     return null;
+  }
+
+  MapWarp? _findWarpAtPos(MapData map, GridPos pos) {
+    for (final warp in map.warps) {
+      if (warp.pos == pos) {
+        return warp;
+      }
+    }
+    return null;
+  }
+
+  MapWarp? _findWarpById(MapData map, String warpId) {
+    for (final warp in map.warps) {
+      if (warp.id == warpId) {
+        return warp;
+      }
+    }
+    return null;
+  }
+
+  String _generateUniqueWarpId(MapData map) {
+    final ids = map.warps.map((warp) => warp.id).toSet();
+    if (!ids.contains('warp')) return 'warp';
+    var index = 1;
+    while (ids.contains('warp_$index')) {
+      index++;
+    }
+    return 'warp_$index';
   }
 }
 

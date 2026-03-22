@@ -700,6 +700,7 @@ abstract class ProjectElementEditorBrush implements EditorBrush {
 mixin _$MapHistorySnapshot {
   MapData get map => throw _privateConstructorUsedError;
   String? get activeLayerId => throw _privateConstructorUsedError;
+  String? get selectedWarpId => throw _privateConstructorUsedError;
 
   /// Create a copy of MapHistorySnapshot
   /// with the given fields replaced by the non-null parameter values.
@@ -714,7 +715,7 @@ abstract class $MapHistorySnapshotCopyWith<$Res> {
           MapHistorySnapshot value, $Res Function(MapHistorySnapshot) then) =
       _$MapHistorySnapshotCopyWithImpl<$Res, MapHistorySnapshot>;
   @useResult
-  $Res call({MapData map, String? activeLayerId});
+  $Res call({MapData map, String? activeLayerId, String? selectedWarpId});
 
   $MapDataCopyWith<$Res> get map;
 }
@@ -736,6 +737,7 @@ class _$MapHistorySnapshotCopyWithImpl<$Res, $Val extends MapHistorySnapshot>
   $Res call({
     Object? map = null,
     Object? activeLayerId = freezed,
+    Object? selectedWarpId = freezed,
   }) {
     return _then(_value.copyWith(
       map: null == map
@@ -745,6 +747,10 @@ class _$MapHistorySnapshotCopyWithImpl<$Res, $Val extends MapHistorySnapshot>
       activeLayerId: freezed == activeLayerId
           ? _value.activeLayerId
           : activeLayerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedWarpId: freezed == selectedWarpId
+          ? _value.selectedWarpId
+          : selectedWarpId // ignore: cast_nullable_to_non_nullable
               as String?,
     ) as $Val);
   }
@@ -768,7 +774,7 @@ abstract class _$$MapHistorySnapshotImplCopyWith<$Res>
       __$$MapHistorySnapshotImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({MapData map, String? activeLayerId});
+  $Res call({MapData map, String? activeLayerId, String? selectedWarpId});
 
   @override
   $MapDataCopyWith<$Res> get map;
@@ -789,6 +795,7 @@ class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
   $Res call({
     Object? map = null,
     Object? activeLayerId = freezed,
+    Object? selectedWarpId = freezed,
   }) {
     return _then(_$MapHistorySnapshotImpl(
       map: null == map
@@ -799,6 +806,10 @@ class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
           ? _value.activeLayerId
           : activeLayerId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedWarpId: freezed == selectedWarpId
+          ? _value.selectedWarpId
+          : selectedWarpId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -806,16 +817,19 @@ class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
-  const _$MapHistorySnapshotImpl({required this.map, this.activeLayerId});
+  const _$MapHistorySnapshotImpl(
+      {required this.map, this.activeLayerId, this.selectedWarpId});
 
   @override
   final MapData map;
   @override
   final String? activeLayerId;
+  @override
+  final String? selectedWarpId;
 
   @override
   String toString() {
-    return 'MapHistorySnapshot(map: $map, activeLayerId: $activeLayerId)';
+    return 'MapHistorySnapshot(map: $map, activeLayerId: $activeLayerId, selectedWarpId: $selectedWarpId)';
   }
 
   @override
@@ -825,11 +839,14 @@ class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
             other is _$MapHistorySnapshotImpl &&
             (identical(other.map, map) || other.map == map) &&
             (identical(other.activeLayerId, activeLayerId) ||
-                other.activeLayerId == activeLayerId));
+                other.activeLayerId == activeLayerId) &&
+            (identical(other.selectedWarpId, selectedWarpId) ||
+                other.selectedWarpId == selectedWarpId));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, map, activeLayerId);
+  int get hashCode =>
+      Object.hash(runtimeType, map, activeLayerId, selectedWarpId);
 
   /// Create a copy of MapHistorySnapshot
   /// with the given fields replaced by the non-null parameter values.
@@ -844,12 +861,15 @@ class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
 abstract class _MapHistorySnapshot implements MapHistorySnapshot {
   const factory _MapHistorySnapshot(
       {required final MapData map,
-      final String? activeLayerId}) = _$MapHistorySnapshotImpl;
+      final String? activeLayerId,
+      final String? selectedWarpId}) = _$MapHistorySnapshotImpl;
 
   @override
   MapData get map;
   @override
   String? get activeLayerId;
+  @override
+  String? get selectedWarpId;
 
   /// Create a copy of MapHistorySnapshot
   /// with the given fields replaced by the non-null parameter values.
@@ -873,6 +893,7 @@ mixin _$EditorState {
   String? get activeLayerId => throw _privateConstructorUsedError;
   GridPos? get hoveredTile => throw _privateConstructorUsedError;
   EditorBrush get activeBrush => throw _privateConstructorUsedError;
+  String? get selectedWarpId => throw _privateConstructorUsedError;
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
@@ -916,6 +937,7 @@ abstract class $EditorStateCopyWith<$Res> {
       String? activeLayerId,
       GridPos? hoveredTile,
       EditorBrush activeBrush,
+      String? selectedWarpId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -964,6 +986,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
+    Object? selectedWarpId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -1017,6 +1040,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.activeBrush
           : activeBrush // ignore: cast_nullable_to_non_nullable
               as EditorBrush,
+      selectedWarpId: freezed == selectedWarpId
+          ? _value.selectedWarpId
+          : selectedWarpId // ignore: cast_nullable_to_non_nullable
+              as String?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
           : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
@@ -1179,6 +1206,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? activeLayerId,
       GridPos? hoveredTile,
       EditorBrush activeBrush,
+      String? selectedWarpId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -1231,6 +1259,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
+    Object? selectedWarpId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -1284,6 +1313,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.activeBrush
           : activeBrush // ignore: cast_nullable_to_non_nullable
               as EditorBrush,
+      selectedWarpId: freezed == selectedWarpId
+          ? _value.selectedWarpId
+          : selectedWarpId // ignore: cast_nullable_to_non_nullable
+              as String?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
           : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
@@ -1361,6 +1394,7 @@ class _$EditorStateImpl implements _EditorState {
       this.activeLayerId,
       this.hoveredTile,
       this.activeBrush = const EditorBrush.none(),
+      this.selectedWarpId,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
       this.paletteCategoryFilter,
@@ -1403,6 +1437,8 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final EditorBrush activeBrush;
+  @override
+  final String? selectedWarpId;
   @override
   final String? selectedTilesetEditorId;
   @override
@@ -1459,7 +1495,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1484,6 +1520,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.hoveredTile == hoveredTile) &&
             (identical(other.activeBrush, activeBrush) ||
                 other.activeBrush == activeBrush) &&
+            (identical(other.selectedWarpId, selectedWarpId) ||
+                other.selectedWarpId == selectedWarpId) &&
             (identical(
                     other.selectedTilesetEditorId, selectedTilesetEditorId) ||
                 other.selectedTilesetEditorId == selectedTilesetEditorId) &&
@@ -1529,6 +1567,7 @@ class _$EditorStateImpl implements _EditorState {
         activeLayerId,
         hoveredTile,
         activeBrush,
+        selectedWarpId,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
         paletteCategoryFilter,
@@ -1566,6 +1605,7 @@ abstract class _EditorState implements EditorState {
       final String? activeLayerId,
       final GridPos? hoveredTile,
       final EditorBrush activeBrush,
+      final String? selectedWarpId,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
       final PaletteCategory? paletteCategoryFilter,
@@ -1601,6 +1641,8 @@ abstract class _EditorState implements EditorState {
   GridPos? get hoveredTile;
   @override
   EditorBrush get activeBrush;
+  @override
+  String? get selectedWarpId;
   @override
   String? get selectedTilesetEditorId;
   @override

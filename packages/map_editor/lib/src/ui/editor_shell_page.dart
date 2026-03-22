@@ -5,6 +5,7 @@ import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/layers_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
+import 'package:map_editor/src/ui/panels/warp_properties_panel.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
 
@@ -99,11 +100,34 @@ class EditorShellPage extends ConsumerWidget {
                       SizedBox(
                         width: 320,
                         child: workspaceMode == EditorWorkspaceMode.map
-                            ? const Column(
-                                children: [
-                                  SizedBox(height: 280, child: LayersPanel()),
-                                  Expanded(child: TilesetPalettePanel()),
-                                ],
+                            ? LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final tilesetHeight =
+                                      constraints.maxHeight.isFinite
+                                          ? (constraints.maxHeight > 420
+                                              ? constraints.maxHeight
+                                              : 420.0)
+                                          : 420.0;
+                                  return SingleChildScrollView(
+                                    primary: false,
+                                    child: Column(
+                                      children: [
+                                        const SizedBox(
+                                          height: 260,
+                                          child: LayersPanel(),
+                                        ),
+                                        const SizedBox(
+                                          height: 260,
+                                          child: WarpPropertiesPanel(),
+                                        ),
+                                        SizedBox(
+                                          height: tilesetHeight,
+                                          child: const TilesetPalettePanel(),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               )
                             : const TilesetPalettePanel(),
                       ),

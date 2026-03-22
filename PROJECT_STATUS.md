@@ -121,12 +121,23 @@ Separations metier explicites:
   - paint/erase collision au clic + drag avec regroupement stroke dans l historique,
   - overlay collision visible dans le canvas map (au-dessus des tiles),
   - ghost preview collision paint/erase distinct du preview tile.
+- Warps MVP operationnels:
+  - operations pures `map_core` dediees (`add/update/remove`) avec validations metier explicites,
+  - use cases + providers Riverpod dedies dans `map_editor`,
+  - outil `warpPlacement` branche dans la toolbar et le canvas map,
+  - clic en mode warp:
+    - selection d un warp existant sur la cellule,
+    - sinon creation d un warp valide (`targetMapId = map active`, `targetPos = pos`),
+  - rendu overlay des warps dans `MapGridPainter` avec distinction du warp selectionne,
+  - panneau `WarpPropertiesPanel` (liste, selection, edition `id/targetMapId/targetPos`, suppression),
+  - integration complete dans le pipeline map-level (`_applyMapMutation`) avec undo/redo et dirty state.
 
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
+- Warps: MVP pose/selection/edition/suppression fait, mais sans validation inter-map et sans outillage avance (liens assistes, preview destination).
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
 - Interaction selection vs scroll dans le canvas tileset: base solide, raffinements UX possibles.
@@ -139,20 +150,63 @@ Separations metier explicites:
 - Outils avances map (fill/selection rect map/copy-paste).
 - Undo/redo global projet (au-dela de la map active).
 - Collisions avancees (types/comportements).
-- Warps/triggers/NPC/objets/panneaux/spawn (pose + edition).
+- Triggers/NPC/objets/panneaux/spawn (pose + edition).
+- Warps avances (validation inter-map, ergonomie de liaison, visualisations de destination).
 - Inspector de proprietes complet.
 - Preview runtime in-game.
 - Gestion assets projet au-dela des tilesets.
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-- undo/redo map-level robuste avec regroupement des strokes paint/erase,
-- raccourcis desktop undo/redo,
-- suppression d elements projet depuis l UI,
-- nettoyage structurel initial des use cases (`paint`/`layer`/`map`).
-- collisions MVP (paint/erase/overlay/preview) integrees au pipeline map-level.
+- Warp MVP map-level:
+  - pose, selection, edition, suppression,
+  - rendu canvas,
+  - integration pipeline undo/redo + dirty.
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (warp MVP):
+- `map_core`:
+  - ajout `map_warps.dart` avec operations pures:
+    - `addWarpToMap(...)`,
+    - `updateWarpOnMap(...)`,
+    - `removeWarpFromMap(...)`,
+  - validations dediees: ID non vide/unique, position source en bornes, `targetMapId` non vide, `targetPos` >= 0.
+  - export via `map_core.dart`.
+- `map_editor`:
+  - ajout des use cases:
+    - `AddWarpToMapUseCase`,
+    - `UpdateWarpOnMapUseCase`,
+    - `DeleteWarpFromMapUseCase`.
+  - ajout des providers Riverpod associes.
+  - `EditorState`:
+    - ajout `selectedWarpId`,
+    - extension de `MapHistorySnapshot` avec `selectedWarpId`.
+  - `EditorNotifier`:
+    - ajout des actions warp:
+      - `placeOrSelectWarpAt(...)`,
+      - `addWarpAt(...)`,
+      - `selectWarp(...)`,
+      - `updateSelectedWarp(...)`,
+      - `deleteSelectedWarp(...)`,
+    - generation ID warp unique (`warp`, `warp_1`, ...),
+    - creation warp par defaut valide (`targetMapId = map active`, `targetPos = pos`),
+    - nettoyage/maintien de `selectedWarpId` sur mutations map + undo/redo + changement de map/projet.
+  - `MapCanvas`:
+    - integration de `EditorToolType.warpPlacement` au clic,
+    - clic en mode warp:
+      - selection si warp deja present sur la cellule,
+      - creation sinon.
+  - `MapGridPainter`:
+    - overlay warps au-dessus des layers map/collision,
+    - style distinct pour le warp selectionne.
+  - UI:
+    - bouton `Warp Tool` dans `TopToolbar`,
+    - nouveau `WarpPropertiesPanel` dans la colonne droite en mode map:
+      - liste des warps,
+      - selection,
+      - edition (`id`, `targetMapId`, `targetPos.x`, `targetPos.y`),
+      - suppression.
+
 2026-03-22 (ghost preview + erase):
 - `map_core`:
   - nouvelles operations pures dans `map_paint.dart`:
@@ -385,6 +439,10 @@ Terminee pour cette etape:
     - liste des elements du tileset avec metadonnees (groupe monde + groupe interne + layer).
 
 ## 8. Prochaines etapes recommandees
+- Etendre les warps apres MVP:
+  - validation inter-map (`targetMapId`) au niveau projet,
+  - selection assistee de map cible depuis le manifest,
+  - visualisation optionnelle de la destination.
 - Finaliser l eclatement complet du monolithe `project_use_cases.dart` (tilesets/elements/projet) pour aligner toute la couche application sur la meme granularite.
 - Ajouter suppression/reorder des groupes internes de tileset et suppression de palette entries.
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
@@ -426,6 +484,12 @@ Terminee pour cette etape:
     - tile -> effacement de tiles,
     - collision -> effacement de collisions.
   - overlay collision rendu au-dessus des tiles pour garder la lisibilite d edition.
+- Decision UX warps:
+  - outil dedie `warpPlacement`,
+  - clic sur cellule avec warp existant => selection,
+  - clic sur cellule vide => creation warp,
+  - creation warp immediate avec valeurs valides par defaut (`targetMapId = map active`, `targetPos = pos`) pour eviter des objets invalides.
+- `selectedWarpId` fait partie de l etat editor et de l historique map-level pour garder undo/redo coherent avec la selection.
 - La compatibilite avec l existant est conservee:
   - import/assign tileset,
   - painting tile unitaire/multi-tile,
@@ -436,6 +500,7 @@ Terminee pour cette etape:
 - Les brushes lies a un tileset different restent bloques a la peinture si la layer active ne peut pas etre rebindee.
 - Les layers `collision` sont maintenant rendues en overlay, mais le rendu reste volontairement simple (bool), sans typage avance.
 - Les layers `object` restent sans rendu editorial dedie.
+- Le Warp MVP n interdit pas explicitement plusieurs warps sur la meme case dans les donnees importees; en UI, le clic selectionne le premier warp trouve sur la case.
 - Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
 - Une map peut maintenant etre volontairement sans layers; toute action de peinture est alors no-op tant qu aucune layer active tile n est selectionnee.
 - Les anciennes maps restent lisibles via fallback legacy `map.tilesetId`; la migration complete du champ legacy n est pas encore supprimee du schema.
@@ -447,6 +512,9 @@ Terminee pour cette etape:
 - La logique visuelle tileset est maintenant centrale; le panneau droit reste mixte (outils + bibliotheque) et peut encore etre simplifie.
 - Le paint d un element d un autre tileset que celui de la map active est bloque cote notifier avec message d erreur (comportement volontaire).
 - `MapValidator` ne verifie pas l existence reelle de la map cible des warps (verification volontairement gardee au niveau projet).
+- Le panneau warp reste MVP:
+  - edition de base uniquement (`id`, `targetMapId`, `targetPos`),
+  - pas encore de picker guide pour les maps cibles.
 - Le concept metier courant est `tileset par TileLayer`; `MapData.tilesetId` est conserve en legacy JSON uniquement.
 
 ## Checklist fonctionnelle (etat)
@@ -491,8 +559,8 @@ Terminee pour cette etape:
 - Peindre les collisions: fait (MVP bool)
 - Visualiser les collisions: fait (MVP overlay)
 - Gerer plusieurs types de collisions ou comportements de sol: pas fait
-- Poser des warps: pas fait
-- Configurer les warps: pas fait
+- Poser des warps: fait (MVP)
+- Configurer les warps: partiellement fait (MVP: id/targetMapId/targetPos + suppression)
 - Poser des triggers: pas fait
 - Configurer les triggers: pas fait
 - Poser des PNJ: pas fait
@@ -525,4 +593,4 @@ Terminee pour cette etape:
 - Layers: fait (base MVP), evolutions avancees non faites
 - Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
 - Undo/redo: fait (map active)
-- Warps/triggers/entities: pas fait
+- Warps/triggers/entities: partiellement fait (warps MVP fait, triggers/entities non faits)

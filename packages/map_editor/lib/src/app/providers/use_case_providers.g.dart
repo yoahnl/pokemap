@@ -604,6 +604,65 @@ final eraseCollisionPatternOnMapUseCaseProvider =
 // ignore: unused_element
 typedef EraseCollisionPatternOnMapUseCaseRef
     = AutoDisposeProviderRef<EraseCollisionPatternOnMapUseCase>;
+String _$addWarpToMapUseCaseHash() =>
+    r'fc43a8a83bcd9dc3cda077c04e451c1246b2938f';
+
+/// See also [addWarpToMapUseCase].
+@ProviderFor(addWarpToMapUseCase)
+final addWarpToMapUseCaseProvider =
+    AutoDisposeProvider<AddWarpToMapUseCase>.internal(
+  addWarpToMapUseCase,
+  name: r'addWarpToMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addWarpToMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddWarpToMapUseCaseRef = AutoDisposeProviderRef<AddWarpToMapUseCase>;
+String _$updateWarpOnMapUseCaseHash() =>
+    r'636b831105bae05266b7405ecd476077972cda54';
+
+/// See also [updateWarpOnMapUseCase].
+@ProviderFor(updateWarpOnMapUseCase)
+final updateWarpOnMapUseCaseProvider =
+    AutoDisposeProvider<UpdateWarpOnMapUseCase>.internal(
+  updateWarpOnMapUseCase,
+  name: r'updateWarpOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateWarpOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateWarpOnMapUseCaseRef
+    = AutoDisposeProviderRef<UpdateWarpOnMapUseCase>;
+String _$deleteWarpFromMapUseCaseHash() =>
+    r'9c4efd0a796eec5088348cbe914b1e2306216be0';
+
+/// See also [deleteWarpFromMapUseCase].
+@ProviderFor(deleteWarpFromMapUseCase)
+final deleteWarpFromMapUseCaseProvider =
+    AutoDisposeProvider<DeleteWarpFromMapUseCase>.internal(
+  deleteWarpFromMapUseCase,
+  name: r'deleteWarpFromMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteWarpFromMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteWarpFromMapUseCaseRef
+    = AutoDisposeProviderRef<DeleteWarpFromMapUseCase>;
 String _$addMapLayerUseCaseHash() =>
     r'9d7129cee987442d8a9e36905876a797b1873ed5';
 

@@ -25,6 +25,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   String? _selectedCategoryId;
   final Set<String> _expandedCategories = <String>{};
   final Set<String> _expandedTilesetGroups = <String>{};
+  final ScrollController _selectionHorizontalScrollController =
+      ScrollController();
+  final ScrollController _selectionVerticalScrollController =
+      ScrollController();
+
+  @override
+  void dispose() {
+    _selectionHorizontalScrollController.dispose();
+    _selectionVerticalScrollController.dispose();
+    super.dispose();
+  }
 
   TilesetSourceRect? get _selectionRect {
     final start = _selectionStart;
@@ -370,7 +381,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   displayScale: settings.displayScale,
                   selectionRect: selectionRect,
                 )
-              : Column(
+              : ListView(
+                  padding: const EdgeInsets.only(bottom: 8),
                   children: [
                     SizedBox(
                       height: 220,
@@ -385,44 +397,43 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final paletteTileSize =
-                                settings.tileWidth * settings.displayScale;
-                            final crossAxisCount =
-                                (constraints.maxWidth / (paletteTileSize + 8))
-                                    .floor()
-                                    .clamp(1, 20);
-                            return GridView.builder(
-                              itemCount: filteredTileIds.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                crossAxisSpacing: 4,
-                                mainAxisSpacing: 4,
-                              ),
-                              itemBuilder: (context, index) {
-                                final tileId = filteredTileIds[index];
-                                return _PaletteTileCell(
-                                  image: image,
-                                  tileId: tileId,
-                                  tileWidth: settings.tileWidth,
-                                  tileHeight: settings.tileHeight,
-                                  columns: columns,
-                                  selected: tileId == selectedTileId,
-                                  onTap: () {
-                                    notifier.selectPaletteTile(tileId);
-                                    notifier
-                                        .selectTool(EditorToolType.tilePaint);
-                                  },
-                                );
-                              },
-                            );
-                          },
-                        ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final paletteTileSize =
+                              settings.tileWidth * settings.displayScale;
+                          final crossAxisCount =
+                              (constraints.maxWidth / (paletteTileSize + 8))
+                                  .floor()
+                                  .clamp(1, 20);
+                          return GridView.builder(
+                            itemCount: filteredTileIds.length,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              crossAxisSpacing: 4,
+                              mainAxisSpacing: 4,
+                            ),
+                            itemBuilder: (context, index) {
+                              final tileId = filteredTileIds[index];
+                              return _PaletteTileCell(
+                                image: image,
+                                tileId: tileId,
+                                tileWidth: settings.tileWidth,
+                                tileHeight: settings.tileHeight,
+                                columns: columns,
+                                selected: tileId == selectedTileId,
+                                onTap: () {
+                                  notifier.selectPaletteTile(tileId);
+                                  notifier.selectTool(EditorToolType.tilePaint);
+                                },
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -639,7 +650,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       ),
     ];
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 12),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -772,79 +784,79 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           ),
         ),
         const SizedBox(height: 4),
-        Expanded(
-          child: filteredElements.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No element for current filters',
-                    style: TextStyle(color: Colors.white38),
+        if (filteredElements.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Text(
+              'No element for current filters',
+              style: TextStyle(color: Colors.white38),
+            ),
+          )
+        else
+          ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            itemCount: filteredElements.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) {
+              final element = filteredElements[index];
+              final categoryPath = _buildCategoryPathLabel(
+                categoriesById: categoriesById,
+                categoryId: element.categoryId,
+              );
+              final tilesetName = activeTileset.name;
+              final groupLabel = element.groupId == null
+                  ? 'Global'
+                  : 'Group: ${_buildGroupPathLabel(groupById, element.groupId!)}';
+              final tilesetGroupLabel = element.tilesetGroupId == null
+                  ? 'Internal: none'
+                  : 'Internal: ${_buildTilesetGroupPathLabel(tilesetGroupById, element.tilesetGroupId!)}';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ProjectElementCard(
+                  image: image,
+                  element: element,
+                  tileWidth: tileWidth,
+                  tileHeight: tileHeight,
+                  selected: state.activeBrush.maybeMap(
+                    projectElement: (brush) => brush.elementId == element.id,
+                    orElse: () => false,
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  itemCount: filteredElements.length,
-                  itemBuilder: (context, index) {
-                    final element = filteredElements[index];
-                    final categoryPath = _buildCategoryPathLabel(
-                      categoriesById: categoriesById,
-                      categoryId: element.categoryId,
-                    );
-                    final tilesetName = activeTileset.name;
-                    final groupLabel = element.groupId == null
-                        ? 'Global'
-                        : 'Group: ${_buildGroupPathLabel(groupById, element.groupId!)}';
-                    final tilesetGroupLabel = element.tilesetGroupId == null
-                        ? 'Internal: none'
-                        : 'Internal: ${_buildTilesetGroupPathLabel(tilesetGroupById, element.tilesetGroupId!)}';
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _ProjectElementCard(
-                        image: image,
-                        element: element,
-                        tileWidth: tileWidth,
-                        tileHeight: tileHeight,
-                        selected: state.activeBrush.maybeMap(
-                          projectElement: (brush) =>
-                              brush.elementId == element.id,
-                          orElse: () => false,
-                        ),
-                        categoryPath: categoryPath,
-                        tilesetName: tilesetName,
-                        groupLabel: groupLabel,
-                        tilesetGroupLabel: tilesetGroupLabel,
-                        onTap: () {
-                          notifier.selectProjectElement(element.id);
-                          if (element.recommendedLayerId != null &&
-                              (state.activeMap?.layers.any(
-                                    (layer) =>
-                                        layer is TileLayer &&
-                                        layer.id == element.recommendedLayerId,
-                                  ) ??
-                                  false)) {
-                            notifier
-                                .setActiveLayer(element.recommendedLayerId!);
-                          }
-                          notifier.selectTool(EditorToolType.tilePaint);
-                        },
-                        onEdit: () => _showEditElementDialog(
-                          context,
-                          notifier: notifier,
-                          project: project,
-                          element: element,
-                          categories: categories,
-                          tileLayers: tileLayers,
-                          tilesetGroups: tilesetGroups,
-                        ),
-                        onDelete: () => _showDeleteElementDialog(
-                          context,
-                          notifier: notifier,
-                          element: element,
-                        ),
-                      ),
-                    );
+                  categoryPath: categoryPath,
+                  tilesetName: tilesetName,
+                  groupLabel: groupLabel,
+                  tilesetGroupLabel: tilesetGroupLabel,
+                  onTap: () {
+                    notifier.selectProjectElement(element.id);
+                    if (element.recommendedLayerId != null &&
+                        (state.activeMap?.layers.any(
+                              (layer) =>
+                                  layer is TileLayer &&
+                                  layer.id == element.recommendedLayerId,
+                            ) ??
+                            false)) {
+                      notifier.setActiveLayer(element.recommendedLayerId!);
+                    }
+                    notifier.selectTool(EditorToolType.tilePaint);
                   },
+                  onEdit: () => _showEditElementDialog(
+                    context,
+                    notifier: notifier,
+                    project: project,
+                    element: element,
+                    categories: categories,
+                    tileLayers: tileLayers,
+                    tilesetGroups: tilesetGroups,
+                  ),
+                  onDelete: () => _showDeleteElementDialog(
+                    context,
+                    notifier: notifier,
+                    element: element,
+                  ),
                 ),
-        ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -1029,13 +1041,19 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final canvasHeight = rows * cellSize;
 
     return Scrollbar(
+      controller: _selectionHorizontalScrollController,
       thumbVisibility: true,
       child: SingleChildScrollView(
+        controller: _selectionHorizontalScrollController,
+        primary: false,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         scrollDirection: Axis.horizontal,
         child: Scrollbar(
+          controller: _selectionVerticalScrollController,
           thumbVisibility: true,
           child: SingleChildScrollView(
+            controller: _selectionVerticalScrollController,
+            primary: false,
             scrollDirection: Axis.vertical,
             child: SizedBox(
               width: canvasWidth,

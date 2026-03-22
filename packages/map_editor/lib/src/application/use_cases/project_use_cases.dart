@@ -9,6 +9,7 @@ part 'paint_use_cases.dart';
 part 'collision_use_cases.dart';
 part 'layer_use_cases.dart';
 part 'map_use_cases.dart';
+part 'warp_use_cases.dart';
 
 class CreateProjectUseCase {
   final ProjectRepository _repo;

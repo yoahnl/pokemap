@@ -151,6 +151,17 @@ class TopToolbar extends ConsumerWidget {
             ),
             tooltip: 'Eraser Tool',
           ),
+          IconButton(
+            onPressed: () => notifier.selectTool(EditorToolType.warpPlacement),
+            icon: Icon(
+              Icons.alt_route_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.warpPlacement
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Warp Tool',
+          ),
           const VerticalDivider(width: 1, indent: 8, endIndent: 8),
           IconButton(
             onPressed: () => notifier.zoom(0.1),

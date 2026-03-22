@@ -33,6 +33,7 @@ class MapHistorySnapshot with _$MapHistorySnapshot {
   const factory MapHistorySnapshot({
     required MapData map,
     String? activeLayerId,
+    String? selectedWarpId,
   }) = _MapHistorySnapshot;
 }
 
@@ -53,6 +54,7 @@ class EditorState with _$EditorState {
     String? activeLayerId,
     GridPos? hoveredTile,
     @Default(EditorBrush.none()) EditorBrush activeBrush,
+    String? selectedWarpId,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
     PaletteCategory? paletteCategoryFilter,
