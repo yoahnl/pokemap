@@ -202,7 +202,8 @@ class MapGridPainter extends CustomPainter {
     final gridWidth = map.size.width * tileWidth;
     final gridHeight = map.size.height * tileHeight;
 
-    for (final layer in map.layers) {
+    for (var index = map.layers.length - 1; index >= 0; index--) {
+      final layer = map.layers[index];
       if (!layer.isVisible) continue;
       layer.map(
         tile: (tileLayer) {
