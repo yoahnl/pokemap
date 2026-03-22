@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-22
+Last updated: 2026-03-23
 
 ## 1. Resume du projet
 Editeur de maps Pokemon-like/RPG sur grille en monorepo Flutter/Dart:
@@ -258,6 +258,51 @@ Terminee pour cette etape:
   - persistance complete dans `project.json`.
 
 ## 7. Dernieres modifications realisees
+2026-03-23 (logos path encore plus explicites):
+- `map_editor`:
+  - `TerrainEditorPanel`:
+    - icones de variantes path revues avec mini-compas visuel integre (`N/E/S/O`),
+    - connexions actives mises en evidence directement dans le logo,
+    - libelles de connexions en toutes lettres (`Nord/Est/Sud/Ouest`) au lieu des abreviations seules,
+    - texte contextualise `Connecte: ...` pour chaque variante dans la grille.
+- impact:
+  - lecture plus immediate de la correspondance coin/jonction/extremite,
+  - reduction de l ambiguite pendant le mapping case-par-case.
+
+2026-03-23 (coins internes path + clarification interne/externe):
+- `map_core`:
+  - `TerrainPathVariant` etendu avec:
+    - `innerCornerNE`,
+    - `innerCornerSE`,
+    - `innerCornerSW`,
+    - `innerCornerNW`.
+  - `resolveTerrainPathVariantAt(...)` etendu:
+    - detection des coins internes quand les 4 directions cardinales sont connectees, avec diagonale manquante.
+- `map_editor`:
+  - `PathAutotileSet` enrichi avec mappings par defaut pour les nouveaux coins internes.
+  - `TerrainEditorPanel`:
+    - grille de variantes mise a jour avec coins externes + coins internes,
+    - badge de type (`Coin externe` / `Coin interne`),
+    - description explicite de la difference:
+      - coin externe = virage,
+      - coin interne = encoche dans un bloc entoure.
+- impact:
+  - set de variantes path enrichi (20 variantes au total),
+  - difference interne/externe visible directement dans l UI et exploitable dans le rendu.
+
+2026-03-22 (clarification UX mapping path):
+- `map_editor`:
+  - `TerrainEditorPanel`:
+    - editeur visuel de mapping path clarifie:
+      - libelles de variantes explicites (Extremite, Coin, Jonction T, Croisement),
+      - affichage direct des directions de connexion (`N/E/S/O`) pour chaque variante,
+      - panneau d explication contextuel de la variante active (quand elle est utilisee),
+      - repere visuel global des directions (N=haut, E=droite, S=bas, O=gauche),
+      - action de suppression ciblee de la variante selectionnee.
+- impact:
+  - reduction de l ambiguite sur la correspondance coin/jonction <-> variante,
+  - mapping des chemins plus rapide et plus comprehensible.
+
 2026-03-22 (categories terrain/path + pickers map + type de path):
 - `map_core`:
   - ajout `TerrainPresetCategoryKind` (`terrain`, `path`) dans `enums.dart`,
@@ -290,6 +335,11 @@ Terminee pour cette etape:
     - choix de categorie dans les dialogs terrain/path,
     - type de path selectable dans creation/edition de preset,
     - affichage de la categorie et du type dans les listes/details,
+    - nouvel editeur visuel de mapping path:
+      - grille des variantes de chemin (coins, T, croisement, extremites),
+      - selection d une variante dans la grille,
+      - selection directe case-par-case dans le tileset path charge,
+      - mapping applique en 1x1 par variante pour un workflow plus clair.
   - `TerrainMapPanel`:
     - selection des presets terrain/path via dropdown (plus robuste qu une liste libre),
     - affichage des chemins de categories dans les options,

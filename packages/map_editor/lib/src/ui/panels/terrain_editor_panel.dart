@@ -20,6 +20,30 @@ class TerrainEditorPanel extends ConsumerWidget {
     TerrainType.ice,
   ];
 
+  static const List<TerrainPathVariant> _pathVariantGridOrder =
+      <TerrainPathVariant>[
+    TerrainPathVariant.isolated,
+    TerrainPathVariant.endNorth,
+    TerrainPathVariant.endEast,
+    TerrainPathVariant.endSouth,
+    TerrainPathVariant.endWest,
+    TerrainPathVariant.horizontal,
+    TerrainPathVariant.vertical,
+    TerrainPathVariant.cornerNW,
+    TerrainPathVariant.cornerNE,
+    TerrainPathVariant.cornerSE,
+    TerrainPathVariant.cornerSW,
+    TerrainPathVariant.innerCornerNW,
+    TerrainPathVariant.innerCornerNE,
+    TerrainPathVariant.innerCornerSE,
+    TerrainPathVariant.innerCornerSW,
+    TerrainPathVariant.teeNorth,
+    TerrainPathVariant.teeEast,
+    TerrainPathVariant.teeSouth,
+    TerrainPathVariant.teeWest,
+    TerrainPathVariant.cross,
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorNotifierProvider);
@@ -333,7 +357,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      '${_terrainLabel(preset.groundTerrainType)} • ${preset.variants.length}/16 mapped${_categorySuffix(notifier, preset.categoryId)}',
+                      '${_terrainLabel(preset.groundTerrainType)} • ${preset.variants.length}/${TerrainPathVariant.values.length} mapped${_categorySuffix(notifier, preset.categoryId)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -495,7 +519,7 @@ class TerrainEditorPanel extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Mapped variants: ${preset.variants.length}/16${missingVariants > 0 ? ' ($missingVariants missing)' : ''}',
+            'Mapped variants: ${preset.variants.length}/${TerrainPathVariant.values.length}${missingVariants > 0 ? ' ($missingVariants missing)' : ''}',
             style: const TextStyle(fontSize: 11, color: Colors.white70),
           ),
           const SizedBox(height: 2),
@@ -1608,11 +1632,29 @@ class TerrainEditorPanel extends ConsumerWidget {
                 if (createdId == null) return;
                 final created = notifier.getPathPresetById(createdId);
                 if (created == null) return;
-                await _runPathMappingAssistant(
+                final mapped = await _showPathMappingWorkspaceDialog(
                   context,
                   notifier: notifier,
                   settings: settings,
-                  preset: created,
+                  tilesetId: created.tilesetId,
+                  initialMappings: {
+                    for (final mapping in created.variants)
+                      mapping.variant: mapping.source,
+                  },
+                );
+                if (mapped == null) return;
+                final mappings = mapped.entries
+                    .map(
+                      (entry) => PathPresetVariantMapping(
+                        variant: entry.key,
+                        source: entry.value,
+                      ),
+                    )
+                    .toList(growable: false)
+                  ..sort((a, b) => a.variant.index.compareTo(b.variant.index));
+                await notifier.updatePathPreset(
+                  presetId: created.id,
+                  variants: mappings,
                 );
               },
               child: const Text('Create'),
@@ -1782,28 +1824,52 @@ class TerrainEditorPanel extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    for (final variant in TerrainPathVariant.values)
-                      _PathVariantTile(
-                        variantLabel: variant.name,
-                        mappingLabel: variants.containsKey(variant)
-                            ? '(${variants[variant]!.x}, ${variants[variant]!.y}) ${variants[variant]!.width}x${variants[variant]!.height}'
-                            : 'Not mapped',
-                        onSet: () async {
-                          final edited = await _showPathVariantDialog(
-                            context,
-                            notifier: notifier,
-                            settings: settings,
-                            tilesetId: tilesetId,
-                            initial: variants[variant],
-                          );
-                          if (edited != null) {
-                            setState(() => variants[variant] = edited);
-                          }
-                        },
-                        onClear: variants.containsKey(variant)
-                            ? () => setState(() => variants.remove(variant))
-                            : null,
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${variants.length}/${TerrainPathVariant.values.length} mapped',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: tilesetId.trim().isEmpty
+                            ? null
+                            : () async {
+                                final mapped =
+                                    await _showPathMappingWorkspaceDialog(
+                                  context,
+                                  notifier: notifier,
+                                  settings: settings,
+                                  tilesetId: tilesetId,
+                                  initialMappings: variants,
+                                );
+                                if (mapped == null) return;
+                                setState(() {
+                                  variants
+                                    ..clear()
+                                    ..addAll(mapped);
+                                });
+                              },
+                        icon: const Icon(Icons.grid_view_outlined, size: 16),
+                        label: const Text('Open Visual Mapping Editor'),
+                      ),
+                    ),
+                    if (tilesetId.trim().isEmpty) ...[
+                      const SizedBox(height: 6),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Select a path tileset first to map variants.',
+                          style: TextStyle(fontSize: 10, color: Colors.white54),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1846,132 +1912,287 @@ class TerrainEditorPanel extends ConsumerWidget {
     );
   }
 
-  Future<TilesetSourceRect?> _showPathVariantDialog(
+  Future<Map<TerrainPathVariant, TilesetSourceRect>?>
+      _showPathMappingWorkspaceDialog(
     BuildContext context, {
     required EditorNotifier notifier,
     required ProjectSettings settings,
     required String tilesetId,
-    TilesetSourceRect? initial,
+    required Map<TerrainPathVariant, TilesetSourceRect> initialMappings,
+    TerrainPathVariant? initialVariant,
   }) async {
-    final formKey = GlobalKey<FormState>();
-    final xController =
-        TextEditingController(text: (initial?.x ?? 0).toString());
-    final yController =
-        TextEditingController(text: (initial?.y ?? 0).toString());
-    final widthController =
-        TextEditingController(text: (initial?.width ?? 1).toString());
-    final heightController =
-        TextEditingController(text: (initial?.height ?? 1).toString());
-    TilesetSourceRect? result;
+    final normalizedTilesetId = tilesetId.trim();
+    if (normalizedTilesetId.isEmpty) return null;
+    final path = notifier.getTilesetAbsolutePathById(normalizedTilesetId);
+    if (path == null || path.isEmpty) return null;
+    final image = await _TerrainTilesetImageCache.load(path);
+    if (image == null) return null;
+
+    final sourceTileWidth = settings.tileWidth;
+    final sourceTileHeight = settings.tileHeight;
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) return null;
+    final columns = image.width ~/ sourceTileWidth;
+    final rows = image.height ~/ sourceTileHeight;
+    if (columns <= 0 || rows <= 0) return null;
+
+    final mappings = <TerrainPathVariant, TilesetSourceRect>{
+      for (final entry in initialMappings.entries)
+        entry.key: TilesetSourceRect(
+          x: entry.value.x,
+          y: entry.value.y,
+          width: 1,
+          height: 1,
+        ),
+    };
+    TerrainPathVariant selectedVariant = initialVariant ??
+        _pathVariantGridOrder.firstWhere(
+          (variant) => !mappings.containsKey(variant),
+          orElse: () => _pathVariantGridOrder.first,
+        );
+    Map<TerrainPathVariant, TilesetSourceRect>? result;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(initial == null ? 'Set Variant' : 'Edit Variant'),
-        content: SizedBox(
-          width: 280,
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Path Mapping Editor'),
+          content: SizedBox(
+            width: 980,
+            height: 620,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (tilesetId.trim().isNotEmpty) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final currentSource = TilesetSourceRect(
-                          x: int.tryParse(xController.text.trim()) ?? 0,
-                          y: int.tryParse(yController.text.trim()) ?? 0,
-                          width: int.tryParse(widthController.text.trim()) ?? 1,
-                          height:
-                              int.tryParse(heightController.text.trim()) ?? 1,
-                        );
-                        final picked = await _showTilesetRectPickerDialog(
-                          context,
-                          notifier: notifier,
-                          settings: settings,
-                          tilesetId: tilesetId,
-                          initial: currentSource,
-                        );
-                        if (picked == null) return;
-                        xController.text = picked.x.toString();
-                        yController.text = picked.y.toString();
-                        widthController.text = picked.width.toString();
-                        heightController.text = picked.height.toString();
-                      },
-                      icon: const Icon(Icons.grid_view_outlined, size: 16),
-                      label: const Text('Pick From Tileset'),
+                SizedBox(
+                  width: 360,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Etape 1: Choisir une variante de chemin',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${mappings.length}/${TerrainPathVariant.values.length} mapped',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.64),
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: const Text(
+                          'Reperes: N = haut, E = droite, S = bas, O = gauche. Coin externe = virage, coin interne = encoche.',
+                          style: TextStyle(fontSize: 10, color: Colors.white70),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: GridView.builder(
+                          primary: false,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                            childAspectRatio: 1.9,
+                          ),
+                          itemCount: _pathVariantGridOrder.length,
+                          itemBuilder: (context, index) {
+                            final variant = _pathVariantGridOrder[index];
+                            final source = mappings[variant];
+                            final selected = variant == selectedVariant;
+                            return _PathVariantGridCard(
+                              variant: variant,
+                              title: _pathVariantDisplayName(variant),
+                              kindLabel: _pathVariantKindLabel(variant),
+                              directionLabel:
+                                  _pathVariantDirectionsLabel(variant),
+                              mappedLabel: source == null
+                                  ? 'Non mappe'
+                                  : '(${source.x}, ${source.y})',
+                              selected: selected,
+                              onTap: () => setState(() {
+                                selectedVariant = variant;
+                              }),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Etape 2: Cliquer dans le tileset pour mapper "${_pathVariantDisplayName(selectedVariant)}"',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Tileset: ${notifier.getTilesetById(normalizedTilesetId)?.name ?? normalizedTilesetId}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.64),
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Variante active: ${_pathVariantDisplayName(selectedVariant)}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Connexions: ${_pathVariantDirectionsLabel(selectedVariant)}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _pathVariantUsageDescription(selectedVariant),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white60,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: Center(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final scale = math.min(
+                                  constraints.maxWidth / image.width,
+                                  constraints.maxHeight / image.height,
+                                );
+                                final renderWidth = image.width * scale;
+                                final renderHeight = image.height * scale;
+                                final cellWidth = renderWidth / columns;
+                                final cellHeight = renderHeight / rows;
+
+                                void mapCurrentVariant(Offset localPosition) {
+                                  final pos = _gridFromPickerLocal(
+                                    localPosition,
+                                    cellWidth,
+                                    cellHeight,
+                                    columns,
+                                    rows,
+                                  );
+                                  setState(() {
+                                    mappings[selectedVariant] =
+                                        TilesetSourceRect(
+                                      x: pos.x,
+                                      y: pos.y,
+                                      width: 1,
+                                      height: 1,
+                                    );
+                                  });
+                                }
+
+                                return SizedBox(
+                                  width: renderWidth,
+                                  height: renderHeight,
+                                  child: GestureDetector(
+                                    onTapDown: (details) => mapCurrentVariant(
+                                        details.localPosition),
+                                    onPanUpdate: (details) => mapCurrentVariant(
+                                        details.localPosition),
+                                    child: CustomPaint(
+                                      painter: _PathTilesetMappingPainter(
+                                        image: image,
+                                        columns: columns,
+                                        rows: rows,
+                                        mappings: mappings,
+                                        selectedVariant: selectedVariant,
+                                      ),
+                                      child: const SizedBox.expand(),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: xController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'X'),
-                        validator: _positiveOrZeroValidator,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: yController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Y'),
-                        validator: _positiveOrZeroValidator,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: widthController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Width'),
-                        validator: _positiveValidator,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: heightController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Height'),
-                        validator: _positiveValidator,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: mappings.containsKey(selectedVariant)
+                  ? () => setState(() => mappings.remove(selectedVariant))
+                  : null,
+              child: const Text('Effacer la variante'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                result = <TerrainPathVariant, TilesetSourceRect>{
+                  for (final entry in mappings.entries)
+                    entry.key: TilesetSourceRect(
+                      x: entry.value.x,
+                      y: entry.value.y,
+                      width: 1,
+                      height: 1,
+                    ),
+                };
+                Navigator.pop(context);
+              },
+              child: const Text('Apply'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() != true) return;
-              result = TilesetSourceRect(
-                x: int.parse(xController.text),
-                y: int.parse(yController.text),
-                width: int.parse(widthController.text),
-                height: int.parse(heightController.text),
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('Apply'),
-          ),
-        ],
       ),
     );
 
@@ -2079,46 +2300,17 @@ class TerrainEditorPanel extends ConsumerWidget {
   }) async {
     final tilesetId = preset.tilesetId.trim();
     if (tilesetId.isEmpty) return;
-    final mappings = <TerrainPathVariant, TilesetSourceRect>{
-      for (final mapping in preset.variants) mapping.variant: mapping.source,
-    };
-    for (final variant in TerrainPathVariant.values) {
-      final shouldMap = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text('Variant ${variant.name}'),
-              content: Text(
-                mappings.containsKey(variant)
-                    ? 'Remap this variant?'
-                    : 'Select tiles for this variant.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Skip'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Select'),
-                ),
-              ],
-            ),
-          ) ??
-          false;
-      if (!shouldMap) continue;
-      final picked = await _showTilesetRectPickerDialog(
-        context,
-        notifier: notifier,
-        settings: settings,
-        tilesetId: tilesetId,
-        initial: mappings[variant] ??
-            const TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
-        title: 'Map ${variant.name}',
-      );
-      if (picked == null) continue;
-      mappings[variant] = picked;
-    }
-    final next = mappings.entries
+    final mapped = await _showPathMappingWorkspaceDialog(
+      context,
+      notifier: notifier,
+      settings: settings,
+      tilesetId: tilesetId,
+      initialMappings: {
+        for (final mapping in preset.variants) mapping.variant: mapping.source,
+      },
+    );
+    if (mapped == null) return;
+    final next = mapped.entries
         .map(
           (entry) => PathPresetVariantMapping(
             variant: entry.key,
@@ -2239,6 +2431,100 @@ class TerrainEditorPanel extends ConsumerWidget {
     return '(${variant.source.x}, ${variant.source.y}) ${variant.source.width}x${variant.source.height} • w${variant.weight}';
   }
 
+  String _pathVariantDisplayName(TerrainPathVariant variant) {
+    return switch (variant) {
+      TerrainPathVariant.isolated => 'Isole',
+      TerrainPathVariant.endNorth => 'Extremite Nord',
+      TerrainPathVariant.endEast => 'Extremite Est',
+      TerrainPathVariant.endSouth => 'Extremite Sud',
+      TerrainPathVariant.endWest => 'Extremite Ouest',
+      TerrainPathVariant.horizontal => 'Ligne Horizontale',
+      TerrainPathVariant.vertical => 'Ligne Verticale',
+      TerrainPathVariant.cornerNE => 'Coin Nord-Est',
+      TerrainPathVariant.cornerSE => 'Coin Sud-Est',
+      TerrainPathVariant.cornerSW => 'Coin Sud-Ouest',
+      TerrainPathVariant.cornerNW => 'Coin Nord-Ouest',
+      TerrainPathVariant.innerCornerNE => 'Coin Interne Nord-Est',
+      TerrainPathVariant.innerCornerSE => 'Coin Interne Sud-Est',
+      TerrainPathVariant.innerCornerSW => 'Coin Interne Sud-Ouest',
+      TerrainPathVariant.innerCornerNW => 'Coin Interne Nord-Ouest',
+      TerrainPathVariant.teeNorth => 'Jonction T Nord',
+      TerrainPathVariant.teeEast => 'Jonction T Est',
+      TerrainPathVariant.teeSouth => 'Jonction T Sud',
+      TerrainPathVariant.teeWest => 'Jonction T Ouest',
+      TerrainPathVariant.cross => 'Croisement',
+    };
+  }
+
+  String _pathVariantDirectionsLabel(TerrainPathVariant variant) {
+    final c = _pathVariantConnections(variant);
+    final directions = <String>[];
+    if (c.north) directions.add('Nord');
+    if (c.east) directions.add('Est');
+    if (c.south) directions.add('Sud');
+    if (c.west) directions.add('Ouest');
+    if (directions.isEmpty) return 'Aucune connexion';
+    return directions.join(' + ');
+  }
+
+  String _pathVariantKindLabel(TerrainPathVariant variant) {
+    return switch (variant) {
+      TerrainPathVariant.cornerNE ||
+      TerrainPathVariant.cornerSE ||
+      TerrainPathVariant.cornerSW ||
+      TerrainPathVariant.cornerNW =>
+        'Coin externe',
+      TerrainPathVariant.innerCornerNE ||
+      TerrainPathVariant.innerCornerSE ||
+      TerrainPathVariant.innerCornerSW ||
+      TerrainPathVariant.innerCornerNW =>
+        'Coin interne',
+      TerrainPathVariant.endNorth ||
+      TerrainPathVariant.endEast ||
+      TerrainPathVariant.endSouth ||
+      TerrainPathVariant.endWest =>
+        'Extremite',
+      TerrainPathVariant.horizontal || TerrainPathVariant.vertical => 'Ligne',
+      TerrainPathVariant.teeNorth ||
+      TerrainPathVariant.teeEast ||
+      TerrainPathVariant.teeSouth ||
+      TerrainPathVariant.teeWest =>
+        'Jonction T',
+      TerrainPathVariant.cross => 'Croisement',
+      TerrainPathVariant.isolated => 'Isole',
+    };
+  }
+
+  String _pathVariantUsageDescription(TerrainPathVariant variant) {
+    if (_isInnerCornerVariant(variant)) {
+      final corner = switch (variant) {
+        TerrainPathVariant.innerCornerNE => 'Nord-Est',
+        TerrainPathVariant.innerCornerSE => 'Sud-Est',
+        TerrainPathVariant.innerCornerSW => 'Sud-Ouest',
+        TerrainPathVariant.innerCornerNW => 'Nord-Ouest',
+        _ => '',
+      };
+      return 'Coin interne: utilise quand les 4 directions sont connectees, avec un vide diagonal cote $corner.';
+    }
+    final c = _pathVariantConnections(variant);
+    if (!c.north && !c.east && !c.south && !c.west) {
+      return 'Utilise quand la case chemin n a aucun voisin chemin.';
+    }
+    final directions = <String>[];
+    if (c.north) directions.add('Nord');
+    if (c.east) directions.add('Est');
+    if (c.south) directions.add('Sud');
+    if (c.west) directions.add('Ouest');
+    return 'Utilise quand la case chemin est connectee a: ${directions.join(', ')}.';
+  }
+
+  bool _isInnerCornerVariant(TerrainPathVariant variant) {
+    return variant == TerrainPathVariant.innerCornerNE ||
+        variant == TerrainPathVariant.innerCornerSE ||
+        variant == TerrainPathVariant.innerCornerSW ||
+        variant == TerrainPathVariant.innerCornerNW;
+  }
+
   String _categorySuffix(EditorNotifier notifier, String? categoryId) {
     final label = _categoryLabel(notifier, categoryId);
     if (label == null || label.isEmpty) return '';
@@ -2329,62 +2615,490 @@ class _VariantTile extends StatelessWidget {
   }
 }
 
-class _PathVariantTile extends StatelessWidget {
-  const _PathVariantTile({
-    required this.variantLabel,
-    required this.mappingLabel,
-    required this.onSet,
-    this.onClear,
+class _PathVariantGridCard extends StatelessWidget {
+  const _PathVariantGridCard({
+    required this.variant,
+    required this.title,
+    required this.kindLabel,
+    required this.directionLabel,
+    required this.mappedLabel,
+    required this.selected,
+    required this.onTap,
   });
 
-  final String variantLabel;
-  final String mappingLabel;
-  final VoidCallback onSet;
-  final VoidCallback? onClear;
+  final TerrainPathVariant variant;
+  final String title;
+  final String kindLabel;
+  final String directionLabel;
+  final String mappedLabel;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white10,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  variantLabel,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: selected
+              ? Colors.lightBlueAccent.withValues(alpha: 0.18)
+              : Colors.white10,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? Colors.lightBlueAccent : Colors.white12,
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 54,
+              height: 54,
+              child: CustomPaint(
+                painter: _PathVariantGlyphPainter(
+                  variant: variant,
+                  selected: selected,
                 ),
-                Text(
-                  mappingLabel,
-                  style: const TextStyle(fontSize: 10, color: Colors.white60),
-                ),
-              ],
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: onSet,
-            child: const Text('Set'),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close, size: 15),
-            onPressed: onClear,
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    kindLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.orangeAccent.withValues(alpha: 0.84),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Connecte: $directionLabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.cyanAccent.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    mappedLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withValues(alpha: 0.62),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _PathVariantGlyphPainter extends CustomPainter {
+  const _PathVariantGlyphPainter({
+    required this.variant,
+    required this.selected,
+  });
+
+  final TerrainPathVariant variant;
+  final bool selected;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final iconRect = Rect.fromLTWH(0, 0, size.width, size.height);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(iconRect, const Radius.circular(8)),
+      Paint()
+        ..color = selected
+            ? Colors.lightBlueAccent.withValues(alpha: 0.16)
+            : Colors.black.withValues(alpha: 0.22)
+        ..style = PaintingStyle.fill,
+    );
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final half = math.min(size.width, size.height) * 0.33;
+    final activeColor = selected ? Colors.lightBlueAccent : Colors.white;
+    final inactiveColor = Colors.white.withValues(alpha: 0.22);
+    final activeLinePaint = Paint()
+      ..color = activeColor
+      ..strokeWidth = 2.6
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final axisPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.14)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final dotPaint = Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.fill;
+    final inactiveDotPaint = Paint()
+      ..color = inactiveColor
+      ..style = PaintingStyle.fill;
+
+    final connections = _pathVariantConnections(variant);
+    final north = Offset(center.dx, center.dy - half);
+    final east = Offset(center.dx + half, center.dy);
+    final south = Offset(center.dx, center.dy + half);
+    final west = Offset(center.dx - half, center.dy);
+
+    canvas.drawLine(center, north, axisPaint);
+    canvas.drawLine(center, east, axisPaint);
+    canvas.drawLine(center, south, axisPaint);
+    canvas.drawLine(center, west, axisPaint);
+
+    if (connections.north) {
+      canvas.drawLine(center, north, activeLinePaint);
+    }
+    if (connections.east) {
+      canvas.drawLine(center, east, activeLinePaint);
+    }
+    if (connections.south) {
+      canvas.drawLine(center, south, activeLinePaint);
+    }
+    if (connections.west) {
+      canvas.drawLine(center, west, activeLinePaint);
+    }
+
+    canvas.drawCircle(
+        north, 2.0, connections.north ? dotPaint : inactiveDotPaint);
+    canvas.drawCircle(
+        east, 2.0, connections.east ? dotPaint : inactiveDotPaint);
+    canvas.drawCircle(
+        south, 2.0, connections.south ? dotPaint : inactiveDotPaint);
+    canvas.drawCircle(
+        west, 2.0, connections.west ? dotPaint : inactiveDotPaint);
+    canvas.drawCircle(center, 2.8, dotPaint);
+
+    final notchAlignment = _innerCornerAlignment(variant);
+    if (notchAlignment != null) {
+      final notchCenter = Offset(
+        center.dx + notchAlignment.dx * half * 0.72,
+        center.dy + notchAlignment.dy * half * 0.72,
+      );
+      canvas.drawCircle(
+        notchCenter,
+        4.1,
+        Paint()
+          ..color = Colors.black.withValues(alpha: selected ? 0.72 : 0.58)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawCircle(
+        notchCenter,
+        3.2,
+        Paint()
+          ..color = Colors.orangeAccent.withValues(alpha: 0.9)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.1,
+      );
+    }
+
+    _paintCompassLabel(
+      canvas,
+      'N',
+      Offset(center.dx, 4),
+      connections.north ? activeColor : Colors.white54,
+    );
+    _paintCompassLabel(
+      canvas,
+      'E',
+      Offset(size.width - 5, center.dy),
+      connections.east ? activeColor : Colors.white54,
+    );
+    _paintCompassLabel(
+      canvas,
+      'S',
+      Offset(center.dx, size.height - 4),
+      connections.south ? activeColor : Colors.white54,
+    );
+    _paintCompassLabel(
+      canvas,
+      'O',
+      Offset(5, center.dy),
+      connections.west ? activeColor : Colors.white54,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PathVariantGlyphPainter oldDelegate) {
+    return oldDelegate.variant != variant || oldDelegate.selected != selected;
+  }
+}
+
+Offset? _innerCornerAlignment(TerrainPathVariant variant) {
+  return switch (variant) {
+    TerrainPathVariant.innerCornerNE => const Offset(1, -1),
+    TerrainPathVariant.innerCornerSE => const Offset(1, 1),
+    TerrainPathVariant.innerCornerSW => const Offset(-1, 1),
+    TerrainPathVariant.innerCornerNW => const Offset(-1, -1),
+    _ => null,
+  };
+}
+
+void _paintCompassLabel(
+  Canvas canvas,
+  String text,
+  Offset center,
+  Color color,
+) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(
+        color: color,
+        fontSize: 8,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  painter.paint(
+    canvas,
+    Offset(center.dx - painter.width / 2, center.dy - painter.height / 2),
+  );
+}
+
+class _PathTilesetMappingPainter extends CustomPainter {
+  const _PathTilesetMappingPainter({
+    required this.image,
+    required this.columns,
+    required this.rows,
+    required this.mappings,
+    required this.selectedVariant,
+  });
+
+  final ui.Image image;
+  final int columns;
+  final int rows;
+  final Map<TerrainPathVariant, TilesetSourceRect> mappings;
+  final TerrainPathVariant selectedVariant;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dst = Rect.fromLTWH(0, 0, size.width, size.height);
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    canvas.drawImageRect(image, src, dst, Paint());
+    if (columns <= 0 || rows <= 0) return;
+
+    final cellWidth = size.width / columns;
+    final cellHeight = size.height / rows;
+
+    for (final entry in mappings.entries) {
+      final source = entry.value;
+      final rect = Rect.fromLTWH(
+        source.x * cellWidth,
+        source.y * cellHeight,
+        source.width * cellWidth,
+        source.height * cellHeight,
+      );
+      final selected = entry.key == selectedVariant;
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = (selected ? Colors.amberAccent : Colors.lightBlueAccent)
+              .withValues(alpha: selected ? 0.34 : 0.18)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = selected ? Colors.amberAccent : Colors.lightBlueAccent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = selected ? 2.2 : 1.4,
+      );
+    }
+
+    final gridPaint = Paint()
+      ..color = Colors.white24
+      ..strokeWidth = 1;
+    for (var x = 0; x <= columns; x++) {
+      final dx = x * cellWidth;
+      canvas.drawLine(Offset(dx, 0), Offset(dx, size.height), gridPaint);
+    }
+    for (var y = 0; y <= rows; y++) {
+      final dy = y * cellHeight;
+      canvas.drawLine(Offset(0, dy), Offset(size.width, dy), gridPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PathTilesetMappingPainter oldDelegate) {
+    return oldDelegate.image != image ||
+        oldDelegate.columns != columns ||
+        oldDelegate.rows != rows ||
+        !_samePathMappings(oldDelegate.mappings, mappings) ||
+        oldDelegate.selectedVariant != selectedVariant;
+  }
+}
+
+({bool north, bool east, bool south, bool west}) _pathVariantConnections(
+  TerrainPathVariant variant,
+) {
+  return switch (variant) {
+    TerrainPathVariant.isolated => (
+        north: false,
+        east: false,
+        south: false,
+        west: false
+      ),
+    TerrainPathVariant.endNorth => (
+        north: true,
+        east: false,
+        south: false,
+        west: false
+      ),
+    TerrainPathVariant.endEast => (
+        north: false,
+        east: true,
+        south: false,
+        west: false
+      ),
+    TerrainPathVariant.endSouth => (
+        north: false,
+        east: false,
+        south: true,
+        west: false
+      ),
+    TerrainPathVariant.endWest => (
+        north: false,
+        east: false,
+        south: false,
+        west: true
+      ),
+    TerrainPathVariant.horizontal => (
+        north: false,
+        east: true,
+        south: false,
+        west: true
+      ),
+    TerrainPathVariant.vertical => (
+        north: true,
+        east: false,
+        south: true,
+        west: false
+      ),
+    TerrainPathVariant.cornerNE => (
+        north: true,
+        east: true,
+        south: false,
+        west: false
+      ),
+    TerrainPathVariant.cornerSE => (
+        north: false,
+        east: true,
+        south: true,
+        west: false
+      ),
+    TerrainPathVariant.cornerSW => (
+        north: false,
+        east: false,
+        south: true,
+        west: true
+      ),
+    TerrainPathVariant.cornerNW => (
+        north: true,
+        east: false,
+        south: false,
+        west: true
+      ),
+    TerrainPathVariant.innerCornerNE => (
+        north: true,
+        east: true,
+        south: true,
+        west: true
+      ),
+    TerrainPathVariant.innerCornerSE => (
+        north: true,
+        east: true,
+        south: true,
+        west: true
+      ),
+    TerrainPathVariant.innerCornerSW => (
+        north: true,
+        east: true,
+        south: true,
+        west: true
+      ),
+    TerrainPathVariant.innerCornerNW => (
+        north: true,
+        east: true,
+        south: true,
+        west: true
+      ),
+    TerrainPathVariant.teeNorth => (
+        north: true,
+        east: true,
+        south: false,
+        west: true
+      ),
+    TerrainPathVariant.teeEast => (
+        north: true,
+        east: true,
+        south: true,
+        west: false
+      ),
+    TerrainPathVariant.teeSouth => (
+        north: false,
+        east: true,
+        south: true,
+        west: true
+      ),
+    TerrainPathVariant.teeWest => (
+        north: true,
+        east: false,
+        south: true,
+        west: true
+      ),
+    TerrainPathVariant.cross => (
+        north: true,
+        east: true,
+        south: true,
+        west: true
+      ),
+  };
+}
+
+bool _samePathMappings(
+  Map<TerrainPathVariant, TilesetSourceRect> left,
+  Map<TerrainPathVariant, TilesetSourceRect> right,
+) {
+  if (left.length != right.length) return false;
+  for (final entry in left.entries) {
+    final source = right[entry.key];
+    if (source == null || source != entry.value) {
+      return false;
+    }
+  }
+  return true;
 }
 
 class _TilesetRectSelectionPainter extends CustomPainter {

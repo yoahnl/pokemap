@@ -100,7 +100,54 @@ TerrainPathVariant resolveTerrainPathVariantAt({
     pos: pos,
     terrain: terrain,
   );
-  return resolveTerrainPathVariantFromMask(mask);
+  final base = resolveTerrainPathVariantFromMask(mask);
+  if (mask != 15) {
+    return base;
+  }
+
+  final hasNE = _matchesTerrainAt(
+    terrains: terrains,
+    mapSize: mapSize,
+    x: pos.x + 1,
+    y: pos.y - 1,
+    terrain: terrain,
+  );
+  final hasSE = _matchesTerrainAt(
+    terrains: terrains,
+    mapSize: mapSize,
+    x: pos.x + 1,
+    y: pos.y + 1,
+    terrain: terrain,
+  );
+  final hasSW = _matchesTerrainAt(
+    terrains: terrains,
+    mapSize: mapSize,
+    x: pos.x - 1,
+    y: pos.y + 1,
+    terrain: terrain,
+  );
+  final hasNW = _matchesTerrainAt(
+    terrains: terrains,
+    mapSize: mapSize,
+    x: pos.x - 1,
+    y: pos.y - 1,
+    terrain: terrain,
+  );
+
+  if (!hasNE && hasSE && hasSW && hasNW) {
+    return TerrainPathVariant.innerCornerNE;
+  }
+  if (hasNE && !hasSE && hasSW && hasNW) {
+    return TerrainPathVariant.innerCornerSE;
+  }
+  if (hasNE && hasSE && !hasSW && hasNW) {
+    return TerrainPathVariant.innerCornerSW;
+  }
+  if (hasNE && hasSE && hasSW && !hasNW) {
+    return TerrainPathVariant.innerCornerNW;
+  }
+
+  return base;
 }
 
 bool _matchesTerrainAt({
