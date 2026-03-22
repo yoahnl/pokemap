@@ -37,8 +37,8 @@ mixin _$MapLayer {
   double get opacity => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<int> tiles)
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -50,8 +50,8 @@ mixin _$MapLayer {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -62,8 +62,8 @@ mixin _$MapLayer {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -166,6 +166,7 @@ abstract class _$$TileLayerImplCopyWith<$Res>
   $Res call(
       {String id,
       String name,
+      String? tilesetId,
       bool isVisible,
       double opacity,
       List<int> tiles});
@@ -186,6 +187,7 @@ class __$$TileLayerImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? name = null,
+    Object? tilesetId = freezed,
     Object? isVisible = null,
     Object? opacity = null,
     Object? tiles = null,
@@ -199,6 +201,10 @@ class __$$TileLayerImplCopyWithImpl<$Res>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
+      tilesetId: freezed == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String?,
       isVisible: null == isVisible
           ? _value.isVisible
           : isVisible // ignore: cast_nullable_to_non_nullable
@@ -221,6 +227,7 @@ class _$TileLayerImpl extends TileLayer {
   const _$TileLayerImpl(
       {required this.id,
       required this.name,
+      this.tilesetId,
       this.isVisible = true,
       this.opacity = 1.0,
       final List<int> tiles = const [],
@@ -236,6 +243,8 @@ class _$TileLayerImpl extends TileLayer {
   final String id;
   @override
   final String name;
+  @override
+  final String? tilesetId;
   @override
   @JsonKey()
   final bool isVisible;
@@ -256,7 +265,7 @@ class _$TileLayerImpl extends TileLayer {
 
   @override
   String toString() {
-    return 'MapLayer.tile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, tiles: $tiles)';
+    return 'MapLayer.tile(id: $id, name: $name, tilesetId: $tilesetId, isVisible: $isVisible, opacity: $opacity, tiles: $tiles)';
   }
 
   @override
@@ -266,6 +275,8 @@ class _$TileLayerImpl extends TileLayer {
             other is _$TileLayerImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
+            (identical(other.tilesetId, tilesetId) ||
+                other.tilesetId == tilesetId) &&
             (identical(other.isVisible, isVisible) ||
                 other.isVisible == isVisible) &&
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
@@ -274,8 +285,8 @@ class _$TileLayerImpl extends TileLayer {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
-      const DeepCollectionEquality().hash(_tiles));
+  int get hashCode => Object.hash(runtimeType, id, name, tilesetId, isVisible,
+      opacity, const DeepCollectionEquality().hash(_tiles));
 
   /// Create a copy of MapLayer
   /// with the given fields replaced by the non-null parameter values.
@@ -288,8 +299,8 @@ class _$TileLayerImpl extends TileLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<int> tiles)
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -298,14 +309,14 @@ class _$TileLayerImpl extends TileLayer {
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
-    return tile(id, name, isVisible, opacity, tiles);
+    return tile(id, name, tilesetId, isVisible, opacity, tiles);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -313,14 +324,14 @@ class _$TileLayerImpl extends TileLayer {
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
-    return tile?.call(id, name, isVisible, opacity, tiles);
+    return tile?.call(id, name, tilesetId, isVisible, opacity, tiles);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -330,7 +341,7 @@ class _$TileLayerImpl extends TileLayer {
     required TResult orElse(),
   }) {
     if (tile != null) {
-      return tile(id, name, isVisible, opacity, tiles);
+      return tile(id, name, tilesetId, isVisible, opacity, tiles);
     }
     return orElse();
   }
@@ -381,6 +392,7 @@ abstract class TileLayer extends MapLayer {
   const factory TileLayer(
       {required final String id,
       required final String name,
+      final String? tilesetId,
       final bool isVisible,
       final double opacity,
       final List<int> tiles}) = _$TileLayerImpl;
@@ -393,6 +405,7 @@ abstract class TileLayer extends MapLayer {
   String get id;
   @override
   String get name;
+  String? get tilesetId;
   @override
   bool get isVisible;
   @override
@@ -542,8 +555,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<int> tiles)
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -558,8 +571,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -573,8 +586,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -772,8 +785,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<int> tiles)
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -788,8 +801,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -803,8 +816,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<int> tiles)?
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?

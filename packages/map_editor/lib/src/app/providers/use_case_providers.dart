@@ -151,6 +151,44 @@ PaintTilePatternOnMapUseCase paintTilePatternOnMapUseCase(
 }
 
 @riverpod
+AddMapLayerUseCase addMapLayerUseCase(AddMapLayerUseCaseRef ref) {
+  return AddMapLayerUseCase();
+}
+
+@riverpod
+RenameMapLayerUseCase renameMapLayerUseCase(RenameMapLayerUseCaseRef ref) {
+  return RenameMapLayerUseCase();
+}
+
+@riverpod
+DeleteMapLayerUseCase deleteMapLayerUseCase(DeleteMapLayerUseCaseRef ref) {
+  return DeleteMapLayerUseCase();
+}
+
+@riverpod
+DeleteAllMapLayersUseCase deleteAllMapLayersUseCase(
+    DeleteAllMapLayersUseCaseRef ref) {
+  return DeleteAllMapLayersUseCase();
+}
+
+@riverpod
+MoveMapLayerUseCase moveMapLayerUseCase(MoveMapLayerUseCaseRef ref) {
+  return MoveMapLayerUseCase();
+}
+
+@riverpod
+SetMapLayerVisibilityUseCase setMapLayerVisibilityUseCase(
+    SetMapLayerVisibilityUseCaseRef ref) {
+  return SetMapLayerVisibilityUseCase();
+}
+
+@riverpod
+SetMapLayerOpacityUseCase setMapLayerOpacityUseCase(
+    SetMapLayerOpacityUseCaseRef ref) {
+  return SetMapLayerOpacityUseCase();
+}
+
+@riverpod
 SaveMapUseCase saveMapUseCase(SaveMapUseCaseRef ref) {
   return SaveMapUseCase(ref.watch(mapRepositoryProvider));
 }

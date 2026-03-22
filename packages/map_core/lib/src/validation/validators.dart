@@ -283,26 +283,14 @@ class MapValidator {
   static void validate(MapData map) {
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
     _requireNonBlank(map.name, 'Map name cannot be empty');
-    _requireNonBlank(map.tilesetId, 'Map tilesetId cannot be empty');
     if (map.size.width <= 0 || map.size.height <= 0) {
       throw ValidationException(
           'Map $mapId has invalid size: ${map.size.width}x${map.size.height}');
     }
 
     final expectedCellCount = map.size.width * map.size.height;
-    if (map.layers.isEmpty) {
-      throw ValidationException('Map $mapId must contain at least one layer');
-    }
-
-    var hasTileLayer = false;
     for (final layer in map.layers) {
-      if (_validateLayer(layer, expectedCellCount)) {
-        hasTileLayer = true;
-      }
-    }
-    if (!hasTileLayer) {
-      throw ValidationException(
-          'Map $mapId must contain at least one tile layer');
+      _validateLayer(layer, expectedCellCount);
     }
 
     _validateUniqueIds(
@@ -379,7 +367,7 @@ class MapValidator {
     );
   }
 
-  static bool _validateLayer(MapLayer layer, int expectedCellCount) {
+  static void _validateLayer(MapLayer layer, int expectedCellCount) {
     final layerId = _requireNonBlank(layer.id, 'Layer ID cannot be empty');
     _requireNonBlank(layer.name, 'Layer $layerId name cannot be empty');
     if (layer.opacity < 0.0 || layer.opacity > 1.0) {
@@ -387,8 +375,13 @@ class MapValidator {
           'Layer $layerId has invalid opacity: ${layer.opacity}');
     }
 
-    return layer.map(
+    layer.map<void>(
       tile: (tileLayer) {
+        final layerTilesetId = tileLayer.tilesetId?.trim();
+        if (layerTilesetId != null && layerTilesetId.isEmpty) {
+          throw ValidationException(
+              'Tile layer $layerId has an empty tilesetId');
+        }
         if (tileLayer.tiles.length != expectedCellCount) {
           throw ValidationException(
               'Tile layer $layerId has invalid tile count: expected $expectedCellCount, got ${tileLayer.tiles.length}');
@@ -399,16 +392,14 @@ class MapValidator {
                 'Tile layer $layerId has negative tile ID at index $i: ${tileLayer.tiles[i]}');
           }
         }
-        return true;
       },
       collision: (collisionLayer) {
         if (collisionLayer.collisions.length != expectedCellCount) {
           throw ValidationException(
               'Collision layer $layerId has invalid collision count: expected $expectedCellCount, got ${collisionLayer.collisions.length}');
         }
-        return false;
       },
-      object: (_) => false,
+      object: (_) {},
     );
   }
 

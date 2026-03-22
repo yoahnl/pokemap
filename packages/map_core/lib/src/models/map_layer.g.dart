@@ -10,6 +10,7 @@ _$TileLayerImpl _$$TileLayerImplFromJson(Map<String, dynamic> json) =>
     _$TileLayerImpl(
       id: json['id'] as String,
       name: json['name'] as String,
+      tilesetId: json['tilesetId'] as String?,
       isVisible: json['isVisible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
       tiles: (json['tiles'] as List<dynamic>?)
@@ -23,6 +24,7 @@ Map<String, dynamic> _$$TileLayerImplToJson(_$TileLayerImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
+      'tilesetId': instance.tilesetId,
       'isVisible': instance.isVisible,
       'opacity': instance.opacity,
       'tiles': instance.tiles,

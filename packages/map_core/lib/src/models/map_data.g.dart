@@ -13,7 +13,7 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
       size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
       version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
           ProjectVersion.v1,
-      tilesetId: json['tilesetId'] as String,
+      tilesetId: json['tilesetId'] as String? ?? '',
       layers: (json['layers'] as List<dynamic>?)
               ?.map((e) => MapLayer.fromJson(e as Map<String, dynamic>))
               .toList() ??

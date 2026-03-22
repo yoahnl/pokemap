@@ -464,6 +464,144 @@ final paintTilePatternOnMapUseCaseProvider =
 // ignore: unused_element
 typedef PaintTilePatternOnMapUseCaseRef
     = AutoDisposeProviderRef<PaintTilePatternOnMapUseCase>;
+String _$addMapLayerUseCaseHash() =>
+    r'9d7129cee987442d8a9e36905876a797b1873ed5';
+
+/// See also [addMapLayerUseCase].
+@ProviderFor(addMapLayerUseCase)
+final addMapLayerUseCaseProvider =
+    AutoDisposeProvider<AddMapLayerUseCase>.internal(
+  addMapLayerUseCase,
+  name: r'addMapLayerUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addMapLayerUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddMapLayerUseCaseRef = AutoDisposeProviderRef<AddMapLayerUseCase>;
+String _$renameMapLayerUseCaseHash() =>
+    r'ed3af6f590c087db5fcc9b819f4a368369264c3b';
+
+/// See also [renameMapLayerUseCase].
+@ProviderFor(renameMapLayerUseCase)
+final renameMapLayerUseCaseProvider =
+    AutoDisposeProvider<RenameMapLayerUseCase>.internal(
+  renameMapLayerUseCase,
+  name: r'renameMapLayerUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameMapLayerUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameMapLayerUseCaseRef
+    = AutoDisposeProviderRef<RenameMapLayerUseCase>;
+String _$deleteMapLayerUseCaseHash() =>
+    r'e6b343c98502fdf6b486e2b6cfc14dc7a999e22e';
+
+/// See also [deleteMapLayerUseCase].
+@ProviderFor(deleteMapLayerUseCase)
+final deleteMapLayerUseCaseProvider =
+    AutoDisposeProvider<DeleteMapLayerUseCase>.internal(
+  deleteMapLayerUseCase,
+  name: r'deleteMapLayerUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteMapLayerUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteMapLayerUseCaseRef
+    = AutoDisposeProviderRef<DeleteMapLayerUseCase>;
+String _$deleteAllMapLayersUseCaseHash() =>
+    r'f51c514ccaef153f1ee21ffc6e8874e895135151';
+
+/// See also [deleteAllMapLayersUseCase].
+@ProviderFor(deleteAllMapLayersUseCase)
+final deleteAllMapLayersUseCaseProvider =
+    AutoDisposeProvider<DeleteAllMapLayersUseCase>.internal(
+  deleteAllMapLayersUseCase,
+  name: r'deleteAllMapLayersUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteAllMapLayersUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteAllMapLayersUseCaseRef
+    = AutoDisposeProviderRef<DeleteAllMapLayersUseCase>;
+String _$moveMapLayerUseCaseHash() =>
+    r'3fdead1bb8ccd72a04b0ba26772961f89ddd30e9';
+
+/// See also [moveMapLayerUseCase].
+@ProviderFor(moveMapLayerUseCase)
+final moveMapLayerUseCaseProvider =
+    AutoDisposeProvider<MoveMapLayerUseCase>.internal(
+  moveMapLayerUseCase,
+  name: r'moveMapLayerUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$moveMapLayerUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MoveMapLayerUseCaseRef = AutoDisposeProviderRef<MoveMapLayerUseCase>;
+String _$setMapLayerVisibilityUseCaseHash() =>
+    r'4b39a926e0deb57a91f94fe32e2ca6f62e26d5ac';
+
+/// See also [setMapLayerVisibilityUseCase].
+@ProviderFor(setMapLayerVisibilityUseCase)
+final setMapLayerVisibilityUseCaseProvider =
+    AutoDisposeProvider<SetMapLayerVisibilityUseCase>.internal(
+  setMapLayerVisibilityUseCase,
+  name: r'setMapLayerVisibilityUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$setMapLayerVisibilityUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SetMapLayerVisibilityUseCaseRef
+    = AutoDisposeProviderRef<SetMapLayerVisibilityUseCase>;
+String _$setMapLayerOpacityUseCaseHash() =>
+    r'6d77623ed088fefb80ba1b52b91852795084bf45';
+
+/// See also [setMapLayerOpacityUseCase].
+@ProviderFor(setMapLayerOpacityUseCase)
+final setMapLayerOpacityUseCaseProvider =
+    AutoDisposeProvider<SetMapLayerOpacityUseCase>.internal(
+  setMapLayerOpacityUseCase,
+  name: r'setMapLayerOpacityUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$setMapLayerOpacityUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SetMapLayerOpacityUseCaseRef
+    = AutoDisposeProviderRef<SetMapLayerOpacityUseCase>;
 String _$saveMapUseCaseHash() => r'6a9741258f17448b6f6fd30e3a84d7e72c7c6adb';
 
 /// See also [saveMapUseCase].

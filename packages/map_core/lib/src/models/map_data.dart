@@ -14,7 +14,7 @@ class MapData with _$MapData {
     required String name,
     required GridSize size,
     @Default(ProjectVersion.v1) ProjectVersion version,
-    required String tilesetId,
+    @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
     @Default([]) List<MapEntity> entities,
     @Default([]) List<MapWarp> warps,
@@ -22,7 +22,8 @@ class MapData with _$MapData {
     @Default({}) Map<String, dynamic> properties,
   }) = _MapData;
 
-  factory MapData.fromJson(Map<String, dynamic> json) => _$MapDataFromJson(json);
+  factory MapData.fromJson(Map<String, dynamic> json) =>
+      _$MapDataFromJson(json);
 }
 
 @freezed
@@ -35,7 +36,8 @@ class MapEntity with _$MapEntity {
     @Default({}) Map<String, dynamic> properties,
   }) = _MapEntity;
 
-  factory MapEntity.fromJson(Map<String, dynamic> json) => _$MapEntityFromJson(json);
+  factory MapEntity.fromJson(Map<String, dynamic> json) =>
+      _$MapEntityFromJson(json);
 }
 
 @freezed
@@ -48,7 +50,8 @@ class MapWarp with _$MapWarp {
     required GridPos targetPos,
   }) = _MapWarp;
 
-  factory MapWarp.fromJson(Map<String, dynamic> json) => _$MapWarpFromJson(json);
+  factory MapWarp.fromJson(Map<String, dynamic> json) =>
+      _$MapWarpFromJson(json);
 }
 
 @freezed
@@ -62,5 +65,6 @@ class MapTrigger with _$MapTrigger {
     @Default({}) Map<String, dynamic> properties,
   }) = _MapTrigger;
 
-  factory MapTrigger.fromJson(Map<String, dynamic> json) => _$MapTriggerFromJson(json);
+  factory MapTrigger.fromJson(Map<String, dynamic> json) =>
+      _$MapTriggerFromJson(json);
 }

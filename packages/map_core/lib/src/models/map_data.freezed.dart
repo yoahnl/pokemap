@@ -242,7 +242,7 @@ class _$MapDataImpl implements _MapData {
       required this.name,
       required this.size,
       this.version = ProjectVersion.v1,
-      required this.tilesetId,
+      this.tilesetId = '',
       final List<MapLayer> layers = const [],
       final List<MapEntity> entities = const [],
       final List<MapWarp> warps = const [],
@@ -267,6 +267,7 @@ class _$MapDataImpl implements _MapData {
   @JsonKey()
   final ProjectVersion version;
   @override
+  @JsonKey()
   final String tilesetId;
   final List<MapLayer> _layers;
   @override
@@ -374,7 +375,7 @@ abstract class _MapData implements MapData {
       required final String name,
       required final GridSize size,
       final ProjectVersion version,
-      required final String tilesetId,
+      final String tilesetId,
       final List<MapLayer> layers,
       final List<MapEntity> entities,
       final List<MapWarp> warps,

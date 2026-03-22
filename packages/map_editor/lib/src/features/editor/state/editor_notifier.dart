@@ -29,6 +29,7 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
+        activeLayerId: null,
         activeBrush: const EditorBrush.none(),
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -55,6 +56,7 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
+        activeLayerId: null,
         activeBrush: const EditorBrush.none(),
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -148,9 +150,9 @@ class EditorNotifier extends _$EditorNotifier {
         activeMap: map,
         activeMapPath: fs.getMapPath(id),
         workspaceMode: EditorWorkspaceMode.map,
-        activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
+        activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
-        selectedTilesetEditorId: map.tilesetId,
+        selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Map "$id" created successfully',
@@ -175,9 +177,9 @@ class EditorNotifier extends _$EditorNotifier {
         activeMap: map,
         activeMapPath: fs.resolveMapPath(relativePath),
         workspaceMode: EditorWorkspaceMode.map,
-        activeLayerId: map.layers.isNotEmpty ? map.layers.first.id : null,
+        activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
-        selectedTilesetEditorId: map.tilesetId,
+        selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         statusMessage: 'Map "${map.id}" loaded',
@@ -217,6 +219,10 @@ class EditorNotifier extends _$EditorNotifier {
 
       state = state.copyWith(
         activeMap: resized,
+        activeLayerId: _resolveActiveLayerId(
+          resized,
+          preferredLayerId: state.activeLayerId,
+        ),
         hoveredTile: nextHovered,
         isDirty: true,
         statusMessage: 'Map "${map.id}" resized to ${width}x$height',
@@ -288,6 +294,8 @@ class EditorNotifier extends _$EditorNotifier {
         project: updatedProject,
         activeMap: activeMap,
         activeMapPath: activePath,
+        activeLayerId:
+            activeMap == null ? null : _resolveActiveLayerId(activeMap),
         activeBrush: activeBrush,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: selectedTilesetElementGroupId,
@@ -525,7 +533,10 @@ class EditorNotifier extends _$EditorNotifier {
       var activeBrush =
           _clearBrushIfTilesetRemoved(state.activeBrush, tilesetId);
       if (selectedTilesetEditorId == tilesetId) {
-        selectedTilesetEditorId = state.activeMap?.tilesetId;
+        selectedTilesetEditorId = _resolveSelectedTilesetIdForMap(
+          state.activeMap,
+          preferredLayerId: state.activeLayerId,
+        );
         if (selectedTilesetEditorId != null &&
             !updated.tilesets.any((t) => t.id == selectedTilesetEditorId)) {
           selectedTilesetEditorId =
@@ -550,44 +561,59 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> assignTilesetToActiveMap(String tilesetId) async {
+  Future<void> assignTilesetToActiveLayer(String tilesetId) async {
     final project = state.project;
     final map = state.activeMap;
     final mapPath = state.activeMapPath;
-    if (project == null || map == null || mapPath == null) return;
+    final layerId = state.activeLayerId;
+    if (project == null || map == null || mapPath == null || layerId == null) {
+      return;
+    }
+    final layer = _findLayerById(map, layerId);
+    if (layer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Active layer must be a tile layer to assign a tileset',
+      );
+      return;
+    }
 
     try {
       final useCase = ref.read(assignTilesetToMapUseCaseProvider);
-      final updatedMap =
-          await useCase.execute(project, map, mapPath, tilesetId);
+      final updatedMap = await useCase.execute(
+        project,
+        map,
+        mapPath,
+        layerId,
+        tilesetId,
+      );
       state = state.copyWith(
         activeMap: updatedMap,
         workspaceMode: EditorWorkspaceMode.map,
+        activeLayerId: _resolveActiveLayerId(
+          updatedMap,
+          preferredLayerId: state.activeLayerId,
+        ),
         activeBrush: const EditorBrush.none(),
         selectedTilesetEditorId: tilesetId,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         isDirty: false,
-        statusMessage:
-            'Tileset "${updatedMap.tilesetId}" assigned to "${map.id}"',
+        statusMessage: 'Tileset "$tilesetId" assigned to layer "${layer.name}"',
         errorMessage: null,
       );
     } catch (e) {
-      debugPrint('EditorNotifier: Error assigning map tileset: $e');
-      state = state.copyWith(errorMessage: 'Failed to assign map tileset: $e');
+      debugPrint('EditorNotifier: Error assigning layer tileset: $e');
+      state =
+          state.copyWith(errorMessage: 'Failed to assign layer tileset: $e');
     }
   }
 
+  Future<void> assignTilesetToActiveMap(String tilesetId) async {
+    await assignTilesetToActiveLayer(tilesetId);
+  }
+
   ProjectTilesetEntry? getActiveTilesetEntry() {
-    final project = state.project;
-    final map = state.activeMap;
-    if (project == null || map == null) return null;
-    for (final tileset in project.tilesets) {
-      if (tileset.id == map.tilesetId) {
-        return tileset;
-      }
-    }
-    return null;
+    return getSelectedTilesetEntry();
   }
 
   String? getActiveTilesetAbsolutePath() {
@@ -625,10 +651,10 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
 
-    final mapTilesetId = state.activeMap?.tilesetId;
-    if (mapTilesetId != null) {
+    final brushTilesetId = getActiveBrushTilesetId();
+    if (brushTilesetId != null) {
       for (final tileset in project.tilesets) {
-        if (tileset.id == mapTilesetId) {
+        if (tileset.id == brushTilesetId) {
           return tileset;
         }
       }
@@ -643,6 +669,29 @@ class EditorNotifier extends _$EditorNotifier {
     final tileset = getSelectedTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
+  }
+
+  String? getTilesetAbsolutePathById(String tilesetId) {
+    final fs = state.fileSystem;
+    if (fs == null) return null;
+    final tileset = getTilesetById(tilesetId);
+    if (tileset == null) return null;
+    return fs.resolveTilesetPath(tileset.relativePath);
+  }
+
+  String? getActiveBrushTilesetId() {
+    final brush = state.activeBrush;
+    if (brush is TileEditorBrush) {
+      return brush.tilesetId;
+    }
+    if (brush is PaletteEntryEditorBrush) {
+      return brush.tilesetId;
+    }
+    if (brush is ProjectElementEditorBrush) {
+      final element = getProjectElementById(brush.elementId);
+      return element?.tilesetId;
+    }
+    return null;
   }
 
   List<TilesetElementGroup> getSelectedTilesetElementGroups() {
@@ -841,7 +890,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (project == null || map == null) return const [];
 
     List<ProjectElementEntry> resolved;
-    final activeTilesetId = map.tilesetId;
+    final activeTilesetId = getSelectedTilesetEntry()?.id;
     if (includeAll) {
       resolved = project.elements.where((element) {
         if (!acrossAllTilesets && element.tilesetId != activeTilesetId) {
@@ -858,6 +907,9 @@ class EditorNotifier extends _$EditorNotifier {
           )
           .toList(growable: false);
     } else {
+      if (!acrossAllTilesets && activeTilesetId == null) {
+        return const [];
+      }
       try {
         final useCase = ref.read(resolveVisibleProjectElementsUseCaseProvider);
         resolved = useCase.execute(
@@ -1056,7 +1108,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   List<TilesetPaletteEntry> getActivePaletteEntries() {
-    final tilesetId = state.activeMap?.tilesetId;
+    final tilesetId = getSelectedTilesetEntry()?.id;
     if (tilesetId == null) return const [];
     final tileset = getTilesetById(tilesetId);
     if (tileset == null) return const [];
@@ -1095,7 +1147,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   TilesetPaletteEntry? getActivePaletteEntryById(String entryId) {
-    final tilesetId = state.activeMap?.tilesetId;
+    final tilesetId = getSelectedTilesetEntry()?.id;
     if (tilesetId == null) return null;
     return getPaletteEntryById(tilesetId: tilesetId, entryId: entryId);
   }
@@ -1150,7 +1202,7 @@ class EditorNotifier extends _$EditorNotifier {
   }) async {
     final fs = state.fileSystem;
     final project = state.project;
-    final tileset = getActiveTilesetEntry();
+    final tileset = getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (fs == null || project == null || tileset == null) return;
 
     try {
@@ -1187,7 +1239,7 @@ class EditorNotifier extends _$EditorNotifier {
   }) async {
     final fs = state.fileSystem;
     final project = state.project;
-    final tileset = getActiveTilesetEntry();
+    final tileset = getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (fs == null || project == null || tileset == null) return;
     if (tileId <= 0 || columns <= 0) return;
 
@@ -1235,20 +1287,30 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void paintSelectedBrushAt(GridPos pos, {required int tilesetColumns}) {
-    final map = state.activeMap;
+    var map = state.activeMap;
     final layerId = state.activeLayerId;
     if (map == null || layerId == null) return;
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) {
+      _setPaintError('Active layer not found: $layerId');
+      return;
+    }
+    if (activeLayer is! TileLayer) {
+      _setPaintError('Active layer "${activeLayer.name}" is not a tile layer');
+      return;
+    }
 
     final brush = state.activeBrush;
     if (brush is NoEditorBrush) return;
 
     if (brush is TileEditorBrush) {
-      if (brush.tilesetId != map.tilesetId) {
-        _setPaintError(
-          'Selected tile brush belongs to another tileset (${brush.tilesetId})',
-        );
-        return;
-      }
+      map = _prepareMapForBrushTileset(
+        map: map,
+        layerId: layerId,
+        activeLayer: activeLayer,
+        brushTilesetId: brush.tilesetId,
+      );
+      if (map == null) return;
       if (brush.tileId <= 0) {
         _setPaintError('Selected tile brush is invalid');
         return;
@@ -1263,14 +1325,15 @@ class EditorNotifier extends _$EditorNotifier {
     }
 
     if (brush is PaletteEntryEditorBrush) {
-      if (brush.tilesetId != map.tilesetId) {
-        _setPaintError(
-          'Selected palette entry belongs to another tileset (${brush.tilesetId})',
-        );
-        return;
-      }
+      map = _prepareMapForBrushTileset(
+        map: map,
+        layerId: layerId,
+        activeLayer: activeLayer,
+        brushTilesetId: brush.tilesetId,
+      );
+      if (map == null) return;
       if (tilesetColumns <= 0) {
-        _setPaintError('Active tileset image is not available');
+        _setPaintError('Selected brush tileset image is not available');
         return;
       }
       final entry = getPaletteEntryById(
@@ -1299,14 +1362,15 @@ class EditorNotifier extends _$EditorNotifier {
         _setPaintError('Selected project element is no longer available');
         return;
       }
-      if (element.tilesetId != map.tilesetId) {
-        _setPaintError(
-          'Element "${element.name}" belongs to another tileset (${element.tilesetId})',
-        );
-        return;
-      }
+      map = _prepareMapForBrushTileset(
+        map: map,
+        layerId: layerId,
+        activeLayer: activeLayer,
+        brushTilesetId: element.tilesetId,
+      );
+      if (map == null) return;
       if (tilesetColumns <= 0) {
-        _setPaintError('Active tileset image is not available');
+        _setPaintError('Selected brush tileset image is not available');
         return;
       }
       final pattern = _buildPatternFromSource(
@@ -1420,12 +1484,268 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(errorMessage: message);
   }
 
+  MapData? _prepareMapForBrushTileset({
+    required MapData map,
+    required String layerId,
+    required TileLayer activeLayer,
+    required String brushTilesetId,
+  }) {
+    final currentTilesetId = activeLayer.tilesetId?.trim();
+    if (currentTilesetId == brushTilesetId) {
+      return map;
+    }
+    final canRebind = currentTilesetId == null ||
+        currentTilesetId.isEmpty ||
+        _isTileLayerEmpty(activeLayer);
+    if (!canRebind) {
+      _setPaintError(
+        'Layer "${activeLayer.name}" already contains tiles from another source',
+      );
+      return null;
+    }
+
+    final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
+    final layerIndex = updatedLayers.indexWhere((layer) => layer.id == layerId);
+    if (layerIndex < 0) {
+      _setPaintError('Active layer not found: $layerId');
+      return null;
+    }
+    final layer = updatedLayers[layerIndex];
+    if (layer is! TileLayer) {
+      _setPaintError('Active layer is not a tile layer');
+      return null;
+    }
+    updatedLayers[layerIndex] = layer.copyWith(tilesetId: brushTilesetId);
+    final updatedMap = map.copyWith(
+      layers: updatedLayers,
+      tilesetId: map.tilesetId.trim().isEmpty ? brushTilesetId : map.tilesetId,
+    );
+    state = state.copyWith(
+      activeMap: updatedMap,
+      selectedTilesetEditorId: brushTilesetId,
+      selectedTilesetElementGroupId: null,
+      paletteCategoryFilter: null,
+      isDirty: true,
+      statusMessage: 'Layer "${activeLayer.name}" updated for current brush',
+      errorMessage: null,
+    );
+    return updatedMap;
+  }
+
+  bool _isTileLayerEmpty(TileLayer layer) {
+    for (final tile in layer.tiles) {
+      if (tile != 0) return false;
+    }
+    return true;
+  }
+
+  void addMapLayer({
+    required MapLayerKind kind,
+    required String name,
+    String? tileTilesetId,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(addMapLayerUseCaseProvider);
+      final result = useCase.execute(
+        map,
+        kind: kind,
+        name: name,
+        tileTilesetId: tileTilesetId,
+      );
+      state = state.copyWith(
+        activeMap: result.map,
+        activeLayerId: result.layer.id,
+        isDirty: true,
+        statusMessage: 'Layer "${result.layer.name}" added',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to add layer: $e');
+    }
+  }
+
+  void renameMapLayer(String layerId, String name) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(renameMapLayerUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        layerId: layerId,
+        name: name,
+      );
+      state = state.copyWith(
+        activeMap: updated,
+        activeLayerId: _resolveActiveLayerId(
+          updated,
+          preferredLayerId: state.activeLayerId,
+        ),
+        isDirty: true,
+        statusMessage: 'Layer renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to rename layer: $e');
+    }
+  }
+
+  void deleteMapLayer(String layerId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final removedIndex = _findLayerIndexById(map, layerId);
+    if (removedIndex < 0) return;
+    try {
+      final useCase = ref.read(deleteMapLayerUseCaseProvider);
+      final updated = useCase.execute(map, layerId: layerId);
+      final nextActiveLayerId = state.activeLayerId == layerId
+          ? _resolveFallbackLayerIdAfterDeletion(
+              updated,
+              removedIndex: removedIndex,
+            )
+          : _resolveActiveLayerId(
+              updated,
+              preferredLayerId: state.activeLayerId,
+            );
+      state = state.copyWith(
+        activeMap: updated,
+        activeLayerId: nextActiveLayerId,
+        isDirty: true,
+        statusMessage: 'Layer deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete layer: $e');
+    }
+  }
+
+  void deleteAllMapLayers() {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(deleteAllMapLayersUseCaseProvider);
+      final updated = useCase.execute(map);
+      state = state.copyWith(
+        activeMap: updated,
+        activeLayerId: _resolveActiveLayerId(updated),
+        isDirty: true,
+        statusMessage: 'All layers removed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to remove all layers: $e');
+    }
+  }
+
+  void moveMapLayerUp(String layerId) {
+    _moveMapLayer(layerId, -1);
+  }
+
+  void moveMapLayerDown(String layerId) {
+    _moveMapLayer(layerId, 1);
+  }
+
+  void moveMapLayerForward(String layerId) {
+    _moveMapLayer(layerId, 1);
+  }
+
+  void moveMapLayerBackward(String layerId) {
+    _moveMapLayer(layerId, -1);
+  }
+
+  void _moveMapLayer(String layerId, int direction) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(moveMapLayerUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        layerId: layerId,
+        direction: direction,
+      );
+      state = state.copyWith(
+        activeMap: updated,
+        activeLayerId: _resolveActiveLayerId(
+          updated,
+          preferredLayerId: state.activeLayerId,
+        ),
+        isDirty: updated != map ? true : state.isDirty,
+        statusMessage: updated == map ? null : 'Layer reordered',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to reorder layer: $e');
+    }
+  }
+
+  void setMapLayerVisibility(String layerId, bool isVisible) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(setMapLayerVisibilityUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        layerId: layerId,
+        isVisible: isVisible,
+      );
+      state = state.copyWith(
+        activeMap: updated,
+        activeLayerId: _resolveActiveLayerId(
+          updated,
+          preferredLayerId: state.activeLayerId,
+        ),
+        isDirty: true,
+        statusMessage: isVisible ? 'Layer shown' : 'Layer hidden',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update layer: $e');
+    }
+  }
+
+  void setMapLayerOpacity(String layerId, double opacity) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(setMapLayerOpacityUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        layerId: layerId,
+        opacity: opacity,
+      );
+      state = state.copyWith(
+        activeMap: updated,
+        activeLayerId: _resolveActiveLayerId(
+          updated,
+          preferredLayerId: state.activeLayerId,
+        ),
+        isDirty: true,
+        statusMessage: null,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to update layer opacity: $e');
+    }
+  }
+
   void selectTool(EditorToolType tool) {
     state = state.copyWith(activeTool: tool);
   }
 
   void setActiveLayer(String layerId) {
-    state = state.copyWith(activeLayerId: layerId);
+    final map = state.activeMap;
+    if (map == null) return;
+    final exists = map.layers.any((layer) => layer.id == layerId);
+    if (!exists) {
+      state = state.copyWith(errorMessage: 'Layer not found: $layerId');
+      return;
+    }
+    state = state.copyWith(
+      activeLayerId: layerId,
+      errorMessage: null,
+    );
   }
 
   void updateHoveredTile(GridPos? pos) {
@@ -1441,6 +1761,83 @@ class EditorNotifier extends _$EditorNotifier {
   void zoom(double delta) {
     final newZoom = (state.zoom + delta).clamp(0.1, 5.0);
     state = state.copyWith(zoom: newZoom);
+  }
+
+  String? _resolveActiveLayerId(
+    MapData map, {
+    String? preferredLayerId,
+  }) {
+    if (preferredLayerId != null &&
+        map.layers.any((layer) => layer.id == preferredLayerId)) {
+      return preferredLayerId;
+    }
+    for (final layer in map.layers) {
+      if (layer is TileLayer) {
+        return layer.id;
+      }
+    }
+    if (map.layers.isEmpty) return null;
+    return map.layers.first.id;
+  }
+
+  String? _resolveFallbackLayerIdAfterDeletion(
+    MapData map, {
+    required int removedIndex,
+  }) {
+    if (map.layers.isEmpty) return null;
+    var candidateIndex = removedIndex;
+    if (candidateIndex >= map.layers.length) {
+      candidateIndex = map.layers.length - 1;
+    }
+    final candidateLayer = map.layers[candidateIndex];
+    if (candidateLayer is TileLayer) {
+      return candidateLayer.id;
+    }
+    return _resolveActiveLayerId(map);
+  }
+
+  String? _resolveSelectedTilesetIdForMap(
+    MapData? map, {
+    String? preferredLayerId,
+  }) {
+    if (map == null) return null;
+    if (preferredLayerId != null) {
+      final preferredLayer = _findLayerById(map, preferredLayerId);
+      if (preferredLayer is TileLayer) {
+        final preferredTilesetId = preferredLayer.tilesetId?.trim();
+        if (preferredTilesetId != null && preferredTilesetId.isNotEmpty) {
+          return preferredTilesetId;
+        }
+      }
+    }
+
+    for (final layer in map.layers) {
+      if (layer is TileLayer) {
+        final tilesetId = layer.tilesetId?.trim();
+        if (tilesetId != null && tilesetId.isNotEmpty) {
+          return tilesetId;
+        }
+      }
+    }
+
+    final legacyTilesetId = map.tilesetId.trim();
+    if (legacyTilesetId.isNotEmpty) {
+      return legacyTilesetId;
+    }
+    return null;
+  }
+
+  int _findLayerIndexById(MapData map, String layerId) {
+    return map.layers.indexWhere((layer) => layer.id == layerId);
+  }
+
+  MapLayer? _findLayerById(MapData map, String layerId) {
+    for (final layer in map.layers) {
+      if (layer.id == layerId) {
+        return layer;
+      }
+    }
+    return null;
   }
 }
 

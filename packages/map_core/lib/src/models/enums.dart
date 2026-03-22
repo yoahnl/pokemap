@@ -70,6 +70,15 @@ enum TriggerType {
   custom,
 }
 
+enum MapLayerKind {
+  @JsonValue('tile')
+  tile,
+  @JsonValue('collision')
+  collision,
+  @JsonValue('object')
+  object,
+}
+
 enum TilesetScope {
   @JsonValue('global')
   global,

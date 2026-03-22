@@ -141,7 +141,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
     EditorNotifier notifier,
   ) {
     final selectedTilesetId =
-        state.selectedTilesetEditorId ?? state.activeMap?.tilesetId;
+        state.selectedTilesetEditorId ?? notifier.getSelectedTilesetEntry()?.id;
     final globalTilesets =
         project.tilesets.where((t) => t.scope == TilesetScope.global).toList()
           ..sort((a, b) {

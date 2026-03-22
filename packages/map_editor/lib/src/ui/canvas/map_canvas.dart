@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -17,7 +18,7 @@ class MapCanvas extends ConsumerWidget {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
-    final tilesetPath = notifier.getActiveTilesetAbsolutePath();
+    final tilesetPathsById = _collectLayerTilesetPaths(activeMap, notifier);
 
     if (activeMap == null) {
       return const Center(child: Text('No Map Loaded'));
@@ -26,13 +27,24 @@ class MapCanvas extends ConsumerWidget {
     final tileWidth = settings.tileWidth * settings.displayScale;
     final tileHeight = settings.tileHeight * settings.displayScale;
 
-    return FutureBuilder<ui.Image?>(
-      future: _TilesetImageCache.load(tilesetPath),
+    return FutureBuilder<Map<String, ui.Image?>>(
+      future: _TilesetImageCache.loadMany(tilesetPathsById),
       builder: (context, snapshot) {
-        final tilesetImage = snapshot.data;
-        final tilesPerRow = (tilesetImage != null && settings.tileWidth > 0)
-            ? tilesetImage.width ~/ settings.tileWidth
-            : 0;
+        final tilesetImagesById = snapshot.data ?? const <String, ui.Image?>{};
+        final tilesPerRowById = <String, int>{};
+        if (settings.tileWidth > 0) {
+          tilesetImagesById.forEach((tilesetId, image) {
+            if (image == null) return;
+            final columns = image.width ~/ settings.tileWidth;
+            if (columns > 0) {
+              tilesPerRowById[tilesetId] = columns;
+            }
+          });
+        }
+        final activeBrushTilesetId = notifier.getActiveBrushTilesetId();
+        final activeBrushTilesetColumns = activeBrushTilesetId == null
+            ? 0
+            : (tilesPerRowById[activeBrushTilesetId] ?? 0);
 
         return GestureDetector(
           onTapDown: (details) {
@@ -48,7 +60,7 @@ class MapCanvas extends ConsumerWidget {
             if (gridPos != null) {
               notifier.paintSelectedBrushAt(
                 gridPos,
-                tilesetColumns: tilesPerRow,
+                tilesetColumns: activeBrushTilesetColumns,
               );
             }
           },
@@ -65,7 +77,7 @@ class MapCanvas extends ConsumerWidget {
               if (gridPos != null) {
                 notifier.paintSelectedBrushAt(
                   gridPos,
-                  tilesetColumns: tilesPerRow,
+                  tilesetColumns: activeBrushTilesetColumns,
                 );
               }
               return;
@@ -95,10 +107,10 @@ class MapCanvas extends ConsumerWidget {
                   activeLayerId: state.activeLayerId,
                   tileWidth: tileWidth,
                   tileHeight: tileHeight,
-                  tilesetImage: tilesetImage,
+                  tilesetImagesById: tilesetImagesById,
                   sourceTileWidth: settings.tileWidth,
                   sourceTileHeight: settings.tileHeight,
-                  tilesPerRow: tilesPerRow,
+                  tilesPerRowById: tilesPerRowById,
                 ),
               ),
             ),
@@ -106,6 +118,31 @@ class MapCanvas extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Map<String, String> _collectLayerTilesetPaths(
+    MapData? map,
+    EditorNotifier notifier,
+  ) {
+    final result = <String, String>{};
+    if (map != null) {
+      for (final layer in map.layers) {
+        if (layer is! TileLayer) continue;
+        final tilesetId = layer.tilesetId?.trim();
+        if (tilesetId == null || tilesetId.isEmpty) continue;
+        final path = notifier.getTilesetAbsolutePathById(tilesetId);
+        if (path == null || path.isEmpty) continue;
+        result[tilesetId] = path;
+      }
+    }
+    final brushTilesetId = notifier.getActiveBrushTilesetId();
+    if (brushTilesetId != null && !result.containsKey(brushTilesetId)) {
+      final brushPath = notifier.getTilesetAbsolutePathById(brushTilesetId);
+      if (brushPath != null && brushPath.isNotEmpty) {
+        result[brushTilesetId] = brushPath;
+      }
+    }
+    return result;
   }
 
   GridPos? _screenToGrid(
@@ -137,10 +174,10 @@ class MapGridPainter extends CustomPainter {
   final String? activeLayerId;
   final double tileWidth;
   final double tileHeight;
-  final ui.Image? tilesetImage;
+  final Map<String, ui.Image?> tilesetImagesById;
   final int sourceTileWidth;
   final int sourceTileHeight;
-  final int tilesPerRow;
+  final Map<String, int> tilesPerRowById;
 
   MapGridPainter({
     required this.map,
@@ -150,10 +187,10 @@ class MapGridPainter extends CustomPainter {
     this.activeLayerId,
     required this.tileWidth,
     required this.tileHeight,
-    required this.tilesetImage,
+    required this.tilesetImagesById,
     required this.sourceTileWidth,
     required this.sourceTileHeight,
-    required this.tilesPerRow,
+    required this.tilesPerRowById,
   });
 
   @override
@@ -238,18 +275,31 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintTileLayer(Canvas canvas, TileLayer layer) {
-    if (tilesetImage == null ||
-        tilesPerRow <= 0 ||
-        sourceTileWidth <= 0 ||
-        sourceTileHeight <= 0) {
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+      return;
+    }
+    final layerTilesetId = layer.tilesetId?.trim();
+    if (layerTilesetId == null || layerTilesetId.isEmpty) {
+      return;
+    }
+    final tilesetImage = tilesetImagesById[layerTilesetId];
+    final tilesPerRow = tilesPerRowById[layerTilesetId] ?? 0;
+    if (tilesetImage == null || tilesPerRow <= 0) {
       return;
     }
 
     final layerPaint = Paint();
-    if (layer.opacity < 1.0) {
-      layerPaint.colorFilter = ColorFilter.mode(
-        Colors.white.withValues(alpha: layer.opacity),
-        BlendMode.modulate,
+    final needsOpacityLayer = layer.opacity < 1.0;
+    if (needsOpacityLayer) {
+      final bounds = Rect.fromLTWH(
+        0,
+        0,
+        map.size.width * tileWidth,
+        map.size.height * tileHeight,
+      );
+      canvas.saveLayer(
+        bounds,
+        Paint()..color = Colors.white.withValues(alpha: layer.opacity),
       );
     }
 
@@ -267,8 +317,8 @@ class MapGridPainter extends CustomPainter {
 
         if (sourceX < 0 ||
             sourceY < 0 ||
-            sourceX + sourceTileWidth > tilesetImage!.width ||
-            sourceY + sourceTileHeight > tilesetImage!.height) {
+            sourceX + sourceTileWidth > tilesetImage.width ||
+            sourceY + sourceTileHeight > tilesetImage.height) {
           continue;
         }
 
@@ -284,8 +334,12 @@ class MapGridPainter extends CustomPainter {
           tileWidth,
           tileHeight,
         );
-        canvas.drawImageRect(tilesetImage!, srcRect, dstRect, layerPaint);
+        canvas.drawImageRect(tilesetImage, srcRect, dstRect, layerPaint);
       }
+    }
+
+    if (needsOpacityLayer) {
+      canvas.restore();
     }
   }
 
@@ -298,10 +352,10 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.activeLayerId != activeLayerId ||
         oldDelegate.tileWidth != tileWidth ||
         oldDelegate.tileHeight != tileHeight ||
-        oldDelegate.tilesetImage != tilesetImage ||
+        !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||
-        oldDelegate.tilesPerRow != tilesPerRow;
+        !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById);
   }
 }
 
@@ -322,6 +376,22 @@ class _TilesetImageCache {
       } catch (_) {
         return null;
       }
+    });
+  }
+
+  static Future<Map<String, ui.Image?>> loadMany(Map<String, String> paths) {
+    final futures = <Future<MapEntry<String, ui.Image?>>>[];
+    paths.forEach((tilesetId, path) {
+      futures.add(
+        load(path).then((image) => MapEntry(tilesetId, image)),
+      );
+    });
+    return Future.wait(futures).then((entries) {
+      final result = <String, ui.Image?>{};
+      for (final entry in entries) {
+        result[entry.key] = entry.value;
+      }
+      return result;
     });
   }
 }

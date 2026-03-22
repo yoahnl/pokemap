@@ -24,6 +24,7 @@ Separations metier explicites:
 - Groupes internes de tileset (`TilesetElementGroup`) pour organiser la bibliotheque d elements d un tileset.
 - Categories d elements (`ProjectElementCategory`) pour classifier la bibliotheque.
 - Layers de map (`TileLayer`, `CollisionLayer`, `ObjectLayer`) pour la cible de peinture.
+- Affectation des tilesets au niveau `TileLayer.tilesetId` (et non plus au niveau map pour la logique active).
 
 ## 3. Fonctionnalites faites
 - Ouvrir/sauvegarder projet.
@@ -32,6 +33,21 @@ Separations metier explicites:
 - Parametres globaux projet (`tileWidth`, `tileHeight`, `displayScale`, `defaultMapWidth`, `defaultMapHeight`).
 - Import tilesets (copie locale + chemin relatif), scope global/groupe, assignation a une map.
 - Rendu des tile layers sur canvas + peinture tile unitaire et multi-tile.
+- Systeme de layers operationnel sur map active:
+  - ajout / renommage / suppression / reorder (avant/arriere),
+  - action "supprimer tous les layers" avec map pouvant rester a zero layer,
+  - masquage / affichage,
+  - opacite editable,
+  - selection de layer active robuste avec fallback coherent (ou `null` si aucun layer).
+- Tilesets par layer operationnels:
+  - chaque `TileLayer` porte son `tilesetId`,
+  - le rendu map gere plusieurs tilesets en parallele selon la pile de layers,
+  - la peinture valide le brush contre le tileset de la layer active.
+- Panneau `Layers` dedie dans l UI (mode map):
+  - liste ordonnee des layers,
+  - type (`tile` / `collision` / `object`),
+  - selection active,
+  - actions directes (move/rename/delete/visibility/opacity/add).
 - Bibliotheque d elements projet persistee:
   - categories hierarchiques,
   - elements nommes avec source rect,
@@ -69,6 +85,7 @@ Separations metier explicites:
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de brush: source de verite unifiee en place, enrichissements UX possibles (preview cross-tileset, invalidation proactive selon contexte).
+- Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
 - Interaction selection vs scroll dans le canvas tileset: base solide, raffinements UX possibles.
@@ -77,7 +94,7 @@ Separations metier explicites:
 
 ## 5. Fonctionnalites non faites
 - Connexions entre maps.
-- Edition complete des layers (add/rename/reorder/hide/delete).
+- Edition avancee des layers (locks/groupes/presets/layers specialisees).
 - Outils avances map (eraser/fill/selection rect map/copy-paste/undo-redo).
 - Collisions avancees (types/comportements).
 - Warps/triggers/NPC/objets/panneaux/spawn (pose + edition).
@@ -87,9 +104,59 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-refonte du systeme de selection de brush dans `map_editor` avec une source unique explicite (`activeBrush`) et adaptation complete de la peinture.
+refonte complete du systeme de layers dans `map_editor` (etat/use cases/notifier/UI/rendu/peinture ciblee sur layer active).
 
 ## 7. Dernieres modifications realisees
+2026-03-22:
+- refonte tilesets par layer (option 1):
+  - `map_core`:
+    - `TileLayer` enrichi avec `tilesetId`,
+    - `MapData.tilesetId` garde en mode legacy de compatibilite JSON,
+    - `MapValidator` adapte: plus de contrainte sur `map.tilesetId`; validation du `tilesetId` de `TileLayer` quand renseigne.
+  - `map_editor`:
+    - assignation de tileset deplacee de la map vers les `TileLayer`,
+    - suppression du selecteur explicite de tileset dans la toolbar (plus de notion UI "Map Tileset" / "Active Layer Tileset"),
+    - liaison implicite: au paint, une tile layer vide/sans tileset se lie automatiquement au tileset du brush,
+    - migration a chaud des anciennes maps chargees: si une tile layer n a pas de `tilesetId`, reprise du `map.tilesetId` legacy,
+    - blocage de suppression d un tileset s il est encore utilise par une tile layer d une map,
+    - rendu `MapCanvas` multi-tilesets (une image par `tilesetId` de tile layer),
+    - peinture basee sur le tileset du brush + coherence de la tile layer cible (fin du couplage dur `map.tilesetId`).
+
+2026-03-22:
+- `map_core`:
+  - ajout d operations pures `map_layers.dart`:
+    - ajout de layer (`tile`/`collision`/`object`) avec initialisation de grilles correcte,
+    - renommage / suppression sans contrainte de minimum de layers,
+    - reorder,
+    - visibilite,
+    - opacite.
+  - ajout enum `MapLayerKind`.
+  - export des operations layers dans `map_core.dart`.
+- `map_editor`:
+  - nouveaux use cases layers:
+    - `AddMapLayerUseCase`,
+    - `RenameMapLayerUseCase`,
+    - `DeleteMapLayerUseCase`,
+    - `MoveMapLayerUseCase`,
+    - `SetMapLayerVisibilityUseCase`,
+    - `SetMapLayerOpacityUseCase`.
+  - nouveaux providers Riverpod associes.
+  - `EditorNotifier`:
+    - CRUD layers map active + reorder + visibilite + opacite,
+    - selection de layer active robuste (validation + fallback apres suppression),
+    - coherence `activeLayerId` renforcee sur create/load/resize/assign/delete map,
+    - peinture bloquee explicitement si la layer active n est pas une `TileLayer`.
+  - UI:
+    - ajout d un panneau dedie `LayersPanel` (mode map),
+    - integration du panneau layers dans la colonne droite via `EditorShellPage`,
+    - actions utilisateur disponibles: select/add/rename/delete/reorder/visibility/opacity.
+  - action supplementaire layers:
+    - suppression globale des layers de la map sans layer de fallback; une map vide en layers est valide/sauvegardable.
+  - canvas map:
+    - rendu des tile layers garde l ordre reel de la pile,
+    - visibilite respectee,
+    - opacite appliquee au niveau layer via `saveLayer`.
+
 2026-03-22:
 - `map_editor`:
   - refonte du modele de brush selectionne:
@@ -117,7 +184,7 @@ refonte du systeme de selection de brush dans `map_editor` avec une source uniqu
       - `TileLayer`: taille de grille exacte + tile IDs non negatifs,
       - `CollisionLayer`: taille de grille exacte,
       - `ObjectLayer`: validation structurelle (`id`, `name`, `opacity`),
-    - contrainte au moins une layer et au moins une `TileLayer`,
+    - map valide meme sans aucun layer,
     - validation bornes entites/warps/triggers,
     - validation zones de triggers (taille positive + zone entierement dans la map),
     - messages `ValidationException` explicites et orientes diagnostic.
@@ -178,6 +245,8 @@ refonte du systeme de selection de brush dans `map_editor` avec une source uniqu
 ## 8. Prochaines etapes recommandees
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
 - Ajouter un resolveur de brush partage entre panneau droit et canvas pour la previsualisation ghost avant peinture.
+- Ajouter locks, duplication et eventuel grouping de layers.
+- Ajouter edition collisions dediee (outil collision + rendu overlay collision).
 - Ajouter suppression et reorder des groupes internes de tileset.
 - Ajouter drag/drop de classement des elements dans un tileset.
 - Ajouter filtres rapides (tags, recherche texte, layer recommandee).
@@ -193,12 +262,15 @@ refonte du systeme de selection de brush dans `map_editor` avec une source uniqu
   - palette entry (`entryId` + `tilesetId`),
   - project element (`elementId`).
 - La peinture map ne lit plus de champs de selection concurrents; elle ne consomme que `activeBrush`.
+- Les mutations de layers sont centralisees via operations pures `map_core` + use cases `map_editor`.
+- `activeLayerId` reste pilote cote notifier et est resolu automatiquement vers une layer valide, ou `null` si la map n a plus de layer.
 - Les groupes internes de tileset sont separes des groupes du monde et des layers.
 - Le lien element -> groupe interne est persiste via `tilesetGroupId`.
 - Le workspace central est pilote par un mode explicite (`EditorWorkspaceMode`).
 - Le tileset cible est pilote par `selectedTilesetEditorId` dans `EditorNotifier`.
 - La validation map stricte reste centralisee dans `map_core` via `MapValidator`.
 - La logique de resolution/liste des elements d un tileset reste cote use cases, pas dans les widgets.
+- Les tilesets sont portes par les `TileLayer`; `MapData.tilesetId` reste seulement en fallback legacy.
 - La compatibilite avec l existant est conservee:
   - import/assign tileset,
   - painting tile unitaire/multi-tile,
@@ -207,6 +279,10 @@ refonte du systeme de selection de brush dans `map_editor` avec une source uniqu
 ## 10. Points de vigilance / dette technique / bugs connus
 - Le rendu de preview/selection reste distribue entre widgets; une unification de la resolution visuelle du brush ameliorerait la maintenabilite.
 - Les brushes lies a un tileset different sont bloques a la peinture (volontaire), mais l UX peut encore mieux guider l utilisateur avant le clic.
+- Les layers `collision` et `object` sont gerables en pile mais leur rendu visuel dedie reste minimal (pas d overlay collision avancee ni d objets editoriaux).
+- Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
+- Une map peut maintenant etre volontairement sans layers; toute action de peinture est alors no-op tant qu aucune layer active tile n est selectionnee.
+- Les anciennes maps restent lisibles via fallback legacy `map.tilesetId`; la migration complete du champ legacy n est pas encore supprimee du schema.
 - Suppression/reparentage de groupes internes non implemente dans cette iteration.
 - Quelques lints/deprecations preexistants dans le projet restent presents (hors scope).
 - La logique visuelle tileset est maintenant centrale; le panneau droit reste mixte (outils + bibliotheque) et peut encore etre simplifie.
@@ -231,7 +307,7 @@ refonte du systeme de selection de brush dans `map_editor` avec une source uniqu
 - Zoomer dans le canvas: fait
 - Selectionner un outil: fait
 - Selectionner une layer active: fait
-- Ajouter/renommer/reordonner/masquer/supprimer des layers: pas fait
+- Ajouter/renommer/reordonner/masquer/supprimer des layers: fait
 - Peindre des tiles: fait
 - Effacer des tiles: pas fait
 - Remplir une zone: pas fait
@@ -242,6 +318,7 @@ refonte du systeme de selection de brush dans `map_editor` avec une source uniqu
 - Gerer plusieurs tilesets: fait
 - Associer un tileset a une map: fait
 - Workspace d edition de tileset: fait
+- Panneau Layers dedie: fait
 - Mode explicite map/tileset du canvas central: fait
 - Affichage du tileset selectionne dans le canvas central: fait
 - Groupes internes de tileset (categorie/sous-categorie): fait

@@ -193,7 +193,18 @@ class DeleteProjectTilesetUseCase {
     for (final mapEntry in project.maps) {
       final mapPath = fs.resolveMapPath(mapEntry.relativePath);
       final map = await _mapRepo.loadMap(mapPath);
-      if (map.tilesetId == tilesetId) {
+      final hasLayerTilesetAssignments = map.layers.whereType<TileLayer>().any(
+        (layer) {
+          final layerTilesetId = layer.tilesetId?.trim();
+          return layerTilesetId != null && layerTilesetId.isNotEmpty;
+        },
+      );
+      final isUsedByLayer = map.layers.whereType<TileLayer>().any(
+            (layer) => layer.tilesetId == tilesetId,
+          );
+      final isUsedByLegacyMapField =
+          !hasLayerTilesetAssignments && map.tilesetId.trim() == tilesetId;
+      if (isUsedByLayer || isUsedByLegacyMapField) {
         throw Exception(
             'Tileset "$tilesetId" is still used by map "${map.id}"');
       }
@@ -316,6 +327,7 @@ class AssignTilesetToMapUseCase {
     ProjectManifest project,
     MapData map,
     String mapPath,
+    String layerId,
     String tilesetId,
   ) async {
     final assignable = _resolver.execute(project, map.id);
@@ -325,7 +337,21 @@ class AssignTilesetToMapUseCase {
           'Tileset "$tilesetId" is not assignable to map "${map.id}"');
     }
 
-    final updatedMap = map.copyWith(tilesetId: tilesetId);
+    final layerIndex = map.layers.indexWhere((layer) => layer.id == layerId);
+    if (layerIndex < 0) {
+      throw Exception('Layer not found: $layerId');
+    }
+    final layer = map.layers[layerIndex];
+    if (layer is! TileLayer) {
+      throw Exception('Layer is not a tile layer: $layerId');
+    }
+
+    final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
+    updatedLayers[layerIndex] = layer.copyWith(tilesetId: tilesetId);
+    final updatedMap = map.copyWith(
+      layers: updatedLayers,
+      tilesetId: map.tilesetId.trim().isEmpty ? tilesetId : map.tilesetId,
+    );
     MapValidator.validate(updatedMap);
     await _mapRepo.saveMap(updatedMap, mapPath);
     return updatedMap;
@@ -903,6 +929,159 @@ class PaintTilePatternOnMapUseCase {
   }
 }
 
+class AddMapLayerResult {
+  final MapData map;
+  final MapLayer layer;
+
+  AddMapLayerResult(this.map, this.layer);
+}
+
+class AddMapLayerUseCase {
+  AddMapLayerResult execute(
+    MapData map, {
+    required MapLayerKind kind,
+    required String name,
+    String? tileTilesetId,
+    int? insertIndex,
+  }) {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw Exception('Layer name cannot be empty');
+    }
+
+    final layerId = _generateUniqueLayerId(
+      map,
+      kind: kind,
+      name: normalizedName,
+    );
+
+    final updated = addMapLayer(
+      map,
+      kind: kind,
+      id: layerId,
+      name: normalizedName,
+      tileTilesetId: tileTilesetId,
+      insertIndex: insertIndex,
+    );
+    MapValidator.validate(updated);
+
+    final created = updated.layers.firstWhere((layer) => layer.id == layerId);
+    return AddMapLayerResult(updated, created);
+  }
+
+  String _generateUniqueLayerId(
+    MapData map, {
+    required MapLayerKind kind,
+    required String name,
+  }) {
+    final existing = map.layers.map((layer) => layer.id).toSet();
+    final kindPrefix = switch (kind) {
+      MapLayerKind.tile => 'l_tile',
+      MapLayerKind.collision => 'l_collision',
+      MapLayerKind.object => 'l_object',
+    };
+    final slug = _slugifyLayerName(name);
+    final base = slug.isEmpty ? kindPrefix : '${kindPrefix}_$slug';
+    var candidate = base;
+    var suffix = 1;
+    while (existing.contains(candidate)) {
+      candidate = '${base}_$suffix';
+      suffix++;
+    }
+    return candidate;
+  }
+
+  String _slugifyLayerName(String value) {
+    final lowered = value.toLowerCase().trim();
+    final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    final normalized = replaced.replaceAll(RegExp(r'^_+|_+$'), '');
+    return normalized;
+  }
+}
+
+class RenameMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required String name,
+  }) {
+    final updated = renameMapLayer(
+      map,
+      layerId: layerId,
+      name: name,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class DeleteMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+  }) {
+    final updated = removeMapLayer(map, layerId: layerId);
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class DeleteAllMapLayersUseCase {
+  MapData execute(MapData map) {
+    final updated = removeAllMapLayers(map);
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class MoveMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required int direction,
+  }) {
+    final updated = moveMapLayer(
+      map,
+      layerId: layerId,
+      direction: direction,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class SetMapLayerVisibilityUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required bool isVisible,
+  }) {
+    final updated = setMapLayerVisibility(
+      map,
+      layerId: layerId,
+      isVisible: isVisible,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class SetMapLayerOpacityUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required double opacity,
+  }) {
+    final updated = setMapLayerOpacity(
+      map,
+      layerId: layerId,
+      opacity: opacity,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
 class SaveMapUseCase {
   final MapRepository _repo;
 
@@ -931,11 +1110,12 @@ class CreateMapUseCase {
       id: mapId,
       name: mapId,
       size: GridSize(width: w, height: h),
-      tilesetId: defaultTilesetId,
+      tilesetId: defaultTilesetId ?? '',
       layers: [
         MapLayer.tile(
           id: 'l_base',
           name: 'Base',
+          tilesetId: defaultTilesetId,
           tiles: List.filled(w * h, 0),
         ),
         MapLayer.collision(
@@ -977,7 +1157,27 @@ class LoadMapUseCase {
   Future<MapData> execute(ProjectFileSystem fs, String relativePath) async {
     final path = fs.resolveMapPath(relativePath);
     debugPrint('LoadMapUseCase: Loading map from $path');
-    return await _repo.loadMap(path);
+    final map = await _repo.loadMap(path);
+    return _migrateLegacyLayerTilesets(map);
+  }
+
+  MapData _migrateLegacyLayerTilesets(MapData map) {
+    final legacyTilesetId = map.tilesetId.trim();
+    if (legacyTilesetId.isEmpty) return map;
+
+    var changed = false;
+    final updatedLayers = map.layers.map((layer) {
+      if (layer is! TileLayer) return layer;
+      final layerTilesetId = layer.tilesetId?.trim();
+      if (layerTilesetId == null || layerTilesetId.isEmpty) {
+        changed = true;
+        return layer.copyWith(tilesetId: legacyTilesetId);
+      }
+      return layer;
+    }).toList(growable: false);
+
+    if (!changed) return map;
+    return map.copyWith(layers: updatedLayers);
   }
 }
 
@@ -1246,8 +1446,8 @@ int _tilesetSort(ProjectTilesetEntry a, ProjectTilesetEntry b) {
   return a.name.toLowerCase().compareTo(b.name.toLowerCase());
 }
 
-String _pickDefaultTilesetId(ProjectManifest project, String? groupId) {
-  if (project.tilesets.isEmpty) return 'default';
+String? _pickDefaultTilesetId(ProjectManifest project, String? groupId) {
+  if (project.tilesets.isEmpty) return null;
 
   if (groupId != null) {
     final ancestors = <String>{};

@@ -16,10 +16,6 @@ class TopToolbar extends ConsumerWidget {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final settings = state.project?.settings ?? const ProjectSettings();
-    final availableTilesets = notifier.getAssignableTilesetsForActiveMap();
-    final activeTilesetId = state.activeMap?.tilesetId;
-    final hasActiveTileset = activeTilesetId != null &&
-        availableTilesets.any((t) => t.id == activeTilesetId);
 
     return Container(
       height: 48,
@@ -100,38 +96,6 @@ class TopToolbar extends ConsumerWidget {
             icon: const Icon(Icons.aspect_ratio, size: 20),
             tooltip: 'Resize Map',
           ),
-          if (state.activeMap != null) ...[
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 220,
-              child: DropdownButtonFormField<String>(
-                isDense: true,
-                value: hasActiveTileset ? activeTilesetId : null,
-                decoration: const InputDecoration(
-                  labelText: 'Map Tileset',
-                  border: OutlineInputBorder(),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                ),
-                items: availableTilesets
-                    .map((tileset) => DropdownMenuItem(
-                          value: tileset.id,
-                          child: Text(
-                            tileset.name,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ))
-                    .toList(),
-                onChanged: availableTilesets.isEmpty
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          notifier.assignTilesetToActiveMap(value);
-                        }
-                      },
-              ),
-            ),
-          ],
           const VerticalDivider(width: 1, indent: 8, endIndent: 8),
           IconButton(
             onPressed: () => notifier.selectTool(EditorToolType.selection),
