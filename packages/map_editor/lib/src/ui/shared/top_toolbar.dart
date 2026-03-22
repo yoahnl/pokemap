@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
 class TopToolbar extends ConsumerWidget {
@@ -139,6 +140,24 @@ class TopToolbar extends ConsumerWidget {
                   : null,
             ),
             tooltip: 'Collision Paint Tool',
+          ),
+          IconButton(
+            onPressed: () => notifier.toggleCollisionBrushSizeMode(),
+            icon: Icon(
+              state.collisionBrushSizeMode == CollisionBrushSizeMode.singleTile
+                  ? Icons.looks_one_outlined
+                  : Icons.dashboard_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.collisionPaint ||
+                      (state.activeTool == EditorToolType.eraser &&
+                          state.activeLayerId != null)
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: state.collisionBrushSizeMode ==
+                    CollisionBrushSizeMode.singleTile
+                ? 'Collision Brush Size: 1x1'
+                : 'Collision Brush Size: Brush Footprint',
           ),
           IconButton(
             onPressed: () => notifier.selectTool(EditorToolType.eraser),

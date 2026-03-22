@@ -12,6 +12,11 @@ enum EditorWorkspaceMode {
   tileset,
 }
 
+enum CollisionBrushSizeMode {
+  brushFootprint,
+  singleTile,
+}
+
 @freezed
 sealed class EditorBrush with _$EditorBrush {
   const factory EditorBrush.none() = NoEditorBrush;
@@ -54,6 +59,8 @@ class EditorState with _$EditorState {
     String? activeLayerId,
     GridPos? hoveredTile,
     @Default(EditorBrush.none()) EditorBrush activeBrush,
+    @Default(CollisionBrushSizeMode.brushFootprint)
+    CollisionBrushSizeMode collisionBrushSizeMode,
     String? selectedWarpId,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,

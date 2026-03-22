@@ -893,6 +893,8 @@ mixin _$EditorState {
   String? get activeLayerId => throw _privateConstructorUsedError;
   GridPos? get hoveredTile => throw _privateConstructorUsedError;
   EditorBrush get activeBrush => throw _privateConstructorUsedError;
+  CollisionBrushSizeMode get collisionBrushSizeMode =>
+      throw _privateConstructorUsedError;
   String? get selectedWarpId => throw _privateConstructorUsedError;
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
@@ -937,6 +939,7 @@ abstract class $EditorStateCopyWith<$Res> {
       String? activeLayerId,
       GridPos? hoveredTile,
       EditorBrush activeBrush,
+      CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedWarpId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
@@ -986,6 +989,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
+    Object? collisionBrushSizeMode = null,
     Object? selectedWarpId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
@@ -1040,6 +1044,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.activeBrush
           : activeBrush // ignore: cast_nullable_to_non_nullable
               as EditorBrush,
+      collisionBrushSizeMode: null == collisionBrushSizeMode
+          ? _value.collisionBrushSizeMode
+          : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
+              as CollisionBrushSizeMode,
       selectedWarpId: freezed == selectedWarpId
           ? _value.selectedWarpId
           : selectedWarpId // ignore: cast_nullable_to_non_nullable
@@ -1206,6 +1214,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? activeLayerId,
       GridPos? hoveredTile,
       EditorBrush activeBrush,
+      CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedWarpId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
@@ -1259,6 +1268,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
+    Object? collisionBrushSizeMode = null,
     Object? selectedWarpId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
@@ -1313,6 +1323,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.activeBrush
           : activeBrush // ignore: cast_nullable_to_non_nullable
               as EditorBrush,
+      collisionBrushSizeMode: null == collisionBrushSizeMode
+          ? _value.collisionBrushSizeMode
+          : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
+              as CollisionBrushSizeMode,
       selectedWarpId: freezed == selectedWarpId
           ? _value.selectedWarpId
           : selectedWarpId // ignore: cast_nullable_to_non_nullable
@@ -1394,6 +1408,7 @@ class _$EditorStateImpl implements _EditorState {
       this.activeLayerId,
       this.hoveredTile,
       this.activeBrush = const EditorBrush.none(),
+      this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
       this.selectedWarpId,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
@@ -1437,6 +1452,9 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final EditorBrush activeBrush;
+  @override
+  @JsonKey()
+  final CollisionBrushSizeMode collisionBrushSizeMode;
   @override
   final String? selectedWarpId;
   @override
@@ -1495,7 +1513,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1520,6 +1538,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.hoveredTile == hoveredTile) &&
             (identical(other.activeBrush, activeBrush) ||
                 other.activeBrush == activeBrush) &&
+            (identical(other.collisionBrushSizeMode, collisionBrushSizeMode) ||
+                other.collisionBrushSizeMode == collisionBrushSizeMode) &&
             (identical(other.selectedWarpId, selectedWarpId) ||
                 other.selectedWarpId == selectedWarpId) &&
             (identical(
@@ -1567,6 +1587,7 @@ class _$EditorStateImpl implements _EditorState {
         activeLayerId,
         hoveredTile,
         activeBrush,
+        collisionBrushSizeMode,
         selectedWarpId,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
@@ -1605,6 +1626,7 @@ abstract class _EditorState implements EditorState {
       final String? activeLayerId,
       final GridPos? hoveredTile,
       final EditorBrush activeBrush,
+      final CollisionBrushSizeMode collisionBrushSizeMode,
       final String? selectedWarpId,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
@@ -1641,6 +1663,8 @@ abstract class _EditorState implements EditorState {
   GridPos? get hoveredTile;
   @override
   EditorBrush get activeBrush;
+  @override
+  CollisionBrushSizeMode get collisionBrushSizeMode;
   @override
   String? get selectedWarpId;
   @override

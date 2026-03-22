@@ -1407,7 +1407,7 @@ class EditorNotifier extends _$EditorNotifier {
   void paintCollisionAt(GridPos pos) {
     final layerContext = _resolveActiveCollisionLayerContext(emitErrors: true);
     if (layerContext == null) return;
-    final footprint = _resolveBrushFootprint(emitErrors: true);
+    final footprint = _resolveCollisionFootprint(emitErrors: true);
     if (footprint == null) return;
     _paintCollisionPattern(
       map: layerContext.map,
@@ -1430,9 +1430,9 @@ class EditorNotifier extends _$EditorNotifier {
       _setPaintError('Active layer not found: $layerId');
       return;
     }
-    final pattern = _resolveErasePattern(emitErrors: true);
-    if (pattern == null) return;
     if (activeLayer is TileLayer) {
+      final pattern = _resolveErasePattern(emitErrors: true);
+      if (pattern == null) return;
       _erasePattern(
         map: map,
         layerId: layerId,
@@ -1443,12 +1443,14 @@ class EditorNotifier extends _$EditorNotifier {
       return;
     }
     if (activeLayer is CollisionLayer) {
+      final collisionFootprint = _resolveCollisionFootprint(emitErrors: true);
+      if (collisionFootprint == null) return;
       _eraseCollisionPattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: pattern.size,
-        failureLabel: pattern.failureLabel,
+        patternSize: collisionFootprint.size,
+        failureLabel: collisionFootprint.failureLabel,
       );
       return;
     }
@@ -1639,19 +1641,20 @@ class EditorNotifier extends _$EditorNotifier {
       );
     }
 
-    final erasePattern = _resolveErasePattern(emitErrors: false);
-    if (erasePattern == null) return null;
-
     if (tool == EditorToolType.collisionPaint) {
       if (activeLayer is! CollisionLayer) return null;
+      final collisionFootprint = _resolveCollisionFootprint(emitErrors: false);
+      if (collisionFootprint == null) return null;
       return MapToolPreview.collisionPaint(
         origin: hoveredTile,
-        size: erasePattern.size,
+        size: collisionFootprint.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
 
     if (activeLayer is TileLayer) {
+      final erasePattern = _resolveErasePattern(emitErrors: false);
+      if (erasePattern == null) return null;
       return MapToolPreview.erase(
         origin: hoveredTile,
         size: erasePattern.size,
@@ -1659,9 +1662,11 @@ class EditorNotifier extends _$EditorNotifier {
       );
     }
     if (activeLayer is CollisionLayer) {
+      final collisionFootprint = _resolveCollisionFootprint(emitErrors: false);
+      if (collisionFootprint == null) return null;
       return MapToolPreview.collisionErase(
         origin: hoveredTile,
-        size: erasePattern.size,
+        size: collisionFootprint.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
@@ -1948,6 +1953,18 @@ class EditorNotifier extends _$EditorNotifier {
       size: footprint.size,
       failureLabel: footprint.failureLabel,
     );
+  }
+
+  _ResolvedBrushFootprint? _resolveCollisionFootprint({
+    required bool emitErrors,
+  }) {
+    if (state.collisionBrushSizeMode == CollisionBrushSizeMode.singleTile) {
+      return const _ResolvedBrushFootprint(
+        size: GridSize(width: 1, height: 1),
+        failureLabel: 'tile',
+      );
+    }
+    return _resolveBrushFootprint(emitErrors: emitErrors);
   }
 
   _ResolvedBrushFootprint? _resolveBrushFootprint({
@@ -2492,6 +2509,25 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectTool(EditorToolType tool) {
     state = state.copyWith(activeTool: tool);
+  }
+
+  void setCollisionBrushSizeMode(CollisionBrushSizeMode mode) {
+    if (state.collisionBrushSizeMode == mode) return;
+    state = state.copyWith(
+      collisionBrushSizeMode: mode,
+      statusMessage: mode == CollisionBrushSizeMode.singleTile
+          ? 'Collision brush: 1x1'
+          : 'Collision brush: brush footprint',
+      errorMessage: null,
+    );
+  }
+
+  void toggleCollisionBrushSizeMode() {
+    setCollisionBrushSizeMode(
+      state.collisionBrushSizeMode == CollisionBrushSizeMode.singleTile
+          ? CollisionBrushSizeMode.brushFootprint
+          : CollisionBrushSizeMode.singleTile,
+    );
   }
 
   void setActiveLayer(String layerId) {
