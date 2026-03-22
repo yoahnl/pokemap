@@ -1498,6 +1498,38 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void fillActiveTerrainLayer(TerrainType terrain) {
+    final layerContext = _resolveActiveTerrainLayerContext(emitErrors: true);
+    if (layerContext == null) return;
+    final map = layerContext.map;
+    final layerId = layerContext.layerId;
+    try {
+      final patternLength = map.size.width * map.size.height;
+      final terrains = List<TerrainType>.filled(
+        patternLength,
+        terrain,
+        growable: false,
+      );
+      final useCase = ref.read(paintTerrainPatternOnMapUseCaseProvider);
+      final painted = useCase.execute(
+        map,
+        layerId: layerId,
+        pos: const GridPos(x: 0, y: 0),
+        patternSize: map.size,
+        terrains: terrains,
+        clipToMapBounds: true,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: painted,
+        preferredActiveLayerId: layerId,
+        statusMessage: 'Terrain layer filled with ${terrain.name}',
+      );
+    } catch (e) {
+      _setPaintError('Failed to fill terrain layer: $e');
+    }
+  }
+
   void eraseAt(GridPos pos) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
@@ -2155,6 +2187,12 @@ class EditorNotifier extends _$EditorNotifier {
   _ResolvedBrushFootprint? _resolveTerrainFootprint({
     required bool emitErrors,
   }) {
+    if (state.selectedTerrainType == TerrainType.path) {
+      return const _ResolvedBrushFootprint(
+        size: GridSize(width: 1, height: 1),
+        failureLabel: 'path',
+      );
+    }
     return _resolveBrushFootprint(emitErrors: emitErrors);
   }
 
@@ -2836,12 +2874,46 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
-  void selectPathPaintMode() {
+  void selectTerrainPaintMode({
+    TerrainType? terrainType,
+  }) {
+    final nextTerrain = terrainType ?? state.selectedTerrainType;
     state = state.copyWith(
       activeTool: EditorToolType.terrainPaint,
-      selectedTerrainType: TerrainType.path,
-      statusMessage: 'Terrain type: path',
+      selectedTerrainType: nextTerrain,
+      statusMessage: 'Terrain type: ${nextTerrain.name}',
       errorMessage: null,
+    );
+  }
+
+  void selectPathPaintMode() {
+    selectTerrainPaintMode(terrainType: TerrainType.path);
+  }
+
+  void activateFirstTerrainLayer({
+    bool createIfMissing = false,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    for (final layer in map.layers) {
+      if (layer is TerrainLayer) {
+        state = state.copyWith(
+          activeLayerId: layer.id,
+          statusMessage: 'Layer "${layer.name}" selected',
+          errorMessage: null,
+        );
+        return;
+      }
+    }
+    if (createIfMissing) {
+      addMapLayer(
+        kind: MapLayerKind.terrain,
+        name: 'Terrain',
+      );
+      return;
+    }
+    state = state.copyWith(
+      errorMessage: 'No terrain layer found in this map',
     );
   }
 

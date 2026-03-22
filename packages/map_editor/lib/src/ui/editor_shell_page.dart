@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/layers_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
+import 'package:map_editor/src/ui/panels/terrain_editor_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/panels/warp_properties_panel.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
@@ -115,6 +116,10 @@ class EditorShellPage extends ConsumerWidget {
                                         const SizedBox(
                                           height: 260,
                                           child: LayersPanel(),
+                                        ),
+                                        const SizedBox(
+                                          height: 340,
+                                          child: TerrainEditorPanel(),
                                         ),
                                         const SizedBox(
                                           height: 260,

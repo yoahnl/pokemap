@@ -551,6 +551,10 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintTerrainPaintPreview(Canvas canvas, MapToolPreview preview) {
+    final pathPreviewPainted = _paintPathTerrainPreview(canvas, preview);
+    if (pathPreviewPainted) {
+      return;
+    }
     final previewRect = _computePreviewRect(preview.origin, preview.size);
     if (previewRect == null) return;
     final terrainColor = _terrainColor(preview.terrain ?? TerrainType.normal);
@@ -567,6 +571,103 @@ class MapGridPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
+  }
+
+  bool _paintPathTerrainPreview(Canvas canvas, MapToolPreview preview) {
+    if (preview.terrain != TerrainType.path) {
+      return false;
+    }
+    if (preview.size.width != 1 || preview.size.height != 1) {
+      return false;
+    }
+    final origin = preview.origin;
+    if (origin.x < 0 ||
+        origin.y < 0 ||
+        origin.x >= map.size.width ||
+        origin.y >= map.size.height) {
+      return false;
+    }
+    final autotileSet = pathAutotileSet;
+    if (autotileSet == null) {
+      return false;
+    }
+    final tilesetId = autotileSet.tilesetId.trim();
+    if (tilesetId.isEmpty) {
+      return false;
+    }
+    final tilesetImage = tilesetImagesById[tilesetId];
+    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+      return false;
+    }
+    final activeTerrainLayer = _resolveActiveTerrainLayer();
+    if (activeTerrainLayer == null) {
+      return false;
+    }
+
+    final expectedLength = map.size.width * map.size.height;
+    final simulatedTerrains = List<TerrainType>.filled(
+      expectedLength,
+      TerrainType.none,
+      growable: false,
+    );
+    final sourceTerrains = activeTerrainLayer.terrains;
+    final copyLength = sourceTerrains.length < expectedLength
+        ? sourceTerrains.length
+        : expectedLength;
+    for (var index = 0; index < copyLength; index++) {
+      simulatedTerrains[index] = sourceTerrains[index];
+    }
+    final previewIndex = origin.y * map.size.width + origin.x;
+    if (previewIndex < 0 || previewIndex >= simulatedTerrains.length) {
+      return false;
+    }
+    simulatedTerrains[previewIndex] = TerrainType.path;
+
+    final variant = resolveTerrainPathVariantAt(
+      terrains: simulatedTerrains,
+      mapSize: map.size,
+      pos: origin,
+    );
+    final sourceRect = autotileSet.sourceForVariant(variant);
+    if (sourceRect == null) {
+      return false;
+    }
+
+    final sourceX = sourceRect.x * sourceTileWidth;
+    final sourceY = sourceRect.y * sourceTileHeight;
+    if (sourceX < 0 ||
+        sourceY < 0 ||
+        sourceX + sourceTileWidth > tilesetImage.width ||
+        sourceY + sourceTileHeight > tilesetImage.height) {
+      return false;
+    }
+
+    final srcRect = Rect.fromLTWH(
+      sourceX.toDouble(),
+      sourceY.toDouble(),
+      sourceTileWidth.toDouble(),
+      sourceTileHeight.toDouble(),
+    );
+    final dstRect = Rect.fromLTWH(
+      origin.x * tileWidth,
+      origin.y * tileHeight,
+      tileWidth,
+      tileHeight,
+    );
+    canvas.drawImageRect(
+      tilesetImage,
+      srcRect,
+      dstRect,
+      Paint()..color = Colors.white.withValues(alpha: 0.66),
+    );
+    canvas.drawRect(
+      dstRect,
+      Paint()
+        ..color = Colors.brown.withValues(alpha: 0.95)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 / zoom,
+    );
+    return true;
   }
 
   void _paintTerrainErasePreview(Canvas canvas, MapToolPreview preview) {
@@ -834,6 +935,19 @@ class MapGridPainter extends CustomPainter {
       Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
     );
     return true;
+  }
+
+  TerrainLayer? _resolveActiveTerrainLayer() {
+    final id = activeLayerId;
+    if (id == null) {
+      return null;
+    }
+    for (final layer in map.layers) {
+      if (layer.id == id && layer is TerrainLayer) {
+        return layer;
+      }
+    }
+    return null;
   }
 
   Color _terrainColor(TerrainType terrain) {
