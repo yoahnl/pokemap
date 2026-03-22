@@ -23,7 +23,7 @@ Separations metier explicites:
 - Groupes du monde (`ProjectMapGroup`) pour l organisation des maps.
 - Groupes internes de tileset (`TilesetElementGroup`) pour organiser la bibliotheque d elements d un tileset.
 - Categories d elements (`ProjectElementCategory`) pour classifier la bibliotheque.
-- Layers de map (`TileLayer`, `CollisionLayer`, `ObjectLayer`) pour la cible de peinture.
+- Layers de map (`TileLayer`, `TerrainLayer`, `CollisionLayer`, `ObjectLayer`) pour la cible de peinture.
 - Affectation des tilesets au niveau `TileLayer.tilesetId` (et non plus au niveau map pour la logique active).
 
 ## 3. Fonctionnalites faites
@@ -121,6 +121,24 @@ Separations metier explicites:
   - paint/erase collision au clic + drag avec regroupement stroke dans l historique,
   - overlay collision visible dans le canvas map (au-dessus des tiles),
   - ghost preview collision paint/erase distinct du preview tile.
+- Terrains/Sols MVP operationnels:
+  - nouveau type de layer `TerrainLayer` avec grille `TerrainType` par cellule,
+  - types de terrain supportes:
+    - `none`
+    - `normal`
+    - `water`
+    - `tallGrass`
+    - `sand`
+    - `ice`
+  - operations pures `map_core` pour paint/erase terrain unitaire et pattern,
+  - use cases dedies + providers Riverpod dans `map_editor`,
+  - outil `terrainPaint` dans la toolbar + selection du type de terrain actif,
+  - paint/erase terrain au clic + drag via pipeline map-level centralise,
+  - integration complete undo/redo map-level (strokes),
+  - overlay terrain lisible dans le canvas map,
+  - ghost preview terrain paint/erase dedie,
+  - resize map compatible (conserve les terrains existants, nouvelles cellules a `none`),
+  - validation map etendue pour verifier la taille des grilles terrain.
 - Warps MVP operationnels:
   - operations pures `map_core` dediees (`add/update/remove`) avec validations metier explicites,
   - use cases + providers Riverpod dedies dans `map_editor`,
@@ -137,6 +155,7 @@ Separations metier explicites:
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
+- Terrains/Sols: base MVP solide (types + paint/erase/overlay/preview), comportements gameplay/runtime non implementes.
 - Warps: MVP pose/selection/edition/suppression fait, mais sans validation inter-map et sans outillage avance (liens assistes, preview destination).
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -158,12 +177,55 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-- Warp MVP map-level:
-  - pose, selection, edition, suppression,
-  - rendu canvas,
+- Terrain / Sols MVP map-level:
+  - types de terrain + donnees persistees,
+  - paint/erase + overlay + preview,
   - integration pipeline undo/redo + dirty.
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (terrain / sols MVP):
+- `map_core`:
+  - ajout `TerrainType` dans `enums.dart`,
+  - ajout du type de layer `terrain` dans `MapLayerKind`,
+  - ajout du variant `TerrainLayer` dans `map_layer.dart`,
+  - ajout des operations pures terrain dans `map_terrain.dart`:
+    - `paintTerrainOnLayer(...)`,
+    - `paintTerrainPatternOnLayer(...)`,
+    - `eraseTerrainOnLayer(...)`,
+    - `eraseTerrainPatternOnLayer(...)`,
+  - export des operations terrain dans `map_core.dart`,
+  - resize map etendu aux terrains (`TerrainType.none` pour les nouvelles cellules),
+  - operations layers etendues pour ajouter/copier une `TerrainLayer`,
+  - validation map etendue:
+    - `TerrainLayer.terrains.length` doit correspondre a `map.size.width * map.size.height`.
+- `map_editor`:
+  - use cases dedies terrain:
+    - `PaintTerrainOnMapUseCase`,
+    - `PaintTerrainPatternOnMapUseCase`,
+    - `EraseTerrainOnMapUseCase`,
+    - `EraseTerrainPatternOnMapUseCase`,
+  - providers Riverpod dedies ajoutes dans `use_case_providers.dart`,
+  - `CreateMapUseCase` initialise une `TerrainLayer` par defaut (`l_terrain`),
+  - `AddMapLayerUseCase` et `LayersPanel` etendus au type `TerrainLayer`,
+  - `EditorState` enrichi avec `selectedTerrainType`,
+  - `EditorToolType` enrichi avec `terrainPaint`,
+  - `EditorNotifier`:
+    - ajout `paintTerrainAt(...)`,
+    - ajout de la resolution footprint terrain,
+    - ajout des mutations terrain paint/erase dans le pipeline `_applyMapMutation(...)`,
+    - integration des previews terrain paint/erase,
+    - ajout `selectTerrainType(...)`,
+  - `TopToolbar`:
+    - bouton outil `terrainPaint`,
+    - menu de selection du type de terrain actif,
+  - `MapCanvas`:
+    - routing gestuel terrain (clic + drag),
+  - `MapGridPainter`:
+    - rendu overlay des `TerrainLayer` visibles,
+    - rendu du ghost preview terrain paint/erase.
+- `map_runtime`:
+  - branchement de `TerrainLayer` dans le chargement des layers runtime (placeholder).
+
 2026-03-22 (warp MVP):
 - `map_core`:
   - ajout `map_warps.dart` avec operations pures:
@@ -443,6 +505,10 @@ Terminee pour cette etape:
   - validation inter-map (`targetMapId`) au niveau projet,
   - selection assistee de map cible depuis le manifest,
   - visualisation optionnelle de la destination.
+- Etendre les terrains apres MVP:
+  - support de comportements de sol (tags/proprietes),
+  - interactions gameplay (rencontres, surf, glissade) cote runtime,
+  - eventuelle separation entre couche metier terrain et rendu anime (eau).
 - Finaliser l eclatement complet du monolithe `project_use_cases.dart` (tilesets/elements/projet) pour aligner toute la couche application sur la meme granularite.
 - Ajouter suppression/reorder des groupes internes de tileset et suppression de palette entries.
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
@@ -484,6 +550,12 @@ Terminee pour cette etape:
     - tile -> effacement de tiles,
     - collision -> effacement de collisions.
   - overlay collision rendu au-dessus des tiles pour garder la lisibilite d edition.
+- Decision UX terrains:
+  - outil dedie `terrainPaint`,
+  - type de terrain actif selectionne depuis la toolbar,
+  - `eraser` contextuel efface les terrains (`TerrainType.none`) si la layer active est une `TerrainLayer`,
+  - taille de paint/erase terrain basee sur le footprint du brush actif (fallback 1x1 si aucun brush),
+  - overlay terrain rendu au-dessus des tiles et sous collisions/warps.
 - Decision UX warps:
   - outil dedie `warpPlacement`,
   - clic sur cellule avec warp existant => selection,
@@ -499,6 +571,7 @@ Terminee pour cette etape:
 - Le ghost preview invalide pre-vient le refus avant clic, mais la raison detaillee n est pas encore affichee directement dans l UI.
 - Les brushes lies a un tileset different restent bloques a la peinture si la layer active ne peut pas etre rebindee.
 - Les layers `collision` sont maintenant rendues en overlay, mais le rendu reste volontairement simple (bool), sans typage avance.
+- Les layers `terrain` sont rendues en overlay MVP; le rendu reste volontairement simple (pas d autotile/animation/blending).
 - Les layers `object` restent sans rendu editorial dedie.
 - Le Warp MVP n interdit pas explicitement plusieurs warps sur la meme case dans les donnees importees; en UI, le clic selectionne le premier warp trouve sur la case.
 - Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
@@ -559,6 +632,9 @@ Terminee pour cette etape:
 - Peindre les collisions: fait (MVP bool)
 - Visualiser les collisions: fait (MVP overlay)
 - Gerer plusieurs types de collisions ou comportements de sol: pas fait
+- Peindre des terrains/sols: fait (MVP)
+- Effacer des terrains/sols: fait (MVP)
+- Visualiser les terrains/sols: fait (MVP overlay)
 - Poser des warps: fait (MVP)
 - Configurer les warps: partiellement fait (MVP: id/targetMapId/targetPos + suppression)
 - Poser des triggers: pas fait
@@ -591,6 +667,7 @@ Terminee pour cette etape:
 - Ghost preview + erase: fait
 - Systeme de brush: fait
 - Layers: fait (base MVP), evolutions avancees non faites
+- Terrains/Sols: fait (MVP), comportements gameplay/runtime non faits
 - Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
 - Undo/redo: fait (map active)
 - Warps/triggers/entities: partiellement fait (warps MVP fait, triggers/entities non faits)

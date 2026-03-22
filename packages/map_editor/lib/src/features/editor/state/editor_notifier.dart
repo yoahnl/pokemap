@@ -1418,6 +1418,21 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void paintTerrainAt(GridPos pos) {
+    final layerContext = _resolveActiveTerrainLayerContext(emitErrors: true);
+    if (layerContext == null) return;
+    final footprint = _resolveTerrainFootprint(emitErrors: true);
+    if (footprint == null) return;
+    _paintTerrainPattern(
+      map: layerContext.map,
+      layerId: layerContext.layerId,
+      pos: pos,
+      terrain: state.selectedTerrainType,
+      patternSize: footprint.size,
+      failureLabel: footprint.failureLabel,
+    );
+  }
+
   void eraseAt(GridPos pos) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
@@ -1451,6 +1466,18 @@ class EditorNotifier extends _$EditorNotifier {
         pos: pos,
         patternSize: collisionFootprint.size,
         failureLabel: collisionFootprint.failureLabel,
+      );
+      return;
+    }
+    if (activeLayer is TerrainLayer) {
+      final terrainFootprint = _resolveTerrainFootprint(emitErrors: true);
+      if (terrainFootprint == null) return;
+      _eraseTerrainPattern(
+        map: map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: terrainFootprint.size,
+        failureLabel: terrainFootprint.failureLabel,
       );
       return;
     }
@@ -1608,6 +1635,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (hoveredTile == null) return null;
     final tool = state.activeTool;
     if (tool != EditorToolType.tilePaint &&
+        tool != EditorToolType.terrainPaint &&
         tool != EditorToolType.collisionPaint &&
         tool != EditorToolType.eraser) {
       return null;
@@ -1641,6 +1669,18 @@ class EditorNotifier extends _$EditorNotifier {
       );
     }
 
+    if (tool == EditorToolType.terrainPaint) {
+      if (activeLayer is! TerrainLayer) return null;
+      final terrainFootprint = _resolveTerrainFootprint(emitErrors: false);
+      if (terrainFootprint == null) return null;
+      return MapToolPreview.terrainPaint(
+        origin: hoveredTile,
+        size: terrainFootprint.size,
+        terrain: state.selectedTerrainType,
+        validity: MapToolPreviewValidity.valid,
+      );
+    }
+
     if (tool == EditorToolType.collisionPaint) {
       if (activeLayer is! CollisionLayer) return null;
       final collisionFootprint = _resolveCollisionFootprint(emitErrors: false);
@@ -1667,6 +1707,15 @@ class EditorNotifier extends _$EditorNotifier {
       return MapToolPreview.collisionErase(
         origin: hoveredTile,
         size: collisionFootprint.size,
+        validity: MapToolPreviewValidity.valid,
+      );
+    }
+    if (activeLayer is TerrainLayer) {
+      final terrainFootprint = _resolveTerrainFootprint(emitErrors: false);
+      if (terrainFootprint == null) return null;
+      return MapToolPreview.terrainErase(
+        origin: hoveredTile,
+        size: terrainFootprint.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
@@ -1967,6 +2016,12 @@ class EditorNotifier extends _$EditorNotifier {
     return _resolveBrushFootprint(emitErrors: emitErrors);
   }
 
+  _ResolvedBrushFootprint? _resolveTerrainFootprint({
+    required bool emitErrors,
+  }) {
+    return _resolveBrushFootprint(emitErrors: emitErrors);
+  }
+
   _ResolvedBrushFootprint? _resolveBrushFootprint({
     required bool emitErrors,
   }) {
@@ -2190,6 +2245,99 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void _paintTerrainPattern({
+    required MapData map,
+    required String layerId,
+    required GridPos pos,
+    required TerrainType terrain,
+    required GridSize patternSize,
+    required String failureLabel,
+  }) {
+    try {
+      if (patternSize.width == 1 && patternSize.height == 1) {
+        final useCase = ref.read(paintTerrainOnMapUseCaseProvider);
+        final painted = useCase.execute(
+          map,
+          layerId: layerId,
+          pos: pos,
+          terrain: terrain,
+        );
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: painted,
+          preferredActiveLayerId: layerId,
+          partOfStroke: true,
+        );
+        return;
+      }
+      final patternLength = patternSize.width * patternSize.height;
+      final terrains = List<TerrainType>.filled(
+        patternLength,
+        terrain,
+        growable: false,
+      );
+      final useCase = ref.read(paintTerrainPatternOnMapUseCaseProvider);
+      final painted = useCase.execute(
+        map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: patternSize,
+        terrains: terrains,
+        clipToMapBounds: true,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: painted,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to paint terrain $failureLabel: $e');
+    }
+  }
+
+  void _eraseTerrainPattern({
+    required MapData map,
+    required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    required String failureLabel,
+  }) {
+    try {
+      if (patternSize.width == 1 && patternSize.height == 1) {
+        final useCase = ref.read(eraseTerrainOnMapUseCaseProvider);
+        final erased = useCase.execute(
+          map,
+          layerId: layerId,
+          pos: pos,
+        );
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: erased,
+          preferredActiveLayerId: layerId,
+          partOfStroke: true,
+        );
+        return;
+      }
+      final useCase = ref.read(eraseTerrainPatternOnMapUseCaseProvider);
+      final erased = useCase.execute(
+        map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: patternSize,
+        clipToMapBounds: true,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: erased,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to erase terrain $failureLabel: $e');
+    }
+  }
+
   void _setPaintError(String message) {
     state = state.copyWith(errorMessage: message);
   }
@@ -2252,6 +2400,38 @@ class EditorNotifier extends _$EditorNotifier {
       return null;
     }
     return _ActiveCollisionLayerContext(
+      map: map,
+      layerId: layerId,
+      layer: activeLayer,
+    );
+  }
+
+  _ActiveTerrainLayerContext? _resolveActiveTerrainLayerContext({
+    required bool emitErrors,
+  }) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      if (emitErrors) {
+        _setPaintError('No active terrain layer selected');
+      }
+      return null;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) {
+      if (emitErrors) {
+        _setPaintError('Active layer not found: $layerId');
+      }
+      return null;
+    }
+    if (activeLayer is! TerrainLayer) {
+      if (emitErrors) {
+        _setPaintError(
+            'Active layer "${activeLayer.name}" is not a terrain layer');
+      }
+      return null;
+    }
+    return _ActiveTerrainLayerContext(
       map: map,
       layerId: layerId,
       layer: activeLayer,
@@ -2509,6 +2689,15 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectTool(EditorToolType tool) {
     state = state.copyWith(activeTool: tool);
+  }
+
+  void selectTerrainType(TerrainType terrain) {
+    if (state.selectedTerrainType == terrain) return;
+    state = state.copyWith(
+      selectedTerrainType: terrain,
+      statusMessage: 'Terrain type: ${terrain.name}',
+      errorMessage: null,
+    );
   }
 
   void setCollisionBrushSizeMode(CollisionBrushSizeMode mode) {
@@ -2783,6 +2972,8 @@ class _PaintPattern {
 enum MapToolPreviewMode {
   paint,
   erase,
+  terrainPaint,
+  terrainErase,
   collisionPaint,
   collisionErase,
 }
@@ -2800,7 +2991,8 @@ class MapToolPreview {
     required this.tiles,
     required this.validity,
     this.reason,
-  }) : mode = MapToolPreviewMode.paint;
+  })  : mode = MapToolPreviewMode.paint,
+        terrain = null;
 
   const MapToolPreview.erase({
     required this.origin,
@@ -2809,7 +3001,28 @@ class MapToolPreview {
     this.reason,
   })  : mode = MapToolPreviewMode.erase,
         tilesetId = null,
+        tiles = null,
+        terrain = null;
+
+  const MapToolPreview.terrainPaint({
+    required this.origin,
+    required this.size,
+    required this.terrain,
+    required this.validity,
+    this.reason,
+  })  : mode = MapToolPreviewMode.terrainPaint,
+        tilesetId = null,
         tiles = null;
+
+  const MapToolPreview.terrainErase({
+    required this.origin,
+    required this.size,
+    required this.validity,
+    this.reason,
+  })  : mode = MapToolPreviewMode.terrainErase,
+        tilesetId = null,
+        tiles = null,
+        terrain = null;
 
   const MapToolPreview.collisionPaint({
     required this.origin,
@@ -2818,7 +3031,8 @@ class MapToolPreview {
     this.reason,
   })  : mode = MapToolPreviewMode.collisionPaint,
         tilesetId = null,
-        tiles = null;
+        tiles = null,
+        terrain = null;
 
   const MapToolPreview.collisionErase({
     required this.origin,
@@ -2827,13 +3041,15 @@ class MapToolPreview {
     this.reason,
   })  : mode = MapToolPreviewMode.collisionErase,
         tilesetId = null,
-        tiles = null;
+        tiles = null,
+        terrain = null;
 
   final MapToolPreviewMode mode;
   final GridPos origin;
   final GridSize size;
   final String? tilesetId;
   final List<int>? tiles;
+  final TerrainType? terrain;
   final MapToolPreviewValidity validity;
   final String? reason;
 }
@@ -2898,4 +3114,16 @@ class _ActiveCollisionLayerContext {
   final MapData map;
   final String layerId;
   final CollisionLayer layer;
+}
+
+class _ActiveTerrainLayerContext {
+  const _ActiveTerrainLayerContext({
+    required this.map,
+    required this.layerId,
+    required this.layer,
+  });
+
+  final MapData map;
+  final String layerId;
+  final TerrainLayer layer;
 }

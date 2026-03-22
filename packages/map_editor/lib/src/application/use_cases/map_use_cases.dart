@@ -36,6 +36,15 @@ class CreateMapUseCase {
           tilesetId: defaultTilesetId,
           tiles: List.filled(w * h, 0),
         ),
+        MapLayer.terrain(
+          id: 'l_terrain',
+          name: 'Terrain',
+          terrains: List<TerrainType>.filled(
+            w * h,
+            TerrainType.none,
+            growable: false,
+          ),
+        ),
         MapLayer.collision(
           id: 'l_collisions',
           name: 'Collisions',

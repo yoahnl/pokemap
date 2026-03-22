@@ -55,6 +55,39 @@ Map<String, dynamic> _$$CollisionLayerImplToJson(
       'runtimeType': instance.$type,
     };
 
+_$TerrainLayerImpl _$$TerrainLayerImplFromJson(Map<String, dynamic> json) =>
+    _$TerrainLayerImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      terrains: (json['terrains'] as List<dynamic>?)
+              ?.map((e) => $enumDecode(_$TerrainTypeEnumMap, e))
+              .toList() ??
+          const [],
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$TerrainLayerImplToJson(_$TerrainLayerImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'terrains':
+          instance.terrains.map((e) => _$TerrainTypeEnumMap[e]!).toList(),
+      'runtimeType': instance.$type,
+    };
+
+const _$TerrainTypeEnumMap = {
+  TerrainType.none: 'none',
+  TerrainType.normal: 'normal',
+  TerrainType.water: 'water',
+  TerrainType.tallGrass: 'tallGrass',
+  TerrainType.sand: 'sand',
+  TerrainType.ice: 'ice',
+};
+
 _$ObjectLayerImpl _$$ObjectLayerImplFromJson(Map<String, dynamic> json) =>
     _$ObjectLayerImpl(
       id: json['id'] as String,

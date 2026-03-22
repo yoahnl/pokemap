@@ -1,16 +1,10 @@
 import 'dart:math' as math;
 
 import '../exceptions/map_exceptions.dart';
+import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 
-/// Resizes [map] to the given [width] and [height].
-///
-/// Business rules:
-/// - Existing tiles/collisions keep their (x,y) positions.
-/// - New cells are filled with defaults (tile=0, collision=false).
-/// - Cells outside the new bounds are truncated.
-/// - Object layers are left unchanged (for now).
 MapData resizeMapData(
   MapData map, {
   required int width,
@@ -40,6 +34,14 @@ MapData resizeMapData(
               srcSize: oldSize,
               dstSize: GridSize(width: width, height: height),
               defaultValue: false,
+            ),
+          ),
+          terrain: (l) => l.copyWith(
+            terrains: _resizeFlattened<TerrainType>(
+              src: l.terrains,
+              srcSize: oldSize,
+              dstSize: GridSize(width: width, height: height),
+              defaultValue: TerrainType.none,
             ),
           ),
           object: (l) => l,

@@ -46,6 +46,7 @@ class MapCanvas extends ConsumerWidget {
         );
         final isStrokeEditingTool =
             state.activeTool == EditorToolType.tilePaint ||
+                state.activeTool == EditorToolType.terrainPaint ||
                 state.activeTool == EditorToolType.collisionPaint ||
                 state.activeTool == EditorToolType.eraser;
         final isTapEditingTool = isStrokeEditingTool ||
@@ -57,6 +58,10 @@ class MapCanvas extends ConsumerWidget {
               gridPos,
               tilesetColumnsById: tilesPerRowById,
             );
+            return;
+          }
+          if (state.activeTool == EditorToolType.terrainPaint) {
+            notifier.paintTerrainAt(gridPos);
             return;
           }
           if (state.activeTool == EditorToolType.collisionPaint) {
@@ -267,6 +272,15 @@ class MapGridPainter extends CustomPainter {
     }
     for (var index = map.layers.length - 1; index >= 0; index--) {
       final layer = map.layers[index];
+      if (!layer.isVisible || layer is! TerrainLayer) continue;
+      _paintTerrainLayer(
+        canvas,
+        layer,
+        isActive: layer.id == activeLayerId,
+      );
+    }
+    for (var index = map.layers.length - 1; index >= 0; index--) {
+      final layer = map.layers[index];
       if (!layer.isVisible || layer is! CollisionLayer) continue;
       _paintCollisionLayer(
         canvas,
@@ -383,6 +397,14 @@ class MapGridPainter extends CustomPainter {
     }
     if (preview.mode == MapToolPreviewMode.erase) {
       _paintErasePreview(canvas, preview);
+      return;
+    }
+    if (preview.mode == MapToolPreviewMode.terrainPaint) {
+      _paintTerrainPaintPreview(canvas, preview);
+      return;
+    }
+    if (preview.mode == MapToolPreviewMode.terrainErase) {
+      _paintTerrainErasePreview(canvas, preview);
       return;
     }
     if (preview.mode == MapToolPreviewMode.collisionPaint) {
@@ -503,6 +525,43 @@ class MapGridPainter extends CustomPainter {
       previewRect,
       Paint()
         ..color = Colors.orangeAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 / zoom,
+    );
+  }
+
+  void _paintTerrainPaintPreview(Canvas canvas, MapToolPreview preview) {
+    final previewRect = _computePreviewRect(preview.origin, preview.size);
+    if (previewRect == null) return;
+    final terrainColor = _terrainColor(preview.terrain ?? TerrainType.normal);
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = terrainColor.withValues(alpha: 0.24)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = terrainColor.withValues(alpha: 0.9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 / zoom,
+    );
+  }
+
+  void _paintTerrainErasePreview(Canvas canvas, MapToolPreview preview) {
+    final previewRect = _computePreviewRect(preview.origin, preview.size);
+    if (previewRect == null) return;
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.blueGrey.withValues(alpha: 0.24)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      previewRect,
+      Paint()
+        ..color = Colors.blueGrey.shade200
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -643,6 +702,60 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
+  void _paintTerrainLayer(
+    Canvas canvas,
+    TerrainLayer layer, {
+    required bool isActive,
+  }) {
+    if (layer.terrains.isEmpty) return;
+    final activeBoost = isActive ? 1.0 : 0.85;
+    for (var y = 0; y < map.size.height; y++) {
+      final rowStart = y * map.size.width;
+      for (var x = 0; x < map.size.width; x++) {
+        final index = rowStart + x;
+        if (index < 0 || index >= layer.terrains.length) continue;
+        final terrain = layer.terrains[index];
+        if (terrain == TerrainType.none) continue;
+        final fillColor = _terrainColor(terrain).withValues(
+          alpha: 0.16 * layer.opacity * activeBoost,
+        );
+        final borderColor = _terrainColor(terrain).withValues(
+          alpha: 0.45 * layer.opacity * activeBoost,
+        );
+        final cell = Rect.fromLTWH(
+          x * tileWidth,
+          y * tileHeight,
+          tileWidth,
+          tileHeight,
+        );
+        canvas.drawRect(
+          cell,
+          Paint()
+            ..color = fillColor
+            ..style = PaintingStyle.fill,
+        );
+        canvas.drawRect(
+          cell,
+          Paint()
+            ..color = borderColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.0 / zoom,
+        );
+      }
+    }
+  }
+
+  Color _terrainColor(TerrainType terrain) {
+    return switch (terrain) {
+      TerrainType.none => Colors.transparent,
+      TerrainType.normal => Colors.white70,
+      TerrainType.water => Colors.lightBlueAccent,
+      TerrainType.tallGrass => Colors.lightGreenAccent,
+      TerrainType.sand => Colors.amberAccent,
+      TerrainType.ice => Colors.cyanAccent,
+    };
+  }
+
   @override
   bool shouldRepaint(covariant MapGridPainter oldDelegate) {
     return oldDelegate.map != map ||
@@ -668,6 +781,7 @@ class MapGridPainter extends CustomPainter {
         previous.origin == next.origin &&
         previous.size == next.size &&
         previous.tilesetId == next.tilesetId &&
+        previous.terrain == next.terrain &&
         previous.validity == next.validity &&
         previous.reason == next.reason &&
         listEquals(previous.tiles, next.tiles);

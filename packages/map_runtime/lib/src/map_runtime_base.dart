@@ -17,6 +17,7 @@ class MapRuntime extends Component {
       layer.map(
         tile: (l) => _loadTileLayer(l),
         collision: (l) => _loadCollisionLayer(l),
+        terrain: (l) => _loadTerrainLayer(l),
         object: (l) => _loadObjectLayer(l),
       );
     }
@@ -24,5 +25,6 @@ class MapRuntime extends Component {
 
   void _loadTileLayer(TileLayer layer) {}
   void _loadCollisionLayer(CollisionLayer layer) {}
+  void _loadTerrainLayer(TerrainLayer layer) {}
   void _loadObjectLayer(ObjectLayer layer) {}
 }

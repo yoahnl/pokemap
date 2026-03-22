@@ -49,6 +49,7 @@ class AddMapLayerUseCase {
     final kindPrefix = switch (kind) {
       MapLayerKind.tile => 'l_tile',
       MapLayerKind.collision => 'l_collision',
+      MapLayerKind.terrain => 'l_terrain',
       MapLayerKind.object => 'l_object',
     };
     final slug = _slugifyLayerName(name);

@@ -111,6 +111,10 @@ class LayersPanel extends ConsumerWidget {
                       child: Text('Collision Layer'),
                     ),
                     DropdownMenuItem(
+                      value: MapLayerKind.terrain,
+                      child: Text('Terrain Layer'),
+                    ),
+                    DropdownMenuItem(
                       value: MapLayerKind.object,
                       child: Text('Object Layer'),
                     ),
@@ -370,6 +374,7 @@ class _LayerList extends StatelessWidget {
     return layer.map(
       tile: (_) => Icons.grid_on_outlined,
       collision: (_) => Icons.shield_outlined,
+      terrain: (_) => Icons.terrain_outlined,
       object: (_) => Icons.category_outlined,
     );
   }
@@ -378,6 +383,7 @@ class _LayerList extends StatelessWidget {
     return layer.map(
       tile: (_) => 'tile',
       collision: (_) => 'collision',
+      terrain: (_) => 'terrain',
       object: (_) => 'object',
     );
   }

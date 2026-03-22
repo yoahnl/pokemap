@@ -399,6 +399,12 @@ class MapValidator {
               'Collision layer $layerId has invalid collision count: expected $expectedCellCount, got ${collisionLayer.collisions.length}');
         }
       },
+      terrain: (terrainLayer) {
+        if (terrainLayer.terrains.length != expectedCellCount) {
+          throw ValidationException(
+              'Terrain layer $layerId has invalid terrain count: expected $expectedCellCount, got ${terrainLayer.terrains.length}');
+        }
+      },
       object: (_) {},
     );
   }

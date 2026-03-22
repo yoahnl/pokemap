@@ -75,8 +75,25 @@ enum MapLayerKind {
   tile,
   @JsonValue('collision')
   collision,
+  @JsonValue('terrain')
+  terrain,
   @JsonValue('object')
   object,
+}
+
+enum TerrainType {
+  @JsonValue('none')
+  none,
+  @JsonValue('normal')
+  normal,
+  @JsonValue('water')
+  water,
+  @JsonValue('tallGrass')
+  tallGrass,
+  @JsonValue('sand')
+  sand,
+  @JsonValue('ice')
+  ice,
 }
 
 enum TilesetScope {

@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'enums.dart';
+
 part 'map_layer.freezed.dart';
 part 'map_layer.g.dart';
 
@@ -14,7 +16,7 @@ sealed class MapLayer with _$MapLayer {
     String? tilesetId,
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
-    @Default([]) List<int> tiles, // Flattened array
+    @Default([]) List<int> tiles,
   }) = TileLayer;
 
   @FreezedUnionValue('collision')
@@ -23,8 +25,17 @@ sealed class MapLayer with _$MapLayer {
     required String name,
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
-    @Default([]) List<bool> collisions, // Flattened array
+    @Default([]) List<bool> collisions,
   }) = CollisionLayer;
+
+  @FreezedUnionValue('terrain')
+  const factory MapLayer.terrain({
+    required String id,
+    required String name,
+    @Default(true) bool isVisible,
+    @Default(1.0) double opacity,
+    @Default([]) List<TerrainType> terrains,
+  }) = TerrainLayer;
 
   @FreezedUnionValue('object')
   const factory MapLayer.object({

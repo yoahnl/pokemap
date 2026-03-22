@@ -1,6 +1,7 @@
 enum EditorToolType {
   selection,
   tilePaint,
+  terrainPaint,
   collisionPaint,
   entityPlacement,
   warpPlacement,
@@ -12,6 +13,4 @@ abstract class EditorTool {
   final EditorToolType type;
 
   const EditorTool(this.type);
-
-// Future methods for interaction
 }

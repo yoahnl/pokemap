@@ -604,6 +604,86 @@ final eraseCollisionPatternOnMapUseCaseProvider =
 // ignore: unused_element
 typedef EraseCollisionPatternOnMapUseCaseRef
     = AutoDisposeProviderRef<EraseCollisionPatternOnMapUseCase>;
+String _$paintTerrainOnMapUseCaseHash() =>
+    r'2608b5969a06386570026d63f828a20c22bf476a';
+
+/// See also [paintTerrainOnMapUseCase].
+@ProviderFor(paintTerrainOnMapUseCase)
+final paintTerrainOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintTerrainOnMapUseCase>.internal(
+  paintTerrainOnMapUseCase,
+  name: r'paintTerrainOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintTerrainOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintTerrainOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintTerrainOnMapUseCase>;
+String _$paintTerrainPatternOnMapUseCaseHash() =>
+    r'5f8137ee96d1e43d366729df61fe4f202b2292c7';
+
+/// See also [paintTerrainPatternOnMapUseCase].
+@ProviderFor(paintTerrainPatternOnMapUseCase)
+final paintTerrainPatternOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintTerrainPatternOnMapUseCase>.internal(
+  paintTerrainPatternOnMapUseCase,
+  name: r'paintTerrainPatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintTerrainPatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintTerrainPatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintTerrainPatternOnMapUseCase>;
+String _$eraseTerrainOnMapUseCaseHash() =>
+    r'fcc50fbbb8e800c7a0ca9fac52c483379d24ea97';
+
+/// See also [eraseTerrainOnMapUseCase].
+@ProviderFor(eraseTerrainOnMapUseCase)
+final eraseTerrainOnMapUseCaseProvider =
+    AutoDisposeProvider<EraseTerrainOnMapUseCase>.internal(
+  eraseTerrainOnMapUseCase,
+  name: r'eraseTerrainOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$eraseTerrainOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EraseTerrainOnMapUseCaseRef
+    = AutoDisposeProviderRef<EraseTerrainOnMapUseCase>;
+String _$eraseTerrainPatternOnMapUseCaseHash() =>
+    r'31c1f303bdabc886dc67bb9085c070cc65f2e900';
+
+/// See also [eraseTerrainPatternOnMapUseCase].
+@ProviderFor(eraseTerrainPatternOnMapUseCase)
+final eraseTerrainPatternOnMapUseCaseProvider =
+    AutoDisposeProvider<EraseTerrainPatternOnMapUseCase>.internal(
+  eraseTerrainPatternOnMapUseCase,
+  name: r'eraseTerrainPatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$eraseTerrainPatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EraseTerrainPatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<EraseTerrainPatternOnMapUseCase>;
 String _$addWarpToMapUseCaseHash() =>
     r'fc43a8a83bcd9dc3cda077c04e451c1246b2938f';
 

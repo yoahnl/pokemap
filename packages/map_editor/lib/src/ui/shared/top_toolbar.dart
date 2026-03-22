@@ -131,6 +131,59 @@ class TopToolbar extends ConsumerWidget {
             tooltip: 'Tile Paint Tool',
           ),
           IconButton(
+            onPressed: () => notifier.selectTool(EditorToolType.terrainPaint),
+            icon: Icon(
+              Icons.terrain_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.terrainPaint
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Terrain Paint Tool',
+          ),
+          PopupMenuButton<TerrainType>(
+            tooltip:
+                'Terrain Type: ${_terrainTypeLabel(state.selectedTerrainType)}',
+            onSelected: notifier.selectTerrainType,
+            itemBuilder: (context) => TerrainType.values
+                .map(
+                  (terrain) => PopupMenuItem<TerrainType>(
+                    value: terrain,
+                    child: Row(
+                      children: [
+                        Icon(
+                          _terrainTypeIcon(terrain),
+                          size: 18,
+                          color: terrain == state.selectedTerrainType
+                              ? Colors.blue
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(_terrainTypeLabel(terrain)),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    _terrainTypeIcon(state.selectedTerrainType),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _terrainTypeLabel(state.selectedTerrainType),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  const Icon(Icons.arrow_drop_down),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
             onPressed: () => notifier.selectTool(EditorToolType.collisionPaint),
             icon: Icon(
               Icons.grid_view_outlined,
@@ -239,6 +292,28 @@ class TopToolbar extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  IconData _terrainTypeIcon(TerrainType type) {
+    return switch (type) {
+      TerrainType.none => Icons.block_outlined,
+      TerrainType.normal => Icons.square_outlined,
+      TerrainType.water => Icons.water_outlined,
+      TerrainType.tallGrass => Icons.grass_outlined,
+      TerrainType.sand => Icons.landscape_outlined,
+      TerrainType.ice => Icons.ac_unit_outlined,
+    };
+  }
+
+  String _terrainTypeLabel(TerrainType type) {
+    return switch (type) {
+      TerrainType.none => 'None',
+      TerrainType.normal => 'Normal',
+      TerrainType.water => 'Water',
+      TerrainType.tallGrass => 'TallGrass',
+      TerrainType.sand => 'Sand',
+      TerrainType.ice => 'Ice',
+    };
   }
 
   void _showNewMapDialog(

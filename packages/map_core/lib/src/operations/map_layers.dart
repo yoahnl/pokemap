@@ -40,6 +40,12 @@ MapData addMapLayer(
         name: normalizedName,
         collisions: List<bool>.filled(cellCount, false, growable: false),
       ),
+    MapLayerKind.terrain => MapLayer.terrain(
+        id: normalizedId,
+        name: normalizedName,
+        terrains: List<TerrainType>.filled(cellCount, TerrainType.none,
+            growable: false),
+      ),
     MapLayerKind.object => MapLayer.object(
         id: normalizedId,
         name: normalizedName,
@@ -176,6 +182,11 @@ MapLayer _copyLayer(
       name: name ?? collisionLayer.name,
       isVisible: isVisible ?? collisionLayer.isVisible,
       opacity: opacity ?? collisionLayer.opacity,
+    ),
+    terrain: (terrainLayer) => terrainLayer.copyWith(
+      name: name ?? terrainLayer.name,
+      isVisible: isVisible ?? terrainLayer.isVisible,
+      opacity: opacity ?? terrainLayer.opacity,
     ),
     object: (objectLayer) => objectLayer.copyWith(
       name: name ?? objectLayer.name,

@@ -192,6 +192,30 @@ EraseCollisionPatternOnMapUseCase eraseCollisionPatternOnMapUseCase(
 }
 
 @riverpod
+PaintTerrainOnMapUseCase paintTerrainOnMapUseCase(
+    PaintTerrainOnMapUseCaseRef ref) {
+  return PaintTerrainOnMapUseCase();
+}
+
+@riverpod
+PaintTerrainPatternOnMapUseCase paintTerrainPatternOnMapUseCase(
+    PaintTerrainPatternOnMapUseCaseRef ref) {
+  return PaintTerrainPatternOnMapUseCase();
+}
+
+@riverpod
+EraseTerrainOnMapUseCase eraseTerrainOnMapUseCase(
+    EraseTerrainOnMapUseCaseRef ref) {
+  return EraseTerrainOnMapUseCase();
+}
+
+@riverpod
+EraseTerrainPatternOnMapUseCase eraseTerrainPatternOnMapUseCase(
+    EraseTerrainPatternOnMapUseCaseRef ref) {
+  return EraseTerrainPatternOnMapUseCase();
+}
+
+@riverpod
 AddWarpToMapUseCase addWarpToMapUseCase(AddWarpToMapUseCaseRef ref) {
   return AddWarpToMapUseCase();
 }
