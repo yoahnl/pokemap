@@ -31,7 +31,7 @@ Separations metier explicites:
 - Gestion du manifest projet.
 - Creer/charger/sauvegarder/renommer/supprimer/dupliquer/resize de map.
 - Parametres globaux projet (`tileWidth`, `tileHeight`, `displayScale`, `defaultMapWidth`, `defaultMapHeight`).
-- Import tilesets (copie locale + chemin relatif), scope global/groupe, assignation a une map.
+- Import tilesets (copie locale + chemin relatif), scope global/groupe, assignation a une `TileLayer`.
 - Rendu des tile layers sur canvas + peinture tile unitaire et multi-tile.
 - Systeme de layers operationnel sur map active:
   - ajout / renommage / suppression / reorder (avant/arriere),
@@ -76,10 +76,11 @@ Separations metier explicites:
   - detection de cycles,
   - coherence element -> tileset/category/groupId/tilesetGroupId/source rect.
 - Validation map renforcee (`MapValidator.validate`):
-  - checks stricts des champs map (id/name/tilesetId/size),
+  - checks stricts des champs map (id/name/size),
   - unicite IDs internes (layers/entities/warps/triggers),
   - validation complete des layers (opacity, tailles de grilles, tile IDs non negatifs),
-  - validation des positions entites/warps/triggers et des zones de triggers.
+  - validation des positions entites/warps/triggers et des zones de triggers,
+  - map valide meme avec zero layer (choix explicite de conception pour ce projet).
 
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
@@ -104,9 +105,21 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-refonte complete du systeme de layers dans `map_editor` (etat/use cases/notifier/UI/rendu/peinture ciblee sur layer active).
+finalisation de la refonte layers:
+- coherences ordre UI (Haut/Bas) corrigees dans le panneau layers,
+- ordre de rendu canvas aligne sur la hierarchie affichee des layers.
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (correctifs fin d etape layers):
+- `map_editor`:
+  - `LayersPanel`: correction des actions de reorder pour que:
+    - bouton Haut -> `moveMapLayerUp`,
+    - bouton Bas -> `moveMapLayerDown`,
+    - tooltips alignes avec ce comportement.
+  - `MapCanvas`: correction de l ordre de peinture pour respecter la pile affichee:
+    - layer la plus basse dessinee en premier,
+    - layer la plus haute dessinee en dernier (donc visible au-dessus).
+
 2026-03-22:
 - refonte tilesets par layer (option 1):
   - `map_core`:
@@ -177,7 +190,7 @@ refonte complete du systeme de layers dans `map_editor` (etat/use cases/notifier
 2026-03-22:
 - `map_core`:
   - `MapValidator.validate(MapData map)` etendu avec validations completes:
-    - champs map obligatoires non vides (`id`, `name`, `tilesetId`),
+    - champs map obligatoires non vides (`id`, `name`),
     - tailles map strictement positives,
     - unicite des IDs internes (`layers`, `entities`, `warps`, `triggers`),
     - validation par type de layer:
@@ -288,6 +301,7 @@ refonte complete du systeme de layers dans `map_editor` (etat/use cases/notifier
 - La logique visuelle tileset est maintenant centrale; le panneau droit reste mixte (outils + bibliotheque) et peut encore etre simplifie.
 - Le paint d un element d un autre tileset que celui de la map active est bloque cote notifier avec message d erreur (comportement volontaire).
 - `MapValidator` ne verifie pas l existence reelle de la map cible des warps (verification volontairement gardee au niveau projet).
+- Le concept metier courant est `tileset par TileLayer`; `MapData.tilesetId` est conserve en legacy JSON uniquement.
 
 ## Checklist fonctionnelle (etat)
 - Ouvrir un projet existant: fait
@@ -316,9 +330,10 @@ refonte complete du systeme de layers dans `map_editor` (etat/use cases/notifier
 - Avoir une palette de tiles: fait
 - Charger et afficher un vrai tileset: fait
 - Gerer plusieurs tilesets: fait
-- Associer un tileset a une map: fait
+- Associer un tileset a une TileLayer: fait
 - Workspace d edition de tileset: fait
 - Panneau Layers dedie: fait
+- Respect strict de la pile visuelle des layers (ordre panneau -> rendu canvas): fait
 - Mode explicite map/tileset du canvas central: fait
 - Affichage du tileset selectionne dans le canvas central: fait
 - Groupes internes de tileset (categorie/sous-categorie): fait
@@ -358,7 +373,7 @@ refonte complete du systeme de layers dans `map_editor` (etat/use cases/notifier
 
 ## Mini tableau priorites (etat)
 - Systeme de brush: fait
-- Layers: partiellement fait
+- Layers: fait (base MVP), evolutions avancees non faites
 - Collisions: pas fait
 - Undo/redo: pas fait
 - Warps/triggers/entities: pas fait
