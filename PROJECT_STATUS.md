@@ -147,7 +147,8 @@ Separations metier explicites:
     - selection d un warp existant sur la cellule,
     - sinon creation d un warp valide (`targetMapId = map active`, `targetPos = pos`),
   - rendu overlay des warps dans `MapGridPainter` avec distinction du warp selectionne,
-  - panneau `WarpPropertiesPanel` (liste, selection, edition `id/targetMapId/targetPos`, suppression),
+  - validation inter-map cote editor sur existence de `targetMapId` dans le `ProjectManifest`,
+  - panneau `WarpPropertiesPanel` (liste, selection, edition `id/targetMapId/targetPos`, suppression) avec picker de map cible et resume destination,
   - integration complete dans le pipeline map-level (`_applyMapMutation`) avec undo/redo et dirty state.
 
 ## 4. Fonctionnalites partiellement faites
@@ -156,7 +157,7 @@ Separations metier explicites:
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
 - Terrains/Sols: base MVP solide (types + paint/erase/overlay/preview), comportements gameplay/runtime non implementes.
-- Warps: MVP pose/selection/edition/suppression fait, mais sans validation inter-map et sans outillage avance (liens assistes, preview destination).
+- Warps: edition utile avec validation inter-map + picker map cible + resume destination texte, mais sans liaison assistee bidirectionnelle ni verification des bornes dans la map cible.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
 - Interaction selection vs scroll dans le canvas tileset: base solide, raffinements UX possibles.
@@ -170,19 +171,37 @@ Separations metier explicites:
 - Undo/redo global projet (au-dela de la map active).
 - Collisions avancees (types/comportements).
 - Triggers/NPC/objets/panneaux/spawn (pose + edition).
-- Warps avances (validation inter-map, ergonomie de liaison, visualisations de destination).
+- Warps avances (liaison assistee bidirectionnelle, verification bornes map cible, visualisation graphique de destination).
 - Inspector de proprietes complet.
 - Preview runtime in-game.
 - Gestion assets projet au-dela des tilesets.
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-- Terrain / Sols MVP map-level:
-  - types de terrain + donnees persistees,
-  - paint/erase + overlay + preview,
-  - integration pipeline undo/redo + dirty.
+- Amelioration Warps:
+  - validation inter-map cote editor/application,
+  - picker de map cible dans le panneau warp,
+  - resume destination map/position,
+  - conservation du pipeline map-level (undo/redo/dirty/selection).
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (warps UX + validation inter-map):
+- `map_editor`:
+  - ajout du use case `ValidateWarpTargetMapUseCase` (validation d existence de `targetMapId` dans le manifest projet),
+  - ajout du provider Riverpod `validateWarpTargetMapUseCaseProvider`,
+  - `EditorNotifier`:
+    - validation inter-map executee avant creation/mise a jour de warp,
+    - message d erreur explicite si `targetMapId` est vide ou inexistant,
+    - conservation du pipeline `_applyMapMutation(...)` pour garder undo/redo/dirty/selection coherents,
+  - `WarpPropertiesPanel`:
+    - remplacement du champ libre `targetMapId` par un dropdown des maps du projet,
+    - indication visuelle quand la cible courante n existe plus,
+    - resume destination explicite (map cible + position).
+- Impact:
+  - edition warp plus fiable et plus guidée,
+  - moins d erreurs de saisie manuelle sur `targetMapId`,
+  - aucune regression sur la selection warp, la creation au clic, ni l historique map-level.
+
 2026-03-22 (bugfix affichage elements multi-tileset):
 - `map_editor`:
   - ajout d un contexte de selection tileset explicite dans `EditorNotifier`:
@@ -522,9 +541,9 @@ Terminee pour cette etape:
 
 ## 8. Prochaines etapes recommandees
 - Etendre les warps apres MVP:
-  - validation inter-map (`targetMapId`) au niveau projet,
-  - selection assistee de map cible depuis le manifest,
-  - visualisation optionnelle de la destination.
+  - liaison assistee de warps entre deux maps (creation paire / retour),
+  - verification optionnelle des bornes `targetPos` dans la map cible,
+  - visualisation graphique optionnelle de la destination (preview mini-map ou jump-to-map).
 - Etendre les terrains apres MVP:
   - support de comportements de sol (tags/proprietes),
   - interactions gameplay (rencontres, surf, glissade) cote runtime,
@@ -539,7 +558,7 @@ Terminee pour cette etape:
 - Ajouter edition/suppression des elements directement depuis le workspace central tileset.
 - Ajouter des interactions de navigation plus avancees dans `TilesetEditorCanvas` (panning dedie, raccourcis).
 - Ajouter un feedback explicite de la raison d invalidite directement dans l UI quand la preview est en mode refuse.
-- Ajouter ensuite des validations de coherence inter-maps au niveau projet (ex: existence reelle des `targetMapId` des warps) dans la validation projet.
+- Ajouter ensuite une validation batch de coherence inter-maps au niveau projet (ex: verification globale de tous les `targetMapId` et references croisees), en complement de la validation editor deja en place.
 
 ## 9. Decisions d architecture importantes
 - `EditorState.activeBrush` est la seule source de verite pour la selection de brush.
@@ -580,7 +599,9 @@ Terminee pour cette etape:
   - outil dedie `warpPlacement`,
   - clic sur cellule avec warp existant => selection,
   - clic sur cellule vide => creation warp,
-  - creation warp immediate avec valeurs valides par defaut (`targetMapId = map active`, `targetPos = pos`) pour eviter des objets invalides.
+  - creation warp immediate avec valeurs valides par defaut (`targetMapId = map active`, `targetPos = pos`) pour eviter des objets invalides,
+  - edition warp via dropdown de map cible (pas de saisie libre) pour limiter les erreurs de reference,
+  - validation inter-map gardee cote editor/application (et non `map_core`) car dependante du `ProjectManifest`.
 - `selectedWarpId` fait partie de l etat editor et de l historique map-level pour garder undo/redo coherent avec la selection.
 - La compatibilite avec l existant est conservee:
   - import/assign tileset,
@@ -606,8 +627,8 @@ Terminee pour cette etape:
 - Le paint d un element d un autre tileset que celui de la map active est bloque cote notifier avec message d erreur (comportement volontaire).
 - `MapValidator` ne verifie pas l existence reelle de la map cible des warps (verification volontairement gardee au niveau projet).
 - Le panneau warp reste MVP:
-  - edition de base uniquement (`id`, `targetMapId`, `targetPos`),
-  - pas encore de picker guide pour les maps cibles.
+  - edition de base (`id`, `targetMapId`, `targetPos`) avec picker map cible et resume destination texte,
+  - pas encore de liaison assistee entre maps ni de preview graphique.
 - Le concept metier courant est `tileset par TileLayer`; `MapData.tilesetId` est conserve en legacy JSON uniquement.
 
 ## Checklist fonctionnelle (etat)
@@ -656,7 +677,7 @@ Terminee pour cette etape:
 - Effacer des terrains/sols: fait (MVP)
 - Visualiser les terrains/sols: fait (MVP overlay)
 - Poser des warps: fait (MVP)
-- Configurer les warps: partiellement fait (MVP: id/targetMapId/targetPos + suppression)
+- Configurer les warps: partiellement fait (picker map cible + id/targetPos + resume destination + suppression; liaison assistee non faite)
 - Poser des triggers: pas fait
 - Configurer les triggers: pas fait
 - Poser des PNJ: pas fait
