@@ -126,16 +126,23 @@ Separations metier explicites:
   - types de terrain supportes:
     - `none`
     - `normal`
+    - `path`
     - `water`
     - `tallGrass`
     - `sand`
     - `ice`
   - operations pures `map_core` pour paint/erase terrain unitaire et pattern,
+  - autotiling logique de chemin dans `map_core`:
+    - calcul du mask cardinal N/E/S/W,
+    - resolution de variantes (`isolated`, `end*`, `horizontal`, `vertical`, `corner*`, `tee*`, `cross`),
   - use cases dedies + providers Riverpod dans `map_editor`,
   - outil `terrainPaint` dans la toolbar + selection du type de terrain actif,
+  - action UX rapide `Path Paint Tool` pour basculer directement en peinture de `TerrainType.path`,
   - paint/erase terrain au clic + drag via pipeline map-level centralise,
   - integration complete undo/redo map-level (strokes),
-  - overlay terrain lisible dans le canvas map,
+  - rendu terrain:
+    - overlay terrain lisible pour les types non-path,
+    - rendu path auto-connecte par variante via mapping visuel dedie,
   - ghost preview terrain paint/erase dedie,
   - resize map compatible (conserve les terrains existants, nouvelles cellules a `none`),
   - validation map etendue pour verifier la taille des grilles terrain.
@@ -160,7 +167,7 @@ Separations metier explicites:
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
-- Terrains/Sols: base MVP solide (types + paint/erase/overlay/preview), comportements gameplay/runtime non implementes.
+- Terrains/Sols: base MVP solide (types + paint/erase/preview + path auto-connecte), comportements gameplay/runtime non implementes.
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -182,14 +189,40 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-- Amelioration Warps:
-  - validation inter-map cote editor/application,
-  - picker de map cible dans le panneau warp,
-  - resume destination map/position,
-  - creation assistee de warp retour (`Create Return Warp`) avec gestion cross-map,
+- Terrains/Sols - chemins auto-connectes:
+  - ajout `TerrainType.path`,
+  - logique pure d autotiling path dans `map_core`,
+  - rendu auto-connecte path dans `MapGridPainter`,
+  - UX de dessin de chemins via `Path Paint Tool`,
   - conservation du pipeline map-level (undo/redo/dirty/selection).
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (terrains - path auto-connecte MVP):
+- `map_core`:
+  - ajout de `TerrainType.path` dans le modele metier,
+  - ajout de `TerrainPathVariant`,
+  - ajout de `map_terrain_autotile.dart` avec operations pures:
+    - `resolveTerrainCardinalMaskAt(...)`,
+    - `resolveTerrainPathVariantFromMask(...)`,
+    - `resolveTerrainPathVariantAt(...)`,
+  - export des operations d autotiling via `map_core.dart`.
+- `map_editor`:
+  - ajout de `PathAutotileSet` (mapping logique -> source rect) avec preset par defaut 4x4,
+  - `EditorNotifier`:
+    - ajout `getPathAutotileSet()` pour resoudre le mapping visuel courant,
+    - ajout `selectPathPaintMode()` pour basculer directement sur la peinture de chemin,
+  - `TopToolbar`:
+    - ajout du bouton `Path Paint Tool`,
+    - ajout de `path` dans la liste des types de terrain selectionnables,
+  - `MapCanvas` / `MapGridPainter`:
+    - chargement du tileset necessaire au rendu path,
+    - rendu auto-connecte des cellules `TerrainType.path` selon leurs voisins,
+    - fallback overlay si la ressource visuelle de path n est pas disponible.
+- Impact:
+  - dessin de chemins nettement plus ergonomique (coins, segments, T et croisement automatiques),
+  - donnees metier restees simples (stockage du type logique uniquement),
+  - compatibilite conservee avec paint/erase terrain, undo/redo, resize et sauvegarde JSON.
+
 2026-03-22 (warps - creation assistee du warp retour):
 - `map_editor`:
   - use cases:
@@ -581,7 +614,8 @@ Terminee pour cette etape:
 - Etendre les terrains apres MVP:
   - support de comportements de sol (tags/proprietes),
   - interactions gameplay (rencontres, surf, glissade) cote runtime,
-  - eventuelle separation entre couche metier terrain et rendu anime (eau).
+  - configuration editor du mapping visuel des variantes path (au-dela du preset par defaut),
+  - separation plus fine entre rendu terrain editor et rendu runtime (eau animee, autotiles et transitions).
 - Finaliser l eclatement complet du monolithe `project_use_cases.dart` (tilesets/elements/projet) pour aligner toute la couche application sur la meme granularite.
 - Ajouter suppression/reorder des groupes internes de tileset et suppression de palette entries.
 - Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
@@ -625,10 +659,12 @@ Terminee pour cette etape:
   - overlay collision rendu au-dessus des tiles pour garder la lisibilite d edition.
 - Decision UX terrains:
   - outil dedie `terrainPaint`,
+  - action rapide `Path Paint Tool` qui active `terrainPaint` + `TerrainType.path`,
   - type de terrain actif selectionne depuis la toolbar,
   - `eraser` contextuel efface les terrains (`TerrainType.none`) si la layer active est une `TerrainLayer`,
   - taille de paint/erase terrain basee sur le footprint du brush actif (fallback 1x1 si aucun brush),
-  - overlay terrain rendu au-dessus des tiles et sous collisions/warps.
+  - rendu path auto-connecte base sur les voisins cardinaux, sans stocker la variante visuelle dans les donnees map,
+  - overlay terrain (hors path) rendu au-dessus des tiles et sous collisions/warps.
 - Decision UX warps:
   - outil dedie `warpPlacement`,
   - clic sur cellule avec warp existant => selection,
@@ -648,7 +684,12 @@ Terminee pour cette etape:
 - Le ghost preview invalide pre-vient le refus avant clic, mais la raison detaillee n est pas encore affichee directement dans l UI.
 - Les brushes lies a un tileset different restent bloques a la peinture si la layer active ne peut pas etre rebindee.
 - Les layers `collision` sont maintenant rendues en overlay, mais le rendu reste volontairement simple (bool), sans typage avance.
-- Les layers `terrain` sont rendues en overlay MVP; le rendu reste volontairement simple (pas d autotile/animation/blending).
+- Les layers `terrain` restent en rendu MVP:
+  - `path` a un autotiling logique rendu en editor,
+  - les autres terrains restent en overlay simple (pas d animation/blending).
+- Le rendu path auto-connecte utilise un mapping visuel par defaut 4x4 dans l editeur:
+  - pas encore d UI de configuration du mapping,
+  - pas encore de persistance de ce mapping dans le manifest projet.
 - Les layers `object` restent sans rendu editorial dedie.
 - Le Warp MVP n interdit pas explicitement plusieurs warps sur la meme case dans les donnees importees; en UI, le clic selectionne le premier warp trouve sur la case.
 - Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
@@ -711,7 +752,8 @@ Terminee pour cette etape:
 - Gerer plusieurs types de collisions ou comportements de sol: pas fait
 - Peindre des terrains/sols: fait (MVP)
 - Effacer des terrains/sols: fait (MVP)
-- Visualiser les terrains/sols: fait (MVP overlay)
+- Dessiner des chemins auto-connectes: fait (MVP)
+- Visualiser les terrains/sols: fait (MVP overlay + path autotile)
 - Poser des warps: fait (MVP)
 - Configurer les warps: partiellement fait (picker map cible + id/targetPos + resume destination + suppression + creation retour assistee; lien persistant bidirectionnel non fait)
 - Poser des triggers: pas fait
@@ -744,7 +786,7 @@ Terminee pour cette etape:
 - Ghost preview + erase: fait
 - Systeme de brush: fait
 - Layers: fait (base MVP), evolutions avancees non faites
-- Terrains/Sols: fait (MVP), comportements gameplay/runtime non faits
+- Terrains/Sols: fait (MVP + path auto-connecte), comportements gameplay/runtime non faits
 - Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
 - Undo/redo: fait (map active)
 - Warps/triggers/entities: partiellement fait (warps MVP fait, triggers/entities non faits)
