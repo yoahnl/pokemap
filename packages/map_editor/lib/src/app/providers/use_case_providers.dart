@@ -238,6 +238,12 @@ ValidateWarpTargetMapUseCase validateWarpTargetMapUseCase(
 }
 
 @riverpod
+CreateReciprocalWarpUseCase createReciprocalWarpUseCase(
+    CreateReciprocalWarpUseCaseRef ref) {
+  return CreateReciprocalWarpUseCase(ref.watch(mapRepositoryProvider));
+}
+
+@riverpod
 AddMapLayerUseCase addMapLayerUseCase(AddMapLayerUseCaseRef ref) {
   return AddMapLayerUseCase();
 }

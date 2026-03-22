@@ -1609,6 +1609,63 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  Future<void> createReciprocalWarpForSelectedWarp() async {
+    final fs = state.fileSystem;
+    final project = state.project;
+    final sourceMap = state.activeMap;
+    final selectedWarpId = state.selectedWarpId;
+    if (fs == null) {
+      state = state.copyWith(errorMessage: 'No project filesystem available');
+      return;
+    }
+    if (project == null) {
+      state = state.copyWith(errorMessage: 'No project loaded');
+      return;
+    }
+    if (sourceMap == null) {
+      state = state.copyWith(errorMessage: 'No active map loaded');
+      return;
+    }
+    if (selectedWarpId == null) {
+      state = state.copyWith(errorMessage: 'No warp selected');
+      return;
+    }
+    final selectedWarp = _findWarpById(sourceMap, selectedWarpId);
+    if (selectedWarp == null) {
+      state = state.copyWith(errorMessage: 'Selected warp not found');
+      return;
+    }
+
+    try {
+      final useCase = ref.read(createReciprocalWarpUseCaseProvider);
+      final result = await useCase.execute(
+        fs,
+        project,
+        sourceMap: sourceMap,
+        sourceWarp: selectedWarp,
+      );
+
+      if (result.targetIsSourceMap) {
+        _applyMapMutation(
+          previousMap: sourceMap,
+          updatedMap: result.updatedTargetMap,
+          preferredActiveLayerId: state.activeLayerId,
+          preferredSelectedWarpId: selectedWarpId,
+          statusMessage:
+              'Return warp "${result.reciprocalWarp.id}" created in map "${result.updatedTargetMap.id}"',
+        );
+      } else {
+        state = state.copyWith(
+          statusMessage:
+              'Return warp "${result.reciprocalWarp.id}" created in map "${result.updatedTargetMap.id}"',
+          errorMessage: null,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create return warp: $e');
+    }
+  }
+
   void updateWarp({
     required String warpId,
     String? id,

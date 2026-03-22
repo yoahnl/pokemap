@@ -763,6 +763,26 @@ final validateWarpTargetMapUseCaseProvider =
 // ignore: unused_element
 typedef ValidateWarpTargetMapUseCaseRef
     = AutoDisposeProviderRef<ValidateWarpTargetMapUseCase>;
+String _$createReciprocalWarpUseCaseHash() =>
+    r'33ca8c9e7517ae118cf883ae27d12a3663134eaa';
+
+/// See also [createReciprocalWarpUseCase].
+@ProviderFor(createReciprocalWarpUseCase)
+final createReciprocalWarpUseCaseProvider =
+    AutoDisposeProvider<CreateReciprocalWarpUseCase>.internal(
+  createReciprocalWarpUseCase,
+  name: r'createReciprocalWarpUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createReciprocalWarpUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateReciprocalWarpUseCaseRef
+    = AutoDisposeProviderRef<CreateReciprocalWarpUseCase>;
 String _$addMapLayerUseCaseHash() =>
     r'9d7129cee987442d8a9e36905876a797b1873ed5';
 

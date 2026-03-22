@@ -33,8 +33,9 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
     final project = state.project;
-    final projectMaps =
-        project == null ? <ProjectMapEntry>[] : List<ProjectMapEntry>.from(project.maps);
+    final projectMaps = project == null
+        ? <ProjectMapEntry>[]
+        : List<ProjectMapEntry>.from(project.maps);
     projectMaps.sort((a, b) {
       final sortCompare = a.sortOrder.compareTo(b.sortOrder);
       if (sortCompare != 0) return sortCompare;
@@ -175,6 +176,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     final currentTargetMapLabel = currentTargetMapEntry == null
         ? 'Missing map: ${selectedWarp.targetMapId}'
         : '${currentTargetMapEntry.name} (${currentTargetMapEntry.id})';
+    final canCreateReturnWarp = currentTargetMapEntry != null;
     final pickedTargetMapId = _selectedTargetMapId;
     final pickedTargetMapExists = pickedTargetMapId != null &&
         projectMapById.containsKey(pickedTargetMapId);
@@ -323,6 +325,22 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
               tooltip: 'Delete selected warp',
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: canCreateReturnWarp
+                ? notifier.createReciprocalWarpForSelectedWarp
+                : null,
+            icon: const Icon(Icons.swap_horiz),
+            label: const Text('Create Return Warp'),
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Creates a reciprocal warp in the target map at the destination cell.',
+          style: TextStyle(fontSize: 11, color: Colors.white54),
         ),
       ],
     );

@@ -68,3 +68,90 @@ class ValidateWarpTargetMapUseCase {
         'Warp target map not found in project: $normalizedTargetMapId');
   }
 }
+
+class CreateReciprocalWarpResult {
+  const CreateReciprocalWarpResult({
+    required this.updatedTargetMap,
+    required this.reciprocalWarp,
+    required this.targetIsSourceMap,
+  });
+
+  final MapData updatedTargetMap;
+  final MapWarp reciprocalWarp;
+  final bool targetIsSourceMap;
+}
+
+class CreateReciprocalWarpUseCase {
+  CreateReciprocalWarpUseCase(this._mapRepo);
+
+  final MapRepository _mapRepo;
+
+  Future<CreateReciprocalWarpResult> execute(
+    ProjectFileSystem fs,
+    ProjectManifest project, {
+    required MapData sourceMap,
+    required MapWarp sourceWarp,
+  }) async {
+    final targetMapId = sourceWarp.targetMapId.trim();
+    if (targetMapId.isEmpty) {
+      throw Exception('Warp target map cannot be empty');
+    }
+    final targetMapEntry = project.maps.firstWhere(
+      (entry) => entry.id == targetMapId,
+      orElse: () =>
+          throw Exception('Warp target map not found in project: $targetMapId'),
+    );
+
+    final targetIsSourceMap = targetMapEntry.id == sourceMap.id;
+    final targetMap = targetIsSourceMap
+        ? sourceMap
+        : await _mapRepo
+            .loadMap(fs.resolveMapPath(targetMapEntry.relativePath));
+
+    final destinationPos = sourceWarp.targetPos;
+    if (destinationPos.x < 0 ||
+        destinationPos.y < 0 ||
+        destinationPos.x >= targetMap.size.width ||
+        destinationPos.y >= targetMap.size.height) {
+      throw Exception(
+          'Warp destination is out of bounds in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
+    }
+
+    final hasWarpAtDestination =
+        targetMap.warps.any((warp) => warp.pos == destinationPos);
+    if (hasWarpAtDestination) {
+      throw Exception(
+          'A warp already exists in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
+    }
+
+    final reciprocalWarp = MapWarp(
+      id: _generateUniqueWarpId(targetMap),
+      pos: destinationPos,
+      targetMapId: sourceMap.id,
+      targetPos: sourceWarp.pos,
+    );
+    final updatedTargetMap = addWarpToMap(targetMap, warp: reciprocalWarp);
+    MapValidator.validate(updatedTargetMap);
+
+    if (!targetIsSourceMap) {
+      final targetMapPath = fs.resolveMapPath(targetMapEntry.relativePath);
+      await _mapRepo.saveMap(updatedTargetMap, targetMapPath);
+    }
+
+    return CreateReciprocalWarpResult(
+      updatedTargetMap: updatedTargetMap,
+      reciprocalWarp: reciprocalWarp,
+      targetIsSourceMap: targetIsSourceMap,
+    );
+  }
+
+  String _generateUniqueWarpId(MapData map) {
+    final existingIds = map.warps.map((warp) => warp.id).toSet();
+    if (!existingIds.contains('warp')) return 'warp';
+    var index = 1;
+    while (existingIds.contains('warp_$index')) {
+      index++;
+    }
+    return 'warp_$index';
+  }
+}
