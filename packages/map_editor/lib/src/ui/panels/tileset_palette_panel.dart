@@ -103,6 +103,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             style: TextStyle(color: Colors.white38)),
       );
     }
+    final sortedTilesets = List<ProjectTilesetEntry>.from(project.tilesets)
+      ..sort((a, b) {
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) return sortCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
 
     final tileLayers =
         map?.layers.whereType<TileLayer>().toList(growable: false) ?? const [];
@@ -174,6 +180,31 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedTileset.id,
+                    isDense: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Tileset',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: sortedTilesets
+                        .map(
+                          (tileset) => DropdownMenuItem<String>(
+                            value: tileset.id,
+                            child: Text(
+                              tileset.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      notifier.selectTilesetEditorContext(value);
+                    },
                   ),
                   Text(
                     '${columns * rows} tiles',

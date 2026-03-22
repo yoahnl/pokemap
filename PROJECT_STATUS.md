@@ -183,6 +183,26 @@ Terminee pour cette etape:
   - integration pipeline undo/redo + dirty.
 
 ## 7. Dernieres modifications realisees
+2026-03-22 (bugfix affichage elements multi-tileset):
+- `map_editor`:
+  - ajout d un contexte de selection tileset explicite dans `EditorNotifier`:
+    - `selectTilesetEditorContext(String? tilesetId)`.
+  - ajout d un selecteur `Tileset` dans `TilesetPalettePanel` pour choisir le tileset affiche dans le panneau droit sans changer le mode du workspace central.
+  - suppression du couplage implicite `setActiveLayer(...)` -> `selectedTilesetEditorId` pour eviter les retours silencieux vers le tileset de layer.
+- Impact:
+  - la liste d elements du panneau droit peut maintenant basculer explicitement entre tous les tilesets importes,
+  - l affichage n est plus force par le changement de layer active.
+
+2026-03-22 (bugfix tileset elements visibles):
+- `map_editor`:
+  - correction de la resolution du tileset courant dans `getSelectedTilesetEntry()`:
+    - priorite au tileset de la `TileLayer` active quand disponible.
+  - correction de la conservation du contexte tileset:
+    - `loadMap(...)` preserve `selectedTilesetEditorId` quand il reste valide dans le projet,
+    - `_applyMapMutation(...)` ne force plus un reset systematique vers le tileset map/layer quand un tileset utilisateur est deja selectionne.
+- Impact:
+  - la selection explicite utilisateur du tileset est conservee au chargement map et pendant les mutations map-level.
+
 2026-03-22 (terrain / sols MVP):
 - `map_core`:
   - ajout `TerrainType` dans `enums.dart`,

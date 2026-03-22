@@ -200,6 +200,17 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(loadMapUseCaseProvider);
       final map = await useCase.execute(fs, relativePath);
+      final project = state.project;
+      final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
+      final nextSelectedTilesetEditorId =
+          preservedSelectedTilesetEditorId != null &&
+                  preservedSelectedTilesetEditorId.isNotEmpty &&
+                  project != null &&
+                  project.tilesets.any(
+                    (tileset) => tileset.id == preservedSelectedTilesetEditorId,
+                  )
+              ? preservedSelectedTilesetEditorId
+              : _resolveSelectedTilesetIdForMap(map);
 
       state = state.copyWith(
         activeMap: map,
@@ -208,7 +219,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
         selectedWarpId: null,
-        selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
+        selectedTilesetEditorId: nextSelectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
@@ -701,6 +712,19 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void selectTilesetEditorContext(String? tilesetId) {
+    final project = state.project;
+    if (project == null) return;
+    if (tilesetId != null && !project.tilesets.any((t) => t.id == tilesetId)) {
+      return;
+    }
+    state = state.copyWith(
+      selectedTilesetEditorId: tilesetId,
+      selectedTilesetElementGroupId: null,
+      errorMessage: null,
+    );
+  }
+
   ProjectTilesetEntry? getSelectedTilesetEntry() {
     final project = state.project;
     if (project == null) return null;
@@ -710,6 +734,22 @@ class EditorNotifier extends _$EditorNotifier {
       for (final tileset in project.tilesets) {
         if (tileset.id == selectedId) {
           return tileset;
+        }
+      }
+    }
+
+    final map = state.activeMap;
+    final activeLayerId = state.activeLayerId;
+    if (map != null && activeLayerId != null) {
+      final activeLayer = _findLayerById(map, activeLayerId);
+      if (activeLayer is TileLayer) {
+        final layerTilesetId = activeLayer.tilesetId?.trim();
+        if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
+          for (final tileset in project.tilesets) {
+            if (tileset.id == layerTilesetId) {
+              return tileset;
+            }
+          }
         }
       }
     }
@@ -2722,8 +2762,8 @@ class EditorNotifier extends _$EditorNotifier {
   void setActiveLayer(String layerId) {
     final map = state.activeMap;
     if (map == null) return;
-    final exists = map.layers.any((layer) => layer.id == layerId);
-    if (!exists) {
+    final selectedLayer = _findLayerById(map, layerId);
+    if (selectedLayer == null) {
       state = state.copyWith(errorMessage: 'Layer not found: $layerId');
       return;
     }
@@ -2797,16 +2837,23 @@ class EditorNotifier extends _$EditorNotifier {
       updatedMap,
       preferredWarpId: preferredSelectedWarpId ?? state.selectedWarpId,
     );
+    final currentSelectedTilesetEditorId =
+        state.selectedTilesetEditorId?.trim();
+    final nextSelectedTilesetEditorId =
+        currentSelectedTilesetEditorId != null &&
+                currentSelectedTilesetEditorId.isNotEmpty
+            ? currentSelectedTilesetEditorId
+            : _resolveSelectedTilesetIdForMap(
+                updatedMap,
+                preferredLayerId: nextActiveLayerId,
+              );
     final nextSavedSnapshot =
         updateSavedSnapshot ? updatedMap : state.savedMapSnapshot;
     state = state.copyWith(
       activeMap: updatedMap,
       activeLayerId: nextActiveLayerId,
       selectedWarpId: nextSelectedWarpId,
-      selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
-        updatedMap,
-        preferredLayerId: nextActiveLayerId,
-      ),
+      selectedTilesetEditorId: nextSelectedTilesetEditorId,
       hoveredTile: updateHoveredTile ? hoveredTile : state.hoveredTile,
       mapUndoStack: undoStack,
       mapRedoStack: redoStack,
