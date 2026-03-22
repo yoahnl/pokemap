@@ -752,33 +752,29 @@ class EditorNotifier extends _$EditorNotifier {
   PathAutotileSet? getPathAutotileSet() {
     final selectedPreset = getSelectedPathPreset();
     if (selectedPreset != null) {
-      final mapped = PathAutotileSet.fromPreset(selectedPreset);
-      if (mapped.tilesetId.isNotEmpty && mapped.variants.isNotEmpty) {
-        return mapped;
+      final tilesetId = selectedPreset.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        return null;
       }
+      if (getTilesetById(tilesetId) == null) {
+        return null;
+      }
+      final defaults = PathAutotileSet.defaultForTileset(tilesetId);
+      if (selectedPreset.variants.isEmpty) {
+        return defaults;
+      }
+      final mapped = PathAutotileSet.fromPreset(selectedPreset);
+      return PathAutotileSet(
+        id: selectedPreset.id,
+        tilesetId: tilesetId,
+        variants: <TerrainPathVariant, TilesetSourceRect>{
+          ...defaults.variants,
+          ...mapped.variants,
+        },
+      );
     }
 
-    final map = state.activeMap;
-    if (map == null) return null;
-
-    final selectedTilesetId = state.selectedTilesetEditorId?.trim();
-    if (selectedTilesetId != null &&
-        selectedTilesetId.isNotEmpty &&
-        getTilesetById(selectedTilesetId) != null) {
-      return PathAutotileSet.defaultForTileset(selectedTilesetId);
-    }
-
-    final fallbackTilesetId = _resolveSelectedTilesetIdForMap(
-      map,
-      preferredLayerId: state.activeLayerId,
-    );
-    if (fallbackTilesetId == null || fallbackTilesetId.trim().isEmpty) {
-      return null;
-    }
-    if (getTilesetById(fallbackTilesetId) == null) {
-      return null;
-    }
-    return PathAutotileSet.defaultForTileset(fallbackTilesetId);
+    return null;
   }
 
   List<ProjectTerrainPreset> getTerrainPresets({TerrainType? terrainType}) {
