@@ -63,13 +63,16 @@ class TerrainPaintingCoordinator {
             ),
             clipToMapBounds: true,
           );
-    if (terrain == TerrainType.path) {
-      return painted;
-    }
-    return _preserveExistingPathCellsOnTerrainLayer(
-      previousMap: map,
+    return _clearPaintedCellsFromOtherTerrainLayers(
       updatedMap: painted,
       layerId: layerId,
+      pos: pos,
+      patternSize: patternSize,
+      terrains: List<TerrainType>.filled(
+        patternSize.width * patternSize.height,
+        terrain,
+        growable: false,
+      ),
     );
   }
 
@@ -112,77 +115,96 @@ class TerrainPaintingCoordinator {
       ),
       clipToMapBounds: true,
     );
-    if (terrain == TerrainType.path) {
-      return painted;
-    }
-    return _preserveExistingPathCellsOnTerrainLayer(
-      previousMap: map,
+    return _clearPaintedCellsFromOtherTerrainLayers(
       updatedMap: painted,
       layerId: layerId,
+      pos: const GridPos(x: 0, y: 0),
+      patternSize: map.size,
+      terrains: List<TerrainType>.filled(
+        map.size.width * map.size.height,
+        terrain,
+        growable: false,
+      ),
     );
   }
 
-  MapData _preserveExistingPathCellsOnTerrainLayer({
-    required MapData previousMap,
+  MapData _clearPaintedCellsFromOtherTerrainLayers({
     required MapData updatedMap,
     required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    required List<TerrainType> terrains,
   }) {
-    final previousLayer = _findLayerById(previousMap, layerId);
-    final updatedLayer = _findLayerById(updatedMap, layerId);
-    if (previousLayer is! TerrainLayer || updatedLayer is! TerrainLayer) {
+    final activeLayerIndex =
+        updatedMap.layers.indexWhere((layer) => layer.id == layerId);
+    if (activeLayerIndex < 0) {
       return updatedMap;
     }
 
     final expectedLength = updatedMap.size.width * updatedMap.size.height;
-    final nextTerrains = List<TerrainType>.filled(
-      expectedLength,
-      TerrainType.none,
-      growable: false,
-    );
-    final updatedSource = updatedLayer.terrains;
-    final updatedCopyLength = updatedSource.length < expectedLength
-        ? updatedSource.length
-        : expectedLength;
-    for (var i = 0; i < updatedCopyLength; i++) {
-      nextTerrains[i] = updatedSource[i];
-    }
-
+    final updatedLayers =
+        List<MapLayer>.from(updatedMap.layers, growable: true);
     var changed = false;
-    final previousSource = previousLayer.terrains;
-    final previousCopyLength = previousSource.length < expectedLength
-        ? previousSource.length
-        : expectedLength;
-    for (var i = 0; i < previousCopyLength; i++) {
-      if (previousSource[i] != TerrainType.path) continue;
-      if (nextTerrains[i] == TerrainType.path) continue;
-      nextTerrains[i] = TerrainType.path;
+
+    for (var layerIndex = 0; layerIndex < updatedLayers.length; layerIndex++) {
+      if (layerIndex == activeLayerIndex) {
+        continue;
+      }
+      final layer = updatedLayers[layerIndex];
+      if (layer is! TerrainLayer) {
+        continue;
+      }
+
+      final nextTerrains = List<TerrainType>.filled(
+        expectedLength,
+        TerrainType.none,
+        growable: false,
+      );
+      final sourceTerrains = layer.terrains;
+      final copyLength = sourceTerrains.length < expectedLength
+          ? sourceTerrains.length
+          : expectedLength;
+      for (var i = 0; i < copyLength; i++) {
+        nextTerrains[i] = sourceTerrains[i];
+      }
+
+      var layerChanged = false;
+      for (var y = 0; y < patternSize.height; y++) {
+        for (var x = 0; x < patternSize.width; x++) {
+          final patternIndex = y * patternSize.width + x;
+          if (patternIndex < 0 || patternIndex >= terrains.length) {
+            continue;
+          }
+          if (terrains[patternIndex] == TerrainType.none) {
+            continue;
+          }
+          final mapX = pos.x + x;
+          final mapY = pos.y + y;
+          if (mapX < 0 ||
+              mapY < 0 ||
+              mapX >= updatedMap.size.width ||
+              mapY >= updatedMap.size.height) {
+            continue;
+          }
+          final mapIndex = mapY * updatedMap.size.width + mapX;
+          if (nextTerrains[mapIndex] == TerrainType.none) {
+            continue;
+          }
+          nextTerrains[mapIndex] = TerrainType.none;
+          layerChanged = true;
+        }
+      }
+
+      if (!layerChanged) {
+        continue;
+      }
+      updatedLayers[layerIndex] = layer.copyWith(terrains: nextTerrains);
       changed = true;
     }
+
     if (!changed) {
       return updatedMap;
     }
-
-    final layerIndex =
-        updatedMap.layers.indexWhere((layer) => layer.id == layerId);
-    if (layerIndex < 0) {
-      return updatedMap;
-    }
-    final updatedLayers =
-        List<MapLayer>.from(updatedMap.layers, growable: false);
-    final layer = updatedLayers[layerIndex];
-    if (layer is! TerrainLayer) {
-      return updatedMap;
-    }
-    updatedLayers[layerIndex] = layer.copyWith(terrains: nextTerrains);
     return updatedMap.copyWith(layers: updatedLayers);
-  }
-
-  MapLayer? _findLayerById(MapData map, String layerId) {
-    for (final layer in map.layers) {
-      if (layer.id == layerId) {
-        return layer;
-      }
-    }
-    return null;
   }
 }

@@ -21,8 +21,7 @@ class MapCanvas extends ConsumerStatefulWidget {
 class _MapCanvasState extends ConsumerState<MapCanvas> {
   Map<String, String> _lastTilesetPathsById = const {};
   Future<Map<String, ui.Image?>>? _tilesetImagesFuture;
-  GridPos? _pendingHoveredTile;
-  bool _hoverUpdateScheduled = false;
+  GridPos? _hoveredTile;
 
   void _updateTilesetImagesFuture(Map<String, String> nextTilesetPathsById) {
     if (_tilesetImagesFuture != null &&
@@ -31,26 +30,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     }
     _lastTilesetPathsById = Map<String, String>.from(nextTilesetPathsById);
     _tilesetImagesFuture = _TilesetImageCache.loadMany(_lastTilesetPathsById);
-  }
-
-  void _scheduleHoveredTileUpdate(
-    EditorNotifier notifier,
-    GridPos? gridPos,
-  ) {
-    _pendingHoveredTile = gridPos;
-    if (_hoverUpdateScheduled) {
-      return;
-    }
-    _hoverUpdateScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _hoverUpdateScheduled = false;
-      if (!mounted) {
-        return;
-      }
-      final nextHoveredTile = _pendingHoveredTile;
-      _pendingHoveredTile = null;
-      notifier.updateHoveredTile(nextHoveredTile);
-    });
   }
 
   @override
@@ -93,6 +72,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           });
         }
         final toolPreview = notifier.resolveMapToolPreview(
+          hoveredTile: _hoveredTile,
           tilesetColumnsById: tilesPerRowById,
         );
         final isStrokeEditingTool =
@@ -190,7 +170,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             }
           },
           child: MouseRegion(
-            onExit: (_) => _scheduleHoveredTileUpdate(notifier, null),
+            onExit: (_) {
+              if (_hoveredTile != null) {
+                setState(() {
+                  _hoveredTile = null;
+                });
+              }
+            },
             child: Listener(
               onPointerHover: (event) {
                 final gridPos = _screenToGrid(
@@ -201,7 +187,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                   tileWidth,
                   tileHeight,
                 );
-                _scheduleHoveredTileUpdate(notifier, gridPos);
+                if (_hoveredTile != gridPos) {
+                  setState(() {
+                    _hoveredTile = gridPos;
+                  });
+                }
               },
               child: ClipRect(
                 child: CustomPaint(
@@ -210,7 +200,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     map: activeMap,
                     zoom: state.zoom,
                     offset: state.panOffset,
-                    hoveredTile: state.hoveredTile,
+                    hoveredTile: _hoveredTile,
                     activeLayerId: state.activeLayerId,
                     tileWidth: tileWidth,
                     tileHeight: tileHeight,

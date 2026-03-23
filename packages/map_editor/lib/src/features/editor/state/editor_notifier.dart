@@ -2058,9 +2058,9 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   MapToolPreview? resolveMapToolPreview({
+    GridPos? hoveredTile,
     required Map<String, int> tilesetColumnsById,
   }) {
-    final hoveredTile = state.hoveredTile;
     if (hoveredTile == null) return null;
     final tool = state.activeTool;
     if (tool != EditorToolType.tilePaint &&
