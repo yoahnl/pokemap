@@ -22,6 +22,8 @@ MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
       return CollisionLayer.fromJson(json);
     case 'terrain':
       return TerrainLayer.fromJson(json);
+    case 'path':
+      return PathLayer.fromJson(json);
     case 'object':
       return ObjectLayer.fromJson(json);
 
@@ -49,6 +51,15 @@ mixin _$MapLayer {
             double opacity, List<TerrainType> terrains)
         terrain,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties)
+        path,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) =>
@@ -64,6 +75,9 @@ mixin _$MapLayer {
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) =>
@@ -79,6 +93,9 @@ mixin _$MapLayer {
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -89,6 +106,7 @@ mixin _$MapLayer {
     required TResult Function(TileLayer value) tile,
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
     required TResult Function(ObjectLayer value) object,
   }) =>
       throw _privateConstructorUsedError;
@@ -97,6 +115,7 @@ mixin _$MapLayer {
     TResult? Function(TileLayer value)? tile,
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
     TResult? Function(ObjectLayer value)? object,
   }) =>
       throw _privateConstructorUsedError;
@@ -105,6 +124,7 @@ mixin _$MapLayer {
     TResult Function(TileLayer value)? tile,
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) =>
@@ -323,6 +343,15 @@ class _$TileLayerImpl extends TileLayer {
             double opacity, List<TerrainType> terrains)
         terrain,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties)
+        path,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -341,6 +370,9 @@ class _$TileLayerImpl extends TileLayer {
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -359,6 +391,9 @@ class _$TileLayerImpl extends TileLayer {
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -375,6 +410,7 @@ class _$TileLayerImpl extends TileLayer {
     required TResult Function(TileLayer value) tile,
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
     required TResult Function(ObjectLayer value) object,
   }) {
     return tile(this);
@@ -386,6 +422,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult? Function(TileLayer value)? tile,
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return tile?.call(this);
@@ -397,6 +434,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult Function(TileLayer value)? tile,
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {
@@ -591,6 +629,15 @@ class _$CollisionLayerImpl extends CollisionLayer {
             double opacity, List<TerrainType> terrains)
         terrain,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties)
+        path,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -609,6 +656,9 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -627,6 +677,9 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -643,6 +696,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     required TResult Function(TileLayer value) tile,
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
     required TResult Function(ObjectLayer value) object,
   }) {
     return collision(this);
@@ -654,6 +708,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult? Function(TileLayer value)? tile,
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return collision?.call(this);
@@ -665,6 +720,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult Function(TileLayer value)? tile,
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {
@@ -855,6 +911,15 @@ class _$TerrainLayerImpl extends TerrainLayer {
             double opacity, List<TerrainType> terrains)
         terrain,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties)
+        path,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -873,6 +938,9 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -891,6 +959,9 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -907,6 +978,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     required TResult Function(TileLayer value) tile,
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
     required TResult Function(ObjectLayer value) object,
   }) {
     return terrain(this);
@@ -918,6 +990,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult? Function(TileLayer value)? tile,
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return terrain?.call(this);
@@ -929,6 +1002,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult Function(TileLayer value)? tile,
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {
@@ -973,6 +1047,331 @@ abstract class TerrainLayer extends MapLayer {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TerrainLayerImplCopyWith<_$TerrainLayerImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$PathLayerImplCopyWith<$Res>
+    implements $MapLayerCopyWith<$Res> {
+  factory _$$PathLayerImplCopyWith(
+          _$PathLayerImpl value, $Res Function(_$PathLayerImpl) then) =
+      __$$PathLayerImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      bool isVisible,
+      double opacity,
+      String presetId,
+      List<bool> cells,
+      Map<String, String> properties});
+}
+
+/// @nodoc
+class __$$PathLayerImplCopyWithImpl<$Res>
+    extends _$MapLayerCopyWithImpl<$Res, _$PathLayerImpl>
+    implements _$$PathLayerImplCopyWith<$Res> {
+  __$$PathLayerImplCopyWithImpl(
+      _$PathLayerImpl _value, $Res Function(_$PathLayerImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? isVisible = null,
+    Object? opacity = null,
+    Object? presetId = null,
+    Object? cells = null,
+    Object? properties = null,
+  }) {
+    return _then(_$PathLayerImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      isVisible: null == isVisible
+          ? _value.isVisible
+          : isVisible // ignore: cast_nullable_to_non_nullable
+              as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      presetId: null == presetId
+          ? _value.presetId
+          : presetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      cells: null == cells
+          ? _value._cells
+          : cells // ignore: cast_nullable_to_non_nullable
+              as List<bool>,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$PathLayerImpl extends PathLayer {
+  const _$PathLayerImpl(
+      {required this.id,
+      required this.name,
+      this.isVisible = true,
+      this.opacity = 1.0,
+      this.presetId = '',
+      final List<bool> cells = const [],
+      final Map<String, String> properties = const <String, String>{},
+      final String? $type})
+      : _cells = cells,
+        _properties = properties,
+        $type = $type ?? 'path',
+        super._();
+
+  factory _$PathLayerImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PathLayerImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  @JsonKey()
+  final bool isVisible;
+  @override
+  @JsonKey()
+  final double opacity;
+  @override
+  @JsonKey()
+  final String presetId;
+  final List<bool> _cells;
+  @override
+  @JsonKey()
+  List<bool> get cells {
+    if (_cells is EqualUnmodifiableListView) return _cells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_cells);
+  }
+
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @JsonKey(name: 'runtimeType')
+  final String $type;
+
+  @override
+  String toString() {
+    return 'MapLayer.path(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, cells: $cells, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PathLayerImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.isVisible, isVisible) ||
+                other.isVisible == isVisible) &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            (identical(other.presetId, presetId) ||
+                other.presetId == presetId) &&
+            const DeepCollectionEquality().equals(other._cells, _cells) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      isVisible,
+      opacity,
+      presetId,
+      const DeepCollectionEquality().hash(_cells),
+      const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PathLayerImplCopyWith<_$PathLayerImpl> get copyWith =>
+      __$$PathLayerImplCopyWithImpl<_$PathLayerImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
+        tile,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<bool> collisions)
+        collision,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<TerrainType> terrains)
+        terrain,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties)
+        path,
+    required TResult Function(
+            String id, String name, bool isVisible, double opacity)
+        object,
+  }) {
+    return path(id, name, isVisible, opacity, presetId, cells, properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
+    TResult? Function(String id, String name, bool isVisible, double opacity)?
+        object,
+  }) {
+    return path?.call(
+        id, name, isVisible, opacity, presetId, cells, properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
+    TResult Function(String id, String name, bool isVisible, double opacity)?
+        object,
+    required TResult orElse(),
+  }) {
+    if (path != null) {
+      return path(id, name, isVisible, opacity, presetId, cells, properties);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(TileLayer value) tile,
+    required TResult Function(CollisionLayer value) collision,
+    required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
+    required TResult Function(ObjectLayer value) object,
+  }) {
+    return path(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(TileLayer value)? tile,
+    TResult? Function(CollisionLayer value)? collision,
+    TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
+    TResult? Function(ObjectLayer value)? object,
+  }) {
+    return path?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(TileLayer value)? tile,
+    TResult Function(CollisionLayer value)? collision,
+    TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
+    TResult Function(ObjectLayer value)? object,
+    required TResult orElse(),
+  }) {
+    if (path != null) {
+      return path(this);
+    }
+    return orElse();
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PathLayerImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class PathLayer extends MapLayer {
+  const factory PathLayer(
+      {required final String id,
+      required final String name,
+      final bool isVisible,
+      final double opacity,
+      final String presetId,
+      final List<bool> cells,
+      final Map<String, String> properties}) = _$PathLayerImpl;
+  const PathLayer._() : super._();
+
+  factory PathLayer.fromJson(Map<String, dynamic> json) =
+      _$PathLayerImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  bool get isVisible;
+  @override
+  double get opacity;
+  String get presetId;
+  List<bool> get cells;
+  Map<String, String> get properties;
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PathLayerImplCopyWith<_$PathLayerImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -1097,6 +1496,15 @@ class _$ObjectLayerImpl extends ObjectLayer {
             double opacity, List<TerrainType> terrains)
         terrain,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties)
+        path,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -1115,6 +1523,9 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -1133,6 +1544,9 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<TerrainType> terrains)?
         terrain,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            String presetId, List<bool> cells, Map<String, String> properties)?
+        path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -1149,6 +1563,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     required TResult Function(TileLayer value) tile,
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
     required TResult Function(ObjectLayer value) object,
   }) {
     return object(this);
@@ -1160,6 +1575,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult? Function(TileLayer value)? tile,
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return object?.call(this);
@@ -1171,6 +1587,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult Function(TileLayer value)? tile,
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {

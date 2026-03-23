@@ -9,6 +9,7 @@ export 'src/models/project_manifest.dart';
 export 'src/operations/map_resize.dart';
 export 'src/operations/map_paint.dart';
 export 'src/operations/map_collision.dart';
+export 'src/operations/map_path.dart';
 export 'src/operations/map_terrain.dart';
 export 'src/operations/map_terrain_autotile.dart';
 export 'src/operations/map_layers.dart';

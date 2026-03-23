@@ -5,15 +5,18 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
+import '../../../application/errors/application_errors.dart';
+import '../../../application/models/map_tool_preview.dart';
+import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
-import '../../../application/services/map_history_coordinator.dart';
+import '../../../application/services/editor_map_mutation_coordinator.dart';
 import '../../../application/services/path_autotile_resolver.dart';
+import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/warp_editing_service.dart';
-import '../terrain/path_autotile_set.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 
@@ -29,14 +32,24 @@ class EditorNotifier extends _$EditorNotifier {
       ref.read(pathAutotileResolverProvider);
   EditorMapSessionCoordinator get _editorMapSessionCoordinator =>
       ref.read(editorMapSessionCoordinatorProvider);
-  MapHistoryCoordinator get _mapHistoryCoordinator =>
-      ref.read(mapHistoryCoordinatorProvider);
+  EditorMapMutationCoordinator get _editorMapMutationCoordinator =>
+      ref.read(editorMapMutationCoordinatorProvider);
   ProjectWorkspaceFactory get _projectWorkspaceFactory =>
       ref.read(projectWorkspaceFactoryProvider);
+  ProjectWorkspace? get _projectWorkspace {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null || projectRootPath.trim().isEmpty) {
+      return null;
+    }
+    return _projectWorkspaceFactory.create(projectRootPath);
+  }
+
   WarpEditingService get _warpEditingService =>
       ref.read(warpEditingServiceProvider);
   TerrainPaintingCoordinator get _terrainPaintingCoordinator =>
       ref.read(terrainPaintingCoordinatorProvider);
+  PathLayerEditingCoordinator get _pathLayerEditingCoordinator =>
+      ref.read(pathLayerEditingCoordinatorProvider);
 
   TerrainPresetSelection _currentTerrainPresetSelection() {
     return TerrainPresetSelection(
@@ -80,7 +93,7 @@ class EditorNotifier extends _$EditorNotifier {
 
       state = state.copyWith(
         project: manifest,
-        projectWorkspace: _projectWorkspaceFactory.create(directory),
+        projectRootPath: directory,
         workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
@@ -122,7 +135,7 @@ class EditorNotifier extends _$EditorNotifier {
 
       state = state.copyWith(
         project: manifest,
-        projectWorkspace: _projectWorkspaceFactory.create(projectDir),
+        projectRootPath: projectDir,
         workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
@@ -158,7 +171,7 @@ class EditorNotifier extends _$EditorNotifier {
     required ProjectSettings settings,
   }) async {
     debugPrint('EditorNotifier: updateProjectSettings()');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -212,7 +225,7 @@ class EditorNotifier extends _$EditorNotifier {
       {String? groupId, MapRole role = MapRole.exterior}) async {
     debugPrint(
         'EditorNotifier: createMap($id, $width, $height) in group $groupId');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -269,7 +282,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> loadMap(String relativePath) async {
     debugPrint('EditorNotifier: loadMap($relativePath)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     if (fs == null) return;
 
     try {
@@ -367,7 +380,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> renameMap(String oldId, String newId) async {
     debugPrint('EditorNotifier: renameMap($oldId -> $newId)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -379,7 +392,7 @@ class EditorNotifier extends _$EditorNotifier {
       String? activePath = state.activeMapPath;
       var mapUndoStack = state.mapUndoStack;
       var mapRedoStack = state.mapRedoStack;
-      MapHistorySnapshot? mapStrokeStart = state.mapStrokeStart;
+      var mapStrokeStart = state.mapStrokeStart;
       MapData? savedMapSnapshot = state.savedMapSnapshot;
       var canUndoMap = state.canUndoMap;
       var canRedoMap = state.canRedoMap;
@@ -418,7 +431,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> deleteMap(String mapId) async {
     debugPrint('EditorNotifier: deleteMap($mapId)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -475,7 +488,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> duplicateMap(String sourceId) async {
     debugPrint('EditorNotifier: duplicateMap($sourceId)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -497,7 +510,7 @@ class EditorNotifier extends _$EditorNotifier {
   Future<void> createGroup(String name, MapGroupType type,
       {String? parentId}) async {
     debugPrint('EditorNotifier: createGroup($name, $type, parent: $parentId)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -518,7 +531,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> deleteGroup(String groupId) async {
     debugPrint('EditorNotifier: deleteGroup($groupId)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -538,7 +551,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> renameGroup(String groupId, String newName) async {
     debugPrint('EditorNotifier: renameGroup($groupId -> $newName)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -559,7 +572,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> moveMapToGroup(String mapId, String? groupId) async {
     debugPrint('EditorNotifier: moveMapToGroup($mapId -> $groupId)');
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -596,7 +609,7 @@ class EditorNotifier extends _$EditorNotifier {
     String? groupId,
     bool isWorldTileset = false,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -633,7 +646,7 @@ class EditorNotifier extends _$EditorNotifier {
     bool? isWorldTileset,
     int? sortOrder,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -661,7 +674,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> reorderProjectTileset(String tilesetId, int direction) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -685,7 +698,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deleteProjectTileset(String tilesetId) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -790,17 +803,35 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   String? getActiveTilesetAbsolutePath() {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final tileset = getActiveTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
   }
 
-  PathAutotileSet? getPathAutotileSet() {
+  PathAutotileSet? getSelectedPathAutotileSet() {
     return _pathAutotileResolver.resolve(
       selectedPreset: getSelectedPathPreset(),
       hasTileset: (tilesetId) => getTilesetById(tilesetId) != null,
     );
+  }
+
+  PathAutotileSet? getPathAutotileSetForPresetId(String? presetId) {
+    return _pathAutotileResolver.resolve(
+      selectedPreset: getPathPresetById(presetId),
+      hasTileset: (tilesetId) => getTilesetById(tilesetId) != null,
+    );
+  }
+
+  Map<String, PathAutotileSet> getPathAutotileSetsByPresetId() {
+    final result = <String, PathAutotileSet>{};
+    for (final preset in getPathPresets()) {
+      final resolved = getPathAutotileSetForPresetId(preset.id);
+      if (resolved != null) {
+        result[preset.id] = resolved;
+      }
+    }
+    return result;
   }
 
   List<ProjectTerrainPreset> getTerrainPresets({TerrainType? terrainType}) {
@@ -966,14 +997,14 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   String? getSelectedTilesetAbsolutePath() {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final tileset = getSelectedTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
   }
 
   String? getTilesetAbsolutePathById(String tilesetId) {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     if (fs == null) return null;
     final tileset = getTilesetById(tilesetId);
     if (tileset == null) return null;
@@ -1032,7 +1063,7 @@ class EditorNotifier extends _$EditorNotifier {
     String name, {
     String? parentGroupId,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1062,7 +1093,7 @@ class EditorNotifier extends _$EditorNotifier {
     String parentGroupId,
     String name,
   ) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1092,7 +1123,7 @@ class EditorNotifier extends _$EditorNotifier {
     String groupId,
     String name,
   ) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1237,7 +1268,7 @@ class EditorNotifier extends _$EditorNotifier {
     String name, {
     String? parentCategoryId,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1262,7 +1293,7 @@ class EditorNotifier extends _$EditorNotifier {
     String parentCategoryId,
     String name,
   ) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1284,7 +1315,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> renameElementCategory(String categoryId, String name) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1315,7 +1346,7 @@ class EditorNotifier extends _$EditorNotifier {
     String? recommendedLayerId,
     List<String> tags = const [],
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     final selectedTileset = getSelectedTilesetEntry();
@@ -1364,7 +1395,7 @@ class EditorNotifier extends _$EditorNotifier {
     TilesetSourceRect? source,
     List<String>? tags,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1409,7 +1440,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deleteProjectElement(String elementId) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1529,7 +1560,7 @@ class EditorNotifier extends _$EditorNotifier {
     required TilesetSourceRect source,
     String? recommendedLayerId,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     final tileset = getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (fs == null || project == null || tileset == null) return;
@@ -1566,7 +1597,7 @@ class EditorNotifier extends _$EditorNotifier {
     required PaletteCategory category,
     String? recommendedLayerId,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     final tileset = getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (fs == null || project == null || tileset == null) return;
@@ -1657,18 +1688,64 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void paintTerrainAt(GridPos pos) {
-    final layerContext = _resolveActiveTerrainLayerContext(emitErrors: true);
-    if (layerContext == null) return;
-    final footprint = _resolveTerrainFootprint(emitErrors: true);
-    if (footprint == null) return;
-    _paintTerrainPattern(
-      map: layerContext.map,
-      layerId: layerContext.layerId,
-      pos: pos,
-      terrain: state.selectedTerrainType,
-      patternSize: footprint.size,
-      failureLabel: footprint.failureLabel,
-    );
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      _setPaintError('No active editable layer selected');
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) {
+      _setPaintError('Active layer not found: $layerId');
+      return;
+    }
+    if (activeLayer is TerrainLayer) {
+      final footprint = _resolveTerrainFootprint(emitErrors: true);
+      if (footprint == null) return;
+      _paintTerrainPattern(
+        map: map,
+        layerId: layerId,
+        pos: pos,
+        terrain: state.selectedTerrainType,
+        patternSize: footprint.size,
+        failureLabel: footprint.failureLabel,
+      );
+      return;
+    }
+    if (activeLayer is PathLayer) {
+      final footprint = _resolvePathFootprint();
+      final selectedPathPreset = getSelectedPathPreset();
+      if (activeLayer.presetId.trim().isEmpty && selectedPathPreset != null) {
+        try {
+          final presetAssigned = _pathLayerEditingCoordinator.assignPreset(
+            map: map,
+            layerId: layerId,
+            presetId: selectedPathPreset.id,
+          );
+          _paintPathPattern(
+            map: presetAssigned,
+            previousMap: map,
+            layerId: layerId,
+            pos: pos,
+            patternSize: footprint.size,
+            failureLabel: footprint.failureLabel,
+          );
+        } catch (e) {
+          _setPaintError('Failed to assign path preset: $e');
+        }
+        return;
+      }
+      _paintPathPattern(
+        map: map,
+        previousMap: map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: footprint.size,
+        failureLabel: footprint.failureLabel,
+      );
+      return;
+    }
+    _setPaintError('Active layer "${activeLayer.name}" is not editable');
   }
 
   void fillActiveTerrainLayer(TerrainType terrain) {
@@ -1690,6 +1767,40 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       _setPaintError('Failed to fill terrain layer: $e');
+    }
+  }
+
+  void assignPathPresetToActivePathLayer(String presetId) {
+    final layerContext = _resolveActivePathLayerContext(emitErrors: true);
+    if (layerContext == null) return;
+    final normalizedPresetId = presetId.trim();
+    if (layerContext.layer.presetId.trim() == normalizedPresetId) {
+      final preset = getPathPresetById(normalizedPresetId);
+      state = state.copyWith(
+        statusMessage: preset == null
+            ? 'Path layer preset unchanged'
+            : 'Path layer preset: ${preset.name}',
+        errorMessage: null,
+      );
+      return;
+    }
+    try {
+      final updated = _pathLayerEditingCoordinator.assignPreset(
+        map: layerContext.map,
+        layerId: layerContext.layerId,
+        presetId: normalizedPresetId,
+      );
+      final preset = getPathPresetById(normalizedPresetId);
+      _applyMapMutation(
+        previousMap: layerContext.map,
+        updatedMap: updated,
+        preferredActiveLayerId: layerContext.layerId,
+        statusMessage: preset == null
+            ? 'Path layer preset assigned'
+            : 'Path layer preset: ${preset.name}',
+      );
+    } catch (e) {
+      _setPaintError('Failed to assign path preset: $e');
     }
   }
 
@@ -1738,6 +1849,17 @@ class EditorNotifier extends _$EditorNotifier {
         pos: pos,
         patternSize: terrainFootprint.size,
         failureLabel: terrainFootprint.failureLabel,
+      );
+      return;
+    }
+    if (activeLayer is PathLayer) {
+      final pathFootprint = _resolvePathFootprint();
+      _erasePathPattern(
+        map: map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: pathFootprint.size,
+        failureLabel: pathFootprint.failureLabel,
       );
       return;
     }
@@ -1818,7 +1940,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> createReciprocalWarpForSelectedWarp() async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     final sourceMap = state.activeMap;
     final selectedWarpId = state.selectedWarpId;
@@ -1970,15 +2092,25 @@ class EditorNotifier extends _$EditorNotifier {
     }
 
     if (tool == EditorToolType.terrainPaint) {
-      if (activeLayer is! TerrainLayer) return null;
-      final terrainFootprint = _resolveTerrainFootprint(emitErrors: false);
-      if (terrainFootprint == null) return null;
-      return MapToolPreview.terrainPaint(
-        origin: hoveredTile,
-        size: terrainFootprint.size,
-        terrain: state.selectedTerrainType,
-        validity: MapToolPreviewValidity.valid,
-      );
+      if (activeLayer is TerrainLayer) {
+        final terrainFootprint = _resolveTerrainFootprint(emitErrors: false);
+        if (terrainFootprint == null) return null;
+        return MapToolPreview.terrainPaint(
+          origin: hoveredTile,
+          size: terrainFootprint.size,
+          terrain: state.selectedTerrainType,
+          validity: MapToolPreviewValidity.valid,
+        );
+      }
+      if (activeLayer is PathLayer) {
+        final pathFootprint = _resolvePathFootprint();
+        return MapToolPreview.pathPaint(
+          origin: hoveredTile,
+          size: pathFootprint.size,
+          validity: MapToolPreviewValidity.valid,
+        );
+      }
+      return null;
     }
 
     if (tool == EditorToolType.collisionPaint) {
@@ -2019,6 +2151,14 @@ class EditorNotifier extends _$EditorNotifier {
         validity: MapToolPreviewValidity.valid,
       );
     }
+    if (activeLayer is PathLayer) {
+      final pathFootprint = _resolvePathFootprint();
+      return MapToolPreview.pathErase(
+        origin: hoveredTile,
+        size: pathFootprint.size,
+        validity: MapToolPreviewValidity.valid,
+      );
+    }
     return null;
   }
 
@@ -2031,13 +2171,14 @@ class EditorNotifier extends _$EditorNotifier {
   void beginMapStroke() {
     final map = state.activeMap;
     if (map == null || state.mapStrokeStart != null) return;
-    final history = _mapHistoryCoordinator.beginStroke(
+    final history = _editorMapMutationCoordinator.beginStroke(
       map: map,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
       strokeStart: state.mapStrokeStart,
+      currentDirty: state.isDirty,
     );
     state = state.copyWith(
       mapUndoStack: history.undoStack,
@@ -2045,29 +2186,27 @@ class EditorNotifier extends _$EditorNotifier {
       mapStrokeStart: history.strokeStart,
       canUndoMap: history.canUndoMap,
       canRedoMap: history.canRedoMap,
+      isDirty: history.isDirty,
     );
   }
 
   void endMapStroke() {
-    final currentMap = state.activeMap;
-    final history = _mapHistoryCoordinator.finalizeStroke(
-      currentMap: currentMap,
+    if (state.mapStrokeStart == null) return;
+    final history = _editorMapMutationCoordinator.finalizeStroke(
+      currentMap: state.activeMap,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
       strokeStart: state.mapStrokeStart,
+      savedMapSnapshot: state.savedMapSnapshot,
+      currentDirty: state.isDirty,
     );
-    if (state.mapStrokeStart == null) return;
     state = state.copyWith(
       mapUndoStack: history.undoStack,
       mapRedoStack: history.redoStack,
       mapStrokeStart: history.strokeStart,
       canUndoMap: history.canUndoMap,
       canRedoMap: history.canRedoMap,
-      isDirty: history.committed
-          ? (state.savedMapSnapshot == null
-              ? true
-              : currentMap != state.savedMapSnapshot)
-          : state.isDirty,
+      isDirty: history.isDirty,
       errorMessage: null,
     );
   }
@@ -2076,33 +2215,27 @@ class EditorNotifier extends _$EditorNotifier {
     endMapStroke();
     final map = state.activeMap;
     if (map == null) return;
-    final history = _mapHistoryCoordinator.undo(
+    final restored = _editorMapMutationCoordinator.undo(
       currentMap: map,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
+      savedMapSnapshot: state.savedMapSnapshot,
     );
-    if (history == null) return;
-    final restoredMap = history.restoredSnapshot.map;
-    final session = _editorMapSessionCoordinator.resolveSelectionForMap(
-      restoredMap,
-      preferredLayerId: history.restoredSnapshot.activeLayerId,
-      preferredWarpId: history.restoredSnapshot.selectedWarpId,
-      currentSelectedTilesetEditorId: null,
-    );
-    final savedSnapshot = state.savedMapSnapshot;
+    if (restored == null) return;
     state = state.copyWith(
-      activeMap: restoredMap,
-      activeLayerId: session.activeLayerId,
-      selectedWarpId: session.selectedWarpId,
-      selectedTilesetEditorId: session.selectedTilesetEditorId,
-      mapUndoStack: history.undoStack,
-      mapRedoStack: history.redoStack,
-      mapStrokeStart: history.strokeStart,
-      canUndoMap: history.canUndoMap,
-      canRedoMap: history.canRedoMap,
-      isDirty: savedSnapshot == null ? true : restoredMap != savedSnapshot,
+      activeMap: restored.activeMap,
+      activeLayerId: restored.activeLayerId,
+      selectedWarpId: restored.selectedWarpId,
+      selectedTilesetEditorId: restored.selectedTilesetEditorId,
+      mapUndoStack: restored.undoStack,
+      mapRedoStack: restored.redoStack,
+      mapStrokeStart: restored.strokeStart,
+      canUndoMap: restored.canUndoMap,
+      canRedoMap: restored.canRedoMap,
+      savedMapSnapshot: restored.savedMapSnapshot,
+      isDirty: restored.isDirty,
       statusMessage: 'Undo',
       errorMessage: null,
     );
@@ -2112,33 +2245,27 @@ class EditorNotifier extends _$EditorNotifier {
     endMapStroke();
     final map = state.activeMap;
     if (map == null) return;
-    final history = _mapHistoryCoordinator.redo(
+    final restored = _editorMapMutationCoordinator.redo(
       currentMap: map,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
+      savedMapSnapshot: state.savedMapSnapshot,
     );
-    if (history == null) return;
-    final restoredMap = history.restoredSnapshot.map;
-    final session = _editorMapSessionCoordinator.resolveSelectionForMap(
-      restoredMap,
-      preferredLayerId: history.restoredSnapshot.activeLayerId,
-      preferredWarpId: history.restoredSnapshot.selectedWarpId,
-      currentSelectedTilesetEditorId: null,
-    );
-    final savedSnapshot = state.savedMapSnapshot;
+    if (restored == null) return;
     state = state.copyWith(
-      activeMap: restoredMap,
-      activeLayerId: session.activeLayerId,
-      selectedWarpId: session.selectedWarpId,
-      selectedTilesetEditorId: session.selectedTilesetEditorId,
-      mapUndoStack: history.undoStack,
-      mapRedoStack: history.redoStack,
-      mapStrokeStart: history.strokeStart,
-      canUndoMap: history.canUndoMap,
-      canRedoMap: history.canRedoMap,
-      isDirty: savedSnapshot == null ? true : restoredMap != savedSnapshot,
+      activeMap: restored.activeMap,
+      activeLayerId: restored.activeLayerId,
+      selectedWarpId: restored.selectedWarpId,
+      selectedTilesetEditorId: restored.selectedTilesetEditorId,
+      mapUndoStack: restored.undoStack,
+      mapRedoStack: restored.redoStack,
+      mapStrokeStart: restored.strokeStart,
+      canUndoMap: restored.canUndoMap,
+      canRedoMap: restored.canRedoMap,
+      savedMapSnapshot: restored.savedMapSnapshot,
+      isDirty: restored.isDirty,
       statusMessage: 'Redo',
       errorMessage: null,
     );
@@ -2570,6 +2697,32 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void _paintPathPattern({
+    required MapData map,
+    required MapData previousMap,
+    required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    required String failureLabel,
+  }) {
+    try {
+      final committed = _pathLayerEditingCoordinator.paint(
+        map: map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: patternSize,
+      );
+      _applyMapMutation(
+        previousMap: previousMap,
+        updatedMap: committed,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to paint path $failureLabel: $e');
+    }
+  }
+
   void _eraseTerrainPattern({
     required MapData map,
     required String layerId,
@@ -2592,6 +2745,31 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       _setPaintError('Failed to erase terrain $failureLabel: $e');
+    }
+  }
+
+  void _erasePathPattern({
+    required MapData map,
+    required String layerId,
+    required GridPos pos,
+    required GridSize patternSize,
+    required String failureLabel,
+  }) {
+    try {
+      final erased = _pathLayerEditingCoordinator.erase(
+        map: map,
+        layerId: layerId,
+        pos: pos,
+        patternSize: patternSize,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: erased,
+        preferredActiveLayerId: layerId,
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to erase path $failureLabel: $e');
     }
   }
 
@@ -2689,6 +2867,42 @@ class EditorNotifier extends _$EditorNotifier {
       return null;
     }
     return _ActiveTerrainLayerContext(
+      map: map,
+      layerId: layerId,
+      layer: activeLayer,
+    );
+  }
+
+  PathLayerBrushFootprint _resolvePathFootprint() {
+    return _pathLayerEditingCoordinator.resolveFootprint();
+  }
+
+  _ActivePathLayerContext? _resolveActivePathLayerContext({
+    required bool emitErrors,
+  }) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      if (emitErrors) {
+        _setPaintError('No active path layer selected');
+      }
+      return null;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer == null) {
+      if (emitErrors) {
+        _setPaintError('Active layer not found: $layerId');
+      }
+      return null;
+    }
+    if (activeLayer is! PathLayer) {
+      if (emitErrors) {
+        _setPaintError(
+            'Active layer "${activeLayer.name}" is not a path layer');
+      }
+      return null;
+    }
+    return _ActivePathLayerContext(
       map: map,
       layerId: layerId,
       layer: activeLayer,
@@ -3007,6 +3221,25 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void selectPathPresetForActivePathLayer(String? presetId) {
+    final preset = getPathPresetById(presetId);
+    if (preset == null) {
+      state = state.copyWith(errorMessage: 'Path preset not found');
+      return;
+    }
+    selectPathPreset(presetId);
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! PathLayer) {
+      return;
+    }
+    assignPathPresetToActivePathLayer(preset.id);
+  }
+
   void selectTerrainPaintMode({
     TerrainType? terrainType,
   }) {
@@ -3058,7 +3291,7 @@ class EditorNotifier extends _$EditorNotifier {
     String tilesetId = '',
     List<TerrainPresetVariant> variants = const [],
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3102,7 +3335,7 @@ class EditorNotifier extends _$EditorNotifier {
     List<TerrainPresetVariant>? variants,
     bool clearVariants = false,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3122,7 +3355,9 @@ class EditorNotifier extends _$EditorNotifier {
       );
       final selectedPreset =
           _terrainPresetResolver.findTerrainPresetById(updated, presetId) ??
-              (throw StateError('Terrain preset not found: $presetId'));
+              (throw EditorNotFoundException(
+                'Terrain preset not found: $presetId',
+              ));
       final selection =
           _terrainPresetSelectionCoordinator.afterTerrainPresetUpdated(
         updated: updated,
@@ -3143,7 +3378,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deleteTerrainPreset(String presetId) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3175,7 +3410,7 @@ class EditorNotifier extends _$EditorNotifier {
     String tilesetId = '',
     List<PathPresetVariantMapping> variants = const [],
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3218,7 +3453,7 @@ class EditorNotifier extends _$EditorNotifier {
     List<PathPresetVariantMapping>? variants,
     bool clearVariants = false,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3238,7 +3473,9 @@ class EditorNotifier extends _$EditorNotifier {
       );
       final selected = updated.pathPresets.firstWhere(
         (preset) => preset.id == presetId,
-        orElse: () => throw StateError('Path preset not found: $presetId'),
+        orElse: () => throw EditorNotFoundException(
+          'Path preset not found: $presetId',
+        ),
       );
       final selection =
           _terrainPresetSelectionCoordinator.afterPathPresetUpdated(
@@ -3258,7 +3495,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deletePathPreset(String presetId) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3286,7 +3523,7 @@ class EditorNotifier extends _$EditorNotifier {
     required TerrainPresetCategoryKind kind,
     String? parentCategoryId,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3312,7 +3549,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String categoryId,
     required String name,
   }) async {
-    final fs = state.projectWorkspace;
+    final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3357,6 +3594,33 @@ class EditorNotifier extends _$EditorNotifier {
     }
     state = state.copyWith(
       errorMessage: 'No terrain layer found in this map',
+    );
+  }
+
+  void activateFirstPathLayer({
+    bool createIfMissing = false,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    for (final layer in map.layers) {
+      if (layer is PathLayer) {
+        state = state.copyWith(
+          activeLayerId: layer.id,
+          statusMessage: 'Layer "${layer.name}" selected',
+          errorMessage: null,
+        );
+        return;
+      }
+    }
+    if (createIfMissing) {
+      addMapLayer(
+        kind: MapLayerKind.path,
+        name: 'Path',
+      );
+      return;
+    }
+    state = state.copyWith(
+      errorMessage: 'No path layer found in this map',
     );
   }
 
@@ -3427,37 +3691,34 @@ class EditorNotifier extends _$EditorNotifier {
       endMapStroke();
     }
 
-    final history = _mapHistoryCoordinator.applyMutation(
+    final mutation = _editorMapMutationCoordinator.applyMutation(
       previousMap: previousMap,
+      updatedMap: updatedMap,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
+      selectedTilesetEditorId: state.selectedTilesetEditorId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
       strokeStart: state.mapStrokeStart,
+      preferredActiveLayerId: preferredActiveLayerId,
+      preferredSelectedWarpId: preferredSelectedWarpId,
+      savedMapSnapshot: state.savedMapSnapshot,
       partOfStroke: partOfStroke,
+      updateSavedSnapshot: updateSavedSnapshot,
     );
-    final session = _editorMapSessionCoordinator.resolveSelectionForMap(
-      updatedMap,
-      preferredLayerId: preferredActiveLayerId,
-      preferredWarpId: preferredSelectedWarpId ?? state.selectedWarpId,
-      currentSelectedTilesetEditorId: state.selectedTilesetEditorId,
-    );
-    final nextSavedSnapshot =
-        updateSavedSnapshot ? updatedMap : state.savedMapSnapshot;
     state = state.copyWith(
-      activeMap: updatedMap,
-      activeLayerId: session.activeLayerId,
-      selectedWarpId: session.selectedWarpId,
-      selectedTilesetEditorId: session.selectedTilesetEditorId,
+      activeMap: mutation.activeMap,
+      activeLayerId: mutation.activeLayerId,
+      selectedWarpId: mutation.selectedWarpId,
+      selectedTilesetEditorId: mutation.selectedTilesetEditorId,
       hoveredTile: updateHoveredTile ? hoveredTile : state.hoveredTile,
-      mapUndoStack: history.undoStack,
-      mapRedoStack: history.redoStack,
-      mapStrokeStart: history.strokeStart,
-      savedMapSnapshot: nextSavedSnapshot,
-      canUndoMap: history.canUndoMap,
-      canRedoMap: history.canRedoMap,
-      isDirty:
-          nextSavedSnapshot == null ? true : updatedMap != nextSavedSnapshot,
+      mapUndoStack: mutation.undoStack,
+      mapRedoStack: mutation.redoStack,
+      mapStrokeStart: mutation.strokeStart,
+      savedMapSnapshot: mutation.savedMapSnapshot,
+      canUndoMap: mutation.canUndoMap,
+      canRedoMap: mutation.canRedoMap,
+      isDirty: mutation.isDirty,
       statusMessage: statusMessage ?? state.statusMessage,
       errorMessage: null,
     );
@@ -3485,91 +3746,6 @@ class _PaintPattern {
 
   final GridSize size;
   final List<int> tiles;
-}
-
-enum MapToolPreviewMode {
-  paint,
-  erase,
-  terrainPaint,
-  terrainErase,
-  collisionPaint,
-  collisionErase,
-}
-
-enum MapToolPreviewValidity {
-  valid,
-  invalid,
-}
-
-class MapToolPreview {
-  const MapToolPreview.paint({
-    required this.origin,
-    required this.size,
-    required this.tilesetId,
-    required this.tiles,
-    required this.validity,
-    this.reason,
-  })  : mode = MapToolPreviewMode.paint,
-        terrain = null;
-
-  const MapToolPreview.erase({
-    required this.origin,
-    required this.size,
-    required this.validity,
-    this.reason,
-  })  : mode = MapToolPreviewMode.erase,
-        tilesetId = null,
-        tiles = null,
-        terrain = null;
-
-  const MapToolPreview.terrainPaint({
-    required this.origin,
-    required this.size,
-    required this.terrain,
-    required this.validity,
-    this.reason,
-  })  : mode = MapToolPreviewMode.terrainPaint,
-        tilesetId = null,
-        tiles = null;
-
-  const MapToolPreview.terrainErase({
-    required this.origin,
-    required this.size,
-    required this.validity,
-    this.reason,
-  })  : mode = MapToolPreviewMode.terrainErase,
-        tilesetId = null,
-        tiles = null,
-        terrain = null;
-
-  const MapToolPreview.collisionPaint({
-    required this.origin,
-    required this.size,
-    required this.validity,
-    this.reason,
-  })  : mode = MapToolPreviewMode.collisionPaint,
-        tilesetId = null,
-        tiles = null,
-        terrain = null;
-
-  const MapToolPreview.collisionErase({
-    required this.origin,
-    required this.size,
-    required this.validity,
-    this.reason,
-  })  : mode = MapToolPreviewMode.collisionErase,
-        tilesetId = null,
-        tiles = null,
-        terrain = null;
-
-  final MapToolPreviewMode mode;
-  final GridPos origin;
-  final GridSize size;
-  final String? tilesetId;
-  final List<int>? tiles;
-  final TerrainType? terrain;
-  final MapToolPreviewValidity validity;
-  final String? reason;
 }
 
 enum _BrushLayerCompatibility {
@@ -3644,4 +3820,16 @@ class _ActiveTerrainLayerContext {
   final MapData map;
   final String layerId;
   final TerrainLayer layer;
+}
+
+class _ActivePathLayerContext {
+  const _ActivePathLayerContext({
+    required this.map,
+    required this.layerId,
+    required this.layer,
+  });
+
+  final MapData map;
+  final String layerId;
+  final PathLayer layer;
 }

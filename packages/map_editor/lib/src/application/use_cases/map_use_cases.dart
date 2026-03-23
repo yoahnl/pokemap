@@ -1,4 +1,9 @@
-part of 'project_use_cases.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../domain/repositories/repositories.dart';
+import '../errors/application_errors.dart';
+import '../ports/project_workspace.dart';
+import 'project_use_case_support.dart';
 
 class SaveMapUseCase {
   final MapRepository _repo;
@@ -19,7 +24,7 @@ class CreateMapUseCase {
   Future<MapData> execute(
       ProjectWorkspace fs, ProjectManifest project, String mapId, int w, int h,
       {String? groupId, MapRole role = MapRole.exterior}) async {
-    final defaultTilesetId = _pickDefaultTilesetId(project, groupId);
+    final defaultTilesetId = pickDefaultTilesetId(project, groupId);
 
     final map = MapData(
       id: mapId,
@@ -120,11 +125,14 @@ class RenameMapUseCase {
 
   Future<ProjectManifest> execute(ProjectWorkspace fs, ProjectManifest project,
       String oldId, String newId) async {
-    if (newId.isEmpty) throw Exception('Map ID cannot be empty');
+    if (newId.isEmpty) {
+      throw const EditorValidationException('Map ID cannot be empty');
+    }
     if (oldId == newId) return project;
 
     if (project.maps.any((e) => e.id == newId)) {
-      throw Exception('A map with the ID "$newId" already exists');
+      throw EditorConflictException(
+          'A map with the ID "$newId" already exists');
     }
 
     final oldPath = fs.getMapPath(oldId);

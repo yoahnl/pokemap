@@ -89,6 +89,35 @@ const _$TerrainTypeEnumMap = {
   TerrainType.ice: 'ice',
 };
 
+_$PathLayerImpl _$$PathLayerImplFromJson(Map<String, dynamic> json) =>
+    _$PathLayerImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      presetId: json['presetId'] as String? ?? '',
+      cells:
+          (json['cells'] as List<dynamic>?)?.map((e) => e as bool).toList() ??
+              const [],
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const <String, String>{},
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$PathLayerImplToJson(_$PathLayerImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'presetId': instance.presetId,
+      'cells': instance.cells,
+      'properties': instance.properties,
+      'runtimeType': instance.$type,
+    };
+
 _$ObjectLayerImpl _$$ObjectLayerImplFromJson(Map<String, dynamic> json) =>
     _$ObjectLayerImpl(
       id: json['id'] as String,

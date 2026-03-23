@@ -583,6 +583,18 @@ class MapValidator {
               'Terrain layer $layerId has invalid terrain count: expected $expectedCellCount, got ${terrainLayer.terrains.length}');
         }
       },
+      path: (pathLayer) {
+        if (pathLayer.cells.length != expectedCellCount) {
+          throw ValidationException(
+              'Path layer $layerId has invalid cell count: expected $expectedCellCount, got ${pathLayer.cells.length}');
+        }
+        for (final key in pathLayer.properties.keys) {
+          if (key.trim().isEmpty) {
+            throw ValidationException(
+                'Path layer $layerId has an empty property key');
+          }
+        }
+      },
       object: (_) {},
     );
   }

@@ -1,6 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-import '../../features/editor/state/editor_state.dart';
+import '../models/map_history_snapshot.dart';
 
 class MapHistoryMutationResult {
   const MapHistoryMutationResult({

@@ -44,6 +44,14 @@ MapData resizeMapData(
               defaultValue: TerrainType.none,
             ),
           ),
+          path: (l) => l.copyWith(
+            cells: _resizeFlattened<bool>(
+              src: l.cells,
+              srcSize: oldSize,
+              dstSize: GridSize(width: width, height: height),
+              defaultValue: false,
+            ),
+          ),
           object: (l) => l,
         ),
       )

@@ -1,6 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-import '../../features/editor/terrain/path_autotile_set.dart';
+import '../models/path_autotile_set.dart';
 
 class PathAutotileResolver {
   const PathAutotileResolver();

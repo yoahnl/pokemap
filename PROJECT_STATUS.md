@@ -23,7 +23,7 @@ Separations metier explicites:
 - Groupes du monde (`ProjectMapGroup`) pour l organisation des maps.
 - Groupes internes de tileset (`TilesetElementGroup`) pour organiser la bibliotheque d elements d un tileset.
 - Categories d elements (`ProjectElementCategory`) pour classifier la bibliotheque.
-- Layers de map (`TileLayer`, `TerrainLayer`, `CollisionLayer`, `ObjectLayer`) pour la cible de peinture.
+- Layers de map (`TileLayer`, `TerrainLayer`, `PathLayer`, `CollisionLayer`, `ObjectLayer`) pour la cible de peinture.
 - Affectation des tilesets au niveau `TileLayer.tilesetId` (et non plus au niveau map pour la logique active).
 
 ## 3. Fonctionnalites faites
@@ -151,6 +151,26 @@ Separations metier explicites:
   - ghost preview terrain paint/erase dedie,
   - resize map compatible (conserve les terrains existants, nouvelles cellules a `none`),
   - validation map etendue pour verifier la taille des grilles terrain.
+- Transition architecture terrain/path engagee:
+  - `TerrainLayer` conserve son role historique pour le fond et reste compatible avec les anciennes cellules `TerrainType.path`,
+  - nouveau `PathLayer` metier ajoute dans `map_core` avec:
+    - `presetId`,
+    - grille logique `cells`,
+    - `properties` arbitraires `String -> String`,
+  - operations pures dediees:
+    - paint/erase path unitaire et pattern,
+    - assignation de preset a une `PathLayer`,
+    - mise a jour de proprietes de `PathLayer`,
+  - validation metier et resize map etendus a `PathLayer`,
+  - rendu editor et preview etendus pour afficher/editer des `PathLayer` dediees,
+  - panneau map de droite clarifie:
+    - distinction entre layer terrain active et layer path active,
+    - selection/assignation du preset path sur la `PathLayer` active,
+    - creation/activation rapide d une `PathLayer`,
+  - panneau `Layers` et creation de layers etendus avec le type `Path Layer`,
+  - compatibilite transitoire preservee:
+    - le rendu legacy des anciennes cellules `TerrainType.path` reste supporte,
+    - la migration complete hors de `TerrainLayer` n est pas encore terminee.
 - Terrains/Paths presets (v2) operationnels:
   - `ProjectManifest` enrichi avec:
     - `terrainPresets`,
@@ -230,7 +250,7 @@ Separations metier explicites:
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
-- Terrains/Sols: base forte (paint/erase + path auto-connecte + presets visuels terrains/paths + stabilisation bords/rendu), comportements gameplay/runtime non implementes.
+- Terrains/Sols: base forte (paint/erase + path auto-connecte + presets visuels terrains/paths + stabilisation bords/rendu + debut de separation `TerrainLayer`/`PathLayer`), migration complete du legacy `TerrainType.path` et comportements gameplay/runtime non implementes.
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -257,8 +277,76 @@ Terminee pour cette etape:
   - ordre de rendu du canvas aligne sur la pile reelle des layers,
   - `Fill Layer` terrain corrige pour preserver les cellules `path` existantes,
   - footprint terrain force en 1x1 pour eviter l heritage de taille d un gros element selectionne.
+- nouveau lot de refonte terrain/path engage:
+  - introduction de `PathLayer` dedie dans le domaine,
+  - premiere integration editor pour peindre/effacer/rendre une `PathLayer` distincte du fond,
+  - compatibilite legacy maintenue pour les anciens chemins stockes dans `TerrainLayer`.
 
 ## 7. Dernieres modifications realisees
+2026-03-23 (refacto clean architecture - erreurs applicatives + vrai split des use cases + mutation map):
+- `map_editor`:
+  - ajout `application/errors/application_errors.dart`:
+    - introduction d une hierarchie d erreurs applicatives explicites:
+      - `EditorValidationException`,
+      - `EditorNotFoundException`,
+      - `EditorConflictException`,
+      - `EditorInvalidOperationException`,
+      - `EditorMissingDependencyException`,
+      - `EditorPersistenceException`.
+    - objectif: supprimer les `throw Exception(...)` generiques dans la couche application.
+  - suppression du faux monolithe `application/use_cases/project_use_cases.dart`.
+  - ajout d un vrai decoupage par domaine dans `application/use_cases/`:
+    - `project_management_use_cases.dart`,
+    - `project_tileset_use_cases.dart`,
+    - `project_element_use_cases.dart`,
+    - `project_group_use_cases.dart`,
+    - `map_use_cases.dart`,
+    - `layer_use_cases.dart`,
+    - `paint_use_cases.dart`,
+    - `collision_use_cases.dart`,
+    - `terrain_use_cases.dart`,
+    - `terrain_preset_use_cases.dart`,
+    - `warp_use_cases.dart`,
+    - `project_use_case_support.dart`,
+    - `use_cases.dart` comme barrel d export uniquement.
+  - conversion des anciens fichiers `part of` en vraies unites autonomes avec imports explicites.
+  - remplacement des `Exception` generiques dans les use cases terrain/path/tilesets/elements/maps/warps/layers par des erreurs applicatives explicites.
+  - ajout `application/models/`:
+    - `map_history_snapshot.dart`,
+    - `path_autotile_set.dart`,
+    - `map_tool_preview.dart`.
+    - objectif:
+      - sortir les modeles editor-facing des `features`,
+      - supprimer les dependances `application -> features`.
+  - suppression de l import `application -> features` dans:
+    - `MapHistoryCoordinator`,
+    - `PathAutotileResolver`.
+  - ajout `application/services/editor_map_mutation_coordinator.dart`:
+    - centralise l orchestration map-level autour de:
+      - begin stroke,
+      - finalize stroke,
+      - apply mutation,
+      - undo,
+      - redo,
+      - re-synchronisation session/historique/dirty state.
+  - `app/providers/use_case_providers.dart`:
+    - ajout du provider `editorMapMutationCoordinatorProvider`,
+    - imports alignes sur les nouveaux fichiers de use cases reellement separes.
+  - `EditorNotifier`:
+    - delegation du pipeline map-level au `EditorMapMutationCoordinator`,
+    - retrait des types `MapToolPreview*` du notifier,
+    - remplacement des `StateError` locaux par des erreurs applicatives explicites sur les presets introuvables,
+    - `EditorState` ne stocke plus de service `ProjectWorkspace`: seul `projectRootPath` reste dans le state, et le workspace est resolu a la demande via la factory injectee.
+  - `ui/canvas/map_canvas.dart`:
+    - utilise maintenant les modeles applicatifs `MapToolPreview` et `PathAutotileSet` au lieu de types definis dans les `features`.
+  - `infrastructure/filesystem/project_filesystem.dart`:
+    - remplacement du `throw Exception(...)` restant par `FileSystemException`.
+- impact:
+  - la couche application ne depend plus des `features`,
+  - le faux monolithe des use cases a ete remplace par un vrai decoupage lisible,
+  - `EditorNotifier` perd une partie importante de la logique historique/mutation map-level,
+  - les erreurs applicatives sont bien plus explicites dans les flux editor.
+
 2026-03-23 (refacto clean architecture - lot 1 ports workspace):
 - `map_editor`:
   - ajout `application/ports/project_workspace.dart`:
@@ -275,12 +363,12 @@ Terminee pour cette etape:
   - `application/services/warp_editing_service.dart`:
     - depend maintenant du port `ProjectWorkspace` plutot que de l implementation infrastructure concrete.
   - `features/editor/state/editor_state.dart`:
-    - remplacement de `fileSystem` par `projectWorkspace` pour retirer la fuite d infrastructure dans l etat editor.
+    - remplacement de `fileSystem` par un handle de workspace abstrait pour retirer la fuite d infrastructure dans l etat editor.
   - `features/editor/state/editor_notifier.dart`:
     - creation/chargement de workspace via `ProjectWorkspaceFactory`,
-    - migration de tous les usages de `state.fileSystem` vers `state.projectWorkspace`.
+    - migration de tous les usages de `state.fileSystem` vers le port `ProjectWorkspace`.
   - `ui/shared/top_toolbar.dart`:
-    - aligne sur `state.projectWorkspace`.
+    - aligne sur le contexte de workspace courant.
 - impact:
   - la couche application ne reference plus directement `ProjectFileSystem`,
   - l etat editor ne reference plus un type d infrastructure concret,
@@ -1195,6 +1283,7 @@ Terminee pour cette etape:
   - edition de base (`id`, `targetMapId`, `targetPos`) avec picker map cible et resume destination texte,
   - creation retour assistee disponible, mais sans lien persistant bidirectionnel ni preview graphique.
 - Le concept metier courant est `tileset par TileLayer`; `MapData.tilesetId` est conserve en legacy JSON uniquement.
+- `EditorState` reste encore volumineux; la prochaine etape logique sera de mieux separer etat de session editor, etat map-level et etat purement UI pour continuer a alleger `EditorNotifier`.
 
 ## Checklist fonctionnelle (etat)
 - Ouvrir un projet existant: fait

@@ -1,14 +1,27 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../application/services/editor_map_session_coordinator.dart';
+import '../../application/services/editor_map_mutation_coordinator.dart';
 import '../../application/services/map_history_coordinator.dart';
 import '../../application/services/path_autotile_resolver.dart';
+import '../../application/services/path_layer_editing_coordinator.dart';
 import '../../application/services/terrain_painting_coordinator.dart';
 import '../../application/services/terrain_preset_resolver.dart';
 import '../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../application/services/warp_editing_coordinator.dart';
 import '../../application/services/warp_editing_service.dart';
-import '../../application/use_cases/project_use_cases.dart';
+import '../../application/use_cases/collision_use_cases.dart';
+import '../../application/use_cases/layer_use_cases.dart';
+import '../../application/use_cases/map_use_cases.dart';
+import '../../application/use_cases/paint_use_cases.dart';
+import '../../application/use_cases/path_layer_use_cases.dart';
+import '../../application/use_cases/project_element_use_cases.dart';
+import '../../application/use_cases/project_group_use_cases.dart';
+import '../../application/use_cases/project_management_use_cases.dart';
+import '../../application/use_cases/project_tileset_use_cases.dart';
+import '../../application/use_cases/terrain_preset_use_cases.dart';
+import '../../application/use_cases/terrain_use_cases.dart';
+import '../../application/use_cases/warp_use_cases.dart';
 import 'core_providers.dart';
 
 part 'use_case_providers.g.dart';
@@ -43,6 +56,15 @@ MapHistoryCoordinator mapHistoryCoordinator(MapHistoryCoordinatorRef ref) {
 }
 
 @riverpod
+EditorMapMutationCoordinator editorMapMutationCoordinator(
+    EditorMapMutationCoordinatorRef ref) {
+  return EditorMapMutationCoordinator(
+    historyCoordinator: ref.watch(mapHistoryCoordinatorProvider),
+    sessionCoordinator: ref.watch(editorMapSessionCoordinatorProvider),
+  );
+}
+
+@riverpod
 WarpEditingCoordinator warpEditingCoordinator(WarpEditingCoordinatorRef ref) {
   return const WarpEditingCoordinator();
 }
@@ -70,6 +92,21 @@ TerrainPaintingCoordinator terrainPaintingCoordinator(
     eraseTerrainOnMapUseCase: ref.watch(eraseTerrainOnMapUseCaseProvider),
     eraseTerrainPatternOnMapUseCase:
         ref.watch(eraseTerrainPatternOnMapUseCaseProvider),
+  );
+}
+
+@riverpod
+PathLayerEditingCoordinator pathLayerEditingCoordinator(
+    PathLayerEditingCoordinatorRef ref) {
+  return PathLayerEditingCoordinator(
+    paintPathOnMapUseCase: ref.watch(paintPathOnMapUseCaseProvider),
+    paintPathPatternOnMapUseCase:
+        ref.watch(paintPathPatternOnMapUseCaseProvider),
+    erasePathOnMapUseCase: ref.watch(erasePathOnMapUseCaseProvider),
+    erasePathPatternOnMapUseCase:
+        ref.watch(erasePathPatternOnMapUseCaseProvider),
+    assignPathPresetToLayerUseCase:
+        ref.watch(assignPathPresetToLayerUseCaseProvider),
   );
 }
 
@@ -318,6 +355,40 @@ EraseCollisionPatternOnMapUseCase eraseCollisionPatternOnMapUseCase(
 PaintTerrainOnMapUseCase paintTerrainOnMapUseCase(
     PaintTerrainOnMapUseCaseRef ref) {
   return PaintTerrainOnMapUseCase();
+}
+
+@riverpod
+PaintPathOnMapUseCase paintPathOnMapUseCase(PaintPathOnMapUseCaseRef ref) {
+  return PaintPathOnMapUseCase();
+}
+
+@riverpod
+PaintPathPatternOnMapUseCase paintPathPatternOnMapUseCase(
+    PaintPathPatternOnMapUseCaseRef ref) {
+  return PaintPathPatternOnMapUseCase();
+}
+
+@riverpod
+ErasePathOnMapUseCase erasePathOnMapUseCase(ErasePathOnMapUseCaseRef ref) {
+  return ErasePathOnMapUseCase();
+}
+
+@riverpod
+ErasePathPatternOnMapUseCase erasePathPatternOnMapUseCase(
+    ErasePathPatternOnMapUseCaseRef ref) {
+  return ErasePathPatternOnMapUseCase();
+}
+
+@riverpod
+AssignPathPresetToLayerUseCase assignPathPresetToLayerUseCase(
+    AssignPathPresetToLayerUseCaseRef ref) {
+  return AssignPathPresetToLayerUseCase();
+}
+
+@riverpod
+SetPathLayerPropertiesUseCase setPathLayerPropertiesUseCase(
+    SetPathLayerPropertiesUseCaseRef ref) {
+  return SetPathLayerPropertiesUseCase();
 }
 
 @riverpod

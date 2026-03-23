@@ -1,12 +1,17 @@
-part of 'project_use_cases.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../domain/repositories/repositories.dart';
+import '../errors/application_errors.dart';
+import '../ports/project_workspace.dart';
+import 'project_use_case_support.dart';
 
 class CreateTerrainPresetUseCase {
-  final ProjectRepository _repo;
-
   CreateTerrainPresetUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String name,
     required TerrainType terrainType,
@@ -16,20 +21,21 @@ class CreateTerrainPresetUseCase {
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
-      throw Exception('Terrain preset name cannot be empty');
+      throw const EditorValidationException(
+        'Terrain preset name cannot be empty',
+      );
     }
     if (terrainType == TerrainType.none) {
-      throw Exception('Terrain preset cannot target "none"');
+      throw const EditorInvalidOperationException(
+        'Terrain preset cannot target "none"',
+      );
     }
     final normalizedTilesetId = tilesetId.trim();
     if (normalizedTilesetId.isNotEmpty &&
         !project.tilesets.any((tileset) => tileset.id == normalizedTilesetId)) {
-      throw Exception('Tileset not found: $normalizedTilesetId');
+      throw EditorNotFoundException('Tileset not found: $normalizedTilesetId');
     }
-    _ensureTerrainTilesetIsNotUsedByPathPresets(
-      project,
-      normalizedTilesetId,
-    );
+    _ensureTerrainTilesetIsNotUsedByPathPresets(project, normalizedTilesetId);
     _ensurePresetCategory(
       project,
       categoryId,
@@ -38,28 +44,28 @@ class CreateTerrainPresetUseCase {
     _validateTerrainPresetVariants(variants);
 
     final preset = ProjectTerrainPreset(
-      id: _generateUniqueTerrainPresetId(project, trimmedName),
+      id: generateUniqueTerrainPresetId(project, trimmedName),
       name: trimmedName,
       terrainType: terrainType,
       categoryId: _normalizeOptionalId(categoryId),
       tilesetId: normalizedTilesetId,
       variants: _normalizeTerrainPresetVariants(variants),
-      sortOrder: _nextTerrainPresetSortOrder(project),
+      sortOrder: nextTerrainPresetSortOrder(project),
     );
     final updated =
         project.copyWith(terrainPresets: [...project.terrainPresets, preset]);
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
 class UpdateTerrainPresetUseCase {
-  final ProjectRepository _repo;
-
   UpdateTerrainPresetUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String presetId,
     String? name,
@@ -74,17 +80,22 @@ class UpdateTerrainPresetUseCase {
   }) async {
     final current = project.terrainPresets.firstWhere(
       (preset) => preset.id == presetId,
-      orElse: () => throw Exception('Terrain preset not found: $presetId'),
+      orElse: () =>
+          throw EditorNotFoundException('Terrain preset not found: $presetId'),
     );
 
     final nextName = name?.trim();
     if (nextName != null && nextName.isEmpty) {
-      throw Exception('Terrain preset name cannot be empty');
+      throw const EditorValidationException(
+        'Terrain preset name cannot be empty',
+      );
     }
 
     final nextTerrainType = terrainType ?? current.terrainType;
     if (nextTerrainType == TerrainType.none) {
-      throw Exception('Terrain preset cannot target "none"');
+      throw const EditorInvalidOperationException(
+        'Terrain preset cannot target "none"',
+      );
     }
 
     final nextTilesetId = clearTilesetId
@@ -92,7 +103,7 @@ class UpdateTerrainPresetUseCase {
         : (tilesetId != null ? tilesetId.trim() : current.tilesetId);
     if (nextTilesetId.isNotEmpty &&
         !project.tilesets.any((tileset) => tileset.id == nextTilesetId)) {
-      throw Exception('Tileset not found: $nextTilesetId');
+      throw EditorNotFoundException('Tileset not found: $nextTilesetId');
     }
     _ensureTerrainTilesetIsNotUsedByPathPresets(project, nextTilesetId);
     final nextCategoryId = clearCategoryId
@@ -126,41 +137,41 @@ class UpdateTerrainPresetUseCase {
     }).toList(growable: false);
 
     final updated = project.copyWith(terrainPresets: updatedPresets);
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
 class DeleteTerrainPresetUseCase {
-  final ProjectRepository _repo;
-
   DeleteTerrainPresetUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String presetId,
   }) async {
     if (!project.terrainPresets.any((preset) => preset.id == presetId)) {
-      throw Exception('Terrain preset not found: $presetId');
+      throw EditorNotFoundException('Terrain preset not found: $presetId');
     }
     final updated = project.copyWith(
       terrainPresets: project.terrainPresets
           .where((preset) => preset.id != presetId)
           .toList(growable: false),
     );
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
 class CreatePathPresetUseCase {
-  final ProjectRepository _repo;
-
   CreatePathPresetUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String name,
     TerrainType groundTerrainType = TerrainType.normal,
@@ -170,19 +181,16 @@ class CreatePathPresetUseCase {
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
-      throw Exception('Path preset name cannot be empty');
+      throw const EditorValidationException('Path preset name cannot be empty');
     }
     _ensurePathGroundTerrainType(groundTerrainType);
 
     final normalizedTilesetId = tilesetId.trim();
     if (normalizedTilesetId.isNotEmpty &&
         !project.tilesets.any((tileset) => tileset.id == normalizedTilesetId)) {
-      throw Exception('Tileset not found: $normalizedTilesetId');
+      throw EditorNotFoundException('Tileset not found: $normalizedTilesetId');
     }
-    _ensurePathTilesetIsNotUsedByTerrainPresets(
-      project,
-      normalizedTilesetId,
-    );
+    _ensurePathTilesetIsNotUsedByTerrainPresets(project, normalizedTilesetId);
     _ensurePresetCategory(
       project,
       categoryId,
@@ -191,28 +199,28 @@ class CreatePathPresetUseCase {
     _validatePathPresetVariants(variants);
 
     final preset = ProjectPathPreset(
-      id: _generateUniquePathPresetId(project, trimmedName),
+      id: generateUniquePathPresetId(project, trimmedName),
       name: trimmedName,
       groundTerrainType: groundTerrainType,
       categoryId: _normalizeOptionalId(categoryId),
       tilesetId: normalizedTilesetId,
       variants: _normalizePathPresetVariants(variants),
-      sortOrder: _nextPathPresetSortOrder(project),
+      sortOrder: nextPathPresetSortOrder(project),
     );
     final updated =
         project.copyWith(pathPresets: [...project.pathPresets, preset]);
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
 class UpdatePathPresetUseCase {
-  final ProjectRepository _repo;
-
   UpdatePathPresetUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String presetId,
     String? name,
@@ -227,12 +235,13 @@ class UpdatePathPresetUseCase {
   }) async {
     final current = project.pathPresets.firstWhere(
       (preset) => preset.id == presetId,
-      orElse: () => throw Exception('Path preset not found: $presetId'),
+      orElse: () =>
+          throw EditorNotFoundException('Path preset not found: $presetId'),
     );
 
     final nextName = name?.trim();
     if (nextName != null && nextName.isEmpty) {
-      throw Exception('Path preset name cannot be empty');
+      throw const EditorValidationException('Path preset name cannot be empty');
     }
     final nextGroundTerrainType =
         groundTerrainType ?? current.groundTerrainType;
@@ -243,7 +252,7 @@ class UpdatePathPresetUseCase {
         : (tilesetId != null ? tilesetId.trim() : current.tilesetId);
     if (nextTilesetId.isNotEmpty &&
         !project.tilesets.any((tileset) => tileset.id == nextTilesetId)) {
-      throw Exception('Tileset not found: $nextTilesetId');
+      throw EditorNotFoundException('Tileset not found: $nextTilesetId');
     }
     _ensurePathTilesetIsNotUsedByTerrainPresets(project, nextTilesetId);
     final nextCategoryId = clearCategoryId
@@ -277,41 +286,41 @@ class UpdatePathPresetUseCase {
     }).toList(growable: false);
 
     final updated = project.copyWith(pathPresets: updatedPresets);
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
 class DeletePathPresetUseCase {
-  final ProjectRepository _repo;
-
   DeletePathPresetUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String presetId,
   }) async {
     if (!project.pathPresets.any((preset) => preset.id == presetId)) {
-      throw Exception('Path preset not found: $presetId');
+      throw EditorNotFoundException('Path preset not found: $presetId');
     }
     final updated = project.copyWith(
       pathPresets: project.pathPresets
           .where((preset) => preset.id != presetId)
           .toList(growable: false),
     );
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
 class CreateTerrainPresetCategoryUseCase {
-  final ProjectRepository _repo;
-
   CreateTerrainPresetCategoryUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String name,
     required TerrainPresetCategoryKind kind,
@@ -319,18 +328,20 @@ class CreateTerrainPresetCategoryUseCase {
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
-      throw Exception('Category name cannot be empty');
+      throw const EditorValidationException('Category name cannot be empty');
     }
     final normalizedParentId = _normalizeOptionalId(parentCategoryId);
     if (normalizedParentId != null) {
       final parent = project.terrainPresetCategories.firstWhere(
         (category) => category.id == normalizedParentId,
-        orElse: () => throw Exception(
+        orElse: () => throw EditorNotFoundException(
           'Parent category not found: $normalizedParentId',
         ),
       );
       if (parent.kind != kind) {
-        throw Exception('Parent category kind mismatch');
+        throw const EditorInvalidOperationException(
+          'Parent category kind mismatch',
+        );
       }
     }
     final category = ProjectTerrainPresetCategory(
@@ -350,31 +361,31 @@ class CreateTerrainPresetCategoryUseCase {
         category,
       ],
     );
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
 class RenameTerrainPresetCategoryUseCase {
-  final ProjectRepository _repo;
-
   RenameTerrainPresetCategoryUseCase(this._repo);
 
+  final ProjectRepository _repo;
+
   Future<ProjectManifest> execute(
-    ProjectWorkspace fs,
+    ProjectWorkspace workspace,
     ProjectManifest project, {
     required String categoryId,
     required String name,
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
-      throw Exception('Category name cannot be empty');
+      throw const EditorValidationException('Category name cannot be empty');
     }
     final exists = project.terrainPresetCategories.any(
       (category) => category.id == categoryId,
     );
     if (!exists) {
-      throw Exception('Category not found: $categoryId');
+      throw EditorNotFoundException('Category not found: $categoryId');
     }
     final updated = project.copyWith(
       terrainPresetCategories: project.terrainPresetCategories
@@ -383,7 +394,7 @@ class RenameTerrainPresetCategoryUseCase {
               : category)
           .toList(growable: false),
     );
-    await _repo.saveProject(updated, fs.projectManifestPath);
+    await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
@@ -407,10 +418,14 @@ void _validateTerrainPresetVariants(List<TerrainPresetVariant> variants) {
         variant.source.y < 0 ||
         variant.source.width <= 0 ||
         variant.source.height <= 0) {
-      throw Exception('Terrain preset variant source is invalid');
+      throw const EditorValidationException(
+        'Terrain preset variant source is invalid',
+      );
     }
     if (variant.weight <= 0) {
-      throw Exception('Terrain preset variant weight must be positive');
+      throw const EditorValidationException(
+        'Terrain preset variant weight must be positive',
+      );
     }
   }
 }
@@ -428,21 +443,26 @@ void _validatePathPresetVariants(List<PathPresetVariantMapping> variants) {
   final covered = <TerrainPathVariant>{};
   for (final variant in variants) {
     if (!covered.add(variant.variant)) {
-      throw Exception(
-          'Duplicate path variant mapping: ${variant.variant.name}');
+      throw EditorConflictException(
+        'Duplicate path variant mapping: ${variant.variant.name}',
+      );
     }
     if (variant.source.x < 0 ||
         variant.source.y < 0 ||
         variant.source.width <= 0 ||
         variant.source.height <= 0) {
-      throw Exception('Path preset variant source is invalid');
+      throw const EditorValidationException(
+        'Path preset variant source is invalid',
+      );
     }
   }
 }
 
 void _ensurePathGroundTerrainType(TerrainType terrainType) {
   if (terrainType == TerrainType.none || terrainType == TerrainType.path) {
-    throw Exception('Path type must be a ground terrain type');
+    throw const EditorInvalidOperationException(
+      'Path type must be a ground terrain type',
+    );
   }
 }
 
@@ -456,7 +476,7 @@ void _ensureTerrainTilesetIsNotUsedByPathPresets(
     (preset) => preset.tilesetId.trim() == normalized,
   );
   if (conflict) {
-    throw Exception(
+    throw const EditorConflictException(
       'This tileset is already used by a path preset. Terrain and path presets must use different tilesets.',
     );
   }
@@ -471,10 +491,13 @@ void _ensurePresetCategory(
   if (normalized == null) return;
   final category = project.terrainPresetCategories.firstWhere(
     (item) => item.id == normalized,
-    orElse: () => throw Exception('Category not found: $normalized'),
+    orElse: () =>
+        throw EditorNotFoundException('Category not found: $normalized'),
   );
   if (category.kind != expectedKind) {
-    throw Exception('Category kind mismatch for ${expectedKind.name} preset');
+    throw EditorInvalidOperationException(
+      'Category kind mismatch for ${expectedKind.name} preset',
+    );
   }
 }
 
@@ -494,7 +517,8 @@ String _generateUniquePresetCategoryId(ProjectManifest project, String seed) {
   final base = normalized.isEmpty ? 'category' : normalized;
   var candidate = base;
   var suffix = 1;
-  final existing = project.terrainPresetCategories.map((c) => c.id).toSet();
+  final existing =
+      project.terrainPresetCategories.map((category) => category.id).toSet();
   while (existing.contains(candidate)) {
     candidate = '${base}_$suffix';
     suffix++;
@@ -528,7 +552,7 @@ void _ensurePathTilesetIsNotUsedByTerrainPresets(
     (preset) => preset.tilesetId.trim() == normalized,
   );
   if (conflict) {
-    throw Exception(
+    throw const EditorConflictException(
       'This tileset is already used by a terrain preset. Terrain and path presets must use different tilesets.',
     );
   }

@@ -46,19 +46,35 @@ MapData addMapLayer(
         terrains: List<TerrainType>.filled(cellCount, TerrainType.none,
             growable: false),
       ),
+    MapLayerKind.path => MapLayer.path(
+        id: normalizedId,
+        name: normalizedName,
+        cells: List<bool>.filled(cellCount, false, growable: false),
+      ),
     MapLayerKind.object => MapLayer.object(
         id: normalizedId,
         name: normalizedName,
       ),
   };
 
-  var targetIndex = insertIndex ?? map.layers.length;
+  var targetIndex = insertIndex ?? _resolveDefaultInsertIndex(map, kind);
   if (targetIndex < 0) targetIndex = 0;
   if (targetIndex > map.layers.length) targetIndex = map.layers.length;
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: true);
   updatedLayers.insert(targetIndex, newLayer);
   return map.copyWith(layers: updatedLayers);
+}
+
+int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) {
+  if (kind != MapLayerKind.path) {
+    return map.layers.length;
+  }
+  final terrainIndex = map.layers.indexWhere((layer) => layer is TerrainLayer);
+  if (terrainIndex >= 0) {
+    return terrainIndex;
+  }
+  return map.layers.length;
 }
 
 MapData renameMapLayer(
@@ -187,6 +203,11 @@ MapLayer _copyLayer(
       name: name ?? terrainLayer.name,
       isVisible: isVisible ?? terrainLayer.isVisible,
       opacity: opacity ?? terrainLayer.opacity,
+    ),
+    path: (pathLayer) => pathLayer.copyWith(
+      name: name ?? pathLayer.name,
+      isVisible: isVisible ?? pathLayer.isVisible,
+      opacity: opacity ?? pathLayer.opacity,
     ),
     object: (objectLayer) => objectLayer.copyWith(
       name: name ?? objectLayer.name,

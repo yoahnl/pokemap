@@ -77,6 +77,8 @@ enum MapLayerKind {
   collision,
   @JsonValue('terrain')
   terrain,
+  @JsonValue('path')
+  path,
   @JsonValue('object')
   object,
 }

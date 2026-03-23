@@ -1,4 +1,6 @@
-part of 'project_use_cases.dart';
+import 'package:map_core/map_core.dart';
+
+import '../errors/application_errors.dart';
 
 class AddMapLayerResult {
   final MapData map;
@@ -17,7 +19,7 @@ class AddMapLayerUseCase {
   }) {
     final normalizedName = name.trim();
     if (normalizedName.isEmpty) {
-      throw Exception('Layer name cannot be empty');
+      throw const EditorValidationException('Layer name cannot be empty');
     }
 
     final layerId = _generateUniqueLayerId(
@@ -50,6 +52,7 @@ class AddMapLayerUseCase {
       MapLayerKind.tile => 'l_tile',
       MapLayerKind.collision => 'l_collision',
       MapLayerKind.terrain => 'l_terrain',
+      MapLayerKind.path => 'l_path',
       MapLayerKind.object => 'l_object',
     };
     final slug = _slugifyLayerName(name);

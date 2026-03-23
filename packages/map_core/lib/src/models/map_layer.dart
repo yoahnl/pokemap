@@ -37,6 +37,17 @@ sealed class MapLayer with _$MapLayer {
     @Default([]) List<TerrainType> terrains,
   }) = TerrainLayer;
 
+  @FreezedUnionValue('path')
+  const factory MapLayer.path({
+    required String id,
+    required String name,
+    @Default(true) bool isVisible,
+    @Default(1.0) double opacity,
+    @Default('') String presetId,
+    @Default([]) List<bool> cells,
+    @Default(<String, String>{}) Map<String, String> properties,
+  }) = PathLayer;
+
   @FreezedUnionValue('object')
   const factory MapLayer.object({
     required String id,

@@ -1,6 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-import '../use_cases/project_use_cases.dart';
+import '../use_cases/terrain_use_cases.dart';
 
 class TerrainBrushFootprint {
   const TerrainBrushFootprint({

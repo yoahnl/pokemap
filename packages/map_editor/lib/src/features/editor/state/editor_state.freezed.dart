@@ -697,192 +697,9 @@ abstract class ProjectElementEditorBrush implements EditorBrush {
 }
 
 /// @nodoc
-mixin _$MapHistorySnapshot {
-  MapData get map => throw _privateConstructorUsedError;
-  String? get activeLayerId => throw _privateConstructorUsedError;
-  String? get selectedWarpId => throw _privateConstructorUsedError;
-
-  /// Create a copy of MapHistorySnapshot
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapHistorySnapshotCopyWith<MapHistorySnapshot> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $MapHistorySnapshotCopyWith<$Res> {
-  factory $MapHistorySnapshotCopyWith(
-          MapHistorySnapshot value, $Res Function(MapHistorySnapshot) then) =
-      _$MapHistorySnapshotCopyWithImpl<$Res, MapHistorySnapshot>;
-  @useResult
-  $Res call({MapData map, String? activeLayerId, String? selectedWarpId});
-
-  $MapDataCopyWith<$Res> get map;
-}
-
-/// @nodoc
-class _$MapHistorySnapshotCopyWithImpl<$Res, $Val extends MapHistorySnapshot>
-    implements $MapHistorySnapshotCopyWith<$Res> {
-  _$MapHistorySnapshotCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of MapHistorySnapshot
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? map = null,
-    Object? activeLayerId = freezed,
-    Object? selectedWarpId = freezed,
-  }) {
-    return _then(_value.copyWith(
-      map: null == map
-          ? _value.map
-          : map // ignore: cast_nullable_to_non_nullable
-              as MapData,
-      activeLayerId: freezed == activeLayerId
-          ? _value.activeLayerId
-          : activeLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedWarpId: freezed == selectedWarpId
-          ? _value.selectedWarpId
-          : selectedWarpId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
-  }
-
-  /// Create a copy of MapHistorySnapshot
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapDataCopyWith<$Res> get map {
-    return $MapDataCopyWith<$Res>(_value.map, (value) {
-      return _then(_value.copyWith(map: value) as $Val);
-    });
-  }
-}
-
-/// @nodoc
-abstract class _$$MapHistorySnapshotImplCopyWith<$Res>
-    implements $MapHistorySnapshotCopyWith<$Res> {
-  factory _$$MapHistorySnapshotImplCopyWith(_$MapHistorySnapshotImpl value,
-          $Res Function(_$MapHistorySnapshotImpl) then) =
-      __$$MapHistorySnapshotImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({MapData map, String? activeLayerId, String? selectedWarpId});
-
-  @override
-  $MapDataCopyWith<$Res> get map;
-}
-
-/// @nodoc
-class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
-    extends _$MapHistorySnapshotCopyWithImpl<$Res, _$MapHistorySnapshotImpl>
-    implements _$$MapHistorySnapshotImplCopyWith<$Res> {
-  __$$MapHistorySnapshotImplCopyWithImpl(_$MapHistorySnapshotImpl _value,
-      $Res Function(_$MapHistorySnapshotImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapHistorySnapshot
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? map = null,
-    Object? activeLayerId = freezed,
-    Object? selectedWarpId = freezed,
-  }) {
-    return _then(_$MapHistorySnapshotImpl(
-      map: null == map
-          ? _value.map
-          : map // ignore: cast_nullable_to_non_nullable
-              as MapData,
-      activeLayerId: freezed == activeLayerId
-          ? _value.activeLayerId
-          : activeLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedWarpId: freezed == selectedWarpId
-          ? _value.selectedWarpId
-          : selectedWarpId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
-  const _$MapHistorySnapshotImpl(
-      {required this.map, this.activeLayerId, this.selectedWarpId});
-
-  @override
-  final MapData map;
-  @override
-  final String? activeLayerId;
-  @override
-  final String? selectedWarpId;
-
-  @override
-  String toString() {
-    return 'MapHistorySnapshot(map: $map, activeLayerId: $activeLayerId, selectedWarpId: $selectedWarpId)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapHistorySnapshotImpl &&
-            (identical(other.map, map) || other.map == map) &&
-            (identical(other.activeLayerId, activeLayerId) ||
-                other.activeLayerId == activeLayerId) &&
-            (identical(other.selectedWarpId, selectedWarpId) ||
-                other.selectedWarpId == selectedWarpId));
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, map, activeLayerId, selectedWarpId);
-
-  /// Create a copy of MapHistorySnapshot
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapHistorySnapshotImplCopyWith<_$MapHistorySnapshotImpl> get copyWith =>
-      __$$MapHistorySnapshotImplCopyWithImpl<_$MapHistorySnapshotImpl>(
-          this, _$identity);
-}
-
-abstract class _MapHistorySnapshot implements MapHistorySnapshot {
-  const factory _MapHistorySnapshot(
-      {required final MapData map,
-      final String? activeLayerId,
-      final String? selectedWarpId}) = _$MapHistorySnapshotImpl;
-
-  @override
-  MapData get map;
-  @override
-  String? get activeLayerId;
-  @override
-  String? get selectedWarpId;
-
-  /// Create a copy of MapHistorySnapshot
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapHistorySnapshotImplCopyWith<_$MapHistorySnapshotImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
 mixin _$EditorState {
 // Context
-  ProjectWorkspace? get projectWorkspace => throw _privateConstructorUsedError;
+  String? get projectRootPath => throw _privateConstructorUsedError;
   ProjectManifest? get project => throw _privateConstructorUsedError;
   EditorWorkspaceMode get workspaceMode =>
       throw _privateConstructorUsedError; // Active Map
@@ -935,7 +752,7 @@ abstract class $EditorStateCopyWith<$Res> {
       _$EditorStateCopyWithImpl<$Res, EditorState>;
   @useResult
   $Res call(
-      {ProjectWorkspace? projectWorkspace,
+      {String? projectRootPath,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
       MapData? activeMap,
@@ -989,7 +806,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? projectWorkspace = freezed,
+    Object? projectRootPath = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
     Object? activeMap = freezed,
@@ -1021,10 +838,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? errorMessage = freezed,
   }) {
     return _then(_value.copyWith(
-      projectWorkspace: freezed == projectWorkspace
-          ? _value.projectWorkspace
-          : projectWorkspace // ignore: cast_nullable_to_non_nullable
-              as ProjectWorkspace?,
+      projectRootPath: freezed == projectRootPath
+          ? _value.projectRootPath
+          : projectRootPath // ignore: cast_nullable_to_non_nullable
+              as String?,
       project: freezed == project
           ? _value.project
           : project // ignore: cast_nullable_to_non_nullable
@@ -1234,7 +1051,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {ProjectWorkspace? projectWorkspace,
+      {String? projectRootPath,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
       MapData? activeMap,
@@ -1292,7 +1109,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? projectWorkspace = freezed,
+    Object? projectRootPath = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
     Object? activeMap = freezed,
@@ -1324,10 +1141,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? errorMessage = freezed,
   }) {
     return _then(_$EditorStateImpl(
-      projectWorkspace: freezed == projectWorkspace
-          ? _value.projectWorkspace
-          : projectWorkspace // ignore: cast_nullable_to_non_nullable
-              as ProjectWorkspace?,
+      projectRootPath: freezed == projectRootPath
+          ? _value.projectRootPath
+          : projectRootPath // ignore: cast_nullable_to_non_nullable
+              as String?,
       project: freezed == project
           ? _value.project
           : project // ignore: cast_nullable_to_non_nullable
@@ -1452,7 +1269,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
 
 class _$EditorStateImpl implements _EditorState {
   const _$EditorStateImpl(
-      {this.projectWorkspace,
+      {this.projectRootPath,
       this.project,
       this.workspaceMode = EditorWorkspaceMode.map,
       this.activeMap,
@@ -1488,7 +1305,7 @@ class _$EditorStateImpl implements _EditorState {
 
 // Context
   @override
-  final ProjectWorkspace? projectWorkspace;
+  final String? projectRootPath;
   @override
   final ProjectManifest? project;
   @override
@@ -1588,7 +1405,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectWorkspace: $projectWorkspace, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1596,8 +1413,8 @@ class _$EditorStateImpl implements _EditorState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$EditorStateImpl &&
-            (identical(other.projectWorkspace, projectWorkspace) ||
-                other.projectWorkspace == projectWorkspace) &&
+            (identical(other.projectRootPath, projectRootPath) ||
+                other.projectRootPath == projectRootPath) &&
             (identical(other.project, project) || other.project == project) &&
             (identical(other.workspaceMode, workspaceMode) ||
                 other.workspaceMode == workspaceMode) &&
@@ -1661,7 +1478,7 @@ class _$EditorStateImpl implements _EditorState {
   @override
   int get hashCode => Object.hashAll([
         runtimeType,
-        projectWorkspace,
+        projectRootPath,
         project,
         workspaceMode,
         activeMap,
@@ -1704,7 +1521,7 @@ class _$EditorStateImpl implements _EditorState {
 
 abstract class _EditorState implements EditorState {
   const factory _EditorState(
-      {final ProjectWorkspace? projectWorkspace,
+      {final String? projectRootPath,
       final ProjectManifest? project,
       final EditorWorkspaceMode workspaceMode,
       final MapData? activeMap,
@@ -1737,7 +1554,7 @@ abstract class _EditorState implements EditorState {
 
 // Context
   @override
-  ProjectWorkspace? get projectWorkspace;
+  String? get projectRootPath;
   @override
   ProjectManifest? get project;
   @override

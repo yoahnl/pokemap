@@ -63,7 +63,10 @@ class ProjectFileSystem implements ProjectWorkspace {
       {String? preferredName}) async {
     final sourceFile = File(sourcePath);
     if (!await sourceFile.exists()) {
-      throw Exception('Tileset source file not found: $sourcePath');
+      throw FileSystemException(
+        'Tileset source file not found',
+        sourcePath,
+      );
     }
 
     final ext = p.extension(sourcePath).toLowerCase();

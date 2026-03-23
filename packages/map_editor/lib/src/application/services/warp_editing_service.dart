@@ -1,7 +1,8 @@
 import 'package:map_core/map_core.dart';
 
+import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
-import '../use_cases/project_use_cases.dart';
+import '../use_cases/warp_use_cases.dart';
 import 'warp_editing_coordinator.dart';
 
 class WarpCreationResult {
@@ -66,11 +67,11 @@ class WarpEditingService {
     String? selectedWarpId,
   ) {
     if (selectedWarpId == null || selectedWarpId.trim().isEmpty) {
-      throw const ValidationException('No warp selected');
+      throw const EditorInvalidOperationException('No warp selected');
     }
     final warp = _warpEditingCoordinator.findWarpById(map, selectedWarpId);
     if (warp == null) {
-      throw ValidationException('Selected warp not found: $selectedWarpId');
+      throw EditorNotFoundException('Selected warp not found: $selectedWarpId');
     }
     return warp;
   }
@@ -101,7 +102,7 @@ class WarpEditingService {
     final currentWarp = _warpEditingCoordinator.findWarpById(map, warpId);
     final effectiveTargetMapId = targetMapId ?? currentWarp?.targetMapId;
     if (effectiveTargetMapId == null || effectiveTargetMapId.trim().isEmpty) {
-      throw const ValidationException('Warp target map cannot be empty');
+      throw const EditorValidationException('Warp target map cannot be empty');
     }
     _validateWarpTargetMapUseCase.execute(project, effectiveTargetMapId);
     final updated = _updateWarpOnMapUseCase.execute(

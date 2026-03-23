@@ -1,4 +1,4 @@
-part of 'project_use_cases.dart';
+import 'package:map_core/map_core.dart';
 
 class PaintTerrainOnMapUseCase {
   MapData execute(

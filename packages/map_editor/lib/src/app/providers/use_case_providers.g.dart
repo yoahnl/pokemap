@@ -105,6 +105,26 @@ final mapHistoryCoordinatorProvider =
 // ignore: unused_element
 typedef MapHistoryCoordinatorRef
     = AutoDisposeProviderRef<MapHistoryCoordinator>;
+String _$editorMapMutationCoordinatorHash() =>
+    r'295b6529c68a03d38c8956595db8dceb04d17374';
+
+/// See also [editorMapMutationCoordinator].
+@ProviderFor(editorMapMutationCoordinator)
+final editorMapMutationCoordinatorProvider =
+    AutoDisposeProvider<EditorMapMutationCoordinator>.internal(
+  editorMapMutationCoordinator,
+  name: r'editorMapMutationCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$editorMapMutationCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EditorMapMutationCoordinatorRef
+    = AutoDisposeProviderRef<EditorMapMutationCoordinator>;
 String _$warpEditingCoordinatorHash() =>
     r'ab1a30cc75e537a41460d1c7affa94c926c0b1bb';
 
@@ -164,6 +184,26 @@ final terrainPaintingCoordinatorProvider =
 // ignore: unused_element
 typedef TerrainPaintingCoordinatorRef
     = AutoDisposeProviderRef<TerrainPaintingCoordinator>;
+String _$pathLayerEditingCoordinatorHash() =>
+    r'9e431c80f5280f066e35c322e7fab7957daf1636';
+
+/// See also [pathLayerEditingCoordinator].
+@ProviderFor(pathLayerEditingCoordinator)
+final pathLayerEditingCoordinatorProvider =
+    AutoDisposeProvider<PathLayerEditingCoordinator>.internal(
+  pathLayerEditingCoordinator,
+  name: r'pathLayerEditingCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$pathLayerEditingCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PathLayerEditingCoordinatorRef
+    = AutoDisposeProviderRef<PathLayerEditingCoordinator>;
 String _$createProjectUseCaseHash() =>
     r'7c46539670ceef09dfc7a959f9c8ee264ce9a8e8';
 
@@ -942,6 +982,126 @@ final paintTerrainOnMapUseCaseProvider =
 // ignore: unused_element
 typedef PaintTerrainOnMapUseCaseRef
     = AutoDisposeProviderRef<PaintTerrainOnMapUseCase>;
+String _$paintPathOnMapUseCaseHash() =>
+    r'c36199ada732d554361ebee347058f108d8a3c2e';
+
+/// See also [paintPathOnMapUseCase].
+@ProviderFor(paintPathOnMapUseCase)
+final paintPathOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintPathOnMapUseCase>.internal(
+  paintPathOnMapUseCase,
+  name: r'paintPathOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintPathOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintPathOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintPathOnMapUseCase>;
+String _$paintPathPatternOnMapUseCaseHash() =>
+    r'0aeb723161ce16920fc0e96c9e90f3c6b10151a3';
+
+/// See also [paintPathPatternOnMapUseCase].
+@ProviderFor(paintPathPatternOnMapUseCase)
+final paintPathPatternOnMapUseCaseProvider =
+    AutoDisposeProvider<PaintPathPatternOnMapUseCase>.internal(
+  paintPathPatternOnMapUseCase,
+  name: r'paintPathPatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$paintPathPatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PaintPathPatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<PaintPathPatternOnMapUseCase>;
+String _$erasePathOnMapUseCaseHash() =>
+    r'a7a1c84729646fef111e22e92abd1f6b0c26204e';
+
+/// See also [erasePathOnMapUseCase].
+@ProviderFor(erasePathOnMapUseCase)
+final erasePathOnMapUseCaseProvider =
+    AutoDisposeProvider<ErasePathOnMapUseCase>.internal(
+  erasePathOnMapUseCase,
+  name: r'erasePathOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$erasePathOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ErasePathOnMapUseCaseRef
+    = AutoDisposeProviderRef<ErasePathOnMapUseCase>;
+String _$erasePathPatternOnMapUseCaseHash() =>
+    r'6f55a11bd9c7efc0f4dc70fe66244e2ba0aa62df';
+
+/// See also [erasePathPatternOnMapUseCase].
+@ProviderFor(erasePathPatternOnMapUseCase)
+final erasePathPatternOnMapUseCaseProvider =
+    AutoDisposeProvider<ErasePathPatternOnMapUseCase>.internal(
+  erasePathPatternOnMapUseCase,
+  name: r'erasePathPatternOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$erasePathPatternOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ErasePathPatternOnMapUseCaseRef
+    = AutoDisposeProviderRef<ErasePathPatternOnMapUseCase>;
+String _$assignPathPresetToLayerUseCaseHash() =>
+    r'2bb9ee658b7c5387fbe1e85efb91302b9b640234';
+
+/// See also [assignPathPresetToLayerUseCase].
+@ProviderFor(assignPathPresetToLayerUseCase)
+final assignPathPresetToLayerUseCaseProvider =
+    AutoDisposeProvider<AssignPathPresetToLayerUseCase>.internal(
+  assignPathPresetToLayerUseCase,
+  name: r'assignPathPresetToLayerUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$assignPathPresetToLayerUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AssignPathPresetToLayerUseCaseRef
+    = AutoDisposeProviderRef<AssignPathPresetToLayerUseCase>;
+String _$setPathLayerPropertiesUseCaseHash() =>
+    r'a9efac3604e81a91e976a412ce2e5c40d536be92';
+
+/// See also [setPathLayerPropertiesUseCase].
+@ProviderFor(setPathLayerPropertiesUseCase)
+final setPathLayerPropertiesUseCaseProvider =
+    AutoDisposeProvider<SetPathLayerPropertiesUseCase>.internal(
+  setPathLayerPropertiesUseCase,
+  name: r'setPathLayerPropertiesUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$setPathLayerPropertiesUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SetPathLayerPropertiesUseCaseRef
+    = AutoDisposeProviderRef<SetPathLayerPropertiesUseCase>;
 String _$paintTerrainPatternOnMapUseCaseHash() =>
     r'5f8137ee96d1e43d366729df61fe4f202b2292c7';
 

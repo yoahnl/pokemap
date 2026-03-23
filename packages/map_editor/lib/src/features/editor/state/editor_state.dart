@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../../application/ports/project_workspace.dart';
+import '../../../application/models/map_history_snapshot.dart';
 import '../tools/editor_tool.dart';
 
 part 'editor_state.freezed.dart';
@@ -34,19 +34,10 @@ sealed class EditorBrush with _$EditorBrush {
 }
 
 @freezed
-class MapHistorySnapshot with _$MapHistorySnapshot {
-  const factory MapHistorySnapshot({
-    required MapData map,
-    String? activeLayerId,
-    String? selectedWarpId,
-  }) = _MapHistorySnapshot;
-}
-
-@freezed
 class EditorState with _$EditorState {
   const factory EditorState({
     // Context
-    ProjectWorkspace? projectWorkspace,
+    String? projectRootPath,
     ProjectManifest? project,
     @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
 

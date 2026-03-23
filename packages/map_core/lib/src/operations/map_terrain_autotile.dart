@@ -2,71 +2,24 @@ import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 
-int resolveTerrainCardinalMaskAt({
-  required List<TerrainType> terrains,
+int resolvePathCardinalMaskAt({
+  required List<bool> cells,
   required GridSize mapSize,
   required GridPos pos,
-  TerrainType terrain = TerrainType.path,
 }) {
-  if (mapSize.width <= 0 || mapSize.height <= 0) {
-    throw const ValidationException('Map size must be positive');
-  }
-  final expectedLength = mapSize.width * mapSize.height;
-  if (terrains.length < expectedLength) {
-    throw ValidationException(
-      'Terrain grid is incomplete: expected $expectedLength cells, got ${terrains.length}',
-    );
-  }
-  if (pos.x < 0 ||
-      pos.y < 0 ||
-      pos.x >= mapSize.width ||
-      pos.y >= mapSize.height) {
-    throw ValidationException(
-        'Position is outside map bounds: (${pos.x}, ${pos.y})');
-  }
-
-  var mask = 0;
-  if (_matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x,
-    y: pos.y - 1,
-    terrain: terrain,
-  )) {
-    mask |= 1;
-  }
-  if (_matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x + 1,
-    y: pos.y,
-    terrain: terrain,
-  )) {
-    mask |= 2;
-  }
-  if (_matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x,
-    y: pos.y + 1,
-    terrain: terrain,
-  )) {
-    mask |= 4;
-  }
-  if (_matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x - 1,
-    y: pos.y,
-    terrain: terrain,
-  )) {
-    mask |= 8;
-  }
-
-  return mask;
+  _validatePathGrid(cells: cells, mapSize: mapSize, pos: pos);
+  return _resolveCardinalMaskAt(
+    pos: pos,
+    matchesAt: (x, y) => _matchesPathCellAt(
+      cells: cells,
+      mapSize: mapSize,
+      x: x,
+      y: y,
+    ),
+  );
 }
 
-TerrainPathVariant resolveTerrainPathVariantFromMask(int mask) {
+TerrainPathVariant resolvePathVariantFromMask(int mask) {
   return switch (mask) {
     0 => TerrainPathVariant.isolated,
     1 => TerrainPathVariant.endNorth,
@@ -84,8 +37,58 @@ TerrainPathVariant resolveTerrainPathVariantFromMask(int mask) {
     13 => TerrainPathVariant.teeWest,
     14 => TerrainPathVariant.teeSouth,
     15 => TerrainPathVariant.cross,
-    _ => throw ValidationException('Invalid terrain cardinal mask: $mask'),
+    _ => throw ValidationException('Invalid path cardinal mask: $mask'),
   };
+}
+
+TerrainPathVariant resolvePathVariantAt({
+  required List<bool> cells,
+  required GridSize mapSize,
+  required GridPos pos,
+}) {
+  _validatePathGrid(cells: cells, mapSize: mapSize, pos: pos);
+  return _resolvePathVariantAt(
+    mapSize: mapSize,
+    pos: pos,
+    maskResolver: () => _resolveCardinalMaskAt(
+      pos: pos,
+      matchesAt: (x, y) => _matchesPathCellAt(
+        cells: cells,
+        mapSize: mapSize,
+        x: x,
+        y: y,
+      ),
+    ),
+    matchesAt: (x, y) => _matchesPathCellAt(
+      cells: cells,
+      mapSize: mapSize,
+      x: x,
+      y: y,
+    ),
+  );
+}
+
+int resolveTerrainCardinalMaskAt({
+  required List<TerrainType> terrains,
+  required GridSize mapSize,
+  required GridPos pos,
+  TerrainType terrain = TerrainType.path,
+}) {
+  _validateTerrainGrid(terrains: terrains, mapSize: mapSize, pos: pos);
+  return _resolveCardinalMaskAt(
+    pos: pos,
+    matchesAt: (x, y) => _matchesTerrainAt(
+      terrains: terrains,
+      mapSize: mapSize,
+      x: x,
+      y: y,
+      terrain: terrain,
+    ),
+  );
+}
+
+TerrainPathVariant resolveTerrainPathVariantFromMask(int mask) {
+  return resolvePathVariantFromMask(mask);
 }
 
 TerrainPathVariant resolveTerrainPathVariantAt({
@@ -94,13 +97,38 @@ TerrainPathVariant resolveTerrainPathVariantAt({
   required GridPos pos,
   TerrainType terrain = TerrainType.path,
 }) {
-  final mask = resolveTerrainCardinalMaskAt(
-    terrains: terrains,
+  _validateTerrainGrid(terrains: terrains, mapSize: mapSize, pos: pos);
+  return _resolvePathVariantAt(
     mapSize: mapSize,
     pos: pos,
-    terrain: terrain,
+    maskResolver: () => _resolveCardinalMaskAt(
+      pos: pos,
+      matchesAt: (x, y) => _matchesTerrainAt(
+        terrains: terrains,
+        mapSize: mapSize,
+        x: x,
+        y: y,
+        terrain: terrain,
+      ),
+    ),
+    matchesAt: (x, y) => _matchesTerrainAt(
+      terrains: terrains,
+      mapSize: mapSize,
+      x: x,
+      y: y,
+      terrain: terrain,
+    ),
   );
-  final base = resolveTerrainPathVariantFromMask(mask);
+}
+
+TerrainPathVariant _resolvePathVariantAt({
+  required GridSize mapSize,
+  required GridPos pos,
+  required int Function() maskResolver,
+  required bool Function(int x, int y) matchesAt,
+}) {
+  final mask = maskResolver();
+  final base = resolvePathVariantFromMask(mask);
   final edgeCornerReplacement = _resolveEdgeCornerAsBorderVariant(
     mapSize: mapSize,
     pos: pos,
@@ -123,34 +151,10 @@ TerrainPathVariant resolveTerrainPathVariantAt({
     return base;
   }
 
-  final hasNE = _matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x + 1,
-    y: pos.y - 1,
-    terrain: terrain,
-  );
-  final hasSE = _matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x + 1,
-    y: pos.y + 1,
-    terrain: terrain,
-  );
-  final hasSW = _matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x - 1,
-    y: pos.y + 1,
-    terrain: terrain,
-  );
-  final hasNW = _matchesTerrainAt(
-    terrains: terrains,
-    mapSize: mapSize,
-    x: pos.x - 1,
-    y: pos.y - 1,
-    terrain: terrain,
-  );
+  final hasNE = matchesAt(pos.x + 1, pos.y - 1);
+  final hasSE = matchesAt(pos.x + 1, pos.y + 1);
+  final hasSW = matchesAt(pos.x - 1, pos.y + 1);
+  final hasNW = matchesAt(pos.x - 1, pos.y - 1);
 
   if (!hasNE && hasSE && hasSW && hasNW) {
     return TerrainPathVariant.innerCornerNE;
@@ -277,6 +281,68 @@ bool _isMidPathVariant(TerrainPathVariant variant) {
       variant == TerrainPathVariant.teeWest;
 }
 
+void _validatePathGrid({
+  required List<bool> cells,
+  required GridSize mapSize,
+  required GridPos pos,
+}) {
+  if (mapSize.width <= 0 || mapSize.height <= 0) {
+    throw const ValidationException('Map size must be positive');
+  }
+  final expectedLength = mapSize.width * mapSize.height;
+  if (cells.length < expectedLength) {
+    throw ValidationException(
+      'Path grid is incomplete: expected $expectedLength cells, got ${cells.length}',
+    );
+  }
+  if (pos.x < 0 ||
+      pos.y < 0 ||
+      pos.x >= mapSize.width ||
+      pos.y >= mapSize.height) {
+    throw ValidationException(
+        'Position is outside map bounds: (${pos.x}, ${pos.y})');
+  }
+}
+
+bool _matchesPathCellAt({
+  required List<bool> cells,
+  required GridSize mapSize,
+  required int x,
+  required int y,
+}) {
+  if (x < 0 || y < 0 || x >= mapSize.width || y >= mapSize.height) {
+    return false;
+  }
+  final index = y * mapSize.width + x;
+  if (index < 0 || index >= cells.length) {
+    return false;
+  }
+  return cells[index];
+}
+
+void _validateTerrainGrid({
+  required List<TerrainType> terrains,
+  required GridSize mapSize,
+  required GridPos pos,
+}) {
+  final expectedLength = mapSize.width * mapSize.height;
+  if (mapSize.width <= 0 || mapSize.height <= 0) {
+    throw const ValidationException('Map size must be positive');
+  }
+  if (terrains.length < expectedLength) {
+    throw ValidationException(
+      'Terrain grid is incomplete: expected $expectedLength cells, got ${terrains.length}',
+    );
+  }
+  if (pos.x < 0 ||
+      pos.y < 0 ||
+      pos.x >= mapSize.width ||
+      pos.y >= mapSize.height) {
+    throw ValidationException(
+        'Position is outside map bounds: (${pos.x}, ${pos.y})');
+  }
+}
+
 bool _matchesTerrainAt({
   required List<TerrainType> terrains,
   required GridSize mapSize,
@@ -292,4 +358,24 @@ bool _matchesTerrainAt({
     return false;
   }
   return terrains[index] == terrain;
+}
+
+int _resolveCardinalMaskAt({
+  required GridPos pos,
+  required bool Function(int x, int y) matchesAt,
+}) {
+  var mask = 0;
+  if (matchesAt(pos.x, pos.y - 1)) {
+    mask |= 1;
+  }
+  if (matchesAt(pos.x + 1, pos.y)) {
+    mask |= 2;
+  }
+  if (matchesAt(pos.x, pos.y + 1)) {
+    mask |= 4;
+  }
+  if (matchesAt(pos.x - 1, pos.y)) {
+    mask |= 8;
+  }
+  return mask;
 }

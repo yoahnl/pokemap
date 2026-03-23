@@ -22,9 +22,18 @@ class TerrainMapPanel extends ConsumerWidget {
 
     final activeLayer = _resolveActiveLayer(map, state.activeLayerId);
     final activeIsTerrain = activeLayer is TerrainLayer;
+    final activeIsPath = activeLayer is PathLayer;
+    final activePathLayer = activeLayer is PathLayer ? activeLayer : null;
+    final activePathLayerName = activePathLayer?.name ?? '';
+    final displayedPathPreset = activePathLayer == null
+        ? selectedPathPreset
+        : notifier.getPathPresetById(activePathLayer.presetId) ??
+            selectedPathPreset;
     final hasTerrainLayer =
         map?.layers.any((layer) => layer is TerrainLayer) ?? false;
-    final canPaint = map != null && activeIsTerrain;
+    final hasPathLayer =
+        map?.layers.any((layer) => layer is PathLayer) ?? false;
+    final canPaint = map != null && (activeIsTerrain || activeIsPath);
 
     TerrainType paintTerrain;
     if (isPathSelected) {
@@ -41,8 +50,10 @@ class TerrainMapPanel extends ConsumerWidget {
         terrainPresets.any((preset) => preset.id == selectedTerrainPreset?.id)
             ? selectedTerrainPreset?.id
             : null;
-    final pathSelectedValue =
-        pathPresets.any((preset) => preset.id == selectedPathPreset?.id)
+    final pathSelectedValue = activePathLayer != null &&
+            pathPresets.any((preset) => preset.id == activePathLayer.presetId)
+        ? activePathLayer.presetId
+        : pathPresets.any((preset) => preset.id == selectedPathPreset?.id)
             ? selectedPathPreset?.id
             : null;
 
@@ -59,7 +70,7 @@ class TerrainMapPanel extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'TERRAIN PAINT',
+                    'MAP SURFACES',
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.0,
@@ -92,6 +103,7 @@ class TerrainMapPanel extends ConsumerWidget {
                     _buildLayerStatusCard(
                       activeLayer: activeLayer,
                       hasTerrainLayer: hasTerrainLayer,
+                      hasPathLayer: hasPathLayer,
                       notifier: notifier,
                     ),
                     const SizedBox(height: 10),
@@ -106,9 +118,11 @@ class TerrainMapPanel extends ConsumerWidget {
                       notifier: notifier,
                       presets: pathPresets,
                       selectedValue: pathSelectedValue,
-                      onChanged: notifier.selectPathPreset,
+                      onChanged: activeIsPath
+                          ? notifier.selectPathPresetForActivePathLayer
+                          : notifier.selectPathPreset,
                     ),
-                    if (selectedPathPreset != null) ...[
+                    if (displayedPathPreset != null) ...[
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -123,7 +137,7 @@ class TerrainMapPanel extends ConsumerWidget {
                           ),
                         ),
                         child: Text(
-                          'Path type: ${_terrainLabel(selectedPathPreset.groundTerrainType)}',
+                          'Path type: ${_terrainLabel(displayedPathPreset.groundTerrainType)}',
                           style: const TextStyle(
                             fontSize: 11,
                             color: Colors.white70,
@@ -138,7 +152,7 @@ class TerrainMapPanel extends ConsumerWidget {
                           child: FilledButton.icon(
                             onPressed: canPaint
                                 ? () {
-                                    if (paintTerrain == TerrainType.path) {
+                                    if (activeIsPath) {
                                       notifier.selectPathPaintMode();
                                     } else {
                                       notifier.selectTerrainPaintMode(
@@ -148,22 +162,20 @@ class TerrainMapPanel extends ConsumerWidget {
                                   }
                                 : null,
                             icon: Icon(
-                              paintTerrain == TerrainType.path
+                              activeIsPath
                                   ? Icons.route_outlined
                                   : Icons.brush_outlined,
                               size: 16,
                             ),
                             label: Text(
-                              paintTerrain == TerrainType.path
-                                  ? 'Draw Path'
-                                  : 'Paint Terrain',
+                              activeIsPath ? 'Draw Surface' : 'Paint Terrain',
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: canPaint
+                            onPressed: activeIsTerrain
                                 ? () => notifier.fillActiveTerrainLayer(
                                       paintTerrain,
                                     )
@@ -189,8 +201,13 @@ class TerrainMapPanel extends ConsumerWidget {
                       ),
                       child: Text(
                         state.activeTool == EditorToolType.terrainPaint
-                            ? (paintTerrain == TerrainType.path
-                                ? 'Active: path drawing'
+                            ? (activeIsPath
+                                ? ((activePathLayer?.presetId
+                                            .trim()
+                                            .isNotEmpty ??
+                                        false)
+                                    ? 'Active: path layer $activePathLayerName'
+                                    : 'Active: path layer without preset')
                                 : 'Active: terrain ${_terrainLabel(paintTerrain)}')
                             : 'Select terrain paint tool to paint on map',
                         style: const TextStyle(
@@ -219,18 +236,20 @@ class TerrainMapPanel extends ConsumerWidget {
   Widget _buildLayerStatusCard({
     required MapLayer? activeLayer,
     required bool hasTerrainLayer,
+    required bool hasPathLayer,
     required EditorNotifier notifier,
   }) {
     final activeIsTerrain = activeLayer is TerrainLayer;
+    final activeIsPath = activeLayer is PathLayer;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: activeIsTerrain
+        color: (activeIsTerrain || activeIsPath)
             ? Colors.greenAccent.withValues(alpha: 0.08)
             : Colors.orangeAccent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: activeIsTerrain
+          color: (activeIsTerrain || activeIsPath)
               ? Colors.greenAccent.withValues(alpha: 0.35)
               : Colors.orangeAccent.withValues(alpha: 0.35),
         ),
@@ -241,17 +260,24 @@ class TerrainMapPanel extends ConsumerWidget {
           Row(
             children: [
               Icon(
-                activeIsTerrain ? Icons.layers : Icons.warning_amber_rounded,
+                activeIsTerrain
+                    ? Icons.landscape_outlined
+                    : activeIsPath
+                        ? Icons.route_outlined
+                        : Icons.warning_amber_rounded,
                 size: 16,
-                color:
-                    activeIsTerrain ? Colors.greenAccent : Colors.orangeAccent,
+                color: (activeIsTerrain || activeIsPath)
+                    ? Colors.greenAccent
+                    : Colors.orangeAccent,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   activeIsTerrain
                       ? 'Active terrain layer: ${activeLayer.name}'
-                      : 'No active terrain layer',
+                      : activeIsPath
+                          ? 'Active path layer: ${activeLayer.name}'
+                          : 'No active terrain/path layer',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.white,
@@ -261,7 +287,7 @@ class TerrainMapPanel extends ConsumerWidget {
               ),
             ],
           ),
-          if (!activeIsTerrain) ...[
+          if (!activeIsTerrain && !activeIsPath) ...[
             const SizedBox(height: 8),
             Row(
               children: [
@@ -284,6 +310,27 @@ class TerrainMapPanel extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed:
+                        hasPathLayer ? notifier.activateFirstPathLayer : null,
+                    child: const Text('Use Path Layer'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => notifier.activateFirstPathLayer(
+                      createIfMissing: true,
+                    ),
+                    child: const Text('Add Path Layer'),
+                  ),
+                ),
+              ],
+            ),
           ],
         ],
       ),
@@ -299,7 +346,7 @@ class TerrainMapPanel extends ConsumerWidget {
     return _buildPickerCard(
       title: 'Terrain Preset',
       child: DropdownButtonFormField<String>(
-        value: selectedValue,
+        initialValue: selectedValue,
         isExpanded: true,
         decoration: const InputDecoration(
           border: OutlineInputBorder(),
@@ -331,7 +378,7 @@ class TerrainMapPanel extends ConsumerWidget {
     return _buildPickerCard(
       title: 'Path Preset',
       child: DropdownButtonFormField<String>(
-        value: selectedValue,
+        initialValue: selectedValue,
         isExpanded: true,
         decoration: const InputDecoration(
           border: OutlineInputBorder(),

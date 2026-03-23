@@ -1,4 +1,8 @@
-part of 'project_use_cases.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../domain/repositories/repositories.dart';
+import '../errors/application_errors.dart';
+import '../ports/project_workspace.dart';
 
 class AddWarpToMapUseCase {
   MapData execute(
@@ -57,14 +61,14 @@ class ValidateWarpTargetMapUseCase {
   ) {
     final normalizedTargetMapId = targetMapId.trim();
     if (normalizedTargetMapId.isEmpty) {
-      throw const ValidationException('Warp target map cannot be empty');
+      throw const EditorValidationException('Warp target map cannot be empty');
     }
     for (final mapEntry in project.maps) {
       if (mapEntry.id == normalizedTargetMapId) {
         return mapEntry;
       }
     }
-    throw ValidationException(
+    throw EditorNotFoundException(
         'Warp target map not found in project: $normalizedTargetMapId');
   }
 }
@@ -94,11 +98,11 @@ class CreateReciprocalWarpUseCase {
   }) async {
     final targetMapId = sourceWarp.targetMapId.trim();
     if (targetMapId.isEmpty) {
-      throw const ValidationException('Warp target map cannot be empty');
+      throw const EditorValidationException('Warp target map cannot be empty');
     }
     final targetMapEntry = project.maps.firstWhere(
       (entry) => entry.id == targetMapId,
-      orElse: () => throw ValidationException(
+      orElse: () => throw EditorNotFoundException(
           'Warp target map not found in project: $targetMapId'),
     );
 
@@ -113,14 +117,14 @@ class CreateReciprocalWarpUseCase {
         destinationPos.y < 0 ||
         destinationPos.x >= targetMap.size.width ||
         destinationPos.y >= targetMap.size.height) {
-      throw ValidationException(
+      throw EditorValidationException(
           'Warp destination is out of bounds in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
     }
 
     final hasWarpAtDestination =
         targetMap.warps.any((warp) => warp.pos == destinationPos);
     if (hasWarpAtDestination) {
-      throw ValidationException(
+      throw EditorConflictException(
           'A warp already exists in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
     }
 
