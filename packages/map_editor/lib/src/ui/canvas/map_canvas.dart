@@ -256,6 +256,8 @@ class MapCanvas extends ConsumerWidget {
   }
 }
 
+enum _TerrainLayerPaintPass { base, path }
+
 class MapGridPainter extends CustomPainter {
   final MapData map;
   final double zoom;
@@ -314,6 +316,17 @@ class MapGridPainter extends CustomPainter {
         canvas,
         layer,
         isActive: layer.id == activeLayerId,
+        pass: _TerrainLayerPaintPass.base,
+      );
+    }
+    for (var index = map.layers.length - 1; index >= 0; index--) {
+      final layer = map.layers[index];
+      if (!layer.isVisible || layer is! TerrainLayer) continue;
+      _paintTerrainLayer(
+        canvas,
+        layer,
+        isActive: layer.id == activeLayerId,
+        pass: _TerrainLayerPaintPass.path,
       );
     }
     for (var index = map.layers.length - 1; index >= 0; index--) {
@@ -927,6 +940,7 @@ class MapGridPainter extends CustomPainter {
     Canvas canvas,
     TerrainLayer layer, {
     required bool isActive,
+    required _TerrainLayerPaintPass pass,
   }) {
     if (layer.terrains.isEmpty) return;
     final activeBoost = isActive ? 1.0 : 0.85;
@@ -938,6 +952,14 @@ class MapGridPainter extends CustomPainter {
         if (index < 0 || index >= layer.terrains.length) continue;
         final terrain = layer.terrains[index];
         if (terrain == TerrainType.none) continue;
+        if (pass == _TerrainLayerPaintPass.base &&
+            terrain == TerrainType.path) {
+          continue;
+        }
+        if (pass == _TerrainLayerPaintPass.path &&
+            terrain != TerrainType.path) {
+          continue;
+        }
         if (terrain == TerrainType.path) {
           final pathDrawn = _paintPathAutotileCell(
             canvas,

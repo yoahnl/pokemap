@@ -2635,9 +2635,16 @@ class EditorNotifier extends _$EditorNotifier {
           pos: pos,
           terrain: terrain,
         );
+        final committed = terrain == TerrainType.path
+            ? painted
+            : _preserveExistingPathCellsOnTerrainLayer(
+                previousMap: map,
+                updatedMap: painted,
+                layerId: layerId,
+              );
         _applyMapMutation(
           previousMap: map,
-          updatedMap: painted,
+          updatedMap: committed,
           preferredActiveLayerId: layerId,
           partOfStroke: true,
         );
@@ -2658,9 +2665,16 @@ class EditorNotifier extends _$EditorNotifier {
         terrains: terrains,
         clipToMapBounds: true,
       );
+      final committed = terrain == TerrainType.path
+          ? painted
+          : _preserveExistingPathCellsOnTerrainLayer(
+              previousMap: map,
+              updatedMap: painted,
+              layerId: layerId,
+            );
       _applyMapMutation(
         previousMap: map,
-        updatedMap: painted,
+        updatedMap: committed,
         preferredActiveLayerId: layerId,
         partOfStroke: true,
       );
@@ -2709,6 +2723,61 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       _setPaintError('Failed to erase terrain $failureLabel: $e');
     }
+  }
+
+  MapData _preserveExistingPathCellsOnTerrainLayer({
+    required MapData previousMap,
+    required MapData updatedMap,
+    required String layerId,
+  }) {
+    final previousLayer = _findLayerById(previousMap, layerId);
+    final updatedLayer = _findLayerById(updatedMap, layerId);
+    if (previousLayer is! TerrainLayer || updatedLayer is! TerrainLayer) {
+      return updatedMap;
+    }
+
+    final expectedLength = updatedMap.size.width * updatedMap.size.height;
+    final nextTerrains = List<TerrainType>.filled(
+      expectedLength,
+      TerrainType.none,
+      growable: false,
+    );
+    final updatedSource = updatedLayer.terrains;
+    final updatedCopyLength = updatedSource.length < expectedLength
+        ? updatedSource.length
+        : expectedLength;
+    for (var i = 0; i < updatedCopyLength; i++) {
+      nextTerrains[i] = updatedSource[i];
+    }
+
+    var changed = false;
+    final previousSource = previousLayer.terrains;
+    final previousCopyLength = previousSource.length < expectedLength
+        ? previousSource.length
+        : expectedLength;
+    for (var i = 0; i < previousCopyLength; i++) {
+      if (previousSource[i] != TerrainType.path) continue;
+      if (nextTerrains[i] == TerrainType.path) continue;
+      nextTerrains[i] = TerrainType.path;
+      changed = true;
+    }
+    if (!changed) {
+      return updatedMap;
+    }
+
+    final layerIndex =
+        updatedMap.layers.indexWhere((layer) => layer.id == layerId);
+    if (layerIndex < 0) {
+      return updatedMap;
+    }
+    final updatedLayers =
+        List<MapLayer>.from(updatedMap.layers, growable: false);
+    final layer = updatedLayers[layerIndex];
+    if (layer is! TerrainLayer) {
+      return updatedMap;
+    }
+    updatedLayers[layerIndex] = layer.copyWith(terrains: nextTerrains);
+    return updatedMap.copyWith(layers: updatedLayers);
   }
 
   void _setPaintError(String message) {

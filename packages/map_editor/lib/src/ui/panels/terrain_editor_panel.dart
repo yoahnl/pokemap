@@ -22,19 +22,19 @@ class TerrainEditorPanel extends ConsumerWidget {
 
   static const List<TerrainPathVariant> _pathSchemaEditableVariants =
       <TerrainPathVariant>[
-    TerrainPathVariant.cornerNW,
-    TerrainPathVariant.endNorth,
-    TerrainPathVariant.cornerNE,
-    TerrainPathVariant.endWest,
-    TerrainPathVariant.cross,
-    TerrainPathVariant.endEast,
-    TerrainPathVariant.cornerSW,
-    TerrainPathVariant.endSouth,
     TerrainPathVariant.cornerSE,
-    TerrainPathVariant.innerCornerNW,
-    TerrainPathVariant.innerCornerNE,
-    TerrainPathVariant.innerCornerSW,
+    TerrainPathVariant.endSouth,
+    TerrainPathVariant.cornerSW,
+    TerrainPathVariant.endEast,
+    TerrainPathVariant.cross,
+    TerrainPathVariant.endWest,
+    TerrainPathVariant.cornerNE,
+    TerrainPathVariant.endNorth,
+    TerrainPathVariant.cornerNW,
     TerrainPathVariant.innerCornerSE,
+    TerrainPathVariant.innerCornerSW,
+    TerrainPathVariant.innerCornerNE,
+    TerrainPathVariant.innerCornerNW,
   ];
 
   @override
@@ -2211,66 +2211,66 @@ class TerrainEditorPanel extends ConsumerWidget {
     ensure(
       TerrainPathVariant.horizontal,
       const [
+        TerrainPathVariant.cross,
         TerrainPathVariant.horizontal,
         TerrainPathVariant.endWest,
         TerrainPathVariant.endEast,
-        TerrainPathVariant.cross,
       ],
     );
     ensure(
       TerrainPathVariant.vertical,
       const [
+        TerrainPathVariant.cross,
         TerrainPathVariant.vertical,
         TerrainPathVariant.endNorth,
         TerrainPathVariant.endSouth,
-        TerrainPathVariant.cross,
       ],
     );
     ensure(
       TerrainPathVariant.teeNorth,
       const [
         TerrainPathVariant.teeNorth,
-        TerrainPathVariant.cross,
         TerrainPathVariant.endNorth,
         TerrainPathVariant.endWest,
         TerrainPathVariant.endEast,
+        TerrainPathVariant.cross,
       ],
     );
     ensure(
       TerrainPathVariant.teeEast,
       const [
         TerrainPathVariant.teeEast,
-        TerrainPathVariant.cross,
-        TerrainPathVariant.endNorth,
         TerrainPathVariant.endEast,
+        TerrainPathVariant.endNorth,
         TerrainPathVariant.endSouth,
+        TerrainPathVariant.cross,
       ],
     );
     ensure(
       TerrainPathVariant.teeSouth,
       const [
         TerrainPathVariant.teeSouth,
-        TerrainPathVariant.cross,
+        TerrainPathVariant.endSouth,
         TerrainPathVariant.endWest,
         TerrainPathVariant.endEast,
-        TerrainPathVariant.endSouth,
+        TerrainPathVariant.cross,
       ],
     );
     ensure(
       TerrainPathVariant.teeWest,
       const [
         TerrainPathVariant.teeWest,
-        TerrainPathVariant.cross,
+        TerrainPathVariant.endWest,
         TerrainPathVariant.endNorth,
         TerrainPathVariant.endSouth,
-        TerrainPathVariant.endWest,
+        TerrainPathVariant.cross,
       ],
     );
     ensure(
       TerrainPathVariant.isolated,
       const [
-        TerrainPathVariant.isolated,
         TerrainPathVariant.cross,
+        TerrainPathVariant.isolated,
         TerrainPathVariant.endNorth,
         TerrainPathVariant.endEast,
         TerrainPathVariant.endSouth,
@@ -2688,23 +2688,23 @@ class _PathSchemaCanvas extends StatelessWidget {
 
   static const List<TerrainPathVariant> _mainSquareVariants =
       <TerrainPathVariant>[
-    TerrainPathVariant.cornerNW,
-    TerrainPathVariant.endNorth,
-    TerrainPathVariant.cornerNE,
-    TerrainPathVariant.endWest,
-    TerrainPathVariant.cross,
-    TerrainPathVariant.endEast,
-    TerrainPathVariant.cornerSW,
-    TerrainPathVariant.endSouth,
     TerrainPathVariant.cornerSE,
+    TerrainPathVariant.endSouth,
+    TerrainPathVariant.cornerSW,
+    TerrainPathVariant.endEast,
+    TerrainPathVariant.cross,
+    TerrainPathVariant.endWest,
+    TerrainPathVariant.cornerNE,
+    TerrainPathVariant.endNorth,
+    TerrainPathVariant.cornerNW,
   ];
 
   static const List<TerrainPathVariant> _innerCornerVariants =
       <TerrainPathVariant>[
-    TerrainPathVariant.innerCornerNW,
-    TerrainPathVariant.innerCornerNE,
-    TerrainPathVariant.innerCornerSW,
     TerrainPathVariant.innerCornerSE,
+    TerrainPathVariant.innerCornerSW,
+    TerrainPathVariant.innerCornerNE,
+    TerrainPathVariant.innerCornerNW,
   ];
 
   @override
