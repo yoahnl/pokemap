@@ -17,6 +17,7 @@ class MapData with _$MapData {
     @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
     @Default([]) List<MapEntity> entities,
+    @Default([]) List<MapConnection> connections,
     @Default([]) List<MapWarp> warps,
     @Default([]) List<MapTrigger> triggers,
     @Default({}) Map<String, dynamic> properties,
@@ -52,6 +53,19 @@ class MapWarp with _$MapWarp {
 
   factory MapWarp.fromJson(Map<String, dynamic> json) =>
       _$MapWarpFromJson(json);
+}
+
+@freezed
+class MapConnection with _$MapConnection {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapConnection({
+    required MapConnectionDirection direction,
+    required String targetMapId,
+    @Default(0) int offset,
+  }) = _MapConnection;
+
+  factory MapConnection.fromJson(Map<String, dynamic> json) =>
+      _$MapConnectionFromJson(json);
 }
 
 @freezed

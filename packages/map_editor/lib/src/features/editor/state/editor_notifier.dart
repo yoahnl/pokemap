@@ -11,6 +11,7 @@ import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
+import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
@@ -46,6 +47,8 @@ class EditorNotifier extends _$EditorNotifier {
 
   WarpEditingService get _warpEditingService =>
       ref.read(warpEditingServiceProvider);
+  MapConnectionEditingService get _mapConnectionEditingService =>
+      ref.read(mapConnectionEditingServiceProvider);
   TerrainPaintingCoordinator get _terrainPaintingCoordinator =>
       ref.read(terrainPaintingCoordinatorProvider);
   PathLayerEditingCoordinator get _pathLayerEditingCoordinator =>
@@ -1887,6 +1890,13 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  MapConnection? getMapConnection(MapConnectionDirection direction) {
+    return _mapConnectionEditingService.findConnection(
+      state.activeMap,
+      direction,
+    );
+  }
+
   void placeOrSelectWarpAt(GridPos pos) {
     final map = state.activeMap;
     if (map == null) return;
@@ -2061,6 +2071,88 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete warp: $e');
+    }
+  }
+
+  Future<void> saveMapConnection({
+    required MapConnectionDirection direction,
+    required String targetMapId,
+    required int offset,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    final map = state.activeMap;
+    if (fs == null || project == null || map == null) return;
+    try {
+      final updatedMap = await _mapConnectionEditingService.upsertConnection(
+        fs,
+        project,
+        sourceMap: map,
+        direction: direction,
+        targetMapId: targetMapId,
+        offset: offset,
+      );
+      final targetEntry = _mapConnectionEditingService.resolveTargetMapEntry(
+        project,
+        targetMapId,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        statusMessage:
+            '${direction.name.toUpperCase()} connection saved to "${targetEntry.name}"',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to save map connection: $e',
+      );
+    }
+  }
+
+  void deleteMapConnection(MapConnectionDirection direction) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updatedMap = _mapConnectionEditingService.deleteConnection(
+        map,
+        direction: direction,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        statusMessage: '${direction.name.toUpperCase()} connection deleted',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to delete map connection: $e',
+      );
+    }
+  }
+
+  Future<void> openConnectedMap(MapConnectionDirection direction) async {
+    final project = state.project;
+    final connection = getMapConnection(direction);
+    if (project == null || connection == null) {
+      state = state.copyWith(
+        errorMessage: 'No ${direction.name} connection available',
+      );
+      return;
+    }
+    try {
+      endMapStroke();
+      final targetEntry = _mapConnectionEditingService.resolveTargetMapEntry(
+        project,
+        connection.targetMapId,
+      );
+      await loadMap(targetEntry.relativePath);
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to open connected map: $e',
+      );
     }
   }
 

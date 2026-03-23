@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -38,6 +39,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
+    final connectionLabelsByDirection =
+        _resolveConnectionLabels(activeMap, state.project);
     final selectedPathAutotileSet = notifier.getSelectedPathAutotileSet();
     final pathAutotileSetsByPresetId = notifier.getPathAutotileSetsByPresetId();
     final terrainPresetsByType = notifier.getTerrainPresetByType();
@@ -211,6 +214,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     toolPreview: toolPreview,
                     warps: activeMap.warps,
                     selectedWarpId: state.selectedWarpId,
+                    connectionLabelsByDirection: connectionLabelsByDirection,
                     selectedPathAutotileSet: selectedPathAutotileSet,
                     pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
                     terrainPresetsByType: terrainPresetsByType,
@@ -283,6 +287,24 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     return result;
   }
 
+  Map<MapConnectionDirection, String> _resolveConnectionLabels(
+    MapData? map,
+    ProjectManifest? project,
+  ) {
+    final result = <MapConnectionDirection, String>{};
+    if (map == null || project == null) {
+      return result;
+    }
+    final projectMapById = <String, ProjectMapEntry>{
+      for (final mapEntry in project.maps) mapEntry.id: mapEntry,
+    };
+    for (final connection in map.connections) {
+      final mapEntry = projectMapById[connection.targetMapId];
+      result[connection.direction] = mapEntry?.name ?? connection.targetMapId;
+    }
+    return result;
+  }
+
   GridPos? _screenToGrid(
     Offset screenPos,
     Offset pan,
@@ -319,6 +341,7 @@ class MapGridPainter extends CustomPainter {
   final MapToolPreview? toolPreview;
   final List<MapWarp> warps;
   final String? selectedWarpId;
+  final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final PathAutotileSet? selectedPathAutotileSet;
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
   final Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType;
@@ -338,6 +361,7 @@ class MapGridPainter extends CustomPainter {
     this.toolPreview,
     required this.warps,
     this.selectedWarpId,
+    required this.connectionLabelsByDirection,
     this.selectedPathAutotileSet,
     required this.pathAutotileSetsByPresetId,
     required this.terrainPresetsByType,
@@ -436,6 +460,7 @@ class MapGridPainter extends CustomPainter {
 
     _paintToolPreview(canvas);
     _paintWarps(canvas);
+    _paintConnections(canvas, gridWidth, gridHeight);
 
     canvas.drawRect(
       Rect.fromLTWH(0, 0, gridWidth, gridHeight),
@@ -480,6 +505,106 @@ class MapGridPainter extends CustomPainter {
         Paint()..color = isSelected ? Colors.white : Colors.purple.shade100,
       );
     }
+  }
+
+  void _paintConnections(
+    Canvas canvas,
+    double gridWidth,
+    double gridHeight,
+  ) {
+    if (map.connections.isEmpty) {
+      return;
+    }
+    for (final connection in map.connections) {
+      final badgeRect = _connectionBadgeRect(
+        connection.direction,
+        gridWidth,
+        gridHeight,
+      );
+      final fillPaint = Paint()
+        ..color = const Color(0xFF13212D).withValues(alpha: 0.88)
+        ..style = PaintingStyle.fill;
+      final borderPaint = Paint()
+        ..color = Colors.cyanAccent.withValues(alpha: 0.75)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2 / zoom;
+      final badge = RRect.fromRectAndRadius(
+        badgeRect,
+        Radius.circular(6 / zoom),
+      );
+      canvas.drawRRect(badge, fillPaint);
+      canvas.drawRRect(badge, borderPaint);
+
+      final label = connectionLabelsByDirection[connection.direction] ??
+          connection.targetMapId;
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: '${_directionShortLabel(connection.direction)}  $label',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 11 / zoom,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '...',
+      )..layout(maxWidth: badgeRect.width - (12 / zoom));
+      final textOffset = Offset(
+        badgeRect.left + ((badgeRect.width - textPainter.width) / 2),
+        badgeRect.top + ((badgeRect.height - textPainter.height) / 2),
+      );
+      textPainter.paint(canvas, textOffset);
+    }
+  }
+
+  Rect _connectionBadgeRect(
+    MapConnectionDirection direction,
+    double gridWidth,
+    double gridHeight,
+  ) {
+    final inset = 8 / zoom;
+    final shortSide = 22 / zoom;
+    final badgeWidth = math.max(
+      52 / zoom,
+      math.min(gridWidth - (inset * 2), 168 / zoom),
+    );
+    return switch (direction) {
+      MapConnectionDirection.north => Rect.fromLTWH(
+          (gridWidth - badgeWidth) / 2,
+          inset,
+          badgeWidth,
+          shortSide,
+        ),
+      MapConnectionDirection.south => Rect.fromLTWH(
+          (gridWidth - badgeWidth) / 2,
+          gridHeight - inset - shortSide,
+          badgeWidth,
+          shortSide,
+        ),
+      MapConnectionDirection.east => Rect.fromLTWH(
+          gridWidth - inset - badgeWidth,
+          (gridHeight / 2) - shortSide - (2 / zoom),
+          badgeWidth,
+          shortSide,
+        ),
+      MapConnectionDirection.west => Rect.fromLTWH(
+          inset,
+          (gridHeight / 2) - shortSide - (2 / zoom),
+          badgeWidth,
+          shortSide,
+        ),
+    };
+  }
+
+  String _directionShortLabel(MapConnectionDirection direction) {
+    return switch (direction) {
+      MapConnectionDirection.north => 'N',
+      MapConnectionDirection.south => 'S',
+      MapConnectionDirection.east => 'E',
+      MapConnectionDirection.west => 'W',
+    };
   }
 
   void _paintToolPreview(Canvas canvas) {
@@ -1330,6 +1455,10 @@ class MapGridPainter extends CustomPainter {
         !_samePathAutotileSet(
           oldDelegate.selectedPathAutotileSet,
           selectedPathAutotileSet,
+        ) ||
+        !mapEquals(
+          oldDelegate.connectionLabelsByDirection,
+          connectionLabelsByDirection,
         ) ||
         !_samePathAutotileSetsByPresetId(
           oldDelegate.pathAutotileSetsByPresetId,

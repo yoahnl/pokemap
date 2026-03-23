@@ -164,6 +164,26 @@ final warpEditingServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef WarpEditingServiceRef = AutoDisposeProviderRef<WarpEditingService>;
+String _$mapConnectionEditingServiceHash() =>
+    r'1b04bd4861dbfcea12d139a333e98ee10ec35a36';
+
+/// See also [mapConnectionEditingService].
+@ProviderFor(mapConnectionEditingService)
+final mapConnectionEditingServiceProvider =
+    AutoDisposeProvider<MapConnectionEditingService>.internal(
+  mapConnectionEditingService,
+  name: r'mapConnectionEditingServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$mapConnectionEditingServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MapConnectionEditingServiceRef
+    = AutoDisposeProviderRef<MapConnectionEditingService>;
 String _$terrainPaintingCoordinatorHash() =>
     r'4278055a3f4745438b34ca294036ddd45b3adaaf';
 
@@ -1201,6 +1221,66 @@ final addWarpToMapUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AddWarpToMapUseCaseRef = AutoDisposeProviderRef<AddWarpToMapUseCase>;
+String _$resolveMapConnectionTargetUseCaseHash() =>
+    r'1e992e8f27c300ae66dcda342838dcda7f415913';
+
+/// See also [resolveMapConnectionTargetUseCase].
+@ProviderFor(resolveMapConnectionTargetUseCase)
+final resolveMapConnectionTargetUseCaseProvider =
+    AutoDisposeProvider<ResolveMapConnectionTargetUseCase>.internal(
+  resolveMapConnectionTargetUseCase,
+  name: r'resolveMapConnectionTargetUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$resolveMapConnectionTargetUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ResolveMapConnectionTargetUseCaseRef
+    = AutoDisposeProviderRef<ResolveMapConnectionTargetUseCase>;
+String _$upsertMapConnectionUseCaseHash() =>
+    r'1e0726e2c6a25d20df3aa682760b57481c563ea7';
+
+/// See also [upsertMapConnectionUseCase].
+@ProviderFor(upsertMapConnectionUseCase)
+final upsertMapConnectionUseCaseProvider =
+    AutoDisposeProvider<UpsertMapConnectionUseCase>.internal(
+  upsertMapConnectionUseCase,
+  name: r'upsertMapConnectionUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$upsertMapConnectionUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpsertMapConnectionUseCaseRef
+    = AutoDisposeProviderRef<UpsertMapConnectionUseCase>;
+String _$deleteMapConnectionUseCaseHash() =>
+    r'b5688726e82d3b725d77389d38ac4d32ae0549cc';
+
+/// See also [deleteMapConnectionUseCase].
+@ProviderFor(deleteMapConnectionUseCase)
+final deleteMapConnectionUseCaseProvider =
+    AutoDisposeProvider<DeleteMapConnectionUseCase>.internal(
+  deleteMapConnectionUseCase,
+  name: r'deleteMapConnectionUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteMapConnectionUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteMapConnectionUseCaseRef
+    = AutoDisposeProviderRef<DeleteMapConnectionUseCase>;
 String _$updateWarpOnMapUseCaseHash() =>
     r'636b831105bae05266b7405ecd476077972cda54';
 

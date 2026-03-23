@@ -27,6 +27,7 @@ mixin _$MapData {
   String get tilesetId => throw _privateConstructorUsedError;
   List<MapLayer> get layers => throw _privateConstructorUsedError;
   List<MapEntity> get entities => throw _privateConstructorUsedError;
+  List<MapConnection> get connections => throw _privateConstructorUsedError;
   List<MapWarp> get warps => throw _privateConstructorUsedError;
   List<MapTrigger> get triggers => throw _privateConstructorUsedError;
   Map<String, dynamic> get properties => throw _privateConstructorUsedError;
@@ -53,6 +54,7 @@ abstract class $MapDataCopyWith<$Res> {
       String tilesetId,
       List<MapLayer> layers,
       List<MapEntity> entities,
+      List<MapConnection> connections,
       List<MapWarp> warps,
       List<MapTrigger> triggers,
       Map<String, dynamic> properties});
@@ -82,6 +84,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
     Object? tilesetId = null,
     Object? layers = null,
     Object? entities = null,
+    Object? connections = null,
     Object? warps = null,
     Object? triggers = null,
     Object? properties = null,
@@ -115,6 +118,10 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
           ? _value.entities
           : entities // ignore: cast_nullable_to_non_nullable
               as List<MapEntity>,
+      connections: null == connections
+          ? _value.connections
+          : connections // ignore: cast_nullable_to_non_nullable
+              as List<MapConnection>,
       warps: null == warps
           ? _value.warps
           : warps // ignore: cast_nullable_to_non_nullable
@@ -156,6 +163,7 @@ abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
       String tilesetId,
       List<MapLayer> layers,
       List<MapEntity> entities,
+      List<MapConnection> connections,
       List<MapWarp> warps,
       List<MapTrigger> triggers,
       Map<String, dynamic> properties});
@@ -184,6 +192,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
     Object? tilesetId = null,
     Object? layers = null,
     Object? entities = null,
+    Object? connections = null,
     Object? warps = null,
     Object? triggers = null,
     Object? properties = null,
@@ -217,6 +226,10 @@ class __$$MapDataImplCopyWithImpl<$Res>
           ? _value._entities
           : entities // ignore: cast_nullable_to_non_nullable
               as List<MapEntity>,
+      connections: null == connections
+          ? _value._connections
+          : connections // ignore: cast_nullable_to_non_nullable
+              as List<MapConnection>,
       warps: null == warps
           ? _value._warps
           : warps // ignore: cast_nullable_to_non_nullable
@@ -245,11 +258,13 @@ class _$MapDataImpl implements _MapData {
       this.tilesetId = '',
       final List<MapLayer> layers = const [],
       final List<MapEntity> entities = const [],
+      final List<MapConnection> connections = const [],
       final List<MapWarp> warps = const [],
       final List<MapTrigger> triggers = const [],
       final Map<String, dynamic> properties = const {}})
       : _layers = layers,
         _entities = entities,
+        _connections = connections,
         _warps = warps,
         _triggers = triggers,
         _properties = properties;
@@ -287,6 +302,15 @@ class _$MapDataImpl implements _MapData {
     return EqualUnmodifiableListView(_entities);
   }
 
+  final List<MapConnection> _connections;
+  @override
+  @JsonKey()
+  List<MapConnection> get connections {
+    if (_connections is EqualUnmodifiableListView) return _connections;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_connections);
+  }
+
   final List<MapWarp> _warps;
   @override
   @JsonKey()
@@ -316,7 +340,7 @@ class _$MapDataImpl implements _MapData {
 
   @override
   String toString() {
-    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, entities: $entities, warps: $warps, triggers: $triggers, properties: $properties)';
+    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, properties: $properties)';
   }
 
   @override
@@ -332,6 +356,8 @@ class _$MapDataImpl implements _MapData {
                 other.tilesetId == tilesetId) &&
             const DeepCollectionEquality().equals(other._layers, _layers) &&
             const DeepCollectionEquality().equals(other._entities, _entities) &&
+            const DeepCollectionEquality()
+                .equals(other._connections, _connections) &&
             const DeepCollectionEquality().equals(other._warps, _warps) &&
             const DeepCollectionEquality().equals(other._triggers, _triggers) &&
             const DeepCollectionEquality()
@@ -349,6 +375,7 @@ class _$MapDataImpl implements _MapData {
       tilesetId,
       const DeepCollectionEquality().hash(_layers),
       const DeepCollectionEquality().hash(_entities),
+      const DeepCollectionEquality().hash(_connections),
       const DeepCollectionEquality().hash(_warps),
       const DeepCollectionEquality().hash(_triggers),
       const DeepCollectionEquality().hash(_properties));
@@ -378,6 +405,7 @@ abstract class _MapData implements MapData {
       final String tilesetId,
       final List<MapLayer> layers,
       final List<MapEntity> entities,
+      final List<MapConnection> connections,
       final List<MapWarp> warps,
       final List<MapTrigger> triggers,
       final Map<String, dynamic> properties}) = _$MapDataImpl;
@@ -398,6 +426,8 @@ abstract class _MapData implements MapData {
   List<MapLayer> get layers;
   @override
   List<MapEntity> get entities;
+  @override
+  List<MapConnection> get connections;
   @override
   List<MapWarp> get warps;
   @override
@@ -879,6 +909,195 @@ abstract class _MapWarp implements MapWarp {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$MapWarpImplCopyWith<_$MapWarpImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+MapConnection _$MapConnectionFromJson(Map<String, dynamic> json) {
+  return _MapConnection.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapConnection {
+  MapConnectionDirection get direction => throw _privateConstructorUsedError;
+  String get targetMapId => throw _privateConstructorUsedError;
+  int get offset => throw _privateConstructorUsedError;
+
+  /// Serializes this MapConnection to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapConnection
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapConnectionCopyWith<MapConnection> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapConnectionCopyWith<$Res> {
+  factory $MapConnectionCopyWith(
+          MapConnection value, $Res Function(MapConnection) then) =
+      _$MapConnectionCopyWithImpl<$Res, MapConnection>;
+  @useResult
+  $Res call({MapConnectionDirection direction, String targetMapId, int offset});
+}
+
+/// @nodoc
+class _$MapConnectionCopyWithImpl<$Res, $Val extends MapConnection>
+    implements $MapConnectionCopyWith<$Res> {
+  _$MapConnectionCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapConnection
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? direction = null,
+    Object? targetMapId = null,
+    Object? offset = null,
+  }) {
+    return _then(_value.copyWith(
+      direction: null == direction
+          ? _value.direction
+          : direction // ignore: cast_nullable_to_non_nullable
+              as MapConnectionDirection,
+      targetMapId: null == targetMapId
+          ? _value.targetMapId
+          : targetMapId // ignore: cast_nullable_to_non_nullable
+              as String,
+      offset: null == offset
+          ? _value.offset
+          : offset // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$MapConnectionImplCopyWith<$Res>
+    implements $MapConnectionCopyWith<$Res> {
+  factory _$$MapConnectionImplCopyWith(
+          _$MapConnectionImpl value, $Res Function(_$MapConnectionImpl) then) =
+      __$$MapConnectionImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({MapConnectionDirection direction, String targetMapId, int offset});
+}
+
+/// @nodoc
+class __$$MapConnectionImplCopyWithImpl<$Res>
+    extends _$MapConnectionCopyWithImpl<$Res, _$MapConnectionImpl>
+    implements _$$MapConnectionImplCopyWith<$Res> {
+  __$$MapConnectionImplCopyWithImpl(
+      _$MapConnectionImpl _value, $Res Function(_$MapConnectionImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapConnection
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? direction = null,
+    Object? targetMapId = null,
+    Object? offset = null,
+  }) {
+    return _then(_$MapConnectionImpl(
+      direction: null == direction
+          ? _value.direction
+          : direction // ignore: cast_nullable_to_non_nullable
+              as MapConnectionDirection,
+      targetMapId: null == targetMapId
+          ? _value.targetMapId
+          : targetMapId // ignore: cast_nullable_to_non_nullable
+              as String,
+      offset: null == offset
+          ? _value.offset
+          : offset // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapConnectionImpl implements _MapConnection {
+  const _$MapConnectionImpl(
+      {required this.direction, required this.targetMapId, this.offset = 0});
+
+  factory _$MapConnectionImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MapConnectionImplFromJson(json);
+
+  @override
+  final MapConnectionDirection direction;
+  @override
+  final String targetMapId;
+  @override
+  @JsonKey()
+  final int offset;
+
+  @override
+  String toString() {
+    return 'MapConnection(direction: $direction, targetMapId: $targetMapId, offset: $offset)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapConnectionImpl &&
+            (identical(other.direction, direction) ||
+                other.direction == direction) &&
+            (identical(other.targetMapId, targetMapId) ||
+                other.targetMapId == targetMapId) &&
+            (identical(other.offset, offset) || other.offset == offset));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, direction, targetMapId, offset);
+
+  /// Create a copy of MapConnection
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapConnectionImplCopyWith<_$MapConnectionImpl> get copyWith =>
+      __$$MapConnectionImplCopyWithImpl<_$MapConnectionImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapConnectionImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapConnection implements MapConnection {
+  const factory _MapConnection(
+      {required final MapConnectionDirection direction,
+      required final String targetMapId,
+      final int offset}) = _$MapConnectionImpl;
+
+  factory _MapConnection.fromJson(Map<String, dynamic> json) =
+      _$MapConnectionImpl.fromJson;
+
+  @override
+  MapConnectionDirection get direction;
+  @override
+  String get targetMapId;
+  @override
+  int get offset;
+
+  /// Create a copy of MapConnection
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapConnectionImplCopyWith<_$MapConnectionImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

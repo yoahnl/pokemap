@@ -85,8 +85,8 @@ class ProjectValidator {
             'Cycle detected in group hierarchy at ${group.id}',
           );
         }
-        current =
-            manifest.groups.firstWhere((candidate) => candidate.id == current.parentGroupId);
+        current = manifest.groups
+            .firstWhere((candidate) => candidate.id == current.parentGroupId);
       }
     }
 
@@ -114,7 +114,8 @@ class ProjectValidator {
     _validatePathPresets(manifest);
   }
 
-  static void _validateTilesets(ProjectManifest manifest, Set<String> groupIds) {
+  static void _validateTilesets(
+      ProjectManifest manifest, Set<String> groupIds) {
     var worldTilesetCount = 0;
     final tilesetElementGroupIdsByTileset = <String, Set<String>>{};
 
@@ -139,7 +140,8 @@ class ProjectValidator {
       if (tileset.isWorldTileset) {
         worldTilesetCount++;
         if (tileset.scope != TilesetScope.global) {
-          throw ValidationException('World tileset ${tileset.id} must be global');
+          throw ValidationException(
+              'World tileset ${tileset.id} must be global');
         }
       }
 
@@ -261,7 +263,8 @@ class ProjectValidator {
     }
   }
 
-  static void _validateElements(ProjectManifest manifest, Set<String> groupIds) {
+  static void _validateElements(
+      ProjectManifest manifest, Set<String> groupIds) {
     final tilesetIds = manifest.tilesets.map((t) => t.id).toSet();
     final tilesetElementGroupIdsByTileset = <String, Set<String>>{
       for (final tileset in manifest.tilesets)
@@ -362,7 +365,8 @@ class ProjectValidator {
 
   static void _validateTerrainPresets(ProjectManifest manifest) {
     final tilesetIds = manifest.tilesets.map((tileset) => tileset.id).toSet();
-    final categoryIds = manifest.terrainCategories.map((category) => category.id).toSet();
+    final categoryIds =
+        manifest.terrainCategories.map((category) => category.id).toSet();
 
     for (final preset in manifest.terrainPresets) {
       if (preset.id.trim().isEmpty) {
@@ -414,7 +418,8 @@ class ProjectValidator {
 
   static void _validatePathPresets(ProjectManifest manifest) {
     final tilesetIds = manifest.tilesets.map((tileset) => tileset.id).toSet();
-    final categoryIds = manifest.pathCategories.map((category) => category.id).toSet();
+    final categoryIds =
+        manifest.pathCategories.map((category) => category.id).toSet();
 
     for (final preset in manifest.pathPresets) {
       if (preset.id.trim().isEmpty) {
@@ -555,6 +560,24 @@ class MapValidator {
       duplicateMessagePrefix: 'Duplicate entity ID',
     );
 
+    final seenConnectionDirections = <MapConnectionDirection>{};
+    for (final connection in map.connections) {
+      final targetMapId = _requireNonBlank(
+        connection.targetMapId,
+        'Map connection ${connection.direction.name} has empty targetMapId',
+      );
+      if (targetMapId == mapId) {
+        throw ValidationException(
+          'Map connection ${connection.direction.name} cannot target its own map',
+        );
+      }
+      if (!seenConnectionDirections.add(connection.direction)) {
+        throw ValidationException(
+          'Duplicate map connection direction: ${connection.direction.name}',
+        );
+      }
+    }
+
     for (final warp in map.warps) {
       final warpId = _requireNonBlank(warp.id, 'Warp ID cannot be empty');
       _requireNonBlank(warp.targetMapId, 'Warp $warpId has empty targetMapId');
@@ -576,7 +599,8 @@ class MapValidator {
     );
 
     for (final trigger in map.triggers) {
-      final triggerId = _requireNonBlank(trigger.id, 'Trigger ID cannot be empty');
+      final triggerId =
+          _requireNonBlank(trigger.id, 'Trigger ID cannot be empty');
       _validatePositionInBounds(
         trigger.pos,
         map.size,
@@ -621,7 +645,8 @@ class MapValidator {
       tile: (tileLayer) {
         final layerTilesetId = tileLayer.tilesetId?.trim();
         if (layerTilesetId != null && layerTilesetId.isEmpty) {
-          throw ValidationException('Tile layer $layerId has an empty tilesetId');
+          throw ValidationException(
+              'Tile layer $layerId has an empty tilesetId');
         }
         if (tileLayer.tiles.length != expectedCellCount) {
           throw ValidationException(
@@ -658,7 +683,8 @@ class MapValidator {
         }
         for (final key in pathLayer.properties.keys) {
           if (key.trim().isEmpty) {
-            throw ValidationException('Path layer $layerId has an empty property key');
+            throw ValidationException(
+                'Path layer $layerId has an empty property key');
           }
         }
       },

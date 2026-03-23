@@ -22,6 +22,10 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => MapEntity.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      connections: (json['connections'] as List<dynamic>?)
+              ?.map((e) => MapConnection.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       warps: (json['warps'] as List<dynamic>?)
               ?.map((e) => MapWarp.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -42,6 +46,7 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'tilesetId': instance.tilesetId,
       'layers': instance.layers.map((e) => e.toJson()).toList(),
       'entities': instance.entities.map((e) => e.toJson()).toList(),
+      'connections': instance.connections.map((e) => e.toJson()).toList(),
       'warps': instance.warps.map((e) => e.toJson()).toList(),
       'triggers': instance.triggers.map((e) => e.toJson()).toList(),
       'properties': instance.properties,
@@ -90,6 +95,28 @@ Map<String, dynamic> _$$MapWarpImplToJson(_$MapWarpImpl instance) =>
       'targetMapId': instance.targetMapId,
       'targetPos': instance.targetPos.toJson(),
     };
+
+_$MapConnectionImpl _$$MapConnectionImplFromJson(Map<String, dynamic> json) =>
+    _$MapConnectionImpl(
+      direction:
+          $enumDecode(_$MapConnectionDirectionEnumMap, json['direction']),
+      targetMapId: json['targetMapId'] as String,
+      offset: (json['offset'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$MapConnectionImplToJson(_$MapConnectionImpl instance) =>
+    <String, dynamic>{
+      'direction': _$MapConnectionDirectionEnumMap[instance.direction]!,
+      'targetMapId': instance.targetMapId,
+      'offset': instance.offset,
+    };
+
+const _$MapConnectionDirectionEnumMap = {
+  MapConnectionDirection.north: 'north',
+  MapConnectionDirection.south: 'south',
+  MapConnectionDirection.east: 'east',
+  MapConnectionDirection.west: 'west',
+};
 
 _$MapTriggerImpl _$$MapTriggerImplFromJson(Map<String, dynamic> json) =>
     _$MapTriggerImpl(

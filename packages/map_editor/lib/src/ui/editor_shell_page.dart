@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/layers_panel.dart';
+import 'package:map_editor/src/ui/panels/map_connections_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/terrain_editor_panel.dart';
 import 'package:map_editor/src/ui/panels/terrain_map_panel.dart';
@@ -129,6 +130,10 @@ class EditorShellPage extends ConsumerWidget {
                                         const SizedBox(
                                           height: 320,
                                           child: TerrainMapPanel(),
+                                        ),
+                                        const SizedBox(
+                                          height: 520,
+                                          child: MapConnectionsPanel(),
                                         ),
                                         const SizedBox(
                                           height: 260,

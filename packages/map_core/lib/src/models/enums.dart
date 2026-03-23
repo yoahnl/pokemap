@@ -44,6 +44,30 @@ enum MapRole {
   sub_area,
 }
 
+enum MapConnectionDirection {
+  @JsonValue('north')
+  north,
+  @JsonValue('south')
+  south,
+  @JsonValue('east')
+  east,
+  @JsonValue('west')
+  west,
+}
+
+extension MapConnectionDirectionX on MapConnectionDirection {
+  MapConnectionDirection get opposite => switch (this) {
+        MapConnectionDirection.north => MapConnectionDirection.south,
+        MapConnectionDirection.south => MapConnectionDirection.north,
+        MapConnectionDirection.east => MapConnectionDirection.west,
+        MapConnectionDirection.west => MapConnectionDirection.east,
+      };
+
+  bool get usesHorizontalOffset =>
+      this == MapConnectionDirection.north ||
+      this == MapConnectionDirection.south;
+}
+
 enum EntityType {
   @JsonValue('npc')
   npc,

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../application/services/editor_map_session_coordinator.dart';
 import '../../application/services/editor_map_mutation_coordinator.dart';
 import '../../application/services/map_history_coordinator.dart';
+import '../../application/services/map_connection_editing_service.dart';
 import '../../application/services/path_autotile_resolver.dart';
 import '../../application/services/path_layer_editing_coordinator.dart';
 import '../../application/services/terrain_painting_coordinator.dart';
@@ -12,6 +13,7 @@ import '../../application/services/warp_editing_coordinator.dart';
 import '../../application/services/warp_editing_service.dart';
 import '../../application/use_cases/collision_use_cases.dart';
 import '../../application/use_cases/layer_use_cases.dart';
+import '../../application/use_cases/map_connection_use_cases.dart';
 import '../../application/use_cases/map_use_cases.dart';
 import '../../application/use_cases/paint_use_cases.dart';
 import '../../application/use_cases/path_layer_use_cases.dart';
@@ -79,6 +81,17 @@ WarpEditingService warpEditingService(WarpEditingServiceRef ref) {
         ref.watch(validateWarpTargetMapUseCaseProvider),
     createReciprocalWarpUseCase: ref.watch(createReciprocalWarpUseCaseProvider),
     warpEditingCoordinator: ref.watch(warpEditingCoordinatorProvider),
+  );
+}
+
+@riverpod
+MapConnectionEditingService mapConnectionEditingService(
+    MapConnectionEditingServiceRef ref) {
+  return MapConnectionEditingService(
+    upsertMapConnectionUseCase: ref.watch(upsertMapConnectionUseCaseProvider),
+    deleteMapConnectionUseCase: ref.watch(deleteMapConnectionUseCaseProvider),
+    resolveMapConnectionTargetUseCase:
+        ref.watch(resolveMapConnectionTargetUseCaseProvider),
   );
 }
 
@@ -420,6 +433,27 @@ EraseTerrainPatternOnMapUseCase eraseTerrainPatternOnMapUseCase(
 @riverpod
 AddWarpToMapUseCase addWarpToMapUseCase(AddWarpToMapUseCaseRef ref) {
   return AddWarpToMapUseCase();
+}
+
+@riverpod
+ResolveMapConnectionTargetUseCase resolveMapConnectionTargetUseCase(
+    ResolveMapConnectionTargetUseCaseRef ref) {
+  return ResolveMapConnectionTargetUseCase();
+}
+
+@riverpod
+UpsertMapConnectionUseCase upsertMapConnectionUseCase(
+    UpsertMapConnectionUseCaseRef ref) {
+  return UpsertMapConnectionUseCase(
+    ref.watch(mapRepositoryProvider),
+    ref.watch(resolveMapConnectionTargetUseCaseProvider),
+  );
+}
+
+@riverpod
+DeleteMapConnectionUseCase deleteMapConnectionUseCase(
+    DeleteMapConnectionUseCaseRef ref) {
+  return DeleteMapConnectionUseCase();
 }
 
 @riverpod

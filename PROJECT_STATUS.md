@@ -228,6 +228,37 @@ Separations metier explicites:
     - refuse la creation si un warp existe deja sur la case destination cible,
     - gere le cas same-map sans dupliquer le pipeline de mutation,
   - integration complete dans le pipeline map-level (`_applyMapMutation`) avec undo/redo et dirty state.
+- Connexions inter-maps operationnelles:
+  - nouveau modele metier `MapConnection` dans `map_core` avec:
+    - `direction` (`north`, `south`, `east`, `west`),
+    - `targetMapId`,
+    - `offset`,
+    - stockage dans `MapData.connections`.
+  - operations pures dediees:
+    - recherche de connexion,
+    - ajout/mise a jour par direction,
+    - suppression,
+    - calcul d overlap de bord entre maps.
+  - validation metier locale:
+    - une seule connexion par direction,
+    - pas de cible vide,
+    - pas d auto-connexion.
+  - validation editor croisee:
+    - map cible existante,
+    - overlap de bord non nul selon la taille des maps et l offset,
+    - verification simple de coherence avec la connexion inverse si elle existe deja.
+  - use cases + service dedies dans `map_editor`:
+    - create/update/delete connection,
+    - resolution de map cible,
+    - navigation rapide vers la map connectee.
+  - panneau droit `MapConnectionsPanel` dedie:
+    - 4 cotes explicites,
+    - choix de la map cible,
+    - edition de l offset,
+    - actions `Set/Save`, `Open`, `Remove`.
+  - feedback visuel sur le canvas map:
+    - badges de bord pour les connexions presentes,
+    - nom de la map cible visible directement sur la map active.
 
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
@@ -236,6 +267,7 @@ Separations metier explicites:
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
 - Terrains/Sols: base forte (paint/erase + path auto-connecte + presets visuels terrains/paths + stabilisation bords/rendu + debut de separation `TerrainLayer`/`PathLayer`), migration complete du legacy `TerrainType.path` et comportements gameplay/runtime non implementes.
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
+- Connexions inter-maps: base metier/editor solide (modele, validation, panneau dedie, preview canvas, jump rapide), mais pas encore de creation assistee de connexion inverse, pas encore de vue monde globale et pas encore de preview de continuite graphique avancee.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
 - Interaction selection vs scroll dans le canvas tileset: base solide, raffinements UX possibles.
