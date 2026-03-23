@@ -194,25 +194,37 @@ TerrainPathVariant? _resolveEdgeCornerAsBorderVariant({
     return null;
   }
 
-  if (touchesNorth &&
-      (base == TerrainPathVariant.cornerSE ||
-          base == TerrainPathVariant.cornerSW)) {
-    return TerrainPathVariant.endWest;
+  if (touchesNorth) {
+    if (base == TerrainPathVariant.cornerSE) {
+      return TerrainPathVariant.endEast;
+    }
+    if (base == TerrainPathVariant.cornerSW) {
+      return TerrainPathVariant.endWest;
+    }
   }
-  if (touchesEast &&
-      (base == TerrainPathVariant.cornerNW ||
-          base == TerrainPathVariant.cornerSW)) {
-    return TerrainPathVariant.endSouth;
+  if (touchesEast) {
+    if (base == TerrainPathVariant.cornerSW) {
+      return TerrainPathVariant.endSouth;
+    }
+    if (base == TerrainPathVariant.cornerNW) {
+      return TerrainPathVariant.endNorth;
+    }
   }
-  if (touchesSouth &&
-      (base == TerrainPathVariant.cornerNE ||
-          base == TerrainPathVariant.cornerNW)) {
-    return TerrainPathVariant.endEast;
+  if (touchesSouth) {
+    if (base == TerrainPathVariant.cornerNE) {
+      return TerrainPathVariant.endEast;
+    }
+    if (base == TerrainPathVariant.cornerNW) {
+      return TerrainPathVariant.endWest;
+    }
   }
-  if (touchesWest &&
-      (base == TerrainPathVariant.cornerNE ||
-          base == TerrainPathVariant.cornerSE)) {
-    return TerrainPathVariant.endNorth;
+  if (touchesWest) {
+    if (base == TerrainPathVariant.cornerSE) {
+      return TerrainPathVariant.endSouth;
+    }
+    if (base == TerrainPathVariant.cornerNE) {
+      return TerrainPathVariant.endNorth;
+    }
   }
   return null;
 }
