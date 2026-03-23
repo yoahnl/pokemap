@@ -50,6 +50,7 @@ class MapHistoryCoordinator {
     required MapData map,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapHistorySnapshot? strokeStart,
@@ -68,6 +69,7 @@ class MapHistoryCoordinator {
         map: map,
         activeLayerId: activeLayerId,
         selectedWarpId: selectedWarpId,
+        selectedTriggerId: selectedTriggerId,
       ),
     );
   }
@@ -107,6 +109,7 @@ class MapHistoryCoordinator {
     required MapData previousMap,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapHistorySnapshot? strokeStart,
@@ -121,6 +124,7 @@ class MapHistoryCoordinator {
               map: previousMap,
               activeLayerId: activeLayerId,
               selectedWarpId: selectedWarpId,
+              selectedTriggerId: selectedTriggerId,
             ),
       );
     }
@@ -130,6 +134,7 @@ class MapHistoryCoordinator {
         map: previousMap,
         activeLayerId: activeLayerId,
         selectedWarpId: selectedWarpId,
+        selectedTriggerId: selectedTriggerId,
       ),
     );
     return MapHistoryMutationResult(
@@ -143,6 +148,7 @@ class MapHistoryCoordinator {
     required MapData currentMap,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
   }) {
@@ -155,6 +161,7 @@ class MapHistoryCoordinator {
         map: currentMap,
         activeLayerId: activeLayerId,
         selectedWarpId: selectedWarpId,
+        selectedTriggerId: selectedTriggerId,
       ),
     );
     return MapHistoryRestoreResult(
@@ -169,6 +176,7 @@ class MapHistoryCoordinator {
     required MapData currentMap,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
   }) {
@@ -181,6 +189,7 @@ class MapHistoryCoordinator {
         map: currentMap,
         activeLayerId: activeLayerId,
         selectedWarpId: selectedWarpId,
+        selectedTriggerId: selectedTriggerId,
       ),
     );
     return MapHistoryRestoreResult(
@@ -199,7 +208,8 @@ class MapHistoryCoordinator {
       final last = source.last;
       if (last.map == snapshot.map &&
           last.activeLayerId == snapshot.activeLayerId &&
-          last.selectedWarpId == snapshot.selectedWarpId) {
+          last.selectedWarpId == snapshot.selectedWarpId &&
+          last.selectedTriggerId == snapshot.selectedTriggerId) {
         return source;
       }
     }

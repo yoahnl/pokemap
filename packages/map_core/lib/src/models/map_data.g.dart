@@ -121,25 +121,30 @@ const _$MapConnectionDirectionEnumMap = {
 _$MapTriggerImpl _$$MapTriggerImplFromJson(Map<String, dynamic> json) =>
     _$MapTriggerImpl(
       id: json['id'] as String,
+      name: json['name'] as String? ?? '',
       type: $enumDecode(_$TriggerTypeEnumMap, json['type']),
-      pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
-      zone: MapRect.fromJson(json['zone'] as Map<String, dynamic>),
-      properties: json['properties'] as Map<String, dynamic>? ?? const {},
+      area: MapRect.fromJson(json['area'] as Map<String, dynamic>),
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const {},
     );
 
 Map<String, dynamic> _$$MapTriggerImplToJson(_$MapTriggerImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'name': instance.name,
       'type': _$TriggerTypeEnumMap[instance.type]!,
-      'pos': instance.pos.toJson(),
-      'zone': instance.zone.toJson(),
+      'area': instance.area.toJson(),
       'properties': instance.properties,
     };
 
 const _$TriggerTypeEnumMap = {
-  TriggerType.script: 'script',
-  TriggerType.sound: 'sound',
-  TriggerType.cutscene: 'cutscene',
-  TriggerType.battle: 'battle',
+  TriggerType.warp: 'warp',
+  TriggerType.message: 'message',
+  TriggerType.interaction: 'interaction',
+  TriggerType.event: 'event',
+  TriggerType.spawn: 'spawn',
+  TriggerType.camera: 'camera',
   TriggerType.custom: 'custom',
 };

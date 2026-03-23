@@ -9,6 +9,8 @@ import '../../application/services/path_layer_editing_coordinator.dart';
 import '../../application/services/terrain_painting_coordinator.dart';
 import '../../application/services/terrain_preset_resolver.dart';
 import '../../application/services/terrain_preset_selection_coordinator.dart';
+import '../../application/services/trigger_editing_coordinator.dart';
+import '../../application/services/trigger_editing_service.dart';
 import '../../application/services/warp_editing_coordinator.dart';
 import '../../application/services/warp_editing_service.dart';
 import '../../application/use_cases/collision_use_cases.dart';
@@ -23,6 +25,7 @@ import '../../application/use_cases/project_management_use_cases.dart';
 import '../../application/use_cases/project_tileset_use_cases.dart';
 import '../../application/use_cases/terrain_preset_use_cases.dart';
 import '../../application/use_cases/terrain_use_cases.dart';
+import '../../application/use_cases/trigger_use_cases.dart';
 import '../../application/use_cases/warp_use_cases.dart';
 import 'core_providers.dart';
 
@@ -72,6 +75,12 @@ WarpEditingCoordinator warpEditingCoordinator(WarpEditingCoordinatorRef ref) {
 }
 
 @riverpod
+TriggerEditingCoordinator triggerEditingCoordinator(
+    TriggerEditingCoordinatorRef ref) {
+  return const TriggerEditingCoordinator();
+}
+
+@riverpod
 WarpEditingService warpEditingService(WarpEditingServiceRef ref) {
   return WarpEditingService(
     addWarpToMapUseCase: ref.watch(addWarpToMapUseCaseProvider),
@@ -81,6 +90,16 @@ WarpEditingService warpEditingService(WarpEditingServiceRef ref) {
         ref.watch(validateWarpTargetMapUseCaseProvider),
     createReciprocalWarpUseCase: ref.watch(createReciprocalWarpUseCaseProvider),
     warpEditingCoordinator: ref.watch(warpEditingCoordinatorProvider),
+  );
+}
+
+@riverpod
+TriggerEditingService triggerEditingService(TriggerEditingServiceRef ref) {
+  return TriggerEditingService(
+    addTriggerToMapUseCase: ref.watch(addTriggerToMapUseCaseProvider),
+    updateTriggerOnMapUseCase: ref.watch(updateTriggerOnMapUseCaseProvider),
+    deleteTriggerFromMapUseCase: ref.watch(deleteTriggerFromMapUseCaseProvider),
+    triggerEditingCoordinator: ref.watch(triggerEditingCoordinatorProvider),
   );
 }
 
@@ -433,6 +452,23 @@ EraseTerrainPatternOnMapUseCase eraseTerrainPatternOnMapUseCase(
 @riverpod
 AddWarpToMapUseCase addWarpToMapUseCase(AddWarpToMapUseCaseRef ref) {
   return AddWarpToMapUseCase();
+}
+
+@riverpod
+AddTriggerToMapUseCase addTriggerToMapUseCase(AddTriggerToMapUseCaseRef ref) {
+  return AddTriggerToMapUseCase();
+}
+
+@riverpod
+UpdateTriggerOnMapUseCase updateTriggerOnMapUseCase(
+    UpdateTriggerOnMapUseCaseRef ref) {
+  return UpdateTriggerOnMapUseCase();
+}
+
+@riverpod
+DeleteTriggerFromMapUseCase deleteTriggerFromMapUseCase(
+    DeleteTriggerFromMapUseCaseRef ref) {
+  return DeleteTriggerFromMapUseCase();
 }
 
 @riverpod

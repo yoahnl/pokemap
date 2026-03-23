@@ -601,27 +601,30 @@ class MapValidator {
     for (final trigger in map.triggers) {
       final triggerId =
           _requireNonBlank(trigger.id, 'Trigger ID cannot be empty');
+      _requireNonBlank(
+          trigger.type.name, 'Trigger $triggerId has invalid type');
+      for (final key in trigger.properties.keys) {
+        if (key.trim().isEmpty) {
+          throw ValidationException(
+              'Trigger $triggerId has an empty property key');
+        }
+      }
       _validatePositionInBounds(
-        trigger.pos,
+        trigger.area.pos,
         map.size,
-        errorLabel: 'Trigger $triggerId',
+        errorLabel: 'Trigger $triggerId area origin',
       );
-      _validatePositionInBounds(
-        trigger.zone.pos,
-        map.size,
-        errorLabel: 'Trigger $triggerId zone origin',
-      );
-      if (trigger.zone.size.width <= 0 || trigger.zone.size.height <= 0) {
+      if (trigger.area.size.width <= 0 || trigger.area.size.height <= 0) {
         throw ValidationException(
-          'Trigger $triggerId has invalid zone size: (${trigger.zone.size.width}x${trigger.zone.size.height})',
+          'Trigger $triggerId has invalid area size: (${trigger.area.size.width}x${trigger.area.size.height})',
         );
       }
 
-      final zoneRight = trigger.zone.pos.x + trigger.zone.size.width;
-      final zoneBottom = trigger.zone.pos.y + trigger.zone.size.height;
+      final zoneRight = trigger.area.pos.x + trigger.area.size.width;
+      final zoneBottom = trigger.area.pos.y + trigger.area.size.height;
       if (zoneRight > map.size.width || zoneBottom > map.size.height) {
         throw ValidationException(
-          'Trigger $triggerId has an invalid zone extending outside map bounds',
+          'Trigger $triggerId has an invalid area extending outside map bounds',
         );
       }
     }

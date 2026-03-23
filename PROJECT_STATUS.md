@@ -193,6 +193,7 @@ Separations metier explicites:
   - panneau gauche `Surface Library` transforme en vraie bibliotheque hierarchique visible:
     - racine `Terrains`,
     - racine `Paths`,
+    - sections racines pliables/depliables pour reduire l encombrement,
     - dossiers et sous-dossiers repliables,
     - presets visibles dans l arborescence,
     - distinctions visuelles nettes entre fond et surface.
@@ -201,7 +202,8 @@ Separations metier explicites:
     - apercu du tileset,
     - action `Edit Preset`,
     - action `Edit Sprites` pour les terrains,
-    - action `Edit Mapping` pour les paths.
+    - action `Edit Mapping` pour les paths,
+    - bloc `Selected Preset` repliable.
   - edition visuelle restauree:
     - variantes terrain editables par selection rectangulaire dans le tileset,
     - mappings autotile path editables dans un editeur visuel dedie.
@@ -259,6 +261,58 @@ Separations metier explicites:
   - feedback visuel sur le canvas map:
     - badges de bord pour les connexions presentes,
     - nom de la map cible visible directement sur la map active.
+- Triggers MVP operationnels:
+  - modele metier `MapTrigger` refondu dans `map_core` avec:
+    - `id`,
+    - `name`,
+    - `type`,
+    - `area` rectangulaire,
+    - `properties` cle/valeur.
+  - enum `TriggerType` recentre sur les cas editor/gameplay:
+    - `warp`,
+    - `message`,
+    - `interaction`,
+    - `event`,
+    - `spawn`,
+    - `camera`,
+    - `custom`.
+  - operations pures dediees:
+    - recherche par ID,
+    - recherche a une position,
+    - ajout,
+    - update,
+    - move,
+    - resize,
+    - suppression.
+  - validation metier explicite:
+    - ID non vide,
+    - unicite des IDs dans la map,
+    - zone positive,
+    - zone entierement dans la map,
+    - cles de proprietes non vides.
+  - use cases + coordinator + service dedies dans `map_editor`.
+  - outil `triggerPlacement` branche dans la toolbar et le canvas map.
+  - clic en mode trigger:
+    - selection d un trigger existant sous le curseur,
+    - sinon creation d un trigger 1x1 par defaut.
+  - overlay canvas lisible avec zone coloree, bordure et label.
+  - panneau droit `TriggerPropertiesPanel` dedie:
+    - liste,
+    - selection,
+    - edition `id/name/type/x/y/width/height`,
+    - edition des proprietes cle/valeur,
+    - suppression.
+  - integration complete au pipeline map-level:
+    - undo,
+    - redo,
+    - dirty state,
+    - sauvegarde/reload JSON.
+- Inspector map de droite refactorise:
+  - sections pliables/depliables pour reduire l encombrement,
+  - affichage contextuel selon la layer active,
+  - panneau `Tiles & Elements` masque hors contexte tile,
+  - panneau `Ground & Surfaces` masque hors contexte terrain/path,
+  - sections map-level (`Connections`, `Triggers`, `Warps`) gardees accessibles mais compactes.
 
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
@@ -268,6 +322,8 @@ Separations metier explicites:
 - Terrains/Sols: base forte (paint/erase + path auto-connecte + presets visuels terrains/paths + stabilisation bords/rendu + debut de separation `TerrainLayer`/`PathLayer`), migration complete du legacy `TerrainType.path` et comportements gameplay/runtime non implementes.
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
 - Connexions inter-maps: base metier/editor solide (modele, validation, panneau dedie, preview canvas, jump rapide), mais pas encore de creation assistee de connexion inverse, pas encore de vue monde globale et pas encore de preview de continuite graphique avancee.
+- Triggers: base MVP solide (pose, selection, edition zone/type/proprietes, overlay, undo/redo), mais pas encore de drag-create de zone, pas encore d UI specialisee par type et pas encore de runtime/evenements.
+- Inspector map de droite: base bien plus lisible (accordeons + filtrage contextuel), mais pas encore d inspector specialise pour collisions/objets ni de personnalisation de layout par utilisateur.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
 - Interaction selection vs scroll dans le canvas tileset: base solide, raffinements UX possibles.
@@ -275,12 +331,12 @@ Separations metier explicites:
 - Runtime Flame: base en place, integration preview in-game non terminee.
 
 ## 5. Fonctionnalites non faites
-- Connexions entre maps.
 - Edition avancee des layers (locks/groupes/presets/layers specialisees).
 - Outils avances map (fill/selection rect map/copy-paste).
 - Undo/redo global projet (au-dela de la map active).
 - Collisions avancees (types/comportements).
-- Triggers/NPC/objets/panneaux/spawn (pose + edition).
+- NPC/objets/panneaux/spawn (pose + edition dediees).
+- Triggers avances (UI specialisee par type, drag-create de zone, logique evenementielle, runtime).
 - Warps avances (lien persistant bidirectionnel, edition/synchronisation de paires, visualisation graphique de destination).
 - Inspector de proprietes complet.
 - Preview runtime in-game.
@@ -1225,6 +1281,7 @@ Terminee pour cette etape:
 - Decision UX terrains:
   - outil dedie `terrainPaint`,
   - bibliotheque dediee `Surface Library` dans la colonne gauche,
+  - sections `Terrains` et `Paths` de la bibliotheque repliables,
   - panneau map dedie `TerrainMapPanel` pour rendre explicites les usages `Base Ground` et `Surface Overlays`,
   - type de fond actif selectionne depuis la toolbar,
   - `eraser` contextuel efface les terrains (`TerrainType.none`) si la layer active est une `TerrainLayer`,
@@ -1364,8 +1421,8 @@ Terminee pour cette etape:
 - Type de path configurable (`Path`/`Road`/`Water`/`Tall Grass`/`Ice`/`Lava`/`Swamp`/`Rails`/`Bridge`/`Special`/`Custom`): fait
 - Poser des warps: fait (MVP)
 - Configurer les warps: partiellement fait (picker map cible + id/targetPos + resume destination + suppression + creation retour assistee; lien persistant bidirectionnel non fait)
-- Poser des triggers: pas fait
-- Configurer les triggers: pas fait
+- Poser des triggers: fait (MVP)
+- Configurer les triggers: fait (MVP generique)
 - Poser des PNJ: pas fait
 - Poser des objets ramassables: pas fait
 - Poser des panneaux: pas fait
@@ -1373,7 +1430,7 @@ Terminee pour cette etape:
 - Editer les proprietes des entites: pas fait
 - Editer les proprietes des maps: pas fait
 - Editer les proprietes globales du projet: partiellement fait
-- Avoir un inspector de proprietes: pas fait
+- Avoir un inspector de proprietes: partiellement fait (inspector map contextuel + sections pliables; inspector complet multi-systemes encore a pousser)
 - Avoir un explorateur de projet: fait
 - Avoir une toolbar claire: fait
 - Avoir une barre de statut: fait
@@ -1397,4 +1454,4 @@ Terminee pour cette etape:
 - Terrains/Sols: fait (MVP + path auto-connecte + terrain editor UX + presets terrains/paths persistants), comportements gameplay/runtime non faits
 - Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
 - Undo/redo: fait (map active)
-- Warps/triggers/entities: partiellement fait (warps MVP fait, triggers/entities non faits)
+- Warps/triggers/entities: partiellement fait (warps MVP fait, triggers MVP fait, entities non faites)

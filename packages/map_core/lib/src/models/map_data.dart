@@ -73,10 +73,10 @@ class MapTrigger with _$MapTrigger {
   @JsonSerializable(explicitToJson: true)
   const factory MapTrigger({
     required String id,
+    @Default('') String name,
     required TriggerType type,
-    required GridPos pos,
-    required MapRect zone,
-    @Default({}) Map<String, dynamic> properties,
+    required MapRect area,
+    @Default({}) Map<String, String> properties,
   }) = _MapTrigger;
 
   factory MapTrigger.fromJson(Map<String, dynamic> json) =>

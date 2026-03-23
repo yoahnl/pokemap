@@ -5,7 +5,12 @@ import 'package:map_core/map_core.dart';
 import '../../features/editor/state/editor_notifier.dart';
 
 class WarpPropertiesPanel extends ConsumerStatefulWidget {
-  const WarpPropertiesPanel({super.key});
+  const WarpPropertiesPanel({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
 
   @override
   ConsumerState<WarpPropertiesPanel> createState() =>
@@ -47,6 +52,86 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     final selectedWarp = notifier.getSelectedWarp();
     _syncControllers(selectedWarp);
 
+    final content = map == null
+        ? const Center(
+            child: Text(
+              'No map loaded',
+              style: TextStyle(color: Colors.white38),
+            ),
+          )
+        : ListView(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            children: [
+              if (map.warps.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    'No warps on this map.\nSelect the Warp tool and click on the map to add one.',
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
+                )
+              else
+                ...map.warps.map(
+                  (warp) => Card(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    color: warp.id == state.selectedWarpId
+                        ? Colors.cyan.withValues(alpha: 0.12)
+                        : Theme.of(context).scaffoldBackgroundColor,
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(
+                        Icons.alt_route_outlined,
+                        size: 16,
+                        color: warp.id == state.selectedWarpId
+                            ? Colors.cyanAccent
+                            : Colors.white60,
+                      ),
+                      title: Text(
+                        warp.id,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: warp.id == state.selectedWarpId
+                              ? Colors.cyanAccent
+                              : Colors.white,
+                          fontWeight: warp.id == state.selectedWarpId
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.white54,
+                        ),
+                      ),
+                      onTap: () => notifier.selectWarp(warp.id),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              if (selectedWarp == null)
+                const Text(
+                  'Select a warp to edit its properties.',
+                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                )
+              else
+                _buildSelectedWarpEditor(
+                  context: context,
+                  notifier: notifier,
+                  selectedWarp: selectedWarp,
+                  projectMaps: projectMaps,
+                  projectMapById: projectMapById,
+                ),
+            ],
+          );
+
+    if (widget.embedded) {
+      return content;
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -80,86 +165,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
             ),
           ),
           const Divider(height: 1),
-          if (map == null)
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'No map loaded',
-                  style: TextStyle(color: Colors.white38),
-                ),
-              ),
-            )
-          else
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                children: [
-                  if (map.warps.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        'No warps on this map.\nSelect the Warp tool and click on the map to add one.',
-                        style: TextStyle(color: Colors.white38, fontSize: 12),
-                      ),
-                    )
-                  else
-                    ...map.warps.map(
-                      (warp) => Card(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        color: warp.id == state.selectedWarpId
-                            ? Colors.cyan.withValues(alpha: 0.12)
-                            : Theme.of(context).scaffoldBackgroundColor,
-                        child: ListTile(
-                          dense: true,
-                          leading: Icon(
-                            Icons.alt_route_outlined,
-                            size: 16,
-                            color: warp.id == state.selectedWarpId
-                                ? Colors.cyanAccent
-                                : Colors.white60,
-                          ),
-                          title: Text(
-                            warp.id,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: warp.id == state.selectedWarpId
-                                  ? Colors.cyanAccent
-                                  : Colors.white,
-                              fontWeight: warp.id == state.selectedWarpId
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.white54,
-                            ),
-                          ),
-                          onTap: () => notifier.selectWarp(warp.id),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-                  const SizedBox(height: 8),
-                  if (selectedWarp == null)
-                    const Text(
-                      'Select a warp to edit its properties.',
-                      style: TextStyle(color: Colors.white38, fontSize: 12),
-                    )
-                  else
-                    _buildSelectedWarpEditor(
-                      context: context,
-                      notifier: notifier,
-                      selectedWarp: selectedWarp,
-                      projectMaps: projectMaps,
-                      projectMapById: projectMapById,
-                    ),
-                ],
-              ),
-            ),
+          Expanded(child: content),
         ],
       ),
     );

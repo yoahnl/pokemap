@@ -19,6 +19,7 @@ mixin _$MapHistorySnapshot {
   MapData get map => throw _privateConstructorUsedError;
   String? get activeLayerId => throw _privateConstructorUsedError;
   String? get selectedWarpId => throw _privateConstructorUsedError;
+  String? get selectedTriggerId => throw _privateConstructorUsedError;
 
   /// Create a copy of MapHistorySnapshot
   /// with the given fields replaced by the non-null parameter values.
@@ -33,7 +34,11 @@ abstract class $MapHistorySnapshotCopyWith<$Res> {
           MapHistorySnapshot value, $Res Function(MapHistorySnapshot) then) =
       _$MapHistorySnapshotCopyWithImpl<$Res, MapHistorySnapshot>;
   @useResult
-  $Res call({MapData map, String? activeLayerId, String? selectedWarpId});
+  $Res call(
+      {MapData map,
+      String? activeLayerId,
+      String? selectedWarpId,
+      String? selectedTriggerId});
 
   $MapDataCopyWith<$Res> get map;
 }
@@ -56,6 +61,7 @@ class _$MapHistorySnapshotCopyWithImpl<$Res, $Val extends MapHistorySnapshot>
     Object? map = null,
     Object? activeLayerId = freezed,
     Object? selectedWarpId = freezed,
+    Object? selectedTriggerId = freezed,
   }) {
     return _then(_value.copyWith(
       map: null == map
@@ -69,6 +75,10 @@ class _$MapHistorySnapshotCopyWithImpl<$Res, $Val extends MapHistorySnapshot>
       selectedWarpId: freezed == selectedWarpId
           ? _value.selectedWarpId
           : selectedWarpId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTriggerId: freezed == selectedTriggerId
+          ? _value.selectedTriggerId
+          : selectedTriggerId // ignore: cast_nullable_to_non_nullable
               as String?,
     ) as $Val);
   }
@@ -92,7 +102,11 @@ abstract class _$$MapHistorySnapshotImplCopyWith<$Res>
       __$$MapHistorySnapshotImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({MapData map, String? activeLayerId, String? selectedWarpId});
+  $Res call(
+      {MapData map,
+      String? activeLayerId,
+      String? selectedWarpId,
+      String? selectedTriggerId});
 
   @override
   $MapDataCopyWith<$Res> get map;
@@ -114,6 +128,7 @@ class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
     Object? map = null,
     Object? activeLayerId = freezed,
     Object? selectedWarpId = freezed,
+    Object? selectedTriggerId = freezed,
   }) {
     return _then(_$MapHistorySnapshotImpl(
       map: null == map
@@ -128,6 +143,10 @@ class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
           ? _value.selectedWarpId
           : selectedWarpId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedTriggerId: freezed == selectedTriggerId
+          ? _value.selectedTriggerId
+          : selectedTriggerId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -136,7 +155,10 @@ class __$$MapHistorySnapshotImplCopyWithImpl<$Res>
 
 class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
   const _$MapHistorySnapshotImpl(
-      {required this.map, this.activeLayerId, this.selectedWarpId});
+      {required this.map,
+      this.activeLayerId,
+      this.selectedWarpId,
+      this.selectedTriggerId});
 
   @override
   final MapData map;
@@ -144,10 +166,12 @@ class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
   final String? activeLayerId;
   @override
   final String? selectedWarpId;
+  @override
+  final String? selectedTriggerId;
 
   @override
   String toString() {
-    return 'MapHistorySnapshot(map: $map, activeLayerId: $activeLayerId, selectedWarpId: $selectedWarpId)';
+    return 'MapHistorySnapshot(map: $map, activeLayerId: $activeLayerId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId)';
   }
 
   @override
@@ -159,12 +183,14 @@ class _$MapHistorySnapshotImpl implements _MapHistorySnapshot {
             (identical(other.activeLayerId, activeLayerId) ||
                 other.activeLayerId == activeLayerId) &&
             (identical(other.selectedWarpId, selectedWarpId) ||
-                other.selectedWarpId == selectedWarpId));
+                other.selectedWarpId == selectedWarpId) &&
+            (identical(other.selectedTriggerId, selectedTriggerId) ||
+                other.selectedTriggerId == selectedTriggerId));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, map, activeLayerId, selectedWarpId);
+  int get hashCode => Object.hash(
+      runtimeType, map, activeLayerId, selectedWarpId, selectedTriggerId);
 
   /// Create a copy of MapHistorySnapshot
   /// with the given fields replaced by the non-null parameter values.
@@ -180,7 +206,8 @@ abstract class _MapHistorySnapshot implements MapHistorySnapshot {
   const factory _MapHistorySnapshot(
       {required final MapData map,
       final String? activeLayerId,
-      final String? selectedWarpId}) = _$MapHistorySnapshotImpl;
+      final String? selectedWarpId,
+      final String? selectedTriggerId}) = _$MapHistorySnapshotImpl;
 
   @override
   MapData get map;
@@ -188,6 +215,8 @@ abstract class _MapHistorySnapshot implements MapHistorySnapshot {
   String? get activeLayerId;
   @override
   String? get selectedWarpId;
+  @override
+  String? get selectedTriggerId;
 
   /// Create a copy of MapHistorySnapshot
   /// with the given fields replaced by the non-null parameter values.

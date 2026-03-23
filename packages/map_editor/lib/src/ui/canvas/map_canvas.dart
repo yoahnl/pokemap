@@ -84,7 +84,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 state.activeTool == EditorToolType.collisionPaint ||
                 state.activeTool == EditorToolType.eraser;
         final isTapEditingTool = isStrokeEditingTool ||
-            state.activeTool == EditorToolType.warpPlacement;
+            state.activeTool == EditorToolType.warpPlacement ||
+            state.activeTool == EditorToolType.triggerPlacement;
 
         void applyToolAt(GridPos gridPos) {
           if (state.activeTool == EditorToolType.tilePaint) {
@@ -108,6 +109,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           }
           if (state.activeTool == EditorToolType.warpPlacement) {
             notifier.placeOrSelectWarpAt(gridPos);
+            return;
+          }
+          if (state.activeTool == EditorToolType.triggerPlacement) {
+            notifier.placeOrSelectTriggerAt(gridPos);
           }
         }
 
@@ -214,6 +219,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     toolPreview: toolPreview,
                     warps: activeMap.warps,
                     selectedWarpId: state.selectedWarpId,
+                    selectedTriggerId: state.selectedTriggerId,
                     connectionLabelsByDirection: connectionLabelsByDirection,
                     selectedPathAutotileSet: selectedPathAutotileSet,
                     pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
@@ -341,6 +347,7 @@ class MapGridPainter extends CustomPainter {
   final MapToolPreview? toolPreview;
   final List<MapWarp> warps;
   final String? selectedWarpId;
+  final String? selectedTriggerId;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final PathAutotileSet? selectedPathAutotileSet;
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
@@ -361,6 +368,7 @@ class MapGridPainter extends CustomPainter {
     this.toolPreview,
     required this.warps,
     this.selectedWarpId,
+    this.selectedTriggerId,
     required this.connectionLabelsByDirection,
     this.selectedPathAutotileSet,
     required this.pathAutotileSetsByPresetId,
@@ -459,6 +467,7 @@ class MapGridPainter extends CustomPainter {
     }
 
     _paintToolPreview(canvas);
+    _paintTriggers(canvas);
     _paintWarps(canvas);
     _paintConnections(canvas, gridWidth, gridHeight);
 
@@ -503,6 +512,63 @@ class MapGridPainter extends CustomPainter {
         center,
         (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.14,
         Paint()..color = isSelected ? Colors.white : Colors.purple.shade100,
+      );
+    }
+  }
+
+  void _paintTriggers(Canvas canvas) {
+    if (map.triggers.isEmpty) return;
+    for (final trigger in map.triggers) {
+      final isSelected = trigger.id == selectedTriggerId;
+      final left = trigger.area.pos.x * tileWidth;
+      final top = trigger.area.pos.y * tileHeight;
+      final width = trigger.area.size.width * tileWidth;
+      final height = trigger.area.size.height * tileHeight;
+      final rect = Rect.fromLTWH(left, top, width, height);
+      final color = _triggerColor(trigger.type);
+
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = color.withValues(alpha: isSelected ? 0.24 : 0.16)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = isSelected ? Colors.white : color.withValues(alpha: 0.92)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = isSelected ? 2.0 / zoom : 1.3 / zoom,
+      );
+
+      if (rect.width < (28 / zoom) || rect.height < (18 / zoom)) {
+        continue;
+      }
+      final label = trigger.name.trim().isNotEmpty
+          ? trigger.name.trim()
+          : '${trigger.type.name}:${trigger.id}';
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10 / zoom,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '...',
+      )..layout(maxWidth: rect.width - (8 / zoom));
+      if (textPainter.width <= 0 || textPainter.height <= 0) {
+        continue;
+      }
+      textPainter.paint(
+        canvas,
+        Offset(
+          rect.left + (4 / zoom),
+          rect.top + (3 / zoom),
+        ),
       );
     }
   }
@@ -1440,6 +1506,18 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
+  Color _triggerColor(TriggerType type) {
+    return switch (type) {
+      TriggerType.warp => Colors.deepPurpleAccent,
+      TriggerType.message => Colors.amberAccent,
+      TriggerType.interaction => Colors.lightBlueAccent,
+      TriggerType.event => Colors.orangeAccent,
+      TriggerType.spawn => Colors.greenAccent,
+      TriggerType.camera => Colors.pinkAccent,
+      TriggerType.custom => Colors.cyanAccent,
+    };
+  }
+
   @override
   bool shouldRepaint(covariant MapGridPainter oldDelegate) {
     return oldDelegate.map != map ||
@@ -1451,6 +1529,7 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.tileHeight != tileHeight ||
         !_sameToolPreview(oldDelegate.toolPreview, toolPreview) ||
         oldDelegate.selectedWarpId != selectedWarpId ||
+        oldDelegate.selectedTriggerId != selectedTriggerId ||
         !listEquals(oldDelegate.warps, warps) ||
         !_samePathAutotileSet(
           oldDelegate.selectedPathAutotileSet,

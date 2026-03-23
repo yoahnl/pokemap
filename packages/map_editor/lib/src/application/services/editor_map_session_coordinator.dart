@@ -4,11 +4,13 @@ class EditorMapSessionSelection {
   const EditorMapSessionSelection({
     required this.activeLayerId,
     required this.selectedWarpId,
+    required this.selectedTriggerId,
     required this.selectedTilesetEditorId,
   });
 
   final String? activeLayerId;
   final String? selectedWarpId;
+  final String? selectedTriggerId;
   final String? selectedTilesetEditorId;
 }
 
@@ -19,6 +21,7 @@ class EditorMapSessionCoordinator {
     MapData map, {
     String? preferredLayerId,
     String? preferredWarpId,
+    String? preferredTriggerId,
     String? currentSelectedTilesetEditorId,
   }) {
     final activeLayerId = resolveActiveLayerId(
@@ -28,6 +31,10 @@ class EditorMapSessionCoordinator {
     final selectedWarpId = resolveSelectedWarpId(
       map,
       preferredWarpId: preferredWarpId,
+    );
+    final selectedTriggerId = resolveSelectedTriggerId(
+      map,
+      preferredTriggerId: preferredTriggerId,
     );
     final normalizedCurrentTilesetId = currentSelectedTilesetEditorId?.trim();
     final selectedTilesetEditorId = normalizedCurrentTilesetId != null &&
@@ -40,6 +47,7 @@ class EditorMapSessionCoordinator {
     return EditorMapSessionSelection(
       activeLayerId: activeLayerId,
       selectedWarpId: selectedWarpId,
+      selectedTriggerId: selectedTriggerId,
       selectedTilesetEditorId: selectedTilesetEditorId,
     );
   }
@@ -85,6 +93,19 @@ class EditorMapSessionCoordinator {
     final normalized = preferredWarpId.trim();
     if (normalized.isEmpty) return null;
     if (map.warps.any((warp) => warp.id == normalized)) {
+      return normalized;
+    }
+    return null;
+  }
+
+  String? resolveSelectedTriggerId(
+    MapData map, {
+    String? preferredTriggerId,
+  }) {
+    if (preferredTriggerId == null) return null;
+    final normalized = preferredTriggerId.trim();
+    if (normalized.isEmpty) return null;
+    if (map.triggers.any((trigger) => trigger.id == normalized)) {
       return normalized;
     }
     return null;

@@ -1108,10 +1108,10 @@ MapTrigger _$MapTriggerFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$MapTrigger {
   String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
   TriggerType get type => throw _privateConstructorUsedError;
-  GridPos get pos => throw _privateConstructorUsedError;
-  MapRect get zone => throw _privateConstructorUsedError;
-  Map<String, dynamic> get properties => throw _privateConstructorUsedError;
+  MapRect get area => throw _privateConstructorUsedError;
+  Map<String, String> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapTrigger to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1131,13 +1131,12 @@ abstract class $MapTriggerCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
+      String name,
       TriggerType type,
-      GridPos pos,
-      MapRect zone,
-      Map<String, dynamic> properties});
+      MapRect area,
+      Map<String, String> properties});
 
-  $GridPosCopyWith<$Res> get pos;
-  $MapRectCopyWith<$Res> get zone;
+  $MapRectCopyWith<$Res> get area;
 }
 
 /// @nodoc
@@ -1156,9 +1155,9 @@ class _$MapTriggerCopyWithImpl<$Res, $Val extends MapTrigger>
   @override
   $Res call({
     Object? id = null,
+    Object? name = null,
     Object? type = null,
-    Object? pos = null,
-    Object? zone = null,
+    Object? area = null,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -1166,22 +1165,22 @@ class _$MapTriggerCopyWithImpl<$Res, $Val extends MapTrigger>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as TriggerType,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      zone: null == zone
-          ? _value.zone
-          : zone // ignore: cast_nullable_to_non_nullable
+      area: null == area
+          ? _value.area
+          : area // ignore: cast_nullable_to_non_nullable
               as MapRect,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
+              as Map<String, String>,
     ) as $Val);
   }
 
@@ -1189,19 +1188,9 @@ class _$MapTriggerCopyWithImpl<$Res, $Val extends MapTrigger>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res> get pos {
-    return $GridPosCopyWith<$Res>(_value.pos, (value) {
-      return _then(_value.copyWith(pos: value) as $Val);
-    });
-  }
-
-  /// Create a copy of MapTrigger
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapRectCopyWith<$Res> get zone {
-    return $MapRectCopyWith<$Res>(_value.zone, (value) {
-      return _then(_value.copyWith(zone: value) as $Val);
+  $MapRectCopyWith<$Res> get area {
+    return $MapRectCopyWith<$Res>(_value.area, (value) {
+      return _then(_value.copyWith(area: value) as $Val);
     });
   }
 }
@@ -1216,15 +1205,13 @@ abstract class _$$MapTriggerImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
+      String name,
       TriggerType type,
-      GridPos pos,
-      MapRect zone,
-      Map<String, dynamic> properties});
+      MapRect area,
+      Map<String, String> properties});
 
   @override
-  $GridPosCopyWith<$Res> get pos;
-  @override
-  $MapRectCopyWith<$Res> get zone;
+  $MapRectCopyWith<$Res> get area;
 }
 
 /// @nodoc
@@ -1241,9 +1228,9 @@ class __$$MapTriggerImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? name = null,
     Object? type = null,
-    Object? pos = null,
-    Object? zone = null,
+    Object? area = null,
     Object? properties = null,
   }) {
     return _then(_$MapTriggerImpl(
@@ -1251,22 +1238,22 @@ class __$$MapTriggerImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as TriggerType,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      zone: null == zone
-          ? _value.zone
-          : zone // ignore: cast_nullable_to_non_nullable
+      area: null == area
+          ? _value.area
+          : area // ignore: cast_nullable_to_non_nullable
               as MapRect,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
+              as Map<String, String>,
     ));
   }
 }
@@ -1277,10 +1264,10 @@ class __$$MapTriggerImplCopyWithImpl<$Res>
 class _$MapTriggerImpl implements _MapTrigger {
   const _$MapTriggerImpl(
       {required this.id,
+      this.name = '',
       required this.type,
-      required this.pos,
-      required this.zone,
-      final Map<String, dynamic> properties = const {}})
+      required this.area,
+      final Map<String, String> properties = const {}})
       : _properties = properties;
 
   factory _$MapTriggerImpl.fromJson(Map<String, dynamic> json) =>
@@ -1289,15 +1276,16 @@ class _$MapTriggerImpl implements _MapTrigger {
   @override
   final String id;
   @override
+  @JsonKey()
+  final String name;
+  @override
   final TriggerType type;
   @override
-  final GridPos pos;
-  @override
-  final MapRect zone;
-  final Map<String, dynamic> _properties;
+  final MapRect area;
+  final Map<String, String> _properties;
   @override
   @JsonKey()
-  Map<String, dynamic> get properties {
+  Map<String, String> get properties {
     if (_properties is EqualUnmodifiableMapView) return _properties;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableMapView(_properties);
@@ -1305,7 +1293,7 @@ class _$MapTriggerImpl implements _MapTrigger {
 
   @override
   String toString() {
-    return 'MapTrigger(id: $id, type: $type, pos: $pos, zone: $zone, properties: $properties)';
+    return 'MapTrigger(id: $id, name: $name, type: $type, area: $area, properties: $properties)';
   }
 
   @override
@@ -1314,16 +1302,16 @@ class _$MapTriggerImpl implements _MapTrigger {
         (other.runtimeType == runtimeType &&
             other is _$MapTriggerImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
             (identical(other.type, type) || other.type == type) &&
-            (identical(other.pos, pos) || other.pos == pos) &&
-            (identical(other.zone, zone) || other.zone == zone) &&
+            (identical(other.area, area) || other.area == area) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, type, pos, zone,
+  int get hashCode => Object.hash(runtimeType, id, name, type, area,
       const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapTrigger
@@ -1345,10 +1333,10 @@ class _$MapTriggerImpl implements _MapTrigger {
 abstract class _MapTrigger implements MapTrigger {
   const factory _MapTrigger(
       {required final String id,
+      final String name,
       required final TriggerType type,
-      required final GridPos pos,
-      required final MapRect zone,
-      final Map<String, dynamic> properties}) = _$MapTriggerImpl;
+      required final MapRect area,
+      final Map<String, String> properties}) = _$MapTriggerImpl;
 
   factory _MapTrigger.fromJson(Map<String, dynamic> json) =
       _$MapTriggerImpl.fromJson;
@@ -1356,13 +1344,13 @@ abstract class _MapTrigger implements MapTrigger {
   @override
   String get id;
   @override
+  String get name;
+  @override
   TriggerType get type;
   @override
-  GridPos get pos;
+  MapRect get area;
   @override
-  MapRect get zone;
-  @override
-  Map<String, dynamic> get properties;
+  Map<String, String> get properties;
 
   /// Create a copy of MapTrigger
   /// with the given fields replaced by the non-null parameter values.

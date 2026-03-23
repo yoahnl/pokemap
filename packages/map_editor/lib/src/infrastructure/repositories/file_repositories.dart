@@ -120,7 +120,9 @@ class FileMapRepository implements MapRepository {
     }
     final content = await file.readAsString();
     try {
-      final json = jsonDecode(content) as Map<String, dynamic>;
+      final json = _migrateLegacyMapJson(
+        jsonDecode(content) as Map<String, dynamic>,
+      );
       final map = MapData.fromJson(json);
       MapValidator.validate(map);
       return map;
@@ -149,6 +151,52 @@ class FileMapRepository implements MapRepository {
       await file.rename(newPath);
     }
   }
+}
+
+Map<String, dynamic> _migrateLegacyMapJson(Map<String, dynamic> raw) {
+  final next = Map<String, dynamic>.from(raw);
+  final triggers = raw['triggers'];
+  if (triggers is List) {
+    next['triggers'] = triggers.map((entry) {
+      if (entry is! Map) {
+        return entry;
+      }
+      final trigger = Map<String, dynamic>.from(entry.cast<String, dynamic>());
+      if (!trigger.containsKey('area') && trigger['zone'] is Map) {
+        trigger['area'] = Map<String, dynamic>.from(
+            (trigger['zone'] as Map).cast<String, dynamic>());
+      }
+      trigger['name'] = (trigger['name'] ?? trigger['id'] ?? '').toString();
+
+      final rawType = trigger['type']?.toString();
+      trigger['type'] = switch (rawType) {
+        'script' => 'event',
+        'cutscene' => 'event',
+        'battle' => 'event',
+        'sound' => 'interaction',
+        'warp' => 'warp',
+        'message' => 'message',
+        'interaction' => 'interaction',
+        'event' => 'event',
+        'spawn' => 'spawn',
+        'camera' => 'camera',
+        'custom' => 'custom',
+        _ => 'event',
+      };
+
+      final rawProperties = trigger['properties'];
+      if (rawProperties is Map) {
+        trigger['properties'] = {
+          for (final entry in rawProperties.entries)
+            entry.key.toString(): entry.value?.toString() ?? '',
+        };
+      } else {
+        trigger['properties'] = <String, String>{};
+      }
+      return trigger;
+    }).toList(growable: false);
+  }
+  return next;
 }
 
 class FileTilesetRepository implements TilesetRepository {

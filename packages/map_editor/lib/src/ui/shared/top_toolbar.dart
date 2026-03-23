@@ -237,6 +237,18 @@ class TopToolbar extends ConsumerWidget {
             tooltip: 'Eraser Tool',
           ),
           IconButton(
+            onPressed: () =>
+                notifier.selectTool(EditorToolType.triggerPlacement),
+            icon: Icon(
+              Icons.crop_din_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.triggerPlacement
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Trigger Tool',
+          ),
+          IconButton(
             onPressed: () => notifier.selectTool(EditorToolType.warpPlacement),
             icon: Icon(
               Icons.alt_route_outlined,

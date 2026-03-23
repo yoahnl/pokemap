@@ -6,8 +6,21 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
+enum TerrainMapPanelMode {
+  combined,
+  groundOnly,
+  surfaceOnly,
+}
+
 class TerrainMapPanel extends ConsumerWidget {
-  const TerrainMapPanel({super.key});
+  const TerrainMapPanel({
+    super.key,
+    this.embedded = false,
+    this.mode = TerrainMapPanelMode.combined,
+  });
+
+  final bool embedded;
+  final TerrainMapPanelMode mode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -16,17 +29,21 @@ class TerrainMapPanel extends ConsumerWidget {
     final map = state.activeMap;
 
     if (map == null) {
+      const empty = Center(
+        child: Text(
+          'Open a map to edit base ground and surfaces',
+          style: TextStyle(color: Colors.white38),
+        ),
+      );
+      if (embedded) {
+        return empty;
+      }
       return Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           border: const Border(bottom: BorderSide(color: Colors.white10)),
         ),
-        child: const Center(
-          child: Text(
-            'Open a map to edit base ground and surfaces',
-            style: TextStyle(color: Colors.white38),
-          ),
-        ),
+        child: empty,
       );
     }
 
@@ -41,6 +58,218 @@ class TerrainMapPanel extends ConsumerWidget {
     final pathPresets = notifier.getPathPresets();
     final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
     final selectedPathPreset = notifier.getSelectedPathPreset();
+    final showGround = mode != TerrainMapPanelMode.surfaceOnly;
+    final showSurfaces = mode != TerrainMapPanelMode.groundOnly;
+    final sections = <Widget>[];
+
+    if (showGround) {
+      sections.add(
+        _SurfaceSectionCard(
+          title: 'Base Ground',
+          subtitle: 'Terrain layers paint the map background only.',
+          color: const Color(0xFF2B6F53),
+          icon: Icons.landscape_outlined,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _LayerSelector<TerrainLayer>(
+                label: 'Active Terrain Layer',
+                layers: terrainLayers,
+                activeLayerId: activeTerrainLayer?.id,
+                emptyLabel: 'No terrain layer yet',
+                onSelected: notifier.setActiveLayer,
+                onCreate: () => notifier.activateFirstTerrainLayer(
+                  createIfMissing: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _PresetDropdown(
+                label: 'Selected Terrain Preset',
+                value: selectedTerrainPreset?.id,
+                hint: 'No terrain preset',
+                items: terrainPresets
+                    .map(
+                      (preset) => DropdownMenuItem<String>(
+                        value: preset.id,
+                        child: Text(
+                          '${preset.name} • ${_terrainLabel(preset.terrainType)}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged:
+                    terrainPresets.isEmpty ? null : notifier.selectTerrainPreset,
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: activeTerrainLayer == null ||
+                            selectedTerrainPreset == null
+                        ? null
+                        : () => notifier.selectTerrainPaintMode(
+                              terrainType: selectedTerrainPreset.terrainType,
+                            ),
+                    icon: const Icon(Icons.brush_outlined, size: 16),
+                    label: const Text('Paint Base'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: activeTerrainLayer == null ||
+                            selectedTerrainPreset == null
+                        ? null
+                        : () => notifier.fillActiveTerrainLayer(
+                              selectedTerrainPreset.terrainType,
+                            ),
+                    icon: const Icon(
+                      Icons.format_color_fill_outlined,
+                      size: 16,
+                    ),
+                    label: const Text('Fill Base'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _InfoStrip(
+                text: activeTerrainLayer == null
+                    ? 'Select or create a terrain layer to paint the map background.'
+                    : selectedTerrainPreset == null
+                        ? 'Create a terrain preset in the library to paint this background layer.'
+                        : 'Active base: ${selectedTerrainPreset.name} on ${activeTerrainLayer.name}',
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (showGround && showSurfaces) {
+      sections.add(const SizedBox(height: 12));
+    }
+
+    if (showSurfaces) {
+      sections.add(
+        _SurfaceSectionCard(
+          title: 'Surface Overlays',
+          subtitle:
+              'Path layers carry roads, water, tall grass, ice and every specialized surface.',
+          color: const Color(0xFF7A4A1E),
+          icon: Icons.route_outlined,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _LayerSelector<PathLayer>(
+                label: 'Active Path Layer',
+                layers: pathLayers,
+                activeLayerId: activePathLayer?.id,
+                emptyLabel: 'No path layer yet',
+                onSelected: notifier.setActiveLayer,
+                onCreate: () => notifier.activateFirstPathLayer(
+                  createIfMissing: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _PresetDropdown(
+                label: 'Assigned Surface Preset',
+                value: activePathLayer != null &&
+                        pathPresets.any(
+                          (preset) => preset.id == activePathLayer.presetId,
+                        )
+                    ? activePathLayer.presetId
+                    : selectedPathPreset?.id,
+                hint: 'No surface preset',
+                items: pathPresets
+                    .map(
+                      (preset) => DropdownMenuItem<String>(
+                        value: preset.id,
+                        child: Text(
+                          '${preset.name} • ${_pathSurfaceLabel(preset.surfaceKind)}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: pathPresets.isEmpty
+                    ? null
+                    : (value) {
+                        if (activePathLayer != null) {
+                          notifier.selectPathPresetForActivePathLayer(value);
+                        } else {
+                          notifier.selectPathPreset(value);
+                        }
+                      },
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: activePathLayer == null
+                        ? null
+                        : notifier.selectPathPaintMode,
+                    icon: const Icon(Icons.route_outlined, size: 16),
+                    label: const Text('Paint Surface'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: activePathLayer == null
+                        ? null
+                        : () => notifier.selectTool(EditorToolType.eraser),
+                    icon: const Icon(Icons.auto_fix_off, size: 16),
+                    label: const Text('Erase Surface'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => notifier.activateFirstPathLayer(
+                      createIfMissing: true,
+                    ),
+                    icon: const Icon(Icons.add_circle_outline, size: 16),
+                    label: const Text('New Path Layer'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _PathLayerPropertiesBlock(layer: activePathLayer),
+              const SizedBox(height: 10),
+              _InfoStrip(
+                text: activePathLayer == null
+                    ? 'Create a path layer for roads, water, tall grass and every surface overlay.'
+                    : activePathLayer.presetId.trim().isEmpty
+                        ? 'Assign a surface preset to ${activePathLayer.name} before painting.'
+                        : 'Active surface layer: ${activePathLayer.name}',
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (mode == TerrainMapPanelMode.combined) {
+      sections.add(const SizedBox(height: 10));
+      sections.add(
+        _InfoStrip(
+          text: state.activeTool == EditorToolType.terrainPaint
+              ? state.terrainSelectionMode == TerrainSelectionMode.path
+                  ? 'Surface paint mode enabled.'
+                  : 'Base ground paint mode enabled.'
+              : 'Use the controls above to switch between base ground and surface painting.',
+        ),
+      );
+    }
+
+    final content = SingleChildScrollView(
+      primary: false,
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: sections,
+      ),
+    );
+
+    if (embedded) {
+      return content;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -68,197 +297,7 @@ class TerrainMapPanel extends ConsumerWidget {
             ),
           ),
           const Divider(height: 1),
-          Expanded(
-            child: SingleChildScrollView(
-              primary: false,
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _SurfaceSectionCard(
-                    title: 'Base Ground',
-                    subtitle: 'Terrain layers paint the map background only.',
-                    color: const Color(0xFF2B6F53),
-                    icon: Icons.landscape_outlined,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _LayerSelector<TerrainLayer>(
-                          label: 'Active Terrain Layer',
-                          layers: terrainLayers,
-                          activeLayerId: activeTerrainLayer?.id,
-                          emptyLabel: 'No terrain layer yet',
-                          onSelected: notifier.setActiveLayer,
-                          onCreate: () => notifier.activateFirstTerrainLayer(
-                            createIfMissing: true,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _PresetDropdown(
-                          label: 'Selected Terrain Preset',
-                          value: selectedTerrainPreset?.id,
-                          hint: 'No terrain preset',
-                          items: terrainPresets
-                              .map(
-                                (preset) => DropdownMenuItem<String>(
-                                  value: preset.id,
-                                  child: Text(
-                                    '${preset.name} • ${_terrainLabel(preset.terrainType)}',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: terrainPresets.isEmpty
-                              ? null
-                              : notifier.selectTerrainPreset,
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            FilledButton.icon(
-                              onPressed: activeTerrainLayer == null ||
-                                      selectedTerrainPreset == null
-                                  ? null
-                                  : () => notifier.selectTerrainPaintMode(
-                                        terrainType:
-                                            selectedTerrainPreset.terrainType,
-                                      ),
-                              icon: const Icon(Icons.brush_outlined, size: 16),
-                              label: const Text('Paint Base'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: activeTerrainLayer == null ||
-                                      selectedTerrainPreset == null
-                                  ? null
-                                  : () => notifier.fillActiveTerrainLayer(
-                                        selectedTerrainPreset.terrainType,
-                                      ),
-                              icon: const Icon(
-                                Icons.format_color_fill_outlined,
-                                size: 16,
-                              ),
-                              label: const Text('Fill Base'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        _InfoStrip(
-                          text: activeTerrainLayer == null
-                              ? 'Select or create a terrain layer to paint the map background.'
-                              : selectedTerrainPreset == null
-                                  ? 'Create a terrain preset in the library to paint this background layer.'
-                                  : 'Active base: ${selectedTerrainPreset.name} on ${activeTerrainLayer.name}',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _SurfaceSectionCard(
-                    title: 'Surface Overlays',
-                    subtitle:
-                        'Path layers carry roads, water, tall grass, ice and every specialized surface.',
-                    color: const Color(0xFF7A4A1E),
-                    icon: Icons.route_outlined,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _LayerSelector<PathLayer>(
-                          label: 'Active Path Layer',
-                          layers: pathLayers,
-                          activeLayerId: activePathLayer?.id,
-                          emptyLabel: 'No path layer yet',
-                          onSelected: notifier.setActiveLayer,
-                          onCreate: () => notifier.activateFirstPathLayer(
-                            createIfMissing: true,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _PresetDropdown(
-                          label: 'Assigned Surface Preset',
-                          value: activePathLayer != null &&
-                                  pathPresets.any(
-                                    (preset) => preset.id == activePathLayer.presetId,
-                                  )
-                              ? activePathLayer.presetId
-                              : selectedPathPreset?.id,
-                          hint: 'No surface preset',
-                          items: pathPresets
-                              .map(
-                                (preset) => DropdownMenuItem<String>(
-                                  value: preset.id,
-                                  child: Text(
-                                    '${preset.name} • ${_pathSurfaceLabel(preset.surfaceKind)}',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: pathPresets.isEmpty
-                              ? null
-                              : (value) {
-                                  if (activePathLayer != null) {
-                                    notifier.selectPathPresetForActivePathLayer(value);
-                                  } else {
-                                    notifier.selectPathPreset(value);
-                                  }
-                                },
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            FilledButton.icon(
-                              onPressed: activePathLayer == null
-                                  ? null
-                                  : notifier.selectPathPaintMode,
-                              icon: const Icon(Icons.route_outlined, size: 16),
-                              label: const Text('Paint Surface'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: activePathLayer == null
-                                  ? null
-                                  : () => notifier.selectTool(EditorToolType.eraser),
-                              icon: const Icon(Icons.auto_fix_off, size: 16),
-                              label: const Text('Erase Surface'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: () => notifier.activateFirstPathLayer(
-                                createIfMissing: true,
-                              ),
-                              icon: const Icon(Icons.add_circle_outline, size: 16),
-                              label: const Text('New Path Layer'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        _PathLayerPropertiesBlock(layer: activePathLayer),
-                        const SizedBox(height: 10),
-                        _InfoStrip(
-                          text: activePathLayer == null
-                              ? 'Create a path layer for roads, water, tall grass and every surface overlay.'
-                              : activePathLayer.presetId.trim().isEmpty
-                                  ? 'Assign a surface preset to ${activePathLayer.name} before painting.'
-                                  : 'Active surface layer: ${activePathLayer.name}',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _InfoStrip(
-                    text: state.activeTool == EditorToolType.terrainPaint
-                        ? state.terrainSelectionMode == TerrainSelectionMode.path
-                            ? 'Surface paint mode enabled.'
-                            : 'Base ground paint mode enabled.'
-                        : 'Use the controls above to switch between base ground and surface painting.',
-                  ),
-                ],
-              ),
-            ),
-          ),
+          Expanded(child: content),
         ],
       ),
     );

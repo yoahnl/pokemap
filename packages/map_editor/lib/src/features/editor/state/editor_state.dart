@@ -64,6 +64,7 @@ class EditorState with _$EditorState {
     @Default(CollisionBrushSizeMode.brushFootprint)
     CollisionBrushSizeMode collisionBrushSizeMode,
     String? selectedWarpId,
+    String? selectedTriggerId,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
     PaletteCategory? paletteCategoryFilter,

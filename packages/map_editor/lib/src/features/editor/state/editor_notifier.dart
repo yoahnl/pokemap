@@ -17,6 +17,7 @@ import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
+import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
@@ -47,6 +48,8 @@ class EditorNotifier extends _$EditorNotifier {
 
   WarpEditingService get _warpEditingService =>
       ref.read(warpEditingServiceProvider);
+  TriggerEditingService get _triggerEditingService =>
+      ref.read(triggerEditingServiceProvider);
   MapConnectionEditingService get _mapConnectionEditingService =>
       ref.read(mapConnectionEditingServiceProvider);
   TerrainPaintingCoordinator get _terrainPaintingCoordinator =>
@@ -111,6 +114,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTerrainPresetByType:
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
+        selectedTriggerId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -154,6 +158,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTerrainPresetByType:
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
+        selectedTriggerId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -268,6 +273,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTerrainPresetByType:
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
+        selectedTriggerId: null,
         selectedTilesetEditorId:
             _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
@@ -329,6 +335,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTerrainPresetByType:
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
+        selectedTriggerId: null,
         selectedTilesetEditorId: nextSelectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -456,11 +463,13 @@ class EditorNotifier extends _$EditorNotifier {
           state.selectedTilesetElementGroupId;
       PaletteCategory? paletteCategoryFilter = state.paletteCategoryFilter;
       String? selectedWarpId = state.selectedWarpId;
+      String? selectedTriggerId = state.selectedTriggerId;
       if (activeMap?.id == mapId) {
         activeMap = null;
         activePath = null;
         activeBrush = const EditorBrush.none();
         selectedWarpId = null;
+        selectedTriggerId = null;
         selectedTilesetEditorId = null;
         selectedTilesetElementGroupId = null;
         paletteCategoryFilter = null;
@@ -476,6 +485,7 @@ class EditorNotifier extends _$EditorNotifier {
             : _editorMapSessionCoordinator.resolveActiveLayerId(activeMap),
         activeBrush: activeBrush,
         selectedWarpId: selectedWarpId,
+        selectedTriggerId: selectedTriggerId,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: selectedTilesetElementGroupId,
         paletteCategoryFilter: paletteCategoryFilter,
@@ -1897,6 +1907,150 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  MapTrigger? getSelectedTrigger() {
+    return _triggerEditingService.findSelectedTrigger(
+      state.activeMap,
+      state.selectedTriggerId,
+    );
+  }
+
+  void placeOrSelectTriggerAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final existing = _triggerEditingService.findTriggerAtPos(map, pos);
+    if (existing != null) {
+      selectTrigger(existing.id);
+      return;
+    }
+    addTriggerAt(pos);
+  }
+
+  void addTriggerAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final result = _triggerEditingService.addTriggerAt(map, pos);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: result.createdTrigger.id,
+        statusMessage: 'Trigger "${result.createdTrigger.id}" created',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create trigger: $e');
+    }
+  }
+
+  void selectTrigger(String? triggerId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    if (triggerId == null) {
+      state = state.copyWith(
+        selectedTriggerId: null,
+        errorMessage: null,
+      );
+      return;
+    }
+    final trigger = _triggerEditingService.findSelectedTrigger(map, triggerId);
+    if (trigger == null) {
+      state = state.copyWith(errorMessage: 'Trigger not found: $triggerId');
+      return;
+    }
+    state = state.copyWith(
+      selectedTriggerId: trigger.id,
+      errorMessage: null,
+    );
+  }
+
+  void updateSelectedTrigger({
+    required String id,
+    required String name,
+    required TriggerType type,
+    required int x,
+    required int y,
+    required int width,
+    required int height,
+    required Map<String, String> properties,
+  }) {
+    final selectedTriggerId = state.selectedTriggerId;
+    if (selectedTriggerId == null) return;
+    updateTrigger(
+      triggerId: selectedTriggerId,
+      id: id,
+      name: name,
+      type: type,
+      area: MapRect(
+        pos: GridPos(x: x, y: y),
+        size: GridSize(width: width, height: height),
+      ),
+      properties: properties,
+    );
+  }
+
+  void updateTrigger({
+    required String triggerId,
+    String? id,
+    String? name,
+    TriggerType? type,
+    MapRect? area,
+    Map<String, String>? properties,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final result = _triggerEditingService.updateTrigger(
+        map,
+        triggerId: triggerId,
+        id: id,
+        name: name,
+        type: type,
+        area: area,
+        properties: properties,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: result.selectedTriggerId,
+        statusMessage: 'Trigger updated',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update trigger: $e');
+    }
+  }
+
+  void deleteSelectedTrigger() {
+    final selectedTriggerId = state.selectedTriggerId;
+    if (selectedTriggerId == null) return;
+    deleteTrigger(selectedTriggerId);
+  }
+
+  void deleteTrigger(String triggerId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = _triggerEditingService.deleteTrigger(
+        map,
+        triggerId: triggerId,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: state.selectedTriggerId == triggerId
+            ? null
+            : state.selectedTriggerId,
+        statusMessage: 'Trigger deleted',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete trigger: $e');
+    }
+  }
+
   void placeOrSelectWarpAt(GridPos pos) {
     final map = state.activeMap;
     if (map == null) return;
@@ -2281,6 +2435,7 @@ class EditorNotifier extends _$EditorNotifier {
       map: map,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
+      selectedTriggerId: state.selectedTriggerId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
       strokeStart: state.mapStrokeStart,
@@ -2325,6 +2480,7 @@ class EditorNotifier extends _$EditorNotifier {
       currentMap: map,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
+      selectedTriggerId: state.selectedTriggerId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
       savedMapSnapshot: state.savedMapSnapshot,
@@ -2334,6 +2490,7 @@ class EditorNotifier extends _$EditorNotifier {
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
       selectedWarpId: restored.selectedWarpId,
+      selectedTriggerId: restored.selectedTriggerId,
       selectedTilesetEditorId: restored.selectedTilesetEditorId,
       mapUndoStack: restored.undoStack,
       mapRedoStack: restored.redoStack,
@@ -2355,6 +2512,7 @@ class EditorNotifier extends _$EditorNotifier {
       currentMap: map,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
+      selectedTriggerId: state.selectedTriggerId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
       savedMapSnapshot: state.savedMapSnapshot,
@@ -2364,6 +2522,7 @@ class EditorNotifier extends _$EditorNotifier {
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
       selectedWarpId: restored.selectedWarpId,
+      selectedTriggerId: restored.selectedTriggerId,
       selectedTilesetEditorId: restored.selectedTilesetEditorId,
       mapUndoStack: restored.undoStack,
       mapRedoStack: restored.redoStack,
@@ -3822,6 +3981,7 @@ class EditorNotifier extends _$EditorNotifier {
     required MapData updatedMap,
     required String? preferredActiveLayerId,
     String? preferredSelectedWarpId,
+    String? preferredSelectedTriggerId,
     bool partOfStroke = false,
     bool updateSavedSnapshot = false,
     GridPos? hoveredTile,
@@ -3841,12 +4001,14 @@ class EditorNotifier extends _$EditorNotifier {
       updatedMap: updatedMap,
       activeLayerId: state.activeLayerId,
       selectedWarpId: state.selectedWarpId,
+      selectedTriggerId: state.selectedTriggerId,
       selectedTilesetEditorId: state.selectedTilesetEditorId,
       undoStack: state.mapUndoStack,
       redoStack: state.mapRedoStack,
       strokeStart: state.mapStrokeStart,
       preferredActiveLayerId: preferredActiveLayerId,
       preferredSelectedWarpId: preferredSelectedWarpId,
+      preferredSelectedTriggerId: preferredSelectedTriggerId,
       savedMapSnapshot: state.savedMapSnapshot,
       partOfStroke: partOfStroke,
       updateSavedSnapshot: updateSavedSnapshot,
@@ -3855,6 +4017,7 @@ class EditorNotifier extends _$EditorNotifier {
       activeMap: mutation.activeMap,
       activeLayerId: mutation.activeLayerId,
       selectedWarpId: mutation.selectedWarpId,
+      selectedTriggerId: mutation.selectedTriggerId,
       selectedTilesetEditorId: mutation.selectedTilesetEditorId,
       hoveredTile: updateHoveredTile ? hoveredTile : state.hoveredTile,
       mapUndoStack: mutation.undoStack,

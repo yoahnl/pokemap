@@ -5,13 +5,34 @@ import 'package:map_core/map_core.dart';
 import '../../features/editor/state/editor_notifier.dart';
 
 class LayersPanel extends ConsumerWidget {
-  const LayersPanel({super.key});
+  const LayersPanel({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
+    final content = map == null
+        ? const Center(
+            child: Text(
+              'No map loaded',
+              style: TextStyle(color: Colors.white38),
+            ),
+          )
+        : _LayerList(
+            map: map,
+            activeLayerId: state.activeLayerId,
+            notifier: notifier,
+          );
+
+    if (embedded) {
+      return content;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -53,23 +74,7 @@ class LayersPanel extends ConsumerWidget {
             ),
           ),
           const Divider(height: 1),
-          if (map == null)
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'No map loaded',
-                  style: TextStyle(color: Colors.white38),
-                ),
-              ),
-            )
-          else
-            Expanded(
-              child: _LayerList(
-                map: map,
-                activeLayerId: state.activeLayerId,
-                notifier: notifier,
-              ),
-            ),
+          Expanded(child: content),
         ],
       ),
     );

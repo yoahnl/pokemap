@@ -145,6 +145,26 @@ final warpEditingCoordinatorProvider =
 // ignore: unused_element
 typedef WarpEditingCoordinatorRef
     = AutoDisposeProviderRef<WarpEditingCoordinator>;
+String _$triggerEditingCoordinatorHash() =>
+    r'0d9ff3c949a38fae41fcbd4cd18c72c8ce2fc8ac';
+
+/// See also [triggerEditingCoordinator].
+@ProviderFor(triggerEditingCoordinator)
+final triggerEditingCoordinatorProvider =
+    AutoDisposeProvider<TriggerEditingCoordinator>.internal(
+  triggerEditingCoordinator,
+  name: r'triggerEditingCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$triggerEditingCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TriggerEditingCoordinatorRef
+    = AutoDisposeProviderRef<TriggerEditingCoordinator>;
 String _$warpEditingServiceHash() =>
     r'd38b859e712ae5a32afc18b59935f3b64dc03765';
 
@@ -164,6 +184,26 @@ final warpEditingServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef WarpEditingServiceRef = AutoDisposeProviderRef<WarpEditingService>;
+String _$triggerEditingServiceHash() =>
+    r'07fdd480ce433c4da2c70e076be5934b18ca1d49';
+
+/// See also [triggerEditingService].
+@ProviderFor(triggerEditingService)
+final triggerEditingServiceProvider =
+    AutoDisposeProvider<TriggerEditingService>.internal(
+  triggerEditingService,
+  name: r'triggerEditingServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$triggerEditingServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TriggerEditingServiceRef
+    = AutoDisposeProviderRef<TriggerEditingService>;
 String _$mapConnectionEditingServiceHash() =>
     r'1b04bd4861dbfcea12d139a333e98ee10ec35a36';
 
@@ -1221,6 +1261,66 @@ final addWarpToMapUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AddWarpToMapUseCaseRef = AutoDisposeProviderRef<AddWarpToMapUseCase>;
+String _$addTriggerToMapUseCaseHash() =>
+    r'a6edc253c92890c9e4da9047cf5c4e7f947ba7f2';
+
+/// See also [addTriggerToMapUseCase].
+@ProviderFor(addTriggerToMapUseCase)
+final addTriggerToMapUseCaseProvider =
+    AutoDisposeProvider<AddTriggerToMapUseCase>.internal(
+  addTriggerToMapUseCase,
+  name: r'addTriggerToMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addTriggerToMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddTriggerToMapUseCaseRef
+    = AutoDisposeProviderRef<AddTriggerToMapUseCase>;
+String _$updateTriggerOnMapUseCaseHash() =>
+    r'26eb6ecda8a0101a3395095bc925a8c1e829900a';
+
+/// See also [updateTriggerOnMapUseCase].
+@ProviderFor(updateTriggerOnMapUseCase)
+final updateTriggerOnMapUseCaseProvider =
+    AutoDisposeProvider<UpdateTriggerOnMapUseCase>.internal(
+  updateTriggerOnMapUseCase,
+  name: r'updateTriggerOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateTriggerOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateTriggerOnMapUseCaseRef
+    = AutoDisposeProviderRef<UpdateTriggerOnMapUseCase>;
+String _$deleteTriggerFromMapUseCaseHash() =>
+    r'afbeb626b1cc6c2c686d295d79b343e2312b9cbb';
+
+/// See also [deleteTriggerFromMapUseCase].
+@ProviderFor(deleteTriggerFromMapUseCase)
+final deleteTriggerFromMapUseCaseProvider =
+    AutoDisposeProvider<DeleteTriggerFromMapUseCase>.internal(
+  deleteTriggerFromMapUseCase,
+  name: r'deleteTriggerFromMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteTriggerFromMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteTriggerFromMapUseCaseRef
+    = AutoDisposeProviderRef<DeleteTriggerFromMapUseCase>;
 String _$resolveMapConnectionTargetUseCaseHash() =>
     r'1e992e8f27c300ae66dcda342838dcda7f415913';
 

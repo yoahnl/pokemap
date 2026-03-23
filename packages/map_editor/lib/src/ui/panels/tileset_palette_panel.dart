@@ -11,7 +11,12 @@ import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
 class TilesetPalettePanel extends ConsumerStatefulWidget {
-  const TilesetPalettePanel({super.key});
+  const TilesetPalettePanel({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
 
   @override
   ConsumerState<TilesetPalettePanel> createState() =>
@@ -159,20 +164,21 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              padding: EdgeInsets.fromLTRB(12, widget.embedded ? 10 : 12, 12, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'ELEMENTS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
+                  if (!widget.embedded)
+                    const Text(
+                      'ELEMENTS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: widget.embedded ? 0 : 6),
                   Text(
                     selectedTileset.name,
                     maxLines: 1,

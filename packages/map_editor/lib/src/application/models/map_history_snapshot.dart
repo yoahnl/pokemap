@@ -9,5 +9,6 @@ class MapHistorySnapshot with _$MapHistorySnapshot {
     required MapData map,
     String? activeLayerId,
     String? selectedWarpId,
+    String? selectedTriggerId,
   }) = _MapHistorySnapshot;
 }

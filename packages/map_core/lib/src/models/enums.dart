@@ -82,14 +82,18 @@ enum EntityType {
 }
 
 enum TriggerType {
-  @JsonValue('script')
-  script,
-  @JsonValue('sound')
-  sound,
-  @JsonValue('cutscene')
-  cutscene,
-  @JsonValue('battle')
-  battle,
+  @JsonValue('warp')
+  warp,
+  @JsonValue('message')
+  message,
+  @JsonValue('interaction')
+  interaction,
+  @JsonValue('event')
+  event,
+  @JsonValue('spawn')
+  spawn,
+  @JsonValue('camera')
+  camera,
   @JsonValue('custom')
   custom,
 }

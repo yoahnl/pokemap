@@ -27,6 +27,7 @@ class EditorMapMutationState extends EditorMapHistoryState {
     required this.activeMap,
     required this.activeLayerId,
     required this.selectedWarpId,
+    required this.selectedTriggerId,
     required this.selectedTilesetEditorId,
     required this.savedMapSnapshot,
     required super.undoStack,
@@ -40,6 +41,7 @@ class EditorMapMutationState extends EditorMapHistoryState {
   final MapData activeMap;
   final String? activeLayerId;
   final String? selectedWarpId;
+  final String? selectedTriggerId;
   final String? selectedTilesetEditorId;
   final MapData? savedMapSnapshot;
 }
@@ -58,6 +60,7 @@ class EditorMapMutationCoordinator {
     required MapData map,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapHistorySnapshot? strokeStart,
@@ -67,6 +70,7 @@ class EditorMapMutationCoordinator {
       map: map,
       activeLayerId: activeLayerId,
       selectedWarpId: selectedWarpId,
+      selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
       redoStack: redoStack,
       strokeStart: strokeStart,
@@ -112,12 +116,14 @@ class EditorMapMutationCoordinator {
     required MapData updatedMap,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required String? selectedTilesetEditorId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapHistorySnapshot? strokeStart,
     required String? preferredActiveLayerId,
     required String? preferredSelectedWarpId,
+    required String? preferredSelectedTriggerId,
     required MapData? savedMapSnapshot,
     required bool partOfStroke,
     required bool updateSavedSnapshot,
@@ -126,6 +132,7 @@ class EditorMapMutationCoordinator {
       previousMap: previousMap,
       activeLayerId: activeLayerId,
       selectedWarpId: selectedWarpId,
+      selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
       redoStack: redoStack,
       strokeStart: strokeStart,
@@ -135,6 +142,7 @@ class EditorMapMutationCoordinator {
       updatedMap,
       preferredLayerId: preferredActiveLayerId,
       preferredWarpId: preferredSelectedWarpId ?? selectedWarpId,
+      preferredTriggerId: preferredSelectedTriggerId ?? selectedTriggerId,
       currentSelectedTilesetEditorId: selectedTilesetEditorId,
     );
     final nextSavedSnapshot =
@@ -143,6 +151,7 @@ class EditorMapMutationCoordinator {
       activeMap: updatedMap,
       activeLayerId: session.activeLayerId,
       selectedWarpId: session.selectedWarpId,
+      selectedTriggerId: session.selectedTriggerId,
       selectedTilesetEditorId: session.selectedTilesetEditorId,
       savedMapSnapshot: nextSavedSnapshot,
       undoStack: history.undoStack,
@@ -159,6 +168,7 @@ class EditorMapMutationCoordinator {
     required MapData currentMap,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapData? savedMapSnapshot,
@@ -167,6 +177,7 @@ class EditorMapMutationCoordinator {
       currentMap: currentMap,
       activeLayerId: activeLayerId,
       selectedWarpId: selectedWarpId,
+      selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
       redoStack: redoStack,
     );
@@ -176,12 +187,14 @@ class EditorMapMutationCoordinator {
       restoredMap,
       preferredLayerId: history.restoredSnapshot.activeLayerId,
       preferredWarpId: history.restoredSnapshot.selectedWarpId,
+      preferredTriggerId: history.restoredSnapshot.selectedTriggerId,
       currentSelectedTilesetEditorId: null,
     );
     return EditorMapMutationState(
       activeMap: restoredMap,
       activeLayerId: session.activeLayerId,
       selectedWarpId: session.selectedWarpId,
+      selectedTriggerId: session.selectedTriggerId,
       selectedTilesetEditorId: session.selectedTilesetEditorId,
       savedMapSnapshot: savedMapSnapshot,
       undoStack: history.undoStack,
@@ -198,6 +211,7 @@ class EditorMapMutationCoordinator {
     required MapData currentMap,
     required String? activeLayerId,
     required String? selectedWarpId,
+    required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapData? savedMapSnapshot,
@@ -206,6 +220,7 @@ class EditorMapMutationCoordinator {
       currentMap: currentMap,
       activeLayerId: activeLayerId,
       selectedWarpId: selectedWarpId,
+      selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
       redoStack: redoStack,
     );
@@ -215,12 +230,14 @@ class EditorMapMutationCoordinator {
       restoredMap,
       preferredLayerId: history.restoredSnapshot.activeLayerId,
       preferredWarpId: history.restoredSnapshot.selectedWarpId,
+      preferredTriggerId: history.restoredSnapshot.selectedTriggerId,
       currentSelectedTilesetEditorId: null,
     );
     return EditorMapMutationState(
       activeMap: restoredMap,
       activeLayerId: session.activeLayerId,
       selectedWarpId: session.selectedWarpId,
+      selectedTriggerId: session.selectedTriggerId,
       selectedTilesetEditorId: session.selectedTilesetEditorId,
       savedMapSnapshot: savedMapSnapshot,
       undoStack: history.undoStack,

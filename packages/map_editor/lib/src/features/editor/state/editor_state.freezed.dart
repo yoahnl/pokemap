@@ -720,6 +720,7 @@ mixin _$EditorState {
   CollisionBrushSizeMode get collisionBrushSizeMode =>
       throw _privateConstructorUsedError;
   String? get selectedWarpId => throw _privateConstructorUsedError;
+  String? get selectedTriggerId => throw _privateConstructorUsedError;
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
@@ -770,6 +771,7 @@ abstract class $EditorStateCopyWith<$Res> {
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedWarpId,
+      String? selectedTriggerId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -825,6 +827,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedWarpId = freezed,
+    Object? selectedTriggerId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -905,6 +908,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedWarpId: freezed == selectedWarpId
           ? _value.selectedWarpId
           : selectedWarpId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTriggerId: freezed == selectedTriggerId
+          ? _value.selectedTriggerId
+          : selectedTriggerId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
@@ -1075,6 +1082,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedWarpId,
+      String? selectedTriggerId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -1134,6 +1142,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedWarpId = freezed,
+    Object? selectedTriggerId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -1214,6 +1223,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
       selectedWarpId: freezed == selectedWarpId
           ? _value.selectedWarpId
           : selectedWarpId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedTriggerId: freezed == selectedTriggerId
+          ? _value.selectedTriggerId
+          : selectedTriggerId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
@@ -1299,6 +1312,7 @@ class _$EditorStateImpl implements _EditorState {
       final Map<TerrainType, String> selectedTerrainPresetByType = const {},
       this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
       this.selectedWarpId,
+      this.selectedTriggerId,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
       this.paletteCategoryFilter,
@@ -1368,6 +1382,8 @@ class _$EditorStateImpl implements _EditorState {
   @override
   final String? selectedWarpId;
   @override
+  final String? selectedTriggerId;
+  @override
   final String? selectedTilesetEditorId;
   @override
   final String? selectedTilesetElementGroupId;
@@ -1423,7 +1439,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1463,6 +1479,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.collisionBrushSizeMode == collisionBrushSizeMode) &&
             (identical(other.selectedWarpId, selectedWarpId) ||
                 other.selectedWarpId == selectedWarpId) &&
+            (identical(other.selectedTriggerId, selectedTriggerId) ||
+                other.selectedTriggerId == selectedTriggerId) &&
             (identical(
                     other.selectedTilesetEditorId, selectedTilesetEditorId) ||
                 other.selectedTilesetEditorId == selectedTilesetEditorId) &&
@@ -1514,6 +1532,7 @@ class _$EditorStateImpl implements _EditorState {
         const DeepCollectionEquality().hash(_selectedTerrainPresetByType),
         collisionBrushSizeMode,
         selectedWarpId,
+        selectedTriggerId,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
         paletteCategoryFilter,
@@ -1558,6 +1577,7 @@ abstract class _EditorState implements EditorState {
       final Map<TerrainType, String> selectedTerrainPresetByType,
       final CollisionBrushSizeMode collisionBrushSizeMode,
       final String? selectedWarpId,
+      final String? selectedTriggerId,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
       final PaletteCategory? paletteCategoryFilter,
@@ -1607,6 +1627,8 @@ abstract class _EditorState implements EditorState {
   CollisionBrushSizeMode get collisionBrushSizeMode;
   @override
   String? get selectedWarpId;
+  @override
+  String? get selectedTriggerId;
   @override
   String? get selectedTilesetEditorId;
   @override

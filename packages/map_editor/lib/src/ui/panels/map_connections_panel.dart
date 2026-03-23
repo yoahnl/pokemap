@@ -5,7 +5,12 @@ import 'package:map_core/map_core.dart';
 import '../../features/editor/state/editor_notifier.dart';
 
 class MapConnectionsPanel extends ConsumerStatefulWidget {
-  const MapConnectionsPanel({super.key});
+  const MapConnectionsPanel({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
 
   @override
   ConsumerState<MapConnectionsPanel> createState() =>
@@ -57,6 +62,58 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
     };
     _syncEditors(map);
 
+    final content = map == null
+        ? const Center(
+            child: Text(
+              'No map loaded',
+              style: TextStyle(color: Colors.white38),
+            ),
+          )
+        : ListView(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Connect map edges to build a continuous world. Each side can point to one other map.',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ),
+              if (sortedProjectMaps.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    'Create another map before adding world connections.',
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
+                ),
+              for (final direction in MapConnectionDirection.values)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _DirectionConnectionCard(
+                    direction: direction,
+                    existingConnection: notifier.getMapConnection(direction),
+                    projectMaps: sortedProjectMaps,
+                    projectMapById: projectMapById,
+                    selectedTargetMapId: _selectedTargetMapIds[direction],
+                    offsetController: _offsetControllers[direction]!,
+                    onTargetChanged: (value) {
+                      setState(() {
+                        _selectedTargetMapIds[direction] = value;
+                      });
+                    },
+                    onSave: () => _saveDirection(context, notifier, direction),
+                    onOpen: () => notifier.openConnectedMap(direction),
+                    onClear: () => _clearDirection(notifier, direction),
+                  ),
+                ),
+            ],
+          );
+
+    if (widget.embedded) {
+      return content;
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -90,60 +147,7 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
             ),
           ),
           const Divider(height: 1),
-          if (map == null)
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'No map loaded',
-                  style: TextStyle(color: Colors.white38),
-                ),
-              ),
-            )
-          else
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: Text(
-                      'Connect map edges to build a continuous world. Each side can point to one other map.',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ),
-                  if (sortedProjectMaps.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        'Create another map before adding world connections.',
-                        style: TextStyle(color: Colors.white38, fontSize: 12),
-                      ),
-                    ),
-                  for (final direction in MapConnectionDirection.values)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _DirectionConnectionCard(
-                        direction: direction,
-                        existingConnection:
-                            notifier.getMapConnection(direction),
-                        projectMaps: sortedProjectMaps,
-                        projectMapById: projectMapById,
-                        selectedTargetMapId: _selectedTargetMapIds[direction],
-                        offsetController: _offsetControllers[direction]!,
-                        onTargetChanged: (value) {
-                          setState(() {
-                            _selectedTargetMapIds[direction] = value;
-                          });
-                        },
-                        onSave: () =>
-                            _saveDirection(context, notifier, direction),
-                        onOpen: () => notifier.openConnectedMap(direction),
-                        onClear: () => _clearDirection(notifier, direction),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+          Expanded(child: content),
         ],
       ),
     );
