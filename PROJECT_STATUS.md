@@ -259,6 +259,37 @@ Terminee pour cette etape:
   - footprint terrain force en 1x1 pour eviter l heritage de taille d un gros element selectionne.
 
 ## 7. Dernieres modifications realisees
+2026-03-23 (refacto cible clean architecture - session map/historique/warp):
+- `map_editor`:
+  - ajout `application/services/editor_map_session_coordinator.dart`:
+    - centralise la resolution de session map:
+      - `activeLayerId`,
+      - `selectedWarpId`,
+      - `selectedTilesetEditorId`,
+      - fallback apres suppression de layer.
+  - ajout `application/services/map_history_coordinator.dart`:
+    - centralise la mecanique d historique map-level:
+      - begin/finalize stroke,
+      - application mutation historique (undo stack / redo stack / stroke start),
+      - undo/redo restore,
+      - push snapshot avec dedup + limite d entree.
+  - ajout `application/services/warp_editing_coordinator.dart`:
+    - centralise les helpers warp utilitaires:
+      - recherche par id/position,
+      - generation id unique,
+      - creation warp par defaut.
+  - `EditorNotifier`:
+    - delegation de la logique session map au `EditorMapSessionCoordinator`,
+    - delegation de la logique historique map-level au `MapHistoryCoordinator`,
+    - delegation des helpers warp au `WarpEditingCoordinator`,
+    - conservation du pipeline central `_applyMapMutation(...)` avec orchestration d etat.
+  - `application/use_cases/warp_use_cases.dart`:
+    - remplacement d exceptions generiques par `ValidationException` sur les validations warp cross-map.
+- impact:
+  - `EditorNotifier` est plus proche d un orchestrateur d etat UI,
+  - les responsabilites transverses session/historique/warp sont explicites et testables de maniere isolee plus tard,
+  - comportement fonctionnel conserve (terrains/paths/presets/rendu/preview/undo/redo/persistance).
+
 2026-03-23 (refacto cible clean architecture terrain/path - etape 2):
 - `map_editor`:
   - ajout `application/services/terrain_preset_selection_coordinator.dart`:

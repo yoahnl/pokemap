@@ -4,10 +4,13 @@ import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/providers/use_case_providers.dart';
+import '../../../application/services/editor_map_session_coordinator.dart';
+import '../../../application/services/map_history_coordinator.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
+import '../../../application/services/warp_editing_coordinator.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../terrain/path_autotile_set.dart';
 import '../tools/editor_tool.dart';
@@ -17,7 +20,6 @@ part 'editor_notifier.g.dart';
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
-  static const int _maxMapHistoryEntries = 100;
   static const TerrainPresetResolver _terrainPresetResolver =
       TerrainPresetResolver();
   static const TerrainPresetSelectionCoordinator
@@ -26,6 +28,14 @@ class EditorNotifier extends _$EditorNotifier {
   );
   static const PathAutotileResolver _pathAutotileResolver =
       PathAutotileResolver();
+  static const EditorMapSessionCoordinator _editorMapSessionCoordinator =
+      EditorMapSessionCoordinator();
+  static const MapHistoryCoordinator _mapHistoryCoordinator =
+      MapHistoryCoordinator(
+    maxEntries: 100,
+  );
+  static const WarpEditingCoordinator _warpEditingCoordinator =
+      WarpEditingCoordinator();
 
   TerrainPaintingCoordinator _terrainPaintingCoordinator() {
     return TerrainPaintingCoordinator(
@@ -1743,13 +1753,13 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     final selectedWarpId = state.selectedWarpId;
     if (map == null || selectedWarpId == null) return null;
-    return _findWarpById(map, selectedWarpId);
+    return _warpEditingCoordinator.findWarpById(map, selectedWarpId);
   }
 
   void placeOrSelectWarpAt(GridPos pos) {
     final map = state.activeMap;
     if (map == null) return;
-    final existing = _findWarpAtPos(map, pos);
+    final existing = _warpEditingCoordinator.findWarpAtPos(map, pos);
     if (existing != null) {
       selectWarp(existing.id);
       return;
@@ -1761,13 +1771,7 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     final project = state.project;
     if (map == null || project == null) return;
-    final warpId = _generateUniqueWarpId(map);
-    final warp = MapWarp(
-      id: warpId,
-      pos: pos,
-      targetMapId: map.id,
-      targetPos: pos,
-    );
+    final warp = _warpEditingCoordinator.createDefaultWarp(map, pos);
     try {
       _validateWarpTargetMap(project, warp.targetMapId);
       final useCase = ref.read(addWarpToMapUseCaseProvider);
@@ -1797,7 +1801,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final warp = _findWarpById(map, warpId);
+    final warp = _warpEditingCoordinator.findWarpById(map, warpId);
     if (warp == null) {
       state = state.copyWith(errorMessage: 'Warp not found: $warpId');
       return;
@@ -1845,7 +1849,8 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(errorMessage: 'No warp selected');
       return;
     }
-    final selectedWarp = _findWarpById(sourceMap, selectedWarpId);
+    final selectedWarp =
+        _warpEditingCoordinator.findWarpById(sourceMap, selectedWarpId);
     if (selectedWarp == null) {
       state = state.copyWith(errorMessage: 'Selected warp not found');
       return;
@@ -1892,10 +1897,10 @@ class EditorNotifier extends _$EditorNotifier {
     final project = state.project;
     if (map == null || project == null) return;
     try {
-      final currentWarp = _findWarpById(map, warpId);
+      final currentWarp = _warpEditingCoordinator.findWarpById(map, warpId);
       final effectiveTargetMapId = targetMapId ?? currentWarp?.targetMapId;
       if (effectiveTargetMapId == null || effectiveTargetMapId.trim().isEmpty) {
-        throw Exception('Warp target map cannot be empty');
+        throw const ValidationException('Warp target map cannot be empty');
       }
       _validateWarpTargetMap(project, effectiveTargetMapId);
       final useCase = ref.read(updateWarpOnMapUseCaseProvider);
@@ -2057,37 +2062,43 @@ class EditorNotifier extends _$EditorNotifier {
   void beginMapStroke() {
     final map = state.activeMap;
     if (map == null || state.mapStrokeStart != null) return;
+    final history = _mapHistoryCoordinator.beginStroke(
+      map: map,
+      activeLayerId: state.activeLayerId,
+      selectedWarpId: state.selectedWarpId,
+      undoStack: state.mapUndoStack,
+      redoStack: state.mapRedoStack,
+      strokeStart: state.mapStrokeStart,
+    );
     state = state.copyWith(
-      mapStrokeStart: MapHistorySnapshot(
-        map: map,
-        activeLayerId: state.activeLayerId,
-        selectedWarpId: state.selectedWarpId,
-      ),
+      mapUndoStack: history.undoStack,
+      mapRedoStack: history.redoStack,
+      mapStrokeStart: history.strokeStart,
+      canUndoMap: history.canUndoMap,
+      canRedoMap: history.canRedoMap,
     );
   }
 
   void endMapStroke() {
-    final strokeStart = state.mapStrokeStart;
     final currentMap = state.activeMap;
-    if (strokeStart == null) return;
-    if (currentMap == null) {
-      state = state.copyWith(mapStrokeStart: null);
-      return;
-    }
-    if (currentMap == strokeStart.map) {
-      state = state.copyWith(mapStrokeStart: null);
-      return;
-    }
-
-    final undoStack = _pushHistorySnapshot(state.mapUndoStack, strokeStart);
-    final savedSnapshot = state.savedMapSnapshot;
+    final history = _mapHistoryCoordinator.finalizeStroke(
+      currentMap: currentMap,
+      undoStack: state.mapUndoStack,
+      redoStack: state.mapRedoStack,
+      strokeStart: state.mapStrokeStart,
+    );
+    if (state.mapStrokeStart == null) return;
     state = state.copyWith(
-      mapUndoStack: undoStack,
-      mapRedoStack: const [],
-      mapStrokeStart: null,
-      canUndoMap: undoStack.isNotEmpty,
-      canRedoMap: false,
-      isDirty: savedSnapshot == null ? true : currentMap != savedSnapshot,
+      mapUndoStack: history.undoStack,
+      mapRedoStack: history.redoStack,
+      mapStrokeStart: history.strokeStart,
+      canUndoMap: history.canUndoMap,
+      canRedoMap: history.canRedoMap,
+      isDirty: history.committed
+          ? (state.savedMapSnapshot == null
+              ? true
+              : currentMap != state.savedMapSnapshot)
+          : state.isDirty,
       errorMessage: null,
     );
   }
@@ -2095,40 +2106,33 @@ class EditorNotifier extends _$EditorNotifier {
   void undoMap() {
     endMapStroke();
     final map = state.activeMap;
-    if (map == null || state.mapUndoStack.isEmpty) return;
-    final undoStack = List<MapHistorySnapshot>.from(state.mapUndoStack);
-    final snapshot = undoStack.removeLast();
-    final redoStack = _pushHistorySnapshot(
-      state.mapRedoStack,
-      MapHistorySnapshot(
-        map: map,
-        activeLayerId: state.activeLayerId,
-        selectedWarpId: state.selectedWarpId,
-      ),
+    if (map == null) return;
+    final history = _mapHistoryCoordinator.undo(
+      currentMap: map,
+      activeLayerId: state.activeLayerId,
+      selectedWarpId: state.selectedWarpId,
+      undoStack: state.mapUndoStack,
+      redoStack: state.mapRedoStack,
     );
-    final restoredMap = snapshot.map;
-    final nextActiveLayerId = _resolveActiveLayerId(
+    if (history == null) return;
+    final restoredMap = history.restoredSnapshot.map;
+    final session = _editorMapSessionCoordinator.resolveSelectionForMap(
       restoredMap,
-      preferredLayerId: snapshot.activeLayerId,
-    );
-    final nextSelectedWarpId = _resolveSelectedWarpId(
-      restoredMap,
-      preferredWarpId: snapshot.selectedWarpId,
+      preferredLayerId: history.restoredSnapshot.activeLayerId,
+      preferredWarpId: history.restoredSnapshot.selectedWarpId,
+      currentSelectedTilesetEditorId: null,
     );
     final savedSnapshot = state.savedMapSnapshot;
     state = state.copyWith(
       activeMap: restoredMap,
-      activeLayerId: nextActiveLayerId,
-      selectedWarpId: nextSelectedWarpId,
-      selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
-        restoredMap,
-        preferredLayerId: nextActiveLayerId,
-      ),
-      mapUndoStack: undoStack,
-      mapRedoStack: redoStack,
-      mapStrokeStart: null,
-      canUndoMap: undoStack.isNotEmpty,
-      canRedoMap: redoStack.isNotEmpty,
+      activeLayerId: session.activeLayerId,
+      selectedWarpId: session.selectedWarpId,
+      selectedTilesetEditorId: session.selectedTilesetEditorId,
+      mapUndoStack: history.undoStack,
+      mapRedoStack: history.redoStack,
+      mapStrokeStart: history.strokeStart,
+      canUndoMap: history.canUndoMap,
+      canRedoMap: history.canRedoMap,
       isDirty: savedSnapshot == null ? true : restoredMap != savedSnapshot,
       statusMessage: 'Undo',
       errorMessage: null,
@@ -2138,40 +2142,33 @@ class EditorNotifier extends _$EditorNotifier {
   void redoMap() {
     endMapStroke();
     final map = state.activeMap;
-    if (map == null || state.mapRedoStack.isEmpty) return;
-    final redoStack = List<MapHistorySnapshot>.from(state.mapRedoStack);
-    final snapshot = redoStack.removeLast();
-    final undoStack = _pushHistorySnapshot(
-      state.mapUndoStack,
-      MapHistorySnapshot(
-        map: map,
-        activeLayerId: state.activeLayerId,
-        selectedWarpId: state.selectedWarpId,
-      ),
+    if (map == null) return;
+    final history = _mapHistoryCoordinator.redo(
+      currentMap: map,
+      activeLayerId: state.activeLayerId,
+      selectedWarpId: state.selectedWarpId,
+      undoStack: state.mapUndoStack,
+      redoStack: state.mapRedoStack,
     );
-    final restoredMap = snapshot.map;
-    final nextActiveLayerId = _resolveActiveLayerId(
+    if (history == null) return;
+    final restoredMap = history.restoredSnapshot.map;
+    final session = _editorMapSessionCoordinator.resolveSelectionForMap(
       restoredMap,
-      preferredLayerId: snapshot.activeLayerId,
-    );
-    final nextSelectedWarpId = _resolveSelectedWarpId(
-      restoredMap,
-      preferredWarpId: snapshot.selectedWarpId,
+      preferredLayerId: history.restoredSnapshot.activeLayerId,
+      preferredWarpId: history.restoredSnapshot.selectedWarpId,
+      currentSelectedTilesetEditorId: null,
     );
     final savedSnapshot = state.savedMapSnapshot;
     state = state.copyWith(
       activeMap: restoredMap,
-      activeLayerId: nextActiveLayerId,
-      selectedWarpId: nextSelectedWarpId,
-      selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(
-        restoredMap,
-        preferredLayerId: nextActiveLayerId,
-      ),
-      mapUndoStack: undoStack,
-      mapRedoStack: redoStack,
-      mapStrokeStart: null,
-      canUndoMap: undoStack.isNotEmpty,
-      canRedoMap: redoStack.isNotEmpty,
+      activeLayerId: session.activeLayerId,
+      selectedWarpId: session.selectedWarpId,
+      selectedTilesetEditorId: session.selectedTilesetEditorId,
+      mapUndoStack: history.undoStack,
+      mapRedoStack: history.redoStack,
+      mapStrokeStart: history.strokeStart,
+      canUndoMap: history.canUndoMap,
+      canRedoMap: history.canRedoMap,
       isDirty: savedSnapshot == null ? true : restoredMap != savedSnapshot,
       statusMessage: 'Redo',
       errorMessage: null,
@@ -3460,60 +3457,35 @@ class EditorNotifier extends _$EditorNotifier {
       endMapStroke();
     }
 
-    var undoStack = state.mapUndoStack;
-    var redoStack = state.mapRedoStack;
-    var strokeStart = state.mapStrokeStart;
-    if (partOfStroke) {
-      strokeStart ??= MapHistorySnapshot(
-        map: previousMap,
-        activeLayerId: state.activeLayerId,
-        selectedWarpId: state.selectedWarpId,
-      );
-    } else {
-      undoStack = _pushHistorySnapshot(
-        undoStack,
-        MapHistorySnapshot(
-          map: previousMap,
-          activeLayerId: state.activeLayerId,
-          selectedWarpId: state.selectedWarpId,
-        ),
-      );
-      redoStack = const [];
-      strokeStart = null;
-    }
-
-    final nextActiveLayerId = _resolveActiveLayerId(
+    final history = _mapHistoryCoordinator.applyMutation(
+      previousMap: previousMap,
+      activeLayerId: state.activeLayerId,
+      selectedWarpId: state.selectedWarpId,
+      undoStack: state.mapUndoStack,
+      redoStack: state.mapRedoStack,
+      strokeStart: state.mapStrokeStart,
+      partOfStroke: partOfStroke,
+    );
+    final session = _editorMapSessionCoordinator.resolveSelectionForMap(
       updatedMap,
       preferredLayerId: preferredActiveLayerId,
-    );
-    final nextSelectedWarpId = _resolveSelectedWarpId(
-      updatedMap,
       preferredWarpId: preferredSelectedWarpId ?? state.selectedWarpId,
+      currentSelectedTilesetEditorId: state.selectedTilesetEditorId,
     );
-    final currentSelectedTilesetEditorId =
-        state.selectedTilesetEditorId?.trim();
-    final nextSelectedTilesetEditorId =
-        currentSelectedTilesetEditorId != null &&
-                currentSelectedTilesetEditorId.isNotEmpty
-            ? currentSelectedTilesetEditorId
-            : _resolveSelectedTilesetIdForMap(
-                updatedMap,
-                preferredLayerId: nextActiveLayerId,
-              );
     final nextSavedSnapshot =
         updateSavedSnapshot ? updatedMap : state.savedMapSnapshot;
     state = state.copyWith(
       activeMap: updatedMap,
-      activeLayerId: nextActiveLayerId,
-      selectedWarpId: nextSelectedWarpId,
-      selectedTilesetEditorId: nextSelectedTilesetEditorId,
+      activeLayerId: session.activeLayerId,
+      selectedWarpId: session.selectedWarpId,
+      selectedTilesetEditorId: session.selectedTilesetEditorId,
       hoveredTile: updateHoveredTile ? hoveredTile : state.hoveredTile,
-      mapUndoStack: undoStack,
-      mapRedoStack: redoStack,
-      mapStrokeStart: strokeStart,
+      mapUndoStack: history.undoStack,
+      mapRedoStack: history.redoStack,
+      mapStrokeStart: history.strokeStart,
       savedMapSnapshot: nextSavedSnapshot,
-      canUndoMap: undoStack.isNotEmpty,
-      canRedoMap: redoStack.isNotEmpty,
+      canUndoMap: history.canUndoMap,
+      canRedoMap: history.canRedoMap,
       isDirty:
           nextSavedSnapshot == null ? true : updatedMap != nextSavedSnapshot,
       statusMessage: statusMessage ?? state.statusMessage,
@@ -3521,100 +3493,34 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
-  List<MapHistorySnapshot> _pushHistorySnapshot(
-    List<MapHistorySnapshot> source,
-    MapHistorySnapshot snapshot,
-  ) {
-    if (source.isNotEmpty) {
-      final last = source.last;
-      if (last.map == snapshot.map &&
-          last.activeLayerId == snapshot.activeLayerId &&
-          last.selectedWarpId == snapshot.selectedWarpId) {
-        return source;
-      }
-    }
-    final next = List<MapHistorySnapshot>.from(source)..add(snapshot);
-    if (next.length > _maxMapHistoryEntries) {
-      next.removeRange(0, next.length - _maxMapHistoryEntries);
-    }
-    return List<MapHistorySnapshot>.unmodifiable(next);
-  }
-
   String? _resolveActiveLayerId(
     MapData map, {
     String? preferredLayerId,
   }) {
-    if (preferredLayerId != null &&
-        map.layers.any((layer) => layer.id == preferredLayerId)) {
-      return preferredLayerId;
-    }
-    for (final layer in map.layers) {
-      if (layer is TileLayer) {
-        return layer.id;
-      }
-    }
-    if (map.layers.isEmpty) return null;
-    return map.layers.first.id;
+    return _editorMapSessionCoordinator.resolveActiveLayerId(
+      map,
+      preferredLayerId: preferredLayerId,
+    );
   }
 
   String? _resolveFallbackLayerIdAfterDeletion(
     MapData map, {
     required int removedIndex,
   }) {
-    if (map.layers.isEmpty) return null;
-    var candidateIndex = removedIndex;
-    if (candidateIndex >= map.layers.length) {
-      candidateIndex = map.layers.length - 1;
-    }
-    final candidateLayer = map.layers[candidateIndex];
-    if (candidateLayer is TileLayer) {
-      return candidateLayer.id;
-    }
-    return _resolveActiveLayerId(map);
-  }
-
-  String? _resolveSelectedWarpId(
-    MapData map, {
-    String? preferredWarpId,
-  }) {
-    if (preferredWarpId == null) return null;
-    final normalized = preferredWarpId.trim();
-    if (normalized.isEmpty) return null;
-    if (map.warps.any((warp) => warp.id == normalized)) {
-      return normalized;
-    }
-    return null;
+    return _editorMapSessionCoordinator.resolveFallbackLayerIdAfterDeletion(
+      map,
+      removedIndex: removedIndex,
+    );
   }
 
   String? _resolveSelectedTilesetIdForMap(
     MapData? map, {
     String? preferredLayerId,
   }) {
-    if (map == null) return null;
-    if (preferredLayerId != null) {
-      final preferredLayer = _findLayerById(map, preferredLayerId);
-      if (preferredLayer is TileLayer) {
-        final preferredTilesetId = preferredLayer.tilesetId?.trim();
-        if (preferredTilesetId != null && preferredTilesetId.isNotEmpty) {
-          return preferredTilesetId;
-        }
-      }
-    }
-
-    for (final layer in map.layers) {
-      if (layer is TileLayer) {
-        final tilesetId = layer.tilesetId?.trim();
-        if (tilesetId != null && tilesetId.isNotEmpty) {
-          return tilesetId;
-        }
-      }
-    }
-
-    final legacyTilesetId = map.tilesetId.trim();
-    if (legacyTilesetId.isNotEmpty) {
-      return legacyTilesetId;
-    }
-    return null;
+    return _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
+      map,
+      preferredLayerId: preferredLayerId,
+    );
   }
 
   int _findLayerIndexById(MapData map, String layerId) {
@@ -3628,34 +3534,6 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     return null;
-  }
-
-  MapWarp? _findWarpAtPos(MapData map, GridPos pos) {
-    for (final warp in map.warps) {
-      if (warp.pos == pos) {
-        return warp;
-      }
-    }
-    return null;
-  }
-
-  MapWarp? _findWarpById(MapData map, String warpId) {
-    for (final warp in map.warps) {
-      if (warp.id == warpId) {
-        return warp;
-      }
-    }
-    return null;
-  }
-
-  String _generateUniqueWarpId(MapData map) {
-    final ids = map.warps.map((warp) => warp.id).toSet();
-    if (!ids.contains('warp')) return 'warp';
-    var index = 1;
-    while (ids.contains('warp_$index')) {
-      index++;
-    }
-    return 'warp_$index';
   }
 }
 

@@ -57,14 +57,14 @@ class ValidateWarpTargetMapUseCase {
   ) {
     final normalizedTargetMapId = targetMapId.trim();
     if (normalizedTargetMapId.isEmpty) {
-      throw Exception('Warp target map cannot be empty');
+      throw const ValidationException('Warp target map cannot be empty');
     }
     for (final mapEntry in project.maps) {
       if (mapEntry.id == normalizedTargetMapId) {
         return mapEntry;
       }
     }
-    throw Exception(
+    throw ValidationException(
         'Warp target map not found in project: $normalizedTargetMapId');
   }
 }
@@ -94,12 +94,12 @@ class CreateReciprocalWarpUseCase {
   }) async {
     final targetMapId = sourceWarp.targetMapId.trim();
     if (targetMapId.isEmpty) {
-      throw Exception('Warp target map cannot be empty');
+      throw const ValidationException('Warp target map cannot be empty');
     }
     final targetMapEntry = project.maps.firstWhere(
       (entry) => entry.id == targetMapId,
-      orElse: () =>
-          throw Exception('Warp target map not found in project: $targetMapId'),
+      orElse: () => throw ValidationException(
+          'Warp target map not found in project: $targetMapId'),
     );
 
     final targetIsSourceMap = targetMapEntry.id == sourceMap.id;
@@ -113,14 +113,14 @@ class CreateReciprocalWarpUseCase {
         destinationPos.y < 0 ||
         destinationPos.x >= targetMap.size.width ||
         destinationPos.y >= targetMap.size.height) {
-      throw Exception(
+      throw ValidationException(
           'Warp destination is out of bounds in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
     }
 
     final hasWarpAtDestination =
         targetMap.warps.any((warp) => warp.pos == destinationPos);
     if (hasWarpAtDestination) {
-      throw Exception(
+      throw ValidationException(
           'A warp already exists in target map "${targetMap.id}" at (${destinationPos.x}, ${destinationPos.y})');
     }
 
