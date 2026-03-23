@@ -121,117 +121,98 @@ Separations metier explicites:
   - paint/erase collision au clic + drag avec regroupement stroke dans l historique,
   - overlay collision visible dans le canvas map (au-dessus des tiles),
   - ghost preview collision paint/erase distinct du preview tile.
-- Terrains/Sols MVP operationnels:
-  - nouveau type de layer `TerrainLayer` avec grille `TerrainType` par cellule,
-  - edition de fond recentree sur les terrains de base:
-    - `normal`
-    - `tallGrass`
-    - `sand`
-  - anciennes valeurs `TerrainType.path`, `TerrainType.water` et `TerrainType.ice` conservees en compatibilite legacy pour le chargement et le rendu existants,
-  - operations pures `map_core` pour paint/erase terrain unitaire et pattern,
-  - autotiling logique de chemin dans `map_core`:
-    - calcul du mask cardinal N/E/S/W,
-    - resolution de variantes (`isolated`, `end*`, `horizontal`, `vertical`, `corner*`, `tee*`, `cross`),
-  - use cases dedies + providers Riverpod dans `map_editor`,
-  - outil `terrainPaint` dans la toolbar + selection du type de terrain actif,
-  - action UX rapide `Path Paint Tool` pour basculer en mode surface/path dedie sans reutiliser `selectedTerrainType` comme faux sentinel,
-  - panneau dedie `TerrainEditorPanel` dans la colonne droite (mode map):
-    - section explicite `Background`,
-    - section explicite `Paths`,
-    - etat visuel du mode courant,
-    - actions rapides de selection/fill de terrain,
-  - paint/erase terrain au clic + drag via pipeline map-level centralise,
-  - integration complete undo/redo map-level (strokes),
-  - rendu terrain:
-    - overlay terrain lisible pour les types non-path,
-    - rendu path auto-connecte par variante via mapping visuel dedie,
-  - ghost preview terrain paint/erase dedie,
-  - resize map compatible (conserve les terrains existants, nouvelles cellules a `none`),
-  - validation map etendue pour verifier la taille des grilles terrain.
-- Transition architecture terrain/path engagee:
-  - `TerrainLayer` conserve son role historique pour le fond et reste compatible avec les anciennes cellules `TerrainType.path`,
-  - nouveau `PathLayer` metier ajoute dans `map_core` avec:
+- Terrains/Sols/Surfaces refactores et operationnels:
+  - separation metier nette:
+    - `TerrainLayer` = fond uniquement,
+    - `PathLayer` = surfaces specialisees posees au-dessus.
+  - `TerrainType` recentre sur les fonds:
+    - `grass`,
+    - `dirt`,
+    - `sand`,
+    - `rock`,
+    - `stone`,
+    - `indoor`,
+    - `none`.
+  - `PathSurfaceKind` porte les surfaces gameplay/editor:
+    - `path`,
+    - `road`,
+    - `water`,
+    - `tallGrass`,
+    - `ice`,
+    - `lava`,
+    - `swamp`,
+    - `rails`,
+    - `bridge`,
+    - `special`,
+    - `custom`.
+  - `tallGrass`, `water` et `ice` ne sont plus traitees comme des terrains.
+  - `map_core` porte les operations pures terrain/path, la validation et la serialisation JSON.
+  - `PathLayer` metier stable dans `map_core` avec:
     - `presetId`,
     - grille logique `cells`,
-    - `properties` arbitraires `String -> String`,
-  - operations pures dediees:
-    - paint/erase path unitaire et pattern,
-    - assignation de preset a une `PathLayer`,
-    - mise a jour de proprietes de `PathLayer`,
-  - validation metier et resize map etendus a `PathLayer`,
-  - rendu editor et preview etendus pour afficher/editer des `PathLayer` dediees,
-  - panneau map de droite clarifie:
-    - distinction entre layer terrain active et layer path active,
-    - selection/assignation du preset path sur la `PathLayer` active,
-    - creation/activation rapide d une `PathLayer`,
-  - panneau `Layers` et creation de layers etendus avec le type `Path Layer`,
-  - compatibilite transitoire preservee:
-    - le rendu legacy des anciennes cellules `TerrainType.path` reste supporte,
-    - la migration complete hors de `TerrainLayer` n est pas encore terminee.
-- Terrains/Paths presets (v2) operationnels:
-  - `ProjectManifest` enrichi avec:
+    - `properties` arbitraires `String -> String`.
+  - validation metier et resize map etendus a `TerrainLayer` et `PathLayer`.
+  - paint/erase terrain et path integres au pipeline map-level avec undo/redo.
+  - rendu editor stabilise:
+    - terrain d abord,
+    - path ensuite,
+    - tiles au-dessus,
+    - aucune transparence appliquee aux layers de map.
+  - les terrains ne passent jamais au-dessus des paths au rendu.
+  - le footprint terrain reste volontairement en 1x1 pour eviter les heritages de taille de brush.
+- Presets terrain/path refondus:
+  - `ProjectManifest` distingue maintenant:
     - `terrainPresets`,
     - `pathPresets`,
-    - `terrainPresetCategories`,
-  - modeles `ProjectTerrainPreset`, `TerrainPresetVariant`, `ProjectPathPreset`, `PathPresetVariantMapping`,
-  - modele de categories presets:
-    - `ProjectTerrainPresetCategory` avec hierarchie (`parentCategoryId`) et portee (`kind: terrain|path`),
-  - presets par defaut realignes:
-    - terrains de fond: `Normal Ground`, `Tall Grass`, `Sand`,
-    - surfaces/path: `Dirt Path`, `Water Surface`, `Ice Surface`,
+    - `terrainCategories`,
+    - `pathCategories`.
+  - modeles metier:
+    - `ProjectTerrainPreset`,
+    - `TerrainPresetVariant`,
+    - `ProjectPathPreset`,
+    - `PathPresetVariantMapping`,
+    - `ProjectPresetCategory`.
+  - categories terrain/path separees avec hierarchie visible (`parentCategoryId`).
+  - aucun preset ni dossier terrain/path n est injecte automatiquement a la creation/au chargement du projet.
   - use cases dedies:
     - create/update/delete terrain preset,
     - create/update/delete path preset,
-    - create/rename category terrain/path,
-  - providers Riverpod dedies exposes dans `use_case_providers.dart`,
-  - validation metier `map_core` etendue pour presets:
+    - create/rename/delete categories terrain/path.
+  - validation metier etendue:
     - unicite des IDs,
-    - unicite/coherence des categories terrain/path (parent, kind, cycles),
-    - coherence preset -> categorie (terrain avec categorie terrain, path avec categorie path),
+    - coherence des hierarchies de categories,
+    - coherence preset -> categorie,
     - coherence des tilesets references,
-    - variants valides (coordonnees/taille/poids),
-    - unicite des mappings de variantes path,
-    - famille de surface explicite sur les presets path (`PathSurfaceKind`),
-  - panneau `TerrainEditorPanel` refondu en bibliotheque visuelle:
-    - selection claire de preset de fond,
-    - selection claire de preset de chemin,
-    - creation/edition/suppression de presets,
-    - choix de categorie/sous-categorie sur les presets,
-    - creation de categories/sous-categories terrain/path,
-    - edition des variantes visuelles terrain (multi-tiles + poids),
-    - edition du mapping complet des variantes path (16 cas),
-    - selection visuelle des variantes terrain depuis l image du tileset (picker rectangulaire),
-    - import direct de fichiers image depuis le panneau terrain/path (sans passer par le menu tileset),
-    - famille de surface configurable dans l edition (`Path`, `Water`, `Ice`, `Lava`, `Mud`, `Bridge`, `Custom`),
-  - rendu canvas et preview relies aux presets:
-    - rendu terrain hors path via variantes de preset (selection stable par cellule),
-    - rendu path auto-connecte via preset path selectionne,
-    - fallback coherent vers overlays si ressources preset indisponibles,
-  - suppression de tileset securisee:
-    - nettoyage automatique des references `tilesetId` dans presets concernes.
-  - integration UI:
-    - panneau `Terrains & Paths` deplace dans la colonne gauche et visible en mode map/tileset,
-    - edition de presets possible meme sans map active (mode bibliotheque),
-    - panneau terrain/path independant du panneau tilesets/elements de droite.
-  - bibliotheque terrain/path clarifiee:
-    - liste explicite des terrains nommes,
-    - liste explicite des chemins nommes,
-    - actions de creation directe pour chaque liste.
-  - edition map (colonne droite) enrichie:
-    - nouveau panneau `TerrainMapPanel`,
-    - acces direct a la liste des presets terrain + chemins en mode map via pickers (dropdown),
-    - affichage de la categorie complete dans les pickers (`Parent / Enfant`),
-    - affichage explicite de la famille de surface selectionnee (`surfaceKind`),
-    - application immediate sur `TerrainLayer` (paint/fill) depuis le panneau map,
-    - `Fill Layer` non-path preserve les cellules `path`,
-    - footprint terrain en peinture force en 1x1 pour eviter les tailles de brush heritees.
-  - regle metier ajoutee:
-    - separation stricte des tilesets de presets terrain et de presets chemin,
-    - validation appliquee dans les use cases editor et dans `ProjectValidator`.
-  - clarification applicative:
-    - `EditorState` porte maintenant `terrainSelectionMode` pour distinguer la selection de fond vs la selection de surface,
-    - la bibliotheque et le panneau map ne s appuient plus sur `TerrainType.path` pour representer le mode path,
-    - les path presets chargent encore les anciens manifests via migration de compatibilite (`groundTerrainType` legacy -> `surfaceKind`).
+    - variants terrain valides,
+    - unicite des mappings de variantes path.
+  - separation stricte des tilesets entre presets terrain et presets path.
+  - migration legacy limitee:
+    - support des anciens champs de categories,
+    - cassure assumee pour les anciens terrains qui representaient en realite des surfaces.
+- UI terrain/path refaite:
+  - panneau gauche `Surface Library` transforme en vraie bibliotheque hierarchique visible:
+    - racine `Terrains`,
+    - racine `Paths`,
+    - dossiers et sous-dossiers repliables,
+    - presets visibles dans l arborescence,
+    - distinctions visuelles nettes entre fond et surface.
+  - fiche de preset enrichie:
+    - metadonnees du preset,
+    - apercu du tileset,
+    - action `Edit Preset`,
+    - action `Edit Sprites` pour les terrains,
+    - action `Edit Mapping` pour les paths.
+  - edition visuelle restauree:
+    - variantes terrain editables par selection rectangulaire dans le tileset,
+    - mappings autotile path editables dans un editeur visuel dedie.
+  - panneau map de droite `TerrainMapPanel` clarifie:
+    - bloc `Base Ground`,
+    - bloc `Surface Overlays`,
+    - selection de la `TerrainLayer` active,
+    - selection de la `PathLayer` active,
+    - affectation du preset path a la layer,
+    - creation rapide d une nouvelle `PathLayer`.
+  - edition de presets possible sans map active.
 - Warps MVP operationnels:
   - operations pures `map_core` dediees (`add/update/remove`) avec validations metier explicites,
   - use cases + providers Riverpod dedies dans `map_editor`,
@@ -1211,24 +1192,25 @@ Terminee pour cette etape:
   - overlay collision rendu au-dessus des tiles pour garder la lisibilite d edition.
 - Decision UX terrains:
   - outil dedie `terrainPaint`,
-  - action rapide `Path Paint Tool` qui active `terrainPaint` + `TerrainType.path`,
-  - panneau dedie `TerrainEditorPanel` pour rendre explicites les usages `Background` et `Paths`,
-  - type de terrain actif selectionne depuis la toolbar,
+  - bibliotheque dediee `Surface Library` dans la colonne gauche,
+  - panneau map dedie `TerrainMapPanel` pour rendre explicites les usages `Base Ground` et `Surface Overlays`,
+  - type de fond actif selectionne depuis la toolbar,
   - `eraser` contextuel efface les terrains (`TerrainType.none`) si la layer active est une `TerrainLayer`,
-  - paint `path` force un footprint 1x1 pour stabiliser le dessin de routes,
-  - paint/erase des autres terrains egalement en footprint 1x1 pour eviter les heritages de taille involontaires apres selection d elements multi-tiles,
+  - paint/erase des terrains en footprint 1x1 pour eviter les heritages de taille involontaires apres selection d elements multi-tiles,
   - rendu path auto-connecte base sur les voisins cardinaux, sans stocker la variante visuelle dans les donnees map,
-  - sur les bords de map, les coins path sont convertis en extremites avec orientation miroir pour garder la continuite visuelle gauche/droite et haut/bas,
   - separation explicite metier/rendu:
-    - `TerrainType` stocke la donnee logique par cellule,
+    - `TerrainType` stocke uniquement des fonds,
+    - `PathSurfaceKind` decrit les familles de surfaces,
     - presets terrain/path stockent la configuration visuelle,
   - categories terrain/path persistees et separees par `kind`:
     - `terrain` pour presets de fond,
     - `path` pour presets de chemin,
     - hierarchie parent/enfant disponible pour organiser la bibliotheque,
   - presets persistes dans le `ProjectManifest` (pas d etat UI temporaire),
-  - edition terrain/path positionnee dans un panneau dedie de la colonne gauche (mode map), distinct du panneau tileset/elements,
+  - aucun preset terrain/path par defaut n est injecte automatiquement,
+  - edition terrain/path positionnee dans un panneau dedie de la colonne gauche, distinct du panneau tileset/elements,
   - creation de variantes terrain supporte la selection visuelle depuis le tileset (rect picker),
+  - mapping path supporte un editeur visuel dedie pour les variantes autotile,
   - rendu terrain (hors path) peut utiliser des variantes visuelles multi-tiles avec poids,
   - choix des variantes terrain stable par cellule (seed deterministic) pour eviter le flicker en edition.
 - Decision UX warps:
@@ -1261,18 +1243,23 @@ Terminee pour cette etape:
 - Le ghost preview invalide pre-vient le refus avant clic, mais la raison detaillee n est pas encore affichee directement dans l UI.
 - Les brushes lies a un tileset different restent bloques a la peinture si la layer active ne peut pas etre rebindee.
 - Les layers `collision` sont maintenant rendues en overlay, mais le rendu reste volontairement simple (bool), sans typage avance.
-- Les layers `terrain` restent en rendu MVP:
-  - `path` a un autotiling logique rendu en editor, configurable via preset,
-  - terrains non-path peuvent etre rendus via presets visuels, avec fallback overlay.
+- Les layers `terrain`/`path` restent en rendu editor fort mais pas encore en gameplay runtime:
+  - autotiling path configure via preset,
+  - terrains de fond rendus via presets visuels ou fallback overlay,
+  - comportements gameplay associes aux surfaces non encore branches.
 - Le footprint de peinture terrain est volontairement fixe en 1x1 pour eviter les heritages de taille de brush apres selection d elements multi-tiles; les poses massives passent par `Fill Layer` pour l instant.
-- Le systeme de presets est operationnel mais reste MVP:
+- Le systeme de presets est operationnel mais reste encore incomplet:
   - pas encore de gestion avancee des biomes (profiles globaux, inheritance),
   - pas encore d outils batch (rebind de tileset, migration de presets),
   - pas encore de mapping de transitions entre terrains (blend/edges).
+- La migration legacy terrain -> path est une cassure assumee:
+  - un ancien preset terrain representant en realite de l eau/de la glace/de la haute herbe n est pas remappe automatiquement vers un `PathPreset`.
 - Les layers `object` restent sans rendu editorial dedie.
 - Le Warp MVP n interdit pas explicitement plusieurs warps sur la meme case dans les donnees importees; en UI, le clic selectionne le premier warp trouve sur la case.
 - Le panneau layers est fonctionnel mais sans lock/groupes/filtres; ergonomie a enrichir avant des maps tres grandes.
 - Une map peut maintenant etre volontairement sans layers; toute action de peinture est alors no-op tant qu aucune layer active tile n est selectionnee.
+- La creation d element depend toujours de l existence d au moins une categorie d element:
+  - l UI affiche maintenant un message explicite au lieu d echouer silencieusement.
 - Les anciennes maps restent lisibles via fallback legacy `map.tilesetId`; la migration complete du champ legacy n est pas encore supprimee du schema.
 - Suppression/reparentage de groupes internes non implemente dans cette iteration.
 - Undo/redo reste limite a la map active:
@@ -1325,6 +1312,7 @@ Terminee pour cette etape:
 - Affichage du tileset selectionne dans le canvas central: fait
 - Groupes internes de tileset (categorie/sous-categorie): fait
 - Creation d element depuis tileset: fait
+- Feedback explicite si aucune categorie d element n existe: fait
 - Edition d element (nom/categorie/groupe monde/groupe interne/layer/tags): fait
 - Resolution des elements par tileset + groupe interne: fait
 - Peindre les collisions: fait (MVP bool)
@@ -1341,7 +1329,7 @@ Terminee pour cette etape:
 - Categories/sous-categories de presets path: fait
 - Picker terrain en mode map: fait
 - Picker path en mode map: fait
-- Type de path configurable (`Normal Ground`/`Water`/`Tall Grass`/`Sand`/`Ice`): fait
+- Type de path configurable (`Path`/`Road`/`Water`/`Tall Grass`/`Ice`/`Lava`/`Swamp`/`Rails`/`Bridge`/`Special`/`Custom`): fait
 - Poser des warps: fait (MVP)
 - Configurer les warps: partiellement fait (picker map cible + id/targetPos + resume destination + suppression + creation retour assistee; lien persistant bidirectionnel non fait)
 - Poser des triggers: pas fait
