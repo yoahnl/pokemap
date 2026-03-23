@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -19,7 +18,6 @@ class CreateProjectUseCase {
   CreateProjectUseCase(this._repo);
 
   Future<ProjectManifest> execute(String name, String directory) async {
-    debugPrint('CreateProjectUseCase: Executing for $name in $directory');
     final manifest = ProjectManifest(
       name: name,
       maps: [],
@@ -47,7 +45,6 @@ class LoadProjectUseCase {
   LoadProjectUseCase(this._repo);
 
   Future<ProjectManifest> execute(String manifestPath) async {
-    debugPrint('LoadProjectUseCase: Loading project from $manifestPath');
     final loaded = await _repo.loadProject(manifestPath);
     return _withDefaultProjectLibrary(loaded);
   }
@@ -64,7 +61,6 @@ class UpdateProjectSettingsUseCase {
     required String name,
     required ProjectSettings settings,
   }) async {
-    debugPrint('UpdateProjectSettingsUseCase: Updating project settings');
     final updated = project.copyWith(name: name, settings: settings);
     await _repo.saveProject(updated, fs.projectManifestPath);
     return updated;
@@ -970,8 +966,6 @@ class DeleteGroupUseCase {
 
   Future<ProjectManifest> execute(
       ProjectFileSystem fs, ProjectManifest project, String groupId) async {
-    debugPrint('DeleteGroupUseCase: Deleting group $groupId');
-
     // 1. Remove the group
     final updatedGroups = project.groups.where((g) => g.id != groupId).toList();
 
@@ -987,8 +981,9 @@ class DeleteGroupUseCase {
         : null;
 
     final finalGroups = updatedGroups.map((g) {
-      if (g.parentGroupId == groupId)
+      if (g.parentGroupId == groupId) {
         return g.copyWith(parentGroupId: parentId);
+      }
       return g;
     }).toList();
 

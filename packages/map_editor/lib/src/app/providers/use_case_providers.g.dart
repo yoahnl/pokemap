@@ -6,6 +6,164 @@ part of 'use_case_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$terrainPresetResolverHash() =>
+    r'4077b0a5c26885abbd5b90092cd7dfeedc490cf5';
+
+/// See also [terrainPresetResolver].
+@ProviderFor(terrainPresetResolver)
+final terrainPresetResolverProvider =
+    AutoDisposeProvider<TerrainPresetResolver>.internal(
+  terrainPresetResolver,
+  name: r'terrainPresetResolverProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$terrainPresetResolverHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TerrainPresetResolverRef
+    = AutoDisposeProviderRef<TerrainPresetResolver>;
+String _$terrainPresetSelectionCoordinatorHash() =>
+    r'ee92e1069ab80017f4cbe6c951709c373cfedd74';
+
+/// See also [terrainPresetSelectionCoordinator].
+@ProviderFor(terrainPresetSelectionCoordinator)
+final terrainPresetSelectionCoordinatorProvider =
+    AutoDisposeProvider<TerrainPresetSelectionCoordinator>.internal(
+  terrainPresetSelectionCoordinator,
+  name: r'terrainPresetSelectionCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$terrainPresetSelectionCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TerrainPresetSelectionCoordinatorRef
+    = AutoDisposeProviderRef<TerrainPresetSelectionCoordinator>;
+String _$pathAutotileResolverHash() =>
+    r'7483532af0aa6d91a20bf972801dcd74b16e20b1';
+
+/// See also [pathAutotileResolver].
+@ProviderFor(pathAutotileResolver)
+final pathAutotileResolverProvider =
+    AutoDisposeProvider<PathAutotileResolver>.internal(
+  pathAutotileResolver,
+  name: r'pathAutotileResolverProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$pathAutotileResolverHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PathAutotileResolverRef = AutoDisposeProviderRef<PathAutotileResolver>;
+String _$editorMapSessionCoordinatorHash() =>
+    r'0b43a3175dea194e8892dd90dad68f5113749aaf';
+
+/// See also [editorMapSessionCoordinator].
+@ProviderFor(editorMapSessionCoordinator)
+final editorMapSessionCoordinatorProvider =
+    AutoDisposeProvider<EditorMapSessionCoordinator>.internal(
+  editorMapSessionCoordinator,
+  name: r'editorMapSessionCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$editorMapSessionCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EditorMapSessionCoordinatorRef
+    = AutoDisposeProviderRef<EditorMapSessionCoordinator>;
+String _$mapHistoryCoordinatorHash() =>
+    r'0416ad23a4350a3715f2db3fa37293fa0af0fd02';
+
+/// See also [mapHistoryCoordinator].
+@ProviderFor(mapHistoryCoordinator)
+final mapHistoryCoordinatorProvider =
+    AutoDisposeProvider<MapHistoryCoordinator>.internal(
+  mapHistoryCoordinator,
+  name: r'mapHistoryCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$mapHistoryCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MapHistoryCoordinatorRef
+    = AutoDisposeProviderRef<MapHistoryCoordinator>;
+String _$warpEditingCoordinatorHash() =>
+    r'ab1a30cc75e537a41460d1c7affa94c926c0b1bb';
+
+/// See also [warpEditingCoordinator].
+@ProviderFor(warpEditingCoordinator)
+final warpEditingCoordinatorProvider =
+    AutoDisposeProvider<WarpEditingCoordinator>.internal(
+  warpEditingCoordinator,
+  name: r'warpEditingCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$warpEditingCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef WarpEditingCoordinatorRef
+    = AutoDisposeProviderRef<WarpEditingCoordinator>;
+String _$warpEditingServiceHash() =>
+    r'd38b859e712ae5a32afc18b59935f3b64dc03765';
+
+/// See also [warpEditingService].
+@ProviderFor(warpEditingService)
+final warpEditingServiceProvider =
+    AutoDisposeProvider<WarpEditingService>.internal(
+  warpEditingService,
+  name: r'warpEditingServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$warpEditingServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef WarpEditingServiceRef = AutoDisposeProviderRef<WarpEditingService>;
+String _$terrainPaintingCoordinatorHash() =>
+    r'4278055a3f4745438b34ca294036ddd45b3adaaf';
+
+/// See also [terrainPaintingCoordinator].
+@ProviderFor(terrainPaintingCoordinator)
+final terrainPaintingCoordinatorProvider =
+    AutoDisposeProvider<TerrainPaintingCoordinator>.internal(
+  terrainPaintingCoordinator,
+  name: r'terrainPaintingCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$terrainPaintingCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TerrainPaintingCoordinatorRef
+    = AutoDisposeProviderRef<TerrainPaintingCoordinator>;
 String _$createProjectUseCaseHash() =>
     r'cd1579b951ab18bdaa8e1155dc00ddfa8fc1f2c6';
 

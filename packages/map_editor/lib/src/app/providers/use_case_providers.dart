@@ -1,9 +1,77 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../application/services/editor_map_session_coordinator.dart';
+import '../../application/services/map_history_coordinator.dart';
+import '../../application/services/path_autotile_resolver.dart';
+import '../../application/services/terrain_painting_coordinator.dart';
+import '../../application/services/terrain_preset_resolver.dart';
+import '../../application/services/terrain_preset_selection_coordinator.dart';
+import '../../application/services/warp_editing_coordinator.dart';
+import '../../application/services/warp_editing_service.dart';
 import '../../application/use_cases/project_use_cases.dart';
 import 'core_providers.dart';
 
 part 'use_case_providers.g.dart';
+
+@riverpod
+TerrainPresetResolver terrainPresetResolver(TerrainPresetResolverRef ref) {
+  return const TerrainPresetResolver();
+}
+
+@riverpod
+TerrainPresetSelectionCoordinator terrainPresetSelectionCoordinator(
+    TerrainPresetSelectionCoordinatorRef ref) {
+  return TerrainPresetSelectionCoordinator(
+    resolver: ref.watch(terrainPresetResolverProvider),
+  );
+}
+
+@riverpod
+PathAutotileResolver pathAutotileResolver(PathAutotileResolverRef ref) {
+  return const PathAutotileResolver();
+}
+
+@riverpod
+EditorMapSessionCoordinator editorMapSessionCoordinator(
+    EditorMapSessionCoordinatorRef ref) {
+  return const EditorMapSessionCoordinator();
+}
+
+@riverpod
+MapHistoryCoordinator mapHistoryCoordinator(MapHistoryCoordinatorRef ref) {
+  return const MapHistoryCoordinator(maxEntries: 100);
+}
+
+@riverpod
+WarpEditingCoordinator warpEditingCoordinator(WarpEditingCoordinatorRef ref) {
+  return const WarpEditingCoordinator();
+}
+
+@riverpod
+WarpEditingService warpEditingService(WarpEditingServiceRef ref) {
+  return WarpEditingService(
+    addWarpToMapUseCase: ref.watch(addWarpToMapUseCaseProvider),
+    updateWarpOnMapUseCase: ref.watch(updateWarpOnMapUseCaseProvider),
+    deleteWarpFromMapUseCase: ref.watch(deleteWarpFromMapUseCaseProvider),
+    validateWarpTargetMapUseCase:
+        ref.watch(validateWarpTargetMapUseCaseProvider),
+    createReciprocalWarpUseCase: ref.watch(createReciprocalWarpUseCaseProvider),
+    warpEditingCoordinator: ref.watch(warpEditingCoordinatorProvider),
+  );
+}
+
+@riverpod
+TerrainPaintingCoordinator terrainPaintingCoordinator(
+    TerrainPaintingCoordinatorRef ref) {
+  return TerrainPaintingCoordinator(
+    paintTerrainOnMapUseCase: ref.watch(paintTerrainOnMapUseCaseProvider),
+    paintTerrainPatternOnMapUseCase:
+        ref.watch(paintTerrainPatternOnMapUseCaseProvider),
+    eraseTerrainOnMapUseCase: ref.watch(eraseTerrainOnMapUseCaseProvider),
+    eraseTerrainPatternOnMapUseCase:
+        ref.watch(eraseTerrainPatternOnMapUseCaseProvider),
+  );
+}
 
 @riverpod
 CreateProjectUseCase createProjectUseCase(CreateProjectUseCaseRef ref) {

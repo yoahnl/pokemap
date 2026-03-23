@@ -259,6 +259,40 @@ Terminee pour cette etape:
   - footprint terrain force en 1x1 pour eviter l heritage de taille d un gros element selectionne.
 
 ## 7. Dernieres modifications realisees
+2026-03-23 (refacto clean architecture - injection services + orchestration warp):
+- `map_editor`:
+  - `app/providers/use_case_providers.dart`:
+    - ajout de providers Riverpod pour les services/coordinators editor:
+      - `TerrainPresetResolver`,
+      - `TerrainPresetSelectionCoordinator`,
+      - `PathAutotileResolver`,
+      - `EditorMapSessionCoordinator`,
+      - `MapHistoryCoordinator`,
+      - `WarpEditingCoordinator`,
+      - `TerrainPaintingCoordinator`,
+      - `WarpEditingService`.
+    - objectif: supprimer la construction locale/statique de dependances dans `EditorNotifier`.
+  - ajout `application/services/warp_editing_service.dart`:
+    - orchestration applicative warp:
+      - selection/recherche warp,
+      - creation warp par defaut via coordinator + validation cible projet,
+      - update/delete warp,
+      - creation reciprocal warp.
+    - retourne des resultats applicatifs explicites (`WarpCreationResult`, `WarpUpdateResult`) pour simplifier le notifier.
+  - `features/editor/state/editor_notifier.dart`:
+    - migration vers l injection via providers (plus de singletons statiques ni de construction locale `TerrainPaintingCoordinator`),
+    - delegation des flux warp au `WarpEditingService`,
+    - suppression de helpers notifier redondants de session map (`_resolveActiveLayerId`, `_resolveFallbackLayerIdAfterDeletion`, `_resolveSelectedTilesetIdForMap`),
+    - usage direct du `EditorMapSessionCoordinator` aux call sites.
+  - `application/use_cases/warp_use_cases.dart`:
+    - conversion des `Exception` generiques en `ValidationException` sur les validations cross-map warp.
+  - `application/use_cases/project_use_cases.dart` + `map_use_cases.dart`:
+    - suppression des `debugPrint` de bruit technique dans les use cases.
+- impact:
+  - `EditorNotifier` est plus fin: orchestration d etat + delegations explicites,
+  - la feature warp suit maintenant un pattern applicatif reutilisable pour triggers/NPC/objets,
+  - dependances applicatives homogenes via Riverpod.
+
 2026-03-23 (refacto cible clean architecture - session map/historique/warp):
 - `map_editor`:
   - ajout `application/services/editor_map_session_coordinator.dart`:
@@ -1095,9 +1129,13 @@ Terminee pour cette etape:
   - bibliotheque d elements deja en place.
 - Refacto cible terrain/path:
   - `EditorNotifier` conserve le role de coordination d etat et de pipeline map-level,
+  - les dependances applicatives editor sont injectees via providers Riverpod (plus de singletons statiques dans le notifier),
+  - la session map active (`activeLayerId` / `selectedWarpId` / `selectedTilesetEditorId`) est deleguee au `EditorMapSessionCoordinator`,
+  - l historique map-level (stroke, undo/redo, dedup snapshots) est delegue au `MapHistoryCoordinator`,
   - la resolution/normalisation des presets terrain/path est externalisee dans `TerrainPresetResolver`,
   - les transitions de selection terrain/path sont externalisees dans `TerrainPresetSelectionCoordinator`,
   - l orchestration paint/fill/erase terrain est externalisee dans `TerrainPaintingCoordinator`,
+  - l orchestration applicative warp est externalisee dans `WarpEditingService`,
   - la resolution du `PathAutotileSet` courant est externalisee dans `PathAutotileResolver`,
   - les widgets restent passifs (aucune logique metier terrain/path ajoutee dans l UI).
 

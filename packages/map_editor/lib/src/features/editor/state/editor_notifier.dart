@@ -10,7 +10,7 @@ import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
-import '../../../application/services/warp_editing_coordinator.dart';
+import '../../../application/services/warp_editing_service.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../terrain/path_autotile_set.dart';
 import '../tools/editor_tool.dart';
@@ -20,33 +20,20 @@ part 'editor_notifier.g.dart';
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
-  static const TerrainPresetResolver _terrainPresetResolver =
-      TerrainPresetResolver();
-  static const TerrainPresetSelectionCoordinator
-      _terrainPresetSelectionCoordinator = TerrainPresetSelectionCoordinator(
-    resolver: _terrainPresetResolver,
-  );
-  static const PathAutotileResolver _pathAutotileResolver =
-      PathAutotileResolver();
-  static const EditorMapSessionCoordinator _editorMapSessionCoordinator =
-      EditorMapSessionCoordinator();
-  static const MapHistoryCoordinator _mapHistoryCoordinator =
-      MapHistoryCoordinator(
-    maxEntries: 100,
-  );
-  static const WarpEditingCoordinator _warpEditingCoordinator =
-      WarpEditingCoordinator();
-
-  TerrainPaintingCoordinator _terrainPaintingCoordinator() {
-    return TerrainPaintingCoordinator(
-      paintTerrainOnMapUseCase: ref.read(paintTerrainOnMapUseCaseProvider),
-      paintTerrainPatternOnMapUseCase:
-          ref.read(paintTerrainPatternOnMapUseCaseProvider),
-      eraseTerrainOnMapUseCase: ref.read(eraseTerrainOnMapUseCaseProvider),
-      eraseTerrainPatternOnMapUseCase:
-          ref.read(eraseTerrainPatternOnMapUseCaseProvider),
-    );
-  }
+  TerrainPresetResolver get _terrainPresetResolver =>
+      ref.read(terrainPresetResolverProvider);
+  TerrainPresetSelectionCoordinator get _terrainPresetSelectionCoordinator =>
+      ref.read(terrainPresetSelectionCoordinatorProvider);
+  PathAutotileResolver get _pathAutotileResolver =>
+      ref.read(pathAutotileResolverProvider);
+  EditorMapSessionCoordinator get _editorMapSessionCoordinator =>
+      ref.read(editorMapSessionCoordinatorProvider);
+  MapHistoryCoordinator get _mapHistoryCoordinator =>
+      ref.read(mapHistoryCoordinatorProvider);
+  WarpEditingService get _warpEditingService =>
+      ref.read(warpEditingServiceProvider);
+  TerrainPaintingCoordinator get _terrainPaintingCoordinator =>
+      ref.read(terrainPaintingCoordinatorProvider);
 
   TerrainPresetSelection _currentTerrainPresetSelection() {
     return TerrainPresetSelection(
@@ -249,7 +236,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMap: map,
         activeMapPath: fs.getMapPath(id),
         workspaceMode: EditorWorkspaceMode.map,
-        activeLayerId: _resolveActiveLayerId(map),
+        activeLayerId: _editorMapSessionCoordinator.resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
         selectedTerrainType: presetSelection.selectedTerrainType,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
@@ -257,7 +244,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTerrainPresetByType:
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
-        selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
+        selectedTilesetEditorId:
+            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
@@ -300,13 +288,15 @@ class EditorNotifier extends _$EditorNotifier {
                     (tileset) => tileset.id == preservedSelectedTilesetEditorId,
                   )
               ? preservedSelectedTilesetEditorId
-              : _resolveSelectedTilesetIdForMap(map);
+              : _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
+                  map,
+                );
 
       state = state.copyWith(
         activeMap: map,
         activeMapPath: fs.resolveMapPath(relativePath),
         workspaceMode: EditorWorkspaceMode.map,
-        activeLayerId: _resolveActiveLayerId(map),
+        activeLayerId: _editorMapSessionCoordinator.resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
         selectedTerrainType: presetSelection.selectedTerrainType,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
@@ -456,8 +446,9 @@ class EditorNotifier extends _$EditorNotifier {
         project: updatedProject,
         activeMap: activeMap,
         activeMapPath: activePath,
-        activeLayerId:
-            activeMap == null ? null : _resolveActiveLayerId(activeMap),
+        activeLayerId: activeMap == null
+            ? null
+            : _editorMapSessionCoordinator.resolveActiveLayerId(activeMap),
         activeBrush: activeBrush,
         selectedWarpId: selectedWarpId,
         selectedTilesetEditorId: selectedTilesetEditorId,
@@ -707,7 +698,8 @@ class EditorNotifier extends _$EditorNotifier {
       var activeBrush =
           _clearBrushIfTilesetRemoved(state.activeBrush, tilesetId);
       if (selectedTilesetEditorId == tilesetId) {
-        selectedTilesetEditorId = _resolveSelectedTilesetIdForMap(
+        selectedTilesetEditorId =
+            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
           state.activeMap,
           preferredLayerId: state.activeLayerId,
         );
@@ -1682,7 +1674,7 @@ class EditorNotifier extends _$EditorNotifier {
     final map = layerContext.map;
     final layerId = layerContext.layerId;
     try {
-      final committed = _terrainPaintingCoordinator().fill(
+      final committed = _terrainPaintingCoordinator.fill(
         map: map,
         layerId: layerId,
         terrain: terrain,
@@ -1750,16 +1742,16 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   MapWarp? getSelectedWarp() {
-    final map = state.activeMap;
-    final selectedWarpId = state.selectedWarpId;
-    if (map == null || selectedWarpId == null) return null;
-    return _warpEditingCoordinator.findWarpById(map, selectedWarpId);
+    return _warpEditingService.findSelectedWarp(
+      state.activeMap,
+      state.selectedWarpId,
+    );
   }
 
   void placeOrSelectWarpAt(GridPos pos) {
     final map = state.activeMap;
     if (map == null) return;
-    final existing = _warpEditingCoordinator.findWarpAtPos(map, pos);
+    final existing = _warpEditingService.findWarpAtPos(map, pos);
     if (existing != null) {
       selectWarp(existing.id);
       return;
@@ -1771,20 +1763,14 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     final project = state.project;
     if (map == null || project == null) return;
-    final warp = _warpEditingCoordinator.createDefaultWarp(map, pos);
     try {
-      _validateWarpTargetMap(project, warp.targetMapId);
-      final useCase = ref.read(addWarpToMapUseCaseProvider);
-      final updated = useCase.execute(
-        map,
-        warp: warp,
-      );
+      final result = _warpEditingService.addWarpAt(map, project, pos);
       _applyMapMutation(
         previousMap: map,
-        updatedMap: updated,
+        updatedMap: result.updatedMap,
         preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedWarpId: warp.id,
-        statusMessage: 'Warp "${warp.id}" created',
+        preferredSelectedWarpId: result.createdWarp.id,
+        statusMessage: 'Warp "${result.createdWarp.id}" created',
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to create warp: $e');
@@ -1801,7 +1787,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final warp = _warpEditingCoordinator.findWarpById(map, warpId);
+    final warp = _warpEditingService.findSelectedWarp(map, warpId);
     if (warp == null) {
       state = state.copyWith(errorMessage: 'Warp not found: $warpId');
       return;
@@ -1849,16 +1835,10 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(errorMessage: 'No warp selected');
       return;
     }
-    final selectedWarp =
-        _warpEditingCoordinator.findWarpById(sourceMap, selectedWarpId);
-    if (selectedWarp == null) {
-      state = state.copyWith(errorMessage: 'Selected warp not found');
-      return;
-    }
-
     try {
-      final useCase = ref.read(createReciprocalWarpUseCaseProvider);
-      final result = await useCase.execute(
+      final selectedWarp =
+          _warpEditingService.requireSelectedWarp(sourceMap, selectedWarpId);
+      final result = await _warpEditingService.createReciprocalWarp(
         fs,
         project,
         sourceMap: sourceMap,
@@ -1897,38 +1877,25 @@ class EditorNotifier extends _$EditorNotifier {
     final project = state.project;
     if (map == null || project == null) return;
     try {
-      final currentWarp = _warpEditingCoordinator.findWarpById(map, warpId);
-      final effectiveTargetMapId = targetMapId ?? currentWarp?.targetMapId;
-      if (effectiveTargetMapId == null || effectiveTargetMapId.trim().isEmpty) {
-        throw const ValidationException('Warp target map cannot be empty');
-      }
-      _validateWarpTargetMap(project, effectiveTargetMapId);
-      final useCase = ref.read(updateWarpOnMapUseCaseProvider);
-      final updated = useCase.execute(
+      final result = _warpEditingService.updateWarp(
         map,
+        project,
         warpId: warpId,
         id: id,
         pos: pos,
-        targetMapId: targetMapId?.trim(),
+        targetMapId: targetMapId,
         targetPos: targetPos,
       );
-      final nextSelectedWarpId =
-          id?.trim().isNotEmpty == true ? id!.trim() : warpId;
       _applyMapMutation(
         previousMap: map,
-        updatedMap: updated,
+        updatedMap: result.updatedMap,
         preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedWarpId: nextSelectedWarpId,
+        preferredSelectedWarpId: result.selectedWarpId,
         statusMessage: 'Warp updated',
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update warp: $e');
     }
-  }
-
-  void _validateWarpTargetMap(ProjectManifest project, String targetMapId) {
-    final useCase = ref.read(validateWarpTargetMapUseCaseProvider);
-    useCase.execute(project, targetMapId);
   }
 
   void deleteSelectedWarp() {
@@ -1941,8 +1908,7 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final useCase = ref.read(deleteWarpFromMapUseCaseProvider);
-      final updated = useCase.execute(
+      final updated = _warpEditingService.deleteWarp(
         map,
         warpId: warpId,
       );
@@ -2342,7 +2308,7 @@ class EditorNotifier extends _$EditorNotifier {
   _ResolvedBrushFootprint? _resolveTerrainFootprint({
     required bool emitErrors,
   }) {
-    final footprint = _terrainPaintingCoordinator().resolveFootprint(
+    final footprint = _terrainPaintingCoordinator.resolveFootprint(
       terrain: state.selectedTerrainType,
     );
     return _ResolvedBrushFootprint(
@@ -2583,7 +2549,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String failureLabel,
   }) {
     try {
-      final committed = _terrainPaintingCoordinator().paint(
+      final committed = _terrainPaintingCoordinator.paint(
         map: map,
         layerId: layerId,
         pos: pos,
@@ -2609,7 +2575,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String failureLabel,
   }) {
     try {
-      final erased = _terrainPaintingCoordinator().erase(
+      final erased = _terrainPaintingCoordinator.erase(
         map: map,
         layerId: layerId,
         pos: pos,
@@ -2856,11 +2822,11 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(deleteMapLayerUseCaseProvider);
       final updated = useCase.execute(map, layerId: layerId);
       final nextActiveLayerId = state.activeLayerId == layerId
-          ? _resolveFallbackLayerIdAfterDeletion(
+          ? _editorMapSessionCoordinator.resolveFallbackLayerIdAfterDeletion(
               updated,
               removedIndex: removedIndex,
             )
-          : _resolveActiveLayerId(
+          : _editorMapSessionCoordinator.resolveActiveLayerId(
               updated,
               preferredLayerId: state.activeLayerId,
             );
@@ -2884,7 +2850,8 @@ class EditorNotifier extends _$EditorNotifier {
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
-        preferredActiveLayerId: _resolveActiveLayerId(updated),
+        preferredActiveLayerId:
+            _editorMapSessionCoordinator.resolveActiveLayerId(updated),
         statusMessage: 'All layers removed',
       );
     } catch (e) {
@@ -3490,36 +3457,6 @@ class EditorNotifier extends _$EditorNotifier {
           nextSavedSnapshot == null ? true : updatedMap != nextSavedSnapshot,
       statusMessage: statusMessage ?? state.statusMessage,
       errorMessage: null,
-    );
-  }
-
-  String? _resolveActiveLayerId(
-    MapData map, {
-    String? preferredLayerId,
-  }) {
-    return _editorMapSessionCoordinator.resolveActiveLayerId(
-      map,
-      preferredLayerId: preferredLayerId,
-    );
-  }
-
-  String? _resolveFallbackLayerIdAfterDeletion(
-    MapData map, {
-    required int removedIndex,
-  }) {
-    return _editorMapSessionCoordinator.resolveFallbackLayerIdAfterDeletion(
-      map,
-      removedIndex: removedIndex,
-    );
-  }
-
-  String? _resolveSelectedTilesetIdForMap(
-    MapData? map, {
-    String? preferredLayerId,
-  }) {
-    return _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
-      map,
-      preferredLayerId: preferredLayerId,
     );
   }
 

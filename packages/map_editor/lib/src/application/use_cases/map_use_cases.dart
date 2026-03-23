@@ -6,7 +6,6 @@ class SaveMapUseCase {
   SaveMapUseCase(this._repo);
 
   Future<void> execute(MapData map, String path) async {
-    debugPrint('SaveMapUseCase: Saving map to $path');
     await _repo.saveMap(map, path);
   }
 }
@@ -20,8 +19,6 @@ class CreateMapUseCase {
   Future<MapData> execute(
       ProjectFileSystem fs, ProjectManifest project, String mapId, int w, int h,
       {String? groupId, MapRole role = MapRole.exterior}) async {
-    debugPrint(
-        'CreateMapUseCase: Creating map $mapId ($w x $h) in group $groupId');
     final defaultTilesetId = _pickDefaultTilesetId(project, groupId);
 
     final map = MapData(
@@ -83,7 +80,6 @@ class LoadMapUseCase {
 
   Future<MapData> execute(ProjectFileSystem fs, String relativePath) async {
     final path = fs.resolveMapPath(relativePath);
-    debugPrint('LoadMapUseCase: Loading map from $path');
     final map = await _repo.loadMap(path);
     return _migrateLegacyLayerTilesets(map);
   }
@@ -110,8 +106,6 @@ class LoadMapUseCase {
 
 class ResizeMapUseCase {
   MapData execute(MapData map, int width, int height) {
-    debugPrint('ResizeMapUseCase: Resizing map ${map.id} to ${width}x$height');
-
     final resized = resizeMapData(map, width: width, height: height);
     MapValidator.validate(resized);
     return resized;
@@ -126,8 +120,6 @@ class RenameMapUseCase {
 
   Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project,
       String oldId, String newId) async {
-    debugPrint('RenameMapUseCase: Renaming $oldId to $newId');
-
     if (newId.isEmpty) throw Exception('Map ID cannot be empty');
     if (oldId == newId) return project;
 
@@ -176,8 +168,6 @@ class DeleteMapUseCase {
 
   Future<ProjectManifest> execute(
       ProjectFileSystem fs, ProjectManifest project, String mapId) async {
-    debugPrint('DeleteMapUseCase: Deleting map $mapId');
-
     final mapPath = fs.getMapPath(mapId);
     await _mapRepo.deleteMap(mapPath);
 
@@ -198,8 +188,6 @@ class DuplicateMapUseCase {
 
   Future<ProjectManifest> execute(
       ProjectFileSystem fs, ProjectManifest project, String sourceId) async {
-    debugPrint('DuplicateMapUseCase: Duplicating map $sourceId');
-
     String targetId = '${sourceId}_copy';
     int suffix = 1;
     while (project.maps.any((e) => e.id == targetId)) {
