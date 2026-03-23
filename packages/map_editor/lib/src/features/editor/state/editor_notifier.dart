@@ -2393,13 +2393,12 @@ class EditorNotifier extends _$EditorNotifier {
   _ResolvedBrushFootprint? _resolveTerrainFootprint({
     required bool emitErrors,
   }) {
-    if (state.selectedTerrainType == TerrainType.path) {
-      return const _ResolvedBrushFootprint(
-        size: GridSize(width: 1, height: 1),
-        failureLabel: 'path',
-      );
-    }
-    return _resolveBrushFootprint(emitErrors: emitErrors);
+    final failureLabel =
+        state.selectedTerrainType == TerrainType.path ? 'path' : 'terrain';
+    return _ResolvedBrushFootprint(
+      size: const GridSize(width: 1, height: 1),
+      failureLabel: failureLabel,
+    );
   }
 
   _ResolvedBrushFootprint? _resolveBrushFootprint({
