@@ -6,7 +6,7 @@ class CreateTerrainPresetUseCase {
   CreateTerrainPresetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String name,
     required TerrainType terrainType,
@@ -59,7 +59,7 @@ class UpdateTerrainPresetUseCase {
   UpdateTerrainPresetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String presetId,
     String? name,
@@ -137,7 +137,7 @@ class DeleteTerrainPresetUseCase {
   DeleteTerrainPresetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String presetId,
   }) async {
@@ -160,7 +160,7 @@ class CreatePathPresetUseCase {
   CreatePathPresetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String name,
     TerrainType groundTerrainType = TerrainType.normal,
@@ -212,7 +212,7 @@ class UpdatePathPresetUseCase {
   UpdatePathPresetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String presetId,
     String? name,
@@ -288,7 +288,7 @@ class DeletePathPresetUseCase {
   DeletePathPresetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String presetId,
   }) async {
@@ -311,7 +311,7 @@ class CreateTerrainPresetCategoryUseCase {
   CreateTerrainPresetCategoryUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String name,
     required TerrainPresetCategoryKind kind,
@@ -361,7 +361,7 @@ class RenameTerrainPresetCategoryUseCase {
   RenameTerrainPresetCategoryUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String categoryId,
     required String name,

@@ -3,7 +3,9 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
+import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/map_history_coordinator.dart';
 import '../../../application/services/path_autotile_resolver.dart';
@@ -11,7 +13,6 @@ import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/warp_editing_service.dart';
-import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../terrain/path_autotile_set.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
@@ -30,6 +31,8 @@ class EditorNotifier extends _$EditorNotifier {
       ref.read(editorMapSessionCoordinatorProvider);
   MapHistoryCoordinator get _mapHistoryCoordinator =>
       ref.read(mapHistoryCoordinatorProvider);
+  ProjectWorkspaceFactory get _projectWorkspaceFactory =>
+      ref.read(projectWorkspaceFactoryProvider);
   WarpEditingService get _warpEditingService =>
       ref.read(warpEditingServiceProvider);
   TerrainPaintingCoordinator get _terrainPaintingCoordinator =>
@@ -77,7 +80,7 @@ class EditorNotifier extends _$EditorNotifier {
 
       state = state.copyWith(
         project: manifest,
-        fileSystem: ProjectFileSystem(directory),
+        projectWorkspace: _projectWorkspaceFactory.create(directory),
         workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
@@ -119,7 +122,7 @@ class EditorNotifier extends _$EditorNotifier {
 
       state = state.copyWith(
         project: manifest,
-        fileSystem: ProjectFileSystem(projectDir),
+        projectWorkspace: _projectWorkspaceFactory.create(projectDir),
         workspaceMode: EditorWorkspaceMode.map,
         activeMap: null,
         activeMapPath: null,
@@ -155,7 +158,7 @@ class EditorNotifier extends _$EditorNotifier {
     required ProjectSettings settings,
   }) async {
     debugPrint('EditorNotifier: updateProjectSettings()');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -209,7 +212,7 @@ class EditorNotifier extends _$EditorNotifier {
       {String? groupId, MapRole role = MapRole.exterior}) async {
     debugPrint(
         'EditorNotifier: createMap($id, $width, $height) in group $groupId');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -266,7 +269,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> loadMap(String relativePath) async {
     debugPrint('EditorNotifier: loadMap($relativePath)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     if (fs == null) return;
 
     try {
@@ -364,7 +367,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> renameMap(String oldId, String newId) async {
     debugPrint('EditorNotifier: renameMap($oldId -> $newId)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -415,7 +418,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> deleteMap(String mapId) async {
     debugPrint('EditorNotifier: deleteMap($mapId)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -472,7 +475,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> duplicateMap(String sourceId) async {
     debugPrint('EditorNotifier: duplicateMap($sourceId)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -494,7 +497,7 @@ class EditorNotifier extends _$EditorNotifier {
   Future<void> createGroup(String name, MapGroupType type,
       {String? parentId}) async {
     debugPrint('EditorNotifier: createGroup($name, $type, parent: $parentId)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -515,7 +518,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> deleteGroup(String groupId) async {
     debugPrint('EditorNotifier: deleteGroup($groupId)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -535,7 +538,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> renameGroup(String groupId, String newName) async {
     debugPrint('EditorNotifier: renameGroup($groupId -> $newName)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -556,7 +559,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> moveMapToGroup(String mapId, String? groupId) async {
     debugPrint('EditorNotifier: moveMapToGroup($mapId -> $groupId)');
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -593,7 +596,7 @@ class EditorNotifier extends _$EditorNotifier {
     String? groupId,
     bool isWorldTileset = false,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -630,7 +633,7 @@ class EditorNotifier extends _$EditorNotifier {
     bool? isWorldTileset,
     int? sortOrder,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -658,7 +661,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> reorderProjectTileset(String tilesetId, int direction) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -682,7 +685,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deleteProjectTileset(String tilesetId) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
 
@@ -787,7 +790,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   String? getActiveTilesetAbsolutePath() {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final tileset = getActiveTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
@@ -963,14 +966,14 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   String? getSelectedTilesetAbsolutePath() {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final tileset = getSelectedTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
   }
 
   String? getTilesetAbsolutePathById(String tilesetId) {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     if (fs == null) return null;
     final tileset = getTilesetById(tilesetId);
     if (tileset == null) return null;
@@ -1029,7 +1032,7 @@ class EditorNotifier extends _$EditorNotifier {
     String name, {
     String? parentGroupId,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1059,7 +1062,7 @@ class EditorNotifier extends _$EditorNotifier {
     String parentGroupId,
     String name,
   ) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1089,7 +1092,7 @@ class EditorNotifier extends _$EditorNotifier {
     String groupId,
     String name,
   ) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1234,7 +1237,7 @@ class EditorNotifier extends _$EditorNotifier {
     String name, {
     String? parentCategoryId,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1259,7 +1262,7 @@ class EditorNotifier extends _$EditorNotifier {
     String parentCategoryId,
     String name,
   ) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1281,7 +1284,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> renameElementCategory(String categoryId, String name) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1312,7 +1315,7 @@ class EditorNotifier extends _$EditorNotifier {
     String? recommendedLayerId,
     List<String> tags = const [],
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     final selectedTileset = getSelectedTilesetEntry();
@@ -1361,7 +1364,7 @@ class EditorNotifier extends _$EditorNotifier {
     TilesetSourceRect? source,
     List<String>? tags,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1406,7 +1409,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deleteProjectElement(String elementId) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -1526,7 +1529,7 @@ class EditorNotifier extends _$EditorNotifier {
     required TilesetSourceRect source,
     String? recommendedLayerId,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     final tileset = getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (fs == null || project == null || tileset == null) return;
@@ -1563,7 +1566,7 @@ class EditorNotifier extends _$EditorNotifier {
     required PaletteCategory category,
     String? recommendedLayerId,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     final tileset = getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (fs == null || project == null || tileset == null) return;
@@ -1815,7 +1818,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> createReciprocalWarpForSelectedWarp() async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     final sourceMap = state.activeMap;
     final selectedWarpId = state.selectedWarpId;
@@ -3055,7 +3058,7 @@ class EditorNotifier extends _$EditorNotifier {
     String tilesetId = '',
     List<TerrainPresetVariant> variants = const [],
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3099,7 +3102,7 @@ class EditorNotifier extends _$EditorNotifier {
     List<TerrainPresetVariant>? variants,
     bool clearVariants = false,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3140,7 +3143,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deleteTerrainPreset(String presetId) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3172,7 +3175,7 @@ class EditorNotifier extends _$EditorNotifier {
     String tilesetId = '',
     List<PathPresetVariantMapping> variants = const [],
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3215,7 +3218,7 @@ class EditorNotifier extends _$EditorNotifier {
     List<PathPresetVariantMapping>? variants,
     bool clearVariants = false,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3255,7 +3258,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> deletePathPreset(String presetId) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3283,7 +3286,7 @@ class EditorNotifier extends _$EditorNotifier {
     required TerrainPresetCategoryKind kind,
     String? parentCategoryId,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
@@ -3309,7 +3312,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String categoryId,
     required String name,
   }) async {
-    final fs = state.fileSystem;
+    final fs = state.projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {

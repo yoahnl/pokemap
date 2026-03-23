@@ -2,33 +2,42 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-class ProjectFileSystem {
+import '../../application/ports/project_workspace.dart';
+
+class ProjectFileSystem implements ProjectWorkspace {
   final String _projectRoot;
 
   ProjectFileSystem(this._projectRoot);
 
+  @override
   String get projectRoot => _projectRoot;
 
+  @override
   String get projectManifestPath => p.join(_projectRoot, 'project.json');
   String get tilesetsDirectoryPath =>
       p.normalize(p.join(_projectRoot, 'assets', 'tilesets'));
 
+  @override
   String resolveMapPath(String relativePath) {
     return p.normalize(p.join(_projectRoot, relativePath));
   }
 
+  @override
   String getMapPath(String mapId) {
     return p.normalize(p.join(_projectRoot, 'maps', '$mapId.json'));
   }
 
+  @override
   String getMapRelativePath(String mapId) {
     return 'maps/$mapId.json';
   }
 
+  @override
   String resolveTilesetPath(String relativePath) {
     return resolveProjectRelativePath(relativePath);
   }
 
+  @override
   String resolveProjectRelativePath(String relativePath) {
     return p.normalize(p.join(_projectRoot, relativePath));
   }
@@ -41,6 +50,7 @@ class ProjectFileSystem {
     return p.relative(absolutePath, from: _projectRoot);
   }
 
+  @override
   Future<void> ensureDirectoryExists(String path) async {
     final dir = Directory(p.dirname(path));
     if (!await dir.exists()) {
@@ -48,6 +58,7 @@ class ProjectFileSystem {
     }
   }
 
+  @override
   Future<String> importTilesetImage(String sourcePath,
       {String? preferredName}) async {
     final sourceFile = File(sourcePath);
@@ -79,6 +90,7 @@ class ProjectFileSystem {
     return getTilesetRelativePath(fileName);
   }
 
+  @override
   Future<void> deleteRelativeFile(String relativePath) async {
     final absolutePath = resolveProjectRelativePath(relativePath);
     final file = File(absolutePath);
@@ -91,5 +103,14 @@ class ProjectFileSystem {
     final normalized = value.trim().toLowerCase();
     final safe = normalized.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
     return safe.replaceAll(RegExp(r'_+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+  }
+}
+
+class FileProjectWorkspaceFactory implements ProjectWorkspaceFactory {
+  const FileProjectWorkspaceFactory();
+
+  @override
+  ProjectWorkspace create(String projectRoot) {
+    return ProjectFileSystem(projectRoot);
   }
 }

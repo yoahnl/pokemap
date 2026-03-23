@@ -259,6 +259,33 @@ Terminee pour cette etape:
   - footprint terrain force en 1x1 pour eviter l heritage de taille d un gros element selectionne.
 
 ## 7. Dernieres modifications realisees
+2026-03-23 (refacto clean architecture - lot 1 ports workspace):
+- `map_editor`:
+  - ajout `application/ports/project_workspace.dart`:
+    - introduction des abstractions `ProjectWorkspace` et `ProjectWorkspaceFactory`,
+    - objectif: supprimer la dependance directe de la couche application vers `ProjectFileSystem`.
+  - `infrastructure/filesystem/project_filesystem.dart`:
+    - `ProjectFileSystem` implemente maintenant `ProjectWorkspace`,
+    - ajout `FileProjectWorkspaceFactory` comme implementation infrastructure du port de creation.
+  - `app/providers/core_providers.dart`:
+    - ajout du provider `projectWorkspaceFactoryProvider` pour injecter la factory infrastructure depuis la composition root.
+  - `application/use_cases/*`:
+    - remplacement des signatures `ProjectFileSystem` par `ProjectWorkspace` dans les use cases projet/map/terrain preset/warp,
+    - `CreateProjectUseCase` depend maintenant de `ProjectWorkspaceFactory` au lieu d instancier directement `ProjectFileSystem`.
+  - `application/services/warp_editing_service.dart`:
+    - depend maintenant du port `ProjectWorkspace` plutot que de l implementation infrastructure concrete.
+  - `features/editor/state/editor_state.dart`:
+    - remplacement de `fileSystem` par `projectWorkspace` pour retirer la fuite d infrastructure dans l etat editor.
+  - `features/editor/state/editor_notifier.dart`:
+    - creation/chargement de workspace via `ProjectWorkspaceFactory`,
+    - migration de tous les usages de `state.fileSystem` vers `state.projectWorkspace`.
+  - `ui/shared/top_toolbar.dart`:
+    - aligne sur `state.projectWorkspace`.
+- impact:
+  - la couche application ne reference plus directement `ProjectFileSystem`,
+  - l etat editor ne reference plus un type d infrastructure concret,
+  - la direction de dependance est plus propre: ports applicatifs -> implementations infrastructure.
+
 2026-03-23 (refacto clean architecture - injection services + orchestration warp):
 - `map_editor`:
   - `app/providers/use_case_providers.dart`:

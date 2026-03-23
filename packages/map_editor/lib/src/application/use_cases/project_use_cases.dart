@@ -1,8 +1,8 @@
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../ports/project_workspace.dart';
 import '../../domain/repositories/repositories.dart';
-import '../../infrastructure/filesystem/project_filesystem.dart';
 
 part 'paint_use_cases.dart';
 part 'collision_use_cases.dart';
@@ -14,8 +14,9 @@ part 'warp_use_cases.dart';
 
 class CreateProjectUseCase {
   final ProjectRepository _repo;
+  final ProjectWorkspaceFactory _workspaceFactory;
 
-  CreateProjectUseCase(this._repo);
+  CreateProjectUseCase(this._repo, this._workspaceFactory);
 
   Future<ProjectManifest> execute(String name, String directory) async {
     final manifest = ProjectManifest(
@@ -30,9 +31,9 @@ class CreateProjectUseCase {
       pathPresets: _defaultPathPresets(),
       settings: const ProjectSettings(),
     );
-    final fs = ProjectFileSystem(directory);
-    final projectFile = fs.projectManifestPath;
-    await fs.ensureDirectoryExists(projectFile);
+    final workspace = _workspaceFactory.create(directory);
+    final projectFile = workspace.projectManifestPath;
+    await workspace.ensureDirectoryExists(projectFile);
 
     await _repo.saveProject(manifest, projectFile);
     return manifest;
@@ -56,7 +57,7 @@ class UpdateProjectSettingsUseCase {
   UpdateProjectSettingsUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String name,
     required ProjectSettings settings,
@@ -73,7 +74,7 @@ class ImportProjectTilesetUseCase {
   ImportProjectTilesetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String sourcePath,
     required String name,
@@ -137,7 +138,7 @@ class UpdateProjectTilesetUseCase {
   UpdateProjectTilesetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String tilesetId,
     String? name,
@@ -188,7 +189,7 @@ class DeleteProjectTilesetUseCase {
   DeleteProjectTilesetUseCase(this._projectRepo, this._mapRepo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project,
     String tilesetId,
   ) async {
@@ -252,7 +253,7 @@ class ReorderProjectTilesetUseCase {
   ReorderProjectTilesetUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String tilesetId,
     required int direction,
@@ -385,7 +386,7 @@ class CreateElementCategoryUseCase {
   CreateElementCategoryUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String name,
     String? parentCategoryId,
@@ -423,7 +424,7 @@ class CreateElementSubcategoryUseCase {
   CreateElementSubcategoryUseCase(this._categoryUseCase);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String parentCategoryId,
     required String name,
@@ -443,7 +444,7 @@ class RenameElementCategoryUseCase {
   RenameElementCategoryUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String categoryId,
     required String name,
@@ -473,7 +474,7 @@ class CreateTilesetElementGroupUseCase {
   CreateTilesetElementGroupUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String tilesetId,
     required String name,
@@ -522,7 +523,7 @@ class CreateTilesetElementSubgroupUseCase {
   CreateTilesetElementSubgroupUseCase(this._groupUseCase);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String tilesetId,
     required String parentGroupId,
@@ -544,7 +545,7 @@ class RenameTilesetElementGroupUseCase {
   RenameTilesetElementGroupUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String tilesetId,
     required String groupId,
@@ -629,7 +630,7 @@ class CreateProjectElementUseCase {
   CreateProjectElementUseCase(this._repo);
 
   Future<CreateProjectElementResult> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String name,
     required String tilesetId,
@@ -704,7 +705,7 @@ class UpdateProjectElementUseCase {
   UpdateProjectElementUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String elementId,
     String? name,
@@ -795,7 +796,7 @@ class DeleteProjectElementUseCase {
   DeleteProjectElementUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String elementId,
   }) async {
@@ -853,7 +854,7 @@ class UpsertTilesetPaletteEntryUseCase {
   UpsertTilesetPaletteEntryUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String tilesetId,
     required TilesetPaletteEntry entry,
@@ -889,7 +890,7 @@ class CreateTilesetPaletteEntryUseCase {
   CreateTilesetPaletteEntryUseCase(this._repo);
 
   Future<CreateTilesetPaletteEntryResult> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required String tilesetId,
     required String name,
@@ -938,7 +939,7 @@ class CreateGroupUseCase {
 
   CreateGroupUseCase(this._repo);
 
-  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project,
+  Future<ProjectManifest> execute(ProjectWorkspace fs, ProjectManifest project,
       String name, MapGroupType type,
       {String? parentId}) async {
     final id = 'group_${DateTime.now().millisecondsSinceEpoch}';
@@ -965,7 +966,7 @@ class DeleteGroupUseCase {
   DeleteGroupUseCase(this._repo);
 
   Future<ProjectManifest> execute(
-      ProjectFileSystem fs, ProjectManifest project, String groupId) async {
+      ProjectWorkspace fs, ProjectManifest project, String groupId) async {
     // 1. Remove the group
     final updatedGroups = project.groups.where((g) => g.id != groupId).toList();
 
@@ -999,7 +1000,7 @@ class MoveMapToGroupUseCase {
 
   MoveMapToGroupUseCase(this._repo);
 
-  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project,
+  Future<ProjectManifest> execute(ProjectWorkspace fs, ProjectManifest project,
       String mapId, String? groupId) async {
     final updatedMaps = project.maps.map((m) {
       if (m.id == mapId) return m.copyWith(groupId: groupId);
@@ -1017,7 +1018,7 @@ class RenameGroupUseCase {
 
   RenameGroupUseCase(this._repo);
 
-  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project,
+  Future<ProjectManifest> execute(ProjectWorkspace fs, ProjectManifest project,
       String groupId, String newName) async {
     final updatedGroups = project.groups.map((g) {
       if (g.id == groupId) return g.copyWith(name: newName);

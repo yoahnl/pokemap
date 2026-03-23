@@ -1,5 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../application/ports/project_workspace.dart';
+import '../../infrastructure/filesystem/project_filesystem.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../infrastructure/repositories/file_repositories.dart';
 
@@ -18,4 +20,10 @@ MapRepository mapRepository(MapRepositoryRef ref) {
 @riverpod
 TilesetRepository tilesetRepository(TilesetRepositoryRef ref) {
   return FileTilesetRepository();
+}
+
+@riverpod
+ProjectWorkspaceFactory projectWorkspaceFactory(
+    ProjectWorkspaceFactoryRef ref) {
+  return const FileProjectWorkspaceFactory();
 }

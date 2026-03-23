@@ -1,6 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-import '../../infrastructure/filesystem/project_filesystem.dart';
+import '../ports/project_workspace.dart';
 import '../use_cases/project_use_cases.dart';
 import 'warp_editing_coordinator.dart';
 
@@ -131,7 +131,7 @@ class WarpEditingService {
   }
 
   Future<CreateReciprocalWarpResult> createReciprocalWarp(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required MapData sourceMap,
     required MapWarp sourceWarp,

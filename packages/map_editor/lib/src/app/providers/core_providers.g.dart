@@ -59,5 +59,25 @@ final tilesetRepositoryProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TilesetRepositoryRef = AutoDisposeProviderRef<TilesetRepository>;
+String _$projectWorkspaceFactoryHash() =>
+    r'd8661a3458139351ff76fe73fbc59e12e0165ec3';
+
+/// See also [projectWorkspaceFactory].
+@ProviderFor(projectWorkspaceFactory)
+final projectWorkspaceFactoryProvider =
+    AutoDisposeProvider<ProjectWorkspaceFactory>.internal(
+  projectWorkspaceFactory,
+  name: r'projectWorkspaceFactoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$projectWorkspaceFactoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ProjectWorkspaceFactoryRef
+    = AutoDisposeProviderRef<ProjectWorkspaceFactory>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

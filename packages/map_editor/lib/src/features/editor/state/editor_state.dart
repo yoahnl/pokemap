@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../../infrastructure/filesystem/project_filesystem.dart';
+import '../../../application/ports/project_workspace.dart';
 import '../tools/editor_tool.dart';
 
 part 'editor_state.freezed.dart';
@@ -46,7 +46,7 @@ class MapHistorySnapshot with _$MapHistorySnapshot {
 class EditorState with _$EditorState {
   const factory EditorState({
     // Context
-    ProjectFileSystem? fileSystem,
+    ProjectWorkspace? projectWorkspace,
     ProjectManifest? project,
     @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
 

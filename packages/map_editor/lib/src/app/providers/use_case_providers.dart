@@ -75,7 +75,10 @@ TerrainPaintingCoordinator terrainPaintingCoordinator(
 
 @riverpod
 CreateProjectUseCase createProjectUseCase(CreateProjectUseCaseRef ref) {
-  return CreateProjectUseCase(ref.watch(projectRepositoryProvider));
+  return CreateProjectUseCase(
+    ref.watch(projectRepositoryProvider),
+    ref.watch(projectWorkspaceFactoryProvider),
+  );
 }
 
 @riverpod

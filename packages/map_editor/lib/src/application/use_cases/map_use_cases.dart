@@ -17,7 +17,7 @@ class CreateMapUseCase {
   CreateMapUseCase(this._mapRepo, this._projectRepo);
 
   Future<MapData> execute(
-      ProjectFileSystem fs, ProjectManifest project, String mapId, int w, int h,
+      ProjectWorkspace fs, ProjectManifest project, String mapId, int w, int h,
       {String? groupId, MapRole role = MapRole.exterior}) async {
     final defaultTilesetId = _pickDefaultTilesetId(project, groupId);
 
@@ -78,7 +78,7 @@ class LoadMapUseCase {
 
   LoadMapUseCase(this._repo);
 
-  Future<MapData> execute(ProjectFileSystem fs, String relativePath) async {
+  Future<MapData> execute(ProjectWorkspace fs, String relativePath) async {
     final path = fs.resolveMapPath(relativePath);
     final map = await _repo.loadMap(path);
     return _migrateLegacyLayerTilesets(map);
@@ -118,7 +118,7 @@ class RenameMapUseCase {
 
   RenameMapUseCase(this._mapRepo, this._projectRepo);
 
-  Future<ProjectManifest> execute(ProjectFileSystem fs, ProjectManifest project,
+  Future<ProjectManifest> execute(ProjectWorkspace fs, ProjectManifest project,
       String oldId, String newId) async {
     if (newId.isEmpty) throw Exception('Map ID cannot be empty');
     if (oldId == newId) return project;
@@ -167,7 +167,7 @@ class DeleteMapUseCase {
   DeleteMapUseCase(this._mapRepo, this._projectRepo);
 
   Future<ProjectManifest> execute(
-      ProjectFileSystem fs, ProjectManifest project, String mapId) async {
+      ProjectWorkspace fs, ProjectManifest project, String mapId) async {
     final mapPath = fs.getMapPath(mapId);
     await _mapRepo.deleteMap(mapPath);
 
@@ -187,7 +187,7 @@ class DuplicateMapUseCase {
   DuplicateMapUseCase(this._mapRepo, this._projectRepo);
 
   Future<ProjectManifest> execute(
-      ProjectFileSystem fs, ProjectManifest project, String sourceId) async {
+      ProjectWorkspace fs, ProjectManifest project, String sourceId) async {
     String targetId = '${sourceId}_copy';
     int suffix = 1;
     while (project.maps.any((e) => e.id == targetId)) {

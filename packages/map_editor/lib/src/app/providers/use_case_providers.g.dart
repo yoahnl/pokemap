@@ -165,7 +165,7 @@ final terrainPaintingCoordinatorProvider =
 typedef TerrainPaintingCoordinatorRef
     = AutoDisposeProviderRef<TerrainPaintingCoordinator>;
 String _$createProjectUseCaseHash() =>
-    r'cd1579b951ab18bdaa8e1155dc00ddfa8fc1f2c6';
+    r'7c46539670ceef09dfc7a959f9c8ee264ce9a8e8';
 
 /// See also [createProjectUseCase].
 @ProviderFor(createProjectUseCase)

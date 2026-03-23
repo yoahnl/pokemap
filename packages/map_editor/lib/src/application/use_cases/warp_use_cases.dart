@@ -87,7 +87,7 @@ class CreateReciprocalWarpUseCase {
   final MapRepository _mapRepo;
 
   Future<CreateReciprocalWarpResult> execute(
-    ProjectFileSystem fs,
+    ProjectWorkspace fs,
     ProjectManifest project, {
     required MapData sourceMap,
     required MapWarp sourceWarp,

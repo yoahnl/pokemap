@@ -51,7 +51,7 @@ class TopToolbar extends ConsumerWidget {
           ),
           const VerticalDivider(width: 1, indent: 8, endIndent: 8),
           IconButton(
-            onPressed: state.project != null && state.fileSystem != null
+            onPressed: state.project != null && state.projectWorkspace != null
                 ? () => _showNewMapDialog(
                       context,
                       notifier,

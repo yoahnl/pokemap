@@ -882,7 +882,7 @@ abstract class _MapHistorySnapshot implements MapHistorySnapshot {
 /// @nodoc
 mixin _$EditorState {
 // Context
-  ProjectFileSystem? get fileSystem => throw _privateConstructorUsedError;
+  ProjectWorkspace? get projectWorkspace => throw _privateConstructorUsedError;
   ProjectManifest? get project => throw _privateConstructorUsedError;
   EditorWorkspaceMode get workspaceMode =>
       throw _privateConstructorUsedError; // Active Map
@@ -935,7 +935,7 @@ abstract class $EditorStateCopyWith<$Res> {
       _$EditorStateCopyWithImpl<$Res, EditorState>;
   @useResult
   $Res call(
-      {ProjectFileSystem? fileSystem,
+      {ProjectWorkspace? projectWorkspace,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
       MapData? activeMap,
@@ -989,7 +989,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? fileSystem = freezed,
+    Object? projectWorkspace = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
     Object? activeMap = freezed,
@@ -1021,10 +1021,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? errorMessage = freezed,
   }) {
     return _then(_value.copyWith(
-      fileSystem: freezed == fileSystem
-          ? _value.fileSystem
-          : fileSystem // ignore: cast_nullable_to_non_nullable
-              as ProjectFileSystem?,
+      projectWorkspace: freezed == projectWorkspace
+          ? _value.projectWorkspace
+          : projectWorkspace // ignore: cast_nullable_to_non_nullable
+              as ProjectWorkspace?,
       project: freezed == project
           ? _value.project
           : project // ignore: cast_nullable_to_non_nullable
@@ -1234,7 +1234,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {ProjectFileSystem? fileSystem,
+      {ProjectWorkspace? projectWorkspace,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
       MapData? activeMap,
@@ -1292,7 +1292,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? fileSystem = freezed,
+    Object? projectWorkspace = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
     Object? activeMap = freezed,
@@ -1324,10 +1324,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? errorMessage = freezed,
   }) {
     return _then(_$EditorStateImpl(
-      fileSystem: freezed == fileSystem
-          ? _value.fileSystem
-          : fileSystem // ignore: cast_nullable_to_non_nullable
-              as ProjectFileSystem?,
+      projectWorkspace: freezed == projectWorkspace
+          ? _value.projectWorkspace
+          : projectWorkspace // ignore: cast_nullable_to_non_nullable
+              as ProjectWorkspace?,
       project: freezed == project
           ? _value.project
           : project // ignore: cast_nullable_to_non_nullable
@@ -1452,7 +1452,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
 
 class _$EditorStateImpl implements _EditorState {
   const _$EditorStateImpl(
-      {this.fileSystem,
+      {this.projectWorkspace,
       this.project,
       this.workspaceMode = EditorWorkspaceMode.map,
       this.activeMap,
@@ -1488,7 +1488,7 @@ class _$EditorStateImpl implements _EditorState {
 
 // Context
   @override
-  final ProjectFileSystem? fileSystem;
+  final ProjectWorkspace? projectWorkspace;
   @override
   final ProjectManifest? project;
   @override
@@ -1588,7 +1588,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(fileSystem: $fileSystem, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectWorkspace: $projectWorkspace, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1596,8 +1596,8 @@ class _$EditorStateImpl implements _EditorState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$EditorStateImpl &&
-            (identical(other.fileSystem, fileSystem) ||
-                other.fileSystem == fileSystem) &&
+            (identical(other.projectWorkspace, projectWorkspace) ||
+                other.projectWorkspace == projectWorkspace) &&
             (identical(other.project, project) || other.project == project) &&
             (identical(other.workspaceMode, workspaceMode) ||
                 other.workspaceMode == workspaceMode) &&
@@ -1661,7 +1661,7 @@ class _$EditorStateImpl implements _EditorState {
   @override
   int get hashCode => Object.hashAll([
         runtimeType,
-        fileSystem,
+        projectWorkspace,
         project,
         workspaceMode,
         activeMap,
@@ -1704,7 +1704,7 @@ class _$EditorStateImpl implements _EditorState {
 
 abstract class _EditorState implements EditorState {
   const factory _EditorState(
-      {final ProjectFileSystem? fileSystem,
+      {final ProjectWorkspace? projectWorkspace,
       final ProjectManifest? project,
       final EditorWorkspaceMode workspaceMode,
       final MapData? activeMap,
@@ -1737,7 +1737,7 @@ abstract class _EditorState implements EditorState {
 
 // Context
   @override
-  ProjectFileSystem? get fileSystem;
+  ProjectWorkspace? get projectWorkspace;
   @override
   ProjectManifest? get project;
   @override
