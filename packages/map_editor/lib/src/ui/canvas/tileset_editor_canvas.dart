@@ -265,6 +265,21 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
   }) async {
     final categories = notifier.getElementCategories();
     if (categories.isEmpty) {
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Missing Element Category'),
+          content: const Text(
+            'Create at least one element category before creating an element.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
       return;
     }
 
