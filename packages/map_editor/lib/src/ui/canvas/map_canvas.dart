@@ -306,37 +306,33 @@ class MapGridPainter extends CustomPainter {
 
     for (var index = map.layers.length - 1; index >= 0; index--) {
       final layer = map.layers[index];
-      if (!layer.isVisible || layer is! TileLayer) continue;
-      _paintTileLayer(canvas, layer);
-    }
-    for (var index = map.layers.length - 1; index >= 0; index--) {
-      final layer = map.layers[index];
-      if (!layer.isVisible || layer is! TerrainLayer) continue;
-      _paintTerrainLayer(
-        canvas,
-        layer,
-        isActive: layer.id == activeLayerId,
-        pass: _TerrainLayerPaintPass.base,
-      );
-    }
-    for (var index = map.layers.length - 1; index >= 0; index--) {
-      final layer = map.layers[index];
-      if (!layer.isVisible || layer is! TerrainLayer) continue;
-      _paintTerrainLayer(
-        canvas,
-        layer,
-        isActive: layer.id == activeLayerId,
-        pass: _TerrainLayerPaintPass.path,
-      );
-    }
-    for (var index = map.layers.length - 1; index >= 0; index--) {
-      final layer = map.layers[index];
-      if (!layer.isVisible || layer is! CollisionLayer) continue;
-      _paintCollisionLayer(
-        canvas,
-        layer,
-        isActive: layer.id == activeLayerId,
-      );
+      if (!layer.isVisible) continue;
+      if (layer is TileLayer) {
+        _paintTileLayer(canvas, layer);
+        continue;
+      }
+      if (layer is TerrainLayer) {
+        _paintTerrainLayer(
+          canvas,
+          layer,
+          isActive: layer.id == activeLayerId,
+          pass: _TerrainLayerPaintPass.base,
+        );
+        _paintTerrainLayer(
+          canvas,
+          layer,
+          isActive: layer.id == activeLayerId,
+          pass: _TerrainLayerPaintPass.path,
+        );
+        continue;
+      }
+      if (layer is CollisionLayer) {
+        _paintCollisionLayer(
+          canvas,
+          layer,
+          isActive: layer.id == activeLayerId,
+        );
+      }
     }
 
     final gridPaint = Paint()
