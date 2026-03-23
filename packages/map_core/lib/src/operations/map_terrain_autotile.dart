@@ -197,22 +197,22 @@ TerrainPathVariant? _resolveEdgeCornerAsBorderVariant({
   if (touchesNorth &&
       (base == TerrainPathVariant.cornerSE ||
           base == TerrainPathVariant.cornerSW)) {
-    return TerrainPathVariant.endNorth;
+    return TerrainPathVariant.endWest;
   }
   if (touchesEast &&
       (base == TerrainPathVariant.cornerNW ||
           base == TerrainPathVariant.cornerSW)) {
-    return TerrainPathVariant.endEast;
+    return TerrainPathVariant.endSouth;
   }
   if (touchesSouth &&
       (base == TerrainPathVariant.cornerNE ||
           base == TerrainPathVariant.cornerNW)) {
-    return TerrainPathVariant.endSouth;
+    return TerrainPathVariant.endEast;
   }
   if (touchesWest &&
       (base == TerrainPathVariant.cornerNE ||
           base == TerrainPathVariant.cornerSE)) {
-    return TerrainPathVariant.endWest;
+    return TerrainPathVariant.endNorth;
   }
   return null;
 }
