@@ -26,7 +26,9 @@ class FileProjectRepository implements ProjectRepository {
     }
     final content = await file.readAsString();
     try {
-      final json = jsonDecode(content) as Map<String, dynamic>;
+      final json = _migrateLegacyProjectJson(
+        jsonDecode(content) as Map<String, dynamic>,
+      );
       final manifest = ProjectManifest.fromJson(json);
       ProjectValidator.validate(manifest);
       return manifest;
@@ -34,6 +36,41 @@ class FileProjectRepository implements ProjectRepository {
       throw ProjectLoadException('Failed to load project: $e');
     }
   }
+}
+
+Map<String, dynamic> _migrateLegacyProjectJson(Map<String, dynamic> raw) {
+  final next = Map<String, dynamic>.from(raw);
+  final pathPresets = raw['pathPresets'];
+  if (pathPresets is! List) {
+    return next;
+  }
+
+  next['pathPresets'] = pathPresets.map((entry) {
+    if (entry is! Map) {
+      return entry;
+    }
+    final preset = Map<String, dynamic>.from(entry.cast<String, dynamic>());
+    if (!preset.containsKey('surfaceKind')) {
+      preset['surfaceKind'] = _legacyPathSurfaceKindValue(
+        preset['groundTerrainType']?.toString(),
+      );
+    }
+    return preset;
+  }).toList(growable: false);
+
+  return next;
+}
+
+String _legacyPathSurfaceKindValue(String? legacyValue) {
+  return switch (legacyValue) {
+    'water' => 'water',
+    'ice' => 'ice',
+    'lava' => 'lava',
+    'mud' => 'mud',
+    'bridge' => 'bridge',
+    'custom' => 'custom',
+    _ => 'path',
+  };
 }
 
 class FileMapRepository implements MapRepository {

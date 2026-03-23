@@ -1,15 +1,18 @@
 import 'package:map_core/map_core.dart';
 
+import '../../features/editor/state/editor_state.dart';
 import 'terrain_preset_resolver.dart';
 
 class TerrainPresetSelection {
   const TerrainPresetSelection({
+    required this.selectionMode,
     required this.selectedTerrainType,
     required this.selectedTerrainPresetId,
     required this.selectedPathPresetId,
     required this.selectedTerrainPresetByType,
   });
 
+  final TerrainSelectionMode selectionMode;
   final TerrainType selectedTerrainType;
   final String? selectedTerrainPresetId;
   final String? selectedPathPresetId;
@@ -25,6 +28,7 @@ class TerrainPresetSelectionCoordinator {
 
   TerrainPresetSelection initial(ProjectManifest project) {
     return TerrainPresetSelection(
+      selectionMode: TerrainSelectionMode.terrain,
       selectedTerrainType: TerrainType.normal,
       selectedTerrainPresetId: _resolver.resolveInitialTerrainPresetId(project),
       selectedPathPresetId: _resolver.resolveInitialPathPresetId(project),
@@ -52,6 +56,7 @@ class TerrainPresetSelectionCoordinator {
       preferredPresetId: current.selectedPathPresetId,
     );
     return TerrainPresetSelection(
+      selectionMode: current.selectionMode,
       selectedTerrainType: current.selectedTerrainType,
       selectedTerrainPresetId: nextTerrainPresetId,
       selectedPathPresetId: nextPathPresetId,
@@ -65,16 +70,15 @@ class TerrainPresetSelectionCoordinator {
     required TerrainType terrainType,
     String? preferredTerrainPresetId,
   }) {
-    final nextTerrainPresetId = terrainType == TerrainType.path
-        ? current.selectedTerrainPresetId
-        : _resolver.resolveSelectedTerrainPresetId(
-            project: project,
-            terrainType: terrainType,
-            preferredPresetId:
-                preferredTerrainPresetId ?? current.selectedTerrainPresetId,
-            selectedTerrainPresetByType: current.selectedTerrainPresetByType,
-          );
+    final nextTerrainPresetId = _resolver.resolveSelectedTerrainPresetId(
+      project: project,
+      terrainType: terrainType,
+      preferredPresetId:
+          preferredTerrainPresetId ?? current.selectedTerrainPresetId,
+      selectedTerrainPresetByType: current.selectedTerrainPresetByType,
+    );
     return TerrainPresetSelection(
+      selectionMode: TerrainSelectionMode.terrain,
       selectedTerrainType: terrainType,
       selectedTerrainPresetId: nextTerrainPresetId,
       selectedPathPresetId: current.selectedPathPresetId,
@@ -91,6 +95,7 @@ class TerrainPresetSelectionCoordinator {
     );
     nextByType[preset.terrainType] = preset.id;
     return TerrainPresetSelection(
+      selectionMode: TerrainSelectionMode.terrain,
       selectedTerrainType: preset.terrainType,
       selectedTerrainPresetId: preset.id,
       selectedPathPresetId: current.selectedPathPresetId,
@@ -103,7 +108,8 @@ class TerrainPresetSelectionCoordinator {
     required ProjectPathPreset preset,
   }) {
     return TerrainPresetSelection(
-      selectedTerrainType: TerrainType.path,
+      selectionMode: TerrainSelectionMode.path,
+      selectedTerrainType: current.selectedTerrainType,
       selectedTerrainPresetId: current.selectedTerrainPresetId,
       selectedPathPresetId: preset.id,
       selectedTerrainPresetByType: current.selectedTerrainPresetByType,
@@ -137,6 +143,7 @@ class TerrainPresetSelectionCoordinator {
     );
     nextByType[selectedPreset.terrainType] = selectedPreset.id;
     final next = TerrainPresetSelection(
+      selectionMode: TerrainSelectionMode.terrain,
       selectedTerrainType: selectedPreset.terrainType,
       selectedTerrainPresetId: selectedPreset.id,
       selectedPathPresetId: current.selectedPathPresetId,
@@ -160,13 +167,12 @@ class TerrainPresetSelectionCoordinator {
             null) {
       final fallback = _resolver.listTerrainPresets(
         updated,
-        terrainType: current.selectedTerrainType == TerrainType.path
-            ? TerrainType.normal
-            : current.selectedTerrainType,
+        terrainType: current.selectedTerrainType,
       );
       nextSelectedTerrainPresetId = fallback.isEmpty ? null : fallback.first.id;
     }
     final next = TerrainPresetSelection(
+      selectionMode: current.selectionMode,
       selectedTerrainType: current.selectedTerrainType,
       selectedTerrainPresetId: nextSelectedTerrainPresetId,
       selectedPathPresetId: current.selectedPathPresetId,
@@ -182,7 +188,8 @@ class TerrainPresetSelectionCoordinator {
   }) {
     final created = _resolver.findLastCreatedPathPreset(previous, updated);
     final next = TerrainPresetSelection(
-      selectedTerrainType: TerrainType.path,
+      selectionMode: TerrainSelectionMode.path,
+      selectedTerrainType: current.selectedTerrainType,
       selectedTerrainPresetId: current.selectedTerrainPresetId,
       selectedPathPresetId: created?.id ?? current.selectedPathPresetId,
       selectedTerrainPresetByType: current.selectedTerrainPresetByType,
@@ -196,7 +203,8 @@ class TerrainPresetSelectionCoordinator {
     required ProjectPathPreset selectedPreset,
   }) {
     final next = TerrainPresetSelection(
-      selectedTerrainType: TerrainType.path,
+      selectionMode: TerrainSelectionMode.path,
+      selectedTerrainType: current.selectedTerrainType,
       selectedTerrainPresetId: current.selectedTerrainPresetId,
       selectedPathPresetId: selectedPreset.id,
       selectedTerrainPresetByType: current.selectedTerrainPresetByType,
@@ -217,6 +225,7 @@ class TerrainPresetSelectionCoordinator {
       nextSelectedPathPresetId = presets.isEmpty ? null : presets.first.id;
     }
     final next = TerrainPresetSelection(
+      selectionMode: current.selectionMode,
       selectedTerrainType: current.selectedTerrainType,
       selectedTerrainPresetId: current.selectedTerrainPresetId,
       selectedPathPresetId: nextSelectedPathPresetId,

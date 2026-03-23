@@ -3407,7 +3407,7 @@ ProjectPathPreset _$ProjectPathPresetFromJson(Map<String, dynamic> json) {
 mixin _$ProjectPathPreset {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  TerrainType get groundTerrainType => throw _privateConstructorUsedError;
+  PathSurfaceKind get surfaceKind => throw _privateConstructorUsedError;
   String? get categoryId => throw _privateConstructorUsedError;
   String get tilesetId => throw _privateConstructorUsedError;
   List<PathPresetVariantMapping> get variants =>
@@ -3433,7 +3433,7 @@ abstract class $ProjectPathPresetCopyWith<$Res> {
   $Res call(
       {String id,
       String name,
-      TerrainType groundTerrainType,
+      PathSurfaceKind surfaceKind,
       String? categoryId,
       String tilesetId,
       List<PathPresetVariantMapping> variants,
@@ -3457,7 +3457,7 @@ class _$ProjectPathPresetCopyWithImpl<$Res, $Val extends ProjectPathPreset>
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? groundTerrainType = null,
+    Object? surfaceKind = null,
     Object? categoryId = freezed,
     Object? tilesetId = null,
     Object? variants = null,
@@ -3472,10 +3472,10 @@ class _$ProjectPathPresetCopyWithImpl<$Res, $Val extends ProjectPathPreset>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
-      groundTerrainType: null == groundTerrainType
-          ? _value.groundTerrainType
-          : groundTerrainType // ignore: cast_nullable_to_non_nullable
-              as TerrainType,
+      surfaceKind: null == surfaceKind
+          ? _value.surfaceKind
+          : surfaceKind // ignore: cast_nullable_to_non_nullable
+              as PathSurfaceKind,
       categoryId: freezed == categoryId
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
@@ -3507,7 +3507,7 @@ abstract class _$$ProjectPathPresetImplCopyWith<$Res>
   $Res call(
       {String id,
       String name,
-      TerrainType groundTerrainType,
+      PathSurfaceKind surfaceKind,
       String? categoryId,
       String tilesetId,
       List<PathPresetVariantMapping> variants,
@@ -3529,7 +3529,7 @@ class __$$ProjectPathPresetImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? groundTerrainType = null,
+    Object? surfaceKind = null,
     Object? categoryId = freezed,
     Object? tilesetId = null,
     Object? variants = null,
@@ -3544,10 +3544,10 @@ class __$$ProjectPathPresetImplCopyWithImpl<$Res>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
-      groundTerrainType: null == groundTerrainType
-          ? _value.groundTerrainType
-          : groundTerrainType // ignore: cast_nullable_to_non_nullable
-              as TerrainType,
+      surfaceKind: null == surfaceKind
+          ? _value.surfaceKind
+          : surfaceKind // ignore: cast_nullable_to_non_nullable
+              as PathSurfaceKind,
       categoryId: freezed == categoryId
           ? _value.categoryId
           : categoryId // ignore: cast_nullable_to_non_nullable
@@ -3574,7 +3574,7 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
   const _$ProjectPathPresetImpl(
       {required this.id,
       required this.name,
-      this.groundTerrainType = TerrainType.normal,
+      this.surfaceKind = PathSurfaceKind.path,
       this.categoryId,
       this.tilesetId = '',
       final List<PathPresetVariantMapping> variants = const [],
@@ -3590,7 +3590,7 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
   final String name;
   @override
   @JsonKey()
-  final TerrainType groundTerrainType;
+  final PathSurfaceKind surfaceKind;
   @override
   final String? categoryId;
   @override
@@ -3611,7 +3611,7 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
 
   @override
   String toString() {
-    return 'ProjectPathPreset(id: $id, name: $name, groundTerrainType: $groundTerrainType, categoryId: $categoryId, tilesetId: $tilesetId, variants: $variants, sortOrder: $sortOrder)';
+    return 'ProjectPathPreset(id: $id, name: $name, surfaceKind: $surfaceKind, categoryId: $categoryId, tilesetId: $tilesetId, variants: $variants, sortOrder: $sortOrder)';
   }
 
   @override
@@ -3621,8 +3621,8 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
             other is _$ProjectPathPresetImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.groundTerrainType, groundTerrainType) ||
-                other.groundTerrainType == groundTerrainType) &&
+            (identical(other.surfaceKind, surfaceKind) ||
+                other.surfaceKind == surfaceKind) &&
             (identical(other.categoryId, categoryId) ||
                 other.categoryId == categoryId) &&
             (identical(other.tilesetId, tilesetId) ||
@@ -3638,7 +3638,7 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
       runtimeType,
       id,
       name,
-      groundTerrainType,
+      surfaceKind,
       categoryId,
       tilesetId,
       const DeepCollectionEquality().hash(_variants),
@@ -3665,7 +3665,7 @@ abstract class _ProjectPathPreset implements ProjectPathPreset {
   const factory _ProjectPathPreset(
       {required final String id,
       required final String name,
-      final TerrainType groundTerrainType,
+      final PathSurfaceKind surfaceKind,
       final String? categoryId,
       final String tilesetId,
       final List<PathPresetVariantMapping> variants,
@@ -3679,7 +3679,7 @@ abstract class _ProjectPathPreset implements ProjectPathPreset {
   @override
   String get name;
   @override
-  TerrainType get groundTerrainType;
+  PathSurfaceKind get surfaceKind;
   @override
   String? get categoryId;
   @override

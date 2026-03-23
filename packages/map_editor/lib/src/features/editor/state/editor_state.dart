@@ -17,6 +17,11 @@ enum CollisionBrushSizeMode {
   singleTile,
 }
 
+enum TerrainSelectionMode {
+  terrain,
+  path,
+}
+
 @freezed
 sealed class EditorBrush with _$EditorBrush {
   const factory EditorBrush.none() = NoEditorBrush;
@@ -50,6 +55,8 @@ class EditorState with _$EditorState {
     String? activeLayerId,
     GridPos? hoveredTile,
     @Default(EditorBrush.none()) EditorBrush activeBrush,
+    @Default(TerrainSelectionMode.terrain)
+    TerrainSelectionMode terrainSelectionMode,
     @Default(TerrainType.normal) TerrainType selectedTerrainType,
     String? selectedTerrainPresetId,
     String? selectedPathPresetId,

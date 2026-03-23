@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
 class TerrainMapPanel extends ConsumerWidget {
@@ -18,7 +19,8 @@ class TerrainMapPanel extends ConsumerWidget {
     final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
     final selectedPathPreset = notifier.getSelectedPathPreset();
     final selectedTerrainType = state.selectedTerrainType;
-    final isPathSelected = selectedTerrainType == TerrainType.path;
+    final isPathSelected =
+        state.terrainSelectionMode == TerrainSelectionMode.path;
 
     final activeLayer = _resolveActiveLayer(map, state.activeLayerId);
     final activeIsTerrain = activeLayer is TerrainLayer;
@@ -37,7 +39,7 @@ class TerrainMapPanel extends ConsumerWidget {
 
     TerrainType paintTerrain;
     if (isPathSelected) {
-      paintTerrain = TerrainType.path;
+      paintTerrain = state.selectedTerrainType;
     } else if (selectedTerrainPreset != null) {
       paintTerrain = selectedTerrainPreset.terrainType;
     } else {
@@ -137,7 +139,7 @@ class TerrainMapPanel extends ConsumerWidget {
                           ),
                         ),
                         child: Text(
-                          'Path type: ${_terrainLabel(displayedPathPreset.groundTerrainType)}',
+                          'Surface family: ${_pathSurfaceLabel(displayedPathPreset.surfaceKind)}',
                           style: const TextStyle(
                             fontSize: 11,
                             color: Colors.white70,
@@ -390,7 +392,7 @@ class TerrainMapPanel extends ConsumerWidget {
               (preset) => DropdownMenuItem<String>(
                 value: preset.id,
                 child: Text(
-                  '${preset.name} (${_terrainLabel(preset.groundTerrainType)})${_categorySuffix(notifier, preset.categoryId)}',
+                  '${preset.name} (${_pathSurfaceLabel(preset.surfaceKind)})${_categorySuffix(notifier, preset.categoryId)}',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -445,6 +447,18 @@ class TerrainMapPanel extends ConsumerWidget {
       TerrainType.tallGrass => 'Tall Grass',
       TerrainType.sand => 'Sand',
       TerrainType.ice => 'Ice',
+    };
+  }
+
+  String _pathSurfaceLabel(PathSurfaceKind kind) {
+    return switch (kind) {
+      PathSurfaceKind.path => 'Path',
+      PathSurfaceKind.water => 'Water',
+      PathSurfaceKind.ice => 'Ice',
+      PathSurfaceKind.lava => 'Lava',
+      PathSurfaceKind.mud => 'Mud',
+      PathSurfaceKind.bridge => 'Bridge',
+      PathSurfaceKind.custom => 'Custom',
     };
   }
 }

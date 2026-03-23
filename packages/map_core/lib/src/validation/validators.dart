@@ -372,12 +372,6 @@ class ProjectValidator {
       if (preset.name.trim().isEmpty) {
         throw ValidationException('Path preset ${preset.id} has an empty name');
       }
-      if (preset.groundTerrainType == TerrainType.none ||
-          preset.groundTerrainType == TerrainType.path) {
-        throw ValidationException(
-          'Path preset ${preset.id} has an invalid ground terrain type',
-        );
-      }
       final tilesetId = preset.tilesetId.trim();
       if (tilesetId.isNotEmpty && !tilesetIds.contains(tilesetId)) {
         throw ValidationException(

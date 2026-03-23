@@ -314,8 +314,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 }
 
-enum _TerrainLayerPaintPass { base, path }
-
 class MapGridPainter extends CustomPainter {
   final MapData map;
   final double zoom;
@@ -364,42 +362,34 @@ class MapGridPainter extends CustomPainter {
     final gridWidth = map.size.width * tileWidth;
     final gridHeight = map.size.height * tileHeight;
 
-    for (var index = map.layers.length - 1; index >= 0; index--) {
-      final layer = map.layers[index];
-      if (!layer.isVisible) continue;
+    final visibleLayers = map.layers.where((layer) => layer.isVisible).toList();
+
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
+      if (layer is TerrainLayer) {
+        _paintTerrainLayer(canvas, layer);
+      }
+    }
+
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
+      if (layer is PathLayer) {
+        _paintPathLayer(canvas, layer);
+      }
+    }
+
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
       if (layer is TileLayer) {
         _paintTileLayer(canvas, layer);
-        continue;
       }
-      if (layer is TerrainLayer) {
-        _paintTerrainLayer(
-          canvas,
-          layer,
-          isActive: layer.id == activeLayerId,
-          pass: _TerrainLayerPaintPass.base,
-        );
-        _paintTerrainLayer(
-          canvas,
-          layer,
-          isActive: layer.id == activeLayerId,
-          pass: _TerrainLayerPaintPass.path,
-        );
-        continue;
-      }
-      if (layer is PathLayer) {
-        _paintPathLayer(
-          canvas,
-          layer,
-          isActive: layer.id == activeLayerId,
-        );
-        continue;
-      }
+    }
+
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
       if (layer is CollisionLayer) {
-        _paintCollisionLayer(
-          canvas,
-          layer,
-          isActive: layer.id == activeLayerId,
-        );
+        _paintCollisionLayer(canvas, layer,
+            isActive: layer.id == activeLayerId);
       }
     }
 
@@ -1024,19 +1014,6 @@ class MapGridPainter extends CustomPainter {
     }
 
     final layerPaint = Paint();
-    final needsOpacityLayer = layer.opacity < 1.0;
-    if (needsOpacityLayer) {
-      final bounds = Rect.fromLTWH(
-        0,
-        0,
-        map.size.width * tileWidth,
-        map.size.height * tileHeight,
-      );
-      canvas.saveLayer(
-        bounds,
-        Paint()..color = Colors.white.withValues(alpha: layer.opacity),
-      );
-    }
 
     for (var y = 0; y < map.size.height; y++) {
       final rowStart = y * map.size.width;
@@ -1071,10 +1048,6 @@ class MapGridPainter extends CustomPainter {
         );
         canvas.drawImageRect(tilesetImage, srcRect, dstRect, layerPaint);
       }
-    }
-
-    if (needsOpacityLayer) {
-      canvas.restore();
     }
   }
 
@@ -1112,58 +1085,29 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintTerrainLayer(
-    Canvas canvas,
-    TerrainLayer layer, {
-    required bool isActive,
-    required _TerrainLayerPaintPass pass,
-  }) {
+  void _paintTerrainLayer(Canvas canvas, TerrainLayer layer) {
     if (layer.terrains.isEmpty) return;
-    final activeBoost = isActive ? 1.0 : 0.85;
-    final pathCellAlpha = 0.95 * layer.opacity * activeBoost;
     for (var y = 0; y < map.size.height; y++) {
       final rowStart = y * map.size.width;
       for (var x = 0; x < map.size.width; x++) {
         final index = rowStart + x;
         if (index < 0 || index >= layer.terrains.length) continue;
         final terrain = layer.terrains[index];
-        if (terrain == TerrainType.none) continue;
-        if (pass == _TerrainLayerPaintPass.base &&
-            terrain == TerrainType.path) {
+        if (terrain == TerrainType.none || terrain == TerrainType.path) {
           continue;
-        }
-        if (pass == _TerrainLayerPaintPass.path &&
-            terrain != TerrainType.path) {
-          continue;
-        }
-        if (terrain == TerrainType.path) {
-          final pathDrawn = _paintLegacyTerrainPathCell(
-            canvas,
-            layer: layer,
-            x: x,
-            y: y,
-            alpha: pathCellAlpha,
-          );
-          if (pathDrawn) {
-            continue;
-          }
         }
         final terrainPresetDrawn = _paintTerrainPresetCell(
           canvas,
           terrain,
           x: x,
           y: y,
-          alpha: 0.95 * layer.opacity * activeBoost,
+          alpha: 1.0,
         );
         if (terrainPresetDrawn) {
           continue;
         }
-        final fillColor = _terrainColor(terrain).withValues(
-          alpha: 0.16 * layer.opacity * activeBoost,
-        );
-        final borderColor = _terrainColor(terrain).withValues(
-          alpha: 0.45 * layer.opacity * activeBoost,
-        );
+        final fillColor = _terrainColor(terrain);
+        final borderColor = _terrainBorderColor(terrain);
         final cell = Rect.fromLTWH(
           x * tileWidth,
           y * tileHeight,
@@ -1187,14 +1131,9 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintPathLayer(
-    Canvas canvas,
-    PathLayer layer, {
-    required bool isActive,
-  }) {
+  void _paintPathLayer(Canvas canvas, PathLayer layer) {
     if (layer.cells.isEmpty) return;
-    final activeBoost = isActive ? 1.0 : 0.85;
-    final pathCellAlpha = 0.95 * layer.opacity * activeBoost;
+    const pathCellAlpha = 1.0;
     final autotileSet = _resolvePathAutotileSetForLayer(layer);
     for (var y = 0; y < map.size.height; y++) {
       final rowStart = y * map.size.width;
@@ -1224,59 +1163,18 @@ class MapGridPainter extends CustomPainter {
         canvas.drawRect(
           cell,
           Paint()
-            ..color = Colors.tealAccent.withValues(
-              alpha: 0.18 * layer.opacity * activeBoost,
-            )
+            ..color = Colors.teal
             ..style = PaintingStyle.fill,
         );
         canvas.drawRect(
           cell,
           Paint()
-            ..color = Colors.tealAccent.withValues(
-              alpha: 0.75 * layer.opacity * activeBoost,
-            )
+            ..color = Colors.tealAccent
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.0 / zoom,
         );
       }
     }
-  }
-
-  bool _paintLegacyTerrainPathCell(
-    Canvas canvas, {
-    required TerrainLayer layer,
-    required int x,
-    required int y,
-    required double alpha,
-  }) {
-    final autotileSet = selectedPathAutotileSet;
-    if (autotileSet == null) return false;
-    final tilesetId = autotileSet.tilesetId.trim();
-    if (tilesetId.isEmpty) return false;
-    final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-
-    final variant = resolveTerrainPathVariantAt(
-      terrains: layer.terrains,
-      mapSize: map.size,
-      pos: GridPos(x: x, y: y),
-    );
-    final dstRect = Rect.fromLTWH(
-      x * tileWidth,
-      y * tileHeight,
-      tileWidth,
-      tileHeight,
-    );
-    return _paintAutotileVariantCell(
-      canvas,
-      autotileSet: autotileSet,
-      tilesetImage: tilesetImage,
-      variant: variant,
-      dstRect: dstRect,
-      alpha: alpha,
-    );
   }
 
   bool _paintPathLayerCell(
@@ -1507,6 +1405,25 @@ class MapGridPainter extends CustomPainter {
       TerrainType.sand => Colors.amberAccent,
       TerrainType.ice => Colors.cyanAccent,
     };
+  }
+
+  Color _terrainBorderColor(TerrainType terrain) {
+    switch (terrain) {
+      case TerrainType.normal:
+        return Colors.green.shade900;
+      case TerrainType.water:
+        return Colors.blue.shade900;
+      case TerrainType.ice:
+        return Colors.cyan.shade900;
+      case TerrainType.sand:
+        return Colors.orange.shade900;
+      case TerrainType.tallGrass:
+        return Colors.green.shade900;
+      case TerrainType.path:
+        return Colors.brown.shade900;
+      case TerrainType.none:
+        return Colors.transparent;
+    }
   }
 
   @override

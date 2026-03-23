@@ -147,7 +147,7 @@ class TopToolbar extends ConsumerWidget {
               Icons.route_outlined,
               size: 20,
               color: state.activeTool == EditorToolType.terrainPaint &&
-                      state.selectedTerrainType == TerrainType.path
+                      state.terrainSelectionMode == TerrainSelectionMode.path
                   ? Colors.blue
                   : null,
             ),
@@ -158,6 +158,7 @@ class TopToolbar extends ConsumerWidget {
                 'Terrain Type: ${_terrainTypeLabel(state.selectedTerrainType)}',
             onSelected: notifier.selectTerrainType,
             itemBuilder: (context) => TerrainType.values
+                .where((terrain) => terrain.isBackgroundPaintable)
                 .map(
                   (terrain) => PopupMenuItem<TerrainType>(
                     value: terrain,

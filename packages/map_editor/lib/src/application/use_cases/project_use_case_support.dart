@@ -413,32 +413,18 @@ List<ProjectTerrainPreset> defaultTerrainPresets() {
       sortOrder: 0,
     ),
     ProjectTerrainPreset(
-      id: 'terrain_water',
-      name: 'Water',
-      terrainType: TerrainType.water,
-      categoryId: 'terrain_ground',
-      sortOrder: 1,
-    ),
-    ProjectTerrainPreset(
       id: 'terrain_tall_grass',
       name: 'Tall Grass',
       terrainType: TerrainType.tallGrass,
       categoryId: 'terrain_ground',
-      sortOrder: 2,
+      sortOrder: 1,
     ),
     ProjectTerrainPreset(
       id: 'terrain_sand',
       name: 'Sand',
       terrainType: TerrainType.sand,
       categoryId: 'terrain_ground',
-      sortOrder: 3,
-    ),
-    ProjectTerrainPreset(
-      id: 'terrain_ice',
-      name: 'Ice',
-      terrainType: TerrainType.ice,
-      categoryId: 'terrain_ground',
-      sortOrder: 4,
+      sortOrder: 2,
     ),
   ];
 }
@@ -466,10 +452,24 @@ List<ProjectTerrainPresetCategory> defaultTerrainPresetCategories() {
     ),
     ProjectTerrainPresetCategory(
       id: 'path_main',
-      name: 'Main Paths',
+      name: 'Paths',
       kind: TerrainPresetCategoryKind.path,
       parentCategoryId: 'path',
       sortOrder: 0,
+    ),
+    ProjectTerrainPresetCategory(
+      id: 'path_water',
+      name: 'Water',
+      kind: TerrainPresetCategoryKind.path,
+      parentCategoryId: 'path',
+      sortOrder: 1,
+    ),
+    ProjectTerrainPresetCategory(
+      id: 'path_special',
+      name: 'Special Surfaces',
+      kind: TerrainPresetCategoryKind.path,
+      parentCategoryId: 'path',
+      sortOrder: 2,
     ),
   ];
 }
@@ -478,10 +478,24 @@ List<ProjectPathPreset> defaultPathPresets() {
   return const [
     ProjectPathPreset(
       id: 'path_default',
-      name: 'Default Path',
+      name: 'Dirt Path',
       categoryId: 'path_main',
-      groundTerrainType: TerrainType.normal,
+      surfaceKind: PathSurfaceKind.path,
       sortOrder: 0,
+    ),
+    ProjectPathPreset(
+      id: 'surface_water',
+      name: 'Water Surface',
+      categoryId: 'path_water',
+      surfaceKind: PathSurfaceKind.water,
+      sortOrder: 1,
+    ),
+    ProjectPathPreset(
+      id: 'surface_ice',
+      name: 'Ice Surface',
+      categoryId: 'path_special',
+      surfaceKind: PathSurfaceKind.ice,
+      sortOrder: 2,
     ),
   ];
 }

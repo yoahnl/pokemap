@@ -100,6 +100,22 @@ enum TerrainType {
   ice,
 }
 
+extension TerrainTypeX on TerrainType {
+  bool get isBackgroundPaintable {
+    return switch (this) {
+      TerrainType.normal || TerrainType.tallGrass || TerrainType.sand => true,
+      _ => false,
+    };
+  }
+
+  bool get isLegacySurfaceLike {
+    return switch (this) {
+      TerrainType.path || TerrainType.water || TerrainType.ice => true,
+      _ => false,
+    };
+  }
+}
+
 enum TerrainPathVariant {
   isolated,
   endNorth,
@@ -128,6 +144,23 @@ enum TerrainPresetCategoryKind {
   terrain,
   @JsonValue('path')
   path,
+}
+
+enum PathSurfaceKind {
+  @JsonValue('path')
+  path,
+  @JsonValue('water')
+  water,
+  @JsonValue('ice')
+  ice,
+  @JsonValue('lava')
+  lava,
+  @JsonValue('mud')
+  mud,
+  @JsonValue('bridge')
+  bridge,
+  @JsonValue('custom')
+  custom,
 }
 
 enum TilesetScope {

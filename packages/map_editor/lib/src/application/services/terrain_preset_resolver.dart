@@ -115,7 +115,7 @@ class TerrainPresetResolver {
     required String? selectedTerrainPresetId,
     required Map<TerrainType, String> selectedTerrainPresetByType,
   }) {
-    if (terrainType == TerrainType.path) return null;
+    if (!terrainType.isBackgroundPaintable) return null;
     final selectedByTypeId = selectedTerrainPresetByType[terrainType];
     if (selectedByTypeId != null) {
       final selectedByType = findTerrainPresetById(project, selectedByTypeId);
@@ -167,7 +167,7 @@ class TerrainPresetResolver {
   ) {
     final result = <TerrainType, String>{};
     for (final type in TerrainType.values) {
-      if (type == TerrainType.none || type == TerrainType.path) continue;
+      if (!type.isBackgroundPaintable) continue;
       final presets = listTerrainPresets(project, terrainType: type);
       if (presets.isNotEmpty) {
         result[type] = presets.first.id;
@@ -182,7 +182,7 @@ class TerrainPresetResolver {
     required String? preferredPresetId,
     required Map<TerrainType, String> selectedTerrainPresetByType,
   }) {
-    if (project == null || terrainType == TerrainType.path) {
+    if (project == null || !terrainType.isBackgroundPaintable) {
       return preferredPresetId;
     }
     final preferred = findTerrainPresetById(project, preferredPresetId);
@@ -219,7 +219,7 @@ class TerrainPresetResolver {
   }) {
     final sanitized = <TerrainType, String>{};
     for (final entry in current.entries) {
-      if (entry.key == TerrainType.none || entry.key == TerrainType.path) {
+      if (!entry.key.isBackgroundPaintable) {
         continue;
       }
       final preset = findTerrainPresetById(project, entry.value);
@@ -227,7 +227,7 @@ class TerrainPresetResolver {
       sanitized[entry.key] = preset.id;
     }
     for (final type in TerrainType.values) {
-      if (type == TerrainType.none || type == TerrainType.path) continue;
+      if (!type.isBackgroundPaintable) continue;
       if (sanitized.containsKey(type)) continue;
       final presets = listTerrainPresets(project, terrainType: type);
       if (presets.isNotEmpty) {

@@ -396,9 +396,9 @@ _$ProjectPathPresetImpl _$$ProjectPathPresetImplFromJson(
     _$ProjectPathPresetImpl(
       id: json['id'] as String,
       name: json['name'] as String,
-      groundTerrainType: $enumDecodeNullable(
-              _$TerrainTypeEnumMap, json['groundTerrainType']) ??
-          TerrainType.normal,
+      surfaceKind:
+          $enumDecodeNullable(_$PathSurfaceKindEnumMap, json['surfaceKind']) ??
+              PathSurfaceKind.path,
       categoryId: json['categoryId'] as String?,
       tilesetId: json['tilesetId'] as String? ?? '',
       variants: (json['variants'] as List<dynamic>?)
@@ -414,12 +414,22 @@ Map<String, dynamic> _$$ProjectPathPresetImplToJson(
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
-      'groundTerrainType': _$TerrainTypeEnumMap[instance.groundTerrainType]!,
+      'surfaceKind': _$PathSurfaceKindEnumMap[instance.surfaceKind]!,
       'categoryId': instance.categoryId,
       'tilesetId': instance.tilesetId,
       'variants': instance.variants,
       'sortOrder': instance.sortOrder,
     };
+
+const _$PathSurfaceKindEnumMap = {
+  PathSurfaceKind.path: 'path',
+  PathSurfaceKind.water: 'water',
+  PathSurfaceKind.ice: 'ice',
+  PathSurfaceKind.lava: 'lava',
+  PathSurfaceKind.mud: 'mud',
+  PathSurfaceKind.bridge: 'bridge',
+  PathSurfaceKind.custom: 'custom',
+};
 
 _$PathPresetVariantMappingImpl _$$PathPresetVariantMappingImplFromJson(
         Map<String, dynamic> json) =>

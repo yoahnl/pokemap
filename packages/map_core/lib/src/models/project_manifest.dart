@@ -194,7 +194,7 @@ class ProjectPathPreset with _$ProjectPathPreset {
   const factory ProjectPathPreset({
     required String id,
     required String name,
-    @Default(TerrainType.normal) TerrainType groundTerrainType,
+    @Default(PathSurfaceKind.path) PathSurfaceKind surfaceKind,
     String? categoryId,
     @Default('') String tilesetId,
     @Default([]) List<PathPresetVariantMapping> variants,

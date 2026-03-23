@@ -8,16 +8,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
 
 class TerrainEditorPanel extends ConsumerWidget {
   const TerrainEditorPanel({super.key});
 
   static const List<TerrainType> _paintableTerrainTypes = <TerrainType>[
     TerrainType.normal,
-    TerrainType.water,
     TerrainType.tallGrass,
     TerrainType.sand,
-    TerrainType.ice,
+  ];
+
+  static const List<PathSurfaceKind> _pathSurfaceKinds = <PathSurfaceKind>[
+    PathSurfaceKind.path,
+    PathSurfaceKind.water,
+    PathSurfaceKind.ice,
+    PathSurfaceKind.lava,
+    PathSurfaceKind.mud,
+    PathSurfaceKind.bridge,
+    PathSurfaceKind.custom,
   ];
 
   static const List<TerrainPathVariant> _pathSchemaEditableVariants =
@@ -55,7 +64,8 @@ class TerrainEditorPanel extends ConsumerWidget {
     );
     final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
     final selectedPathPreset = notifier.getSelectedPathPreset();
-    final isPathSelection = state.selectedTerrainType == TerrainType.path;
+    final isPathSelection =
+        state.terrainSelectionMode == TerrainSelectionMode.path;
 
     return Container(
       decoration: BoxDecoration(
@@ -350,7 +360,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      '${_terrainLabel(preset.groundTerrainType)} • ${preset.variants.length}/${TerrainPathVariant.values.length} mapped${_categorySuffix(notifier, preset.categoryId)}',
+                      '${_pathSurfaceLabel(preset.surfaceKind)} • ${preset.variants.length}/${TerrainPathVariant.values.length} mapped${_categorySuffix(notifier, preset.categoryId)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -517,7 +527,7 @@ class TerrainEditorPanel extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Type: ${_terrainLabel(preset.groundTerrainType)}',
+            'Surface: ${_pathSurfaceLabel(preset.surfaceKind)}',
             style: const TextStyle(fontSize: 11, color: Colors.white70),
           ),
           const SizedBox(height: 2),
@@ -1480,7 +1490,7 @@ class TerrainEditorPanel extends ConsumerWidget {
   }) async {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
-    var groundTerrainType = TerrainType.normal;
+    var surfaceKind = PathSurfaceKind.path;
     var categoryId = '';
     var tilesetId = '';
     final availableTilesets = List<ProjectTilesetEntry>.from(
@@ -1506,20 +1516,21 @@ class TerrainEditorPanel extends ConsumerWidget {
                       value == null || value.trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<TerrainType>(
-                  value: groundTerrainType,
-                  decoration: const InputDecoration(labelText: 'Path Type'),
-                  items: _paintableTerrainTypes
+                DropdownButtonFormField<PathSurfaceKind>(
+                  value: surfaceKind,
+                  decoration:
+                      const InputDecoration(labelText: 'Surface Family'),
+                  items: _pathSurfaceKinds
                       .map(
-                        (type) => DropdownMenuItem<TerrainType>(
+                        (type) => DropdownMenuItem<PathSurfaceKind>(
                           value: type,
-                          child: Text(_terrainLabel(type)),
+                          child: Text(_pathSurfaceLabel(type)),
                         ),
                       )
                       .toList(growable: false),
                   onChanged: (value) {
                     if (value != null) {
-                      setState(() => groundTerrainType = value);
+                      setState(() => surfaceKind = value);
                     }
                   },
                 ),
@@ -1614,7 +1625,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                 if (formKey.currentState?.validate() != true) return;
                 await notifier.createPathPreset(
                   name: nameController.text.trim(),
-                  groundTerrainType: groundTerrainType,
+                  surfaceKind: surfaceKind,
                   categoryId: categoryId,
                   tilesetId: tilesetId,
                 );
@@ -1669,7 +1680,7 @@ class TerrainEditorPanel extends ConsumerWidget {
   }) async {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: preset.name);
-    var groundTerrainType = preset.groundTerrainType;
+    var surfaceKind = preset.surfaceKind;
     var categoryId = preset.categoryId ?? '';
     var tilesetId = preset.tilesetId;
     final variants = <TerrainPathVariant, TilesetSourceRect>{
@@ -1706,20 +1717,21 @@ class TerrainEditorPanel extends ConsumerWidget {
                               : null,
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<TerrainType>(
-                      value: groundTerrainType,
-                      decoration: const InputDecoration(labelText: 'Path Type'),
-                      items: _paintableTerrainTypes
+                    DropdownButtonFormField<PathSurfaceKind>(
+                      value: surfaceKind,
+                      decoration:
+                          const InputDecoration(labelText: 'Surface Family'),
+                      items: _pathSurfaceKinds
                           .map(
-                            (type) => DropdownMenuItem<TerrainType>(
+                            (type) => DropdownMenuItem<PathSurfaceKind>(
                               value: type,
-                              child: Text(_terrainLabel(type)),
+                              child: Text(_pathSurfaceLabel(type)),
                             ),
                           )
                           .toList(growable: false),
                       onChanged: (value) {
                         if (value != null) {
-                          setState(() => groundTerrainType = value);
+                          setState(() => surfaceKind = value);
                         }
                       },
                     ),
@@ -1888,7 +1900,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                 notifier.updatePathPreset(
                   presetId: preset.id,
                   name: nameController.text.trim(),
-                  groundTerrainType: groundTerrainType,
+                  surfaceKind: surfaceKind,
                   categoryId: categoryId,
                   clearCategoryId: categoryId.trim().isEmpty,
                   tilesetId: tilesetId,
@@ -2506,6 +2518,18 @@ class TerrainEditorPanel extends ConsumerWidget {
       TerrainType.tallGrass => 'Tall Grass',
       TerrainType.sand => 'Sand',
       TerrainType.ice => 'Ice',
+    };
+  }
+
+  String _pathSurfaceLabel(PathSurfaceKind kind) {
+    return switch (kind) {
+      PathSurfaceKind.path => 'Path',
+      PathSurfaceKind.water => 'Water',
+      PathSurfaceKind.ice => 'Ice',
+      PathSurfaceKind.lava => 'Lava',
+      PathSurfaceKind.mud => 'Mud',
+      PathSurfaceKind.bridge => 'Bridge',
+      PathSurfaceKind.custom => 'Custom',
     };
   }
 

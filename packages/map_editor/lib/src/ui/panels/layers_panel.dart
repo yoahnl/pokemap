@@ -336,36 +336,6 @@ class _LayerList extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Text(
-                      'Opacity',
-                      style: TextStyle(fontSize: 10, color: Colors.white60),
-                    ),
-                    Expanded(
-                      child: Slider(
-                        value: layer.opacity.clamp(0.0, 1.0),
-                        min: 0,
-                        max: 1,
-                        divisions: 20,
-                        label: '${(layer.opacity * 100).round()}%',
-                        onChanged: (value) {
-                          notifier.setMapLayerOpacity(layer.id, value);
-                        },
-                      ),
-                    ),
-                    SizedBox(
-                      width: 40,
-                      child: Text(
-                        '${(layer.opacity * 100).round()}%',
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.white60),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),

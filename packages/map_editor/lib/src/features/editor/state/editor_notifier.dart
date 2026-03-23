@@ -53,6 +53,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   TerrainPresetSelection _currentTerrainPresetSelection() {
     return TerrainPresetSelection(
+      selectionMode: state.terrainSelectionMode,
       selectedTerrainType: state.selectedTerrainType,
       selectedTerrainPresetId: state.selectedTerrainPresetId,
       selectedPathPresetId: state.selectedPathPresetId,
@@ -68,6 +69,7 @@ class EditorNotifier extends _$EditorNotifier {
     EditorToolType? activeTool,
   }) {
     return source.copyWith(
+      terrainSelectionMode: selection.selectionMode,
       selectedTerrainType: selection.selectedTerrainType,
       selectedTerrainPresetId: selection.selectedTerrainPresetId,
       selectedPathPresetId: selection.selectedPathPresetId,
@@ -99,6 +101,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
+        terrainSelectionMode: presetSelection.selectionMode,
         selectedTerrainType: presetSelection.selectedTerrainType,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
         selectedPathPresetId: presetSelection.selectedPathPresetId,
@@ -141,6 +144,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
+        terrainSelectionMode: presetSelection.selectionMode,
         selectedTerrainType: presetSelection.selectedTerrainType,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
         selectedPathPresetId: presetSelection.selectedPathPresetId,
@@ -254,6 +258,7 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _editorMapSessionCoordinator.resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
+        terrainSelectionMode: presetSelection.selectionMode,
         selectedTerrainType: presetSelection.selectedTerrainType,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
         selectedPathPresetId: presetSelection.selectedPathPresetId,
@@ -314,6 +319,7 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _editorMapSessionCoordinator.resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
+        terrainSelectionMode: presetSelection.selectionMode,
         selectedTerrainType: presetSelection.selectedTerrainType,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
         selectedPathPresetId: presetSelection.selectedPathPresetId,
@@ -734,6 +740,7 @@ class EditorNotifier extends _$EditorNotifier {
         activeBrush: activeBrush,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
+        terrainSelectionMode: presetSelection.selectionMode,
         selectedTerrainType: presetSelection.selectedTerrainType,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
         selectedPathPresetId: presetSelection.selectedPathPresetId,
@@ -917,7 +924,7 @@ class EditorNotifier extends _$EditorNotifier {
   Map<TerrainType, ProjectTerrainPreset> getTerrainPresetByType() {
     final result = <TerrainType, ProjectTerrainPreset>{};
     for (final type in TerrainType.values) {
-      if (type == TerrainType.none || type == TerrainType.path) continue;
+      if (!type.isBackgroundPaintable) continue;
       final preset = getSelectedTerrainPreset(terrainType: type);
       if (preset != null) {
         result[type] = preset;
@@ -3164,7 +3171,10 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void selectTerrainType(TerrainType terrain) {
-    if (state.selectedTerrainType == terrain) return;
+    if (state.selectedTerrainType == terrain &&
+        state.terrainSelectionMode == TerrainSelectionMode.terrain) {
+      return;
+    }
     final selection = _terrainPresetSelectionCoordinator.forTerrainType(
       project: state.project,
       current: _currentTerrainPresetSelection(),
@@ -3263,14 +3273,18 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectPathPaintMode() {
     final selectedPathPreset = getSelectedPathPreset();
+    final currentSelection = _currentTerrainPresetSelection();
     final selection = selectedPathPreset == null
-        ? _terrainPresetSelectionCoordinator.forTerrainType(
-            project: state.project,
-            current: _currentTerrainPresetSelection(),
-            terrainType: TerrainType.path,
+        ? TerrainPresetSelection(
+            selectionMode: TerrainSelectionMode.path,
+            selectedTerrainType: currentSelection.selectedTerrainType,
+            selectedTerrainPresetId: currentSelection.selectedTerrainPresetId,
+            selectedPathPresetId: currentSelection.selectedPathPresetId,
+            selectedTerrainPresetByType:
+                currentSelection.selectedTerrainPresetByType,
           )
         : _terrainPresetSelectionCoordinator.forPathPresetSelected(
-            current: _currentTerrainPresetSelection(),
+            current: currentSelection,
             preset: selectedPathPreset,
           );
     state = _copyStateWithTerrainPresetSelection(
@@ -3278,7 +3292,7 @@ class EditorNotifier extends _$EditorNotifier {
       selection,
       activeTool: EditorToolType.terrainPaint,
       statusMessage: selectedPathPreset == null
-          ? 'Terrain type: path'
+          ? 'Path paint mode'
           : 'Path preset: ${selectedPathPreset.name}',
       errorMessage: null,
     );
@@ -3405,7 +3419,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   Future<void> createPathPreset({
     required String name,
-    TerrainType groundTerrainType = TerrainType.normal,
+    PathSurfaceKind surfaceKind = PathSurfaceKind.path,
     String? categoryId,
     String tilesetId = '',
     List<PathPresetVariantMapping> variants = const [],
@@ -3419,7 +3433,7 @@ class EditorNotifier extends _$EditorNotifier {
         fs,
         project,
         name: name,
-        groundTerrainType: groundTerrainType,
+        surfaceKind: surfaceKind,
         categoryId: categoryId,
         tilesetId: tilesetId,
         variants: variants,
@@ -3445,7 +3459,7 @@ class EditorNotifier extends _$EditorNotifier {
   Future<void> updatePathPreset({
     required String presetId,
     String? name,
-    TerrainType? groundTerrainType,
+    PathSurfaceKind? surfaceKind,
     String? categoryId,
     bool clearCategoryId = false,
     String? tilesetId,
@@ -3463,7 +3477,7 @@ class EditorNotifier extends _$EditorNotifier {
         project,
         presetId: presetId,
         name: name,
-        groundTerrainType: groundTerrainType,
+        surfaceKind: surfaceKind,
         categoryId: categoryId,
         clearCategoryId: clearCategoryId,
         tilesetId: tilesetId,

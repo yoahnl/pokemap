@@ -30,6 +30,11 @@ class CreateTerrainPresetUseCase {
         'Terrain preset cannot target "none"',
       );
     }
+    if (!terrainType.isBackgroundPaintable) {
+      throw const EditorInvalidOperationException(
+        'Terrain presets are reserved for base ground only',
+      );
+    }
     final normalizedTilesetId = tilesetId.trim();
     if (normalizedTilesetId.isNotEmpty &&
         !project.tilesets.any((tileset) => tileset.id == normalizedTilesetId)) {
@@ -95,6 +100,11 @@ class UpdateTerrainPresetUseCase {
     if (nextTerrainType == TerrainType.none) {
       throw const EditorInvalidOperationException(
         'Terrain preset cannot target "none"',
+      );
+    }
+    if (terrainType != null && !nextTerrainType.isBackgroundPaintable) {
+      throw const EditorInvalidOperationException(
+        'Terrain presets are reserved for base ground only',
       );
     }
 
@@ -174,7 +184,7 @@ class CreatePathPresetUseCase {
     ProjectWorkspace workspace,
     ProjectManifest project, {
     required String name,
-    TerrainType groundTerrainType = TerrainType.normal,
+    PathSurfaceKind surfaceKind = PathSurfaceKind.path,
     String? categoryId,
     String tilesetId = '',
     List<PathPresetVariantMapping> variants = const [],
@@ -183,7 +193,6 @@ class CreatePathPresetUseCase {
     if (trimmedName.isEmpty) {
       throw const EditorValidationException('Path preset name cannot be empty');
     }
-    _ensurePathGroundTerrainType(groundTerrainType);
 
     final normalizedTilesetId = tilesetId.trim();
     if (normalizedTilesetId.isNotEmpty &&
@@ -201,7 +210,7 @@ class CreatePathPresetUseCase {
     final preset = ProjectPathPreset(
       id: generateUniquePathPresetId(project, trimmedName),
       name: trimmedName,
-      groundTerrainType: groundTerrainType,
+      surfaceKind: surfaceKind,
       categoryId: _normalizeOptionalId(categoryId),
       tilesetId: normalizedTilesetId,
       variants: _normalizePathPresetVariants(variants),
@@ -224,7 +233,7 @@ class UpdatePathPresetUseCase {
     ProjectManifest project, {
     required String presetId,
     String? name,
-    TerrainType? groundTerrainType,
+    PathSurfaceKind? surfaceKind,
     String? categoryId,
     bool clearCategoryId = false,
     String? tilesetId,
@@ -243,9 +252,7 @@ class UpdatePathPresetUseCase {
     if (nextName != null && nextName.isEmpty) {
       throw const EditorValidationException('Path preset name cannot be empty');
     }
-    final nextGroundTerrainType =
-        groundTerrainType ?? current.groundTerrainType;
-    _ensurePathGroundTerrainType(nextGroundTerrainType);
+    final nextSurfaceKind = surfaceKind ?? current.surfaceKind;
 
     final nextTilesetId = clearTilesetId
         ? ''
@@ -277,7 +284,7 @@ class UpdatePathPresetUseCase {
       if (preset.id != presetId) return preset;
       return preset.copyWith(
         name: nextName ?? preset.name,
-        groundTerrainType: nextGroundTerrainType,
+        surfaceKind: nextSurfaceKind,
         categoryId: nextCategoryId,
         tilesetId: nextTilesetId,
         variants: nextVariants,
@@ -455,14 +462,6 @@ void _validatePathPresetVariants(List<PathPresetVariantMapping> variants) {
         'Path preset variant source is invalid',
       );
     }
-  }
-}
-
-void _ensurePathGroundTerrainType(TerrainType terrainType) {
-  if (terrainType == TerrainType.none || terrainType == TerrainType.path) {
-    throw const EditorInvalidOperationException(
-      'Path type must be a ground terrain type',
-    );
   }
 }
 

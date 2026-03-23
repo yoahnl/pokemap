@@ -710,6 +710,8 @@ mixin _$EditorState {
   String? get activeLayerId => throw _privateConstructorUsedError;
   GridPos? get hoveredTile => throw _privateConstructorUsedError;
   EditorBrush get activeBrush => throw _privateConstructorUsedError;
+  TerrainSelectionMode get terrainSelectionMode =>
+      throw _privateConstructorUsedError;
   TerrainType get selectedTerrainType => throw _privateConstructorUsedError;
   String? get selectedTerrainPresetId => throw _privateConstructorUsedError;
   String? get selectedPathPresetId => throw _privateConstructorUsedError;
@@ -761,6 +763,7 @@ abstract class $EditorStateCopyWith<$Res> {
       String? activeLayerId,
       GridPos? hoveredTile,
       EditorBrush activeBrush,
+      TerrainSelectionMode terrainSelectionMode,
       TerrainType selectedTerrainType,
       String? selectedTerrainPresetId,
       String? selectedPathPresetId,
@@ -815,6 +818,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
+    Object? terrainSelectionMode = null,
     Object? selectedTerrainType = null,
     Object? selectedTerrainPresetId = freezed,
     Object? selectedPathPresetId = freezed,
@@ -874,6 +878,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.activeBrush
           : activeBrush // ignore: cast_nullable_to_non_nullable
               as EditorBrush,
+      terrainSelectionMode: null == terrainSelectionMode
+          ? _value.terrainSelectionMode
+          : terrainSelectionMode // ignore: cast_nullable_to_non_nullable
+              as TerrainSelectionMode,
       selectedTerrainType: null == selectedTerrainType
           ? _value.selectedTerrainType
           : selectedTerrainType // ignore: cast_nullable_to_non_nullable
@@ -1060,6 +1068,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? activeLayerId,
       GridPos? hoveredTile,
       EditorBrush activeBrush,
+      TerrainSelectionMode terrainSelectionMode,
       TerrainType selectedTerrainType,
       String? selectedTerrainPresetId,
       String? selectedPathPresetId,
@@ -1118,6 +1127,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? activeLayerId = freezed,
     Object? hoveredTile = freezed,
     Object? activeBrush = null,
+    Object? terrainSelectionMode = null,
     Object? selectedTerrainType = null,
     Object? selectedTerrainPresetId = freezed,
     Object? selectedPathPresetId = freezed,
@@ -1177,6 +1187,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.activeBrush
           : activeBrush // ignore: cast_nullable_to_non_nullable
               as EditorBrush,
+      terrainSelectionMode: null == terrainSelectionMode
+          ? _value.terrainSelectionMode
+          : terrainSelectionMode // ignore: cast_nullable_to_non_nullable
+              as TerrainSelectionMode,
       selectedTerrainType: null == selectedTerrainType
           ? _value.selectedTerrainType
           : selectedTerrainType // ignore: cast_nullable_to_non_nullable
@@ -1278,6 +1292,7 @@ class _$EditorStateImpl implements _EditorState {
       this.activeLayerId,
       this.hoveredTile,
       this.activeBrush = const EditorBrush.none(),
+      this.terrainSelectionMode = TerrainSelectionMode.terrain,
       this.selectedTerrainType = TerrainType.normal,
       this.selectedTerrainPresetId,
       this.selectedPathPresetId,
@@ -1327,6 +1342,9 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final EditorBrush activeBrush;
+  @override
+  @JsonKey()
+  final TerrainSelectionMode terrainSelectionMode;
   @override
   @JsonKey()
   final TerrainType selectedTerrainType;
@@ -1405,7 +1423,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedWarpId: $selectedWarpId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1430,6 +1448,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.hoveredTile == hoveredTile) &&
             (identical(other.activeBrush, activeBrush) ||
                 other.activeBrush == activeBrush) &&
+            (identical(other.terrainSelectionMode, terrainSelectionMode) ||
+                other.terrainSelectionMode == terrainSelectionMode) &&
             (identical(other.selectedTerrainType, selectedTerrainType) ||
                 other.selectedTerrainType == selectedTerrainType) &&
             (identical(other.selectedTerrainPresetId, selectedTerrainPresetId) ||
@@ -1443,10 +1463,10 @@ class _$EditorStateImpl implements _EditorState {
                 other.collisionBrushSizeMode == collisionBrushSizeMode) &&
             (identical(other.selectedWarpId, selectedWarpId) ||
                 other.selectedWarpId == selectedWarpId) &&
-            (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) ||
+            (identical(
+                    other.selectedTilesetEditorId, selectedTilesetEditorId) ||
                 other.selectedTilesetEditorId == selectedTilesetEditorId) &&
-            (identical(other.selectedTilesetElementGroupId,
-                    selectedTilesetElementGroupId) ||
+            (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
                 other.selectedTilesetElementGroupId ==
                     selectedTilesetElementGroupId) &&
             (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
@@ -1487,6 +1507,7 @@ class _$EditorStateImpl implements _EditorState {
         activeLayerId,
         hoveredTile,
         activeBrush,
+        terrainSelectionMode,
         selectedTerrainType,
         selectedTerrainPresetId,
         selectedPathPresetId,
@@ -1530,6 +1551,7 @@ abstract class _EditorState implements EditorState {
       final String? activeLayerId,
       final GridPos? hoveredTile,
       final EditorBrush activeBrush,
+      final TerrainSelectionMode terrainSelectionMode,
       final TerrainType selectedTerrainType,
       final String? selectedTerrainPresetId,
       final String? selectedPathPresetId,
@@ -1571,6 +1593,8 @@ abstract class _EditorState implements EditorState {
   GridPos? get hoveredTile;
   @override
   EditorBrush get activeBrush;
+  @override
+  TerrainSelectionMode get terrainSelectionMode;
   @override
   TerrainType get selectedTerrainType;
   @override
