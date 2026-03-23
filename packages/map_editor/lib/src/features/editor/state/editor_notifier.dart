@@ -1718,9 +1718,16 @@ class EditorNotifier extends _$EditorNotifier {
         terrains: terrains,
         clipToMapBounds: true,
       );
+      final committed = terrain == TerrainType.path
+          ? painted
+          : _preserveExistingPathCellsOnTerrainLayer(
+              previousMap: map,
+              updatedMap: painted,
+              layerId: layerId,
+            );
       _applyMapMutation(
         previousMap: map,
-        updatedMap: painted,
+        updatedMap: committed,
         preferredActiveLayerId: layerId,
         statusMessage: 'Terrain layer filled with ${terrain.name}',
       );
