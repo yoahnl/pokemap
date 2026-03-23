@@ -4,6 +4,8 @@ import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/providers/use_case_providers.dart';
+import '../../../application/services/terrain_painting_coordinator.dart';
+import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../terrain/path_autotile_set.dart';
 import '../tools/editor_tool.dart';
@@ -14,6 +16,19 @@ part 'editor_notifier.g.dart';
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
   static const int _maxMapHistoryEntries = 100;
+  static const TerrainPresetResolver _terrainPresetResolver =
+      TerrainPresetResolver();
+
+  TerrainPaintingCoordinator _terrainPaintingCoordinator() {
+    return TerrainPaintingCoordinator(
+      paintTerrainOnMapUseCase: ref.read(paintTerrainOnMapUseCaseProvider),
+      paintTerrainPatternOnMapUseCase:
+          ref.read(paintTerrainPatternOnMapUseCaseProvider),
+      eraseTerrainOnMapUseCase: ref.read(eraseTerrainOnMapUseCaseProvider),
+      eraseTerrainPatternOnMapUseCase:
+          ref.read(eraseTerrainPatternOnMapUseCaseProvider),
+    );
+  }
 
   @override
   EditorState build() {
@@ -34,9 +49,12 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId: _resolveInitialTerrainPresetId(manifest),
-        selectedPathPresetId: _resolveInitialPathPresetId(manifest),
-        selectedTerrainPresetByType: _resolveInitialTerrainPresetByType(
+        selectedTerrainPresetId:
+            _terrainPresetResolver.resolveInitialTerrainPresetId(manifest),
+        selectedPathPresetId:
+            _terrainPresetResolver.resolveInitialPathPresetId(manifest),
+        selectedTerrainPresetByType:
+            _terrainPresetResolver.resolveInitialTerrainPresetByType(
           manifest,
         ),
         selectedWarpId: null,
@@ -74,9 +92,12 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId: _resolveInitialTerrainPresetId(manifest),
-        selectedPathPresetId: _resolveInitialPathPresetId(manifest),
-        selectedTerrainPresetByType: _resolveInitialTerrainPresetByType(
+        selectedTerrainPresetId:
+            _terrainPresetResolver.resolveInitialTerrainPresetId(manifest),
+        selectedPathPresetId:
+            _terrainPresetResolver.resolveInitialPathPresetId(manifest),
+        selectedTerrainPresetByType:
+            _terrainPresetResolver.resolveInitialTerrainPresetByType(
           manifest,
         ),
         selectedWarpId: null,
@@ -183,16 +204,20 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId: _resolveSelectedTerrainPresetId(
+        selectedTerrainPresetId:
+            _terrainPresetResolver.resolveSelectedTerrainPresetId(
           project: project,
           terrainType: state.selectedTerrainType,
           preferredPresetId: state.selectedTerrainPresetId,
+          selectedTerrainPresetByType: state.selectedTerrainPresetByType,
         ),
-        selectedPathPresetId: _resolveSelectedPathPresetId(
+        selectedPathPresetId:
+            _terrainPresetResolver.resolveSelectedPathPresetId(
           project: project,
           preferredPresetId: state.selectedPathPresetId,
         ),
-        selectedTerrainPresetByType: _sanitizeTerrainPresetSelectionByType(
+        selectedTerrainPresetByType:
+            _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
           project: project,
           current: state.selectedTerrainPresetByType,
         ),
@@ -242,18 +267,21 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId: _resolveSelectedTerrainPresetId(
+        selectedTerrainPresetId:
+            _terrainPresetResolver.resolveSelectedTerrainPresetId(
           project: project,
           terrainType: state.selectedTerrainType,
           preferredPresetId: state.selectedTerrainPresetId,
+          selectedTerrainPresetByType: state.selectedTerrainPresetByType,
         ),
-        selectedPathPresetId: _resolveSelectedPathPresetId(
+        selectedPathPresetId:
+            _terrainPresetResolver.resolveSelectedPathPresetId(
           project: project,
           preferredPresetId: state.selectedPathPresetId,
         ),
         selectedTerrainPresetByType: project == null
             ? state.selectedTerrainPresetByType
-            : _sanitizeTerrainPresetSelectionByType(
+            : _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
                 project: project,
                 current: state.selectedTerrainPresetByType,
               ),
@@ -666,16 +694,20 @@ class EditorNotifier extends _$EditorNotifier {
         activeBrush: activeBrush,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
-        selectedTerrainPresetId: _resolveSelectedTerrainPresetId(
+        selectedTerrainPresetId:
+            _terrainPresetResolver.resolveSelectedTerrainPresetId(
           project: updated,
           terrainType: state.selectedTerrainType,
           preferredPresetId: state.selectedTerrainPresetId,
+          selectedTerrainPresetByType: state.selectedTerrainPresetByType,
         ),
-        selectedPathPresetId: _resolveSelectedPathPresetId(
+        selectedPathPresetId:
+            _terrainPresetResolver.resolveSelectedPathPresetId(
           project: updated,
           preferredPresetId: state.selectedPathPresetId,
         ),
-        selectedTerrainPresetByType: _sanitizeTerrainPresetSelectionByType(
+        selectedTerrainPresetByType:
+            _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
           project: updated,
           current: state.selectedTerrainPresetByType,
         ),
@@ -780,30 +812,16 @@ class EditorNotifier extends _$EditorNotifier {
   List<ProjectTerrainPreset> getTerrainPresets({TerrainType? terrainType}) {
     final project = state.project;
     if (project == null) return const [];
-    final presets = project.terrainPresets.where((preset) {
-      if (terrainType == null) return true;
-      return preset.terrainType == terrainType;
-    }).toList(growable: false)
-      ..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-    return presets;
+    return _terrainPresetResolver.listTerrainPresets(
+      project,
+      terrainType: terrainType,
+    );
   }
 
   List<ProjectPathPreset> getPathPresets() {
     final project = state.project;
     if (project == null) return const [];
-    final presets = List<ProjectPathPreset>.from(
-      project.pathPresets,
-      growable: false,
-    )..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-    return presets;
+    return _terrainPresetResolver.listPathPresets(project);
   }
 
   List<ProjectTerrainPresetCategory> getTerrainPresetCategories({
@@ -812,101 +830,63 @@ class EditorNotifier extends _$EditorNotifier {
   }) {
     final project = state.project;
     if (project == null) return const [];
-    final normalizedParentId = parentCategoryId?.trim();
-    final categories = project.terrainPresetCategories.where((category) {
-      if (kind != null && category.kind != kind) return false;
-      if (normalizedParentId == null) return true;
-      return category.parentCategoryId == normalizedParentId;
-    }).toList(growable: false)
-      ..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-    return categories;
+    return _terrainPresetResolver.listTerrainPresetCategories(
+      project,
+      kind: kind,
+      parentCategoryId: parentCategoryId,
+    );
   }
 
   ProjectTerrainPresetCategory? getTerrainPresetCategoryById(
       String? categoryId) {
-    final id = categoryId?.trim();
     final project = state.project;
-    if (id == null || id.isEmpty || project == null) return null;
-    for (final category in project.terrainPresetCategories) {
-      if (category.id == id) return category;
-    }
-    return null;
+    if (project == null) return null;
+    return _terrainPresetResolver.findTerrainPresetCategoryById(
+      project,
+      categoryId,
+    );
   }
 
   String? resolveTerrainPresetCategoryPath(String? categoryId) {
-    final id = categoryId?.trim();
-    if (id == null || id.isEmpty) return null;
     final project = state.project;
     if (project == null) return null;
-    final byId = <String, ProjectTerrainPresetCategory>{
-      for (final category in project.terrainPresetCategories)
-        category.id: category,
-    };
-    final category = byId[id];
-    if (category == null) return null;
-    final segments = <String>[category.name];
-    var cursor = category.parentCategoryId;
-    final visited = <String>{category.id};
-    while (cursor != null && visited.add(cursor)) {
-      final parent = byId[cursor];
-      if (parent == null) break;
-      segments.insert(0, parent.name);
-      cursor = parent.parentCategoryId;
-    }
-    return segments.join(' / ');
+    return _terrainPresetResolver.resolveTerrainPresetCategoryPath(
+      project,
+      categoryId,
+    );
   }
 
   ProjectTerrainPreset? getTerrainPresetById(String? presetId) {
-    final id = presetId?.trim();
     final project = state.project;
-    if (id == null || id.isEmpty || project == null) return null;
-    for (final preset in project.terrainPresets) {
-      if (preset.id == id) return preset;
-    }
-    return null;
+    if (project == null) return null;
+    return _terrainPresetResolver.findTerrainPresetById(project, presetId);
   }
 
   ProjectPathPreset? getPathPresetById(String? presetId) {
-    final id = presetId?.trim();
     final project = state.project;
-    if (id == null || id.isEmpty || project == null) return null;
-    for (final preset in project.pathPresets) {
-      if (preset.id == id) return preset;
-    }
-    return null;
+    if (project == null) return null;
+    return _terrainPresetResolver.findPathPresetById(project, presetId);
   }
 
   ProjectTerrainPreset? getSelectedTerrainPreset({TerrainType? terrainType}) {
+    final project = state.project;
+    if (project == null) return null;
     final type = terrainType ?? state.selectedTerrainType;
-    if (type == TerrainType.path) return null;
-    final selectedByTypeId = state.selectedTerrainPresetByType[type];
-    if (selectedByTypeId != null) {
-      final selectedByType = getTerrainPresetById(selectedByTypeId);
-      if (selectedByType != null && selectedByType.terrainType == type) {
-        return selectedByType;
-      }
-    }
-    if (state.selectedTerrainPresetId != null) {
-      final selected = getTerrainPresetById(state.selectedTerrainPresetId);
-      if (selected != null && selected.terrainType == type) {
-        return selected;
-      }
-    }
-    final presets = getTerrainPresets(terrainType: type);
-    if (presets.isEmpty) return null;
-    return presets.first;
+    return _terrainPresetResolver.resolveSelectedTerrainPreset(
+      project,
+      terrainType: type,
+      selectedTerrainPresetId: state.selectedTerrainPresetId,
+      selectedTerrainPresetByType: state.selectedTerrainPresetByType,
+    );
   }
 
   ProjectPathPreset? getSelectedPathPreset() {
-    final selected = getPathPresetById(state.selectedPathPresetId);
-    if (selected != null) return selected;
-    final presets = getPathPresets();
-    if (presets.isEmpty) return null;
-    return presets.first;
+    final project = state.project;
+    if (project == null) return null;
+    return _terrainPresetResolver.resolveSelectedPathPreset(
+      project,
+      selectedPathPresetId: state.selectedPathPresetId,
+    );
   }
 
   Map<TerrainType, ProjectTerrainPreset> getTerrainPresetByType() {
@@ -1703,28 +1683,11 @@ class EditorNotifier extends _$EditorNotifier {
     final map = layerContext.map;
     final layerId = layerContext.layerId;
     try {
-      final patternLength = map.size.width * map.size.height;
-      final terrains = List<TerrainType>.filled(
-        patternLength,
-        terrain,
-        growable: false,
-      );
-      final useCase = ref.read(paintTerrainPatternOnMapUseCaseProvider);
-      final painted = useCase.execute(
-        map,
+      final committed = _terrainPaintingCoordinator().fill(
+        map: map,
         layerId: layerId,
-        pos: const GridPos(x: 0, y: 0),
-        patternSize: map.size,
-        terrains: terrains,
-        clipToMapBounds: true,
+        terrain: terrain,
       );
-      final committed = terrain == TerrainType.path
-          ? painted
-          : _preserveExistingPathCellsOnTerrainLayer(
-              previousMap: map,
-              updatedMap: painted,
-              layerId: layerId,
-            );
       _applyMapMutation(
         previousMap: map,
         updatedMap: committed,
@@ -2393,11 +2356,12 @@ class EditorNotifier extends _$EditorNotifier {
   _ResolvedBrushFootprint? _resolveTerrainFootprint({
     required bool emitErrors,
   }) {
-    final failureLabel =
-        state.selectedTerrainType == TerrainType.path ? 'path' : 'terrain';
+    final footprint = _terrainPaintingCoordinator().resolveFootprint(
+      terrain: state.selectedTerrainType,
+    );
     return _ResolvedBrushFootprint(
-      size: const GridSize(width: 1, height: 1),
-      failureLabel: failureLabel,
+      size: footprint.size,
+      failureLabel: footprint.failureLabel,
     );
   }
 
@@ -2633,51 +2597,13 @@ class EditorNotifier extends _$EditorNotifier {
     required String failureLabel,
   }) {
     try {
-      if (patternSize.width == 1 && patternSize.height == 1) {
-        final useCase = ref.read(paintTerrainOnMapUseCaseProvider);
-        final painted = useCase.execute(
-          map,
-          layerId: layerId,
-          pos: pos,
-          terrain: terrain,
-        );
-        final committed = terrain == TerrainType.path
-            ? painted
-            : _preserveExistingPathCellsOnTerrainLayer(
-                previousMap: map,
-                updatedMap: painted,
-                layerId: layerId,
-              );
-        _applyMapMutation(
-          previousMap: map,
-          updatedMap: committed,
-          preferredActiveLayerId: layerId,
-          partOfStroke: true,
-        );
-        return;
-      }
-      final patternLength = patternSize.width * patternSize.height;
-      final terrains = List<TerrainType>.filled(
-        patternLength,
-        terrain,
-        growable: false,
-      );
-      final useCase = ref.read(paintTerrainPatternOnMapUseCaseProvider);
-      final painted = useCase.execute(
-        map,
+      final committed = _terrainPaintingCoordinator().paint(
+        map: map,
         layerId: layerId,
         pos: pos,
+        terrain: terrain,
         patternSize: patternSize,
-        terrains: terrains,
-        clipToMapBounds: true,
       );
-      final committed = terrain == TerrainType.path
-          ? painted
-          : _preserveExistingPathCellsOnTerrainLayer(
-              previousMap: map,
-              updatedMap: painted,
-              layerId: layerId,
-            );
       _applyMapMutation(
         previousMap: map,
         updatedMap: committed,
@@ -2697,28 +2623,11 @@ class EditorNotifier extends _$EditorNotifier {
     required String failureLabel,
   }) {
     try {
-      if (patternSize.width == 1 && patternSize.height == 1) {
-        final useCase = ref.read(eraseTerrainOnMapUseCaseProvider);
-        final erased = useCase.execute(
-          map,
-          layerId: layerId,
-          pos: pos,
-        );
-        _applyMapMutation(
-          previousMap: map,
-          updatedMap: erased,
-          preferredActiveLayerId: layerId,
-          partOfStroke: true,
-        );
-        return;
-      }
-      final useCase = ref.read(eraseTerrainPatternOnMapUseCaseProvider);
-      final erased = useCase.execute(
-        map,
+      final erased = _terrainPaintingCoordinator().erase(
+        map: map,
         layerId: layerId,
         pos: pos,
         patternSize: patternSize,
-        clipToMapBounds: true,
       );
       _applyMapMutation(
         previousMap: map,
@@ -2729,61 +2638,6 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       _setPaintError('Failed to erase terrain $failureLabel: $e');
     }
-  }
-
-  MapData _preserveExistingPathCellsOnTerrainLayer({
-    required MapData previousMap,
-    required MapData updatedMap,
-    required String layerId,
-  }) {
-    final previousLayer = _findLayerById(previousMap, layerId);
-    final updatedLayer = _findLayerById(updatedMap, layerId);
-    if (previousLayer is! TerrainLayer || updatedLayer is! TerrainLayer) {
-      return updatedMap;
-    }
-
-    final expectedLength = updatedMap.size.width * updatedMap.size.height;
-    final nextTerrains = List<TerrainType>.filled(
-      expectedLength,
-      TerrainType.none,
-      growable: false,
-    );
-    final updatedSource = updatedLayer.terrains;
-    final updatedCopyLength = updatedSource.length < expectedLength
-        ? updatedSource.length
-        : expectedLength;
-    for (var i = 0; i < updatedCopyLength; i++) {
-      nextTerrains[i] = updatedSource[i];
-    }
-
-    var changed = false;
-    final previousSource = previousLayer.terrains;
-    final previousCopyLength = previousSource.length < expectedLength
-        ? previousSource.length
-        : expectedLength;
-    for (var i = 0; i < previousCopyLength; i++) {
-      if (previousSource[i] != TerrainType.path) continue;
-      if (nextTerrains[i] == TerrainType.path) continue;
-      nextTerrains[i] = TerrainType.path;
-      changed = true;
-    }
-    if (!changed) {
-      return updatedMap;
-    }
-
-    final layerIndex =
-        updatedMap.layers.indexWhere((layer) => layer.id == layerId);
-    if (layerIndex < 0) {
-      return updatedMap;
-    }
-    final updatedLayers =
-        List<MapLayer>.from(updatedMap.layers, growable: false);
-    final layer = updatedLayers[layerIndex];
-    if (layer is! TerrainLayer) {
-      return updatedMap;
-    }
-    updatedLayers[layerIndex] = layer.copyWith(terrains: nextTerrains);
-    return updatedMap.copyWith(layers: updatedLayers);
   }
 
   void _setPaintError(String message) {
@@ -3143,11 +2997,12 @@ class EditorNotifier extends _$EditorNotifier {
     if (state.selectedTerrainType == terrain) return;
     final nextTerrainPresetId = terrain == TerrainType.path
         ? state.selectedTerrainPresetId
-        : _resolveSelectedTerrainPresetId(
+        : _terrainPresetResolver.resolveSelectedTerrainPresetId(
             project: state.project,
             terrainType: terrain,
             preferredPresetId: state.selectedTerrainPresetByType[terrain] ??
                 state.selectedTerrainPresetId,
+            selectedTerrainPresetByType: state.selectedTerrainPresetByType,
           );
     state = state.copyWith(
       selectedTerrainType: terrain,
@@ -3200,11 +3055,12 @@ class EditorNotifier extends _$EditorNotifier {
     final nextTerrain = terrainType ?? state.selectedTerrainType;
     final nextPresetId = nextTerrain == TerrainType.path
         ? state.selectedTerrainPresetId
-        : _resolveSelectedTerrainPresetId(
+        : _terrainPresetResolver.resolveSelectedTerrainPresetId(
             project: state.project,
             terrainType: nextTerrain,
             preferredPresetId: state.selectedTerrainPresetByType[nextTerrain] ??
                 state.selectedTerrainPresetId,
+            selectedTerrainPresetByType: state.selectedTerrainPresetByType,
           );
     state = state.copyWith(
       activeTool: EditorToolType.terrainPaint,
@@ -3250,7 +3106,8 @@ class EditorNotifier extends _$EditorNotifier {
         tilesetId: tilesetId,
         variants: variants,
       );
-      final created = _findLastCreatedTerrainPreset(project, updated);
+      final created =
+          _terrainPresetResolver.findLastCreatedTerrainPreset(project, updated);
       final nextByType = Map<TerrainType, String>.from(
         state.selectedTerrainPresetByType,
       );
@@ -3302,9 +3159,10 @@ class EditorNotifier extends _$EditorNotifier {
         clearVariants: clearVariants,
       );
       final selectedPreset =
-          _findTerrainPresetByIdInProject(updated, presetId) ??
+          _terrainPresetResolver.findTerrainPresetById(updated, presetId) ??
               (throw Exception('Terrain preset not found: $presetId'));
-      final nextByType = _sanitizeTerrainPresetSelectionByType(
+      final nextByType =
+          _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
         project: updated,
         current: state.selectedTerrainPresetByType,
       );
@@ -3331,18 +3189,19 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deleteTerrainPresetUseCaseProvider);
       final updated = await useCase.execute(fs, project, presetId: presetId);
-      final nextByType = _sanitizeTerrainPresetSelectionByType(
+      final nextByType =
+          _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
         project: updated,
         current: state.selectedTerrainPresetByType,
       );
       String? nextSelectedTerrainPresetId = state.selectedTerrainPresetId;
       if (nextSelectedTerrainPresetId == presetId ||
-          _findTerrainPresetByIdInProject(
+          _terrainPresetResolver.findTerrainPresetById(
                 updated,
                 nextSelectedTerrainPresetId,
               ) ==
               null) {
-        final fallback = _listTerrainPresetsFromProject(
+        final fallback = _terrainPresetResolver.listTerrainPresets(
           updated,
           terrainType: state.selectedTerrainType == TerrainType.path
               ? TerrainType.normal
@@ -3386,7 +3245,8 @@ class EditorNotifier extends _$EditorNotifier {
         tilesetId: tilesetId,
         variants: variants,
       );
-      final created = _findLastCreatedPathPreset(project, updated);
+      final created =
+          _terrainPresetResolver.findLastCreatedPathPreset(project, updated);
       state = state.copyWith(
         project: updated,
         selectedPathPresetId: created?.id ?? state.selectedPathPresetId,
@@ -3454,7 +3314,10 @@ class EditorNotifier extends _$EditorNotifier {
       final updated = await useCase.execute(fs, project, presetId: presetId);
       String? nextSelectedPathPresetId = state.selectedPathPresetId;
       if (nextSelectedPathPresetId == presetId ||
-          _findPathPresetByIdInProject(updated, nextSelectedPathPresetId) ==
+          _terrainPresetResolver.findPathPresetById(
+                updated,
+                nextSelectedPathPresetId,
+              ) ==
               null) {
         nextSelectedPathPresetId =
             updated.pathPresets.isEmpty ? null : updated.pathPresets.first.id;
@@ -3769,191 +3632,6 @@ class EditorNotifier extends _$EditorNotifier {
     final legacyTilesetId = map.tilesetId.trim();
     if (legacyTilesetId.isNotEmpty) {
       return legacyTilesetId;
-    }
-    return null;
-  }
-
-  String? _resolveInitialTerrainPresetId(ProjectManifest project) {
-    final presets = _listTerrainPresetsFromProject(
-      project,
-      terrainType: TerrainType.normal,
-    );
-    if (presets.isNotEmpty) {
-      return presets.first.id;
-    }
-    if (project.terrainPresets.isEmpty) return null;
-    final all = List<ProjectTerrainPreset>.from(
-      project.terrainPresets,
-      growable: false,
-    )..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-    return all.first.id;
-  }
-
-  String? _resolveInitialPathPresetId(ProjectManifest project) {
-    if (project.pathPresets.isEmpty) return null;
-    final all = List<ProjectPathPreset>.from(
-      project.pathPresets,
-      growable: false,
-    )..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-    return all.first.id;
-  }
-
-  Map<TerrainType, String> _resolveInitialTerrainPresetByType(
-    ProjectManifest project,
-  ) {
-    final result = <TerrainType, String>{};
-    for (final type in TerrainType.values) {
-      if (type == TerrainType.none || type == TerrainType.path) continue;
-      final presets =
-          _listTerrainPresetsFromProject(project, terrainType: type);
-      if (presets.isNotEmpty) {
-        result[type] = presets.first.id;
-      }
-    }
-    return result;
-  }
-
-  String? _resolveSelectedTerrainPresetId({
-    required ProjectManifest? project,
-    required TerrainType terrainType,
-    required String? preferredPresetId,
-  }) {
-    if (project == null || terrainType == TerrainType.path) {
-      return preferredPresetId;
-    }
-    final preferred =
-        _findTerrainPresetByIdInProject(project, preferredPresetId);
-    if (preferred != null && preferred.terrainType == terrainType) {
-      return preferred.id;
-    }
-    final byType = state.selectedTerrainPresetByType[terrainType];
-    final preferredByType = _findTerrainPresetByIdInProject(project, byType);
-    if (preferredByType != null && preferredByType.terrainType == terrainType) {
-      return preferredByType.id;
-    }
-    final candidates =
-        _listTerrainPresetsFromProject(project, terrainType: terrainType);
-    if (candidates.isNotEmpty) {
-      return candidates.first.id;
-    }
-    return preferredPresetId;
-  }
-
-  String? _resolveSelectedPathPresetId({
-    required ProjectManifest? project,
-    required String? preferredPresetId,
-  }) {
-    if (project == null) return preferredPresetId;
-    final preferred = _findPathPresetByIdInProject(project, preferredPresetId);
-    if (preferred != null) return preferred.id;
-    if (project.pathPresets.isEmpty) return null;
-    final presets = List<ProjectPathPreset>.from(
-      project.pathPresets,
-      growable: false,
-    )..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-    return presets.first.id;
-  }
-
-  Map<TerrainType, String> _sanitizeTerrainPresetSelectionByType({
-    required ProjectManifest project,
-    required Map<TerrainType, String> current,
-  }) {
-    final sanitized = <TerrainType, String>{};
-    for (final entry in current.entries) {
-      if (entry.key == TerrainType.none || entry.key == TerrainType.path) {
-        continue;
-      }
-      final preset = _findTerrainPresetByIdInProject(project, entry.value);
-      if (preset == null || preset.terrainType != entry.key) continue;
-      sanitized[entry.key] = preset.id;
-    }
-    for (final type in TerrainType.values) {
-      if (type == TerrainType.none || type == TerrainType.path) continue;
-      if (sanitized.containsKey(type)) continue;
-      final presets =
-          _listTerrainPresetsFromProject(project, terrainType: type);
-      if (presets.isNotEmpty) {
-        sanitized[type] = presets.first.id;
-      }
-    }
-    return sanitized;
-  }
-
-  List<ProjectTerrainPreset> _listTerrainPresetsFromProject(
-    ProjectManifest project, {
-    TerrainType? terrainType,
-  }) {
-    final presets = project.terrainPresets.where((preset) {
-      if (terrainType == null) return true;
-      return preset.terrainType == terrainType;
-    }).toList(growable: false)
-      ..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-    return presets;
-  }
-
-  ProjectTerrainPreset? _findTerrainPresetByIdInProject(
-    ProjectManifest project,
-    String? presetId,
-  ) {
-    final id = presetId?.trim();
-    if (id == null || id.isEmpty) return null;
-    for (final preset in project.terrainPresets) {
-      if (preset.id == id) return preset;
-    }
-    return null;
-  }
-
-  ProjectPathPreset? _findPathPresetByIdInProject(
-    ProjectManifest project,
-    String? presetId,
-  ) {
-    final id = presetId?.trim();
-    if (id == null || id.isEmpty) return null;
-    for (final preset in project.pathPresets) {
-      if (preset.id == id) return preset;
-    }
-    return null;
-  }
-
-  ProjectTerrainPreset? _findLastCreatedTerrainPreset(
-    ProjectManifest previous,
-    ProjectManifest updated,
-  ) {
-    final previousIds =
-        previous.terrainPresets.map((preset) => preset.id).toSet();
-    for (final preset in updated.terrainPresets) {
-      if (!previousIds.contains(preset.id)) {
-        return preset;
-      }
-    }
-    return null;
-  }
-
-  ProjectPathPreset? _findLastCreatedPathPreset(
-    ProjectManifest previous,
-    ProjectManifest updated,
-  ) {
-    final previousIds = previous.pathPresets.map((preset) => preset.id).toSet();
-    for (final preset in updated.pathPresets) {
-      if (!previousIds.contains(preset.id)) {
-        return preset;
-      }
     }
     return null;
   }

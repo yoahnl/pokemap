@@ -203,7 +203,9 @@ Separations metier explicites:
     - acces direct a la liste des presets terrain + chemins en mode map via pickers (dropdown),
     - affichage de la categorie complete dans les pickers (`Parent / Enfant`),
     - affichage explicite du type de chemin selectionne (`groundTerrainType`),
-    - application immediate sur `TerrainLayer` (paint/fill) depuis le panneau map.
+    - application immediate sur `TerrainLayer` (paint/fill) depuis le panneau map,
+    - `Fill Layer` non-path preserve les cellules `path`,
+    - footprint terrain en peinture force en 1x1 pour eviter les tailles de brush heritees.
   - regle metier ajoutee:
     - separation stricte des tilesets de presets terrain et de presets chemin,
     - validation appliquee dans les use cases editor et dans `ProjectValidator`.
@@ -228,7 +230,7 @@ Separations metier explicites:
 - Edition palette brute tiles + bibliotheque elements: coexistent, rationalisation UX restante.
 - Systeme de layers: base edition/rendu solide, mais edition avancee (locks/groupes/layers specialisees Pokemon) non implementee.
 - Collisions: base MVP solide (bool paint/erase/overlay/preview), types de collisions et comportements de sol non implementes.
-- Terrains/Sols: base forte (paint/erase + path auto-connecte + presets visuels terrains/paths), comportements gameplay/runtime non implementes.
+- Terrains/Sols: base forte (paint/erase + path auto-connecte + presets visuels terrains/paths + stabilisation bords/rendu), comportements gameplay/runtime non implementes.
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -250,14 +252,54 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-- categories/sous-categories terrains & chemins + selection map par picker:
-  - categories hierarchiques dediees aux presets terrain/path (comme logique de groupes),
-  - attribution de categorie sur les presets terrain et path,
-  - pickers dropdown dans le panneau map pour choisir terrain/path,
-  - type de path explicite et configurable (`Normal Ground`, `Water`, `Tall Grass`, `Sand`, `Ice`),
-  - persistance complete dans `project.json`.
+- stabilisation terrain/path et rendu map:
+  - correction des bords de path sur les limites de map (orientation miroir par cote),
+  - ordre de rendu du canvas aligne sur la pile reelle des layers,
+  - `Fill Layer` terrain corrige pour preserver les cellules `path` existantes,
+  - footprint terrain force en 1x1 pour eviter l heritage de taille d un gros element selectionne.
 
 ## 7. Dernieres modifications realisees
+2026-03-23 (refacto cible clean architecture terrain/path):
+- `map_editor`:
+  - ajout `application/services/terrain_preset_resolver.dart`:
+    - centralise le tri, la recherche et la resolution de selection des presets terrain/path,
+    - centralise la resolution des categories terrain/path et du chemin de categorie,
+    - centralise la normalisation des selections (`selectedTerrainPresetId`, `selectedPathPresetId`, `selectedTerrainPresetByType`),
+    - centralise la detection des presets nouvellement crees.
+  - ajout `application/services/terrain_painting_coordinator.dart`:
+    - orchestre paint/erase/fill terrain via les use cases existants,
+    - encapsule la regle de preservation des cellules `TerrainType.path` pour paint/fill non-path,
+    - encapsule la resolution du footprint terrain (1x1).
+  - `EditorNotifier` allégé:
+    - delegation de la logique presets terrain/path au `TerrainPresetResolver`,
+    - delegation de la logique de mutation terrain au `TerrainPaintingCoordinator`,
+    - suppression des helpers internes redondants (tri/recherche/selection presets et preservation path cells).
+- impact:
+  - separation plus nette entre etat/session editor et orchestration applicative terrain/path,
+  - comportement produit conserve (paint/fill/erase terrain, path, presets, undo/redo, dirty state, preview).
+
+2026-03-23 (stabilisation rendu terrain/path + brush):
+- `map_core`:
+  - `map_terrain_autotile.dart`:
+    - correction de `_resolveEdgeCornerAsBorderVariant(...)`:
+      - mapping miroir des coins de bord,
+      - plus de reutilisation du meme sprite `end*` pour les deux cotes d un meme bord.
+- `map_editor`:
+  - `MapCanvas`:
+    - ordre de rendu corrige:
+      - parcours unique de la pile de layers (bas -> haut),
+      - fin du rendu "par type" qui faisait passer le terrain devant certains `TileLayer`.
+  - `EditorNotifier`:
+    - `fillActiveTerrainLayer(...)`:
+      - conservation des cellules `TerrainType.path` lors d un fill non-path.
+    - `_resolveTerrainFootprint(...)`:
+      - footprint terrain fixe en 1x1 (normal + path),
+      - suppression de l effet "brush geante" heritee d un element multi-tiles precedemment selectionne.
+- impact:
+  - elements tile map ne deviennent plus "delaves" par un terrain dessine au-dessus par erreur de pipeline de rendu,
+  - `Fill Layer` ne casse plus les chemins existants,
+  - peinture terrain previsible meme apres placement d un gros element.
+
 2026-03-23 (logos path encore plus explicites):
 - `map_editor`:
   - `TerrainEditorPanel`:
@@ -968,8 +1010,9 @@ Terminee pour cette etape:
   - type de terrain actif selectionne depuis la toolbar,
   - `eraser` contextuel efface les terrains (`TerrainType.none`) si la layer active est une `TerrainLayer`,
   - paint `path` force un footprint 1x1 pour stabiliser le dessin de routes,
-  - paint/erase des autres terrains base sur le footprint du brush actif (fallback 1x1 si aucun brush),
+  - paint/erase des autres terrains egalement en footprint 1x1 pour eviter les heritages de taille involontaires apres selection d elements multi-tiles,
   - rendu path auto-connecte base sur les voisins cardinaux, sans stocker la variante visuelle dans les donnees map,
+  - sur les bords de map, les coins path sont convertis en extremites avec orientation miroir pour garder la continuite visuelle gauche/droite et haut/bas,
   - separation explicite metier/rendu:
     - `TerrainType` stocke la donnee logique par cellule,
     - presets terrain/path stockent la configuration visuelle,
@@ -996,6 +1039,11 @@ Terminee pour cette etape:
   - import/assign tileset,
   - painting tile unitaire/multi-tile,
   - bibliotheque d elements deja en place.
+- Refacto cible terrain/path:
+  - `EditorNotifier` conserve le role de coordination d etat et de pipeline map-level,
+  - la resolution/normalisation des presets terrain/path est externalisee dans `TerrainPresetResolver`,
+  - l orchestration paint/fill/erase terrain est externalisee dans `TerrainPaintingCoordinator`,
+  - les widgets restent passifs (aucune logique metier terrain/path ajoutee dans l UI).
 
 ## 10. Points de vigilance / dette technique / bugs connus
 - Le ghost preview invalide pre-vient le refus avant clic, mais la raison detaillee n est pas encore affichee directement dans l UI.
@@ -1004,6 +1052,7 @@ Terminee pour cette etape:
 - Les layers `terrain` restent en rendu MVP:
   - `path` a un autotiling logique rendu en editor, configurable via preset,
   - terrains non-path peuvent etre rendus via presets visuels, avec fallback overlay.
+- Le footprint de peinture terrain est volontairement fixe en 1x1 pour eviter les heritages de taille de brush apres selection d elements multi-tiles; les poses massives passent par `Fill Layer` pour l instant.
 - Le systeme de presets est operationnel mais reste MVP:
   - pas encore de gestion avancee des biomes (profiles globaux, inheritance),
   - pas encore d outils batch (rebind de tileset, migration de presets),
