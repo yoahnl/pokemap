@@ -259,6 +259,29 @@ Terminee pour cette etape:
   - footprint terrain force en 1x1 pour eviter l heritage de taille d un gros element selectionne.
 
 ## 7. Dernieres modifications realisees
+2026-03-23 (refacto cible clean architecture terrain/path - etape 2):
+- `map_editor`:
+  - ajout `application/services/terrain_preset_selection_coordinator.dart`:
+    - centralise les transitions de selection terrain/path:
+      - initialisation,
+      - normalisation apres mutation de projet,
+      - selection par type/preset,
+      - post-create/update/delete des presets.
+  - ajout `application/services/path_autotile_resolver.dart`:
+    - centralise la resolution du `PathAutotileSet` courant a partir du preset path selectionne + validation tileset.
+  - `EditorNotifier`:
+    - delegation des transitions de selection terrain/path au `TerrainPresetSelectionCoordinator`,
+    - delegation de la resolution `PathAutotileSet` au `PathAutotileResolver`,
+    - suppression de logique de fallback/normalisation inline dans les flux:
+      - create/load map,
+      - delete tileset,
+      - select terrain/path mode,
+      - create/update/delete presets terrain/path.
+    - remplacement d erreurs generiques locales par `StateError` sur les cas "preset introuvable" post-mutation.
+- impact:
+  - `EditorNotifier` reste orchestrateur d etat et de pipeline, avec moins de logique applicative terrain/path embarquee,
+  - meme comportement fonctionnel conserve (selection presets, rendu path, undo/redo, dirty state, persistance).
+
 2026-03-23 (refacto cible clean architecture terrain/path):
 - `map_editor`:
   - ajout `application/services/terrain_preset_resolver.dart`:
@@ -1042,7 +1065,9 @@ Terminee pour cette etape:
 - Refacto cible terrain/path:
   - `EditorNotifier` conserve le role de coordination d etat et de pipeline map-level,
   - la resolution/normalisation des presets terrain/path est externalisee dans `TerrainPresetResolver`,
+  - les transitions de selection terrain/path sont externalisees dans `TerrainPresetSelectionCoordinator`,
   - l orchestration paint/fill/erase terrain est externalisee dans `TerrainPaintingCoordinator`,
+  - la resolution du `PathAutotileSet` courant est externalisee dans `PathAutotileResolver`,
   - les widgets restent passifs (aucune logique metier terrain/path ajoutee dans l UI).
 
 ## 10. Points de vigilance / dette technique / bugs connus

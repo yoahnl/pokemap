@@ -4,8 +4,10 @@ import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/providers/use_case_providers.dart';
+import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
+import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../terrain/path_autotile_set.dart';
 import '../tools/editor_tool.dart';
@@ -18,6 +20,12 @@ class EditorNotifier extends _$EditorNotifier {
   static const int _maxMapHistoryEntries = 100;
   static const TerrainPresetResolver _terrainPresetResolver =
       TerrainPresetResolver();
+  static const TerrainPresetSelectionCoordinator
+      _terrainPresetSelectionCoordinator = TerrainPresetSelectionCoordinator(
+    resolver: _terrainPresetResolver,
+  );
+  static const PathAutotileResolver _pathAutotileResolver =
+      PathAutotileResolver();
 
   TerrainPaintingCoordinator _terrainPaintingCoordinator() {
     return TerrainPaintingCoordinator(
@@ -27,6 +35,33 @@ class EditorNotifier extends _$EditorNotifier {
       eraseTerrainOnMapUseCase: ref.read(eraseTerrainOnMapUseCaseProvider),
       eraseTerrainPatternOnMapUseCase:
           ref.read(eraseTerrainPatternOnMapUseCaseProvider),
+    );
+  }
+
+  TerrainPresetSelection _currentTerrainPresetSelection() {
+    return TerrainPresetSelection(
+      selectedTerrainType: state.selectedTerrainType,
+      selectedTerrainPresetId: state.selectedTerrainPresetId,
+      selectedPathPresetId: state.selectedPathPresetId,
+      selectedTerrainPresetByType: state.selectedTerrainPresetByType,
+    );
+  }
+
+  EditorState _copyStateWithTerrainPresetSelection(
+    EditorState source,
+    TerrainPresetSelection selection, {
+    String? statusMessage,
+    String? errorMessage,
+    EditorToolType? activeTool,
+  }) {
+    return source.copyWith(
+      selectedTerrainType: selection.selectedTerrainType,
+      selectedTerrainPresetId: selection.selectedTerrainPresetId,
+      selectedPathPresetId: selection.selectedPathPresetId,
+      selectedTerrainPresetByType: selection.selectedTerrainPresetByType,
+      activeTool: activeTool ?? source.activeTool,
+      statusMessage: statusMessage,
+      errorMessage: errorMessage,
     );
   }
 
@@ -40,6 +75,8 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(createProjectUseCaseProvider);
       final manifest = await useCase.execute(name, directory);
+      final presetSelection =
+          _terrainPresetSelectionCoordinator.initial(manifest);
 
       state = state.copyWith(
         project: manifest,
@@ -49,14 +86,11 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId:
-            _terrainPresetResolver.resolveInitialTerrainPresetId(manifest),
-        selectedPathPresetId:
-            _terrainPresetResolver.resolveInitialPathPresetId(manifest),
+        selectedTerrainType: presetSelection.selectedTerrainType,
+        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
+        selectedPathPresetId: presetSelection.selectedPathPresetId,
         selectedTerrainPresetByType:
-            _terrainPresetResolver.resolveInitialTerrainPresetByType(
-          manifest,
-        ),
+            presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -83,6 +117,8 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(loadProjectUseCaseProvider);
       final manifest = await useCase.execute(manifestPath);
       final projectDir = p.dirname(manifestPath);
+      final presetSelection =
+          _terrainPresetSelectionCoordinator.initial(manifest);
 
       state = state.copyWith(
         project: manifest,
@@ -92,14 +128,11 @@ class EditorNotifier extends _$EditorNotifier {
         activeMapPath: null,
         activeLayerId: null,
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId:
-            _terrainPresetResolver.resolveInitialTerrainPresetId(manifest),
-        selectedPathPresetId:
-            _terrainPresetResolver.resolveInitialPathPresetId(manifest),
+        selectedTerrainType: presetSelection.selectedTerrainType,
+        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
+        selectedPathPresetId: presetSelection.selectedPathPresetId,
         selectedTerrainPresetByType:
-            _terrainPresetResolver.resolveInitialTerrainPresetByType(
-          manifest,
-        ),
+            presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -187,6 +220,10 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(createMapUseCaseProvider);
       final map = await useCase.execute(fs, project, id, width, height,
           groupId: groupId, role: role);
+      final presetSelection = _terrainPresetSelectionCoordinator.normalize(
+        project: project,
+        current: _currentTerrainPresetSelection(),
+      );
 
       state = state.copyWith(
         project: project.copyWith(maps: [
@@ -204,23 +241,11 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId:
-            _terrainPresetResolver.resolveSelectedTerrainPresetId(
-          project: project,
-          terrainType: state.selectedTerrainType,
-          preferredPresetId: state.selectedTerrainPresetId,
-          selectedTerrainPresetByType: state.selectedTerrainPresetByType,
-        ),
-        selectedPathPresetId:
-            _terrainPresetResolver.resolveSelectedPathPresetId(
-          project: project,
-          preferredPresetId: state.selectedPathPresetId,
-        ),
+        selectedTerrainType: presetSelection.selectedTerrainType,
+        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
+        selectedPathPresetId: presetSelection.selectedPathPresetId,
         selectedTerrainPresetByType:
-            _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
-          project: project,
-          current: state.selectedTerrainPresetByType,
-        ),
+            presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTilesetEditorId: _resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
@@ -250,6 +275,12 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(loadMapUseCaseProvider);
       final map = await useCase.execute(fs, relativePath);
       final project = state.project;
+      final presetSelection = project == null
+          ? _currentTerrainPresetSelection()
+          : _terrainPresetSelectionCoordinator.normalize(
+              project: project,
+              current: _currentTerrainPresetSelection(),
+            );
       final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
       final nextSelectedTilesetEditorId =
           preservedSelectedTilesetEditorId != null &&
@@ -267,24 +298,11 @@ class EditorNotifier extends _$EditorNotifier {
         workspaceMode: EditorWorkspaceMode.map,
         activeLayerId: _resolveActiveLayerId(map),
         activeBrush: const EditorBrush.none(),
-        selectedTerrainPresetId:
-            _terrainPresetResolver.resolveSelectedTerrainPresetId(
-          project: project,
-          terrainType: state.selectedTerrainType,
-          preferredPresetId: state.selectedTerrainPresetId,
-          selectedTerrainPresetByType: state.selectedTerrainPresetByType,
-        ),
-        selectedPathPresetId:
-            _terrainPresetResolver.resolveSelectedPathPresetId(
-          project: project,
-          preferredPresetId: state.selectedPathPresetId,
-        ),
-        selectedTerrainPresetByType: project == null
-            ? state.selectedTerrainPresetByType
-            : _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
-                project: project,
-                current: state.selectedTerrainPresetByType,
-              ),
+        selectedTerrainType: presetSelection.selectedTerrainType,
+        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
+        selectedPathPresetId: presetSelection.selectedPathPresetId,
+        selectedTerrainPresetByType:
+            presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTilesetEditorId: nextSelectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
@@ -670,6 +688,10 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deleteProjectTilesetUseCaseProvider);
       final updated = await useCase.execute(fs, project, tilesetId);
+      final presetSelection = _terrainPresetSelectionCoordinator.normalize(
+        project: updated,
+        current: _currentTerrainPresetSelection(),
+      );
       String? selectedTilesetEditorId = state.selectedTilesetEditorId;
       var workspaceMode = state.workspaceMode;
       var activeBrush =
@@ -694,23 +716,11 @@ class EditorNotifier extends _$EditorNotifier {
         activeBrush: activeBrush,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
-        selectedTerrainPresetId:
-            _terrainPresetResolver.resolveSelectedTerrainPresetId(
-          project: updated,
-          terrainType: state.selectedTerrainType,
-          preferredPresetId: state.selectedTerrainPresetId,
-          selectedTerrainPresetByType: state.selectedTerrainPresetByType,
-        ),
-        selectedPathPresetId:
-            _terrainPresetResolver.resolveSelectedPathPresetId(
-          project: updated,
-          preferredPresetId: state.selectedPathPresetId,
-        ),
+        selectedTerrainType: presetSelection.selectedTerrainType,
+        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
+        selectedPathPresetId: presetSelection.selectedPathPresetId,
         selectedTerrainPresetByType:
-            _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
-          project: updated,
-          current: state.selectedTerrainPresetByType,
-        ),
+            presetSelection.selectedTerrainPresetByType,
         statusMessage: 'Tileset deleted',
         errorMessage: null,
       );
@@ -782,31 +792,10 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   PathAutotileSet? getPathAutotileSet() {
-    final selectedPreset = getSelectedPathPreset();
-    if (selectedPreset != null) {
-      final tilesetId = selectedPreset.tilesetId.trim();
-      if (tilesetId.isEmpty) {
-        return null;
-      }
-      if (getTilesetById(tilesetId) == null) {
-        return null;
-      }
-      final defaults = PathAutotileSet.defaultForTileset(tilesetId);
-      if (selectedPreset.variants.isEmpty) {
-        return defaults;
-      }
-      final mapped = PathAutotileSet.fromPreset(selectedPreset);
-      return PathAutotileSet(
-        id: selectedPreset.id,
-        tilesetId: tilesetId,
-        variants: <TerrainPathVariant, TilesetSourceRect>{
-          ...defaults.variants,
-          ...mapped.variants,
-        },
-      );
-    }
-
-    return null;
+    return _pathAutotileResolver.resolve(
+      selectedPreset: getSelectedPathPreset(),
+      hasTileset: (tilesetId) => getTilesetById(tilesetId) != null,
+    );
   }
 
   List<ProjectTerrainPreset> getTerrainPresets({TerrainType? terrainType}) {
@@ -2995,18 +2984,16 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectTerrainType(TerrainType terrain) {
     if (state.selectedTerrainType == terrain) return;
-    final nextTerrainPresetId = terrain == TerrainType.path
-        ? state.selectedTerrainPresetId
-        : _terrainPresetResolver.resolveSelectedTerrainPresetId(
-            project: state.project,
-            terrainType: terrain,
-            preferredPresetId: state.selectedTerrainPresetByType[terrain] ??
-                state.selectedTerrainPresetId,
-            selectedTerrainPresetByType: state.selectedTerrainPresetByType,
-          );
-    state = state.copyWith(
-      selectedTerrainType: terrain,
-      selectedTerrainPresetId: nextTerrainPresetId,
+    final selection = _terrainPresetSelectionCoordinator.forTerrainType(
+      project: state.project,
+      current: _currentTerrainPresetSelection(),
+      terrainType: terrain,
+      preferredTerrainPresetId: state.selectedTerrainPresetByType[terrain] ??
+          state.selectedTerrainPresetId,
+    );
+    state = _copyStateWithTerrainPresetSelection(
+      state,
+      selection,
       statusMessage: 'Terrain type: ${terrain.name}',
       errorMessage: null,
     );
@@ -3020,14 +3007,14 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final nextByType = Map<TerrainType, String>.from(
-      state.selectedTerrainPresetByType,
+    final selection =
+        _terrainPresetSelectionCoordinator.forTerrainPresetSelected(
+      current: _currentTerrainPresetSelection(),
+      preset: preset,
     );
-    nextByType[preset.terrainType] = preset.id;
-    state = state.copyWith(
-      selectedTerrainType: preset.terrainType,
-      selectedTerrainPresetId: preset.id,
-      selectedTerrainPresetByType: nextByType,
+    state = _copyStateWithTerrainPresetSelection(
+      state,
+      selection,
       activeTool: EditorToolType.terrainPaint,
       statusMessage: 'Terrain preset: ${preset.name}',
       errorMessage: null,
@@ -3040,9 +3027,13 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(errorMessage: 'Path preset not found');
       return;
     }
-    state = state.copyWith(
-      selectedPathPresetId: preset.id,
-      selectedTerrainType: TerrainType.path,
+    final selection = _terrainPresetSelectionCoordinator.forPathPresetSelected(
+      current: _currentTerrainPresetSelection(),
+      preset: preset,
+    );
+    state = _copyStateWithTerrainPresetSelection(
+      state,
+      selection,
       activeTool: EditorToolType.terrainPaint,
       statusMessage: 'Path preset: ${preset.name}',
       errorMessage: null,
@@ -3053,19 +3044,18 @@ class EditorNotifier extends _$EditorNotifier {
     TerrainType? terrainType,
   }) {
     final nextTerrain = terrainType ?? state.selectedTerrainType;
-    final nextPresetId = nextTerrain == TerrainType.path
-        ? state.selectedTerrainPresetId
-        : _terrainPresetResolver.resolveSelectedTerrainPresetId(
-            project: state.project,
-            terrainType: nextTerrain,
-            preferredPresetId: state.selectedTerrainPresetByType[nextTerrain] ??
-                state.selectedTerrainPresetId,
-            selectedTerrainPresetByType: state.selectedTerrainPresetByType,
-          );
-    state = state.copyWith(
+    final selection = _terrainPresetSelectionCoordinator.forTerrainType(
+      project: state.project,
+      current: _currentTerrainPresetSelection(),
+      terrainType: nextTerrain,
+      preferredTerrainPresetId:
+          state.selectedTerrainPresetByType[nextTerrain] ??
+              state.selectedTerrainPresetId,
+    );
+    state = _copyStateWithTerrainPresetSelection(
+      state,
+      selection,
       activeTool: EditorToolType.terrainPaint,
-      selectedTerrainType: nextTerrain,
-      selectedTerrainPresetId: nextPresetId,
       statusMessage: 'Terrain type: ${nextTerrain.name}',
       errorMessage: null,
     );
@@ -3073,11 +3063,20 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectPathPaintMode() {
     final selectedPathPreset = getSelectedPathPreset();
-    state = state.copyWith(
+    final selection = selectedPathPreset == null
+        ? _terrainPresetSelectionCoordinator.forTerrainType(
+            project: state.project,
+            current: _currentTerrainPresetSelection(),
+            terrainType: TerrainType.path,
+          )
+        : _terrainPresetSelectionCoordinator.forPathPresetSelected(
+            current: _currentTerrainPresetSelection(),
+            preset: selectedPathPreset,
+          );
+    state = _copyStateWithTerrainPresetSelection(
+      state,
+      selection,
       activeTool: EditorToolType.terrainPaint,
-      selectedTerrainType: TerrainType.path,
-      selectedPathPresetId:
-          selectedPathPreset?.id ?? state.selectedPathPresetId,
       statusMessage: selectedPathPreset == null
           ? 'Terrain type: path'
           : 'Path preset: ${selectedPathPreset.name}',
@@ -3106,19 +3105,15 @@ class EditorNotifier extends _$EditorNotifier {
         tilesetId: tilesetId,
         variants: variants,
       );
-      final created =
-          _terrainPresetResolver.findLastCreatedTerrainPreset(project, updated);
-      final nextByType = Map<TerrainType, String>.from(
-        state.selectedTerrainPresetByType,
+      final selection =
+          _terrainPresetSelectionCoordinator.afterTerrainPresetCreated(
+        previous: project,
+        updated: updated,
+        current: _currentTerrainPresetSelection(),
       );
-      if (created != null) {
-        nextByType[created.terrainType] = created.id;
-      }
-      state = state.copyWith(
-        project: updated,
-        selectedTerrainType: created?.terrainType ?? state.selectedTerrainType,
-        selectedTerrainPresetId: created?.id ?? state.selectedTerrainPresetId,
-        selectedTerrainPresetByType: nextByType,
+      state = _copyStateWithTerrainPresetSelection(
+        state.copyWith(project: updated),
+        selection,
         statusMessage: 'Terrain preset created',
         errorMessage: null,
       );
@@ -3160,18 +3155,16 @@ class EditorNotifier extends _$EditorNotifier {
       );
       final selectedPreset =
           _terrainPresetResolver.findTerrainPresetById(updated, presetId) ??
-              (throw Exception('Terrain preset not found: $presetId'));
-      final nextByType =
-          _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
-        project: updated,
-        current: state.selectedTerrainPresetByType,
+              (throw StateError('Terrain preset not found: $presetId'));
+      final selection =
+          _terrainPresetSelectionCoordinator.afterTerrainPresetUpdated(
+        updated: updated,
+        current: _currentTerrainPresetSelection(),
+        selectedPreset: selectedPreset,
       );
-      nextByType[selectedPreset.terrainType] = selectedPreset.id;
-      state = state.copyWith(
-        project: updated,
-        selectedTerrainType: selectedPreset.terrainType,
-        selectedTerrainPresetId: selectedPreset.id,
-        selectedTerrainPresetByType: nextByType,
+      state = _copyStateWithTerrainPresetSelection(
+        state.copyWith(project: updated),
+        selection,
         statusMessage: 'Terrain preset updated',
         errorMessage: null,
       );
@@ -3189,31 +3182,15 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deleteTerrainPresetUseCaseProvider);
       final updated = await useCase.execute(fs, project, presetId: presetId);
-      final nextByType =
-          _terrainPresetResolver.sanitizeTerrainPresetSelectionByType(
-        project: updated,
-        current: state.selectedTerrainPresetByType,
+      final selection =
+          _terrainPresetSelectionCoordinator.afterTerrainPresetDeleted(
+        updated: updated,
+        current: _currentTerrainPresetSelection(),
+        deletedPresetId: presetId,
       );
-      String? nextSelectedTerrainPresetId = state.selectedTerrainPresetId;
-      if (nextSelectedTerrainPresetId == presetId ||
-          _terrainPresetResolver.findTerrainPresetById(
-                updated,
-                nextSelectedTerrainPresetId,
-              ) ==
-              null) {
-        final fallback = _terrainPresetResolver.listTerrainPresets(
-          updated,
-          terrainType: state.selectedTerrainType == TerrainType.path
-              ? TerrainType.normal
-              : state.selectedTerrainType,
-        );
-        nextSelectedTerrainPresetId =
-            fallback.isEmpty ? null : fallback.first.id;
-      }
-      state = state.copyWith(
-        project: updated,
-        selectedTerrainPresetId: nextSelectedTerrainPresetId,
-        selectedTerrainPresetByType: nextByType,
+      state = _copyStateWithTerrainPresetSelection(
+        state.copyWith(project: updated),
+        selection,
         statusMessage: 'Terrain preset deleted',
         errorMessage: null,
       );
@@ -3245,12 +3222,15 @@ class EditorNotifier extends _$EditorNotifier {
         tilesetId: tilesetId,
         variants: variants,
       );
-      final created =
-          _terrainPresetResolver.findLastCreatedPathPreset(project, updated);
-      state = state.copyWith(
-        project: updated,
-        selectedPathPresetId: created?.id ?? state.selectedPathPresetId,
-        selectedTerrainType: TerrainType.path,
+      final selection =
+          _terrainPresetSelectionCoordinator.afterPathPresetCreated(
+        previous: project,
+        updated: updated,
+        current: _currentTerrainPresetSelection(),
+      );
+      state = _copyStateWithTerrainPresetSelection(
+        state.copyWith(project: updated),
+        selection,
         activeTool: EditorToolType.terrainPaint,
         statusMessage: 'Path preset created',
         errorMessage: null,
@@ -3291,12 +3271,17 @@ class EditorNotifier extends _$EditorNotifier {
       );
       final selected = updated.pathPresets.firstWhere(
         (preset) => preset.id == presetId,
-        orElse: () => throw Exception('Path preset not found: $presetId'),
+        orElse: () => throw StateError('Path preset not found: $presetId'),
       );
-      state = state.copyWith(
-        project: updated,
-        selectedPathPresetId: selected.id,
-        selectedTerrainType: TerrainType.path,
+      final selection =
+          _terrainPresetSelectionCoordinator.afterPathPresetUpdated(
+        updated: updated,
+        current: _currentTerrainPresetSelection(),
+        selectedPreset: selected,
+      );
+      state = _copyStateWithTerrainPresetSelection(
+        state.copyWith(project: updated),
+        selection,
         statusMessage: 'Path preset updated',
         errorMessage: null,
       );
@@ -3312,19 +3297,15 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deletePathPresetUseCaseProvider);
       final updated = await useCase.execute(fs, project, presetId: presetId);
-      String? nextSelectedPathPresetId = state.selectedPathPresetId;
-      if (nextSelectedPathPresetId == presetId ||
-          _terrainPresetResolver.findPathPresetById(
-                updated,
-                nextSelectedPathPresetId,
-              ) ==
-              null) {
-        nextSelectedPathPresetId =
-            updated.pathPresets.isEmpty ? null : updated.pathPresets.first.id;
-      }
-      state = state.copyWith(
-        project: updated,
-        selectedPathPresetId: nextSelectedPathPresetId,
+      final selection =
+          _terrainPresetSelectionCoordinator.afterPathPresetDeleted(
+        updated: updated,
+        current: _currentTerrainPresetSelection(),
+        deletedPresetId: presetId,
+      );
+      state = _copyStateWithTerrainPresetSelection(
+        state.copyWith(project: updated),
+        selection,
         statusMessage: 'Path preset deleted',
         errorMessage: null,
       );
