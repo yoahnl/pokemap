@@ -29,7 +29,7 @@ class TerrainPresetSelectionCoordinator {
   TerrainPresetSelection initial(ProjectManifest project) {
     return TerrainPresetSelection(
       selectionMode: TerrainSelectionMode.terrain,
-      selectedTerrainType: TerrainType.normal,
+      selectedTerrainType: TerrainType.grass,
       selectedTerrainPresetId: _resolver.resolveInitialTerrainPresetId(project),
       selectedPathPresetId: _resolver.resolveInitialPathPresetId(project),
       selectedTerrainPresetByType:

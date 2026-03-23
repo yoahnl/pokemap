@@ -86,34 +86,22 @@ enum MapLayerKind {
 enum TerrainType {
   @JsonValue('none')
   none,
-  @JsonValue('normal')
-  normal,
-  @JsonValue('path')
-  path,
-  @JsonValue('water')
-  water,
-  @JsonValue('tallGrass')
-  tallGrass,
+  @JsonValue('grass')
+  grass,
+  @JsonValue('dirt')
+  dirt,
   @JsonValue('sand')
   sand,
-  @JsonValue('ice')
-  ice,
+  @JsonValue('rock')
+  rock,
+  @JsonValue('stone')
+  stone,
+  @JsonValue('indoor')
+  indoor,
 }
 
 extension TerrainTypeX on TerrainType {
-  bool get isBackgroundPaintable {
-    return switch (this) {
-      TerrainType.normal || TerrainType.tallGrass || TerrainType.sand => true,
-      _ => false,
-    };
-  }
-
-  bool get isLegacySurfaceLike {
-    return switch (this) {
-      TerrainType.path || TerrainType.water || TerrainType.ice => true,
-      _ => false,
-    };
-  }
+  bool get isBackgroundPaintable => this != TerrainType.none;
 }
 
 enum TerrainPathVariant {
@@ -139,7 +127,7 @@ enum TerrainPathVariant {
   cross,
 }
 
-enum TerrainPresetCategoryKind {
+enum PresetLibraryKind {
   @JsonValue('terrain')
   terrain,
   @JsonValue('path')
@@ -149,16 +137,24 @@ enum TerrainPresetCategoryKind {
 enum PathSurfaceKind {
   @JsonValue('path')
   path,
+  @JsonValue('road')
+  road,
   @JsonValue('water')
   water,
+  @JsonValue('tall_grass')
+  tallGrass,
   @JsonValue('ice')
   ice,
   @JsonValue('lava')
   lava,
-  @JsonValue('mud')
-  mud,
+  @JsonValue('swamp')
+  swamp,
+  @JsonValue('rails')
+  rails,
   @JsonValue('bridge')
   bridge,
+  @JsonValue('special')
+  special,
   @JsonValue('custom')
   custom,
 }

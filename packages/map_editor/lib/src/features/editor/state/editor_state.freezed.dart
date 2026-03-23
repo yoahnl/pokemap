@@ -1293,7 +1293,7 @@ class _$EditorStateImpl implements _EditorState {
       this.hoveredTile,
       this.activeBrush = const EditorBrush.none(),
       this.terrainSelectionMode = TerrainSelectionMode.terrain,
-      this.selectedTerrainType = TerrainType.normal,
+      this.selectedTerrainType = TerrainType.grass,
       this.selectedTerrainPresetId,
       this.selectedPathPresetId,
       final Map<TerrainType, String> selectedTerrainPresetByType = const {},

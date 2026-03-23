@@ -310,24 +310,24 @@ class TopToolbar extends ConsumerWidget {
   IconData _terrainTypeIcon(TerrainType type) {
     return switch (type) {
       TerrainType.none => Icons.block_outlined,
-      TerrainType.normal => Icons.square_outlined,
-      TerrainType.path => Icons.route_outlined,
-      TerrainType.water => Icons.water_outlined,
-      TerrainType.tallGrass => Icons.grass_outlined,
+      TerrainType.grass => Icons.grass_outlined,
+      TerrainType.dirt => Icons.terrain_outlined,
       TerrainType.sand => Icons.landscape_outlined,
-      TerrainType.ice => Icons.ac_unit_outlined,
+      TerrainType.rock => Icons.landscape_outlined,
+      TerrainType.stone => Icons.grid_4x4_outlined,
+      TerrainType.indoor => Icons.home_outlined,
     };
   }
 
   String _terrainTypeLabel(TerrainType type) {
     return switch (type) {
       TerrainType.none => 'None',
-      TerrainType.normal => 'Normal',
-      TerrainType.path => 'Path',
-      TerrainType.water => 'Water',
-      TerrainType.tallGrass => 'TallGrass',
-      TerrainType.sand => 'Sand',
-      TerrainType.ice => 'Ice',
+      TerrainType.grass => 'Grass Base',
+      TerrainType.dirt => 'Dirt Base',
+      TerrainType.sand => 'Sand Base',
+      TerrainType.rock => 'Rock Base',
+      TerrainType.stone => 'Stone Base',
+      TerrainType.indoor => 'Indoor Base',
     };
   }
 

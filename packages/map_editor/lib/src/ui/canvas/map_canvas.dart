@@ -633,10 +633,6 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintTerrainPaintPreview(Canvas canvas, MapToolPreview preview) {
-    final pathPreviewPainted = _paintLegacyTerrainPathPreview(canvas, preview);
-    if (pathPreviewPainted) {
-      return;
-    }
     final terrainPresetPreviewPainted =
         _paintTerrainPresetPreview(canvas, preview);
     if (terrainPresetPreviewPainted) {
@@ -644,7 +640,7 @@ class MapGridPainter extends CustomPainter {
     }
     final previewRect = _computePreviewRect(preview.origin, preview.size);
     if (previewRect == null) return;
-    final terrainColor = _terrainColor(preview.terrain ?? TerrainType.normal);
+    final terrainColor = _terrainColor(preview.terrain ?? TerrainType.grass);
     canvas.drawRect(
       previewRect,
       Paint()
@@ -658,88 +654,6 @@ class MapGridPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
-  }
-
-  bool _paintLegacyTerrainPathPreview(Canvas canvas, MapToolPreview preview) {
-    if (preview.terrain != TerrainType.path) {
-      return false;
-    }
-    if (preview.size.width != 1 || preview.size.height != 1) {
-      return false;
-    }
-    final origin = preview.origin;
-    if (origin.x < 0 ||
-        origin.y < 0 ||
-        origin.x >= map.size.width ||
-        origin.y >= map.size.height) {
-      return false;
-    }
-    final autotileSet = selectedPathAutotileSet;
-    if (autotileSet == null) {
-      return false;
-    }
-    final tilesetId = autotileSet.tilesetId.trim();
-    if (tilesetId.isEmpty) {
-      return false;
-    }
-    final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-    final activeTerrainLayer = _resolveActiveTerrainLayer();
-    if (activeTerrainLayer == null) {
-      return false;
-    }
-
-    final expectedLength = map.size.width * map.size.height;
-    final simulatedTerrains = List<TerrainType>.filled(
-      expectedLength,
-      TerrainType.none,
-      growable: false,
-    );
-    final sourceTerrains = activeTerrainLayer.terrains;
-    final copyLength = sourceTerrains.length < expectedLength
-        ? sourceTerrains.length
-        : expectedLength;
-    for (var index = 0; index < copyLength; index++) {
-      simulatedTerrains[index] = sourceTerrains[index];
-    }
-    final previewIndex = origin.y * map.size.width + origin.x;
-    if (previewIndex < 0 || previewIndex >= simulatedTerrains.length) {
-      return false;
-    }
-    simulatedTerrains[previewIndex] = TerrainType.path;
-
-    final variant = resolveTerrainPathVariantAt(
-      terrains: simulatedTerrains,
-      mapSize: map.size,
-      pos: origin,
-    );
-    final dstRect = Rect.fromLTWH(
-      origin.x * tileWidth,
-      origin.y * tileHeight,
-      tileWidth,
-      tileHeight,
-    );
-    final painted = _paintAutotileVariantCell(
-      canvas,
-      autotileSet: autotileSet,
-      tilesetImage: tilesetImage,
-      variant: variant,
-      dstRect: dstRect,
-      alpha: 0.66,
-    );
-    if (!painted) {
-      return false;
-    }
-    canvas.drawRect(
-      dstRect,
-      Paint()
-        ..color = Colors.brown.withValues(alpha: 0.95)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0 / zoom,
-    );
-    return true;
   }
 
   void _paintPathPaintPreview(Canvas canvas, MapToolPreview preview) {
@@ -845,9 +759,7 @@ class MapGridPainter extends CustomPainter {
 
   bool _paintTerrainPresetPreview(Canvas canvas, MapToolPreview preview) {
     final terrain = preview.terrain;
-    if (terrain == null ||
-        terrain == TerrainType.none ||
-        terrain == TerrainType.path) {
+    if (terrain == null || terrain == TerrainType.none) {
       return false;
     }
     final preset = terrainPresetsByType[terrain];
@@ -1083,7 +995,7 @@ class MapGridPainter extends CustomPainter {
         final index = rowStart + x;
         if (index < 0 || index >= layer.terrains.length) continue;
         final terrain = layer.terrains[index];
-        if (terrain == TerrainType.none || terrain == TerrainType.path) {
+        if (terrain == TerrainType.none) {
           continue;
         }
         final terrainPresetDrawn = _paintTerrainPresetCell(
@@ -1343,19 +1255,6 @@ class MapGridPainter extends CustomPainter {
     return raw & 0x7fffffff;
   }
 
-  TerrainLayer? _resolveActiveTerrainLayer() {
-    final id = activeLayerId;
-    if (id == null) {
-      return null;
-    }
-    for (final layer in map.layers) {
-      if (layer.id == id && layer is TerrainLayer) {
-        return layer;
-      }
-    }
-    return null;
-  }
-
   PathLayer? _resolveActivePathLayer() {
     final id = activeLayerId;
     if (id == null) {
@@ -1388,29 +1287,29 @@ class MapGridPainter extends CustomPainter {
   Color _terrainColor(TerrainType terrain) {
     return switch (terrain) {
       TerrainType.none => Colors.transparent,
-      TerrainType.normal => Colors.white70,
-      TerrainType.path => Colors.brown,
-      TerrainType.water => Colors.lightBlueAccent,
-      TerrainType.tallGrass => Colors.lightGreenAccent,
+      TerrainType.grass => Colors.lightGreenAccent,
+      TerrainType.dirt => const Color(0xFFA46E3D),
       TerrainType.sand => Colors.amberAccent,
-      TerrainType.ice => Colors.cyanAccent,
+      TerrainType.rock => Colors.blueGrey,
+      TerrainType.stone => Colors.grey,
+      TerrainType.indoor => const Color(0xFFD8C3A5),
     };
   }
 
   Color _terrainBorderColor(TerrainType terrain) {
     switch (terrain) {
-      case TerrainType.normal:
+      case TerrainType.grass:
         return Colors.green.shade900;
-      case TerrainType.water:
-        return Colors.blue.shade900;
-      case TerrainType.ice:
-        return Colors.cyan.shade900;
+      case TerrainType.dirt:
+        return const Color(0xFF6D4524);
       case TerrainType.sand:
         return Colors.orange.shade900;
-      case TerrainType.tallGrass:
-        return Colors.green.shade900;
-      case TerrainType.path:
-        return Colors.brown.shade900;
+      case TerrainType.rock:
+        return Colors.blueGrey.shade900;
+      case TerrainType.stone:
+        return Colors.grey.shade800;
+      case TerrainType.indoor:
+        return const Color(0xFF8D6E63);
       case TerrainType.none:
         return Colors.transparent;
     }

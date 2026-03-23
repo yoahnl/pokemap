@@ -15,7 +15,8 @@ class ProjectManifest with _$ProjectManifest {
     required List<ProjectTilesetEntry> tilesets,
     @Default([]) List<ProjectElementCategory> elementCategories,
     @Default([]) List<ProjectElementEntry> elements,
-    @Default([]) List<ProjectTerrainPresetCategory> terrainPresetCategories,
+    @Default([]) List<ProjectPresetCategory> terrainCategories,
+    @Default([]) List<ProjectPresetCategory> pathCategories,
     @Default([]) List<ProjectTerrainPreset> terrainPresets,
     @Default([]) List<ProjectPathPreset> pathPresets,
     @Default(ProjectSettings()) ProjectSettings settings,
@@ -217,15 +218,14 @@ class PathPresetVariantMapping with _$PathPresetVariantMapping {
 }
 
 @freezed
-class ProjectTerrainPresetCategory with _$ProjectTerrainPresetCategory {
-  const factory ProjectTerrainPresetCategory({
+class ProjectPresetCategory with _$ProjectPresetCategory {
+  const factory ProjectPresetCategory({
     required String id,
     required String name,
-    required TerrainPresetCategoryKind kind,
     String? parentCategoryId,
     @Default(0) int sortOrder,
-  }) = _ProjectTerrainPresetCategory;
+  }) = _ProjectPresetCategory;
 
-  factory ProjectTerrainPresetCategory.fromJson(Map<String, dynamic> json) =>
-      _$ProjectTerrainPresetCategoryFromJson(json);
+  factory ProjectPresetCategory.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPresetCategoryFromJson(json);
 }

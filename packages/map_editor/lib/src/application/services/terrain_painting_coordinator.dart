@@ -31,9 +31,9 @@ class TerrainPaintingCoordinator {
   TerrainBrushFootprint resolveFootprint({
     required TerrainType terrain,
   }) {
-    return TerrainBrushFootprint(
-      size: const GridSize(width: 1, height: 1),
-      failureLabel: terrain == TerrainType.path ? 'path' : 'terrain',
+    return const TerrainBrushFootprint(
+      size: GridSize(width: 1, height: 1),
+      failureLabel: 'terrain',
     );
   }
 

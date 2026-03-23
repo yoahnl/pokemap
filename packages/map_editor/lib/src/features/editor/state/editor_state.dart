@@ -57,7 +57,7 @@ class EditorState with _$EditorState {
     @Default(EditorBrush.none()) EditorBrush activeBrush,
     @Default(TerrainSelectionMode.terrain)
     TerrainSelectionMode terrainSelectionMode,
-    @Default(TerrainType.normal) TerrainType selectedTerrainType,
+    @Default(TerrainType.grass) TerrainType selectedTerrainType,
     String? selectedTerrainPresetId,
     String? selectedPathPresetId,
     @Default({}) Map<TerrainType, String> selectedTerrainPresetByType,

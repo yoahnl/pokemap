@@ -40,6 +40,30 @@ class FileProjectRepository implements ProjectRepository {
 
 Map<String, dynamic> _migrateLegacyProjectJson(Map<String, dynamic> raw) {
   final next = Map<String, dynamic>.from(raw);
+  final legacyCategories = raw['terrainPresetCategories'];
+  if (!next.containsKey('terrainCategories') && legacyCategories is List) {
+    next['terrainCategories'] = legacyCategories
+        .whereType<Map>()
+        .map(
+            (entry) => Map<String, dynamic>.from(entry.cast<String, dynamic>()))
+        .where((entry) => entry['kind'] == 'terrain')
+        .map((entry) {
+      entry.remove('kind');
+      return entry;
+    }).toList(growable: false);
+  }
+  if (!next.containsKey('pathCategories') && legacyCategories is List) {
+    next['pathCategories'] = legacyCategories
+        .whereType<Map>()
+        .map(
+            (entry) => Map<String, dynamic>.from(entry.cast<String, dynamic>()))
+        .where((entry) => entry['kind'] == 'path')
+        .map((entry) {
+      entry.remove('kind');
+      return entry;
+    }).toList(growable: false);
+  }
+
   final pathPresets = raw['pathPresets'];
   if (pathPresets is! List) {
     return next;
@@ -66,7 +90,10 @@ String _legacyPathSurfaceKindValue(String? legacyValue) {
     'water' => 'water',
     'ice' => 'ice',
     'lava' => 'lava',
-    'mud' => 'mud',
+    'mud' => 'swamp',
+    'tallGrass' => 'tall_grass',
+    'road' => 'road',
+    'rails' => 'rails',
     'bridge' => 'bridge',
     'custom' => 'custom',
     _ => 'path',
@@ -116,8 +143,9 @@ class FileMapRepository implements MapRepository {
     debugPrint('FileMapRepository: Renaming map from $oldPath to $newPath');
     final file = File(oldPath);
     if (await file.exists()) {
-      if (!await file.parent.exists())
+      if (!await file.parent.exists()) {
         await file.parent.create(recursive: true);
+      }
       await file.rename(newPath);
     }
   }

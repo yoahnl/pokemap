@@ -30,11 +30,7 @@ class CreateTerrainPresetUseCase {
         'Terrain preset cannot target "none"',
       );
     }
-    if (!terrainType.isBackgroundPaintable) {
-      throw const EditorInvalidOperationException(
-        'Terrain presets are reserved for base ground only',
-      );
-    }
+
     final normalizedTilesetId = tilesetId.trim();
     if (normalizedTilesetId.isNotEmpty &&
         !project.tilesets.any((tileset) => tileset.id == normalizedTilesetId)) {
@@ -44,7 +40,7 @@ class CreateTerrainPresetUseCase {
     _ensurePresetCategory(
       project,
       categoryId,
-      TerrainPresetCategoryKind.terrain,
+      PresetLibraryKind.terrain,
     );
     _validateTerrainPresetVariants(variants);
 
@@ -102,11 +98,6 @@ class UpdateTerrainPresetUseCase {
         'Terrain preset cannot target "none"',
       );
     }
-    if (terrainType != null && !nextTerrainType.isBackgroundPaintable) {
-      throw const EditorInvalidOperationException(
-        'Terrain presets are reserved for base ground only',
-      );
-    }
 
     final nextTilesetId = clearTilesetId
         ? ''
@@ -116,6 +107,7 @@ class UpdateTerrainPresetUseCase {
       throw EditorNotFoundException('Tileset not found: $nextTilesetId');
     }
     _ensureTerrainTilesetIsNotUsedByPathPresets(project, nextTilesetId);
+
     final nextCategoryId = clearCategoryId
         ? null
         : (categoryId != null
@@ -124,7 +116,7 @@ class UpdateTerrainPresetUseCase {
     _ensurePresetCategory(
       project,
       nextCategoryId,
-      TerrainPresetCategoryKind.terrain,
+      PresetLibraryKind.terrain,
     );
 
     final nextVariants = clearVariants
@@ -134,17 +126,18 @@ class UpdateTerrainPresetUseCase {
             : current.variants);
     _validateTerrainPresetVariants(nextVariants);
 
-    final updatedPresets = project.terrainPresets.map((preset) {
-      if (preset.id != presetId) return preset;
-      return preset.copyWith(
-        name: nextName ?? preset.name,
-        terrainType: nextTerrainType,
-        categoryId: nextCategoryId,
-        tilesetId: nextTilesetId,
-        variants: nextVariants,
-        sortOrder: sortOrder ?? preset.sortOrder,
-      );
-    }).toList(growable: false);
+    final updatedPresets = project.terrainPresets
+        .map((preset) => preset.id != presetId
+            ? preset
+            : preset.copyWith(
+                name: nextName ?? preset.name,
+                terrainType: nextTerrainType,
+                categoryId: nextCategoryId,
+                tilesetId: nextTilesetId,
+                variants: nextVariants,
+                sortOrder: sortOrder ?? preset.sortOrder,
+              ))
+        .toList(growable: false);
 
     final updated = project.copyWith(terrainPresets: updatedPresets);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -203,7 +196,7 @@ class CreatePathPresetUseCase {
     _ensurePresetCategory(
       project,
       categoryId,
-      TerrainPresetCategoryKind.path,
+      PresetLibraryKind.path,
     );
     _validatePathPresetVariants(variants);
 
@@ -252,7 +245,6 @@ class UpdatePathPresetUseCase {
     if (nextName != null && nextName.isEmpty) {
       throw const EditorValidationException('Path preset name cannot be empty');
     }
-    final nextSurfaceKind = surfaceKind ?? current.surfaceKind;
 
     final nextTilesetId = clearTilesetId
         ? ''
@@ -262,6 +254,7 @@ class UpdatePathPresetUseCase {
       throw EditorNotFoundException('Tileset not found: $nextTilesetId');
     }
     _ensurePathTilesetIsNotUsedByTerrainPresets(project, nextTilesetId);
+
     final nextCategoryId = clearCategoryId
         ? null
         : (categoryId != null
@@ -270,7 +263,7 @@ class UpdatePathPresetUseCase {
     _ensurePresetCategory(
       project,
       nextCategoryId,
-      TerrainPresetCategoryKind.path,
+      PresetLibraryKind.path,
     );
 
     final nextVariants = clearVariants
@@ -280,17 +273,18 @@ class UpdatePathPresetUseCase {
             : current.variants);
     _validatePathPresetVariants(nextVariants);
 
-    final updatedPresets = project.pathPresets.map((preset) {
-      if (preset.id != presetId) return preset;
-      return preset.copyWith(
-        name: nextName ?? preset.name,
-        surfaceKind: nextSurfaceKind,
-        categoryId: nextCategoryId,
-        tilesetId: nextTilesetId,
-        variants: nextVariants,
-        sortOrder: sortOrder ?? preset.sortOrder,
-      );
-    }).toList(growable: false);
+    final updatedPresets = project.pathPresets
+        .map((preset) => preset.id != presetId
+            ? preset
+            : preset.copyWith(
+                name: nextName ?? preset.name,
+                surfaceKind: surfaceKind ?? preset.surfaceKind,
+                categoryId: nextCategoryId,
+                tilesetId: nextTilesetId,
+                variants: nextVariants,
+                sortOrder: sortOrder ?? preset.sortOrder,
+              ))
+        .toList(growable: false);
 
     final updated = project.copyWith(pathPresets: updatedPresets);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -321,8 +315,8 @@ class DeletePathPresetUseCase {
   }
 }
 
-class CreateTerrainPresetCategoryUseCase {
-  CreateTerrainPresetCategoryUseCase(this._repo);
+class CreatePresetCategoryUseCase {
+  CreatePresetCategoryUseCase(this._repo);
 
   final ProjectRepository _repo;
 
@@ -330,31 +324,26 @@ class CreateTerrainPresetCategoryUseCase {
     ProjectWorkspace workspace,
     ProjectManifest project, {
     required String name,
-    required TerrainPresetCategoryKind kind,
+    required PresetLibraryKind kind,
     String? parentCategoryId,
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       throw const EditorValidationException('Category name cannot be empty');
     }
+
+    final categories = _categoriesFor(project, kind);
     final normalizedParentId = _normalizeOptionalId(parentCategoryId);
-    if (normalizedParentId != null) {
-      final parent = project.terrainPresetCategories.firstWhere(
-        (category) => category.id == normalizedParentId,
-        orElse: () => throw EditorNotFoundException(
-          'Parent category not found: $normalizedParentId',
-        ),
+    if (normalizedParentId != null &&
+        !categories.any((category) => category.id == normalizedParentId)) {
+      throw EditorNotFoundException(
+        'Parent category not found: $normalizedParentId',
       );
-      if (parent.kind != kind) {
-        throw const EditorInvalidOperationException(
-          'Parent category kind mismatch',
-        );
-      }
     }
-    final category = ProjectTerrainPresetCategory(
-      id: _generateUniquePresetCategoryId(project, trimmedName),
+
+    final category = ProjectPresetCategory(
+      id: _generateUniquePresetCategoryId(project, kind, trimmedName),
       name: trimmedName,
-      kind: kind,
       parentCategoryId: normalizedParentId,
       sortOrder: _nextPresetCategorySortOrder(
         project,
@@ -362,19 +351,19 @@ class CreateTerrainPresetCategoryUseCase {
         parentCategoryId: normalizedParentId,
       ),
     );
-    final updated = project.copyWith(
-      terrainPresetCategories: [
-        ...project.terrainPresetCategories,
-        category,
-      ],
+
+    final updated = _copyProjectWithCategories(
+      project,
+      kind: kind,
+      categories: [...categories, category],
     );
     await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
 }
 
-class RenameTerrainPresetCategoryUseCase {
-  RenameTerrainPresetCategoryUseCase(this._repo);
+class RenamePresetCategoryUseCase {
+  RenamePresetCategoryUseCase(this._repo);
 
   final ProjectRepository _repo;
 
@@ -382,25 +371,96 @@ class RenameTerrainPresetCategoryUseCase {
     ProjectWorkspace workspace,
     ProjectManifest project, {
     required String categoryId,
+    required PresetLibraryKind kind,
     required String name,
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       throw const EditorValidationException('Category name cannot be empty');
     }
-    final exists = project.terrainPresetCategories.any(
-      (category) => category.id == categoryId,
-    );
-    if (!exists) {
+
+    final categories = _categoriesFor(project, kind);
+    if (!categories.any((category) => category.id == categoryId)) {
       throw EditorNotFoundException('Category not found: $categoryId');
     }
-    final updated = project.copyWith(
-      terrainPresetCategories: project.terrainPresetCategories
-          .map((category) => category.id == categoryId
-              ? category.copyWith(name: trimmedName)
-              : category)
+
+    final updated = _copyProjectWithCategories(
+      project,
+      kind: kind,
+      categories: categories
+          .map(
+            (category) => category.id == categoryId
+                ? category.copyWith(name: trimmedName)
+                : category,
+          )
           .toList(growable: false),
     );
+    await _repo.saveProject(updated, workspace.projectManifestPath);
+    return updated;
+  }
+}
+
+class DeletePresetCategoryUseCase {
+  DeletePresetCategoryUseCase(this._repo);
+
+  final ProjectRepository _repo;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String categoryId,
+    required PresetLibraryKind kind,
+  }) async {
+    final categories = _categoriesFor(project, kind);
+    if (!categories.any((category) => category.id == categoryId)) {
+      throw EditorNotFoundException('Category not found: $categoryId');
+    }
+
+    final removedIds = <String>{categoryId};
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final category in categories) {
+        if (category.parentCategoryId != null &&
+            removedIds.contains(category.parentCategoryId) &&
+            removedIds.add(category.id)) {
+          changed = true;
+        }
+      }
+    }
+
+    final updatedCategories = categories
+        .where((category) => !removedIds.contains(category.id))
+        .toList(growable: false);
+
+    var updated = _copyProjectWithCategories(
+      project,
+      kind: kind,
+      categories: updatedCategories,
+    );
+
+    if (kind == PresetLibraryKind.terrain) {
+      updated = updated.copyWith(
+        terrainPresets: updated.terrainPresets
+            .map(
+              (preset) => removedIds.contains(preset.categoryId)
+                  ? preset.copyWith(categoryId: null)
+                  : preset,
+            )
+            .toList(growable: false),
+      );
+    } else {
+      updated = updated.copyWith(
+        pathPresets: updated.pathPresets
+            .map(
+              (preset) => removedIds.contains(preset.categoryId)
+                  ? preset.copyWith(categoryId: null)
+                  : preset,
+            )
+            .toList(growable: false),
+      );
+    }
+
     await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
@@ -481,66 +541,6 @@ void _ensureTerrainTilesetIsNotUsedByPathPresets(
   }
 }
 
-void _ensurePresetCategory(
-  ProjectManifest project,
-  String? categoryId,
-  TerrainPresetCategoryKind expectedKind,
-) {
-  final normalized = _normalizeOptionalId(categoryId);
-  if (normalized == null) return;
-  final category = project.terrainPresetCategories.firstWhere(
-    (item) => item.id == normalized,
-    orElse: () =>
-        throw EditorNotFoundException('Category not found: $normalized'),
-  );
-  if (category.kind != expectedKind) {
-    throw EditorInvalidOperationException(
-      'Category kind mismatch for ${expectedKind.name} preset',
-    );
-  }
-}
-
-String? _normalizeOptionalId(String? value) {
-  final trimmed = value?.trim();
-  if (trimmed == null || trimmed.isEmpty) return null;
-  return trimmed;
-}
-
-String _generateUniquePresetCategoryId(ProjectManifest project, String seed) {
-  final normalized = seed
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
-      .replaceAll(RegExp(r'_+'), '_')
-      .replaceAll(RegExp(r'^_|_$'), '');
-  final base = normalized.isEmpty ? 'category' : normalized;
-  var candidate = base;
-  var suffix = 1;
-  final existing =
-      project.terrainPresetCategories.map((category) => category.id).toSet();
-  while (existing.contains(candidate)) {
-    candidate = '${base}_$suffix';
-    suffix++;
-  }
-  return candidate;
-}
-
-int _nextPresetCategorySortOrder(
-  ProjectManifest project, {
-  required TerrainPresetCategoryKind kind,
-  required String? parentCategoryId,
-}) {
-  final siblings = project.terrainPresetCategories.where(
-    (category) =>
-        category.kind == kind && category.parentCategoryId == parentCategoryId,
-  );
-  if (siblings.isEmpty) return 0;
-  return siblings
-          .map((category) => category.sortOrder)
-          .reduce((a, b) => a > b ? a : b) +
-      1;
-}
-
 void _ensurePathTilesetIsNotUsedByTerrainPresets(
   ProjectManifest project,
   String tilesetId,
@@ -555,4 +555,81 @@ void _ensurePathTilesetIsNotUsedByTerrainPresets(
       'This tileset is already used by a terrain preset. Terrain and path presets must use different tilesets.',
     );
   }
+}
+
+void _ensurePresetCategory(
+  ProjectManifest project,
+  String? categoryId,
+  PresetLibraryKind kind,
+) {
+  final normalized = _normalizeOptionalId(categoryId);
+  if (normalized == null) return;
+  final categories = _categoriesFor(project, kind);
+  if (!categories.any((category) => category.id == normalized)) {
+    throw EditorNotFoundException('Category not found: $normalized');
+  }
+}
+
+List<ProjectPresetCategory> _categoriesFor(
+  ProjectManifest project,
+  PresetLibraryKind kind,
+) {
+  return kind == PresetLibraryKind.terrain
+      ? project.terrainCategories
+      : project.pathCategories;
+}
+
+ProjectManifest _copyProjectWithCategories(
+  ProjectManifest project, {
+  required PresetLibraryKind kind,
+  required List<ProjectPresetCategory> categories,
+}) {
+  return kind == PresetLibraryKind.terrain
+      ? project.copyWith(terrainCategories: categories)
+      : project.copyWith(pathCategories: categories);
+}
+
+String? _normalizeOptionalId(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return trimmed;
+}
+
+String _generateUniquePresetCategoryId(
+  ProjectManifest project,
+  PresetLibraryKind kind,
+  String seed,
+) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'category' : normalized;
+  var candidate = base;
+  var suffix = 1;
+  final existing = _categoriesFor(project, kind).map((category) => category.id).toSet();
+  while (existing.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
+int _nextPresetCategorySortOrder(
+  ProjectManifest project, {
+  required PresetLibraryKind kind,
+  required String? parentCategoryId,
+}) {
+  final siblings = _categoriesFor(project, kind).where(
+    (category) => category.parentCategoryId == parentCategoryId,
+  );
+  if (siblings.isEmpty) {
+    return 0;
+  }
+  return siblings
+          .map((category) => category.sortOrder)
+          .reduce((a, b) => a > b ? a : b) +
+      1;
 }

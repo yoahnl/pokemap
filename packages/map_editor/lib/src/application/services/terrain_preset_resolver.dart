@@ -8,77 +8,82 @@ class TerrainPresetResolver {
     TerrainType? terrainType,
   }) {
     final presets = project.terrainPresets.where((preset) {
-      if (terrainType == null) return true;
+      if (terrainType == null) {
+        return true;
+      }
       return preset.terrainType == terrainType;
     }).toList(growable: false)
-      ..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
+      ..sort(_compareBySortThenName);
     return presets;
   }
 
   List<ProjectPathPreset> listPathPresets(ProjectManifest project) {
     final presets =
         List<ProjectPathPreset>.from(project.pathPresets, growable: false)
-          ..sort((a, b) {
-            final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-            if (sortCompare != 0) return sortCompare;
-            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-          });
+          ..sort(_compareBySortThenName);
     return presets;
   }
 
-  List<ProjectTerrainPresetCategory> listTerrainPresetCategories(
+  List<ProjectPresetCategory> listPresetCategories(
     ProjectManifest project, {
-    TerrainPresetCategoryKind? kind,
+    required PresetLibraryKind kind,
     String? parentCategoryId,
   }) {
     final normalizedParentId = parentCategoryId?.trim();
-    final categories = project.terrainPresetCategories.where((category) {
-      if (kind != null && category.kind != kind) return false;
-      if (normalizedParentId == null) return true;
+    final categories = _categoriesFor(project, kind).where((category) {
+      if (normalizedParentId == null) {
+        return category.parentCategoryId == null;
+      }
       return category.parentCategoryId == normalizedParentId;
     }).toList(growable: false)
-      ..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
+      ..sort(_compareBySortThenName);
     return categories;
   }
 
-  ProjectTerrainPresetCategory? findTerrainPresetCategoryById(
-    ProjectManifest project,
-    String? categoryId,
-  ) {
+  ProjectPresetCategory? findPresetCategoryById(
+    ProjectManifest project, {
+    required PresetLibraryKind kind,
+    required String? categoryId,
+  }) {
     final id = categoryId?.trim();
-    if (id == null || id.isEmpty) return null;
-    for (final category in project.terrainPresetCategories) {
-      if (category.id == id) return category;
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+    for (final category in _categoriesFor(project, kind)) {
+      if (category.id == id) {
+        return category;
+      }
     }
     return null;
   }
 
-  String? resolveTerrainPresetCategoryPath(
-    ProjectManifest project,
-    String? categoryId,
-  ) {
+  String? resolvePresetCategoryPath(
+    ProjectManifest project, {
+    required PresetLibraryKind kind,
+    required String? categoryId,
+  }) {
     final id = categoryId?.trim();
-    if (id == null || id.isEmpty) return null;
-    final byId = <String, ProjectTerrainPresetCategory>{
-      for (final category in project.terrainPresetCategories)
-        category.id: category,
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+
+    final categories = _categoriesFor(project, kind);
+    final byId = <String, ProjectPresetCategory>{
+      for (final category in categories) category.id: category,
     };
     final category = byId[id];
-    if (category == null) return null;
+    if (category == null) {
+      return null;
+    }
+
     final segments = <String>[category.name];
     var cursor = category.parentCategoryId;
     final visited = <String>{category.id};
     while (cursor != null && visited.add(cursor)) {
       final parent = byId[cursor];
-      if (parent == null) break;
+      if (parent == null) {
+        break;
+      }
       segments.insert(0, parent.name);
       cursor = parent.parentCategoryId;
     }
@@ -90,9 +95,13 @@ class TerrainPresetResolver {
     String? presetId,
   ) {
     final id = presetId?.trim();
-    if (id == null || id.isEmpty) return null;
+    if (id == null || id.isEmpty) {
+      return null;
+    }
     for (final preset in project.terrainPresets) {
-      if (preset.id == id) return preset;
+      if (preset.id == id) {
+        return preset;
+      }
     }
     return null;
   }
@@ -102,9 +111,13 @@ class TerrainPresetResolver {
     String? presetId,
   ) {
     final id = presetId?.trim();
-    if (id == null || id.isEmpty) return null;
+    if (id == null || id.isEmpty) {
+      return null;
+    }
     for (final preset in project.pathPresets) {
-      if (preset.id == id) return preset;
+      if (preset.id == id) {
+        return preset;
+      }
     }
     return null;
   }
@@ -115,7 +128,9 @@ class TerrainPresetResolver {
     required String? selectedTerrainPresetId,
     required Map<TerrainType, String> selectedTerrainPresetByType,
   }) {
-    if (!terrainType.isBackgroundPaintable) return null;
+    if (!terrainType.isBackgroundPaintable) {
+      return null;
+    }
     final selectedByTypeId = selectedTerrainPresetByType[terrainType];
     if (selectedByTypeId != null) {
       final selectedByType = findTerrainPresetById(project, selectedByTypeId);
@@ -130,7 +145,9 @@ class TerrainPresetResolver {
       }
     }
     final presets = listTerrainPresets(project, terrainType: terrainType);
-    if (presets.isEmpty) return null;
+    if (presets.isEmpty) {
+      return null;
+    }
     return presets.first;
   }
 
@@ -139,26 +156,33 @@ class TerrainPresetResolver {
     required String? selectedPathPresetId,
   }) {
     final selected = findPathPresetById(project, selectedPathPresetId);
-    if (selected != null) return selected;
+    if (selected != null) {
+      return selected;
+    }
     final presets = listPathPresets(project);
-    if (presets.isEmpty) return null;
+    if (presets.isEmpty) {
+      return null;
+    }
     return presets.first;
   }
 
   String? resolveInitialTerrainPresetId(ProjectManifest project) {
-    final presets =
-        listTerrainPresets(project, terrainType: TerrainType.normal);
+    final presets = listTerrainPresets(project, terrainType: TerrainType.grass);
     if (presets.isNotEmpty) {
       return presets.first.id;
     }
     final all = listTerrainPresets(project);
-    if (all.isEmpty) return null;
+    if (all.isEmpty) {
+      return null;
+    }
     return all.first.id;
   }
 
   String? resolveInitialPathPresetId(ProjectManifest project) {
     final all = listPathPresets(project);
-    if (all.isEmpty) return null;
+    if (all.isEmpty) {
+      return null;
+    }
     return all.first.id;
   }
 
@@ -167,7 +191,9 @@ class TerrainPresetResolver {
   ) {
     final result = <TerrainType, String>{};
     for (final type in TerrainType.values) {
-      if (!type.isBackgroundPaintable) continue;
+      if (!type.isBackgroundPaintable) {
+        continue;
+      }
       final presets = listTerrainPresets(project, terrainType: type);
       if (presets.isNotEmpty) {
         result[type] = presets.first.id;
@@ -205,11 +231,17 @@ class TerrainPresetResolver {
     required ProjectManifest? project,
     required String? preferredPresetId,
   }) {
-    if (project == null) return preferredPresetId;
+    if (project == null) {
+      return preferredPresetId;
+    }
     final preferred = findPathPresetById(project, preferredPresetId);
-    if (preferred != null) return preferred.id;
+    if (preferred != null) {
+      return preferred.id;
+    }
     final presets = listPathPresets(project);
-    if (presets.isEmpty) return null;
+    if (presets.isEmpty) {
+      return null;
+    }
     return presets.first.id;
   }
 
@@ -223,12 +255,15 @@ class TerrainPresetResolver {
         continue;
       }
       final preset = findTerrainPresetById(project, entry.value);
-      if (preset == null || preset.terrainType != entry.key) continue;
+      if (preset == null || preset.terrainType != entry.key) {
+        continue;
+      }
       sanitized[entry.key] = preset.id;
     }
     for (final type in TerrainType.values) {
-      if (!type.isBackgroundPaintable) continue;
-      if (sanitized.containsKey(type)) continue;
+      if (!type.isBackgroundPaintable || sanitized.containsKey(type)) {
+        continue;
+      }
       final presets = listTerrainPresets(project, terrainType: type);
       if (presets.isNotEmpty) {
         sanitized[type] = presets.first.id;
@@ -262,5 +297,34 @@ class TerrainPresetResolver {
       }
     }
     return null;
+  }
+
+  Map<TerrainType, ProjectTerrainPreset> mapTerrainPresetsByType(
+    ProjectManifest project,
+  ) {
+    final presets = <TerrainType, ProjectTerrainPreset>{};
+    for (final preset in listTerrainPresets(project)) {
+      presets.putIfAbsent(preset.terrainType, () => preset);
+    }
+    return presets;
+  }
+
+  List<ProjectPresetCategory> _categoriesFor(
+    ProjectManifest project,
+    PresetLibraryKind kind,
+  ) {
+    return kind == PresetLibraryKind.terrain
+        ? project.terrainCategories
+        : project.pathCategories;
+  }
+
+  int _compareBySortThenName(dynamic a, dynamic b) {
+    final sortCompare = (a.sortOrder as int).compareTo(b.sortOrder as int);
+    if (sortCompare != 0) {
+      return sortCompare;
+    }
+    return (a.name as String).toLowerCase().compareTo(
+          (b.name as String).toLowerCase(),
+        );
   }
 }

@@ -32,12 +32,16 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectElementEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      terrainPresetCategories:
-          (json['terrainPresetCategories'] as List<dynamic>?)
-                  ?.map((e) => ProjectTerrainPresetCategory.fromJson(
-                      e as Map<String, dynamic>))
-                  .toList() ??
-              const [],
+      terrainCategories: (json['terrainCategories'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectPresetCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      pathCategories: (json['pathCategories'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectPresetCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       terrainPresets: (json['terrainPresets'] as List<dynamic>?)
               ?.map((e) =>
                   ProjectTerrainPreset.fromJson(e as Map<String, dynamic>))
@@ -66,8 +70,9 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'elementCategories':
           instance.elementCategories.map((e) => e.toJson()).toList(),
       'elements': instance.elements.map((e) => e.toJson()).toList(),
-      'terrainPresetCategories':
-          instance.terrainPresetCategories.map((e) => e.toJson()).toList(),
+      'terrainCategories':
+          instance.terrainCategories.map((e) => e.toJson()).toList(),
+      'pathCategories': instance.pathCategories.map((e) => e.toJson()).toList(),
       'terrainPresets': instance.terrainPresets.map((e) => e.toJson()).toList(),
       'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
@@ -368,12 +373,12 @@ Map<String, dynamic> _$$ProjectTerrainPresetImplToJson(
 
 const _$TerrainTypeEnumMap = {
   TerrainType.none: 'none',
-  TerrainType.normal: 'normal',
-  TerrainType.path: 'path',
-  TerrainType.water: 'water',
-  TerrainType.tallGrass: 'tallGrass',
+  TerrainType.grass: 'grass',
+  TerrainType.dirt: 'dirt',
   TerrainType.sand: 'sand',
-  TerrainType.ice: 'ice',
+  TerrainType.rock: 'rock',
+  TerrainType.stone: 'stone',
+  TerrainType.indoor: 'indoor',
 };
 
 _$TerrainPresetVariantImpl _$$TerrainPresetVariantImplFromJson(
@@ -423,11 +428,15 @@ Map<String, dynamic> _$$ProjectPathPresetImplToJson(
 
 const _$PathSurfaceKindEnumMap = {
   PathSurfaceKind.path: 'path',
+  PathSurfaceKind.road: 'road',
   PathSurfaceKind.water: 'water',
+  PathSurfaceKind.tallGrass: 'tall_grass',
   PathSurfaceKind.ice: 'ice',
   PathSurfaceKind.lava: 'lava',
-  PathSurfaceKind.mud: 'mud',
+  PathSurfaceKind.swamp: 'swamp',
+  PathSurfaceKind.rails: 'rails',
   PathSurfaceKind.bridge: 'bridge',
+  PathSurfaceKind.special: 'special',
   PathSurfaceKind.custom: 'custom',
 };
 
@@ -469,27 +478,20 @@ const _$TerrainPathVariantEnumMap = {
   TerrainPathVariant.cross: 'cross',
 };
 
-_$ProjectTerrainPresetCategoryImpl _$$ProjectTerrainPresetCategoryImplFromJson(
+_$ProjectPresetCategoryImpl _$$ProjectPresetCategoryImplFromJson(
         Map<String, dynamic> json) =>
-    _$ProjectTerrainPresetCategoryImpl(
+    _$ProjectPresetCategoryImpl(
       id: json['id'] as String,
       name: json['name'] as String,
-      kind: $enumDecode(_$TerrainPresetCategoryKindEnumMap, json['kind']),
       parentCategoryId: json['parentCategoryId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
 
-Map<String, dynamic> _$$ProjectTerrainPresetCategoryImplToJson(
-        _$ProjectTerrainPresetCategoryImpl instance) =>
+Map<String, dynamic> _$$ProjectPresetCategoryImplToJson(
+        _$ProjectPresetCategoryImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
-      'kind': _$TerrainPresetCategoryKindEnumMap[instance.kind]!,
       'parentCategoryId': instance.parentCategoryId,
       'sortOrder': instance.sortOrder,
     };
-
-const _$TerrainPresetCategoryKindEnumMap = {
-  TerrainPresetCategoryKind.terrain: 'terrain',
-  TerrainPresetCategoryKind.path: 'path',
-};

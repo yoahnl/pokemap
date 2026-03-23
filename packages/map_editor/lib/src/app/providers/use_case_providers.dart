@@ -266,17 +266,25 @@ DeletePathPresetUseCase deletePathPresetUseCase(
 }
 
 @riverpod
-CreateTerrainPresetCategoryUseCase createTerrainPresetCategoryUseCase(
-    CreateTerrainPresetCategoryUseCaseRef ref) {
-  return CreateTerrainPresetCategoryUseCase(
+CreatePresetCategoryUseCase createPresetCategoryUseCase(
+    CreatePresetCategoryUseCaseRef ref) {
+  return CreatePresetCategoryUseCase(
     ref.watch(projectRepositoryProvider),
   );
 }
 
 @riverpod
-RenameTerrainPresetCategoryUseCase renameTerrainPresetCategoryUseCase(
-    RenameTerrainPresetCategoryUseCaseRef ref) {
-  return RenameTerrainPresetCategoryUseCase(
+RenamePresetCategoryUseCase renamePresetCategoryUseCase(
+    RenamePresetCategoryUseCaseRef ref) {
+  return RenamePresetCategoryUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+DeletePresetCategoryUseCase deletePresetCategoryUseCase(
+    DeletePresetCategoryUseCaseRef ref) {
+  return DeletePresetCategoryUseCase(
     ref.watch(projectRepositoryProvider),
   );
 }

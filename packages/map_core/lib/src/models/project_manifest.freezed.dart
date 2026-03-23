@@ -28,7 +28,9 @@ mixin _$ProjectManifest {
   List<ProjectElementCategory> get elementCategories =>
       throw _privateConstructorUsedError;
   List<ProjectElementEntry> get elements => throw _privateConstructorUsedError;
-  List<ProjectTerrainPresetCategory> get terrainPresetCategories =>
+  List<ProjectPresetCategory> get terrainCategories =>
+      throw _privateConstructorUsedError;
+  List<ProjectPresetCategory> get pathCategories =>
       throw _privateConstructorUsedError;
   List<ProjectTerrainPreset> get terrainPresets =>
       throw _privateConstructorUsedError;
@@ -61,7 +63,8 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectTilesetEntry> tilesets,
       List<ProjectElementCategory> elementCategories,
       List<ProjectElementEntry> elements,
-      List<ProjectTerrainPresetCategory> terrainPresetCategories,
+      List<ProjectPresetCategory> terrainCategories,
+      List<ProjectPresetCategory> pathCategories,
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
       ProjectSettings settings,
@@ -92,7 +95,8 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? tilesets = null,
     Object? elementCategories = null,
     Object? elements = null,
-    Object? terrainPresetCategories = null,
+    Object? terrainCategories = null,
+    Object? pathCategories = null,
     Object? terrainPresets = null,
     Object? pathPresets = null,
     Object? settings = null,
@@ -127,10 +131,14 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.elements
           : elements // ignore: cast_nullable_to_non_nullable
               as List<ProjectElementEntry>,
-      terrainPresetCategories: null == terrainPresetCategories
-          ? _value.terrainPresetCategories
-          : terrainPresetCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTerrainPresetCategory>,
+      terrainCategories: null == terrainCategories
+          ? _value.terrainCategories
+          : terrainCategories // ignore: cast_nullable_to_non_nullable
+              as List<ProjectPresetCategory>,
+      pathCategories: null == pathCategories
+          ? _value.pathCategories
+          : pathCategories // ignore: cast_nullable_to_non_nullable
+              as List<ProjectPresetCategory>,
       terrainPresets: null == terrainPresets
           ? _value.terrainPresets
           : terrainPresets // ignore: cast_nullable_to_non_nullable
@@ -177,7 +185,8 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectTilesetEntry> tilesets,
       List<ProjectElementCategory> elementCategories,
       List<ProjectElementEntry> elements,
-      List<ProjectTerrainPresetCategory> terrainPresetCategories,
+      List<ProjectPresetCategory> terrainCategories,
+      List<ProjectPresetCategory> pathCategories,
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
       ProjectSettings settings,
@@ -207,7 +216,8 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? tilesets = null,
     Object? elementCategories = null,
     Object? elements = null,
-    Object? terrainPresetCategories = null,
+    Object? terrainCategories = null,
+    Object? pathCategories = null,
     Object? terrainPresets = null,
     Object? pathPresets = null,
     Object? settings = null,
@@ -242,10 +252,14 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._elements
           : elements // ignore: cast_nullable_to_non_nullable
               as List<ProjectElementEntry>,
-      terrainPresetCategories: null == terrainPresetCategories
-          ? _value._terrainPresetCategories
-          : terrainPresetCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTerrainPresetCategory>,
+      terrainCategories: null == terrainCategories
+          ? _value._terrainCategories
+          : terrainCategories // ignore: cast_nullable_to_non_nullable
+              as List<ProjectPresetCategory>,
+      pathCategories: null == pathCategories
+          ? _value._pathCategories
+          : pathCategories // ignore: cast_nullable_to_non_nullable
+              as List<ProjectPresetCategory>,
       terrainPresets: null == terrainPresets
           ? _value._terrainPresets
           : terrainPresets // ignore: cast_nullable_to_non_nullable
@@ -278,8 +292,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       required final List<ProjectTilesetEntry> tilesets,
       final List<ProjectElementCategory> elementCategories = const [],
       final List<ProjectElementEntry> elements = const [],
-      final List<ProjectTerrainPresetCategory> terrainPresetCategories =
-          const [],
+      final List<ProjectPresetCategory> terrainCategories = const [],
+      final List<ProjectPresetCategory> pathCategories = const [],
       final List<ProjectTerrainPreset> terrainPresets = const [],
       final List<ProjectPathPreset> pathPresets = const [],
       this.settings = const ProjectSettings(),
@@ -289,7 +303,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _tilesets = tilesets,
         _elementCategories = elementCategories,
         _elements = elements,
-        _terrainPresetCategories = terrainPresetCategories,
+        _terrainCategories = terrainCategories,
+        _pathCategories = pathCategories,
         _terrainPresets = terrainPresets,
         _pathPresets = pathPresets,
         _globalProperties = globalProperties;
@@ -346,14 +361,23 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_elements);
   }
 
-  final List<ProjectTerrainPresetCategory> _terrainPresetCategories;
+  final List<ProjectPresetCategory> _terrainCategories;
   @override
   @JsonKey()
-  List<ProjectTerrainPresetCategory> get terrainPresetCategories {
-    if (_terrainPresetCategories is EqualUnmodifiableListView)
-      return _terrainPresetCategories;
+  List<ProjectPresetCategory> get terrainCategories {
+    if (_terrainCategories is EqualUnmodifiableListView)
+      return _terrainCategories;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_terrainPresetCategories);
+    return EqualUnmodifiableListView(_terrainCategories);
+  }
+
+  final List<ProjectPresetCategory> _pathCategories;
+  @override
+  @JsonKey()
+  List<ProjectPresetCategory> get pathCategories {
+    if (_pathCategories is EqualUnmodifiableListView) return _pathCategories;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_pathCategories);
   }
 
   final List<ProjectTerrainPreset> _terrainPresets;
@@ -388,7 +412,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainPresetCategories: $terrainPresetCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -404,8 +428,10 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality()
                 .equals(other._elementCategories, _elementCategories) &&
             const DeepCollectionEquality().equals(other._elements, _elements) &&
-            const DeepCollectionEquality().equals(
-                other._terrainPresetCategories, _terrainPresetCategories) &&
+            const DeepCollectionEquality()
+                .equals(other._terrainCategories, _terrainCategories) &&
+            const DeepCollectionEquality()
+                .equals(other._pathCategories, _pathCategories) &&
             const DeepCollectionEquality()
                 .equals(other._terrainPresets, _terrainPresets) &&
             const DeepCollectionEquality()
@@ -427,7 +453,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       const DeepCollectionEquality().hash(_tilesets),
       const DeepCollectionEquality().hash(_elementCategories),
       const DeepCollectionEquality().hash(_elements),
-      const DeepCollectionEquality().hash(_terrainPresetCategories),
+      const DeepCollectionEquality().hash(_terrainCategories),
+      const DeepCollectionEquality().hash(_pathCategories),
       const DeepCollectionEquality().hash(_terrainPresets),
       const DeepCollectionEquality().hash(_pathPresets),
       settings,
@@ -459,7 +486,8 @@ abstract class _ProjectManifest implements ProjectManifest {
       required final List<ProjectTilesetEntry> tilesets,
       final List<ProjectElementCategory> elementCategories,
       final List<ProjectElementEntry> elements,
-      final List<ProjectTerrainPresetCategory> terrainPresetCategories,
+      final List<ProjectPresetCategory> terrainCategories,
+      final List<ProjectPresetCategory> pathCategories,
       final List<ProjectTerrainPreset> terrainPresets,
       final List<ProjectPathPreset> pathPresets,
       final ProjectSettings settings,
@@ -483,7 +511,9 @@ abstract class _ProjectManifest implements ProjectManifest {
   @override
   List<ProjectElementEntry> get elements;
   @override
-  List<ProjectTerrainPresetCategory> get terrainPresetCategories;
+  List<ProjectPresetCategory> get terrainCategories;
+  @override
+  List<ProjectPresetCategory> get pathCategories;
   @override
   List<ProjectTerrainPreset> get terrainPresets;
   @override
@@ -3887,64 +3917,55 @@ abstract class _PathPresetVariantMapping implements PathPresetVariantMapping {
       get copyWith => throw _privateConstructorUsedError;
 }
 
-ProjectTerrainPresetCategory _$ProjectTerrainPresetCategoryFromJson(
+ProjectPresetCategory _$ProjectPresetCategoryFromJson(
     Map<String, dynamic> json) {
-  return _ProjectTerrainPresetCategory.fromJson(json);
+  return _ProjectPresetCategory.fromJson(json);
 }
 
 /// @nodoc
-mixin _$ProjectTerrainPresetCategory {
+mixin _$ProjectPresetCategory {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  TerrainPresetCategoryKind get kind => throw _privateConstructorUsedError;
   String? get parentCategoryId => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
 
-  /// Serializes this ProjectTerrainPresetCategory to a JSON map.
+  /// Serializes this ProjectPresetCategory to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
-  /// Create a copy of ProjectTerrainPresetCategory
+  /// Create a copy of ProjectPresetCategory
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectTerrainPresetCategoryCopyWith<ProjectTerrainPresetCategory>
-      get copyWith => throw _privateConstructorUsedError;
+  $ProjectPresetCategoryCopyWith<ProjectPresetCategory> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $ProjectTerrainPresetCategoryCopyWith<$Res> {
-  factory $ProjectTerrainPresetCategoryCopyWith(
-          ProjectTerrainPresetCategory value,
-          $Res Function(ProjectTerrainPresetCategory) then) =
-      _$ProjectTerrainPresetCategoryCopyWithImpl<$Res,
-          ProjectTerrainPresetCategory>;
+abstract class $ProjectPresetCategoryCopyWith<$Res> {
+  factory $ProjectPresetCategoryCopyWith(ProjectPresetCategory value,
+          $Res Function(ProjectPresetCategory) then) =
+      _$ProjectPresetCategoryCopyWithImpl<$Res, ProjectPresetCategory>;
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      TerrainPresetCategoryKind kind,
-      String? parentCategoryId,
-      int sortOrder});
+  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
 }
 
 /// @nodoc
-class _$ProjectTerrainPresetCategoryCopyWithImpl<$Res,
-        $Val extends ProjectTerrainPresetCategory>
-    implements $ProjectTerrainPresetCategoryCopyWith<$Res> {
-  _$ProjectTerrainPresetCategoryCopyWithImpl(this._value, this._then);
+class _$ProjectPresetCategoryCopyWithImpl<$Res,
+        $Val extends ProjectPresetCategory>
+    implements $ProjectPresetCategoryCopyWith<$Res> {
+  _$ProjectPresetCategoryCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of ProjectTerrainPresetCategory
+  /// Create a copy of ProjectPresetCategory
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? kind = null,
     Object? parentCategoryId = freezed,
     Object? sortOrder = null,
   }) {
@@ -3957,10 +3978,6 @@ class _$ProjectTerrainPresetCategoryCopyWithImpl<$Res,
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
-      kind: null == kind
-          ? _value.kind
-          : kind // ignore: cast_nullable_to_non_nullable
-              as TerrainPresetCategoryKind,
       parentCategoryId: freezed == parentCategoryId
           ? _value.parentCategoryId
           : parentCategoryId // ignore: cast_nullable_to_non_nullable
@@ -3974,44 +3991,37 @@ class _$ProjectTerrainPresetCategoryCopyWithImpl<$Res,
 }
 
 /// @nodoc
-abstract class _$$ProjectTerrainPresetCategoryImplCopyWith<$Res>
-    implements $ProjectTerrainPresetCategoryCopyWith<$Res> {
-  factory _$$ProjectTerrainPresetCategoryImplCopyWith(
-          _$ProjectTerrainPresetCategoryImpl value,
-          $Res Function(_$ProjectTerrainPresetCategoryImpl) then) =
-      __$$ProjectTerrainPresetCategoryImplCopyWithImpl<$Res>;
+abstract class _$$ProjectPresetCategoryImplCopyWith<$Res>
+    implements $ProjectPresetCategoryCopyWith<$Res> {
+  factory _$$ProjectPresetCategoryImplCopyWith(
+          _$ProjectPresetCategoryImpl value,
+          $Res Function(_$ProjectPresetCategoryImpl) then) =
+      __$$ProjectPresetCategoryImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      TerrainPresetCategoryKind kind,
-      String? parentCategoryId,
-      int sortOrder});
+  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
 }
 
 /// @nodoc
-class __$$ProjectTerrainPresetCategoryImplCopyWithImpl<$Res>
-    extends _$ProjectTerrainPresetCategoryCopyWithImpl<$Res,
-        _$ProjectTerrainPresetCategoryImpl>
-    implements _$$ProjectTerrainPresetCategoryImplCopyWith<$Res> {
-  __$$ProjectTerrainPresetCategoryImplCopyWithImpl(
-      _$ProjectTerrainPresetCategoryImpl _value,
-      $Res Function(_$ProjectTerrainPresetCategoryImpl) _then)
+class __$$ProjectPresetCategoryImplCopyWithImpl<$Res>
+    extends _$ProjectPresetCategoryCopyWithImpl<$Res,
+        _$ProjectPresetCategoryImpl>
+    implements _$$ProjectPresetCategoryImplCopyWith<$Res> {
+  __$$ProjectPresetCategoryImplCopyWithImpl(_$ProjectPresetCategoryImpl _value,
+      $Res Function(_$ProjectPresetCategoryImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of ProjectTerrainPresetCategory
+  /// Create a copy of ProjectPresetCategory
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? kind = null,
     Object? parentCategoryId = freezed,
     Object? sortOrder = null,
   }) {
-    return _then(_$ProjectTerrainPresetCategoryImpl(
+    return _then(_$ProjectPresetCategoryImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
@@ -4020,10 +4030,6 @@ class __$$ProjectTerrainPresetCategoryImplCopyWithImpl<$Res>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
-      kind: null == kind
-          ? _value.kind
-          : kind // ignore: cast_nullable_to_non_nullable
-              as TerrainPresetCategoryKind,
       parentCategoryId: freezed == parentCategoryId
           ? _value.parentCategoryId
           : parentCategoryId // ignore: cast_nullable_to_non_nullable
@@ -4038,25 +4044,20 @@ class __$$ProjectTerrainPresetCategoryImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$ProjectTerrainPresetCategoryImpl
-    implements _ProjectTerrainPresetCategory {
-  const _$ProjectTerrainPresetCategoryImpl(
+class _$ProjectPresetCategoryImpl implements _ProjectPresetCategory {
+  const _$ProjectPresetCategoryImpl(
       {required this.id,
       required this.name,
-      required this.kind,
       this.parentCategoryId,
       this.sortOrder = 0});
 
-  factory _$ProjectTerrainPresetCategoryImpl.fromJson(
-          Map<String, dynamic> json) =>
-      _$$ProjectTerrainPresetCategoryImplFromJson(json);
+  factory _$ProjectPresetCategoryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectPresetCategoryImplFromJson(json);
 
   @override
   final String id;
   @override
   final String name;
-  @override
-  final TerrainPresetCategoryKind kind;
   @override
   final String? parentCategoryId;
   @override
@@ -4065,17 +4066,16 @@ class _$ProjectTerrainPresetCategoryImpl
 
   @override
   String toString() {
-    return 'ProjectTerrainPresetCategory(id: $id, name: $name, kind: $kind, parentCategoryId: $parentCategoryId, sortOrder: $sortOrder)';
+    return 'ProjectPresetCategory(id: $id, name: $name, parentCategoryId: $parentCategoryId, sortOrder: $sortOrder)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ProjectTerrainPresetCategoryImpl &&
+            other is _$ProjectPresetCategoryImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.kind, kind) || other.kind == kind) &&
             (identical(other.parentCategoryId, parentCategoryId) ||
                 other.parentCategoryId == parentCategoryId) &&
             (identical(other.sortOrder, sortOrder) ||
@@ -4085,54 +4085,48 @@ class _$ProjectTerrainPresetCategoryImpl
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
-      Object.hash(runtimeType, id, name, kind, parentCategoryId, sortOrder);
+      Object.hash(runtimeType, id, name, parentCategoryId, sortOrder);
 
-  /// Create a copy of ProjectTerrainPresetCategory
+  /// Create a copy of ProjectPresetCategory
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$ProjectTerrainPresetCategoryImplCopyWith<
-          _$ProjectTerrainPresetCategoryImpl>
-      get copyWith => __$$ProjectTerrainPresetCategoryImplCopyWithImpl<
-          _$ProjectTerrainPresetCategoryImpl>(this, _$identity);
+  _$$ProjectPresetCategoryImplCopyWith<_$ProjectPresetCategoryImpl>
+      get copyWith => __$$ProjectPresetCategoryImplCopyWithImpl<
+          _$ProjectPresetCategoryImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ProjectTerrainPresetCategoryImplToJson(
+    return _$$ProjectPresetCategoryImplToJson(
       this,
     );
   }
 }
 
-abstract class _ProjectTerrainPresetCategory
-    implements ProjectTerrainPresetCategory {
-  const factory _ProjectTerrainPresetCategory(
+abstract class _ProjectPresetCategory implements ProjectPresetCategory {
+  const factory _ProjectPresetCategory(
       {required final String id,
       required final String name,
-      required final TerrainPresetCategoryKind kind,
       final String? parentCategoryId,
-      final int sortOrder}) = _$ProjectTerrainPresetCategoryImpl;
+      final int sortOrder}) = _$ProjectPresetCategoryImpl;
 
-  factory _ProjectTerrainPresetCategory.fromJson(Map<String, dynamic> json) =
-      _$ProjectTerrainPresetCategoryImpl.fromJson;
+  factory _ProjectPresetCategory.fromJson(Map<String, dynamic> json) =
+      _$ProjectPresetCategoryImpl.fromJson;
 
   @override
   String get id;
   @override
   String get name;
   @override
-  TerrainPresetCategoryKind get kind;
-  @override
   String? get parentCategoryId;
   @override
   int get sortOrder;
 
-  /// Create a copy of ProjectTerrainPresetCategory
+  /// Create a copy of ProjectPresetCategory
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectTerrainPresetCategoryImplCopyWith<
-          _$ProjectTerrainPresetCategoryImpl>
+  _$$ProjectPresetCategoryImplCopyWith<_$ProjectPresetCategoryImpl>
       get copyWith => throw _privateConstructorUsedError;
 }

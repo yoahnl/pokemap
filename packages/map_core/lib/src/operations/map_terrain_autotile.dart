@@ -72,7 +72,7 @@ int resolveTerrainCardinalMaskAt({
   required List<TerrainType> terrains,
   required GridSize mapSize,
   required GridPos pos,
-  TerrainType terrain = TerrainType.path,
+  TerrainType terrain = TerrainType.grass,
 }) {
   _validateTerrainGrid(terrains: terrains, mapSize: mapSize, pos: pos);
   return _resolveCardinalMaskAt(
@@ -95,7 +95,7 @@ TerrainPathVariant resolveTerrainPathVariantAt({
   required List<TerrainType> terrains,
   required GridSize mapSize,
   required GridPos pos,
-  TerrainType terrain = TerrainType.path,
+  TerrainType terrain = TerrainType.grass,
 }) {
   _validateTerrainGrid(terrains: terrains, mapSize: mapSize, pos: pos);
   return _resolvePathVariantAt(

@@ -856,35 +856,42 @@ class EditorNotifier extends _$EditorNotifier {
     return _terrainPresetResolver.listPathPresets(project);
   }
 
-  List<ProjectTerrainPresetCategory> getTerrainPresetCategories({
-    TerrainPresetCategoryKind? kind,
+  List<ProjectPresetCategory> getPresetCategories({
+    required PresetLibraryKind kind,
     String? parentCategoryId,
   }) {
     final project = state.project;
     if (project == null) return const [];
-    return _terrainPresetResolver.listTerrainPresetCategories(
+    return _terrainPresetResolver.listPresetCategories(
       project,
       kind: kind,
       parentCategoryId: parentCategoryId,
     );
   }
 
-  ProjectTerrainPresetCategory? getTerrainPresetCategoryById(
-      String? categoryId) {
+  ProjectPresetCategory? getPresetCategoryById({
+    required PresetLibraryKind kind,
+    required String? categoryId,
+  }) {
     final project = state.project;
     if (project == null) return null;
-    return _terrainPresetResolver.findTerrainPresetCategoryById(
+    return _terrainPresetResolver.findPresetCategoryById(
       project,
-      categoryId,
+      kind: kind,
+      categoryId: categoryId,
     );
   }
 
-  String? resolveTerrainPresetCategoryPath(String? categoryId) {
+  String? resolvePresetCategoryPath({
+    required PresetLibraryKind kind,
+    required String? categoryId,
+  }) {
     final project = state.project;
     if (project == null) return null;
-    return _terrainPresetResolver.resolveTerrainPresetCategoryPath(
+    return _terrainPresetResolver.resolvePresetCategoryPath(
       project,
-      categoryId,
+      kind: kind,
+      categoryId: categoryId,
     );
   }
 
@@ -3532,16 +3539,16 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> createTerrainPresetCategory({
+  Future<void> createPresetCategory({
     required String name,
-    required TerrainPresetCategoryKind kind,
+    required PresetLibraryKind kind,
     String? parentCategoryId,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
-      final useCase = ref.read(createTerrainPresetCategoryUseCaseProvider);
+      final useCase = ref.read(createPresetCategoryUseCaseProvider);
       final updated = await useCase.execute(
         fs,
         project,
@@ -3559,19 +3566,21 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> renameTerrainPresetCategory({
+  Future<void> renamePresetCategory({
     required String categoryId,
+    required PresetLibraryKind kind,
     required String name,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
-      final useCase = ref.read(renameTerrainPresetCategoryUseCaseProvider);
+      final useCase = ref.read(renamePresetCategoryUseCaseProvider);
       final updated = await useCase.execute(
         fs,
         project,
         categoryId: categoryId,
+        kind: kind,
         name: name,
       );
       state = state.copyWith(
@@ -3581,6 +3590,36 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to rename category: $e');
+    }
+  }
+
+  Future<void> deletePresetCategory({
+    required String categoryId,
+    required PresetLibraryKind kind,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deletePresetCategoryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        categoryId: categoryId,
+        kind: kind,
+      );
+      final selection = _terrainPresetSelectionCoordinator.normalize(
+        project: updated,
+        current: _currentTerrainPresetSelection(),
+      );
+      state = _copyStateWithTerrainPresetSelection(
+        state.copyWith(project: updated),
+        selection,
+        statusMessage: 'Category deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete category: $e');
     }
   }
 

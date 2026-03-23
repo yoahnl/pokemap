@@ -2,7 +2,6 @@ import 'package:map_core/map_core.dart';
 
 import '../../domain/repositories/repositories.dart';
 import '../ports/project_workspace.dart';
-import 'project_use_case_support.dart';
 
 class CreateProjectUseCase {
   CreateProjectUseCase(this._repo, this._workspaceFactory);
@@ -16,11 +15,12 @@ class CreateProjectUseCase {
       maps: [],
       tilesets: [],
       groups: [],
-      elementCategories: defaultElementCategories(),
+      elementCategories: const [],
       elements: const [],
-      terrainPresetCategories: defaultTerrainPresetCategories(),
-      terrainPresets: defaultTerrainPresets(),
-      pathPresets: defaultPathPresets(),
+      terrainCategories: const [],
+      pathCategories: const [],
+      terrainPresets: const [],
+      pathPresets: const [],
       settings: const ProjectSettings(),
     );
     final workspace = _workspaceFactory.create(directory);
@@ -38,8 +38,7 @@ class LoadProjectUseCase {
   final ProjectRepository _repo;
 
   Future<ProjectManifest> execute(String manifestPath) async {
-    final loaded = await _repo.loadProject(manifestPath);
-    return withDefaultProjectLibrary(loaded);
+    return _repo.loadProject(manifestPath);
   }
 }
 
