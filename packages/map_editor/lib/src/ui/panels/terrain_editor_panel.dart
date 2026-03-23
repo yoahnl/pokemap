@@ -20,28 +20,21 @@ class TerrainEditorPanel extends ConsumerWidget {
     TerrainType.ice,
   ];
 
-  static const List<TerrainPathVariant> _pathVariantGridOrder =
+  static const List<TerrainPathVariant> _pathSchemaEditableVariants =
       <TerrainPathVariant>[
-    TerrainPathVariant.isolated,
-    TerrainPathVariant.endNorth,
-    TerrainPathVariant.endEast,
-    TerrainPathVariant.endSouth,
-    TerrainPathVariant.endWest,
-    TerrainPathVariant.horizontal,
-    TerrainPathVariant.vertical,
     TerrainPathVariant.cornerNW,
+    TerrainPathVariant.endNorth,
     TerrainPathVariant.cornerNE,
-    TerrainPathVariant.cornerSE,
+    TerrainPathVariant.endWest,
+    TerrainPathVariant.cross,
+    TerrainPathVariant.endEast,
     TerrainPathVariant.cornerSW,
+    TerrainPathVariant.endSouth,
+    TerrainPathVariant.cornerSE,
     TerrainPathVariant.innerCornerNW,
     TerrainPathVariant.innerCornerNE,
-    TerrainPathVariant.innerCornerSE,
     TerrainPathVariant.innerCornerSW,
-    TerrainPathVariant.teeNorth,
-    TerrainPathVariant.teeEast,
-    TerrainPathVariant.teeSouth,
-    TerrainPathVariant.teeWest,
-    TerrainPathVariant.cross,
+    TerrainPathVariant.innerCornerSE,
   ];
 
   @override
@@ -1944,11 +1937,13 @@ class TerrainEditorPanel extends ConsumerWidget {
           height: 1,
         ),
     };
-    TerrainPathVariant selectedVariant = initialVariant ??
-        _pathVariantGridOrder.firstWhere(
-          (variant) => !mappings.containsKey(variant),
-          orElse: () => _pathVariantGridOrder.first,
-        );
+    TerrainPathVariant selectedVariant = initialVariant != null &&
+            _pathSchemaEditableVariants.contains(initialVariant)
+        ? initialVariant
+        : _pathSchemaEditableVariants.firstWhere(
+            (variant) => !mappings.containsKey(variant),
+            orElse: () => _pathSchemaEditableVariants.first,
+          );
     Map<TerrainPathVariant, TilesetSourceRect>? result;
 
     await showDialog(
@@ -1963,12 +1958,12 @@ class TerrainEditorPanel extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  width: 360,
+                  width: 430,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Etape 1: Choisir une variante de chemin',
+                        'Etape 1: Completer le schema',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 12,
@@ -1995,41 +1990,28 @@ class TerrainEditorPanel extends ConsumerWidget {
                           border: Border.all(color: Colors.white12),
                         ),
                         child: const Text(
-                          'Reperes: N = haut, E = droite, S = bas, O = gauche. Coin externe = virage, coin interne = encoche.',
+                          'Cliquer un emplacement dans le schema, puis cliquer une case du tileset a droite pour l affecter.',
                           style: TextStyle(fontSize: 10, color: Colors.white70),
                         ),
                       ),
                       const SizedBox(height: 10),
                       Expanded(
-                        child: GridView.builder(
-                          primary: false,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                            childAspectRatio: 1.9,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white12),
                           ),
-                          itemCount: _pathVariantGridOrder.length,
-                          itemBuilder: (context, index) {
-                            final variant = _pathVariantGridOrder[index];
-                            final source = mappings[variant];
-                            final selected = variant == selectedVariant;
-                            return _PathVariantGridCard(
-                              variant: variant,
-                              title: _pathVariantDisplayName(variant),
-                              kindLabel: _pathVariantKindLabel(variant),
-                              directionLabel:
-                                  _pathVariantDirectionsLabel(variant),
-                              mappedLabel: source == null
-                                  ? 'Non mappe'
-                                  : '(${source.x}, ${source.y})',
-                              selected: selected,
-                              onTap: () => setState(() {
-                                selectedVariant = variant;
-                              }),
-                            );
-                          },
+                          child: _PathSchemaCanvas(
+                            mappings: mappings,
+                            selectedVariant: selectedVariant,
+                            image: image,
+                            sourceTileWidth: sourceTileWidth,
+                            sourceTileHeight: sourceTileHeight,
+                            onSelect: (variant) =>
+                                setState(() => selectedVariant = variant),
+                          ),
                         ),
                       ),
                     ],
@@ -2178,15 +2160,17 @@ class TerrainEditorPanel extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                result = <TerrainPathVariant, TilesetSourceRect>{
-                  for (final entry in mappings.entries)
-                    entry.key: TilesetSourceRect(
-                      x: entry.value.x,
-                      y: entry.value.y,
-                      width: 1,
-                      height: 1,
-                    ),
-                };
+                result = _completePathMappings(
+                  <TerrainPathVariant, TilesetSourceRect>{
+                    for (final entry in mappings.entries)
+                      entry.key: TilesetSourceRect(
+                        x: entry.value.x,
+                        y: entry.value.y,
+                        width: 1,
+                        height: 1,
+                      ),
+                  },
+                );
                 Navigator.pop(context);
               },
               child: const Text('Apply'),
@@ -2197,6 +2181,104 @@ class TerrainEditorPanel extends ConsumerWidget {
     );
 
     return result;
+  }
+
+  Map<TerrainPathVariant, TilesetSourceRect> _completePathMappings(
+    Map<TerrainPathVariant, TilesetSourceRect> mappings,
+  ) {
+    final completed = <TerrainPathVariant, TilesetSourceRect>{
+      ...mappings,
+    };
+
+    TilesetSourceRect? pick(List<TerrainPathVariant> order) {
+      for (final variant in order) {
+        final source = completed[variant];
+        if (source != null) return source;
+      }
+      return null;
+    }
+
+    void ensure(
+      TerrainPathVariant target,
+      List<TerrainPathVariant> fallbackOrder,
+    ) {
+      if (completed.containsKey(target)) return;
+      final source = pick(fallbackOrder);
+      if (source == null) return;
+      completed[target] = source;
+    }
+
+    ensure(
+      TerrainPathVariant.horizontal,
+      const [
+        TerrainPathVariant.horizontal,
+        TerrainPathVariant.endWest,
+        TerrainPathVariant.endEast,
+        TerrainPathVariant.cross,
+      ],
+    );
+    ensure(
+      TerrainPathVariant.vertical,
+      const [
+        TerrainPathVariant.vertical,
+        TerrainPathVariant.endNorth,
+        TerrainPathVariant.endSouth,
+        TerrainPathVariant.cross,
+      ],
+    );
+    ensure(
+      TerrainPathVariant.teeNorth,
+      const [
+        TerrainPathVariant.teeNorth,
+        TerrainPathVariant.cross,
+        TerrainPathVariant.endNorth,
+        TerrainPathVariant.endWest,
+        TerrainPathVariant.endEast,
+      ],
+    );
+    ensure(
+      TerrainPathVariant.teeEast,
+      const [
+        TerrainPathVariant.teeEast,
+        TerrainPathVariant.cross,
+        TerrainPathVariant.endNorth,
+        TerrainPathVariant.endEast,
+        TerrainPathVariant.endSouth,
+      ],
+    );
+    ensure(
+      TerrainPathVariant.teeSouth,
+      const [
+        TerrainPathVariant.teeSouth,
+        TerrainPathVariant.cross,
+        TerrainPathVariant.endWest,
+        TerrainPathVariant.endEast,
+        TerrainPathVariant.endSouth,
+      ],
+    );
+    ensure(
+      TerrainPathVariant.teeWest,
+      const [
+        TerrainPathVariant.teeWest,
+        TerrainPathVariant.cross,
+        TerrainPathVariant.endNorth,
+        TerrainPathVariant.endSouth,
+        TerrainPathVariant.endWest,
+      ],
+    );
+    ensure(
+      TerrainPathVariant.isolated,
+      const [
+        TerrainPathVariant.isolated,
+        TerrainPathVariant.cross,
+        TerrainPathVariant.endNorth,
+        TerrainPathVariant.endEast,
+        TerrainPathVariant.endSouth,
+        TerrainPathVariant.endWest,
+      ],
+    );
+
+    return completed;
   }
 
   Future<ProjectTilesetEntry?> _importTilesetFromTerrainEditor({
@@ -2467,34 +2549,6 @@ class TerrainEditorPanel extends ConsumerWidget {
     return directions.join(' + ');
   }
 
-  String _pathVariantKindLabel(TerrainPathVariant variant) {
-    return switch (variant) {
-      TerrainPathVariant.cornerNE ||
-      TerrainPathVariant.cornerSE ||
-      TerrainPathVariant.cornerSW ||
-      TerrainPathVariant.cornerNW =>
-        'Coin externe',
-      TerrainPathVariant.innerCornerNE ||
-      TerrainPathVariant.innerCornerSE ||
-      TerrainPathVariant.innerCornerSW ||
-      TerrainPathVariant.innerCornerNW =>
-        'Coin interne',
-      TerrainPathVariant.endNorth ||
-      TerrainPathVariant.endEast ||
-      TerrainPathVariant.endSouth ||
-      TerrainPathVariant.endWest =>
-        'Extremite',
-      TerrainPathVariant.horizontal || TerrainPathVariant.vertical => 'Ligne',
-      TerrainPathVariant.teeNorth ||
-      TerrainPathVariant.teeEast ||
-      TerrainPathVariant.teeSouth ||
-      TerrainPathVariant.teeWest =>
-        'Jonction T',
-      TerrainPathVariant.cross => 'Croisement',
-      TerrainPathVariant.isolated => 'Isole',
-    };
-  }
-
   String _pathVariantUsageDescription(TerrainPathVariant variant) {
     if (_isInnerCornerVariant(variant)) {
       final corner = switch (variant) {
@@ -2615,106 +2669,289 @@ class _VariantTile extends StatelessWidget {
   }
 }
 
-class _PathVariantGridCard extends StatelessWidget {
-  const _PathVariantGridCard({
+class _PathSchemaCanvas extends StatelessWidget {
+  const _PathSchemaCanvas({
+    required this.mappings,
+    required this.selectedVariant,
+    required this.image,
+    required this.sourceTileWidth,
+    required this.sourceTileHeight,
+    required this.onSelect,
+  });
+
+  final Map<TerrainPathVariant, TilesetSourceRect> mappings;
+  final TerrainPathVariant selectedVariant;
+  final ui.Image image;
+  final int sourceTileWidth;
+  final int sourceTileHeight;
+  final ValueChanged<TerrainPathVariant> onSelect;
+
+  static const List<TerrainPathVariant> _mainSquareVariants =
+      <TerrainPathVariant>[
+    TerrainPathVariant.cornerNW,
+    TerrainPathVariant.endNorth,
+    TerrainPathVariant.cornerNE,
+    TerrainPathVariant.endWest,
+    TerrainPathVariant.cross,
+    TerrainPathVariant.endEast,
+    TerrainPathVariant.cornerSW,
+    TerrainPathVariant.endSouth,
+    TerrainPathVariant.cornerSE,
+  ];
+
+  static const List<TerrainPathVariant> _innerCornerVariants =
+      <TerrainPathVariant>[
+    TerrainPathVariant.innerCornerNW,
+    TerrainPathVariant.innerCornerNE,
+    TerrainPathVariant.innerCornerSW,
+    TerrainPathVariant.innerCornerSE,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        final maxWidth = constraints.maxWidth;
+        final maxHeight = constraints.maxHeight;
+        final cellByWidth = (maxWidth - gap) / 5;
+        final cellByHeight = maxHeight / 3;
+        final cell = math.max(30.0, math.min(cellByWidth, cellByHeight));
+        final bigSize = cell * 3;
+        final smallSize = cell * 2;
+        final totalWidth = bigSize + gap + smallSize;
+        final offsetX = math.max(0.0, (maxWidth - totalWidth) / 2);
+        final offsetY = math.max(0.0, (maxHeight - bigSize) / 2);
+
+        return Stack(
+          children: [
+            Positioned(
+              left: offsetX,
+              top: offsetY,
+              width: bigSize,
+              height: bigSize,
+              child: _PathSchemaGridSection(
+                columns: 3,
+                variants: _mainSquareVariants,
+                mappings: mappings,
+                selectedVariant: selectedVariant,
+                image: image,
+                sourceTileWidth: sourceTileWidth,
+                sourceTileHeight: sourceTileHeight,
+                onSelect: onSelect,
+              ),
+            ),
+            Positioned(
+              left: offsetX + bigSize + gap,
+              top: offsetY + (bigSize - smallSize) / 2,
+              width: smallSize,
+              height: smallSize,
+              child: _PathSchemaGridSection(
+                columns: 2,
+                variants: _innerCornerVariants,
+                mappings: mappings,
+                selectedVariant: selectedVariant,
+                image: image,
+                sourceTileWidth: sourceTileWidth,
+                sourceTileHeight: sourceTileHeight,
+                onSelect: onSelect,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PathSchemaGridSection extends StatelessWidget {
+  const _PathSchemaGridSection({
+    required this.columns,
+    required this.variants,
+    required this.mappings,
+    required this.selectedVariant,
+    required this.image,
+    required this.sourceTileWidth,
+    required this.sourceTileHeight,
+    required this.onSelect,
+  });
+
+  final int columns;
+  final List<TerrainPathVariant> variants;
+  final Map<TerrainPathVariant, TilesetSourceRect> mappings;
+  final TerrainPathVariant selectedVariant;
+  final ui.Image image;
+  final int sourceTileWidth;
+  final int sourceTileHeight;
+  final ValueChanged<TerrainPathVariant> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      primary: false,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        mainAxisSpacing: 0,
+        crossAxisSpacing: 0,
+        childAspectRatio: 1,
+      ),
+      itemCount: variants.length,
+      itemBuilder: (context, index) {
+        final variant = variants[index];
+        final isSelected = variant == selectedVariant;
+        final mappedSource = mappings[variant];
+        return _PathSchemaGridSlot(
+          variant: variant,
+          selected: isSelected,
+          mappedSource: mappedSource,
+          image: image,
+          sourceTileWidth: sourceTileWidth,
+          sourceTileHeight: sourceTileHeight,
+          onTap: () => onSelect(variant),
+        );
+      },
+    );
+  }
+}
+
+class _PathSchemaGridSlot extends StatelessWidget {
+  const _PathSchemaGridSlot({
     required this.variant,
-    required this.title,
-    required this.kindLabel,
-    required this.directionLabel,
-    required this.mappedLabel,
     required this.selected,
+    required this.mappedSource,
+    required this.image,
+    required this.sourceTileWidth,
+    required this.sourceTileHeight,
     required this.onTap,
   });
 
   final TerrainPathVariant variant;
-  final String title;
-  final String kindLabel;
-  final String directionLabel;
-  final String mappedLabel;
   final bool selected;
+  final TilesetSourceRect? mappedSource;
+  final ui.Image image;
+  final int sourceTileWidth;
+  final int sourceTileHeight;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final hasMapping = mappedSource != null;
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(0),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: selected
               ? Colors.lightBlueAccent.withValues(alpha: 0.18)
-              : Colors.white10,
-          borderRadius: BorderRadius.circular(10),
+              : Colors.black.withValues(alpha: 0.14),
           border: Border.all(
             color: selected ? Colors.lightBlueAccent : Colors.white12,
           ),
         ),
-        child: Row(
+        child: Stack(
           children: [
-            SizedBox(
-              width: 54,
-              height: 54,
+            Positioned.fill(
               child: CustomPaint(
-                painter: _PathVariantGlyphPainter(
-                  variant: variant,
+                painter: _PathSlotPreviewPainter(
+                  image: image,
+                  sourceTileWidth: sourceTileWidth,
+                  sourceTileHeight: sourceTileHeight,
+                  source: mappedSource,
                   selected: selected,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+            if (!hasMapping)
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: CustomPaint(
+                    painter: _PathVariantGlyphPainter(
+                      variant: variant,
+                      selected: selected,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    kindLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.orangeAccent.withValues(alpha: 0.84),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Connecte: $directionLabel',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.cyanAccent.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    mappedLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white.withValues(alpha: 0.62),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _PathSlotPreviewPainter extends CustomPainter {
+  const _PathSlotPreviewPainter({
+    required this.image,
+    required this.sourceTileWidth,
+    required this.sourceTileHeight,
+    required this.source,
+    required this.selected,
+  });
+
+  final ui.Image image;
+  final int sourceTileWidth;
+  final int sourceTileHeight;
+  final TilesetSourceRect? source;
+  final bool selected;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final borderColor = selected ? Colors.lightBlueAccent : Colors.white24;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.35)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = selected ? 1.8 : 1.2,
+    );
+    if (source == null) {
+      final linePaint = Paint()
+        ..color = Colors.white24
+        ..strokeWidth = 1.2;
+      canvas.drawLine(
+        Offset(rect.left + 8, rect.top + 8),
+        Offset(rect.right - 8, rect.bottom - 8),
+        linePaint,
+      );
+      canvas.drawLine(
+        Offset(rect.right - 8, rect.top + 8),
+        Offset(rect.left + 8, rect.bottom - 8),
+        linePaint,
+      );
+      return;
+    }
+
+    final srcRect = Rect.fromLTWH(
+      source!.x * sourceTileWidth.toDouble(),
+      source!.y * sourceTileHeight.toDouble(),
+      source!.width * sourceTileWidth.toDouble(),
+      source!.height * sourceTileHeight.toDouble(),
+    );
+    final dstRect = rect.deflate(3);
+    canvas.clipRRect(
+      RRect.fromRectAndRadius(dstRect, const Radius.circular(6)),
+    );
+    canvas.drawImageRect(image, srcRect, dstRect, Paint());
+  }
+
+  @override
+  bool shouldRepaint(covariant _PathSlotPreviewPainter oldDelegate) {
+    return oldDelegate.image != image ||
+        oldDelegate.sourceTileWidth != sourceTileWidth ||
+        oldDelegate.sourceTileHeight != sourceTileHeight ||
+        oldDelegate.source != source ||
+        oldDelegate.selected != selected;
   }
 }
 

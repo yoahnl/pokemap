@@ -245,7 +245,6 @@
           <value>
             <list>
               <option value="/opt/homebrew/share/flutter/packages/flutter/lib" />
-              <option value="$USER_HOME$/develop/flutter/packages/flutter/lib" />
             </list>
           </value>
         </entry>
@@ -274,7 +273,6 @@
           <value>
             <list>
               <option value="/opt/homebrew/share/flutter/packages/flutter_test/lib" />
-              <option value="$USER_HOME$/develop/flutter/packages/flutter_test/lib" />
             </list>
           </value>
         </entry>
@@ -620,7 +618,6 @@
           <value>
             <list>
               <option value="/opt/homebrew/share/flutter/bin/cache/pkg/sky_engine/lib" />
-              <option value="$USER_HOME$/develop/flutter/bin/cache/pkg/sky_engine/lib" />
             </list>
           </value>
         </entry>
@@ -930,9 +927,6 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/win32-5.15.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/xdg_directories-1.1.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/yaml-3.1.3/lib" />
-      <root url="file://$USER_HOME$/develop/flutter/bin/cache/pkg/sky_engine/lib" />
-      <root url="file://$USER_HOME$/develop/flutter/packages/flutter/lib" />
-      <root url="file://$USER_HOME$/develop/flutter/packages/flutter_test/lib" />
       <root url="file:///opt/homebrew/share/flutter/bin/cache/pkg/sky_engine/lib" />
       <root url="file:///opt/homebrew/share/flutter/packages/flutter/lib" />
       <root url="file:///opt/homebrew/share/flutter/packages/flutter_test/lib" />
