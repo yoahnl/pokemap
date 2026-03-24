@@ -55,8 +55,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final selectedTileset = notifier.getSelectedTilesetEntry();
     final workspaceTitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap?.name ?? 'Map Workspace',
-      EditorWorkspaceMode.tileset =>
-        selectedTileset?.name ?? 'Tileset Studio',
+      EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
     };
     final workspaceSubtitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap == null
@@ -132,9 +131,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                   color: EditorChrome.windowBackground(context),
                 ),
                 child: MacosWindow(
-                  titleBar: const TitleBar(
-                    title: Text('RPG Map Editor'),
-                  ),
                   child: MacosScaffold(
                     toolBar: buildMapEditorToolbar(context, ref),
                     children: [
@@ -191,20 +187,20 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.fromLTRB(
-                                      26,
-                                      26,
-                                      26,
+                                      20,
+                                      20,
+                                      20,
                                       10,
                                     ),
                                     child: EditorPaneSurface(
-                                      radius: 34,
+                                      radius: 30,
                                       tint: const Color(0xFF202A38),
                                       child: Padding(
                                         padding: const EdgeInsets.fromLTRB(
-                                          22,
-                                          22,
-                                          22,
-                                          22,
+                                          16,
+                                          16,
+                                          16,
+                                          16,
                                         ),
                                         child: Column(
                                           crossAxisAlignment:
@@ -215,7 +211,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                               subtitle: workspaceSubtitle,
                                               workspaceMode: workspaceMode,
                                             ),
-                                            const SizedBox(height: 20),
+                                            const SizedBox(height: 14),
                                             Expanded(
                                               child: Container(
                                                 decoration: BoxDecoration(
@@ -224,22 +220,22 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                     context,
                                                   ),
                                                   borderRadius:
-                                                      BorderRadius.circular(28),
+                                                      BorderRadius.circular(24),
                                                   boxShadow: const [
                                                     BoxShadow(
-                                                      color: Color(0x1F000000),
-                                                      blurRadius: 20,
-                                                      offset: Offset(0, 10),
+                                                      color: Color(0x16000000),
+                                                      blurRadius: 14,
+                                                      offset: Offset(0, 6),
                                                     ),
                                                   ],
                                                 ),
                                                 child: Padding(
                                                   padding:
-                                                      const EdgeInsets.all(24),
+                                                      const EdgeInsets.all(14),
                                                   child: ClipRRect(
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                      24,
+                                                      20,
                                                     ),
                                                     child: DecoratedBox(
                                                       decoration: BoxDecoration(
@@ -319,12 +315,8 @@ class _EditorToastBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tint = isError
-        ? const Color(0xFF2A1D23)
-        : const Color(0xFF1B2432);
-    final accent = isError
-        ? const Color(0xFFE7A7AF)
-        : const Color(0xFF8EBEFF);
+    final tint = isError ? const Color(0xFF2A1D23) : const Color(0xFF1B2432);
+    final accent = isError ? const Color(0xFFE7A7AF) : const Color(0xFF8EBEFF);
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 380),
       child: EditorPaneSurface(
