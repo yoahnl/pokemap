@@ -52,9 +52,9 @@ class ProjectExplorerPanel extends ConsumerWidget {
     dynamic state,
     EditorNotifier notifier,
   ) {
-    final accent = EditorChrome.activeAccent(context);
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
+    const explorerAccent = Color(0xFF7FB6C3);
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       child: Row(
@@ -63,14 +63,14 @@ class ProjectExplorerPanel extends ConsumerWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
+              color: explorerAccent.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
             child: Icon(
               CupertinoIcons.square_stack_3d_up,
               size: 18,
-              color: accent,
+              color: explorerAccent,
             ),
           ),
           const SizedBox(width: 10),
@@ -181,7 +181,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
       children: [
         Expanded(
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF1B2940),
+            tint: const Color(0xFF23272E),
             child: _buildTilesetsIsland(context, project, state, notifier),
           ),
         ),
@@ -199,7 +199,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF1B2331),
+            tint: const Color(0xFF21252C),
             child: _buildWorldIsland(context, worldChildren),
           ),
         ),
@@ -217,7 +217,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF33261D),
+            tint: const Color(0xFF2A231F),
             child: const TerrainEditorPanel(),
           ),
         ),

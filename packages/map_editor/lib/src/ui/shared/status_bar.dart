@@ -17,11 +17,11 @@ class StatusBar extends ConsumerWidget {
         ? const Color(0xFFF3C5CB)
         : EditorChrome.subtleLabel(context);
     final tint = hasError
-        ? const Color(0xFF221A20)
-        : const Color(0xFF18212D);
+        ? const Color(0xFF271B1F)
+        : const Color(0xFF1C1D24);
     final leadingTint = hasError
         ? const Color(0xFFE2A3AD)
-        : const Color(0xFF8FB8EA);
+        : const Color(0xFF8FC7BC);
     final icon = hasError
         ? CupertinoIcons.exclamationmark_triangle_fill
         : CupertinoIcons.sparkles;
@@ -99,7 +99,7 @@ class StatusBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: CupertinoColors.white.withValues(alpha: 0.05),
+        color: CupertinoColors.white.withValues(alpha: 0.045),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(

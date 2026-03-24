@@ -32,8 +32,8 @@ class MapEditorApp extends StatelessWidget {
   MacosThemeData _buildLightTheme() {
     return MacosThemeData.light().copyWith(
       accentColor: AccentColor.blue,
-      primaryColor: const Color(0xFF3D88FF),
-      canvasColor: const Color(0xFFF4F6FB),
+      primaryColor: const Color(0xFF4A87F5),
+      canvasColor: const Color(0xFFF5F3EF),
       dividerColor: const Color(0x14000000),
       visualDensity: const VisualDensity(horizontal: 0, vertical: -0.25),
     );
@@ -42,8 +42,8 @@ class MapEditorApp extends StatelessWidget {
   MacosThemeData _buildDarkTheme() {
     return MacosThemeData.dark().copyWith(
       accentColor: AccentColor.blue,
-      primaryColor: const Color(0xFF4C9CFF),
-      canvasColor: const Color(0xFF0B1018),
+      primaryColor: const Color(0xFF4D8EF7),
+      canvasColor: const Color(0xFF0E1014),
       dividerColor: const Color(0x1FFFFFFF),
       visualDensity: const VisualDensity(horizontal: 0, vertical: -0.25),
     );

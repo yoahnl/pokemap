@@ -282,11 +282,8 @@ class TopToolbar extends ConsumerWidget {
             margin: const EdgeInsets.only(left: 6),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: CupertinoColors.systemFill.resolveFrom(context),
+              color: CupertinoColors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: EditorChrome.subtleSeparator(context),
-              ),
             ),
             child: Text(
               state.statusMessage!,
@@ -319,11 +316,11 @@ class TopToolbar extends ConsumerWidget {
       dividerColor: MacosColors.transparent,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            EditorChrome.panelBackground(context).withValues(alpha: 0.96),
-            EditorChrome.scaffoldBackground(context).withValues(alpha: 0.92),
+            EditorChrome.panelBackground(context).withValues(alpha: 0.84),
+            EditorChrome.scaffoldBackground(context).withValues(alpha: 0.76),
           ],
         ),
       ),
@@ -732,6 +729,7 @@ class _ToolbarBrand extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     final accent = EditorChrome.activeAccent(context);
+    const warmGlow = Color(0xFFE3A563);
 
     return Row(
       children: [
@@ -741,15 +739,15 @@ class _ToolbarBrand extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                accent.withValues(alpha: 0.92),
-                accent.withValues(alpha: 0.58),
+                accent.withValues(alpha: 0.88),
+                warmGlow.withValues(alpha: 0.72),
               ],
             ),
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: accent.withValues(alpha: 0.22),
-                blurRadius: 16,
+                color: warmGlow.withValues(alpha: 0.16),
+                blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
             ],
@@ -814,9 +812,9 @@ class _ToolbarCapsuleGroup extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: CupertinoColors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: CupertinoColors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -862,8 +860,8 @@ class _ToolbarCapsuleButtonState extends State<_ToolbarCapsuleButton> {
     final accent = EditorChrome.activeAccent(context);
     final enabled = widget.onPressed != null;
     final fill = widget.selected
-        ? accent.withValues(alpha: 0.18)
-        : (_hovered ? CupertinoColors.systemFill.resolveFrom(context) : null);
+        ? accent.withValues(alpha: 0.14)
+        : (_hovered ? CupertinoColors.white.withValues(alpha: 0.08) : null);
     final iconColor = !enabled
         ? CupertinoColors.inactiveGray.resolveFrom(context)
         : (widget.selected ? accent : EditorChrome.primaryLabel(context));
@@ -916,7 +914,7 @@ class _ToolbarCapsulePulldown extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 120),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemFill.resolveFrom(context),
+        color: CupertinoColors.white.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(10),
       ),
       child: MacosPulldownButton(

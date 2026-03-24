@@ -11,43 +11,43 @@ abstract final class EditorChrome {
       MacosTheme.brightnessOf(context) == Brightness.dark;
 
   static Color windowBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF091018)
+      ? const Color(0xFF0C0D11)
       : const Color(0xFFF2F4F8);
 
   static Color scaffoldBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF0D141D)
-      : const Color(0xFFF5F6FA);
+      ? const Color(0xFF111318)
+      : const Color(0xFFF6F4F1);
 
   static Color leftSidebarBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF0E141C)
-      : const Color(0xFFF4F6FA);
+      ? const Color(0xFF111318)
+      : const Color(0xFFF6F4F1);
 
   static Color rightSidebarBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF101722)
-      : const Color(0xFFF7F8FB);
+      ? const Color(0xFF111318)
+      : const Color(0xFFF7F5F2);
 
   static Color panelBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF151C27)
+      ? const Color(0xFF1A1D23)
       : CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
 
   static Color elevatedPanelBackground(BuildContext context) =>
       _isDark(context)
-          ? const Color(0xFF1A2230)
+          ? const Color(0xFF20242C)
           : CupertinoColors.systemBackground.resolveFrom(context);
 
   static Color mapCanvasViewportBackground(BuildContext context) {
     if (_isDark(context)) {
-      return const Color(0xFF101722);
+      return const Color(0xFF13161C);
     }
     return CupertinoColors.systemGroupedBackground.resolveFrom(context);
   }
 
   static Color separator(BuildContext context) => _isDark(context)
-      ? const Color(0x142C3543)
+      ? const Color(0x14E4D5C2)
       : CupertinoColors.separator.resolveFrom(context);
 
   static Color subtleSeparator(BuildContext context) => _isDark(context)
-      ? const Color(0x10FFFFFF)
+      ? const Color(0x0FDCCCBD)
       : const Color(0x14000000);
 
   static Color subtleLabel(BuildContext context) =>
@@ -68,7 +68,7 @@ abstract final class EditorChrome {
       : const Color(0x0E000000);
 
   static Color panelBorder(BuildContext context) => _isDark(context)
-      ? const Color(0x12FFFFFF)
+      ? const Color(0x0EDFD1C3)
       : const Color(0x14000000);
 
   static LinearGradient panelGradient(
@@ -76,18 +76,20 @@ abstract final class EditorChrome {
     Color? tint,
   }) {
     if (_isDark(context)) {
-      final top = Color.lerp(
-            const Color(0xFF1A212C),
-            tint ?? const Color(0xFF1A212C),
-            0.4,
-          ) ??
-          const Color(0xFF1A212C);
+      final top = Color.alphaBlend(
+        (tint ?? const Color(0xFF241F26)).withValues(alpha: 0.2),
+        const Color(0xFF242129),
+      );
+      final bottom = Color.alphaBlend(
+        (tint ?? const Color(0xFF241F26)).withValues(alpha: 0.1),
+        const Color(0xFF181A20),
+      );
       return LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
           top,
-          const Color(0xFF131923),
+          bottom,
         ],
       );
     }
@@ -104,11 +106,12 @@ abstract final class EditorChrome {
   static LinearGradient workspaceGradient(BuildContext context) {
     if (_isDark(context)) {
       return const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
         colors: [
-          Color(0xFF0C121A),
-          Color(0xFF0A0F16),
+          Color(0xFF141117),
+          Color(0xFF111318),
+          Color(0xFF0F1115),
         ],
       );
     }
@@ -128,8 +131,8 @@ abstract final class EditorChrome {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color(0xFF1A222F),
-          Color(0xFF111823),
+          Color(0xFF222027),
+          Color(0xFF17191F),
         ],
       );
     }
@@ -146,11 +149,11 @@ abstract final class EditorChrome {
   static LinearGradient toolbarGroupGradient(BuildContext context) {
     if (_isDark(context)) {
       return const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
         colors: [
-          Color(0xFF1D2633),
-          Color(0xFF161C27),
+          Color(0xFF292D35),
+          Color(0xFF1E2128),
         ],
       );
     }
@@ -168,9 +171,14 @@ abstract final class EditorChrome {
     if (_isDark(context)) {
       return const [
         BoxShadow(
-          color: Color(0x28000000),
-          blurRadius: 24,
-          offset: Offset(0, 14),
+          color: Color(0x22000000),
+          blurRadius: 26,
+          offset: Offset(0, 16),
+        ),
+        BoxShadow(
+          color: Color(0x12000000),
+          blurRadius: 8,
+          offset: Offset(0, 2),
         ),
       ];
     }
@@ -183,7 +191,7 @@ abstract final class EditorChrome {
     ];
   }
 
-  static const Color borderSubtle = Color(0x1AFFFFFF);
+  static const Color borderSubtle = Color(0x14FFFFFF);
 }
 
 class EditorPaneSurface extends StatelessWidget {

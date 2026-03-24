@@ -140,7 +140,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         maxSize: 520,
                         startSize: 344,
                         decoration: BoxDecoration(
-                          color: EditorChrome.leftSidebarBackground(context),
+                          color: EditorChrome.leftSidebarBackground(context)
+                              .withValues(alpha: 0.88),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
@@ -165,13 +166,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                     ),
                                     child: EditorPaneSurface(
                                       radius: 30,
-                                      tint: const Color(0xFF202A38),
+                                      tint: const Color(0xFF2A2423),
                                       child: Padding(
                                         padding: const EdgeInsets.fromLTRB(
-                                          16,
-                                          16,
-                                          16,
-                                          16,
+                                          14,
+                                          14,
+                                          14,
+                                          14,
                                         ),
                                         child: Column(
                                           crossAxisAlignment:
@@ -194,15 +195,15 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                       BorderRadius.circular(24),
                                                   boxShadow: const [
                                                     BoxShadow(
-                                                      color: Color(0x16000000),
-                                                      blurRadius: 14,
-                                                      offset: Offset(0, 6),
+                                                      color: Color(0x14000000),
+                                                      blurRadius: 16,
+                                                      offset: Offset(0, 8),
                                                     ),
                                                   ],
                                                 ),
                                                 child: Padding(
                                                   padding:
-                                                      const EdgeInsets.all(14),
+                                                      const EdgeInsets.all(10),
                                                   child: ClipRRect(
                                                     borderRadius:
                                                         BorderRadius.circular(
@@ -241,13 +242,14 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         maxSize: 620,
                         startSize: 336,
                         decoration: BoxDecoration(
-                          color: EditorChrome.rightSidebarBackground(context),
+                          color: EditorChrome.rightSidebarBackground(context)
+                              .withValues(alpha: 0.88),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(12, 18, 16, 18),
                           child: EditorPaneSurface(
                             radius: 28,
-                            tint: const Color(0xFF1F2837),
+                            tint: const Color(0xFF24232A),
                             child: workspaceMode == EditorWorkspaceMode.map
                                 ? const MapInspectorPanel()
                                 : const TilesetPalettePanel(),

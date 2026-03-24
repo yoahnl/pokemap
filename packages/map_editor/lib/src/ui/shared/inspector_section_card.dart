@@ -33,9 +33,13 @@ class InspectorSectionCard extends StatelessWidget {
     final hasBadge = badgeText != null && badgeText.isNotEmpty;
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    final fill = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.08),
+    final fillTop = Color.alphaBlend(
+      accentColor.withValues(alpha: 0.06),
       EditorChrome.elevatedPanelBackground(context),
+    );
+    final fillBottom = Color.alphaBlend(
+      accentColor.withValues(alpha: 0.02),
+      EditorChrome.panelBackground(context),
     );
 
     return AnimatedSize(
@@ -44,13 +48,20 @@ class InspectorSectionCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.fromLTRB(10, 3, 10, 11),
         decoration: BoxDecoration(
-          color: fill,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              fillTop,
+              fillBottom,
+            ],
+          ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x16000000),
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              color: Color(0x12000000),
+              blurRadius: 14,
+              offset: Offset(0, 7),
             ),
           ],
         ),
@@ -67,7 +78,7 @@ class InspectorSectionCard extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.13),
+                      color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     alignment: Alignment.center,
@@ -111,7 +122,7 @@ class InspectorSectionCard extends StatelessWidget {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.1),
+                        color: accentColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
