@@ -147,12 +147,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                           padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
                           child: Column(
                             children: [
-                              Expanded(
-                                child: EditorPaneSurface(
-                                  radius: 28,
-                                  tint: const Color(0xFF1D2940),
-                                  child: const ProjectExplorerPanel(),
-                                ),
+                              const Expanded(
+                                child: ProjectExplorerPanel(),
                               ),
                               const SizedBox(height: 14),
                               ResizablePane.noScrollBar(
