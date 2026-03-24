@@ -29,6 +29,208 @@ abstract final class EditorChrome {
   static const Color borderSubtle = Color(0x1AFFFFFF);
 }
 
+/// Fond de ligne sélectionnée, identique à [SidebarItems] (package macos_ui).
+Color editorSidebarSelectionColor(BuildContext context) {
+  final theme = MacosTheme.of(context);
+  final accent = theme.accentColor ?? AccentColor.blue;
+  final isDark = theme.brightness == Brightness.dark;
+  final isMain = WindowMainStateListener.instance.isMainWindow;
+
+  if (isDark) {
+    if (!isMain) {
+      return const Color.fromRGBO(76, 78, 65, 1.0);
+    }
+    return switch (accent) {
+      AccentColor.blue => const Color.fromRGBO(22, 105, 229, 0.749),
+      AccentColor.purple => const Color.fromRGBO(204, 45, 202, 0.749),
+      AccentColor.pink => const Color.fromRGBO(229, 74, 145, 0.749),
+      AccentColor.red => const Color.fromRGBO(238, 64, 68, 0.749),
+      AccentColor.orange => const Color.fromRGBO(244, 114, 0, 0.749),
+      AccentColor.yellow => const Color.fromRGBO(233, 176, 0, 0.749),
+      AccentColor.green => const Color.fromRGBO(76, 177, 45, 0.749),
+      AccentColor.graphite => const Color.fromRGBO(129, 129, 122, 0.824),
+    };
+  }
+
+  if (!isMain) {
+    return const Color.fromRGBO(213, 213, 208, 1.0);
+  }
+
+  return switch (accent) {
+    AccentColor.blue => const Color.fromRGBO(9, 129, 255, 0.749),
+    AccentColor.purple => const Color.fromRGBO(162, 28, 165, 0.749),
+    AccentColor.pink => const Color.fromRGBO(234, 81, 152, 0.749),
+    AccentColor.red => const Color.fromRGBO(220, 32, 40, 0.749),
+    AccentColor.orange => const Color.fromRGBO(245, 113, 0, 0.749),
+    AccentColor.yellow => const Color.fromRGBO(240, 180, 2, 0.749),
+    AccentColor.green => const Color.fromRGBO(66, 174, 33, 0.749),
+    AccentColor.graphite => const Color.fromRGBO(174, 174, 167, 0.847),
+  };
+}
+
+/// Titre de section type en-tête [SidebarItem] macos_ui (texte gris, non cliquable).
+class EditorSidebarSectionTitle extends StatelessWidget {
+  const EditorSidebarSectionTitle(
+    this.label, {
+    super.key,
+    this.leftInset = 0,
+  });
+
+  final String label;
+  final double leftInset;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = MacosTheme.of(context);
+    final base = theme.typography.body;
+    final isDark = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10 + leftInset, 10, 10, 4),
+      child: Text(
+        label,
+        style: base.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: (base.fontSize ?? 14.0) * 0.85,
+          color: isDark
+              ? MacosColors.white.withValues(alpha: 0.3)
+              : MacosColors.black.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne de liste pleine largeur, style pilule sélectionnée comme [SidebarItem] (sans la largeur fixe 134 px).
+class EditorSidebarListRow extends StatelessWidget {
+  const EditorSidebarListRow({
+    super.key,
+    required this.selected,
+    required this.onTap,
+    this.leading,
+    this.leadingIconUnselectedColor,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onSecondaryTapDown,
+    this.leftIndent = 0,
+  });
+
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget? leading;
+  /// Si non null et [selected] est false, couleur de l’icône (sinon [MacosTheme.primaryColor]).
+  final Color? leadingIconUnselectedColor;
+  final Widget title;
+  final Widget? subtitle;
+  final Widget? trailing;
+  final void Function(TapDownDetails details)? onSecondaryTapDown;
+  /// Décalage horizontal supplémentaire (profondeur d’arbre).
+  final double leftIndent;
+
+  static const ShapeBorder _pillShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(5)),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = MacosTheme.of(context);
+    final spacing = 10.0 + theme.visualDensity.horizontal;
+    const rowHeight = 29.0;
+
+    Widget core = StreamBuilder<bool>(
+      stream: WindowMainStateListener.instance.onChanged,
+      initialData: WindowMainStateListener.instance.isMainWindow,
+      builder: (context, _) {
+        final fill = editorSidebarSelectionColor(context);
+        return DecoratedBox(
+          decoration: ShapeDecoration(
+            color: selected ? fill : Colors.transparent,
+            shape: _pillShape,
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: spacing,
+              vertical: 4 + theme.visualDensity.vertical * 0.5,
+            ),
+            child: SizedBox(
+              height: rowHeight + theme.visualDensity.vertical,
+              child: Row(
+                children: [
+                  if (leading != null) ...[
+                    MacosIconTheme.merge(
+                      data: MacosIconThemeData(
+                        color: selected
+                            ? MacosColors.white
+                            : (leadingIconUnselectedColor ??
+                                theme.primaryColor),
+                        size: 16,
+                      ),
+                      child: leading!,
+                    ),
+                    SizedBox(width: spacing),
+                  ],
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DefaultTextStyle(
+                          style: theme.typography.body.copyWith(
+                            color: selected
+                                ? MacosColors.white
+                                : null,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                          child: title,
+                        ),
+                        if (subtitle != null)
+                          DefaultTextStyle(
+                            style: theme.typography.caption1.copyWith(
+                              color: selected
+                                  ? MacosColors.white.withValues(alpha: 0.72)
+                                  : CupertinoColors.secondaryLabel
+                                      .resolveFrom(context),
+                            ),
+                            child: subtitle!,
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (trailing != null) trailing!,
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    core = MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: core,
+      ),
+    );
+
+    if (onSecondaryTapDown != null) {
+      core = GestureDetector(
+        onSecondaryTapDown: onSecondaryTapDown,
+        behavior: HitTestBehavior.translucent,
+        child: core,
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(8 + leftIndent, 1, 8, 1),
+      child: core,
+    );
+  }
+}
+
 class EditorHorizontalDivider extends StatelessWidget {
   const EditorHorizontalDivider({super.key});
 
@@ -105,6 +307,8 @@ class CupertinoDisclosureTile extends StatefulWidget {
     this.tilePadding = EdgeInsets.zero,
     this.childrenPadding = EdgeInsets.zero,
     this.onSecondaryTapDown,
+    /// En-tête pleine largeur, typographie / icônes comme la sidebar macos_ui.
+    this.useEditorMacosSidebarDisclosureStyle = false,
   });
 
   final Widget title;
@@ -116,6 +320,7 @@ class CupertinoDisclosureTile extends StatefulWidget {
   final EdgeInsetsGeometry childrenPadding;
   /// Clic droit sur la ligne d’en-tête (menu contextuel).
   final void Function(TapDownDetails details)? onSecondaryTapDown;
+  final bool useEditorMacosSidebarDisclosureStyle;
 
   @override
   State<CupertinoDisclosureTile> createState() =>
@@ -129,6 +334,11 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
   Widget build(BuildContext context) {
     final chevronColor =
         CupertinoColors.secondaryLabel.resolveFrom(context);
+    final macosTheme = MacosTheme.of(context);
+    final titleMergeStyle = widget.useEditorMacosSidebarDisclosureStyle
+        ? macosTheme.typography.body
+        : CupertinoTheme.of(context).textTheme.textStyle;
+
     Widget header = CupertinoButton(
       padding: widget.tilePadding,
       minimumSize: Size.zero,
@@ -145,12 +355,21 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
           ),
           if (widget.leading != null) ...[
             const SizedBox(width: 6),
-            widget.leading!,
+            if (widget.useEditorMacosSidebarDisclosureStyle)
+              MacosIconTheme.merge(
+                data: MacosIconThemeData(
+                  color: macosTheme.primaryColor,
+                  size: 16,
+                ),
+                child: widget.leading!,
+              )
+            else
+              widget.leading!,
           ],
           if (widget.leading != null) const SizedBox(width: 8),
           Expanded(
             child: DefaultTextStyle.merge(
-              style: CupertinoTheme.of(context).textTheme.textStyle,
+              style: titleMergeStyle,
               child: widget.title,
             ),
           ),
@@ -158,6 +377,12 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
         ],
       ),
     );
+    if (widget.useEditorMacosSidebarDisclosureStyle) {
+      header = SizedBox(
+        width: double.infinity,
+        child: header,
+      );
+    }
     if (widget.onSecondaryTapDown != null) {
       header = GestureDetector(
         onSecondaryTapDown: widget.onSecondaryTapDown,

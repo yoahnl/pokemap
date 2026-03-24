@@ -144,17 +144,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
           ),
         ),
         if (rootMaps.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              'UNGROUPED MAPS',
-              style: TextStyle(
-                fontSize: 9,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          const EditorSidebarSectionTitle('UNGROUPED MAPS', leftInset: 6),
           ...rootMaps.map(
             (m) => _MapNode(
               map: m,
@@ -223,20 +213,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
           ),
         ),
       if (globalTilesets.isNotEmpty) ...[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'GLOBAL',
-              style: TextStyle(
-                fontSize: 9,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
+        const EditorSidebarSectionTitle('GLOBAL', leftInset: 14),
         ...globalTilesets.map(
           (tileset) => _TilesetNode(
             tileset: tileset,
@@ -248,20 +225,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
       ],
       for (final group in sortedGroups)
         if (tilesetsByGroup[group.id]?.isNotEmpty ?? false) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                group.name.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 9,
-                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
+          EditorSidebarSectionTitle(group.name.toUpperCase(), leftInset: 14),
           ...tilesetsByGroup[group.id]!.map(
             (tileset) => _TilesetNode(
               tileset: tileset,
@@ -273,22 +237,24 @@ class ProjectExplorerPanel extends ConsumerWidget {
         ],
     ];
 
+    final theme = MacosTheme.of(context);
+    final tilesetsTitleBase = theme.typography.body;
+    final tilesetsTitleDark = theme.brightness == Brightness.dark;
+
     return CupertinoDisclosureTile(
+      useEditorMacosSidebarDisclosureStyle: true,
       initiallyExpanded: true,
-      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+      tilePadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       childrenPadding: EdgeInsets.zero,
-      leading: const Icon(
-        CupertinoIcons.square_grid_2x2,
-        size: 18,
-        color: EditorPaintColors.amberAccent,
-      ),
+      leading: const MacosIcon(CupertinoIcons.square_grid_2x2, size: 16),
       title: Text(
         'TILESETS',
-        style: TextStyle(
-          fontSize: 11,
-          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        style: tilesetsTitleBase.copyWith(
           fontWeight: FontWeight.bold,
-          letterSpacing: 1.0,
+          fontSize: (tilesetsTitleBase.fontSize ?? 14) * 0.85,
+          color: tilesetsTitleDark
+              ? MacosColors.white.withValues(alpha: 0.3)
+              : MacosColors.black.withValues(alpha: 0.3),
         ),
       ),
       children: children,
@@ -543,18 +509,20 @@ class _GroupNode extends StatelessWidget {
         project.groups.where((g) => g.parentGroupId == group.id).toList();
     final childrenMaps =
         project.maps.where((m) => m.groupId == group.id).toList();
-    final color = _getGroupColor(group.type);
-
     return CupertinoDisclosureTile(
-      tilePadding: EdgeInsets.only(left: 16.0 * depth + 8.0, right: 4),
+      useEditorMacosSidebarDisclosureStyle: true,
+      tilePadding: EdgeInsets.only(left: 8 + 16.0 * depth, right: 8, top: 4, bottom: 4),
       childrenPadding: EdgeInsets.zero,
-      leading: Icon(_getGroupIcon(group.type), size: 18, color: color),
+      leading: MacosIcon(_getGroupIcon(group.type), size: 16),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             group.name,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           Text(
             group.type.name.toUpperCase(),
@@ -614,17 +582,6 @@ class _GroupNode extends StatelessWidget {
       MapGroupType.tower => CupertinoIcons.arrow_up_circle_fill,
       MapGroupType.facility => CupertinoIcons.briefcase_fill,
       MapGroupType.special => CupertinoIcons.star_fill,
-    };
-  }
-
-  Color _getGroupColor(MapGroupType type) {
-    return switch (type) {
-      MapGroupType.city => EditorPaintColors.orangeAccent,
-      MapGroupType.route => EditorPaintColors.greenAccent,
-      MapGroupType.dungeon => EditorPaintColors.redAccent,
-      MapGroupType.cave => EditorPaintColors.brown,
-      MapGroupType.forest => EditorPaintColors.green,
-      _ => EditorPaintColors.lightBlueAccent,
     };
   }
 
@@ -847,45 +804,26 @@ class _MapNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = state.activeMap?.id == map.id;
-    final accent = EditorChrome.activeAccent(context);
-    final secondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
 
-    return GestureDetector(
-      onSecondaryTapDown: (details) =>
-          _showMapContextMenu(context, details.globalPosition, map, notifier),
-      child: CupertinoButton(
-        padding: EdgeInsets.only(
-          left: 32.0 + (16.0 * depth),
-          right: 16,
-          top: 6,
-          bottom: 6,
-        ),
-        alignment: Alignment.centerLeft,
-        onPressed: () => notifier.loadMap(map.relativePath),
-        child: Row(
-          children: [
-            Icon(
-              _getRoleIcon(map.role),
-              size: 16,
-              color: isSelected ? accent : secondary,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                map.name,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isSelected ? accent : CupertinoColors.label.resolveFrom(context),
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ),
-            if (isSelected)
-              Icon(CupertinoIcons.pencil, size: 12, color: accent),
-          ],
-        ),
+    return EditorSidebarListRow(
+      selected: isSelected,
+      onTap: () => notifier.loadMap(map.relativePath),
+      onSecondaryTapDown: (details) => _showMapContextMenu(
+        context,
+        details.globalPosition,
+        map,
+        notifier,
       ),
+      leftIndent: 14 + 16.0 * depth,
+      leading: MacosIcon(_getRoleIcon(map.role), size: 16),
+      title: Text(map.name),
+      trailing: isSelected
+          ? const MacosIcon(
+              CupertinoIcons.pencil,
+              size: 14,
+              color: MacosColors.white,
+            )
+          : null,
     );
   }
 
@@ -965,74 +903,34 @@ class _TilesetNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = EditorChrome.activeAccent(context);
-    final secondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
-
-    return GestureDetector(
+    return EditorSidebarListRow(
+      selected: selected,
+      onTap: () => notifier.selectTilesetWorkspace(tileset.id),
       onSecondaryTapDown: (d) =>
           _showTilesetMenu(context, anchorGlobal: d.globalPosition),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: 0.14) : EditorPaintColors.transparent,
-        ),
-        child: CupertinoButton(
-          padding: const EdgeInsets.only(left: 24, right: 4, top: 4, bottom: 4),
-          alignment: Alignment.centerLeft,
-          onPressed: () => notifier.selectTilesetWorkspace(tileset.id),
-          child: Row(
-            children: [
-              Icon(
-                tileset.isWorldTileset
-                    ? CupertinoIcons.globe
-                    : (tileset.scope == TilesetScope.global
-                        ? CupertinoIcons.circle_grid_hex
-                        : CupertinoIcons.tag),
-                size: 16,
-                color: selected
-                    ? EditorPaintColors.blue200
-                    : (tileset.isWorldTileset
-                        ? EditorPaintColors.amberAccent
-                        : secondary),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tileset.name,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: selected
-                            ? EditorPaintColors.blue100
-                            : CupertinoColors.label.resolveFrom(context),
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                    Text(
-                      '${tileset.id} | sort ${tileset.sortOrder}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Builder(
-                builder: (btnContext) => EditorToolbarIconButton(
-                  icon: CupertinoIcons.ellipsis_vertical,
-                  tooltip: 'Tileset actions',
-                  iconSize: 16,
-                  onPressed: () => _showTilesetMenu(
-                    context,
-                    anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
-                  ),
-                ),
-              ),
-            ],
+      leftIndent: 6,
+      leadingIconUnselectedColor: tileset.isWorldTileset
+          ? EditorPaintColors.amberAccent
+          : null,
+      leading: MacosIcon(
+        tileset.isWorldTileset
+            ? CupertinoIcons.globe
+            : (tileset.scope == TilesetScope.global
+                ? CupertinoIcons.circle_grid_hex
+                : CupertinoIcons.tag),
+        size: 16,
+      ),
+      title: Text(tileset.name),
+      subtitle: Text('${tileset.id} | sort ${tileset.sortOrder}'),
+      trailing: Builder(
+        builder: (btnContext) => EditorToolbarIconButton(
+          icon: CupertinoIcons.ellipsis_vertical,
+          tooltip: 'Tileset actions',
+          iconSize: 16,
+          color: selected ? MacosColors.white : null,
+          onPressed: () => _showTilesetMenu(
+            context,
+            anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
           ),
         ),
       ),
