@@ -135,9 +135,16 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             child: ProjectExplorerPanel(),
                           ),
                           const EditorHorizontalDivider(),
-                          const SizedBox(
-                            height: 420,
-                            child: TerrainEditorPanel(),
+                          ResizablePane.noScrollBar(
+                            key: const ValueKey('editor_surface_library_pane'),
+                            resizableSide: ResizableSide.top,
+                            minSize: 160,
+                            maxSize: 560,
+                            startSize: 420,
+                            decoration: BoxDecoration(
+                              color: EditorChrome.panelBackground(context),
+                            ),
+                            child: const TerrainEditorPanel(),
                           ),
                         ],
                       ),
