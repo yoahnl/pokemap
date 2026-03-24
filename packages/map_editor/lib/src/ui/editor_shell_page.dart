@@ -120,50 +120,55 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                 child: MacosScaffold(
                   toolBar: buildMapEditorToolbar(context, ref),
                   children: [
+                    ResizablePane.noScrollBar(
+                      key: const ValueKey('editor_left_pane'),
+                      resizableSide: ResizableSide.right,
+                      minSize: 220,
+                      maxSize: 520,
+                      startSize: 340,
+                      decoration: BoxDecoration(
+                        color: EditorChrome.panelBackground(context),
+                      ),
+                      child: Column(
+                        children: [
+                          const Expanded(
+                            child: ProjectExplorerPanel(),
+                          ),
+                          const EditorHorizontalDivider(),
+                          const SizedBox(
+                            height: 420,
+                            child: TerrainEditorPanel(),
+                          ),
+                        ],
+                      ),
+                    ),
                     ContentArea(
                       builder: (context, scrollController) {
                         return ColoredBox(
                           color: EditorChrome.scaffoldBackground(context),
                           child: Column(
-                            children: [
+                            children: const [
                               Expanded(
-                                child: Row(
-                                  children: [
-                                    const SizedBox(
-                                      width: 340,
-                                      child: Column(
-                                        children: [
-                                          Expanded(
-                                            child: ProjectExplorerPanel(),
-                                          ),
-                                          EditorHorizontalDivider(),
-                                          SizedBox(
-                                            height: 420,
-                                            child: TerrainEditorPanel(),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const EditorVerticalDivider(),
-                                    const Expanded(
-                                      child: EditorCanvasHost(),
-                                    ),
-                                    const EditorVerticalDivider(),
-                                    SizedBox(
-                                      width: 320,
-                                      child: workspaceMode ==
-                                              EditorWorkspaceMode.map
-                                          ? const MapInspectorPanel()
-                                          : const TilesetPalettePanel(),
-                                    ),
-                                  ],
-                                ),
+                                child: EditorCanvasHost(),
                               ),
-                              const StatusBar(),
+                              StatusBar(),
                             ],
                           ),
                         );
                       },
+                    ),
+                    ResizablePane.noScrollBar(
+                      key: const ValueKey('editor_right_pane'),
+                      resizableSide: ResizableSide.left,
+                      minSize: 200,
+                      maxSize: 600,
+                      startSize: 320,
+                      decoration: BoxDecoration(
+                        color: EditorChrome.panelBackground(context),
+                      ),
+                      child: workspaceMode == EditorWorkspaceMode.map
+                          ? const MapInspectorPanel()
+                          : const TilesetPalettePanel(),
                     ),
                   ],
                 ),
