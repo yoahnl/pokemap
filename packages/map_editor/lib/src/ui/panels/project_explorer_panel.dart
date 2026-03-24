@@ -1,10 +1,13 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../shared/cupertino_editor_widgets.dart';
+import '../shared/editor_paint_palette.dart';
 
 class ProjectExplorerPanel extends ConsumerWidget {
   const ProjectExplorerPanel({super.key});
@@ -18,18 +21,26 @@ class ProjectExplorerPanel extends ConsumerWidget {
     return Container(
       width: 300,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: const Border(right: BorderSide(color: Colors.white10)),
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          right: BorderSide(color: EditorChrome.separator(context)),
+        ),
       ),
       child: Column(
         children: [
           _buildHeader(context, state, notifier),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(
             child: project == null
-                ? const Center(
-                    child: Text('No project loaded',
-                        style: TextStyle(color: Colors.white24)))
+                ? Center(
+                    child: Text(
+                      'No project loaded',
+                      style: TextStyle(
+                        color: CupertinoColors.placeholderText
+                            .resolveFrom(context),
+                      ),
+                    ),
+                  )
                 : _buildTree(context, project, state, notifier),
           ),
         ],
@@ -38,12 +49,16 @@ class ProjectExplorerPanel extends ConsumerWidget {
   }
 
   Widget _buildHeader(
-      BuildContext context, dynamic state, EditorNotifier notifier) {
+    BuildContext context,
+    dynamic state,
+    EditorNotifier notifier,
+  ) {
+    final accent = EditorChrome.activeAccent(context);
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Row(
         children: [
-          const Icon(Icons.account_tree_outlined, size: 18, color: Colors.blue),
+          Icon(CupertinoIcons.tree, size: 18, color: accent),
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
@@ -57,33 +72,33 @@ class ProjectExplorerPanel extends ConsumerWidget {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+          EditorToolbarIconButton(
             onPressed: state.project != null
                 ? () => _showImportTilesetDialog(context, state, notifier)
                 : null,
+            icon: CupertinoIcons.photo_on_rectangle,
             tooltip: 'Import Tileset',
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+            iconSize: 18,
           ),
-          IconButton(
-            icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+          EditorToolbarIconButton(
             onPressed: state.project != null
                 ? () => _showCreateGroupDialog(context, notifier)
                 : null,
+            icon: CupertinoIcons.folder_badge_plus,
             tooltip: 'New Root Group',
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+            iconSize: 18,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTree(BuildContext context, ProjectManifest project,
-      dynamic state, EditorNotifier notifier) {
+  Widget _buildTree(
+    BuildContext context,
+    ProjectManifest project,
+    dynamic state,
+    EditorNotifier notifier,
+  ) {
     final rootMaps = project.maps.where((m) => m.groupId == null).toList();
     final rootGroups =
         project.groups.where((g) => g.parentGroupId == null).toList();
@@ -94,13 +109,23 @@ class ProjectExplorerPanel extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('World is empty',
-                style: TextStyle(color: Colors.white24)),
+            Text(
+              'World is empty',
+              style: TextStyle(
+                color: CupertinoColors.placeholderText.resolveFrom(context),
+              ),
+            ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
+            CupertinoButton.filled(
               onPressed: () => _showCreateGroupDialog(context, notifier),
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add City or Route'),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.add, size: 16),
+                  SizedBox(width: 6),
+                  Text('Add City or Route'),
+                ],
+              ),
             ),
           ],
         ),
@@ -111,24 +136,36 @@ class ProjectExplorerPanel extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         _buildTilesetsSection(context, project, state, notifier),
-        const Divider(height: 20),
-        ...rootGroups.map((g) => _GroupNode(
+        const SizedBox(height: 20),
+        ...rootGroups.map(
+          (g) => _GroupNode(
             group: g,
             project: project,
             state: state,
             notifier: notifier,
-            depth: 0)),
-        if (rootMaps.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('UNGROUPED MAPS',
-                style: TextStyle(
-                    fontSize: 9,
-                    color: Colors.white38,
-                    fontWeight: FontWeight.bold)),
+            depth: 0,
           ),
-          ...rootMaps.map((m) =>
-              _MapNode(map: m, state: state, notifier: notifier, depth: 0)),
+        ),
+        if (rootMaps.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'UNGROUPED MAPS',
+              style: TextStyle(
+                fontSize: 9,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ...rootMaps.map(
+            (m) => _MapNode(
+              map: m,
+              state: state,
+              notifier: notifier,
+              depth: 0,
+            ),
+          ),
         ],
       ],
     );
@@ -177,73 +214,87 @@ class ProjectExplorerPanel extends ConsumerWidget {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 
-    return ExpansionTile(
-      initiallyExpanded: true,
-      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-      childrenPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.grid_view, size: 18, color: Colors.amber),
-      title: const Text(
-        'TILESETS',
-        style: TextStyle(
-          fontSize: 11,
-          color: Colors.white70,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.0,
-        ),
-      ),
-      children: [
-        if (project.tilesets.isEmpty)
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 6, 20, 12),
-            child: Text('No tilesets imported',
-                style: TextStyle(color: Colors.white38)),
+    final children = <Widget>[
+      if (project.tilesets.isEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
+          child: Text(
+            'No tilesets imported',
+            style: TextStyle(
+              color: CupertinoColors.placeholderText.resolveFrom(context),
+            ),
           ),
-        if (globalTilesets.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+        ),
+      if (globalTilesets.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'GLOBAL',
+              style: TextStyle(
+                fontSize: 9,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        ...globalTilesets.map(
+          (tileset) => _TilesetNode(
+            tileset: tileset,
+            project: project,
+            notifier: notifier,
+            selected: selectedTilesetId == tileset.id,
+          ),
+        ),
+      ],
+      for (final group in sortedGroups)
+        if (tilesetsByGroup[group.id]?.isNotEmpty ?? false) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'GLOBAL',
+                group.name.toUpperCase(),
                 style: TextStyle(
                   fontSize: 9,
-                  color: Colors.white38,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-          ...globalTilesets.map((tileset) => _TilesetNode(
-                tileset: tileset,
-                project: project,
-                notifier: notifier,
-                selected: selectedTilesetId == tileset.id,
-              )),
-        ],
-        for (final group in sortedGroups)
-          if (tilesetsByGroup[group.id]?.isNotEmpty ?? false) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  group.name.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 9,
-                    color: Colors.white38,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+          ...tilesetsByGroup[group.id]!.map(
+            (tileset) => _TilesetNode(
+              tileset: tileset,
+              project: project,
+              notifier: notifier,
+              selected: selectedTilesetId == tileset.id,
             ),
-            ...tilesetsByGroup[group.id]!.map((tileset) => _TilesetNode(
-                  tileset: tileset,
-                  project: project,
-                  notifier: notifier,
-                  selected: selectedTilesetId == tileset.id,
-                )),
-          ],
-      ],
+          ),
+        ],
+    ];
+
+    return CupertinoDisclosureTile(
+      initiallyExpanded: true,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+      childrenPadding: EdgeInsets.zero,
+      leading: const Icon(
+        CupertinoIcons.square_grid_2x2,
+        size: 18,
+        color: EditorPaintColors.amberAccent,
+      ),
+      title: Text(
+        'TILESETS',
+        style: TextStyle(
+          fontSize: 11,
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.0,
+        ),
+      ),
+      children: children,
     );
   }
 
@@ -262,160 +313,210 @@ class ProjectExplorerPanel extends ConsumerWidget {
     );
     final sourcePath = picked?.files.single.path;
     if (sourcePath == null) return;
+    if (!context.mounted) return;
 
-    final formKey = GlobalKey<FormState>();
     final defaultName = p.basenameWithoutExtension(sourcePath);
     final nameController = TextEditingController(text: defaultName);
     var scope = TilesetScope.global;
     String? selectedGroupId =
         project.groups.isNotEmpty ? project.groups.first.id : null;
     var isWorld = project.tilesets.every((t) => !t.isWorldTileset);
+    var shouldImport = false;
 
-    await showDialog(
+    await showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Import Tileset'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    p.basename(sourcePath),
-                    style: const TextStyle(fontSize: 12, color: Colors.white60),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+      maxWidth: 480,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Import Tileset',
+              style: editorMacosSheetTitleStyle(ctx),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              p.basename(sourcePath),
+              style: TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 10),
+            Text('Tileset Name', style: editorMacosFormLabelStyle(ctx)),
+            const SizedBox(height: 6),
+            MacosTextField(controller: nameController),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () async {
+                  final s = await showCupertinoListPicker<TilesetScope>(
+                    context: ctx,
+                    title: 'Scope',
+                    items: TilesetScope.values,
+                    labelOf: (v) =>
+                        v == TilesetScope.global ? 'Global' : 'Group',
+                  );
+                  if (s != null) setState(() => scope = s);
+                },
+                child: Text(
+                  'Scope: ${scope == TilesetScope.global ? 'Global' : 'Group'}',
                 ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Tileset Name'),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<TilesetScope>(
-                  value: scope,
-                  decoration: const InputDecoration(labelText: 'Scope'),
-                  items: const [
-                    DropdownMenuItem(
-                      value: TilesetScope.global,
-                      child: Text('Global'),
-                    ),
-                    DropdownMenuItem(
-                      value: TilesetScope.group,
-                      child: Text('Group'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => scope = value);
+              ),
+            ),
+            if (scope == TilesetScope.group) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PushButton(
+                  controlSize: ControlSize.regular,
+                  secondary: true,
+                  onPressed: () async {
+                    final g = await showCupertinoListPicker<ProjectMapGroup>(
+                      context: ctx,
+                      title: 'Group',
+                      items: project.groups,
+                      labelOf: (x) => x.name,
+                    );
+                    if (g != null) {
+                      setState(() => selectedGroupId = g.id);
                     }
                   },
+                  child: Text(
+                    'Group: ${project.groups.firstWhere((g) => g.id == selectedGroupId, orElse: () => project.groups.first).name}',
+                  ),
                 ),
-                if (scope == TilesetScope.group) ...[
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedGroupId,
-                    decoration: const InputDecoration(labelText: 'Group'),
-                    items: project.groups
-                        .map((group) => DropdownMenuItem(
-                              value: group.id,
-                              child: Text(group.name),
-                            ))
-                        .toList(),
-                    onChanged: (value) =>
-                        setState(() => selectedGroupId = value),
-                  ),
-                ],
-                if (scope == TilesetScope.global) ...[
-                  const SizedBox(height: 8),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
+              ),
+            ],
+            if (scope == TilesetScope.global) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  MacosSwitch(
                     value: isWorld,
-                    title: const Text('Mark as world tileset'),
-                    onChanged: (value) =>
-                        setState(() => isWorld = value ?? false),
+                    onChanged: (v) => setState(() => isWorld = v),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('Mark as world tileset'),
                   ),
                 ],
+              ),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                PushButton(
+                  controlSize: ControlSize.large,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 10),
+                PushButton(
+                  controlSize: ControlSize.large,
+                  onPressed: () {
+                    if (nameController.text.trim().isEmpty) return;
+                    if (scope == TilesetScope.group &&
+                        selectedGroupId == null) {
+                      return;
+                    }
+                    shouldImport = true;
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Import'),
+                ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-                if (scope == TilesetScope.group && selectedGroupId == null)
-                  return;
-                Navigator.pop(context);
-                await notifier.importProjectTileset(
-                  sourcePath: sourcePath,
-                  name: nameController.text.trim(),
-                  scope: scope,
-                  groupId: scope == TilesetScope.group ? selectedGroupId : null,
-                  isWorldTileset:
-                      scope == TilesetScope.global ? isWorld : false,
-                );
-              },
-              child: const Text('Import'),
             ),
           ],
         ),
       ),
     );
+
+    if (!shouldImport) return;
+    await notifier.importProjectTileset(
+      sourcePath: sourcePath,
+      name: nameController.text.trim(),
+      scope: scope,
+      groupId: scope == TilesetScope.group ? selectedGroupId : null,
+      isWorldTileset: scope == TilesetScope.global ? isWorld : false,
+    );
   }
 
-  void _showCreateGroupDialog(BuildContext context, EditorNotifier notifier,
-      {String? parentId}) {
+  void _showCreateGroupDialog(
+    BuildContext context,
+    EditorNotifier notifier, {
+    String? parentId,
+  }) {
     final nameController = TextEditingController();
-    MapGroupType selectedType = MapGroupType.city;
+    var selectedType = MapGroupType.city;
 
-    showDialog(
+    showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(parentId == null ? 'New Root Group' : 'New Sub-Group'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Group Name'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              parentId == null ? 'New Root Group' : 'New Sub-Group',
+              style: editorMacosSheetTitleStyle(ctx),
+            ),
+            const SizedBox(height: 12),
+            MacosTextField(
+              controller: nameController,
+              autofocus: true,
+              placeholder: 'Group Name',
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () async {
+                  final t = await showCupertinoListPicker<MapGroupType>(
+                    context: ctx,
+                    title: 'Group Type',
+                    items: MapGroupType.values,
+                    labelOf: (x) => x.name.toUpperCase(),
+                  );
+                  if (t != null) setState(() => selectedType = t);
+                },
+                child: Text('Type: ${selectedType.name.toUpperCase()}'),
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<MapGroupType>(
-                value: selectedType,
-                items: MapGroupType.values
-                    .map((t) => DropdownMenuItem(
-                          value: t,
-                          child: Text(t.name.toUpperCase()),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => selectedType = v!),
-                decoration: const InputDecoration(labelText: 'Group Type'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  notifier.createGroup(nameController.text, selectedType,
-                      parentId: parentId);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Create'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                PushButton(
+                  controlSize: ControlSize.large,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 10),
+                PushButton(
+                  controlSize: ControlSize.large,
+                  onPressed: () {
+                    if (nameController.text.isEmpty) return;
+                    notifier.createGroup(
+                      nameController.text,
+                      selectedType,
+                      parentId: parentId,
+                    );
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Create'),
+                ),
+              ],
             ),
           ],
         ),
@@ -445,173 +546,195 @@ class _GroupNode extends StatelessWidget {
         project.groups.where((g) => g.parentGroupId == group.id).toList();
     final childrenMaps =
         project.maps.where((m) => m.groupId == group.id).toList();
+    final color = _getGroupColor(group.type);
 
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        leading: Icon(_getGroupIcon(group.type),
-            size: 18, color: _getGroupColor(group.type)),
-        title: Text(group.name,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-        subtitle: Text(group.type.name.toUpperCase(),
-            style: const TextStyle(fontSize: 9, color: Colors.white38)),
-        tilePadding: EdgeInsets.only(left: 16.0 * depth + 8.0, right: 8.0),
-        childrenPadding: EdgeInsets.zero,
-        shape: const RoundedRectangleBorder(),
-        controlAffinity: ListTileControlAffinity.trailing,
-        trailing: IconButton(
-          icon: const Icon(Icons.more_vert, size: 16),
-          onPressed: () => _showGroupContextMenu(context, group, notifier),
-        ),
+    return CupertinoDisclosureTile(
+      tilePadding: EdgeInsets.only(left: 16.0 * depth + 8.0, right: 4),
+      childrenPadding: EdgeInsets.zero,
+      leading: Icon(_getGroupIcon(group.type), size: 18, color: color),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...childrenGroups.map((g) => _GroupNode(
-              group: g,
-              project: project,
-              state: state,
-              notifier: notifier,
-              depth: depth + 1)),
-          ...childrenMaps.map((m) => _MapNode(
-              map: m, state: state, notifier: notifier, depth: depth + 1)),
+          Text(
+            group.name,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+          Text(
+            group.type.name.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  IconData _getGroupIcon(MapGroupType type) {
-    switch (type) {
-      case MapGroupType.city:
-        return Icons.location_city;
-      case MapGroupType.village:
-        return Icons.holiday_village;
-      case MapGroupType.route:
-        return Icons.map;
-      case MapGroupType.dungeon:
-        return Icons.castle;
-      case MapGroupType.cave:
-        return Icons.landscape;
-      case MapGroupType.forest:
-        return Icons.park;
-      case MapGroupType.tower:
-        return Icons.fort;
-      case MapGroupType.facility:
-        return Icons.business;
-      case MapGroupType.special:
-        return Icons.star;
-    }
-  }
-
-  Color _getGroupColor(MapGroupType type) {
-    switch (type) {
-      case MapGroupType.city:
-        return Colors.orangeAccent;
-      case MapGroupType.route:
-        return Colors.greenAccent;
-      case MapGroupType.dungeon:
-        return Colors.redAccent;
-      case MapGroupType.cave:
-        return Colors.brown;
-      case MapGroupType.forest:
-        return Colors.green;
-      default:
-        return Colors.blueAccent;
-    }
-  }
-
-  void _showGroupContextMenu(
-      BuildContext context, ProjectMapGroup group, EditorNotifier notifier) {
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-    final position =
-        (context.findRenderObject() as RenderBox).localToGlobal(Offset.zero);
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(position.dx + 250, position.dy, 40, 40),
-        Offset.zero & overlay.size,
+      trailing: Builder(
+        builder: (btnContext) => EditorToolbarIconButton(
+          icon: CupertinoIcons.ellipsis_vertical,
+          tooltip: 'Group actions',
+          iconSize: 16,
+          onPressed: () => _showGroupContextMenu(
+            context,
+            group,
+            notifier,
+            anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
+          ),
+        ),
       ),
-      items: [
-        PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero,
-              () => _showCreateMapDialog(context, group.id, notifier)),
-          child: const _ContextMenuItem(
-              icon: Icons.add_location_alt_outlined, label: 'Add Map'),
+      onSecondaryTapDown: (d) =>
+          _showGroupContextMenu(context, group, notifier,
+              anchorGlobal: d.globalPosition),
+      children: [
+        ...childrenGroups.map(
+          (g) => _GroupNode(
+            group: g,
+            project: project,
+            state: state,
+            notifier: notifier,
+            depth: depth + 1,
+          ),
         ),
-        PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero,
-              () => _showCreateSubGroupDialog(context, group.id, notifier)),
-          child: const _ContextMenuItem(
-              icon: Icons.create_new_folder_outlined, label: 'Add Sub-Group'),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero,
-              () => _showRenameGroupDialog(context, group, notifier)),
-          child: const _ContextMenuItem(
-              icon: Icons.edit_outlined, label: 'Rename Group'),
-        ),
-        PopupMenuItem(
-          onTap: () => notifier.deleteGroup(group.id),
-          child: const _ContextMenuItem(
-              icon: Icons.delete_outline,
-              label: 'Delete Group',
-              color: Colors.redAccent),
+        ...childrenMaps.map(
+          (m) => _MapNode(
+            map: m,
+            state: state,
+            notifier: notifier,
+            depth: depth + 1,
+          ),
         ),
       ],
     );
   }
 
+  IconData _getGroupIcon(MapGroupType type) {
+    return switch (type) {
+      MapGroupType.city => CupertinoIcons.building_2_fill,
+      MapGroupType.village => CupertinoIcons.house_fill,
+      MapGroupType.route => CupertinoIcons.map_fill,
+      MapGroupType.dungeon => CupertinoIcons.lock_shield,
+      MapGroupType.cave => CupertinoIcons.circle_grid_hex,
+      MapGroupType.forest => CupertinoIcons.leaf_arrow_circlepath,
+      MapGroupType.tower => CupertinoIcons.arrow_up_circle_fill,
+      MapGroupType.facility => CupertinoIcons.briefcase_fill,
+      MapGroupType.special => CupertinoIcons.star_fill,
+    };
+  }
+
+  Color _getGroupColor(MapGroupType type) {
+    return switch (type) {
+      MapGroupType.city => EditorPaintColors.orangeAccent,
+      MapGroupType.route => EditorPaintColors.greenAccent,
+      MapGroupType.dungeon => EditorPaintColors.redAccent,
+      MapGroupType.cave => EditorPaintColors.brown,
+      MapGroupType.forest => EditorPaintColors.green,
+      _ => EditorPaintColors.lightBlueAccent,
+    };
+  }
+
+  Future<void> _showGroupContextMenu(
+    BuildContext context,
+    ProjectMapGroup group,
+    EditorNotifier notifier, {
+    required Offset anchorGlobal,
+  }) async {
+    final action = await showMacosEditorContextMenu<String>(
+      context: context,
+      globalPosition: anchorGlobal,
+      actions: const [
+        MacosEditorSheetAction(label: 'Add Map', value: 'add_map'),
+        MacosEditorSheetAction(label: 'Add Sub-Group', value: 'add_subgroup'),
+        MacosEditorSheetAction(label: 'Rename Group', value: 'rename'),
+        MacosEditorSheetAction(
+          label: 'Delete Group',
+          value: 'delete',
+          isDestructive: true,
+        ),
+      ],
+    );
+    if (!context.mounted || action == null) return;
+    switch (action) {
+      case 'add_map':
+        _showCreateMapDialog(context, group.id, notifier);
+      case 'add_subgroup':
+        _showCreateSubGroupDialog(context, group.id, notifier);
+      case 'rename':
+        _showRenameGroupDialog(context, group, notifier);
+      case 'delete':
+        notifier.deleteGroup(group.id);
+    }
+  }
+
   void _showCreateMapDialog(
-      BuildContext context, String groupId, EditorNotifier notifier) {
+    BuildContext context,
+    String groupId,
+    EditorNotifier notifier,
+  ) {
     final controller = TextEditingController();
-    MapRole selectedRole = MapRole.exterior;
+    var selectedRole = MapRole.exterior;
     final settings = state.project?.settings ?? const ProjectSettings();
 
-    showDialog(
+    showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('New Map in Group'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Map ID'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<MapRole>(
-                value: selectedRole,
-                items: MapRole.values
-                    .map((r) => DropdownMenuItem(
-                          value: r,
-                          child: Text(r.name.toUpperCase()),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => selectedRole = v!),
-                decoration: const InputDecoration(labelText: 'Map Role'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                if (controller.text.isNotEmpty) {
-                  notifier.createMap(
-                    controller.text,
-                    settings.defaultMapWidth,
-                    settings.defaultMapHeight,
-                    groupId: groupId,
-                    role: selectedRole,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'New Map in Group',
+              style: editorMacosSheetTitleStyle(ctx),
+            ),
+            const SizedBox(height: 12),
+            MacosTextField(
+              controller: controller,
+              autofocus: true,
+              placeholder: 'Map ID',
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () async {
+                  final r = await showCupertinoListPicker<MapRole>(
+                    context: ctx,
+                    title: 'Map Role',
+                    items: MapRole.values,
+                    labelOf: (x) => x.name.toUpperCase(),
                   );
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Create'),
+                  if (r != null) setState(() => selectedRole = r);
+                },
+                child: Text('Role: ${selectedRole.name.toUpperCase()}'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                PushButton(
+                  controlSize: ControlSize.large,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 10),
+                PushButton(
+                  controlSize: ControlSize.large,
+                  onPressed: () {
+                    if (controller.text.isEmpty) return;
+                    notifier.createMap(
+                      controller.text,
+                      settings.defaultMapWidth,
+                      settings.defaultMapHeight,
+                      groupId: groupId,
+                      role: selectedRole,
+                    );
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Create'),
+                ),
+              ],
             ),
           ],
         ),
@@ -620,50 +743,73 @@ class _GroupNode extends StatelessWidget {
   }
 
   void _showCreateSubGroupDialog(
-      BuildContext context, String parentId, EditorNotifier notifier) {
+    BuildContext context,
+    String parentId,
+    EditorNotifier notifier,
+  ) {
     final nameController = TextEditingController();
-    MapGroupType selectedType = MapGroupType.facility;
+    var selectedType = MapGroupType.facility;
 
-    showDialog(
+    showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('New Sub-Group'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Group Name'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'New Sub-Group',
+              style: editorMacosSheetTitleStyle(ctx),
+            ),
+            const SizedBox(height: 12),
+            MacosTextField(
+              controller: nameController,
+              autofocus: true,
+              placeholder: 'Group Name',
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () async {
+                  final t = await showCupertinoListPicker<MapGroupType>(
+                    context: ctx,
+                    title: 'Group Type',
+                    items: MapGroupType.values,
+                    labelOf: (x) => x.name.toUpperCase(),
+                  );
+                  if (t != null) setState(() => selectedType = t);
+                },
+                child: Text('Type: ${selectedType.name.toUpperCase()}'),
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<MapGroupType>(
-                value: selectedType,
-                items: MapGroupType.values
-                    .map((t) => DropdownMenuItem(
-                          value: t,
-                          child: Text(t.name.toUpperCase()),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => selectedType = v!),
-                decoration: const InputDecoration(labelText: 'Group Type'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  notifier.createGroup(nameController.text, selectedType,
-                      parentId: parentId);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Create'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                PushButton(
+                  controlSize: ControlSize.large,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 10),
+                PushButton(
+                  controlSize: ControlSize.large,
+                  onPressed: () {
+                    if (nameController.text.isEmpty) return;
+                    notifier.createGroup(
+                      nameController.text,
+                      selectedType,
+                      parentId: parentId,
+                    );
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Create'),
+                ),
+              ],
             ),
           ],
         ),
@@ -671,34 +817,20 @@ class _GroupNode extends StatelessWidget {
     );
   }
 
-  void _showRenameGroupDialog(
-      BuildContext context, ProjectMapGroup group, EditorNotifier notifier) {
+  Future<void> _showRenameGroupDialog(
+    BuildContext context,
+    ProjectMapGroup group,
+    EditorNotifier notifier,
+  ) async {
     final controller = TextEditingController(text: group.name);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Group'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'New Name'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                notifier.renameGroup(group.id, controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Rename'),
-          ),
-        ],
-      ),
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'Rename Group',
+      controller: controller,
+      confirmLabel: 'Rename',
     );
+    if (!ok || !context.mounted) return;
+    notifier.renameGroup(group.id, controller.text.trim());
   }
 }
 
@@ -718,114 +850,106 @@ class _MapNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = state.activeMap?.id == map.id;
+    final accent = EditorChrome.activeAccent(context);
+    final secondary =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
 
     return GestureDetector(
       onSecondaryTapDown: (details) =>
           _showMapContextMenu(context, details.globalPosition, map, notifier),
-      child: ListTile(
-        contentPadding: EdgeInsets.only(left: 32.0 + (16.0 * depth), right: 16),
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        leading: Icon(_getRoleIcon(map.role),
-            size: 16, color: isSelected ? Colors.blue : Colors.white54),
-        title: Text(
-          map.name,
-          style: TextStyle(
-            fontSize: 13,
-            color: isSelected ? Colors.blue : Colors.white70,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+      child: CupertinoButton(
+        padding: EdgeInsets.only(
+          left: 32.0 + (16.0 * depth),
+          right: 16,
+          top: 6,
+          bottom: 6,
         ),
-        onTap: () => notifier.loadMap(map.relativePath),
-        trailing: isSelected
-            ? const Icon(Icons.edit, size: 12, color: Colors.blue)
-            : null,
+        alignment: Alignment.centerLeft,
+        onPressed: () => notifier.loadMap(map.relativePath),
+        child: Row(
+          children: [
+            Icon(
+              _getRoleIcon(map.role),
+              size: 16,
+              color: isSelected ? accent : secondary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                map.name,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isSelected ? accent : CupertinoColors.label.resolveFrom(context),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(CupertinoIcons.pencil, size: 12, color: accent),
+          ],
+        ),
       ),
     );
   }
 
   IconData _getRoleIcon(MapRole role) {
-    switch (role) {
-      case MapRole.exterior:
-        return Icons.wb_sunny_outlined;
-      case MapRole.interior:
-        return Icons.home_outlined;
-      case MapRole.gate:
-        return Icons.door_front_door_outlined;
-      case MapRole.section:
-        return Icons.segment;
-      case MapRole.room:
-        return Icons.meeting_room_outlined;
-      case MapRole.sub_area:
-        return Icons.layers_outlined;
-      default:
-        return Icons.insert_drive_file_outlined;
-    }
+    return switch (role) {
+      MapRole.exterior => CupertinoIcons.sun_max,
+      MapRole.interior => CupertinoIcons.house,
+      MapRole.basement => CupertinoIcons.arrow_down_circle,
+      MapRole.upper_floor => CupertinoIcons.arrow_up_circle,
+      MapRole.connector => CupertinoIcons.link,
+      MapRole.gate => CupertinoIcons.square_arrow_right,
+      MapRole.section => CupertinoIcons.square_split_2x1,
+      MapRole.room => CupertinoIcons.square_grid_2x2,
+      MapRole.sub_area => CupertinoIcons.layers_alt,
+    };
   }
 
-  void _showMapContextMenu(BuildContext context, Offset position,
-      ProjectMapEntry mapEntry, EditorNotifier notifier) {
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-
-    showMenu<String>(
+  Future<void> _showMapContextMenu(
+    BuildContext context,
+    Offset position,
+    ProjectMapEntry mapEntry,
+    EditorNotifier notifier,
+  ) async {
+    final action = await showMacosEditorContextMenu<String>(
       context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(position.dx, position.dy, 40, 40),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        PopupMenuItem(
-          onTap: () => Future.delayed(Duration.zero,
-              () => _showRenameMapDialog(context, mapEntry, notifier)),
-          child: const _ContextMenuItem(
-              icon: Icons.edit_outlined, label: 'Rename Map'),
-        ),
-        PopupMenuItem(
-          onTap: () => notifier.duplicateMap(mapEntry.id),
-          child: const _ContextMenuItem(
-              icon: Icons.copy_outlined, label: 'Duplicate Map'),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          onTap: () => notifier.deleteMap(mapEntry.id),
-          child: const _ContextMenuItem(
-              icon: Icons.delete_outline,
-              label: 'Delete Map',
-              color: Colors.redAccent),
+      globalPosition: position,
+      actions: const [
+        MacosEditorSheetAction(label: 'Rename Map', value: 'rename'),
+        MacosEditorSheetAction(label: 'Duplicate Map', value: 'duplicate'),
+        MacosEditorSheetAction(
+          label: 'Delete Map',
+          value: 'delete',
+          isDestructive: true,
         ),
       ],
     );
+    if (!context.mounted || action == null) return;
+    switch (action) {
+      case 'rename':
+        _showRenameMapDialog(context, mapEntry, notifier);
+      case 'duplicate':
+        notifier.duplicateMap(mapEntry.id);
+      case 'delete':
+        notifier.deleteMap(mapEntry.id);
+    }
   }
 
-  void _showRenameMapDialog(
-      BuildContext context, ProjectMapEntry mapEntry, EditorNotifier notifier) {
+  Future<void> _showRenameMapDialog(
+    BuildContext context,
+    ProjectMapEntry mapEntry,
+    EditorNotifier notifier,
+  ) async {
     final controller = TextEditingController(text: mapEntry.id);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Map'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'New ID'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                notifier.renameMap(mapEntry.id, controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Rename'),
-          ),
-        ],
-      ),
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'Rename Map',
+      controller: controller,
+      confirmLabel: 'Rename',
     );
+    if (!ok || !context.mounted) return;
+    notifier.renameMap(mapEntry.id, controller.text.trim());
   }
 }
 
@@ -844,154 +968,149 @@ class _TilesetNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color:
-          selected ? Colors.blue.withValues(alpha: 0.14) : Colors.transparent,
-      child: ListTile(
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        contentPadding: const EdgeInsets.only(left: 24, right: 8),
-        selected: selected,
-        onTap: () => notifier.selectTilesetWorkspace(tileset.id),
-        leading: Icon(
-          tileset.isWorldTileset
-              ? Icons.public
-              : (tileset.scope == TilesetScope.global
-                  ? Icons.language
-                  : Icons.category_outlined),
-          size: 16,
-          color: selected
-              ? Colors.blue.shade200
-              : (tileset.isWorldTileset ? Colors.amber : Colors.white60),
+    final accent = EditorChrome.activeAccent(context);
+    final secondary =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
+
+    return GestureDetector(
+      onSecondaryTapDown: (d) =>
+          _showTilesetMenu(context, anchorGlobal: d.globalPosition),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.14) : EditorPaintColors.transparent,
         ),
-        title: Text(
-          tileset.name,
-          style: TextStyle(
-            fontSize: 12,
-            color: selected ? Colors.blue.shade100 : Colors.white70,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-        subtitle: Text(
-          '${tileset.id} | sort ${tileset.sortOrder}',
-          style: const TextStyle(fontSize: 10, color: Colors.white38),
-        ),
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, size: 16),
-          onSelected: (value) {
-            switch (value) {
-              case 'rename':
-                _showRenameTilesetDialog(context);
-                break;
-              case 'make_global':
-                notifier.updateProjectTileset(
-                  tilesetId: tileset.id,
-                  scope: TilesetScope.global,
-                  groupId: null,
-                );
-                break;
-              case 'assign_group':
-                _showAssignGroupDialog(context);
-                break;
-              case 'toggle_world':
-                notifier.updateProjectTileset(
-                  tilesetId: tileset.id,
-                  isWorldTileset: !tileset.isWorldTileset,
-                );
-                break;
-              case 'move_up':
-                notifier.reorderProjectTileset(tileset.id, -1);
-                break;
-              case 'move_down':
-                notifier.reorderProjectTileset(tileset.id, 1);
-                break;
-              case 'delete':
-                notifier.deleteProjectTileset(tileset.id);
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'rename',
-              child:
-                  _ContextMenuItem(icon: Icons.edit_outlined, label: 'Rename'),
-            ),
-            const PopupMenuItem(
-              value: 'move_up',
-              child: _ContextMenuItem(
-                  icon: Icons.keyboard_arrow_up, label: 'Move Up'),
-            ),
-            const PopupMenuItem(
-              value: 'move_down',
-              child: _ContextMenuItem(
-                  icon: Icons.keyboard_arrow_down, label: 'Move Down'),
-            ),
-            const PopupMenuDivider(),
-            const PopupMenuItem(
-              value: 'make_global',
-              child: _ContextMenuItem(
-                  icon: Icons.language, label: 'Set as Global'),
-            ),
-            const PopupMenuItem(
-              value: 'assign_group',
-              child: _ContextMenuItem(
-                  icon: Icons.category_outlined, label: 'Attach to Group'),
-            ),
-            if (tileset.scope == TilesetScope.global)
-              PopupMenuItem(
-                value: 'toggle_world',
-                child: _ContextMenuItem(
-                  icon:
-                      tileset.isWorldTileset ? Icons.public_off : Icons.public,
-                  label: tileset.isWorldTileset
-                      ? 'Unset World Tileset'
-                      : 'Set as World Tileset',
+        child: CupertinoButton(
+          padding: const EdgeInsets.only(left: 24, right: 4, top: 4, bottom: 4),
+          alignment: Alignment.centerLeft,
+          onPressed: () => notifier.selectTilesetWorkspace(tileset.id),
+          child: Row(
+            children: [
+              Icon(
+                tileset.isWorldTileset
+                    ? CupertinoIcons.globe
+                    : (tileset.scope == TilesetScope.global
+                        ? CupertinoIcons.circle_grid_hex
+                        : CupertinoIcons.tag),
+                size: 16,
+                color: selected
+                    ? EditorPaintColors.blue200
+                    : (tileset.isWorldTileset
+                        ? EditorPaintColors.amberAccent
+                        : secondary),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tileset.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: selected
+                            ? EditorPaintColors.blue100
+                            : CupertinoColors.label.resolveFrom(context),
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                    Text(
+                      '${tileset.id} | sort ${tileset.sortOrder}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            const PopupMenuDivider(),
-            const PopupMenuItem(
-              value: 'delete',
-              child: _ContextMenuItem(
-                icon: Icons.delete_outline,
-                label: 'Delete Tileset',
-                color: Colors.redAccent,
+              Builder(
+                builder: (btnContext) => EditorToolbarIconButton(
+                  icon: CupertinoIcons.ellipsis_vertical,
+                  tooltip: 'Tileset actions',
+                  iconSize: 16,
+                  onPressed: () => _showTilesetMenu(
+                    context,
+                    anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _showRenameTilesetDialog(BuildContext context) {
-    final controller = TextEditingController(text: tileset.name);
-    showDialog(
+  Future<void> _showTilesetMenu(
+    BuildContext context, {
+    required Offset anchorGlobal,
+  }) async {
+    final action = await showMacosEditorContextMenu<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Tileset'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Name'),
+      globalPosition: anchorGlobal,
+      actions: [
+        const MacosEditorSheetAction(label: 'Rename', value: 'rename'),
+        const MacosEditorSheetAction(label: 'Move Up', value: 'move_up'),
+        const MacosEditorSheetAction(label: 'Move Down', value: 'move_down'),
+        const MacosEditorSheetAction(label: 'Set as Global', value: 'make_global'),
+        const MacosEditorSheetAction(
+          label: 'Attach to Group',
+          value: 'assign_group',
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isEmpty) return;
-              notifier.updateProjectTileset(
-                tilesetId: tileset.id,
-                name: value,
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('Rename'),
+        if (tileset.scope == TilesetScope.global)
+          MacosEditorSheetAction(
+            label: tileset.isWorldTileset
+                ? 'Unset World Tileset'
+                : 'Set as World Tileset',
+            value: 'toggle_world',
           ),
-        ],
-      ),
+        const MacosEditorSheetAction(
+          label: 'Delete Tileset',
+          value: 'delete',
+          isDestructive: true,
+        ),
+      ],
+    );
+    if (!context.mounted || action == null) return;
+    switch (action) {
+      case 'rename':
+        _showRenameTilesetDialog(context);
+      case 'make_global':
+        notifier.updateProjectTileset(
+          tilesetId: tileset.id,
+          scope: TilesetScope.global,
+          groupId: null,
+        );
+      case 'assign_group':
+        _showAssignGroupDialog(context);
+      case 'toggle_world':
+        notifier.updateProjectTileset(
+          tilesetId: tileset.id,
+          isWorldTileset: !tileset.isWorldTileset,
+        );
+      case 'move_up':
+        notifier.reorderProjectTileset(tileset.id, -1);
+      case 'move_down':
+        notifier.reorderProjectTileset(tileset.id, 1);
+      case 'delete':
+        notifier.deleteProjectTileset(tileset.id);
+    }
+  }
+
+  Future<void> _showRenameTilesetDialog(BuildContext context) async {
+    final controller = TextEditingController(text: tileset.name);
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'Rename Tileset',
+      controller: controller,
+      confirmLabel: 'Rename',
+    );
+    if (!ok || !context.mounted) return;
+    final value = controller.text.trim();
+    notifier.updateProjectTileset(
+      tilesetId: tileset.id,
+      name: value,
     );
   }
 
@@ -1006,61 +1125,68 @@ class _TilesetNode extends StatelessWidget {
       return;
     }
 
-    String selectedGroupId = tileset.groupId ?? groups.first.id;
-    showDialog(
+    var selectedGroupId = tileset.groupId ?? groups.first.id;
+    showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Attach Tileset to Group'),
-          content: DropdownButtonFormField<String>(
-            value: selectedGroupId,
-            items: groups
-                .map((g) => DropdownMenuItem(value: g.id, child: Text(g.name)))
-                .toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => selectedGroupId = value);
-              }
-            },
-            decoration: const InputDecoration(labelText: 'Group'),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                notifier.updateProjectTileset(
-                  tilesetId: tileset.id,
-                  scope: TilesetScope.group,
-                  groupId: selectedGroupId,
-                );
-                Navigator.pop(context);
-              },
-              child: const Text('Attach'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Attach Tileset to Group',
+              style: editorMacosSheetTitleStyle(ctx),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () async {
+                  final g = await showCupertinoListPicker<ProjectMapGroup>(
+                    context: ctx,
+                    title: 'Group',
+                    items: groups,
+                    labelOf: (x) => x.name,
+                  );
+                  if (g != null) {
+                    setState(() => selectedGroupId = g.id);
+                  }
+                },
+                child: Text(
+                  groups.firstWhere((g) => g.id == selectedGroupId).name,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                PushButton(
+                  controlSize: ControlSize.large,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 10),
+                PushButton(
+                  controlSize: ControlSize.large,
+                  onPressed: () {
+                    notifier.updateProjectTileset(
+                      tilesetId: tileset.id,
+                      scope: TilesetScope.group,
+                      groupId: selectedGroupId,
+                    );
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Attach'),
+                ),
+              ],
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ContextMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  const _ContextMenuItem({required this.icon, required this.label, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 12),
-        Text(label, style: TextStyle(color: color)),
-      ],
     );
   }
 }

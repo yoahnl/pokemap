@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../shared/cupertino_editor_widgets.dart';
+import '../shared/editor_paint_palette.dart';
 
 enum TerrainMapPanelMode {
   combined,
@@ -29,10 +31,12 @@ class TerrainMapPanel extends ConsumerWidget {
     final map = state.activeMap;
 
     if (map == null) {
-      const empty = Center(
+      final empty = Center(
         child: Text(
           'Open a map to edit base ground and surfaces',
-          style: TextStyle(color: Colors.white38),
+          style: TextStyle(
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
         ),
       );
       if (embedded) {
@@ -40,8 +44,10 @@ class TerrainMapPanel extends ConsumerWidget {
       }
       return Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          border: const Border(bottom: BorderSide(color: Colors.white10)),
+          color: EditorChrome.panelBackground(context),
+          border: Border(
+            bottom: BorderSide(color: EditorChrome.separator(context)),
+          ),
         ),
         child: empty,
       );
@@ -68,7 +74,7 @@ class TerrainMapPanel extends ConsumerWidget {
           title: 'Base Ground',
           subtitle: 'Terrain layers paint the map background only.',
           color: const Color(0xFF2B6F53),
-          icon: Icons.landscape_outlined,
+          icon: CupertinoIcons.tree,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -83,51 +89,63 @@ class TerrainMapPanel extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              _PresetDropdown(
+              _PresetPickerRow(
                 label: 'Selected Terrain Preset',
-                value: selectedTerrainPreset?.id,
                 hint: 'No terrain preset',
-                items: terrainPresets
-                    .map(
-                      (preset) => DropdownMenuItem<String>(
-                        value: preset.id,
-                        child: Text(
-                          '${preset.name} • ${_terrainLabel(preset.terrainType)}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged:
-                    terrainPresets.isEmpty ? null : notifier.selectTerrainPreset,
+                enabled: terrainPresets.isNotEmpty,
+                currentLabel: selectedTerrainPreset == null
+                    ? null
+                    : '${selectedTerrainPreset.name} • ${_terrainLabel(selectedTerrainPreset.terrainType)}',
+                onPick: () async {
+                  final picked = await showCupertinoListPicker<ProjectTerrainPreset>(
+                    context: context,
+                    title: 'Terrain preset',
+                    items: terrainPresets,
+                    labelOf: (p) => '${p.name} • ${_terrainLabel(p.terrainType)}',
+                  );
+                  if (picked != null) {
+                    notifier.selectTerrainPreset(picked.id);
+                  }
+                },
               ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  FilledButton.icon(
+                  CupertinoButton.filled(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     onPressed: activeTerrainLayer == null ||
                             selectedTerrainPreset == null
                         ? null
                         : () => notifier.selectTerrainPaintMode(
                               terrainType: selectedTerrainPreset.terrainType,
                             ),
-                    icon: const Icon(Icons.brush_outlined, size: 16),
-                    label: const Text('Paint Base'),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.paintbrush, size: 16),
+                        SizedBox(width: 6),
+                        Text('Paint Base'),
+                      ],
+                    ),
                   ),
-                  OutlinedButton.icon(
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     onPressed: activeTerrainLayer == null ||
                             selectedTerrainPreset == null
                         ? null
                         : () => notifier.fillActiveTerrainLayer(
                               selectedTerrainPreset.terrainType,
                             ),
-                    icon: const Icon(
-                      Icons.format_color_fill_outlined,
-                      size: 16,
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.drop, size: 16),
+                        SizedBox(width: 6),
+                        Text('Fill Base'),
+                      ],
                     ),
-                    label: const Text('Fill Base'),
                   ),
                 ],
               ),
@@ -156,7 +174,7 @@ class TerrainMapPanel extends ConsumerWidget {
           subtitle:
               'Path layers carry roads, water, tall grass, ice and every specialized surface.',
           color: const Color(0xFF7A4A1E),
-          icon: Icons.route_outlined,
+          icon: CupertinoIcons.map,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -171,61 +189,77 @@ class TerrainMapPanel extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              _PresetDropdown(
+              _PresetPickerRow(
                 label: 'Assigned Surface Preset',
-                value: activePathLayer != null &&
-                        pathPresets.any(
-                          (preset) => preset.id == activePathLayer.presetId,
-                        )
-                    ? activePathLayer.presetId
-                    : selectedPathPreset?.id,
                 hint: 'No surface preset',
-                items: pathPresets
-                    .map(
-                      (preset) => DropdownMenuItem<String>(
-                        value: preset.id,
-                        child: Text(
-                          '${preset.name} • ${_pathSurfaceLabel(preset.surfaceKind)}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: pathPresets.isEmpty
-                    ? null
-                    : (value) {
-                        if (activePathLayer != null) {
-                          notifier.selectPathPresetForActivePathLayer(value);
-                        } else {
-                          notifier.selectPathPreset(value);
-                        }
-                      },
+                enabled: pathPresets.isNotEmpty,
+                currentLabel: _pathPresetLabel(
+                  activePathLayer,
+                  pathPresets,
+                  selectedPathPreset,
+                ),
+                onPick: () async {
+                  final picked = await showCupertinoListPicker<ProjectPathPreset>(
+                    context: context,
+                    title: 'Surface preset',
+                    items: pathPresets,
+                    labelOf: (p) => '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}',
+                  );
+                  if (picked != null) {
+                    if (activePathLayer != null) {
+                      notifier.selectPathPresetForActivePathLayer(picked.id);
+                    } else {
+                      notifier.selectPathPreset(picked.id);
+                    }
+                  }
+                },
               ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  FilledButton.icon(
+                  CupertinoButton.filled(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     onPressed: activePathLayer == null
                         ? null
                         : notifier.selectPathPaintMode,
-                    icon: const Icon(Icons.route_outlined, size: 16),
-                    label: const Text('Paint Surface'),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.map, size: 16),
+                        SizedBox(width: 6),
+                        Text('Paint Surface'),
+                      ],
+                    ),
                   ),
-                  OutlinedButton.icon(
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     onPressed: activePathLayer == null
                         ? null
                         : () => notifier.selectTool(EditorToolType.eraser),
-                    icon: const Icon(Icons.auto_fix_off, size: 16),
-                    label: const Text('Erase Surface'),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.delete_left, size: 16),
+                        SizedBox(width: 6),
+                        Text('Erase Surface'),
+                      ],
+                    ),
                   ),
-                  OutlinedButton.icon(
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     onPressed: () => notifier.activateFirstPathLayer(
                       createIfMissing: true,
                     ),
-                    icon: const Icon(Icons.add_circle_outline, size: 16),
-                    label: const Text('New Path Layer'),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.add_circled, size: 16),
+                        SizedBox(width: 6),
+                        Text('New Path Layer'),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -273,13 +307,15 @@ class TerrainMapPanel extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: const Border(bottom: BorderSide(color: Colors.white10)),
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          bottom: BorderSide(color: EditorChrome.separator(context)),
+        ),
       ),
       child: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             child: Row(
               children: [
                 Expanded(
@@ -289,14 +325,14 @@ class TerrainMapPanel extends ConsumerWidget {
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white70,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(child: content),
         ],
       ),
@@ -313,6 +349,72 @@ class TerrainMapPanel extends ConsumerWidget {
       }
     }
     return null;
+  }
+}
+
+String? _pathPresetLabel(
+  PathLayer? activePathLayer,
+  List<ProjectPathPreset> pathPresets,
+  ProjectPathPreset? selectedPathPreset,
+) {
+  if (activePathLayer != null &&
+      pathPresets.any((p) => p.id == activePathLayer.presetId)) {
+    final p = pathPresets.firstWhere((e) => e.id == activePathLayer.presetId);
+    return '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}';
+  }
+  if (selectedPathPreset != null) {
+    return '${selectedPathPreset.name} • ${_pathSurfaceLabel(selectedPathPreset.surfaceKind)}';
+  }
+  return null;
+}
+
+class _PresetPickerRow extends StatelessWidget {
+  const _PresetPickerRow({
+    required this.label,
+    required this.hint,
+    required this.enabled,
+    required this.currentLabel,
+    required this.onPick,
+  });
+
+  final String label;
+  final String hint;
+  final bool enabled;
+  final String? currentLabel;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: secondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: enabled ? onPick : null,
+          child: Text(
+            currentLabel ?? hint,
+            style: TextStyle(
+              fontSize: 13,
+              color: currentLabel == null
+                  ? CupertinoColors.placeholderText.resolveFrom(context)
+                  : CupertinoColors.label.resolveFrom(context),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -352,7 +454,7 @@ class _SurfaceSectionCard extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Colors.white,
+                    color: EditorPaintColors.white,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -362,7 +464,10 @@ class _SurfaceSectionCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 11, color: Colors.white70),
+            style: const TextStyle(
+              fontSize: 11,
+              color: EditorPaintColors.white70,
+            ),
           ),
           const SizedBox(height: 12),
           child,
@@ -391,14 +496,16 @@ class _LayerSelector<T extends MapLayer> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final secondary =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: Colors.white70,
+            color: secondary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -409,10 +516,15 @@ class _LayerSelector<T extends MapLayer> extends StatelessWidget {
               Expanded(
                 child: Text(
                   emptyLabel,
-                  style: const TextStyle(fontSize: 11, color: Colors.white54),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: CupertinoColors.placeholderText.resolveFrom(context),
+                  ),
                 ),
               ),
-              OutlinedButton(
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 onPressed: onCreate,
                 child: const Text('Create'),
               ),
@@ -422,84 +534,41 @@ class _LayerSelector<T extends MapLayer> extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: activeLayerId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: layers
-                      .map(
-                        (layer) => DropdownMenuItem<String>(
-                          value: layer.id,
-                          child: Text(
-                            layer.name,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    if (value != null) {
-                      onSelected(value);
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  alignment: Alignment.centerLeft,
+                  onPressed: () async {
+                    final picked = await showCupertinoListPicker<T>(
+                      context: context,
+                      title: label,
+                      items: layers,
+                      labelOf: (l) => l.name,
+                    );
+                    if (picked != null) {
+                      onSelected(picked.id);
                     }
                   },
+                  child: Text(
+                    layers
+                        .firstWhere(
+                          (l) => l.id == activeLayerId,
+                          orElse: () => layers.first,
+                        )
+                        .name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
+              EditorToolbarIconButton(
                 onPressed: onCreate,
+                icon: CupertinoIcons.add_circled,
                 tooltip: 'Create layer',
-                icon: const Icon(Icons.add_circle_outline, size: 18),
+                iconSize: 18,
               ),
             ],
           ),
-      ],
-    );
-  }
-}
-
-class _PresetDropdown extends StatelessWidget {
-  const _PresetDropdown({
-    required this.label,
-    required this.value,
-    required this.hint,
-    required this.items,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String? value;
-  final String hint;
-  final List<DropdownMenuItem<String>> items;
-  final ValueChanged<String?>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Colors.white70,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          isExpanded: true,
-          hint: Text(hint),
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            isDense: true,
-          ),
-          items: items,
-          onChanged: onChanged,
-        ),
       ],
     );
   }
@@ -516,12 +585,15 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white10,
+          color: EditorPaintColors.white10,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Text(
+        child: Text(
           'Layer properties become available once a path layer is active.',
-          style: TextStyle(fontSize: 11, color: Colors.white60),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
         ),
       );
     }
@@ -531,7 +603,7 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white10,
+        color: EditorPaintColors.white10,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -541,15 +613,18 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
             'Path Layer Properties',
             style: TextStyle(
               fontSize: 11,
-              color: Colors.white,
+              color: EditorPaintColors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
           if (properties.isEmpty)
-            const Text(
+            Text(
               'No custom properties on this path layer.',
-              style: TextStyle(fontSize: 11, color: Colors.white60),
+              style: TextStyle(
+                fontSize: 11,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
             )
           else
             ...properties.map(
@@ -557,7 +632,10 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
                   '${entry.key}: ${entry.value}',
-                  style: const TextStyle(fontSize: 11, color: Colors.white70),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: EditorPaintColors.white70,
+                  ),
                 ),
               ),
             ),
@@ -577,12 +655,15 @@ class _InfoStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white10,
+        color: EditorPaintColors.white10,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, color: Colors.white70),
+        style: const TextStyle(
+          fontSize: 11,
+          color: EditorPaintColors.white70,
+        ),
       ),
     );
   }

@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../shared/cupertino_editor_widgets.dart';
+import '../shared/editor_paint_palette.dart';
 
 class MapConnectionsPanel extends ConsumerStatefulWidget {
   const MapConnectionsPanel({
@@ -62,29 +65,35 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
     };
     _syncEditors(map);
 
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
     final content = map == null
-        ? const Center(
+        ? Center(
             child: Text(
               'No map loaded',
-              style: TextStyle(color: Colors.white38),
+              style: TextStyle(
+                color: CupertinoColors.placeholderText.resolveFrom(context),
+              ),
             ),
           )
         : ListView(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 10),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   'Connect map edges to build a continuous world. Each side can point to one other map.',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                  style: TextStyle(color: subtle, fontSize: 12),
                 ),
               ),
               if (sortedProjectMaps.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
                     'Create another map before adding world connections.',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(
+                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               for (final direction in MapConnectionDirection.values)
@@ -116,8 +125,10 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: const Border(bottom: BorderSide(color: Colors.white10)),
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          bottom: BorderSide(color: EditorChrome.separator(context)),
+        ),
       ),
       child: Column(
         children: [
@@ -125,28 +136,28 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'CONNECTIONS',
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white70,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
                 Text(
                   map == null ? '0' : '${map.connections.length}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Colors.white54,
+                    color: subtle,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(child: content),
         ],
       ),
@@ -175,18 +186,17 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
     }
   }
 
-  void _saveDirection(
+  Future<void> _saveDirection(
     BuildContext context,
     EditorNotifier notifier,
     MapConnectionDirection direction,
-  ) {
+  ) async {
     final targetMapId = _selectedTargetMapIds[direction]?.trim() ?? '';
     final offset = int.tryParse(_offsetControllers[direction]!.text.trim());
     if (offset == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Connection offset must be a valid integer'),
-        ),
+      await showCupertinoEditorAlert(
+        context,
+        message: 'Connection offset must be a valid integer',
       );
       return;
     }
@@ -238,6 +248,24 @@ class _DirectionConnectionCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onClear;
 
+  Future<void> _pickMap(BuildContext context) async {
+    final picked = await showMacosEditorActionsSheet<String>(
+      context: context,
+      title: const Text('Connected Map'),
+      actions: [
+        const MacosEditorSheetAction(label: 'Clear selection', value: ''),
+        ...projectMaps.map(
+          (mapEntry) => MacosEditorSheetAction<String>(
+            label: '${mapEntry.name} (${mapEntry.id})',
+            value: mapEntry.id,
+          ),
+        ),
+      ],
+    );
+    if (picked == null || !context.mounted) return;
+    onTargetChanged(picked.isEmpty ? null : picked);
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentTargetEntry = existingConnection == null
@@ -246,17 +274,25 @@ class _DirectionConnectionCard extends StatelessWidget {
     final selectedTargetExists = selectedTargetMapId != null &&
         projectMapById.containsKey(selectedTargetMapId);
     final statusColor = existingConnection == null
-        ? Colors.white24
+        ? EditorPaintColors.white38
         : currentTargetEntry == null
-            ? Colors.amber
-            : Colors.cyanAccent;
+            ? EditorPaintColors.amber
+            : EditorPaintColors.lightBlueAccent;
+
+    final displayName = selectedTargetMapId == null
+        ? (projectMaps.isEmpty
+            ? 'No other map available'
+            : 'Select map')
+        : (selectedTargetExists
+            ? '${projectMapById[selectedTargetMapId]!.name} ($selectedTargetMapId)'
+            : 'Missing: $selectedTargetMapId');
 
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: EditorChrome.scaffoldBackground(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: EditorChrome.separator(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,16 +302,16 @@ class _DirectionConnectionCard extends StatelessWidget {
               Icon(
                 _directionIcon(direction),
                 size: 16,
-                color: Colors.white70,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _directionLabel(direction),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: CupertinoColors.label.resolveFrom(context),
                   ),
                 ),
               ),
@@ -309,66 +345,71 @@ class _DirectionConnectionCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               color: currentTargetEntry == null && existingConnection != null
-                  ? Colors.amber
-                  : Colors.white54,
+                  ? EditorPaintColors.amber
+                  : CupertinoColors.secondaryLabel.resolveFrom(context),
             ),
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            key: ValueKey(
-              'map_connection_${direction.name}_${selectedTargetMapId ?? 'none'}',
+          Text(
+            'Connected Map',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
             ),
-            initialValue: selectedTargetExists ? selectedTargetMapId : null,
-            isDense: true,
-            decoration: const InputDecoration(
-              labelText: 'Connected Map',
-              isDense: true,
-              border: OutlineInputBorder(),
-            ),
-            hint: Text(
-              projectMaps.isEmpty
-                  ? 'No other map available'
-                  : selectedTargetMapId == null
-                      ? 'Select map'
-                      : 'Missing: $selectedTargetMapId',
+          ),
+          const SizedBox(height: 6),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            alignment: Alignment.centerLeft,
+            onPressed:
+                projectMaps.isEmpty ? null : () => _pickMap(context),
+            child: Text(
+              displayName,
+              style: TextStyle(
+                color: projectMaps.isEmpty
+                    ? CupertinoColors.placeholderText.resolveFrom(context)
+                    : CupertinoColors.label.resolveFrom(context),
+              ),
               overflow: TextOverflow.ellipsis,
             ),
-            items: projectMaps
-                .map(
-                  (mapEntry) => DropdownMenuItem<String>(
-                    value: mapEntry.id,
-                    child: Text(
-                      '${mapEntry.name} (${mapEntry.id})',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: projectMaps.isEmpty ? null : onTargetChanged,
           ),
           if (selectedTargetMapId != null && !selectedTargetExists) ...[
             const SizedBox(height: 6),
             Text(
               'Selected target is missing from project: $selectedTargetMapId',
-              style: const TextStyle(fontSize: 11, color: Colors.amber),
+              style: const TextStyle(fontSize: 11, color: EditorPaintColors.amber),
             ),
           ],
           const SizedBox(height: 8),
-          TextField(
+          Text(
+            'Offset',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _offsetHelper(direction),
+            style: TextStyle(
+              fontSize: 10,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+          ),
+          const SizedBox(height: 6),
+          CupertinoTextField(
             controller: offsetController,
             keyboardType: const TextInputType.numberWithOptions(signed: true),
-            decoration: InputDecoration(
-              labelText: 'Offset',
-              helperText: _offsetHelper(direction),
-              isDense: true,
-              border: const OutlineInputBorder(),
-            ),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*'))],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
-                child: FilledButton(
+                child: CupertinoButton.filled(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   onPressed: projectMaps.isEmpty ? null : onSave,
                   child: Text(
                     existingConnection == null ? 'Set Connection' : 'Save',
@@ -377,7 +418,8 @@ class _DirectionConnectionCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton(
+                child: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   onPressed: existingConnection == null ? null : onOpen,
                   child: const Text('Open'),
                 ),
@@ -387,7 +429,8 @@ class _DirectionConnectionCard extends StatelessWidget {
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 10),
               onPressed: onClear,
               child: Text(
                 existingConnection == null
@@ -403,10 +446,10 @@ class _DirectionConnectionCard extends StatelessWidget {
 
   static IconData _directionIcon(MapConnectionDirection direction) {
     return switch (direction) {
-      MapConnectionDirection.north => Icons.keyboard_arrow_up,
-      MapConnectionDirection.south => Icons.keyboard_arrow_down,
-      MapConnectionDirection.east => Icons.keyboard_arrow_right,
-      MapConnectionDirection.west => Icons.keyboard_arrow_left,
+      MapConnectionDirection.north => CupertinoIcons.arrow_up,
+      MapConnectionDirection.south => CupertinoIcons.arrow_down,
+      MapConnectionDirection.east => CupertinoIcons.arrow_right,
+      MapConnectionDirection.west => CupertinoIcons.arrow_left,
     };
   }
 

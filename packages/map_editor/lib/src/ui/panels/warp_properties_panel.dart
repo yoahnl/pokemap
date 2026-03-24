@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../shared/cupertino_editor_widgets.dart';
+import '../shared/editor_paint_palette.dart';
 
 class WarpPropertiesPanel extends ConsumerStatefulWidget {
   const WarpPropertiesPanel({
@@ -52,70 +55,105 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     final selectedWarp = notifier.getSelectedWarp();
     _syncControllers(selectedWarp);
 
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final accent = EditorChrome.activeAccent(context);
+
     final content = map == null
-        ? const Center(
+        ? Center(
             child: Text(
               'No map loaded',
-              style: TextStyle(color: Colors.white38),
+              style: TextStyle(
+                color: CupertinoColors.placeholderText.resolveFrom(context),
+              ),
             ),
           )
         : ListView(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
               if (map.warps.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
                     'No warps on this map.\nSelect the Warp tool and click on the map to add one.',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(
+                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      fontSize: 12,
+                    ),
                   ),
                 )
               else
                 ...map.warps.map(
-                  (warp) => Card(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    color: warp.id == state.selectedWarpId
-                        ? Colors.cyan.withValues(alpha: 0.12)
-                        : Theme.of(context).scaffoldBackgroundColor,
-                    child: ListTile(
-                      dense: true,
-                      leading: Icon(
-                        Icons.alt_route_outlined,
-                        size: 16,
+                  (warp) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
                         color: warp.id == state.selectedWarpId
-                            ? Colors.cyanAccent
-                            : Colors.white60,
-                      ),
-                      title: Text(
-                        warp.id,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: warp.id == state.selectedWarpId
-                              ? Colors.cyanAccent
-                              : Colors.white,
-                          fontWeight: warp.id == state.selectedWarpId
-                              ? FontWeight.w600
-                              : FontWeight.w500,
+                            ? accent.withValues(alpha: 0.12)
+                            : EditorChrome.scaffoldBackground(context),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: EditorChrome.separator(context),
                         ),
                       ),
-                      subtitle: Text(
-                        '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.white54,
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                        alignment: Alignment.centerLeft,
+                        onPressed: () => notifier.selectWarp(warp.id),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              CupertinoIcons.arrow_branch,
+                              size: 16,
+                              color: warp.id == state.selectedWarpId
+                                  ? accent
+                                  : subtle,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    warp.id,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: warp.id == state.selectedWarpId
+                                          ? accent
+                                          : CupertinoColors.label
+                                              .resolveFrom(context),
+                                      fontWeight: warp.id == state.selectedWarpId
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: subtle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      onTap: () => notifier.selectWarp(warp.id),
                     ),
                   ),
                 ),
               const SizedBox(height: 8),
-              const Divider(height: 1),
+              const EditorHorizontalDivider(),
               const SizedBox(height: 8),
               if (selectedWarp == null)
-                const Text(
+                Text(
                   'Select a warp to edit its properties.',
-                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                  style: TextStyle(
+                    color: CupertinoColors.placeholderText.resolveFrom(context),
+                    fontSize: 12,
+                  ),
                 )
               else
                 _buildSelectedWarpEditor(
@@ -134,8 +172,10 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: const Border(bottom: BorderSide(color: Colors.white10)),
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          bottom: BorderSide(color: EditorChrome.separator(context)),
+        ),
       ),
       child: Column(
         children: [
@@ -143,31 +183,73 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'WARPS',
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white70,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
                 Text(
                   map == null ? '0' : '${map.warps.length}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.white54,
-                  ),
+                  style: TextStyle(fontSize: 11, color: subtle),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(child: content),
         ],
       ),
+    );
+  }
+
+  Future<void> _pickTargetMap(
+    BuildContext context,
+    List<ProjectMapEntry> projectMaps,
+  ) async {
+    final picked = await showMacosListPicker<ProjectMapEntry>(
+      context: context,
+      title: 'Target Map',
+      items: projectMaps,
+      labelOf: (m) => '${m.name} (${m.id})',
+    );
+    if (picked != null) {
+      setState(() => _selectedTargetMapId = picked.id);
+    }
+  }
+
+  Widget _labeledField(
+    BuildContext context, {
+    required String label,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    final secondary =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        CupertinoTextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+        ),
+      ],
     );
   }
 
@@ -190,101 +272,85 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Selected Warp',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white70,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Map position: (${selectedWarp.pos.x}, ${selectedWarp.pos.y})',
-          style: const TextStyle(fontSize: 11, color: Colors.white54),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           'Destination: $currentTargetMapLabel at (${selectedWarp.targetPos.x}, ${selectedWarp.targetPos.y})',
           style: TextStyle(
             fontSize: 11,
-            color:
-                currentTargetMapEntry == null ? Colors.amber : Colors.white54,
+            color: currentTargetMapEntry == null
+                ? EditorPaintColors.amber
+                : CupertinoColors.secondaryLabel.resolveFrom(context),
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _idController,
-          decoration: const InputDecoration(
-            labelText: 'ID',
-            isDense: true,
-            border: OutlineInputBorder(),
+        _labeledField(context, label: 'ID', controller: _idController),
+        const SizedBox(height: 8),
+        Text(
+          'Target Map',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
           ),
         ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          key: ValueKey('warp_target_map_${_boundWarpId ?? 'none'}'),
-          initialValue: pickedTargetMapExists ? pickedTargetMapId : null,
-          isDense: true,
-          decoration: const InputDecoration(
-            labelText: 'Target Map',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-          hint: Text(
+        const SizedBox(height: 6),
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: projectMaps.isEmpty
+              ? null
+              : () => _pickTargetMap(context, projectMaps),
+          child: Text(
             pickedTargetMapId == null
                 ? 'Select target map'
-                : 'Missing: $pickedTargetMapId',
-            overflow: TextOverflow.ellipsis,
+                : (pickedTargetMapExists
+                    ? '${projectMapById[pickedTargetMapId]!.name} ($pickedTargetMapId)'
+                    : 'Missing: $pickedTargetMapId'),
           ),
-          items: projectMaps
-              .map(
-                (mapEntry) => DropdownMenuItem<String>(
-                  value: mapEntry.id,
-                  child: Text(
-                    '${mapEntry.name} (${mapEntry.id})',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: (value) {
-            setState(() {
-              _selectedTargetMapId = value;
-            });
-          },
         ),
         if (pickedTargetMapId != null && !pickedTargetMapExists) ...[
           const SizedBox(height: 6),
           Text(
             'Current target map is missing from project: $pickedTargetMapId',
-            style: const TextStyle(fontSize: 11, color: Colors.amber),
+            style: const TextStyle(fontSize: 11, color: EditorPaintColors.amber),
           ),
         ],
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: _labeledField(
+                context,
+                label: 'Target X',
                 controller: _targetXController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Target X',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: _labeledField(
+                context,
+                label: 'Target Y',
                 controller: _targetYController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Target Y',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
             ),
           ],
@@ -293,24 +359,22 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
         Row(
           children: [
             Expanded(
-              child: ElevatedButton(
-                onPressed: () {
+              child: CupertinoButton.filled(
+                onPressed: () async {
                   final x = int.tryParse(_targetXController.text.trim());
                   final y = int.tryParse(_targetYController.text.trim());
                   if (x == null || y == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Target position must be valid integers'),
-                      ),
+                    await showCupertinoEditorAlert(
+                      context,
+                      message: 'Target position must be valid integers',
                     );
                     return;
                   }
                   final targetMapId = _selectedTargetMapId?.trim();
                   if (targetMapId == null || targetMapId.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Select a target map'),
-                      ),
+                    await showCupertinoEditorAlert(
+                      context,
+                      message: 'Select a target map',
                     );
                     return;
                   }
@@ -325,9 +389,9 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
               ),
             ),
             const SizedBox(width: 8),
-            IconButton(
+            EditorToolbarIconButton(
               onPressed: notifier.deleteSelectedWarp,
-              icon: const Icon(Icons.delete_outline),
+              icon: CupertinoIcons.trash,
               tooltip: 'Delete selected warp',
             ),
           ],
@@ -335,18 +399,27 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
+          child: CupertinoButton(
             onPressed: canCreateReturnWarp
                 ? notifier.createReciprocalWarpForSelectedWarp
                 : null,
-            icon: const Icon(Icons.swap_horiz),
-            label: const Text('Create Return Warp'),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.arrow_left_right, size: 18),
+                SizedBox(width: 8),
+                Text('Create Return Warp'),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Creates a reciprocal warp in the target map at the destination cell.',
-          style: TextStyle(fontSize: 11, color: Colors.white54),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
         ),
       ],
     );

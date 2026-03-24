@@ -2,9 +2,12 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
+import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
@@ -94,18 +97,26 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final settings = project?.settings ?? const ProjectSettings();
 
     if (project == null) {
-      return const Center(
-        child:
-            Text('No project loaded', style: TextStyle(color: Colors.white38)),
+      return Center(
+        child: Text(
+          'No project loaded',
+          style: TextStyle(
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        ),
       );
     }
 
     final selectedTileset = notifier.getSelectedTilesetEntry();
     final selectedTilesetPath = notifier.getSelectedTilesetAbsolutePath();
     if (selectedTileset == null || selectedTilesetPath == null) {
-      return const Center(
-        child: Text('No tileset selected',
-            style: TextStyle(color: Colors.white38)),
+      return Center(
+        child: Text(
+          'No tileset selected',
+          style: TextStyle(
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        ),
       );
     }
     final sortedTilesets = List<ProjectTilesetEntry>.from(project.tilesets)
@@ -138,9 +149,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Tileset image unavailable',
-                  style: TextStyle(color: Colors.white54),
+                  style: TextStyle(
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
                 ),
               ],
             ),
@@ -152,30 +165,36 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         final rows =
             settings.tileHeight > 0 ? image.height ~/ settings.tileHeight : 0;
         if (columns <= 0 || rows <= 0) {
-          return const Center(
+          return Center(
             child: Text(
               'Invalid tile size for active tileset',
-              style: TextStyle(color: Colors.white54),
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
             ),
           );
         }
+
+        final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+        final labelColor = CupertinoColors.label.resolveFrom(context);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(12, widget.embedded ? 10 : 12, 12, 8),
+              padding:
+                  EdgeInsets.fromLTRB(12, widget.embedded ? 10 : 12, 12, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (!widget.embedded)
-                    const Text(
+                    Text(
                       'ELEMENTS',
                       style: TextStyle(
                         fontSize: 11,
                         letterSpacing: 1.0,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white70,
+                        color: secondary,
                       ),
                     ),
                   SizedBox(height: widget.embedded ? 0 : 6),
@@ -183,43 +202,53 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     selectedTileset.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
+                      color: labelColor,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: selectedTileset.id,
-                    isDense: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Tileset',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: sortedTilesets
-                        .map(
-                          (tileset) => DropdownMenuItem<String>(
-                            value: tileset.id,
-                            child: Text(
-                              tileset.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      notifier.selectTilesetEditorContext(value);
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    alignment: Alignment.centerLeft,
+                    onPressed: () async {
+                      final picked = await showCupertinoListPicker<String>(
+                        context: context,
+                        title: 'Tileset',
+                        items:
+                            sortedTilesets.map((tileset) => tileset.id).toList(),
+                        labelOf: (id) => sortedTilesets
+                            .firstWhere((t) => t.id == id)
+                            .name,
+                      );
+                      if (picked != null) {
+                        notifier.selectTilesetEditorContext(picked);
+                      }
                     },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tileset',
+                          style: TextStyle(fontSize: 12, color: secondary),
+                        ),
+                        Text(
+                          selectedTileset.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: labelColor),
+                        ),
+                      ],
+                    ),
                   ),
                   Text(
                     '${columns * rows} tiles',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: TextStyle(color: secondary, fontSize: 12),
                   ),
                   if (map == null)
-                    const Text(
+                    Text(
                       'No active map: edition mode only',
-                      style: TextStyle(color: Colors.white54, fontSize: 11),
+                      style: TextStyle(color: secondary, fontSize: 11),
                     ),
                 ],
               ),
@@ -227,27 +256,43 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             if (tileLayers.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButtonFormField<String>(
-                  value: tileLayers.any((l) => l.id == state.activeLayerId)
-                      ? state.activeLayerId
-                      : (tileLayers.isNotEmpty ? tileLayers.first.id : null),
-                  decoration: const InputDecoration(
-                    labelText: 'Target Layer',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: tileLayers
-                      .map(
-                        (layer) => DropdownMenuItem<String>(
-                          value: layer.id,
-                          child: Text(layer.name),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      notifier.setActiveLayer(value);
-                    }
+                child: Builder(
+                  builder: (ctx) {
+                    final effectiveLayerId =
+                        tileLayers.any((l) => l.id == state.activeLayerId)
+                            ? state.activeLayerId!
+                            : tileLayers.first.id;
+                    return CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      alignment: Alignment.centerLeft,
+                      onPressed: () async {
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Target Layer',
+                          items: tileLayers.map((l) => l.id).toList(),
+                          labelOf: (id) =>
+                              tileLayers.firstWhere((l) => l.id == id).name,
+                        );
+                        if (picked != null) {
+                          notifier.setActiveLayer(picked);
+                        }
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Target Layer',
+                            style: TextStyle(fontSize: 12, color: secondary),
+                          ),
+                          Text(
+                            tileLayers
+                                .firstWhere((l) => l.id == effectiveLayerId)
+                                .name,
+                            style: TextStyle(color: labelColor),
+                          ),
+                        ],
+                      ),
+                    );
                   },
                 ),
               ),
@@ -272,6 +317,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildTilesTab({
     required EditorState state,
     required EditorNotifier notifier,
@@ -321,30 +367,52 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final previewSize = settings.tileWidth * settings.displayScale * 2.0;
     final selectionRect = _selectionRect;
 
+    final tileTabSecondary =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final tileTabLabel = CupertinoColors.label.resolveFrom(context);
+    final filterItems = <int>[
+      -1,
+      ...List.generate(PaletteCategory.values.length, (i) => i),
+    ];
+    String filterLabel(int i) => i < 0
+        ? 'All'
+        : _legacyCategoryLabel(PaletteCategory.values[i]);
+    final currentFilterIndex =
+        filter == null ? -1 : PaletteCategory.values.indexOf(filter);
+
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: DropdownButtonFormField<PaletteCategory?>(
-            value: filter,
-            decoration: const InputDecoration(
-              labelText: 'Tile Category Filter',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            items: [
-              const DropdownMenuItem<PaletteCategory?>(
-                value: null,
-                child: Text('All'),
-              ),
-              ...PaletteCategory.values.map(
-                (category) => DropdownMenuItem<PaletteCategory?>(
-                  value: category,
-                  child: Text(_legacyCategoryLabel(category)),
+          child: CupertinoButton(
+            padding: EdgeInsets.zero,
+            alignment: Alignment.centerLeft,
+            onPressed: () async {
+              final picked = await showCupertinoListPicker<int>(
+                context: context,
+                title: 'Tile Category Filter',
+                items: filterItems,
+                labelOf: filterLabel,
+              );
+              if (picked != null) {
+                notifier.setPaletteCategoryFilter(
+                  picked < 0 ? null : PaletteCategory.values[picked],
+                );
+              }
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tile Category Filter',
+                  style: TextStyle(fontSize: 12, color: tileTabSecondary),
                 ),
-              ),
-            ],
-            onChanged: notifier.setPaletteCategoryFilter,
+                Text(
+                  filterLabel(currentFilterIndex),
+                  style: TextStyle(color: tileTabLabel),
+                ),
+              ],
+            ),
           ),
         ),
         Padding(
@@ -352,17 +420,35 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           child: Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
+                child: CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   onPressed: () => _setCreationMode(!_creationMode),
-                  icon: Icon(_creationMode ? Icons.close : Icons.crop_square),
-                  label: Text(
-                    _creationMode ? 'Exit Element Creation' : 'Create Element',
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _creationMode
+                            ? CupertinoIcons.xmark
+                            : CupertinoIcons.square,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _creationMode
+                              ? 'Exit Element Creation'
+                              : 'Create Element',
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              ElevatedButton(
+              CupertinoButton.filled(
                 onPressed: !_creationMode || selectionRect == null
                     ? null
                     : () => _showCreateElementDialog(
@@ -452,21 +538,30 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Colors.white10)),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: CupertinoColors.separator.resolveFrom(context)),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Selected Tile',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: tileTabLabel,
+                ),
               ),
               if (_creationMode && selectionRect != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Selection: ${selectionRect.width}x${selectionRect.height} at (${selectionRect.x}, ${selectionRect.y})',
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  style: TextStyle(
+                    color: tileTabSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
               const SizedBox(height: 8),
@@ -476,13 +571,18 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     width: previewSize,
                     height: previewSize,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white24),
+                      border: Border.all(
+                        color: CupertinoColors.separator.resolveFrom(context),
+                      ),
                     ),
                     child: selectedTileId == null
-                        ? const Center(
+                        ? Center(
                             child: Text(
                               '-',
-                              style: TextStyle(color: Colors.white38),
+                              style: TextStyle(
+                                color: CupertinoColors.placeholderText
+                                    .resolveFrom(context),
+                              ),
                             ),
                           )
                         : _PaletteTilePreview(
@@ -502,36 +602,48 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           selectedTileId == null
                               ? 'No tile selected'
                               : 'Tile #$selectedTileId',
-                          style: const TextStyle(fontSize: 12),
+                          style: TextStyle(fontSize: 12, color: tileTabLabel),
                         ),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<PaletteCategory>(
-                          value: selectedCategory,
-                          decoration: const InputDecoration(
-                            labelText: 'Tile Category',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          items: PaletteCategory.values
-                              .map(
-                                (category) => DropdownMenuItem(
-                                  value: category,
-                                  child: Text(_legacyCategoryLabel(category)),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: selectedTileId == null
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          alignment: Alignment.centerLeft,
+                          onPressed: selectedTileId == null
                               ? null
-                              : (value) {
-                                  if (value != null) {
+                              : () async {
+                                  final picked =
+                                      await showCupertinoListPicker<
+                                          PaletteCategory>(
+                                    context: context,
+                                    title: 'Tile Category',
+                                    items: PaletteCategory.values.toList(),
+                                    labelOf: _legacyCategoryLabel,
+                                  );
+                                  if (picked != null) {
                                     notifier.upsertPaletteEntryForTile(
                                       tileId: selectedTileId,
                                       columns: columns,
-                                      category: value,
+                                      category: picked,
                                       recommendedLayerId: state.activeLayerId,
                                     );
                                   }
                                 },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tile Category',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: tileTabSecondary,
+                                ),
+                              ),
+                              Text(
+                                _legacyCategoryLabel(selectedCategory),
+                                style: TextStyle(color: tileTabLabel),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -629,7 +741,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         expanded: false,
         onTap: () => notifier.selectTilesetElementGroupFilter(null),
       ),
-      const Divider(height: 1),
+      const EditorHorizontalDivider(),
       ..._buildTilesetGroupRows(
         groupsByParent: tilesetGroupsByParent,
         parentGroupId: null,
@@ -652,7 +764,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           });
         },
       ),
-      const Divider(height: 1),
+      const EditorHorizontalDivider(),
       ..._buildCategoryRows(
         categoriesByParent: categoriesByParent,
         parentCategoryId: null,
@@ -667,22 +779,25 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Tileset Internal Groups',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    fontSize: 12,
+                  ),
                 ),
               ),
-              IconButton(
+              EditorToolbarIconButton(
                 onPressed: () => _showCreateTilesetGroupDialog(
                   context,
                   notifier: notifier,
                   tilesetId: activeTileset.id,
                 ),
-                icon: const Icon(Icons.create_new_folder_outlined),
+                icon: CupertinoIcons.folder_badge_plus,
                 tooltip: 'New Group',
               ),
-              IconButton(
+              EditorToolbarIconButton(
                 onPressed: validSelectedTilesetGroupId == null
                     ? null
                     : () => _showCreateTilesetSubgroupDialog(
@@ -691,10 +806,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           tilesetId: activeTileset.id,
                           parentGroupId: validSelectedTilesetGroupId,
                         ),
-                icon: const Icon(Icons.create_new_folder),
+                icon: CupertinoIcons.folder_fill,
                 tooltip: 'New Subgroup',
               ),
-              IconButton(
+              EditorToolbarIconButton(
                 onPressed: validSelectedTilesetGroupId == null
                     ? null
                     : () => _showRenameTilesetGroupDialog(
@@ -707,7 +822,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                       ?.name ??
                                   '',
                         ),
-                icon: const Icon(Icons.edit_outlined),
+                icon: CupertinoIcons.pencil,
                 tooltip: 'Rename Group',
               ),
             ],
@@ -717,7 +832,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           height: 130,
           margin: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.white10),
+            border: Border.all(
+              color: CupertinoColors.separator.resolveFrom(context),
+            ),
             borderRadius: BorderRadius.circular(6),
           ),
           child: ListView(
@@ -729,22 +846,25 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Element Categories',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    fontSize: 12,
+                  ),
                 ),
               ),
-              IconButton(
+              EditorToolbarIconButton(
                 onPressed: () => _showCreateCategoryDialog(
                   context,
                   notifier: notifier,
                   parentCategoryId: null,
                 ),
-                icon: const Icon(Icons.create_new_folder_outlined),
+                icon: CupertinoIcons.folder_badge_plus,
                 tooltip: 'New Category',
               ),
-              IconButton(
+              EditorToolbarIconButton(
                 onPressed: _selectedCategoryId == null
                     ? null
                     : () => _showCreateCategoryDialog(
@@ -752,10 +872,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           notifier: notifier,
                           parentCategoryId: _selectedCategoryId,
                         ),
-                icon: const Icon(Icons.create_new_folder),
+                icon: CupertinoIcons.folder_fill,
                 tooltip: 'New Subcategory',
               ),
-              IconButton(
+              EditorToolbarIconButton(
                 onPressed: _selectedCategoryId == null
                     ? null
                     : () => _showRenameCategoryDialog(
@@ -765,7 +885,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           currentName:
                               categoriesById[_selectedCategoryId]?.name ?? '',
                         ),
-                icon: const Icon(Icons.edit_outlined),
+                icon: CupertinoIcons.pencil,
                 tooltip: 'Rename Category',
               ),
             ],
@@ -775,7 +895,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           height: 130,
           margin: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.white10),
+            border: Border.all(
+              color: CupertinoColors.separator.resolveFrom(context),
+            ),
             borderRadius: BorderRadius.circular(6),
           ),
           child: ListView(
@@ -789,17 +911,22 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             alignment: Alignment.centerLeft,
             child: Text(
               '${filteredElements.length} elements',
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 12,
+              ),
             ),
           ),
         ),
         const SizedBox(height: 4),
         if (filteredElements.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Text(
               'No element for current filters',
-              style: TextStyle(color: Colors.white38),
+              style: TextStyle(
+                color: CupertinoColors.placeholderText.resolveFrom(context),
+              ),
             ),
           )
         else
@@ -1050,59 +1177,51 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final canvasWidth = columns * cellSize;
     final canvasHeight = rows * cellSize;
 
-    return Scrollbar(
+    return SingleChildScrollView(
       controller: _selectionHorizontalScrollController,
-      thumbVisibility: true,
+      primary: false,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
-        controller: _selectionHorizontalScrollController,
+        controller: _selectionVerticalScrollController,
         primary: false,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        scrollDirection: Axis.horizontal,
-        child: Scrollbar(
-          controller: _selectionVerticalScrollController,
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            controller: _selectionVerticalScrollController,
-            primary: false,
-            scrollDirection: Axis.vertical,
-            child: SizedBox(
-              width: canvasWidth,
-              height: canvasHeight,
-              child: GestureDetector(
-                onPanStart: (details) {
-                  final pos = _gridFromLocal(
-                      details.localPosition, cellSize, columns, rows);
-                  setState(() {
-                    _selectionStart = pos;
-                    _selectionEnd = pos;
-                  });
-                },
-                onPanUpdate: (details) {
-                  if (_selectionStart == null) return;
-                  final pos = _gridFromLocal(
-                      details.localPosition, cellSize, columns, rows);
-                  setState(() {
-                    _selectionEnd = pos;
-                  });
-                },
-                onTapUp: (details) {
-                  final pos = _gridFromLocal(
-                      details.localPosition, cellSize, columns, rows);
-                  setState(() {
-                    _selectionStart = pos;
-                    _selectionEnd = pos;
-                  });
-                },
-                child: CustomPaint(
-                  painter: _TilesetSelectionPainter(
-                    image: image,
-                    columns: columns,
-                    rows: rows,
-                    tileWidth: tileWidth,
-                    tileHeight: tileHeight,
-                    selection: selectionRect,
-                  ),
-                ),
+        scrollDirection: Axis.vertical,
+        child: SizedBox(
+          width: canvasWidth,
+          height: canvasHeight,
+          child: GestureDetector(
+            onPanStart: (details) {
+              final pos = _gridFromLocal(
+                  details.localPosition, cellSize, columns, rows);
+              setState(() {
+                _selectionStart = pos;
+                _selectionEnd = pos;
+              });
+            },
+            onPanUpdate: (details) {
+              if (_selectionStart == null) return;
+              final pos =
+                  _gridFromLocal(details.localPosition, cellSize, columns, rows);
+              setState(() {
+                _selectionEnd = pos;
+              });
+            },
+            onTapUp: (details) {
+              final pos =
+                  _gridFromLocal(details.localPosition, cellSize, columns, rows);
+              setState(() {
+                _selectionStart = pos;
+                _selectionEnd = pos;
+              });
+            },
+            child: CustomPaint(
+              painter: _TilesetSelectionPainter(
+                image: image,
+                columns: columns,
+                rows: rows,
+                tileWidth: tileWidth,
+                tileHeight: tileHeight,
+                selection: selectionRect,
               ),
             ),
           ),
@@ -1118,28 +1237,44 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }) async {
     final controller = TextEditingController();
     var shouldSave = false;
-    await showDialog(
+    await showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title:
-            Text(parentCategoryId == null ? 'New Category' : 'New Subcategory'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      maxWidth: 400,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            parentCategoryId == null ? 'New Category' : 'New Subcategory',
+            style: editorMacosSheetTitleStyle(ctx),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isEmpty) return;
-              shouldSave = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Create'),
+          const SizedBox(height: 12),
+          MacosTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'Name',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PushButton(
+                controlSize: ControlSize.large,
+                secondary: true,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 10),
+              PushButton(
+                controlSize: ControlSize.large,
+                onPressed: () {
+                  if (controller.text.trim().isEmpty) return;
+                  shouldSave = true;
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Create'),
+              ),
+            ],
           ),
         ],
       ),
@@ -1167,27 +1302,44 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }) async {
     final controller = TextEditingController(text: currentName);
     var shouldSave = false;
-    await showDialog(
+    await showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Category'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      maxWidth: 400,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Rename Category',
+            style: editorMacosSheetTitleStyle(ctx),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isEmpty) return;
-              shouldSave = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
+          const SizedBox(height: 12),
+          MacosTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'Name',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PushButton(
+                controlSize: ControlSize.large,
+                secondary: true,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 10),
+              PushButton(
+                controlSize: ControlSize.large,
+                onPressed: () {
+                  if (controller.text.trim().isEmpty) return;
+                  shouldSave = true;
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Save'),
+              ),
+            ],
           ),
         ],
       ),
@@ -1203,27 +1355,44 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }) async {
     final controller = TextEditingController();
     var shouldSave = false;
-    await showDialog(
+    await showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Tileset Group'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      maxWidth: 400,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'New Tileset Group',
+            style: editorMacosSheetTitleStyle(ctx),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isEmpty) return;
-              shouldSave = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Create'),
+          const SizedBox(height: 12),
+          MacosTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'Name',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PushButton(
+                controlSize: ControlSize.large,
+                secondary: true,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 10),
+              PushButton(
+                controlSize: ControlSize.large,
+                onPressed: () {
+                  if (controller.text.trim().isEmpty) return;
+                  shouldSave = true;
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Create'),
+              ),
+            ],
           ),
         ],
       ),
@@ -1243,27 +1412,44 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }) async {
     final controller = TextEditingController();
     var shouldSave = false;
-    await showDialog(
+    await showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Tileset Subgroup'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      maxWidth: 400,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'New Tileset Subgroup',
+            style: editorMacosSheetTitleStyle(ctx),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isEmpty) return;
-              shouldSave = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Create'),
+          const SizedBox(height: 12),
+          MacosTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'Name',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PushButton(
+                controlSize: ControlSize.large,
+                secondary: true,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 10),
+              PushButton(
+                controlSize: ControlSize.large,
+                onPressed: () {
+                  if (controller.text.trim().isEmpty) return;
+                  shouldSave = true;
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Create'),
+              ),
+            ],
           ),
         ],
       ),
@@ -1289,27 +1475,44 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }) async {
     final controller = TextEditingController(text: currentName);
     var shouldSave = false;
-    await showDialog(
+    await showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Tileset Group'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      maxWidth: 400,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Rename Tileset Group',
+            style: editorMacosSheetTitleStyle(ctx),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isEmpty) return;
-              shouldSave = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
+          const SizedBox(height: 12),
+          MacosTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'Name',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PushButton(
+                controlSize: ControlSize.large,
+                secondary: true,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 10),
+              PushButton(
+                controlSize: ControlSize.large,
+                onPressed: () {
+                  if (controller.text.trim().isEmpty) return;
+                  shouldSave = true;
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Save'),
+              ),
+            ],
           ),
         ],
       ),
@@ -1334,27 +1537,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }) async {
     final categories = notifier.getElementCategories();
     if (categories.isEmpty) {
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Missing Element Category'),
-          content: const Text(
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Missing Element Category',
+        message:
             'Create at least one element category before creating an element.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
       );
       return;
     }
     final categoriesById = <String, ProjectElementCategory>{
       for (final category in categories) category.id: category,
     };
-    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(
       text: 'element_${source.x}_${source.y}',
     );
@@ -1404,167 +1597,201 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     };
 
     var shouldSave = false;
-    await showDialog(
+    String tilesetGroupRowLabel(String id) {
+      if (id.isEmpty) return 'None';
+      return _buildTilesetGroupPathLabel(tilesetGroupById, id);
+    }
+
+    String scopeRowLabel(String id) {
+      if (id.isEmpty) return 'Global';
+      return _buildGroupPathLabel(groupById, id);
+    }
+
+    String layerRowLabel(String id) {
+      if (id.isEmpty) return 'None';
+      return tileLayers.firstWhere((l) => l.id == id).name;
+    }
+
+    await showMacosEditorTallSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: const Text('Create Element'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
+      maxWidth: 440,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDialog) => ListView(
+          shrinkWrap: true,
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Create Element',
+                    style: editorMacosSheetTitleStyle(ctx),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
                     'Source: ${source.width}x${source.height} at (${source.x}, ${source.y})',
-                    style: const TextStyle(fontSize: 12, color: Colors.white60),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: nameController,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Required'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedCategoryId,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                  const SizedBox(height: 12),
+                  MacosTextField(
+                    controller: nameController,
+                    autofocus: true,
+                    placeholder: 'Name',
                   ),
-                  items: categories
-                      .map(
-                        (category) => DropdownMenuItem<String>(
-                          value: category.id,
-                          child: Text(
-                            _buildCategoryPathLabel(
-                              categoriesById: categoriesById,
-                              categoryId: category.id,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Category',
+                          items: categories.map((c) => c.id).toList(),
+                          labelOf: (id) => _buildCategoryPathLabel(
+                            categoriesById: categoriesById,
+                            categoryId: id,
                           ),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setStateDialog(() {
-                        selectedCategoryId = value;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  value: selectedTilesetGroupId,
-                  decoration: const InputDecoration(
-                    labelText: 'Tileset Group',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('None'),
-                    ),
-                    ...sortedTilesetGroups.map(
-                      (group) => DropdownMenuItem<String?>(
-                        value: group.id,
-                        child: Text(
-                          _buildTilesetGroupPathLabel(
-                              tilesetGroupById, group.id),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        );
+                        if (picked != null) {
+                          setStateDialog(() => selectedCategoryId = picked);
+                        }
+                      },
+                      child: Text(
+                        'Category: ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId!)}',
                       ),
                     ),
-                  ],
-                  onChanged: (value) {
-                    setStateDialog(() {
-                      selectedTilesetGroupId = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  value: selectedGroupId,
-                  decoration: const InputDecoration(
-                    labelText: 'Scope Group',
-                    border: OutlineInputBorder(),
-                    isDense: true,
                   ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Global'),
-                    ),
-                    ...groups.map(
-                      (group) => DropdownMenuItem<String?>(
-                        value: group.id,
-                        child: Text(_buildGroupPathLabel(groupById, group.id)),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final items = <String>[
+                          '',
+                          ...sortedTilesetGroups.map((g) => g.id),
+                        ];
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Tileset Group',
+                          items: items,
+                          labelOf: tilesetGroupRowLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(
+                            () => selectedTilesetGroupId =
+                                picked.isEmpty ? null : picked,
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Tileset Group: ${tilesetGroupRowLabel(selectedTilesetGroupId ?? '')}',
                       ),
                     ),
-                  ],
-                  onChanged: (value) {
-                    setStateDialog(() {
-                      selectedGroupId = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  value: selectedLayerId,
-                  decoration: const InputDecoration(
-                    labelText: 'Recommended Layer',
-                    border: OutlineInputBorder(),
-                    isDense: true,
                   ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('None'),
-                    ),
-                    ...tileLayers.map(
-                      (layer) => DropdownMenuItem<String?>(
-                        value: layer.id,
-                        child: Text(layer.name),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final items = <String>[
+                          '',
+                          ...groups.map((g) => g.id),
+                        ];
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Scope Group',
+                          items: items,
+                          labelOf: scopeRowLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(
+                            () => selectedGroupId =
+                                picked.isEmpty ? null : picked,
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Scope Group: ${scopeRowLabel(selectedGroupId ?? '')}',
                       ),
                     ),
-                  ],
-                  onChanged: (value) {
-                    setStateDialog(() {
-                      selectedLayerId = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: tagsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tags',
-                    hintText: 'tree,outdoor,oak',
                   ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-                shouldSave = true;
-                Navigator.pop(context);
-              },
-              child: const Text('Create'),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final items = <String>[
+                          '',
+                          ...tileLayers.map((l) => l.id),
+                        ];
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Recommended Layer',
+                          items: items,
+                          labelOf: layerRowLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(
+                            () => selectedLayerId =
+                                picked.isEmpty ? null : picked,
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Recommended Layer: ${layerRowLabel(selectedLayerId ?? '')}',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  MacosTextField(
+                    controller: tagsController,
+                    placeholder: 'Tags (tree,outdoor,oak)',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        secondary: true,
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 10),
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        onPressed: () async {
+                          if (nameController.text.trim().isEmpty) {
+                            await showCupertinoEditorAlert(
+                              ctx,
+                              message: 'Name is required.',
+                            );
+                            return;
+                          }
+                          shouldSave = true;
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Create'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1629,7 +1856,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       for (final group in groups) group.id: group,
     };
 
-    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: element.name);
     final tagsController = TextEditingController(text: element.tags.join(','));
     String selectedCategoryId = element.categoryId;
@@ -1646,158 +1872,192 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     }
     var shouldSave = false;
 
-    await showDialog(
+    String editTilesetGroupRowLabel(String id) {
+      if (id.isEmpty) return 'None';
+      return _buildTilesetGroupPathLabel(tilesetGroupById, id);
+    }
+
+    String editScopeRowLabel(String id) {
+      if (id.isEmpty) return 'Global';
+      return _buildGroupPathLabel(groupById, id);
+    }
+
+    String editLayerRowLabel(String id) {
+      if (id.isEmpty) return 'None';
+      return tileLayers.firstWhere((l) => l.id == id).name;
+    }
+
+    await showMacosEditorTallSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: const Text('Edit Element'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Required'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedCategoryId,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+      maxWidth: 440,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDialog) => ListView(
+          shrinkWrap: true,
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Edit Element',
+                    style: editorMacosSheetTitleStyle(ctx),
                   ),
-                  items: categories
-                      .map(
-                        (category) => DropdownMenuItem<String>(
-                          value: category.id,
-                          child: Text(
-                            _buildCategoryPathLabel(
-                              categoriesById: categoriesById,
-                              categoryId: category.id,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 12),
+                  MacosTextField(
+                    controller: nameController,
+                    placeholder: 'Name',
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Category',
+                          items: categories.map((c) => c.id).toList(),
+                          labelOf: (id) => _buildCategoryPathLabel(
+                            categoriesById: categoriesById,
+                            categoryId: id,
                           ),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setStateDialog(() {
-                        selectedCategoryId = value;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  value: selectedTilesetGroupId,
-                  decoration: const InputDecoration(
-                    labelText: 'Tileset Group',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('None'),
-                    ),
-                    ...sortedTilesetGroups.map(
-                      (group) => DropdownMenuItem<String?>(
-                        value: group.id,
-                        child: Text(
-                          _buildTilesetGroupPathLabel(
-                              tilesetGroupById, group.id),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        );
+                        if (picked != null) {
+                          setStateDialog(() => selectedCategoryId = picked);
+                        }
+                      },
+                      child: Text(
+                        'Category: ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId)}',
                       ),
                     ),
-                  ],
-                  onChanged: (value) {
-                    setStateDialog(() {
-                      selectedTilesetGroupId = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  value: selectedGroupId,
-                  decoration: const InputDecoration(
-                    labelText: 'Scope Group',
-                    border: OutlineInputBorder(),
-                    isDense: true,
                   ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Global'),
-                    ),
-                    ...groups.map(
-                      (group) => DropdownMenuItem<String?>(
-                        value: group.id,
-                        child: Text(_buildGroupPathLabel(groupById, group.id)),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final items = <String>[
+                          '',
+                          ...sortedTilesetGroups.map((g) => g.id),
+                        ];
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Tileset Group',
+                          items: items,
+                          labelOf: editTilesetGroupRowLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(
+                            () => selectedTilesetGroupId =
+                                picked.isEmpty ? null : picked,
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Tileset Group: ${editTilesetGroupRowLabel(selectedTilesetGroupId ?? '')}',
                       ),
                     ),
-                  ],
-                  onChanged: (value) {
-                    setStateDialog(() {
-                      selectedGroupId = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  value: selectedLayerId,
-                  decoration: const InputDecoration(
-                    labelText: 'Recommended Layer',
-                    border: OutlineInputBorder(),
-                    isDense: true,
                   ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('None'),
-                    ),
-                    ...tileLayers.map(
-                      (layer) => DropdownMenuItem<String?>(
-                        value: layer.id,
-                        child: Text(layer.name),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final items = <String>[
+                          '',
+                          ...groups.map((g) => g.id),
+                        ];
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Scope Group',
+                          items: items,
+                          labelOf: editScopeRowLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(
+                            () => selectedGroupId =
+                                picked.isEmpty ? null : picked,
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Scope Group: ${editScopeRowLabel(selectedGroupId ?? '')}',
                       ),
                     ),
-                  ],
-                  onChanged: (value) {
-                    setStateDialog(() {
-                      selectedLayerId = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: tagsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tags',
-                    hintText: 'tree,outdoor,oak',
                   ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-                shouldSave = true;
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final items = <String>[
+                          '',
+                          ...tileLayers.map((l) => l.id),
+                        ];
+                        final picked = await showCupertinoListPicker<String>(
+                          context: ctx,
+                          title: 'Recommended Layer',
+                          items: items,
+                          labelOf: editLayerRowLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(
+                            () => selectedLayerId =
+                                picked.isEmpty ? null : picked,
+                          );
+                        }
+                      },
+                      child: Text(
+                        'Recommended Layer: ${editLayerRowLabel(selectedLayerId ?? '')}',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  MacosTextField(
+                    controller: tagsController,
+                    placeholder: 'Tags (tree,outdoor,oak)',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        secondary: true,
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 10),
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        onPressed: () async {
+                          if (nameController.text.trim().isEmpty) {
+                            await showCupertinoEditorAlert(
+                              ctx,
+                              message: 'Name is required.',
+                            );
+                            return;
+                          }
+                          shouldSave = true;
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1824,26 +2084,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     required EditorNotifier notifier,
     required ProjectElementEntry element,
   }) async {
-    var shouldDelete = false;
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Element'),
-        content: Text('Delete "${element.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              shouldDelete = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final shouldDelete = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Delete Element',
+      message: 'Delete "${element.name}"?',
+      primaryLabel: 'Delete',
+      primaryIsDestructive: true,
     );
     if (!shouldDelete) return;
     await notifier.deleteProjectElement(element.id);
@@ -1921,10 +2167,15 @@ class _CategoryTreeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background =
-        selected ? Colors.blue.withValues(alpha: 0.2) : Colors.transparent;
-    return InkWell(
-      onTap: onTap,
+    final accent = CupertinoTheme.of(context).primaryColor;
+    final labelColor = CupertinoColors.label.resolveFrom(context);
+    final background = selected
+        ? accent.withValues(alpha: 0.14)
+        : EditorPaintColors.transparent;
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
       child: Container(
         color: background,
         padding: const EdgeInsets.symmetric(vertical: 2),
@@ -1934,19 +2185,12 @@ class _CategoryTreeRow extends StatelessWidget {
             SizedBox(
               width: 24,
               child: hasChildren
-                  ? IconButton(
+                  ? EditorToolbarIconButton(
                       onPressed: onToggleExpanded,
-                      icon: Icon(
-                        expanded
-                            ? Icons.expand_more_outlined
-                            : Icons.chevron_right_outlined,
-                        size: 16,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints.tightFor(
-                        width: 24,
-                        height: 24,
-                      ),
+                      icon: expanded
+                          ? CupertinoIcons.chevron_down
+                          : CupertinoIcons.chevron_right,
+                      iconSize: 16,
                     )
                   : const SizedBox.shrink(),
             ),
@@ -1957,7 +2201,7 @@ class _CategoryTreeRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
-                  color: selected ? Colors.blue.shade200 : Colors.white,
+                  color: selected ? accent : labelColor,
                 ),
               ),
             ),
@@ -1999,106 +2243,115 @@ class _ProjectElementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = CupertinoTheme.of(context).primaryColor;
+    final sep = CupertinoColors.separator.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final labelColor = CupertinoColors.label.resolveFrom(context);
     final baseColor =
-        selected ? Colors.blue.withValues(alpha: 0.18) : Colors.transparent;
-    return Material(
-      color: baseColor,
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(6),
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: selected ? Colors.blue : Colors.white24),
+        selected ? accent.withValues(alpha: 0.12) : EditorPaintColors.transparent;
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: baseColor,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? accent : sep,
           ),
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 64,
-                height: 64,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: _PaletteRectPreview(
-                    image: image,
-                    source: element.source,
-                    tileWidth: tileWidth,
-                    tileHeight: tileHeight,
-                  ),
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 64,
+              height: 64,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: sep),
+                ),
+                child: _PaletteRectPreview(
+                  image: image,
+                  source: element.source,
+                  tileWidth: tileWidth,
+                  tileHeight: tileHeight,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    element.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: labelColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    categoryPath,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: secondary, fontSize: 11),
+                  ),
+                  Text(
+                    tilesetName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: secondary, fontSize: 11),
+                  ),
+                  Text(
+                    groupLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    tilesetGroupLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (element.recommendedLayerId != null &&
+                      element.recommendedLayerId!.isNotEmpty)
                     Text(
-                      element.name,
+                      'Layer: ${element.recommendedLayerId}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      categoryPath,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(color: Colors.white60, fontSize: 11),
-                    ),
-                    Text(
-                      tilesetName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(color: Colors.white60, fontSize: 11),
-                    ),
-                    Text(
-                      groupLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
-                    Text(
-                      tilesetGroupLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
-                    if (element.recommendedLayerId != null &&
-                        element.recommendedLayerId!.isNotEmpty)
-                      Text(
-                        'Layer: ${element.recommendedLayerId}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 11),
+                      style: TextStyle(
+                        color: CupertinoColors.placeholderText.resolveFrom(context),
+                        fontSize: 11,
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-              IconButton(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                constraints:
-                    const BoxConstraints.tightFor(width: 30, height: 30),
-                padding: EdgeInsets.zero,
-              ),
-              IconButton(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline, size: 18),
-                constraints:
-                    const BoxConstraints.tightFor(width: 30, height: 30),
-                padding: EdgeInsets.zero,
-              ),
-            ],
-          ),
+            ),
+            EditorToolbarIconButton(
+              onPressed: onEdit,
+              icon: CupertinoIcons.pencil,
+              iconSize: 18,
+              tooltip: 'Edit',
+            ),
+            EditorToolbarIconButton(
+              onPressed: onDelete,
+              icon: CupertinoIcons.trash,
+              iconSize: 18,
+              tooltip: 'Delete',
+            ),
+          ],
         ),
       ),
     );
@@ -2126,21 +2379,22 @@ class _PaletteTileCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: selected ? Colors.blue : Colors.white24),
-          ),
-          child: _PaletteTilePreview(
-            image: image,
-            tileId: tileId,
-            tileWidth: tileWidth,
-            tileHeight: tileHeight,
-            columns: columns,
-          ),
+    final accent = CupertinoTheme.of(context).primaryColor;
+    final sep = CupertinoColors.separator.resolveFrom(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: selected ? accent : sep),
+        ),
+        child: _PaletteTilePreview(
+          image: image,
+          tileId: tileId,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          columns: columns,
         ),
       ),
     );
@@ -2340,7 +2594,7 @@ class _TilesetSelectionPainter extends CustomPainter {
     }
 
     final gridPaint = Paint()
-      ..color = Colors.white24
+      ..color = EditorPaintColors.white24
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
@@ -2363,12 +2617,12 @@ class _TilesetSelectionPainter extends CustomPainter {
       );
       canvas.drawRect(
         rect,
-        Paint()..color = Colors.orange.withValues(alpha: 0.22),
+        Paint()..color = EditorPaintColors.orange.withValues(alpha: 0.22),
       );
       canvas.drawRect(
         rect,
         Paint()
-          ..color = Colors.orange
+          ..color = EditorPaintColors.orange
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );

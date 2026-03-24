@@ -2,9 +2,12 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
+import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 
@@ -21,15 +24,19 @@ class TerrainEditorPanel extends ConsumerWidget {
     final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
     final selectedPathPreset = notifier.getSelectedPathPreset();
 
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final subtle = CupertinoColors.placeholderText.resolveFrom(context);
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: const Border(bottom: BorderSide(color: Colors.white10)),
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          bottom: BorderSide(color: EditorChrome.separator(context)),
+        ),
       ),
       child: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             child: Row(
               children: [
                 Expanded(
@@ -39,20 +46,20 @@ class TerrainEditorPanel extends ConsumerWidget {
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white70,
+                      color: secondary,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(
             child: project == null
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Open a project to manage terrain and surface presets',
-                      style: TextStyle(color: Colors.white38),
+                      style: TextStyle(color: subtle),
                     ),
                   )
                 : SingleChildScrollView(
@@ -66,7 +73,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                           subtitle: 'Base ground presets only',
                           kind: PresetLibraryKind.terrain,
                           color: const Color(0xFF2B6F53),
-                          icon: Icons.landscape_outlined,
+                          icon: CupertinoIcons.map,
                           settings: settings,
                           tilesets: tilesets,
                           selectedPresetId: selectedTerrainPreset?.id,
@@ -78,7 +85,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                               'Surface overlays: roads, water, tall grass, ice, lava, rails...',
                           kind: PresetLibraryKind.path,
                           color: const Color(0xFF7A4A1E),
-                          icon: Icons.route_outlined,
+                          icon: CupertinoIcons.arrow_branch,
                           settings: settings,
                           tilesets: tilesets,
                           selectedPresetId: selectedPathPreset?.id,
@@ -156,75 +163,78 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
             child: Row(
               children: [
                 Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () {
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    minimumSize: Size.zero,
+                    onPressed: () {
                       setState(() {
                         _expanded = !_expanded;
                       });
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Icon(icon, size: 16, color: color),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  title,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                    child: Row(
+                      children: [
+                        Icon(icon, size: 16, color: color),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: CupertinoColors.label
+                                      .resolveFrom(context),
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  subtitle,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white10,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              '$presetCount',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w700,
                               ),
+                              const SizedBox(height: 2),
+                              Text(
+                                subtitle,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: CupertinoColors.secondaryLabel
+                                      .resolveFrom(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemFill
+                                .resolveFrom(context),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$presetCount',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(context),
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                IconButton(
+                EditorToolbarIconButton(
                   tooltip: 'New folder',
                   onPressed: () => _showCreateCategoryDialog(
                     context,
                     notifier: notifier,
                     kind: kind,
                   ),
-                  icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+                  icon: CupertinoIcons.folder_badge_plus,
+                  iconSize: 18,
                 ),
-                IconButton(
+                EditorToolbarIconButton(
                   tooltip: 'New preset',
                   onPressed: () => _showCreatePresetDialog(
                     context,
@@ -233,26 +243,25 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
                     settings: settings,
                     tilesets: tilesets,
                   ),
-                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  icon: CupertinoIcons.add_circled,
+                  iconSize: 18,
                 ),
-                IconButton(
+                EditorToolbarIconButton(
                   tooltip: _expanded ? 'Collapse section' : 'Expand section',
                   onPressed: () {
                     setState(() {
                       _expanded = !_expanded;
                     });
                   },
-                  icon: Icon(
-                    _expanded
-                        ? Icons.expand_less_outlined
-                        : Icons.expand_more_outlined,
-                    size: 18,
-                  ),
+                  icon: _expanded
+                      ? CupertinoIcons.chevron_up
+                      : CupertinoIcons.chevron_down,
+                  iconSize: 18,
                 ),
               ],
             ),
           ),
-          if (_expanded) const Divider(height: 1),
+          if (_expanded) const EditorHorizontalDivider(),
           if (_expanded && categories.isEmpty && uncategorizedPresets.isEmpty)
             Padding(
               padding: const EdgeInsets.all(12),
@@ -260,7 +269,10 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
                 kind == PresetLibraryKind.terrain
                     ? 'No terrain preset or folder yet'
                     : 'No path preset or folder yet',
-                style: const TextStyle(fontSize: 11, color: Colors.white60),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
               ),
             )
           else if (_expanded)
@@ -295,42 +307,41 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
               ),
             ),
           if (_expanded && selectedPreset != null) ...[
-            const Divider(height: 1),
+            const EditorHorizontalDivider(),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () {
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    minimumSize: Size.zero,
+                    onPressed: () {
                       setState(() {
                         _detailsExpanded = !_detailsExpanded;
                       });
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Selected Preset',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: color,
-                                fontWeight: FontWeight.w700,
-                              ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Selected Preset',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: color,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Icon(
-                            _detailsExpanded
-                                ? Icons.expand_less_outlined
-                                : Icons.expand_more_outlined,
-                            size: 18,
-                            color: Colors.white60,
-                          ),
-                        ],
-                      ),
+                        ),
+                        Icon(
+                          _detailsExpanded
+                              ? CupertinoIcons.chevron_up
+                              : CupertinoIcons.chevron_down,
+                          size: 18,
+                          color: CupertinoColors.secondaryLabel
+                              .resolveFrom(context),
+                        ),
+                      ],
                     ),
                   ),
                   if (_detailsExpanded) ...[
@@ -363,6 +374,119 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
         .getPathPresets()
         .where((preset) => preset.categoryId == null)
         .toList(growable: false);
+  }
+}
+
+Future<void> _openTerrainCategoryFolderMenu({
+  required BuildContext context,
+  required WidgetRef ref,
+  required Offset anchorGlobal,
+  required ProjectPresetCategory category,
+  required PresetLibraryKind kind,
+  required ProjectSettings settings,
+  required List<ProjectTilesetEntry> tilesets,
+}) async {
+  final notifier = ref.read(editorNotifierProvider.notifier);
+  final action = await showMacosEditorContextMenu<String>(
+    context: context,
+    globalPosition: anchorGlobal,
+    actions: const [
+      MacosEditorSheetAction(
+        label: 'New Subfolder',
+        value: 'new_folder',
+      ),
+      MacosEditorSheetAction(
+        label: 'New Preset',
+        value: 'new_preset',
+      ),
+      MacosEditorSheetAction(
+        label: 'Rename Folder',
+        value: 'rename',
+      ),
+      MacosEditorSheetAction(
+        label: 'Delete Folder',
+        value: 'delete',
+        isDestructive: true,
+      ),
+    ],
+  );
+  if (!context.mounted || action == null) return;
+  switch (action) {
+    case 'new_folder':
+      await _showCreateCategoryDialog(
+        context,
+        notifier: notifier,
+        kind: kind,
+        parentCategoryId: category.id,
+      );
+    case 'new_preset':
+      await _showCreatePresetDialog(
+        context,
+        notifier: notifier,
+        kind: kind,
+        settings: settings,
+        tilesets: tilesets,
+        categoryId: category.id,
+      );
+    case 'rename':
+      await _showRenameCategoryDialog(
+        context,
+        notifier: notifier,
+        kind: kind,
+        category: category,
+      );
+    case 'delete':
+      await _showDeleteCategoryDialog(
+        context,
+        notifier: notifier,
+        kind: kind,
+        category: category,
+      );
+  }
+}
+
+Future<void> _openTerrainPresetRowMenu({
+  required BuildContext context,
+  required WidgetRef ref,
+  required Offset anchorGlobal,
+  required PresetLibraryKind kind,
+  required dynamic preset,
+  required ProjectSettings settings,
+  required List<ProjectTilesetEntry> tilesets,
+}) async {
+  final notifier = ref.read(editorNotifierProvider.notifier);
+  final action = await showMacosEditorContextMenu<String>(
+    context: context,
+    globalPosition: anchorGlobal,
+    actions: const [
+      MacosEditorSheetAction(
+        label: 'Edit Preset',
+        value: 'edit',
+      ),
+      MacosEditorSheetAction(
+        label: 'Delete Preset',
+        value: 'delete',
+        isDestructive: true,
+      ),
+    ],
+  );
+  if (!context.mounted || action == null) return;
+  if (action == 'edit') {
+    await _showEditPresetDialog(
+      context,
+      notifier: notifier,
+      kind: kind,
+      settings: settings,
+      preset: preset,
+      tilesets: tilesets,
+    );
+  } else if (action == 'delete') {
+    await _showDeletePresetDialog(
+      context,
+      notifier: notifier,
+      kind: kind,
+      preset: preset,
+    );
   }
 }
 
@@ -400,103 +524,77 @@ class _CategoryNode extends ConsumerWidget {
             .where((preset) => preset.categoryId == category.id)
             .toList(growable: false);
 
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.only(left: 12.0 + depth * 16.0, right: 4),
-        childrenPadding: EdgeInsets.zero,
-        leading: Icon(Icons.folder_outlined, size: 16, color: color),
-        title: Text(
-          category.name,
-          style: const TextStyle(fontSize: 12, color: Colors.white),
-        ),
-        subtitle: Text(
-          '${children.length} folders • ${presets.length} presets',
-          style: const TextStyle(fontSize: 10, color: Colors.white54),
-        ),
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, size: 16),
-          onSelected: (value) async {
-            if (value == 'new_folder') {
-              await _showCreateCategoryDialog(
-                context,
-                notifier: notifier,
-                kind: kind,
-                parentCategoryId: category.id,
-              );
-              return;
-            }
-            if (value == 'new_preset') {
-              await _showCreatePresetDialog(
-                context,
-                notifier: notifier,
-                kind: kind,
-                settings: settings,
-                tilesets: tilesets,
-                categoryId: category.id,
-              );
-              return;
-            }
-            if (value == 'rename') {
-              await _showRenameCategoryDialog(
-                context,
-                notifier: notifier,
-                kind: kind,
-                category: category,
-              );
-              return;
-            }
-            await _showDeleteCategoryDialog(
-              context,
-              notifier: notifier,
-              kind: kind,
-              category: category,
-            );
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem(
-              value: 'new_folder',
-              child: Text('New Subfolder'),
-            ),
-            PopupMenuItem(
-              value: 'new_preset',
-              child: Text('New Preset'),
-            ),
-            PopupMenuItem(
-              value: 'rename',
-              child: Text('Rename Folder'),
-            ),
-            PopupMenuItem(
-              value: 'delete',
-              child: Text('Delete Folder'),
-            ),
-          ],
-        ),
+    return CupertinoDisclosureTile(
+      tilePadding: EdgeInsets.only(left: 12.0 + depth * 16.0, right: 4),
+      childrenPadding: EdgeInsets.zero,
+      leading: Icon(CupertinoIcons.folder, size: 16, color: color),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...children.map(
-            (child) => _CategoryNode(
-              category: child,
-              kind: kind,
-              depth: depth + 1,
-              color: color,
-              settings: settings,
-              tilesets: tilesets,
-              selectedPresetId: selectedPresetId,
+          Text(
+            category.name,
+            style: TextStyle(
+              fontSize: 12,
+              color: CupertinoColors.label.resolveFrom(context),
             ),
           ),
-          ...presets.map(
-            (preset) => _PresetNode(
-              kind: kind,
-              preset: preset,
-              depth: depth + 1,
-              color: color,
-              settings: settings,
-              tilesets: tilesets,
-              selected: _presetId(preset) == selectedPresetId,
+          Text(
+            '${children.length} folders • ${presets.length} presets',
+            style: TextStyle(
+              fontSize: 10,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
             ),
           ),
         ],
       ),
+      trailing: Builder(
+        builder: (btnContext) => EditorToolbarIconButton(
+          icon: CupertinoIcons.ellipsis_vertical,
+          tooltip: 'Folder actions',
+          onPressed: () => _openTerrainCategoryFolderMenu(
+            context: context,
+            ref: ref,
+            anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
+            category: category,
+            kind: kind,
+            settings: settings,
+            tilesets: tilesets,
+          ),
+        ),
+      ),
+      onSecondaryTapDown: (d) => _openTerrainCategoryFolderMenu(
+        context: context,
+        ref: ref,
+        anchorGlobal: d.globalPosition,
+        category: category,
+        kind: kind,
+        settings: settings,
+        tilesets: tilesets,
+      ),
+      children: [
+        ...children.map(
+          (child) => _CategoryNode(
+            category: child,
+            kind: kind,
+            depth: depth + 1,
+            color: color,
+            settings: settings,
+            tilesets: tilesets,
+            selectedPresetId: selectedPresetId,
+          ),
+        ),
+        ...presets.map(
+          (preset) => _PresetNode(
+            kind: kind,
+            preset: preset,
+            depth: depth + 1,
+            color: color,
+            settings: settings,
+            tilesets: tilesets,
+            selected: _presetId(preset) == selectedPresetId,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -524,74 +622,100 @@ class _PresetNode extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(editorNotifierProvider.notifier);
 
-    return ListTile(
-      dense: true,
-      selected: selected,
-      selectedTileColor: color.withValues(alpha: 0.16),
-      contentPadding: EdgeInsets.only(left: 44.0 + depth * 16.0, right: 4),
-      leading: Icon(
-        kind == PresetLibraryKind.terrain
-            ? Icons.texture_outlined
-            : Icons.route_outlined,
-        size: 16,
-        color: selected ? color : Colors.white60,
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return GestureDetector(
+      onSecondaryTapDown: (d) => _openTerrainPresetRowMenu(
+        context: context,
+        ref: ref,
+        anchorGlobal: d.globalPosition,
+        kind: kind,
+        preset: preset,
+        settings: settings,
+        tilesets: tilesets,
       ),
-      title: Text(
-        preset.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 12,
-          color: selected ? Colors.white : Colors.white70,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.16) : null,
+          border: Border(
+            bottom: BorderSide(
+              color: CupertinoColors.separator.resolveFrom(context),
+            ),
+          ),
         ),
-      ),
-      subtitle: Text(
-        kind == PresetLibraryKind.terrain
-            ? _terrainLabel((preset as ProjectTerrainPreset).terrainType)
-            : _pathSurfaceLabel((preset as ProjectPathPreset).surfaceKind),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 10, color: Colors.white54),
-      ),
-      onTap: () {
-        if (kind == PresetLibraryKind.terrain) {
-          notifier.selectTerrainPreset(preset.id);
-        } else {
-          notifier.selectPathPreset(preset.id);
-        }
-      },
-      trailing: PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert, size: 16),
-        onSelected: (value) async {
-          if (value == 'edit') {
-            await _showEditPresetDialog(
-              context,
-              notifier: notifier,
-              kind: kind,
-              settings: settings,
-              preset: preset,
-              tilesets: tilesets,
-            );
-            return;
-          }
-          await _showDeletePresetDialog(
-            context,
-            notifier: notifier,
-            kind: kind,
-            preset: preset,
-          );
-        },
-        itemBuilder: (context) => const [
-          PopupMenuItem(
-            value: 'edit',
-            child: Text('Edit Preset'),
+        child: CupertinoButton(
+          padding: EdgeInsets.only(left: 44.0 + depth * 16.0, right: 4, top: 6, bottom: 6),
+          minimumSize: Size.zero,
+          onPressed: () {
+            if (kind == PresetLibraryKind.terrain) {
+              notifier.selectTerrainPreset(preset.id);
+            } else {
+              notifier.selectPathPreset(preset.id);
+            }
+          },
+          child: Row(
+            children: [
+              Icon(
+                kind == PresetLibraryKind.terrain
+                    ? CupertinoIcons.square_grid_2x2
+                    : CupertinoIcons.arrow_branch,
+                size: 16,
+                color: selected ? color : secondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      preset.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: selected ? label : secondary,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                    Text(
+                      kind == PresetLibraryKind.terrain
+                          ? _terrainLabel(
+                              (preset as ProjectTerrainPreset).terrainType,
+                            )
+                          : _pathSurfaceLabel(
+                              (preset as ProjectPathPreset).surfaceKind,
+                            ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: CupertinoColors.placeholderText
+                            .resolveFrom(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Builder(
+                builder: (btnContext) => EditorToolbarIconButton(
+                  icon: CupertinoIcons.ellipsis_vertical,
+                  tooltip: 'Preset actions',
+                  onPressed: () => _openTerrainPresetRowMenu(
+                    context: context,
+                    ref: ref,
+                    anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
+                    kind: kind,
+                    preset: preset,
+                    settings: settings,
+                    tilesets: tilesets,
+                  ),
+                ),
+              ),
+            ],
           ),
-          PopupMenuItem(
-            value: 'delete',
-            child: Text('Delete Preset'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -628,10 +752,12 @@ class _PresetDetailsCard extends ConsumerWidget {
     final pathPreset =
         kind == PresetLibraryKind.path ? preset as ProjectPathPreset : null;
 
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white10,
+        color: CupertinoColors.systemFill.resolveFrom(context),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -639,9 +765,9 @@ class _PresetDetailsCard extends ConsumerWidget {
         children: [
           Text(
             preset.name as String,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Colors.white,
+              color: label,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -650,24 +776,24 @@ class _PresetDetailsCard extends ConsumerWidget {
             kind == PresetLibraryKind.terrain
                 ? 'Base type: ${_terrainLabel(terrainPreset!.terrainType)}'
                 : 'Surface family: ${_pathSurfaceLabel(pathPreset!.surfaceKind)}',
-            style: const TextStyle(fontSize: 11, color: Colors.white70),
+            style: TextStyle(fontSize: 11, color: secondary),
           ),
           const SizedBox(height: 2),
           Text(
             'Folder: ${categoryPath ?? 'Root'}',
-            style: const TextStyle(fontSize: 11, color: Colors.white70),
+            style: TextStyle(fontSize: 11, color: secondary),
           ),
           const SizedBox(height: 2),
           Text(
             'Tileset: ${tilesetName.isEmpty ? 'None' : tilesetName}',
-            style: const TextStyle(fontSize: 11, color: Colors.white70),
+            style: TextStyle(fontSize: 11, color: secondary),
           ),
           const SizedBox(height: 2),
           Text(
             kind == PresetLibraryKind.terrain
                 ? 'Variants: ${terrainPreset!.variants.length}'
                 : 'Autotile mappings: ${pathPreset!.variants.length}/${TerrainPathVariant.values.length}',
-            style: const TextStyle(fontSize: 11, color: Colors.white70),
+            style: TextStyle(fontSize: 11, color: secondary),
           ),
           if (tilesetId.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -681,7 +807,9 @@ class _PresetDetailsCard extends ConsumerWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              OutlinedButton.icon(
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 onPressed: () => _showEditPresetDialog(
                   context,
                   notifier: notifier,
@@ -690,11 +818,19 @@ class _PresetDetailsCard extends ConsumerWidget {
                   preset: preset,
                   tilesets: tilesets,
                 ),
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Edit Preset'),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(CupertinoIcons.pencil, size: 16),
+                    const SizedBox(width: 6),
+                    Text('Edit Preset', style: TextStyle(color: label)),
+                  ],
+                ),
               ),
               if (kind == PresetLibraryKind.terrain)
-                OutlinedButton.icon(
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   onPressed: tilesetId.isEmpty
                       ? null
                       : () => _runTerrainMemberAssistant(
@@ -703,11 +839,19 @@ class _PresetDetailsCard extends ConsumerWidget {
                             settings: settings,
                             preset: terrainPreset!,
                           ),
-                  icon: const Icon(Icons.grid_view_outlined, size: 16),
-                  label: const Text('Edit Sprites'),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(CupertinoIcons.square_grid_2x2, size: 16),
+                      const SizedBox(width: 6),
+                      Text('Edit Sprites', style: TextStyle(color: label)),
+                    ],
+                  ),
                 ),
               if (kind == PresetLibraryKind.path)
-                OutlinedButton.icon(
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   onPressed: tilesetId.isEmpty
                       ? null
                       : () => _runPathMappingAssistant(
@@ -716,8 +860,14 @@ class _PresetDetailsCard extends ConsumerWidget {
                             settings: settings,
                             preset: pathPreset!,
                           ),
-                  icon: const Icon(Icons.alt_route_outlined, size: 16),
-                  label: const Text('Edit Mapping'),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(CupertinoIcons.arrow_branch, size: 16),
+                      const SizedBox(width: 6),
+                      Text('Edit Mapping', style: TextStyle(color: label)),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -736,30 +886,44 @@ Future<void> _showCreateCategoryDialog(
   final controller = TextEditingController();
   var shouldSave = false;
 
-  await showDialog(
+  await showMacosEditorModalSheet<void>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(parentCategoryId == null ? 'New Folder' : 'New Subfolder'),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'Folder name',
-          border: OutlineInputBorder(),
-          isDense: true,
+    maxWidth: 400,
+    builder: (ctx) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          parentCategoryId == null ? 'New Folder' : 'New Subfolder',
+          style: editorMacosSheetTitleStyle(ctx),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+        const SizedBox(height: 12),
+        MacosTextField(
+          controller: controller,
+          autofocus: true,
+          placeholder: 'Folder name',
         ),
-        ElevatedButton(
-          onPressed: () {
-            shouldSave = true;
-            Navigator.pop(context);
-          },
-          child: const Text('Create'),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            PushButton(
+              controlSize: ControlSize.large,
+              secondary: true,
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            const SizedBox(width: 10),
+            PushButton(
+              controlSize: ControlSize.large,
+              onPressed: () {
+                if (controller.text.trim().isEmpty) return;
+                shouldSave = true;
+                Navigator.pop(ctx);
+              },
+              child: const Text('Create'),
+            ),
+          ],
         ),
       ],
     ),
@@ -782,44 +946,21 @@ Future<void> _showRenameCategoryDialog(
   required ProjectPresetCategory category,
 }) async {
   final controller = TextEditingController(text: category.name);
-  var shouldSave = false;
-
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Rename Folder'),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'Folder name',
-          border: OutlineInputBorder(),
-          isDense: true,
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            shouldSave = true;
-            Navigator.pop(context);
-          },
-          child: const Text('Rename'),
-        ),
-      ],
-    ),
+  final ok = await showMacosEditorPromptSheet(
+    context,
+    title: 'Rename Folder',
+    controller: controller,
+    placeholder: 'Folder name',
+    confirmLabel: 'Rename',
   );
 
-  if (!shouldSave) {
+  if (!ok) {
     return;
   }
   await notifier.renamePresetCategory(
     categoryId: category.id,
     kind: kind,
-    name: controller.text,
+    name: controller.text.trim(),
   );
 }
 
@@ -829,29 +970,13 @@ Future<void> _showDeleteCategoryDialog(
   required PresetLibraryKind kind,
   required ProjectPresetCategory category,
 }) async {
-  var shouldDelete = false;
-
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Delete Folder'),
-      content: Text(
+  final shouldDelete = await showMacosEditorTwoChoiceAlert(
+    context,
+    title: 'Delete Folder',
+    message:
         'Delete "${category.name}" and its subfolders. Presets inside will stay in the library but move back to the root.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            shouldDelete = true;
-            Navigator.pop(context);
-          },
-          child: const Text('Delete'),
-        ),
-      ],
-    ),
+    primaryLabel: 'Delete',
+    primaryIsDestructive: true,
   );
 
   if (!shouldDelete) {
@@ -924,26 +1049,12 @@ Future<void> _showDeletePresetDialog(
   required PresetLibraryKind kind,
   required dynamic preset,
 }) async {
-  var shouldDelete = false;
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Delete Preset'),
-      content: Text('Delete "${preset.name}" from the library?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            shouldDelete = true;
-            Navigator.pop(context);
-          },
-          child: const Text('Delete'),
-        ),
-      ],
-    ),
+  final shouldDelete = await showMacosEditorTwoChoiceAlert(
+    context,
+    title: 'Delete Preset',
+    message: 'Delete "${preset.name}" from the library?',
+    primaryLabel: 'Delete',
+    primaryIsDestructive: true,
   );
 
   if (!shouldDelete) {
@@ -970,7 +1081,6 @@ Future<void> _showTerrainPresetDialog(
   var tilesetId = preset?.tilesetId ?? '';
   final variants =
       List<TerrainPresetVariant>.from(preset?.variants ?? const []);
-  final formKey = GlobalKey<FormState>();
   final categories = _flattenCategories(
     notifier,
     PresetLibraryKind.terrain,
@@ -982,226 +1092,269 @@ Future<void> _showTerrainPresetDialog(
       currentTilesetId: preset?.tilesetId,
     ),
   );
+  final paintableTerrainTypes = TerrainType.values
+      .where((type) => type.isBackgroundPaintable)
+      .toList(growable: false);
+  String folderRowPickLabel(String id) {
+    if (id.isEmpty) return 'Root';
+    return categories.firstWhere((e) => e.id == id).label;
+  }
 
-  await showDialog(
+  String tilesetRowLabel(String id) {
+    if (id.isEmpty) return 'None';
+    return availableTilesets.firstWhere((e) => e.id == id).name;
+  }
+
+  await showMacosEditorTallSheet<void>(
     context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title:
-            Text(preset == null ? 'New Terrain Preset' : 'Edit Terrain Preset'),
-        content: SizedBox(
-          width: 360,
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              primary: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: controller,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Preset name',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+    maxWidth: 420,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => ListView(
+        shrinkWrap: true,
+        physics: const ClampingScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  preset == null
+                      ? 'New Terrain Preset'
+                      : 'Edit Terrain Preset',
+                  style: editorMacosSheetTitleStyle(ctx),
+                ),
+                const SizedBox(height: 12),
+                MacosTextField(
+                      controller: controller,
+                      autofocus: true,
+                      placeholder: 'Preset name',
                     ),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Required'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<TerrainType>(
-                    initialValue: terrainType,
-                    decoration: const InputDecoration(
-                      labelText: 'Base type',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: TerrainType.values
-                        .where((type) => type.isBackgroundPaintable)
-                        .map(
-                          (type) => DropdownMenuItem<TerrainType>(
-                            value: type,
-                            child: Text(_terrainLabel(type)),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          terrainType = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String?>(
-                    initialValue: categoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Folder',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('Root'),
-                      ),
-                      ...categories.map(
-                        (entry) => DropdownMenuItem<String?>(
-                          value: entry.id,
-                          child: Text(entry.label),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        categoryId = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: availableTilesets
-                            .any((tileset) => tileset.id == tilesetId)
-                        ? tilesetId
-                        : '',
-                    decoration: const InputDecoration(
-                      labelText: 'Tileset',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: '',
-                        child: Text('None'),
-                      ),
-                      ...availableTilesets.map(
-                        (tileset) => DropdownMenuItem<String>(
-                          value: tileset.id,
-                          child: Text(tileset.name),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        tilesetId = value ?? '';
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Terrain tilesets cannot be shared with path presets.',
-                      style: TextStyle(fontSize: 10, color: Colors.white54),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Visual Variants',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      TextButton.icon(
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
                         onPressed: () async {
-                          final created = await _showTerrainVariantDialog(
-                            context,
-                            notifier: notifier,
-                            settings: settings,
-                            tilesetId: tilesetId,
+                          final picked =
+                              await showCupertinoListPicker<TerrainType>(
+                            context: ctx,
+                            title: 'Base type',
+                            items: paintableTerrainTypes,
+                            labelOf: _terrainLabel,
                           );
-                          if (created != null) {
-                            setState(() => variants.add(created));
+                          if (picked != null) {
+                            setState(() => terrainType = picked);
                           }
                         },
-                        icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add'),
+                        child: Text(
+                          'Base type: ${_terrainLabel(terrainType)}',
+                        ),
                       ),
-                    ],
-                  ),
-                  if (variants.isEmpty)
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'No visual variant. Renderer will fallback to color overlay.',
-                        style: TextStyle(fontSize: 11, color: Colors.white60),
-                      ),
-                    )
-                  else
-                    Column(
-                      children: [
-                        for (var index = 0; index < variants.length; index++)
-                          _VariantTile(
-                            label: _terrainVariantLabel(variants[index]),
-                            onEdit: () async {
-                              final edited = await _showTerrainVariantDialog(
-                                context,
-                                notifier: notifier,
-                                settings: settings,
-                                tilesetId: tilesetId,
-                                initial: variants[index],
-                              );
-                              if (edited != null) {
-                                setState(() => variants[index] = edited);
-                              }
-                            },
-                            onDelete: () =>
-                                setState(() => variants.removeAt(index)),
-                          ),
-                      ],
                     ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final items = <String>[
+                            '',
+                            ...categories.map((c) => c.id),
+                          ];
+                          final picked =
+                              await showCupertinoListPicker<String>(
+                            context: ctx,
+                            title: 'Folder',
+                            items: items,
+                            labelOf: folderRowPickLabel,
+                          );
+                          if (picked != null) {
+                            setState(
+                              () => categoryId =
+                                  picked.isEmpty ? null : picked,
+                            );
+                          }
+                        },
+                        child: Text(
+                          'Folder: ${folderRowPickLabel(categoryId ?? '')}',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final items = <String>[
+                            '',
+                            ...availableTilesets.map((t) => t.id),
+                          ];
+                          final picked =
+                              await showCupertinoListPicker<String>(
+                            context: ctx,
+                            title: 'Tileset',
+                            items: items,
+                            labelOf: tilesetRowLabel,
+                          );
+                          if (picked != null) {
+                            setState(() => tilesetId = picked);
+                          }
+                        },
+                        child:
+                            Text('Tileset: ${tilesetRowLabel(tilesetId)}'),
+                      ),
+                    ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Terrain tilesets cannot be shared with path presets.',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(ctx),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Visual Variants',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: CupertinoColors.label.resolveFrom(ctx),
+                                  ),
+                                ),
+                              ),
+                              CupertinoButton(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                onPressed: () async {
+                                  final created =
+                                      await _showTerrainVariantDialog(
+                                    context,
+                                    notifier: notifier,
+                                    settings: settings,
+                                    tilesetId: tilesetId,
+                                  );
+                                  if (created != null) {
+                                    setState(() => variants.add(created));
+                                  }
+                                },
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(CupertinoIcons.add, size: 16),
+                                    SizedBox(width: 4),
+                                    Text('Add'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (variants.isEmpty)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'No visual variant. Renderer will fallback to color overlay.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: CupertinoColors.secondaryLabel
+                                      .resolveFrom(ctx),
+                                ),
+                              ),
+                            )
+                          else
+                            Column(
+                              children: [
+                                for (var index = 0;
+                                    index < variants.length;
+                                    index++)
+                                  _VariantTile(
+                                    label: _terrainVariantLabel(variants[index]),
+                                    onEdit: () async {
+                                      final edited =
+                                          await _showTerrainVariantDialog(
+                                        context,
+                                        notifier: notifier,
+                                        settings: settings,
+                                        tilesetId: tilesetId,
+                                        initial: variants[index],
+                                      );
+                                      if (edited != null) {
+                                        setState(() => variants[index] = edited);
+                                      }
+                                    },
+                                    onDelete: () => setState(
+                                      () => variants.removeAt(index),
+                                    ),
+                                  ),
+                              ],
+                            ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  PushButton(
+                    controlSize: ControlSize.large,
+                    secondary: true,
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 10),
+                  PushButton(
+                    controlSize: ControlSize.large,
+                    onPressed: () async {
+                      if (controller.text.trim().isEmpty) {
+                        await showCupertinoEditorAlert(
+                          ctx,
+                          message: 'Preset name is required.',
+                        );
+                        return;
+                      }
+                      if (preset == null) {
+                        await notifier.createTerrainPreset(
+                          name: controller.text.trim(),
+                          terrainType: terrainType,
+                          categoryId: categoryId,
+                          tilesetId: tilesetId,
+                          variants: variants,
+                        );
+                      } else {
+                        await notifier.updateTerrainPreset(
+                          presetId: preset.id,
+                          name: controller.text.trim(),
+                          terrainType: terrainType,
+                          categoryId: categoryId,
+                          clearCategoryId: categoryId == null,
+                          tilesetId: tilesetId,
+                          clearTilesetId: tilesetId.isEmpty,
+                          variants: variants,
+                        );
+                      }
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                      }
+                    },
+                    child: Text(preset == null ? 'Create' : 'Save'),
+                  ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState?.validate() != true) {
-                return;
-              }
-              if (preset == null) {
-                await notifier.createTerrainPreset(
-                  name: controller.text,
-                  terrainType: terrainType,
-                  categoryId: categoryId,
-                  tilesetId: tilesetId,
-                  variants: variants,
-                );
-              } else {
-                await notifier.updateTerrainPreset(
-                  presetId: preset.id,
-                  name: controller.text,
-                  terrainType: terrainType,
-                  categoryId: categoryId,
-                  clearCategoryId: categoryId == null,
-                  tilesetId: tilesetId,
-                  clearTilesetId: tilesetId.isEmpty,
-                  variants: variants,
-                );
-              }
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: Text(preset == null ? 'Create' : 'Save'),
-          ),
-        ],
-      ),
+      ],
     ),
+  ),
   );
 }
 
@@ -1222,7 +1375,6 @@ Future<void> _showPathPresetDialog(
         in preset?.variants ?? const <PathPresetVariantMapping>[])
       mapping.variant: mapping.source,
   };
-  final formKey = GlobalKey<FormState>();
   final categories = _flattenCategories(
     notifier,
     PresetLibraryKind.path,
@@ -1234,234 +1386,264 @@ Future<void> _showPathPresetDialog(
       currentTilesetId: preset?.tilesetId,
     ),
   );
+  String pathFolderRowPickLabel(String id) {
+    if (id.isEmpty) return 'Root';
+    return categories.firstWhere((e) => e.id == id).label;
+  }
 
-  await showDialog(
+  String pathTilesetRowLabel(String id) {
+    if (id.isEmpty) return 'None';
+    return availableTilesets.firstWhere((e) => e.id == id).name;
+  }
+
+  await showMacosEditorTallSheet<void>(
     context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: Text(preset == null ? 'New Path Preset' : 'Edit Path Preset'),
-        content: SizedBox(
-          width: 360,
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              primary: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: controller,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Preset name',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+    maxWidth: 420,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => ListView(
+        shrinkWrap: true,
+        physics: const ClampingScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  preset == null ? 'New Path Preset' : 'Edit Path Preset',
+                  style: editorMacosSheetTitleStyle(ctx),
+                ),
+                const SizedBox(height: 12),
+                MacosTextField(
+                  controller: controller,
+                  autofocus: true,
+                  placeholder: 'Preset name',
+                ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final picked =
+                              await showCupertinoListPicker<PathSurfaceKind>(
+                            context: ctx,
+                            title: 'Surface family',
+                            items: PathSurfaceKind.values.toList(),
+                            labelOf: _pathSurfaceLabel,
+                          );
+                          if (picked != null) {
+                            setState(() => surfaceKind = picked);
+                          }
+                        },
+                        child: Text(
+                          'Surface: ${_pathSurfaceLabel(surfaceKind)}',
+                        ),
+                      ),
                     ),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Required'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<PathSurfaceKind>(
-                    initialValue: surfaceKind,
-                    decoration: const InputDecoration(
-                      labelText: 'Surface family',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final items = <String>[
+                            '',
+                            ...categories.map((c) => c.id),
+                          ];
+                          final picked =
+                              await showCupertinoListPicker<String>(
+                            context: ctx,
+                            title: 'Folder',
+                            items: items,
+                            labelOf: pathFolderRowPickLabel,
+                          );
+                          if (picked != null) {
+                            setState(
+                              () => categoryId =
+                                  picked.isEmpty ? null : picked,
+                            );
+                          }
+                        },
+                        child: Text(
+                          'Folder: ${pathFolderRowPickLabel(categoryId ?? '')}',
+                        ),
+                      ),
                     ),
-                    items: PathSurfaceKind.values
-                        .map(
-                          (type) => DropdownMenuItem<PathSurfaceKind>(
-                            value: type,
-                            child: Text(_pathSurfaceLabel(type)),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final items = <String>[
+                            '',
+                            ...availableTilesets.map((t) => t.id),
+                          ];
+                          final picked =
+                              await showCupertinoListPicker<String>(
+                            context: ctx,
+                            title: 'Tileset',
+                            items: items,
+                            labelOf: pathTilesetRowLabel,
+                          );
+                          if (picked != null) {
+                            setState(() => tilesetId = picked);
+                          }
+                        },
+                        child: Text(
+                          'Tileset: ${pathTilesetRowLabel(tilesetId)}',
+                        ),
+                      ),
+                    ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Path tilesets cannot be shared with terrain presets.',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(ctx),
+                            ),
                           ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          surfaceKind = value;
-                        });
+                          const SizedBox(height: 12),
+                          Text(
+                            'Variant Mapping',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: CupertinoColors.label.resolveFrom(ctx),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${variants.length}/${TerrainPathVariant.values.length} mapped',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(ctx),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            onPressed: tilesetId.trim().isEmpty
+                                ? null
+                                : () async {
+                                    final mapped =
+                                        await _showPathMappingWorkspaceDialog(
+                                      context,
+                                      notifier: notifier,
+                                      settings: settings,
+                                      tilesetId: tilesetId,
+                                      initialMappings: variants,
+                                    );
+                                    if (mapped == null) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      variants
+                                        ..clear()
+                                        ..addAll(mapped);
+                                    });
+                                  },
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(CupertinoIcons.square_grid_2x2, size: 16),
+                                SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'Open Visual Mapping Editor',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (tilesetId.trim().isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                'Select a path tileset first to map variants.',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: CupertinoColors.secondaryLabel
+                                      .resolveFrom(ctx),
+                                ),
+                              ),
+                            ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  PushButton(
+                    controlSize: ControlSize.large,
+                    secondary: true,
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 10),
+                  PushButton(
+                    controlSize: ControlSize.large,
+                    onPressed: () async {
+                      if (controller.text.trim().isEmpty) {
+                        await showCupertinoEditorAlert(
+                          ctx,
+                          message: 'Preset name is required.',
+                        );
+                        return;
+                      }
+                      final mappings = variants.entries
+                          .map(
+                            (entry) => PathPresetVariantMapping(
+                              variant: entry.key,
+                              source: entry.value,
+                            ),
+                          )
+                          .toList(growable: false)
+                        ..sort(
+                          (a, b) =>
+                              a.variant.index.compareTo(b.variant.index),
+                        );
+                      if (preset == null) {
+                        await notifier.createPathPreset(
+                          name: controller.text.trim(),
+                          surfaceKind: surfaceKind,
+                          categoryId: categoryId,
+                          tilesetId: tilesetId,
+                          variants: mappings,
+                        );
+                      } else {
+                        await notifier.updatePathPreset(
+                          presetId: preset.id,
+                          name: controller.text.trim(),
+                          surfaceKind: surfaceKind,
+                          categoryId: categoryId,
+                          clearCategoryId: categoryId == null,
+                          tilesetId: tilesetId,
+                          clearTilesetId: tilesetId.isEmpty,
+                          variants: mappings,
+                        );
+                      }
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
                       }
                     },
+                    child: Text(preset == null ? 'Create' : 'Save'),
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String?>(
-                    initialValue: categoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Folder',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('Root'),
-                      ),
-                      ...categories.map(
-                        (entry) => DropdownMenuItem<String?>(
-                          value: entry.id,
-                          child: Text(entry.label),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        categoryId = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: availableTilesets
-                            .any((tileset) => tileset.id == tilesetId)
-                        ? tilesetId
-                        : '',
-                    decoration: const InputDecoration(
-                      labelText: 'Tileset',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: '',
-                        child: Text('None'),
-                      ),
-                      ...availableTilesets.map(
-                        (tileset) => DropdownMenuItem<String>(
-                          value: tileset.id,
-                          child: Text(tileset.name),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        tilesetId = value ?? '';
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Path tilesets cannot be shared with terrain presets.',
-                      style: TextStyle(fontSize: 10, color: Colors.white54),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Variant Mapping',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '${variants.length}/${TerrainPathVariant.values.length} mapped',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: tilesetId.trim().isEmpty
-                          ? null
-                          : () async {
-                              final mapped =
-                                  await _showPathMappingWorkspaceDialog(
-                                context,
-                                notifier: notifier,
-                                settings: settings,
-                                tilesetId: tilesetId,
-                                initialMappings: variants,
-                              );
-                              if (mapped == null) {
-                                return;
-                              }
-                              setState(() {
-                                variants
-                                  ..clear()
-                                  ..addAll(mapped);
-                              });
-                            },
-                      icon: const Icon(Icons.grid_view_outlined, size: 16),
-                      label: const Text('Open Visual Mapping Editor'),
-                    ),
-                  ),
-                  if (tilesetId.trim().isEmpty)
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Select a path tileset first to map variants.',
-                          style: TextStyle(fontSize: 10, color: Colors.white54),
-                        ),
-                      ),
-                    ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState?.validate() != true) {
-                return;
-              }
-              final mappings = variants.entries
-                  .map(
-                    (entry) => PathPresetVariantMapping(
-                      variant: entry.key,
-                      source: entry.value,
-                    ),
-                  )
-                  .toList(growable: false)
-                ..sort((a, b) => a.variant.index.compareTo(b.variant.index));
-              if (preset == null) {
-                await notifier.createPathPreset(
-                  name: controller.text,
-                  surfaceKind: surfaceKind,
-                  categoryId: categoryId,
-                  tilesetId: tilesetId,
-                  variants: mappings,
-                );
-              } else {
-                await notifier.updatePathPreset(
-                  presetId: preset.id,
-                  name: controller.text,
-                  surfaceKind: surfaceKind,
-                  categoryId: categoryId,
-                  clearCategoryId: categoryId == null,
-                  tilesetId: tilesetId,
-                  clearTilesetId: tilesetId.isEmpty,
-                  variants: mappings,
-                );
-              }
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: Text(preset == null ? 'Create' : 'Save'),
-          ),
-        ],
-      ),
+      ],
     ),
+  ),
   );
 }
 
@@ -1519,7 +1701,6 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
   required String tilesetId,
   TerrainPresetVariant? initial,
 }) async {
-  final formKey = GlobalKey<FormState>();
   final xController =
       TextEditingController(text: (initial?.source.x ?? 0).toString());
   final yController =
@@ -1533,125 +1714,142 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
 
   TerrainPresetVariant? result;
 
-  await showDialog(
+  await showMacosEditorModalSheet<void>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(initial == null ? 'Add Variant' : 'Edit Variant'),
-      content: SizedBox(
-        width: 320,
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (tilesetId.trim().isNotEmpty) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final currentSource = TilesetSourceRect(
-                        x: int.tryParse(xController.text.trim()) ?? 0,
-                        y: int.tryParse(yController.text.trim()) ?? 0,
-                        width: int.tryParse(widthController.text.trim()) ?? 1,
-                        height: int.tryParse(heightController.text.trim()) ?? 1,
-                      );
-                      final picked = await _showTilesetRectPickerDialog(
-                        context,
-                        notifier: notifier,
-                        settings: settings,
-                        tilesetId: tilesetId,
-                        initial: currentSource,
-                      );
-                      if (picked == null) {
+    maxWidth: 400,
+    builder: (ctx) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          initial == null ? 'Add Variant' : 'Edit Variant',
+          style: editorMacosSheetTitleStyle(ctx),
+        ),
+        const SizedBox(height: 12),
+        if (tilesetId.trim().isNotEmpty) ...[
+          PushButton(
+            controlSize: ControlSize.large,
+            secondary: true,
+            onPressed: () async {
+                    final currentSource = TilesetSourceRect(
+                      x: int.tryParse(xController.text.trim()) ?? 0,
+                      y: int.tryParse(yController.text.trim()) ?? 0,
+                      width: int.tryParse(widthController.text.trim()) ?? 1,
+                      height: int.tryParse(heightController.text.trim()) ?? 1,
+                    );
+                    final picked = await _showTilesetRectPickerDialog(
+                      context,
+                      notifier: notifier,
+                      settings: settings,
+                      tilesetId: tilesetId,
+                      initial: currentSource,
+                    );
+                    if (picked == null) {
+                      return;
+                    }
+                    xController.text = picked.x.toString();
+                    yController.text = picked.y.toString();
+                    widthController.text = picked.width.toString();
+                    heightController.text = picked.height.toString();
+                  },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.square_grid_2x2, size: 16),
+                SizedBox(width: 8),
+                Text('Pick From Tileset'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: MacosTextField(
+                controller: xController,
+                keyboardType: TextInputType.number,
+                placeholder: 'X',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: MacosTextField(
+                controller: yController,
+                keyboardType: TextInputType.number,
+                placeholder: 'Y',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: MacosTextField(
+                controller: widthController,
+                keyboardType: TextInputType.number,
+                placeholder: 'Width',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: MacosTextField(
+                controller: heightController,
+                keyboardType: TextInputType.number,
+                placeholder: 'Height',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        MacosTextField(
+          controller: weightController,
+          keyboardType: TextInputType.number,
+          placeholder: 'Weight',
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            PushButton(
+              controlSize: ControlSize.large,
+              secondary: true,
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            const SizedBox(width: 10),
+            PushButton(
+              controlSize: ControlSize.large,
+              onPressed: () async {
+                      final errs = [
+                        _positiveOrZeroValidator(xController.text),
+                        _positiveOrZeroValidator(yController.text),
+                        _positiveValidator(widthController.text),
+                        _positiveValidator(heightController.text),
+                        _positiveValidator(weightController.text),
+                      ].whereType<String>();
+                      if (errs.isNotEmpty) {
+                        await showCupertinoEditorAlert(
+                          ctx,
+                          message: errs.first,
+                        );
                         return;
                       }
-                      xController.text = picked.x.toString();
-                      yController.text = picked.y.toString();
-                      widthController.text = picked.width.toString();
-                      heightController.text = picked.height.toString();
+                      result = TerrainPresetVariant(
+                        source: TilesetSourceRect(
+                          x: int.parse(xController.text.trim()),
+                          y: int.parse(yController.text.trim()),
+                          width: int.parse(widthController.text.trim()),
+                          height: int.parse(heightController.text.trim()),
+                        ),
+                        weight: int.parse(weightController.text.trim()),
+                      );
+                      Navigator.pop(ctx);
                     },
-                    icon: const Icon(Icons.grid_view_outlined, size: 16),
-                    label: const Text('Pick From Tileset'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: xController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'X'),
-                      validator: _positiveOrZeroValidator,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextFormField(
-                      controller: yController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Y'),
-                      validator: _positiveOrZeroValidator,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: widthController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Width'),
-                      validator: _positiveValidator,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextFormField(
-                      controller: heightController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Height'),
-                      validator: _positiveValidator,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: weightController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Weight'),
-                validator: _positiveValidator,
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (formKey.currentState?.validate() != true) {
-              return;
-            }
-            result = TerrainPresetVariant(
-              source: TilesetSourceRect(
-                x: int.parse(xController.text),
-                y: int.parse(yController.text),
-                width: int.parse(widthController.text),
-                height: int.parse(heightController.text),
-              ),
-              weight: int.parse(weightController.text),
-            );
-            Navigator.pop(context);
-          },
-          child: const Text('Apply'),
+              child: const Text('Apply'),
+            ),
+          ],
         ),
       ],
     ),
@@ -1708,108 +1906,123 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
   if (!context.mounted) {
     return null;
   }
-  return showDialog<TilesetSourceRect>(
+  return showMacosSheet<TilesetSourceRect>(
     context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) {
-        return AlertDialog(
-          title: Text(title),
-          content: SizedBox(
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => Center(
+        child: MacosSheet(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: SizedBox(
             width: 760,
             height: 560,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subtitle ??
-                      'Selection ${result.width}x${result.height} at (${result.x}, ${result.y})',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Scrollbar(
-                    thumbVisibility: true,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: editorMacosSheetTitleStyle(ctx),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle ??
+                        'Selection ${result.width}x${result.height} at (${result.x}, ${result.y})',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: Scrollbar(
-                        thumbVisibility: true,
-                        child: SingleChildScrollView(
-                          child: SizedBox(
-                            width: canvasWidth,
-                            height: canvasHeight,
-                            child: GestureDetector(
-                              onPanStart: (details) {
-                                final pos = _gridFromPickerLocal(
-                                  details.localPosition,
-                                  cellWidth,
-                                  cellHeight,
-                                  columns,
-                                  rows,
-                                );
-                                setState(() {
-                                  start = pos;
-                                  end = pos;
-                                  result = _rectFromGridPoints(start, end);
-                                });
-                              },
-                              onPanUpdate: (details) {
-                                final pos = _gridFromPickerLocal(
-                                  details.localPosition,
-                                  cellWidth,
-                                  cellHeight,
-                                  columns,
-                                  rows,
-                                );
-                                setState(() {
-                                  end = pos;
-                                  result = _rectFromGridPoints(start, end);
-                                });
-                              },
-                              onTapUp: (details) {
-                                final pos = _gridFromPickerLocal(
-                                  details.localPosition,
-                                  cellWidth,
-                                  cellHeight,
-                                  columns,
-                                  rows,
-                                );
-                                setState(() {
-                                  start = pos;
-                                  end = pos;
-                                  result = _rectFromGridPoints(start, end);
-                                });
-                              },
-                              child: CustomPaint(
-                                painter: _TilesetRectSelectionPainter(
-                                  image: image,
-                                  columns: columns,
-                                  rows: rows,
-                                  selection: result,
-                                ),
-                                child: const SizedBox.expand(),
+                      primary: false,
+                      child: SingleChildScrollView(
+                        primary: false,
+                        child: SizedBox(
+                          width: canvasWidth,
+                          height: canvasHeight,
+                          child: GestureDetector(
+                            onPanStart: (details) {
+                              final pos = _gridFromPickerLocal(
+                                details.localPosition,
+                                cellWidth,
+                                cellHeight,
+                                columns,
+                                rows,
+                              );
+                              setState(() {
+                                start = pos;
+                                end = pos;
+                                result = _rectFromGridPoints(start, end);
+                              });
+                            },
+                            onPanUpdate: (details) {
+                              final pos = _gridFromPickerLocal(
+                                details.localPosition,
+                                cellWidth,
+                                cellHeight,
+                                columns,
+                                rows,
+                              );
+                              setState(() {
+                                end = pos;
+                                result = _rectFromGridPoints(start, end);
+                              });
+                            },
+                            onTapUp: (details) {
+                              final pos = _gridFromPickerLocal(
+                                details.localPosition,
+                                cellWidth,
+                                cellHeight,
+                                columns,
+                                rows,
+                              );
+                              setState(() {
+                                start = pos;
+                                end = pos;
+                                result = _rectFromGridPoints(start, end);
+                              });
+                            },
+                            child: CustomPaint(
+                              painter: _TilesetRectSelectionPainter(
+                                image: image,
+                                columns: columns,
+                                rows: rows,
+                                selection: result,
                               ),
+                              child: const SizedBox.expand(),
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        secondary: true,
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 10),
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        onPressed: () => Navigator.pop(ctx, result),
+                        child: const Text('Use Selection'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, result),
-              child: const Text('Use Selection'),
-            ),
-          ],
-        );
-      },
+        ),
+      ),
     ),
   );
 }
@@ -1897,235 +2110,303 @@ Future<Map<TerrainPathVariant, TilesetSourceRect>?>
   if (!context.mounted) {
     return null;
   }
-  await showDialog(
+  await showMacosSheet<void>(
     context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: const Text('Path Mapping Editor'),
-        content: SizedBox(
-          width: 980,
-          height: 620,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: 430,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Step 1: Complete the schema',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${mappings.length}/${TerrainPathVariant.values.length} mapped',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.64),
-                        fontSize: 11,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white10,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: const Text(
-                        'Select a slot in the schema, then click a cell in the tileset on the right to assign it.',
-                        style: TextStyle(fontSize: 10, color: Colors.white70),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white10,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: _PathSchemaCanvas(
-                          mappings: mappings,
-                          selectedVariant: selectedVariant,
-                          image: image,
-                          sourceTileWidth: sourceTileWidth,
-                          sourceTileHeight: sourceTileHeight,
-                          onSelect: (variant) =>
-                              setState(() => selectedVariant = variant),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white10,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white12),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => Center(
+        child: MacosSheet(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: 980,
+              height: 660,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Path Mapping Editor',
+                    style: editorMacosSheetTitleStyle(ctx),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Step 2: Click the tileset to map "${_pathVariantDisplayName(selectedVariant)}"',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Tileset: ${notifier.getTilesetById(normalizedTilesetId)?.name ?? normalizedTilesetId}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.64),
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.blueGrey.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Active variant: ${_pathVariantDisplayName(selectedVariant)}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: 430,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Step 1: Complete the schema',
+                                style: TextStyle(
+                                  color: CupertinoColors.label
+                                      .resolveFrom(ctx)
+                                      .withValues(alpha: 0.9),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Connections: ${_pathVariantDirectionsLabel(selectedVariant)}',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.white70,
+                              const SizedBox(height: 6),
+                              Text(
+                                '${mappings.length}/${TerrainPathVariant.values.length} mapped',
+                                style: TextStyle(
+                                  color: CupertinoColors.secondaryLabel
+                                      .resolveFrom(ctx),
+                                  fontSize: 11,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _pathVariantUsageDescription(selectedVariant),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.white60,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: Center(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final scale = math.min(
-                                constraints.maxWidth / image.width,
-                                constraints.maxHeight / image.height,
-                              );
-                              final renderWidth = image.width * scale;
-                              final renderHeight = image.height * scale;
-                              final cellWidth = renderWidth / columns;
-                              final cellHeight = renderHeight / rows;
-
-                              void mapCurrentVariant(Offset localPosition) {
-                                final pos = _gridFromPickerLocal(
-                                  localPosition,
-                                  cellWidth,
-                                  cellHeight,
-                                  columns,
-                                  rows,
-                                );
-                                setState(() {
-                                  mappings[selectedVariant] = TilesetSourceRect(
-                                    x: pos.x,
-                                    y: pos.y,
-                                    width: 1,
-                                    height: 1,
-                                  );
-                                });
-                              }
-
-                              return SizedBox(
-                                width: renderWidth,
-                                height: renderHeight,
-                                child: GestureDetector(
-                                  onTapDown: (details) =>
-                                      mapCurrentVariant(details.localPosition),
-                                  onPanUpdate: (details) =>
-                                      mapCurrentVariant(details.localPosition),
-                                  child: CustomPaint(
-                                    painter: _PathTilesetMappingPainter(
-                                      image: image,
-                                      columns: columns,
-                                      rows: rows,
-                                      mappings: mappings,
-                                      selectedVariant: selectedVariant,
-                                    ),
-                                    child: const SizedBox.expand(),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: CupertinoColors.systemFill
+                                      .resolveFrom(ctx),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: CupertinoColors.separator
+                                        .resolveFrom(ctx),
                                   ),
                                 ),
-                              );
-                            },
+                                child: Text(
+                                  'Select a slot in the schema, then click a cell in the tileset on the right to assign it.',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: CupertinoColors.secondaryLabel
+                                        .resolveFrom(ctx),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: CupertinoColors.systemFill
+                                        .resolveFrom(ctx),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: CupertinoColors.separator
+                                          .resolveFrom(ctx),
+                                    ),
+                                  ),
+                                  child: _PathSchemaCanvas(
+                                    mappings: mappings,
+                                    selectedVariant: selectedVariant,
+                                    image: image,
+                                    sourceTileWidth: sourceTileWidth,
+                                    sourceTileHeight: sourceTileHeight,
+                                    onSelect: (variant) =>
+                                        setState(() => selectedVariant = variant),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.systemFill
+                                  .resolveFrom(ctx),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: CupertinoColors.separator
+                                    .resolveFrom(ctx),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  'Step 2: Click the tileset to map "${_pathVariantDisplayName(selectedVariant)}"',
+                                  style: TextStyle(
+                                    color: CupertinoColors.label
+                                        .resolveFrom(ctx)
+                                        .withValues(alpha: 0.9),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Tileset: ${notifier.getTilesetById(normalizedTilesetId)?.name ?? normalizedTilesetId}',
+                                  style: TextStyle(
+                                    color: CupertinoColors.secondaryLabel
+                                        .resolveFrom(ctx),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: EditorPaintColors.blueGrey
+                                        .withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: CupertinoColors.separator
+                                          .resolveFrom(ctx),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Active variant: ${_pathVariantDisplayName(selectedVariant)}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: CupertinoColors.label
+                                              .resolveFrom(ctx),
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Connections: ${_pathVariantDirectionsLabel(selectedVariant)}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: CupertinoColors.secondaryLabel
+                                              .resolveFrom(ctx),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _pathVariantUsageDescription(
+                                          selectedVariant,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: CupertinoColors.secondaryLabel
+                                              .resolveFrom(ctx),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Expanded(
+                                  child: Center(
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final scale = math.min(
+                                          constraints.maxWidth / image.width,
+                                          constraints.maxHeight / image.height,
+                                        );
+                                        final renderWidth = image.width * scale;
+                                        final renderHeight = image.height * scale;
+                                        final cellWidth = renderWidth / columns;
+                                        final cellHeight = renderHeight / rows;
+
+                                        void mapCurrentVariant(
+                                          Offset localPosition,
+                                        ) {
+                                          final pos = _gridFromPickerLocal(
+                                            localPosition,
+                                            cellWidth,
+                                            cellHeight,
+                                            columns,
+                                            rows,
+                                          );
+                                          setState(() {
+                                            mappings[selectedVariant] =
+                                                TilesetSourceRect(
+                                              x: pos.x,
+                                              y: pos.y,
+                                              width: 1,
+                                              height: 1,
+                                            );
+                                          });
+                                        }
+
+                                        return SizedBox(
+                                          width: renderWidth,
+                                          height: renderHeight,
+                                          child: GestureDetector(
+                                            onTapDown: (details) =>
+                                                mapCurrentVariant(
+                                              details.localPosition,
+                                            ),
+                                            onPanUpdate: (details) =>
+                                                mapCurrentVariant(
+                                              details.localPosition,
+                                            ),
+                                            child: CustomPaint(
+                                              painter: _PathTilesetMappingPainter(
+                                                image: image,
+                                                columns: columns,
+                                                rows: rows,
+                                                mappings: mappings,
+                                                selectedVariant: selectedVariant,
+                                              ),
+                                              child: const SizedBox.expand(),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        secondary: true,
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        secondary: true,
+                        onPressed: mappings.containsKey(selectedVariant)
+                            ? () => setState(
+                                  () => mappings.remove(selectedVariant),
+                                )
+                            : null,
+                        child: const Text('Clear Variant'),
+                      ),
+                      const SizedBox(width: 8),
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        onPressed: () {
+                          result = _completePathMappings(
+                            <TerrainPathVariant, TilesetSourceRect>{
+                              for (final entry in mappings.entries)
+                                entry.key: TilesetSourceRect(
+                                  x: entry.value.x,
+                                  y: entry.value.y,
+                                  width: 1,
+                                  height: 1,
+                                ),
+                            },
+                          );
+                          Navigator.pop(ctx);
+                        },
+                        child: const Text('Apply'),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: mappings.containsKey(selectedVariant)
-                ? () => setState(() => mappings.remove(selectedVariant))
-                : null,
-            child: const Text('Clear Variant'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              result = _completePathMappings(
-                <TerrainPathVariant, TilesetSourceRect>{
-                  for (final entry in mappings.entries)
-                    entry.key: TilesetSourceRect(
-                      x: entry.value.x,
-                      y: entry.value.y,
-                      width: 1,
-                      height: 1,
-                    ),
-                },
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('Apply'),
-          ),
-        ],
       ),
     ),
   );
@@ -2269,26 +2550,14 @@ Future<void> _runTerrainMemberAssistant(
     if (!context.mounted) {
       return;
     }
-    final addMore = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Add Another Member?'),
-            content: const Text(
-              'Continue selecting cells for this terrain preset?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('No'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Yes'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final addMore = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Add Another Member?',
+      message: 'Continue selecting cells for this terrain preset?',
+      secondaryLabel: 'No',
+      primaryLabel: 'Yes',
+      icon: CupertinoIcons.question_circle_fill,
+    );
     if (!addMore) {
       break;
     }
@@ -2348,14 +2617,14 @@ Widget _buildTilesetPreview({
         return Container(
           height: 120,
           decoration: BoxDecoration(
-            color: Colors.black26,
+            color: EditorPaintColors.black26,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white12),
+            border: Border.all(color: EditorPaintColors.white12),
           ),
           alignment: Alignment.center,
           child: const Text(
             'Tileset preview unavailable',
-            style: TextStyle(fontSize: 11, color: Colors.white60),
+            style: TextStyle(fontSize: 11, color: EditorPaintColors.white60),
           ),
         );
       }
@@ -2363,7 +2632,7 @@ Widget _buildTilesetPreview({
         height: 140,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: EditorPaintColors.white12),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -2563,7 +2832,7 @@ class _VariantTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white10,
+        color: CupertinoColors.systemFill.resolveFrom(context),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -2571,18 +2840,23 @@ class _VariantTile extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(fontSize: 11, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 11,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
             ),
           ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.edit_outlined, size: 15),
+          EditorToolbarIconButton(
+            icon: CupertinoIcons.pencil,
+            iconSize: 15,
             onPressed: onEdit,
+            tooltip: 'Edit',
           ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close, size: 15),
+          EditorToolbarIconButton(
+            icon: CupertinoIcons.xmark,
+            iconSize: 15,
             onPressed: onDelete,
+            tooltip: 'Remove',
           ),
         ],
       ),
@@ -2759,17 +3033,20 @@ class _PathSchemaGridSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasMapping = mappedSource != null;
-    return InkWell(
-      borderRadius: BorderRadius.circular(0),
-      onTap: onTap,
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
       child: Container(
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: selected
-              ? Colors.lightBlueAccent.withValues(alpha: 0.18)
-              : Colors.black.withValues(alpha: 0.14),
+              ? EditorPaintColors.lightBlueAccent.withValues(alpha: 0.18)
+              : EditorPaintColors.black.withValues(alpha: 0.14),
           border: Border.all(
-            color: selected ? Colors.lightBlueAccent : Colors.white12,
+            color: selected
+                ? EditorPaintColors.lightBlueAccent
+                : EditorPaintColors.white12,
           ),
         ),
         child: Stack(
@@ -2822,11 +3099,11 @@ class _PathSlotPreviewPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final borderColor = selected ? Colors.lightBlueAccent : Colors.white24;
+    final borderColor = selected ? EditorPaintColors.lightBlueAccent : EditorPaintColors.white24;
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(8)),
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.35)
+        ..color = EditorPaintColors.black.withValues(alpha: 0.35)
         ..style = PaintingStyle.fill,
     );
     canvas.drawRRect(
@@ -2838,7 +3115,7 @@ class _PathSlotPreviewPainter extends CustomPainter {
     );
     if (source == null) {
       final linePaint = Paint()
-        ..color = Colors.white24
+        ..color = EditorPaintColors.white24
         ..strokeWidth = 1.2;
       canvas.drawLine(
         Offset(rect.left + 8, rect.top + 8),
@@ -2892,22 +3169,22 @@ class _PathVariantGlyphPainter extends CustomPainter {
       RRect.fromRectAndRadius(iconRect, const Radius.circular(8)),
       Paint()
         ..color = selected
-            ? Colors.lightBlueAccent.withValues(alpha: 0.16)
-            : Colors.black.withValues(alpha: 0.22)
+            ? EditorPaintColors.lightBlueAccent.withValues(alpha: 0.16)
+            : EditorPaintColors.black.withValues(alpha: 0.22)
         ..style = PaintingStyle.fill,
     );
 
     final center = Offset(size.width / 2, size.height / 2);
     final half = math.min(size.width, size.height) * 0.33;
-    final activeColor = selected ? Colors.lightBlueAccent : Colors.white;
-    final inactiveColor = Colors.white.withValues(alpha: 0.22);
+    final activeColor = selected ? EditorPaintColors.lightBlueAccent : EditorPaintColors.white;
+    final inactiveColor = EditorPaintColors.white.withValues(alpha: 0.22);
     final activeLinePaint = Paint()
       ..color = activeColor
       ..strokeWidth = 2.6
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     final axisPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.14)
+      ..color = EditorPaintColors.white.withValues(alpha: 0.14)
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -2962,14 +3239,14 @@ class _PathVariantGlyphPainter extends CustomPainter {
         notchCenter,
         4.1,
         Paint()
-          ..color = Colors.black.withValues(alpha: selected ? 0.72 : 0.58)
+          ..color = EditorPaintColors.black.withValues(alpha: selected ? 0.72 : 0.58)
           ..style = PaintingStyle.fill,
       );
       canvas.drawCircle(
         notchCenter,
         3.2,
         Paint()
-          ..color = Colors.orangeAccent.withValues(alpha: 0.9)
+          ..color = EditorPaintColors.orangeAccent.withValues(alpha: 0.9)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.1,
       );
@@ -2979,25 +3256,25 @@ class _PathVariantGlyphPainter extends CustomPainter {
       canvas,
       'N',
       Offset(center.dx, 4),
-      connections.north ? activeColor : Colors.white54,
+      connections.north ? activeColor : EditorPaintColors.white54,
     );
     _paintCompassLabel(
       canvas,
       'E',
       Offset(size.width - 5, center.dy),
-      connections.east ? activeColor : Colors.white54,
+      connections.east ? activeColor : EditorPaintColors.white54,
     );
     _paintCompassLabel(
       canvas,
       'S',
       Offset(center.dx, size.height - 4),
-      connections.south ? activeColor : Colors.white54,
+      connections.south ? activeColor : EditorPaintColors.white54,
     );
     _paintCompassLabel(
       canvas,
       'W',
       Offset(5, center.dy),
-      connections.west ? activeColor : Colors.white54,
+      connections.west ? activeColor : EditorPaintColors.white54,
     );
   }
 
@@ -3084,21 +3361,21 @@ class _PathTilesetMappingPainter extends CustomPainter {
       canvas.drawRect(
         rect,
         Paint()
-          ..color = (selected ? Colors.amberAccent : Colors.lightBlueAccent)
+          ..color = (selected ? EditorPaintColors.amberAccent : EditorPaintColors.lightBlueAccent)
               .withValues(alpha: selected ? 0.34 : 0.18)
           ..style = PaintingStyle.fill,
       );
       canvas.drawRect(
         rect,
         Paint()
-          ..color = selected ? Colors.amberAccent : Colors.lightBlueAccent
+          ..color = selected ? EditorPaintColors.amberAccent : EditorPaintColors.lightBlueAccent
           ..style = PaintingStyle.stroke
           ..strokeWidth = selected ? 2.2 : 1.4,
       );
     }
 
     final gridPaint = Paint()
-      ..color = Colors.white24
+      ..color = EditorPaintColors.white24
       ..strokeWidth = 1;
     for (var x = 0; x <= columns; x++) {
       final dx = x * cellWidth;
@@ -3294,7 +3571,7 @@ class _TilesetRectSelectionPainter extends CustomPainter {
     final cellHeight = size.height / rows;
 
     final gridPaint = Paint()
-      ..color = Colors.white24
+      ..color = EditorPaintColors.white24
       ..strokeWidth = 1;
     for (var x = 0; x <= columns; x++) {
       final dx = x * cellWidth;
@@ -3312,12 +3589,12 @@ class _TilesetRectSelectionPainter extends CustomPainter {
     final rect = Rect.fromLTWH(left, top, width, height);
     canvas.drawRect(
       rect,
-      Paint()..color = Colors.lightBlueAccent.withValues(alpha: 0.24),
+      Paint()..color = EditorPaintColors.lightBlueAccent.withValues(alpha: 0.24),
     );
     canvas.drawRect(
       rect,
       Paint()
-        ..color = Colors.lightBlueAccent
+        ..color = EditorPaintColors.lightBlueAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );

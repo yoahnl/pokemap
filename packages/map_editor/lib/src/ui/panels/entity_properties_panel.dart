@@ -1,9 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../shared/cupertino_editor_widgets.dart';
+import '../shared/editor_paint_palette.dart';
 
 class EntityPropertiesPanel extends ConsumerStatefulWidget {
   const EntityPropertiesPanel({
@@ -53,102 +56,138 @@ class _EntityPropertiesPanelState
     final selectedEntity = notifier.getSelectedEntity();
     _syncControllers(selectedEntity);
 
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final accent = EditorChrome.activeAccent(context);
+    final labelColor = CupertinoColors.label.resolveFrom(context);
+
     final content = map == null
-        ? const Center(
+        ? Center(
             child: Text(
               'No map loaded',
-              style: TextStyle(color: Colors.white38),
+              style: TextStyle(
+                color: CupertinoColors.placeholderText.resolveFrom(context),
+              ),
             ),
           )
         : ListView(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
-              DropdownButtonFormField<MapEntityKind>(
-                key: ValueKey(
-                  'entity_placement_kind_${state.selectedEntityKind.name}',
-                ),
-                initialValue: state.selectedEntityKind,
-                isDense: true,
-                decoration: const InputDecoration(
-                  labelText: 'Placement Kind',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
-                items: MapEntityKind.values
-                    .map(
-                      (kind) => DropdownMenuItem<MapEntityKind>(
-                        value: kind,
-                        child: Text(_entityKindLabel(kind)),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value == null) return;
-                  notifier.selectEntityKind(value);
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                alignment: Alignment.centerLeft,
+                onPressed: () async {
+                  final picked = await showCupertinoListPicker<MapEntityKind>(
+                    context: context,
+                    title: 'Placement kind',
+                    items: MapEntityKind.values,
+                    labelOf: _entityKindLabel,
+                  );
+                  if (picked != null) {
+                    notifier.selectEntityKind(picked);
+                  }
                 },
+                child: Text(
+                  'Placement Kind: ${_entityKindLabel(state.selectedEntityKind)}',
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 state.activeTool == EditorToolType.entityPlacement
                     ? 'Entity tool active. Click on the map to place the selected kind.'
                     : 'Select the Entity tool to place visible world content on the map.',
-                style: const TextStyle(fontSize: 11, color: Colors.white54),
+                style: TextStyle(fontSize: 11, color: subtle),
               ),
               const SizedBox(height: 12),
               if (map.entities.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
                     'No entities on this map yet.',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(
+                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      fontSize: 12,
+                    ),
                   ),
                 )
               else
                 ...map.entities.map(
-                  (entity) => Card(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    color: entity.id == state.selectedEntityId
-                        ? _entityColor(entity.kind).withValues(alpha: 0.16)
-                        : Theme.of(context).scaffoldBackgroundColor,
-                    child: ListTile(
-                      dense: true,
-                      leading: Icon(
-                        _iconForEntityKind(entity.kind),
-                        size: 16,
+                  (entity) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
                         color: entity.id == state.selectedEntityId
-                            ? Colors.white
-                            : _entityColor(entity.kind),
-                      ),
-                      title: Text(
-                        entity.name.trim().isNotEmpty ? entity.name : entity.id,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: entity.id == state.selectedEntityId
-                              ? Colors.white
-                              : Colors.white,
-                          fontWeight: entity.id == state.selectedEntityId
-                              ? FontWeight.w600
-                              : FontWeight.w500,
+                            ? _entityColor(entity.kind).withValues(alpha: 0.16)
+                            : EditorChrome.scaffoldBackground(context),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: EditorChrome.separator(context),
                         ),
                       ),
-                      subtitle: Text(
-                        '${_entityKindLabel(entity.kind)} | ${entity.id} | (${entity.pos.x}, ${entity.pos.y}) ${entity.size.width}x${entity.size.height}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.white54,
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                        alignment: Alignment.centerLeft,
+                        onPressed: () => notifier.selectEntity(entity.id),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              _iconForEntityKind(entity.kind),
+                              size: 16,
+                              color: entity.id == state.selectedEntityId
+                                  ? EditorPaintColors.white
+                                  : _entityColor(entity.kind),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    entity.name.trim().isNotEmpty
+                                        ? entity.name
+                                        : entity.id,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: labelColor,
+                                      fontWeight: entity.id ==
+                                              state.selectedEntityId
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_entityKindLabel(entity.kind)} | ${entity.id} | (${entity.pos.x}, ${entity.pos.y}) ${entity.size.width}x${entity.size.height}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: subtle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (entity.id == state.selectedEntityId)
+                              Icon(
+                                CupertinoIcons.pencil,
+                                size: 12,
+                                color: accent,
+                              ),
+                          ],
                         ),
                       ),
-                      onTap: () => notifier.selectEntity(entity.id),
                     ),
                   ),
                 ),
               const SizedBox(height: 8),
-              const Divider(height: 1),
+              const EditorHorizontalDivider(),
               const SizedBox(height: 8),
               if (selectedEntity == null)
-                const Text(
+                Text(
                   'Select an entity to edit its properties.',
-                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                  style: TextStyle(
+                    color: CupertinoColors.placeholderText.resolveFrom(context),
+                    fontSize: 12,
+                  ),
                 )
               else
                 _buildSelectedEntityEditor(
@@ -165,8 +204,10 @@ class _EntityPropertiesPanelState
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: const Border(bottom: BorderSide(color: Colors.white10)),
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          bottom: BorderSide(color: EditorChrome.separator(context)),
+        ),
       ),
       child: Column(
         children: [
@@ -174,28 +215,58 @@ class _EntityPropertiesPanelState
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'ENTITIES',
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white70,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
                 Text(
                   map == null ? '0' : '${map.entities.length}',
-                  style: const TextStyle(fontSize: 11, color: Colors.white54),
+                  style: TextStyle(fontSize: 11, color: subtle),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(child: content),
         ],
       ),
+    );
+  }
+
+  Widget _labeledField(
+    BuildContext context, {
+    required String label,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    final secondary =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        CupertinoTextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+        ),
+      ],
     );
   }
 
@@ -207,90 +278,64 @@ class _EntityPropertiesPanelState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Selected Entity',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.white70,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Position: (${selectedEntity.pos.x}, ${selectedEntity.pos.y}) | Size: ${selectedEntity.size.width}x${selectedEntity.size.height}',
-          style: const TextStyle(fontSize: 11, color: Colors.white54),
+          style: TextStyle(fontSize: 11, color: CupertinoColors.secondaryLabel.resolveFrom(context)),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _idController,
-          decoration: const InputDecoration(
-            labelText: 'ID',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-        ),
+        _labeledField(context, label: 'ID', controller: _idController),
         const SizedBox(height: 8),
-        TextField(
-          controller: _nameController,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-        ),
+        _labeledField(context, label: 'Name', controller: _nameController),
         const SizedBox(height: 8),
-        DropdownButtonFormField<MapEntityKind>(
-          key: ValueKey(
-            'entity_kind_${selectedEntity.id}_${_selectedKind.name}',
-          ),
-          initialValue: _selectedKind,
-          isDense: true,
-          decoration: const InputDecoration(
-            labelText: 'Kind',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
-          items: MapEntityKind.values
-              .map(
-                (kind) => DropdownMenuItem<MapEntityKind>(
-                  value: kind,
-                  child: Text(_entityKindLabel(kind)),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: (value) {
-            if (value == null) return;
-            setState(() {
-              _selectedKind = value;
-            });
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: () async {
+            final picked = await showCupertinoListPicker<MapEntityKind>(
+              context: context,
+              title: 'Kind',
+              items: MapEntityKind.values,
+              labelOf: _entityKindLabel,
+            );
+            if (picked != null) {
+              setState(() => _selectedKind = picked);
+            }
           },
+          child: Text('Kind: ${_entityKindLabel(_selectedKind)}'),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: _labeledField(
+                context,
+                label: 'X',
                 controller: _xController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(signed: true),
-                decoration: const InputDecoration(
-                  labelText: 'X',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
+                ],
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: _labeledField(
+                context,
+                label: 'Y',
                 controller: _yController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(signed: true),
-                decoration: const InputDecoration(
-                  labelText: 'Y',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
+                ],
               ),
             ),
           ],
@@ -299,26 +344,22 @@ class _EntityPropertiesPanelState
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: _labeledField(
+                context,
+                label: 'Width',
                 controller: _widthController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Width',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: _labeledField(
+                context,
+                label: 'Height',
                 controller: _heightController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Height',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
             ),
           ],
@@ -326,33 +367,36 @@ class _EntityPropertiesPanelState
         const SizedBox(height: 12),
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
                 'Properties',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white70,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            IconButton(
+            EditorToolbarIconButton(
               onPressed: () {
                 setState(() {
                   _propertyRows.add(_EntityPropertyDraft.empty());
                 });
               },
-              icon: const Icon(Icons.add, size: 18),
+              icon: CupertinoIcons.add,
               tooltip: 'Add Property',
             ),
           ],
         ),
         if (_propertyRows.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               'No properties yet.',
-              style: TextStyle(fontSize: 11, color: Colors.white38),
+              style: TextStyle(
+                fontSize: 11,
+                color: CupertinoColors.placeholderText.resolveFrom(context),
+              ),
             ),
           )
         else
@@ -361,36 +405,31 @@ class _EntityPropertiesPanelState
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    child: TextField(
+                    child: _labeledField(
+                      context,
+                      label: 'Key',
                       controller: row.keyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Key',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: TextField(
+                    child: _labeledField(
+                      context,
+                      label: 'Value',
                       controller: row.valueController,
-                      decoration: const InputDecoration(
-                        labelText: 'Value',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
                     ),
                   ),
-                  IconButton(
+                  EditorToolbarIconButton(
                     onPressed: () {
                       setState(() {
                         final removed = _propertyRows.removeAt(index);
                         removed.dispose();
                       });
                     },
-                    icon: const Icon(Icons.delete_outline, size: 18),
+                    icon: CupertinoIcons.trash,
                     tooltip: 'Remove Property',
                   ),
                 ],
@@ -401,14 +440,14 @@ class _EntityPropertiesPanelState
         Row(
           children: [
             Expanded(
-              child: FilledButton(
+              child: CupertinoButton.filled(
                 onPressed: () => _saveSelectedEntity(context, notifier),
                 child: const Text('Save Entity'),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton(
+              child: CupertinoButton(
                 onPressed: notifier.deleteSelectedEntity,
                 child: const Text('Delete'),
               ),
@@ -454,27 +493,25 @@ class _EntityPropertiesPanelState
       );
   }
 
-  void _saveSelectedEntity(
+  Future<void> _saveSelectedEntity(
     BuildContext context,
     EditorNotifier notifier,
-  ) {
+  ) async {
     final x = int.tryParse(_xController.text.trim());
     final y = int.tryParse(_yController.text.trim());
     final width = int.tryParse(_widthController.text.trim());
     final height = int.tryParse(_heightController.text.trim());
     if (x == null || y == null || width == null || height == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Entity coordinates and size must be valid integers'),
-        ),
+      await showCupertinoEditorAlert(
+        context,
+        message: 'Entity coordinates and size must be valid integers',
       );
       return;
     }
     if (width <= 0 || height <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Entity width and height must be greater than zero'),
-        ),
+      await showCupertinoEditorAlert(
+        context,
+        message: 'Entity width and height must be greater than zero',
       );
       return;
     }
@@ -487,18 +524,16 @@ class _EntityPropertiesPanelState
         continue;
       }
       if (key.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Entity property keys cannot be empty'),
-          ),
+        await showCupertinoEditorAlert(
+          context,
+          message: 'Entity property keys cannot be empty',
         );
         return;
       }
       if (properties.containsKey(key)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Duplicate entity property key: $key'),
-          ),
+        await showCupertinoEditorAlert(
+          context,
+          message: 'Duplicate entity property key: $key',
         );
         return;
       }
@@ -519,11 +554,11 @@ class _EntityPropertiesPanelState
 
   static IconData _iconForEntityKind(MapEntityKind kind) {
     return switch (kind) {
-      MapEntityKind.npc => Icons.person_outline,
-      MapEntityKind.sign => Icons.signpost_outlined,
-      MapEntityKind.item => Icons.inventory_2_outlined,
-      MapEntityKind.spawn => Icons.flag_outlined,
-      MapEntityKind.custom => Icons.extension_outlined,
+      MapEntityKind.npc => CupertinoIcons.person,
+      MapEntityKind.sign => CupertinoIcons.textformat,
+      MapEntityKind.item => CupertinoIcons.cube_box,
+      MapEntityKind.spawn => CupertinoIcons.flag,
+      MapEntityKind.custom => CupertinoIcons.square_stack_3d_up,
     };
   }
 
