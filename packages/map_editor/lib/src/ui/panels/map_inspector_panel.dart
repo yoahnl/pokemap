@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
@@ -45,7 +46,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
 
     if (activeMap == null) {
       return Container(
-        color: EditorChrome.panelBackground(context),
         alignment: Alignment.center,
         child: Text(
           'Open a map to inspect layers and map systems',
@@ -93,16 +93,18 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             ? constraints.maxHeight.clamp(420.0, 760.0).toDouble()
             : 560.0;
 
-        return Container(
-          color: EditorChrome.panelBackground(context),
-          child: SingleChildScrollView(
-            primary: false,
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                InspectorSectionCard(
+        return SingleChildScrollView(
+          primary: false,
+          padding: const EdgeInsets.only(top: 10, bottom: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _InspectorOverviewCard(
+                map: activeMap,
+                activeLayer: activeLayer,
+              ),
+              InspectorSectionCard(
                   title: 'Layers',
                   subtitle: activeLayer == null
                       ? 'Select the active layer for this map'
@@ -264,8 +266,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     expandedHeight: 320,
                     child: const WarpPropertiesPanel(embedded: true),
                   ),
-              ],
-            ),
+            ],
           ),
         );
       },
@@ -306,5 +307,108 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       PathLayer _ => 'Path Layer',
       ObjectLayer _ => 'Object Layer',
     };
+  }
+}
+
+class _InspectorOverviewCard extends StatelessWidget {
+  const _InspectorOverviewCard({
+    required this.map,
+    required this.activeLayer,
+  });
+
+  final MapData map;
+  final MapLayer? activeLayer;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    final accent = EditorChrome.activeAccent(context);
+    final activeLayerText = activeLayer == null
+        ? 'No active layer'
+        : switch (activeLayer!) {
+            TileLayer _ => 'Tile layer active',
+            TerrainLayer _ => 'Ground layer active',
+            PathLayer _ => 'Surface layer active',
+            CollisionLayer _ => 'Collision layer active',
+            ObjectLayer _ => 'Object layer active',
+          };
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 2, 10, 12),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          accent.withValues(alpha: 0.08),
+          EditorChrome.elevatedPanelBackground(context),
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x16000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: MacosIcon(
+              CupertinoIcons.slider_horizontal_3,
+              color: accent,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  map.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${map.size.width} x ${map.size.height} tiles  •  ${map.layers.length} layers',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  activeLayerText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

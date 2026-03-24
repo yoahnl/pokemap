@@ -6,27 +6,49 @@ import 'package:flutter/material.dart' show BoxShadow, Colors, Material;
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-/// Couleurs et séparateurs pour l’éditeur en thème sombre type iOS.
 abstract final class EditorChrome {
-  static Color panelBackground(BuildContext context) =>
-      CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
+  static bool _isDark(BuildContext context) =>
+      MacosTheme.brightnessOf(context) == Brightness.dark;
 
-  static Color scaffoldBackground(BuildContext context) =>
-      CupertinoColors.systemGroupedBackground.resolveFrom(context);
+  static Color windowBackground(BuildContext context) => _isDark(context)
+      ? const Color(0xFF091018)
+      : const Color(0xFFF2F4F8);
 
-  /// Fond de la zone centrale (carte, éditeur de tileset). En sombre,
-  /// [CupertinoColors.systemGroupedBackground] peut être noir pur ; on utilise
-  /// [MacosThemeData.canvasColor] (gris type fenêtre macOS) pour le même rendu
-  /// que la zone « Content » de macos_ui.
+  static Color scaffoldBackground(BuildContext context) => _isDark(context)
+      ? const Color(0xFF0D141D)
+      : const Color(0xFFF5F6FA);
+
+  static Color leftSidebarBackground(BuildContext context) => _isDark(context)
+      ? const Color(0xFF0E141C)
+      : const Color(0xFFF4F6FA);
+
+  static Color rightSidebarBackground(BuildContext context) => _isDark(context)
+      ? const Color(0xFF101722)
+      : const Color(0xFFF7F8FB);
+
+  static Color panelBackground(BuildContext context) => _isDark(context)
+      ? const Color(0xFF151C27)
+      : CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
+
+  static Color elevatedPanelBackground(BuildContext context) =>
+      _isDark(context)
+          ? const Color(0xFF1A2230)
+          : CupertinoColors.systemBackground.resolveFrom(context);
+
   static Color mapCanvasViewportBackground(BuildContext context) {
-    if (MacosTheme.brightnessOf(context) == Brightness.dark) {
-      return MacosTheme.of(context).canvasColor;
+    if (_isDark(context)) {
+      return const Color(0xFF101722);
     }
     return CupertinoColors.systemGroupedBackground.resolveFrom(context);
   }
 
-  static Color separator(BuildContext context) =>
-      CupertinoColors.separator.resolveFrom(context);
+  static Color separator(BuildContext context) => _isDark(context)
+      ? const Color(0x142C3543)
+      : CupertinoColors.separator.resolveFrom(context);
+
+  static Color subtleSeparator(BuildContext context) => _isDark(context)
+      ? const Color(0x10FFFFFF)
+      : const Color(0x14000000);
 
   static Color subtleLabel(BuildContext context) =>
       CupertinoColors.placeholderText.resolveFrom(context);
@@ -37,7 +59,169 @@ abstract final class EditorChrome {
   static Color activeAccent(BuildContext context) =>
       CupertinoTheme.of(context).primaryColor;
 
+  static Color sidebarHoverFill(BuildContext context) => _isDark(context)
+      ? const Color(0x1FFFFFFF)
+      : const Color(0x10000000);
+
+  static Color disclosureHoverFill(BuildContext context) => _isDark(context)
+      ? const Color(0x12FFFFFF)
+      : const Color(0x0E000000);
+
+  static Color panelBorder(BuildContext context) => _isDark(context)
+      ? const Color(0x12FFFFFF)
+      : const Color(0x14000000);
+
+  static LinearGradient panelGradient(
+    BuildContext context, {
+    Color? tint,
+  }) {
+    if (_isDark(context)) {
+      final top = Color.lerp(
+            const Color(0xFF1A212C),
+            tint ?? const Color(0xFF1A212C),
+            0.4,
+          ) ??
+          const Color(0xFF1A212C);
+      return LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          top,
+          const Color(0xFF131923),
+        ],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFFFFFFFF),
+        Color(0xFFF1F4F8),
+      ],
+    );
+  }
+
+  static LinearGradient workspaceGradient(BuildContext context) {
+    if (_isDark(context)) {
+      return const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF0C121A),
+          Color(0xFF0A0F16),
+        ],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Color(0xFFF8FAFD),
+        Color(0xFFEDEFF5),
+      ],
+    );
+  }
+
+  static LinearGradient workspaceStageGradient(BuildContext context) {
+    if (_isDark(context)) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF1A222F),
+          Color(0xFF111823),
+        ],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFFFFFFFF),
+        Color(0xFFF3F6FA),
+      ],
+    );
+  }
+
+  static LinearGradient toolbarGroupGradient(BuildContext context) {
+    if (_isDark(context)) {
+      return const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF1D2633),
+          Color(0xFF161C27),
+        ],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Color(0xFFFFFFFF),
+        Color(0xFFF4F6FA),
+      ],
+    );
+  }
+
+  static List<BoxShadow> panelShadows(BuildContext context) {
+    if (_isDark(context)) {
+      return const [
+        BoxShadow(
+          color: Color(0x28000000),
+          blurRadius: 24,
+          offset: Offset(0, 14),
+        ),
+      ];
+    }
+    return const [
+      BoxShadow(
+        color: Color(0x12000000),
+        blurRadius: 24,
+        offset: Offset(0, 12),
+      ),
+    ];
+  }
+
   static const Color borderSubtle = Color(0x1AFFFFFF);
+}
+
+class EditorPaneSurface extends StatelessWidget {
+  const EditorPaneSurface({
+    super.key,
+    required this.child,
+    this.radius = 22,
+    this.margin = EdgeInsets.zero,
+    this.padding = EdgeInsets.zero,
+    this.tint,
+    this.showBorder = false,
+  });
+
+  final Widget child;
+  final double radius;
+  final EdgeInsetsGeometry margin;
+  final EdgeInsetsGeometry padding;
+  final Color? tint;
+  final bool showBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      decoration: BoxDecoration(
+        gradient: EditorChrome.panelGradient(context, tint: tint),
+        borderRadius: BorderRadius.circular(radius),
+        border:
+            showBorder ? Border.all(color: EditorChrome.panelBorder(context)) : null,
+        boxShadow: EditorChrome.panelShadows(context),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: padding,
+        child: child,
+      ),
+    );
+  }
 }
 
 /// Fond de ligne sélectionnée, identique à [SidebarItems] (package macos_ui).
@@ -52,14 +236,14 @@ Color editorSidebarSelectionColor(BuildContext context) {
       return const Color.fromRGBO(76, 78, 65, 1.0);
     }
     return switch (accent) {
-      AccentColor.blue => const Color.fromRGBO(22, 105, 229, 0.749),
-      AccentColor.purple => const Color.fromRGBO(204, 45, 202, 0.749),
-      AccentColor.pink => const Color.fromRGBO(229, 74, 145, 0.749),
-      AccentColor.red => const Color.fromRGBO(238, 64, 68, 0.749),
-      AccentColor.orange => const Color.fromRGBO(244, 114, 0, 0.749),
-      AccentColor.yellow => const Color.fromRGBO(233, 176, 0, 0.749),
-      AccentColor.green => const Color.fromRGBO(76, 177, 45, 0.749),
-      AccentColor.graphite => const Color.fromRGBO(129, 129, 122, 0.824),
+      AccentColor.blue => const Color.fromRGBO(37, 88, 168, 0.72),
+      AccentColor.purple => const Color.fromRGBO(154, 53, 173, 0.7),
+      AccentColor.pink => const Color.fromRGBO(201, 81, 146, 0.7),
+      AccentColor.red => const Color.fromRGBO(183, 72, 86, 0.72),
+      AccentColor.orange => const Color.fromRGBO(187, 120, 53, 0.72),
+      AccentColor.yellow => const Color.fromRGBO(188, 157, 71, 0.72),
+      AccentColor.green => const Color.fromRGBO(72, 142, 98, 0.72),
+      AccentColor.graphite => const Color.fromRGBO(112, 117, 124, 0.78),
     };
   }
 
@@ -94,17 +278,15 @@ class EditorSidebarSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
     final base = theme.typography.body;
-    final isDark = theme.brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.fromLTRB(10 + leftInset, 10, 10, 4),
+      padding: EdgeInsets.fromLTRB(12 + leftInset, 12, 12, 6),
       child: Text(
         label,
         style: base.copyWith(
           fontWeight: FontWeight.bold,
-          fontSize: (base.fontSize ?? 14.0) * 0.85,
-          color: isDark
-              ? MacosColors.white.withValues(alpha: 0.3)
-              : MacosColors.black.withValues(alpha: 0.3),
+          fontSize: (base.fontSize ?? 14.0) * 0.8,
+          letterSpacing: 0.9,
+          color: EditorChrome.subtleLabel(context),
         ),
       ),
     );
@@ -112,7 +294,7 @@ class EditorSidebarSectionTitle extends StatelessWidget {
 }
 
 /// Ligne de liste pleine largeur, style pilule sélectionnée comme [SidebarItem] (sans la largeur fixe 134 px).
-class EditorSidebarListRow extends StatelessWidget {
+class EditorSidebarListRow extends StatefulWidget {
   const EditorSidebarListRow({
     super.key,
     required this.selected,
@@ -135,28 +317,34 @@ class EditorSidebarListRow extends StatelessWidget {
   final Widget? subtitle;
   final Widget? trailing;
   final void Function(TapDownDetails details)? onSecondaryTapDown;
-  /// Décalage horizontal supplémentaire (profondeur d’arbre).
   final double leftIndent;
 
-  static const ShapeBorder _pillShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.circular(5)),
-  );
+  @override
+  State<EditorSidebarListRow> createState() => _EditorSidebarListRowState();
+}
+
+class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
     final spacing = 10.0 + theme.visualDensity.horizontal;
-    const rowHeight = 29.0;
+    const rowHeight = 30.0;
+    final fill = widget.selected
+        ? editorSidebarSelectionColor(context)
+        : (_hovered ? EditorChrome.sidebarHoverFill(context) : Colors.transparent);
 
     Widget core = StreamBuilder<bool>(
       stream: WindowMainStateListener.instance.onChanged,
       initialData: WindowMainStateListener.instance.isMainWindow,
       builder: (context, _) {
-        final fill = editorSidebarSelectionColor(context);
-        return DecoratedBox(
-          decoration: ShapeDecoration(
-            color: selected ? fill : Colors.transparent,
-            shape: _pillShape,
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(9),
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -167,16 +355,16 @@ class EditorSidebarListRow extends StatelessWidget {
               height: rowHeight + theme.visualDensity.vertical,
               child: Row(
                 children: [
-                  if (leading != null) ...[
+                  if (widget.leading != null) ...[
                     MacosIconTheme.merge(
                       data: MacosIconThemeData(
-                        color: selected
+                        color: widget.selected
                             ? MacosColors.white
-                            : (leadingIconUnselectedColor ??
+                            : (widget.leadingIconUnselectedColor ??
                                 theme.primaryColor),
                         size: 16,
                       ),
-                      child: leading!,
+                      child: widget.leading!,
                     ),
                     SizedBox(width: spacing),
                   ],
@@ -187,29 +375,29 @@ class EditorSidebarListRow extends StatelessWidget {
                       children: [
                         DefaultTextStyle(
                           style: theme.typography.body.copyWith(
-                            color: selected
+                            color: widget.selected
                                 ? MacosColors.white
                                 : null,
-                            fontWeight: selected
+                            fontWeight: widget.selected
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
-                          child: title,
+                          child: widget.title,
                         ),
-                        if (subtitle != null)
+                        if (widget.subtitle != null)
                           DefaultTextStyle(
                             style: theme.typography.caption1.copyWith(
-                              color: selected
+                              color: widget.selected
                                   ? MacosColors.white.withValues(alpha: 0.72)
                                   : CupertinoColors.secondaryLabel
                                       .resolveFrom(context),
                             ),
-                            child: subtitle!,
+                            child: widget.subtitle!,
                           ),
                       ],
                     ),
                   ),
-                  if (trailing != null) trailing!,
+                  if (widget.trailing != null) widget.trailing!,
                 ],
               ),
             ),
@@ -219,24 +407,26 @@ class EditorSidebarListRow extends StatelessWidget {
     );
 
     core = MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       cursor: SystemMouseCursors.basic,
       child: GestureDetector(
-        onTap: onTap,
+        onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
         child: core,
       ),
     );
 
-    if (onSecondaryTapDown != null) {
+    if (widget.onSecondaryTapDown != null) {
       core = GestureDetector(
-        onSecondaryTapDown: onSecondaryTapDown,
+        onSecondaryTapDown: widget.onSecondaryTapDown,
         behavior: HitTestBehavior.translucent,
         child: core,
       );
     }
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(8 + leftIndent, 1, 8, 1),
+      padding: EdgeInsets.fromLTRB(10 + widget.leftIndent, 2, 10, 2),
       child: core,
     );
   }
@@ -247,9 +437,20 @@ class EditorHorizontalDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 1,
-      color: EditorChrome.separator(context),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: Container(
+        height: 1,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              CupertinoColors.transparent,
+              EditorChrome.subtleSeparator(context),
+              CupertinoColors.transparent,
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -340,6 +541,7 @@ class CupertinoDisclosureTile extends StatefulWidget {
 
 class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
   late bool _expanded = widget.initiallyExpanded;
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
@@ -350,42 +552,58 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
         ? macosTheme.typography.body
         : CupertinoTheme.of(context).textTheme.textStyle;
 
-    Widget header = CupertinoButton(
-      padding: widget.tilePadding,
-      minimumSize: Size.zero,
-      onPressed: () => setState(() => _expanded = !_expanded),
-      child: Row(
-        children: [
-          Transform.rotate(
-            angle: _expanded ? math.pi / 2 : 0,
-            child: MacosIcon(
-              CupertinoIcons.chevron_right,
-              size: 16,
-              color: chevronColor,
-            ),
-          ),
-          if (widget.leading != null) ...[
-            const SizedBox(width: 6),
-            if (widget.useEditorMacosSidebarDisclosureStyle)
-              MacosIconTheme.merge(
-                data: MacosIconThemeData(
-                  color: macosTheme.primaryColor,
-                  size: 16,
-                ),
-                child: widget.leading!,
+    Widget header = MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        decoration: widget.useEditorMacosSidebarDisclosureStyle
+            ? BoxDecoration(
+                color: _hovered
+                    ? EditorChrome.disclosureHoverFill(context)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
               )
-            else
-              widget.leading!,
-          ],
-          if (widget.leading != null) const SizedBox(width: 8),
-          Expanded(
-            child: DefaultTextStyle.merge(
-              style: titleMergeStyle,
-              child: widget.title,
-            ),
+            : null,
+        child: CupertinoButton(
+          padding: widget.tilePadding,
+          minimumSize: Size.zero,
+          onPressed: () => setState(() => _expanded = !_expanded),
+          child: Row(
+            children: [
+              Transform.rotate(
+                angle: _expanded ? math.pi / 2 : 0,
+                child: MacosIcon(
+                  CupertinoIcons.chevron_right,
+                  size: 16,
+                  color: chevronColor,
+                ),
+              ),
+              if (widget.leading != null) ...[
+                const SizedBox(width: 6),
+                if (widget.useEditorMacosSidebarDisclosureStyle)
+                  MacosIconTheme.merge(
+                    data: MacosIconThemeData(
+                      color: macosTheme.primaryColor,
+                      size: 16,
+                    ),
+                    child: widget.leading!,
+                  )
+                else
+                  widget.leading!,
+              ],
+              if (widget.leading != null) const SizedBox(width: 8),
+              Expanded(
+                child: DefaultTextStyle.merge(
+                  style: titleMergeStyle,
+                  child: widget.title,
+                ),
+              ),
+              if (widget.trailing != null) widget.trailing!,
+            ],
           ),
-          if (widget.trailing != null) widget.trailing!,
-        ],
+        ),
       ),
     );
     if (widget.useEditorMacosSidebarDisclosureStyle) {

@@ -18,23 +18,24 @@ class ProjectExplorerPanel extends ConsumerWidget {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final project = state.project;
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: EditorChrome.panelBackground(context),
-      ),
       child: Column(
         children: [
           _buildHeader(context, state, notifier),
-          const EditorHorizontalDivider(),
+          const SizedBox(height: 2),
           Expanded(
             child: project == null
                 ? Center(
-                    child: Text(
-                      'No project loaded',
-                      style: TextStyle(
-                        color: CupertinoColors.placeholderText
-                            .resolveFrom(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Open a project to browse your world, maps and tilesets.',
+                        style: TextStyle(
+                          color: CupertinoColors.placeholderText
+                              .resolveFrom(context),
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   )
@@ -51,39 +52,68 @@ class ProjectExplorerPanel extends ConsumerWidget {
     EditorNotifier notifier,
   ) {
     final accent = EditorChrome.activeAccent(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
     return Padding(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       child: Row(
         children: [
-          Icon(CupertinoIcons.tree, size: 18, color: accent),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'WORLD EXPLORER',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-                letterSpacing: 0.9,
-              ),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              CupertinoIcons.square_stack_3d_up,
+              size: 18,
+              color: accent,
             ),
           ),
-          EditorToolbarIconButton(
-            onPressed: state.project != null
-                ? () => _showImportTilesetDialog(context, state, notifier)
-                : null,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'World Explorer',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Maps, regions, tilesets and project structure',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _SidebarHeaderAction(
+            enabled: state.project != null,
             icon: CupertinoIcons.photo_on_rectangle,
             tooltip: 'Import Tileset',
-            iconSize: 18,
+            onPressed: () => _showImportTilesetDialog(context, state, notifier),
           ),
-          EditorToolbarIconButton(
-            onPressed: state.project != null
-                ? () => _showCreateGroupDialog(context, notifier)
-                : null,
+          const SizedBox(width: 6),
+          _SidebarHeaderAction(
+            enabled: state.project != null,
             icon: CupertinoIcons.folder_badge_plus,
             tooltip: 'New Root Group',
-            iconSize: 18,
+            onPressed: () => _showCreateGroupDialog(context, notifier),
           ),
         ],
       ),
@@ -112,17 +142,11 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 color: CupertinoColors.placeholderText.resolveFrom(context),
               ),
             ),
-            const SizedBox(height: 16),
-            CupertinoButton.filled(
+            const SizedBox(height: 18),
+            PushButton(
+              controlSize: ControlSize.large,
               onPressed: () => _showCreateGroupDialog(context, notifier),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(CupertinoIcons.add, size: 16),
-                  SizedBox(width: 6),
-                  Text('Add City or Route'),
-                ],
-              ),
+              child: const Text('Add City or Route'),
             ),
           ],
         ),
@@ -130,7 +154,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
       children: [
         _buildTilesetsSection(context, project, state, notifier),
         const SizedBox(height: 20),
@@ -488,6 +512,62 @@ class ProjectExplorerPanel extends ConsumerWidget {
   }
 }
 
+class _SidebarHeaderAction extends StatefulWidget {
+  const _SidebarHeaderAction({
+    required this.enabled,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final bool enabled;
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  State<_SidebarHeaderAction> createState() => _SidebarHeaderActionState();
+}
+
+class _SidebarHeaderActionState extends State<_SidebarHeaderAction> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.enabled;
+    return MacosTooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+        onExit: enabled ? (_) => setState(() => _hovered = false) : null,
+        child: GestureDetector(
+          onTap: enabled ? widget.onPressed : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: _hovered && enabled
+                  ? CupertinoColors.systemFill.resolveFrom(context)
+                  : CupertinoColors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: MacosIcon(
+              widget.icon,
+              size: 16,
+              color: enabled
+                  ? EditorChrome.primaryLabel(context)
+                  : CupertinoColors.inactiveGray.resolveFrom(context),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GroupNode extends StatelessWidget {
   final ProjectMapGroup group;
   final ProjectManifest project;
@@ -511,7 +591,8 @@ class _GroupNode extends StatelessWidget {
         project.maps.where((m) => m.groupId == group.id).toList();
     return CupertinoDisclosureTile(
       useEditorMacosSidebarDisclosureStyle: true,
-      tilePadding: EdgeInsets.only(left: 8 + 16.0 * depth, right: 8, top: 4, bottom: 4),
+      tilePadding:
+          EdgeInsets.only(left: 8 + 16.0 * depth, right: 8, top: 4, bottom: 4),
       childrenPadding: EdgeInsets.zero,
       leading: MacosIcon(_getGroupIcon(group.type), size: 16),
       title: Column(
@@ -546,9 +627,8 @@ class _GroupNode extends StatelessWidget {
           ),
         ),
       ),
-      onSecondaryTapDown: (d) =>
-          _showGroupContextMenu(context, group, notifier,
-              anchorGlobal: d.globalPosition),
+      onSecondaryTapDown: (d) => _showGroupContextMenu(context, group, notifier,
+          anchorGlobal: d.globalPosition),
       children: [
         ...childrenGroups.map(
           (g) => _GroupNode(
@@ -909,9 +989,8 @@ class _TilesetNode extends StatelessWidget {
       onSecondaryTapDown: (d) =>
           _showTilesetMenu(context, anchorGlobal: d.globalPosition),
       leftIndent: 6,
-      leadingIconUnselectedColor: tileset.isWorldTileset
-          ? EditorPaintColors.amberAccent
-          : null,
+      leadingIconUnselectedColor:
+          tileset.isWorldTileset ? EditorPaintColors.amberAccent : null,
       leading: MacosIcon(
         tileset.isWorldTileset
             ? CupertinoIcons.globe
@@ -948,7 +1027,8 @@ class _TilesetNode extends StatelessWidget {
         const MacosEditorSheetAction(label: 'Rename', value: 'rename'),
         const MacosEditorSheetAction(label: 'Move Up', value: 'move_up'),
         const MacosEditorSheetAction(label: 'Move Down', value: 'move_down'),
-        const MacosEditorSheetAction(label: 'Set as Global', value: 'make_global'),
+        const MacosEditorSheetAction(
+            label: 'Set as Global', value: 'make_global'),
         const MacosEditorSheetAction(
           label: 'Attach to Group',
           value: 'assign_group',

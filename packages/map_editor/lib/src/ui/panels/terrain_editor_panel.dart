@@ -26,76 +26,115 @@ class TerrainEditorPanel extends ConsumerWidget {
 
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final subtle = CupertinoColors.placeholderText.resolveFrom(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: EditorChrome.panelBackground(context),
-        border: Border(
-          bottom: BorderSide(color: EditorChrome.separator(context)),
-        ),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'SURFACE LIBRARY',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.0,
-                      fontWeight: FontWeight.bold,
-                      color: secondary,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB67B44).withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const MacosIcon(
+                  CupertinoIcons.square_stack_3d_down_right_fill,
+                  size: 18,
+                  color: Color(0xFFE6AF63),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Surface Library',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: EditorChrome.primaryLabel(context),
+                        letterSpacing: -0.2,
+                      ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Ground presets and path overlays for your world',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemFill.resolveFrom(context),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${(selectedTerrainPreset != null ? 1 : 0) + (selectedPathPreset != null ? 1 : 0)} active',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: secondary,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const EditorHorizontalDivider(),
-          Expanded(
-            child: project == null
-                ? Center(
-                    child: Text(
-                      'Open a project to manage terrain and surface presets',
-                      style: TextStyle(color: subtle),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    primary: false,
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _LibraryRoot(
-                          title: 'Terrains',
-                          subtitle: 'Base ground presets only',
-                          kind: PresetLibraryKind.terrain,
-                          color: const Color(0xFF2B6F53),
-                          icon: CupertinoIcons.map,
-                          settings: settings,
-                          tilesets: tilesets,
-                          selectedPresetId: selectedTerrainPreset?.id,
-                        ),
-                        const SizedBox(height: 12),
-                        _LibraryRoot(
-                          title: 'Paths',
-                          subtitle:
-                              'Surface overlays: roads, water, tall grass, ice, lava, rails...',
-                          kind: PresetLibraryKind.path,
-                          color: const Color(0xFF7A4A1E),
-                          icon: CupertinoIcons.arrow_branch,
-                          settings: settings,
-                          tilesets: tilesets,
-                          selectedPresetId: selectedPathPreset?.id,
-                        ),
-                      ],
-                    ),
+        ),
+        const SizedBox(height: 2),
+        Expanded(
+          child: project == null
+              ? Center(
+                  child: Text(
+                    'Open a project to manage terrain and surface presets',
+                    style: TextStyle(color: subtle),
                   ),
-          ),
-        ],
-      ),
+                )
+              : SingleChildScrollView(
+                  primary: false,
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _LibraryRoot(
+                        title: 'Terrains',
+                        subtitle: 'Base ground presets only',
+                        kind: PresetLibraryKind.terrain,
+                        color: const Color(0xFF2B6F53),
+                        icon: CupertinoIcons.map,
+                        settings: settings,
+                        tilesets: tilesets,
+                        selectedPresetId: selectedTerrainPreset?.id,
+                      ),
+                      const SizedBox(height: 12),
+                      _LibraryRoot(
+                        title: 'Paths',
+                        subtitle:
+                            'Surface overlays: roads, water, tall grass, ice, lava, rails...',
+                        kind: PresetLibraryKind.path,
+                        color: const Color(0xFF7A4A1E),
+                        icon: CupertinoIcons.arrow_branch,
+                        settings: settings,
+                        tilesets: tilesets,
+                        selectedPresetId: selectedPathPreset?.id,
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
@@ -151,15 +190,14 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
 
     return Container(
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.32)),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
             child: Row(
               children: [
                 Expanded(
@@ -182,19 +220,20 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
                               Text(
                                 title,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: CupertinoColors.label
-                                      .resolveFrom(context),
+                                  fontSize: 13,
+                                  color: EditorChrome.primaryLabel(context),
                                   fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.1,
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 3),
                               Text(
                                 subtitle,
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: CupertinoColors.secondaryLabel
                                       .resolveFrom(context),
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],

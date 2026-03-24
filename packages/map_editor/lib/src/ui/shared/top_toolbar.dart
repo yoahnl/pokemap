@@ -23,20 +23,6 @@ class TopToolbar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) =>
       TopToolbar.buildToolBar(context, ref);
 
-  static CustomToolbarItem _divider(BuildContext context) {
-    final color = MacosTheme.of(context).dividerColor;
-    return CustomToolbarItem(
-      inToolbarBuilder: (_) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: SizedBox(
-          width: 1,
-          height: 22,
-          child: DecoratedBox(decoration: BoxDecoration(color: color)),
-        ),
-      ),
-    );
-  }
-
   static List<MacosPulldownMenuEntry> _terrainPulldownItems(
     EditorNotifier notifier,
   ) {
@@ -70,299 +56,293 @@ class TopToolbar extends ConsumerWidget {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final settings = state.project?.settings ?? const ProjectSettings();
-    final accent = EditorChrome.activeAccent(context);
     final subtle = EditorChrome.subtleLabel(context);
-
     final actions = <ToolbarItem>[
-      ToolBarIconButton(
-        label: 'New Project',
-        tooltipMessage: 'New Project',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.folder_badge_plus),
-        onPressed: () => TopToolbar._showNewProjectDialog(context, notifier),
-      ),
-      ToolBarIconButton(
-        label: 'Open Project',
-        tooltipMessage: 'Open Project',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.folder_open),
-        onPressed: () async {
-          final selectedDirectory =
-              await FilePicker.platform.getDirectoryPath();
-          if (selectedDirectory != null) {
-            final manifestPath = p.join(selectedDirectory, 'project.json');
-            await notifier.loadProject(manifestPath);
-          }
-        },
-      ),
-      _divider(context),
-      ToolBarIconButton(
-        label: 'New Map',
-        tooltipMessage: 'New Map (Root)',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.placemark),
-        onPressed: state.project != null && state.projectRootPath != null
-            ? () => TopToolbar._showNewMapDialog(
-                  context,
-                  notifier,
-                  defaultWidth: settings.defaultMapWidth,
-                  defaultHeight: settings.defaultMapHeight,
-                )
-            : null,
-      ),
-      ToolBarIconButton(
-        label: 'Project Settings',
-        tooltipMessage: 'Project Settings',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.gear),
-        onPressed: state.project != null
-            ? () => TopToolbar._showProjectSettingsDialog(
-                  context,
-                  notifier,
-                  state.project!,
-                )
-            : null,
-      ),
-      if (state.isSaving)
-        CustomToolbarItem(
-          tooltipMessage: 'Saving…',
-          inToolbarBuilder: (_) => const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: Center(child: ProgressCircle()),
+      _groupItem(
+        context,
+        overflowLabel: 'Project',
+        children: [
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.folder_badge_plus,
+            tooltip: 'New Project',
+            onPressed: () => TopToolbar._showNewProjectDialog(
+              context,
+              notifier,
             ),
           ),
-        )
-      else
-        ToolBarIconButton(
-          label: 'Save Map',
-          tooltipMessage: 'Save Map',
-          showLabel: false,
-          icon: MacosIcon(
-            CupertinoIcons.floppy_disk,
-            color: state.isDirty ? accent : null,
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.folder_open,
+            tooltip: 'Open Project',
+            onPressed: () async {
+              final selectedDirectory =
+                  await FilePicker.platform.getDirectoryPath();
+              if (selectedDirectory != null) {
+                final manifestPath = p.join(selectedDirectory, 'project.json');
+                await notifier.loadProject(manifestPath);
+              }
+            },
           ),
-          onPressed:
-              state.activeMap != null ? () => notifier.saveActiveMap() : null,
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.placemark,
+            tooltip: 'New Map',
+            onPressed: state.project != null && state.projectRootPath != null
+                ? () => TopToolbar._showNewMapDialog(
+                      context,
+                      notifier,
+                      defaultWidth: settings.defaultMapWidth,
+                      defaultHeight: settings.defaultMapHeight,
+                    )
+                : null,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.gear,
+            tooltip: 'Project Settings',
+            onPressed: state.project != null
+                ? () => TopToolbar._showProjectSettingsDialog(
+                      context,
+                      notifier,
+                      state.project!,
+                    )
+                : null,
+          ),
+        ],
+      ),
+      _groupItem(
+        context,
+        overflowLabel: 'History',
+        children: [
+          if (state.isSaving)
+            const SizedBox(
+              width: 34,
+              height: 30,
+              child: Center(
+                child: ProgressCircle(),
+              ),
+            )
+          else
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.floppy_disk,
+              tooltip: 'Save Map',
+              selected: state.isDirty,
+              onPressed: state.activeMap != null
+                  ? () => notifier.saveActiveMap()
+                  : null,
+            ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.arrow_uturn_left,
+            tooltip: 'Undo',
+            onPressed: state.canUndoMap ? notifier.undoMap : null,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.arrow_uturn_right,
+            tooltip: 'Redo',
+            onPressed: state.canRedoMap ? notifier.redoMap : null,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.rectangle_arrow_up_right_arrow_down_left,
+            tooltip: 'Resize Map',
+            onPressed: state.activeMap != null
+                ? () => TopToolbar._showResizeMapDialog(
+                      context,
+                      notifier,
+                      currentWidth: state.activeMap!.size.width,
+                      currentHeight: state.activeMap!.size.height,
+                    )
+                : null,
+          ),
+        ],
+      ),
+      _groupItem(
+        context,
+        overflowLabel: 'Painting Tools',
+        children: [
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.selection_pin_in_out,
+            tooltip: 'Selection Tool',
+            selected: state.activeTool == EditorToolType.selection,
+            onPressed: () => notifier.selectTool(EditorToolType.selection),
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.paintbrush,
+            tooltip: 'Tile Paint Tool',
+            selected: state.activeTool == EditorToolType.tilePaint,
+            onPressed: () => notifier.selectTool(EditorToolType.tilePaint),
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.tree,
+            tooltip: 'Terrain Paint Tool',
+            selected: state.activeTool == EditorToolType.terrainPaint &&
+                state.terrainSelectionMode == TerrainSelectionMode.terrain,
+            onPressed: () => notifier.selectTool(EditorToolType.terrainPaint),
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.map,
+            tooltip: 'Path Paint Tool',
+            selected: state.activeTool == EditorToolType.terrainPaint &&
+                state.terrainSelectionMode == TerrainSelectionMode.path,
+            onPressed: notifier.selectPathPaintMode,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.square_grid_2x2,
+            tooltip: 'Collision Paint Tool',
+            selected: state.activeTool == EditorToolType.collisionPaint,
+            onPressed: () => notifier.selectTool(
+              EditorToolType.collisionPaint,
+            ),
+          ),
+          _ToolbarCapsuleButton(
+            icon: state.collisionBrushSizeMode ==
+                    CollisionBrushSizeMode.singleTile
+                ? CupertinoIcons.number
+                : CupertinoIcons.square_grid_3x2,
+            tooltip: state.collisionBrushSizeMode ==
+                    CollisionBrushSizeMode.singleTile
+                ? 'Collision Brush Size: 1x1'
+                : 'Collision Brush Size: Brush Footprint',
+            selected: state.activeTool == EditorToolType.collisionPaint ||
+                state.activeTool == EditorToolType.eraser,
+            onPressed: notifier.toggleCollisionBrushSizeMode,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.delete,
+            tooltip: 'Eraser Tool',
+            selected: state.activeTool == EditorToolType.eraser,
+            onPressed: () => notifier.selectTool(EditorToolType.eraser),
+          ),
+        ],
+      ),
+      _groupItem(
+        context,
+        overflowLabel: 'Gameplay Tools',
+        children: [
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.sparkles,
+            tooltip: 'Entity Tool',
+            selected: state.activeTool == EditorToolType.entityPlacement,
+            onPressed: () => notifier.selectTool(
+              EditorToolType.entityPlacement,
+            ),
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.square,
+            tooltip: 'Trigger Tool',
+            selected: state.activeTool == EditorToolType.triggerPlacement,
+            onPressed: () => notifier.selectTool(
+              EditorToolType.triggerPlacement,
+            ),
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.arrow_branch,
+            tooltip: 'Warp Tool',
+            selected: state.activeTool == EditorToolType.warpPlacement,
+            onPressed: () => notifier.selectTool(
+              EditorToolType.warpPlacement,
+            ),
+          ),
+        ],
+      ),
+      if (state.activeTool == EditorToolType.terrainPaint ||
+          state.activeTool == EditorToolType.entityPlacement)
+        _groupItem(
+          context,
+          overflowLabel: 'Context',
+          children: [
+            if (state.activeTool == EditorToolType.terrainPaint)
+              _ToolbarCapsulePulldown(
+                label: _terrainTypeLabel(state.selectedTerrainType),
+                items: _terrainPulldownItems(notifier),
+              ),
+            if (state.activeTool == EditorToolType.entityPlacement)
+              _ToolbarCapsulePulldown(
+                label: _entityKindLabel(state.selectedEntityKind),
+                items: _entityKindPulldownItems(notifier),
+              ),
+          ],
         ),
-      ToolBarIconButton(
-        label: 'Undo',
-        tooltipMessage: 'Undo',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.arrow_uturn_left),
-        onPressed: state.canUndoMap ? notifier.undoMap : null,
+      _groupItem(
+        context,
+        overflowLabel: 'View',
+        children: [
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.minus_circle,
+            tooltip: 'Zoom Out',
+            onPressed: () => notifier.zoom(-0.1),
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.plus_circle,
+            tooltip: 'Zoom In',
+            onPressed: () => notifier.zoom(0.1),
+          ),
+        ],
       ),
-      ToolBarIconButton(
-        label: 'Redo',
-        tooltipMessage: 'Redo',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.arrow_uturn_right),
-        onPressed: state.canRedoMap ? notifier.redoMap : null,
-      ),
-      ToolBarIconButton(
-        label: 'Resize Map',
-        tooltipMessage: 'Resize Map',
-        showLabel: false,
-        icon: const MacosIcon(
-          CupertinoIcons.rectangle_arrow_up_right_arrow_down_left,
-        ),
-        onPressed: state.activeMap != null
-            ? () => TopToolbar._showResizeMapDialog(
-                  context,
-                  notifier,
-                  currentWidth: state.activeMap!.size.width,
-                  currentHeight: state.activeMap!.size.height,
-                )
-            : null,
-      ),
-      _divider(context),
-      ToolBarIconButton(
-        label: 'Selection',
-        tooltipMessage: 'Selection Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.selection_pin_in_out,
-          color: state.activeTool == EditorToolType.selection ? accent : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.selection),
-      ),
-      ToolBarIconButton(
-        label: 'Tile Paint',
-        tooltipMessage: 'Tile Paint Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.paintbrush,
-          color: state.activeTool == EditorToolType.tilePaint ? accent : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.tilePaint),
-      ),
-      ToolBarIconButton(
-        label: 'Terrain Paint',
-        tooltipMessage: 'Terrain Paint Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.tree,
-          color: state.activeTool == EditorToolType.terrainPaint
-              ? accent
-              : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.terrainPaint),
-      ),
-      ToolBarIconButton(
-        label: 'Path Paint',
-        tooltipMessage: 'Path Paint Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.map,
-          color: state.activeTool == EditorToolType.terrainPaint &&
-                  state.terrainSelectionMode == TerrainSelectionMode.path
-              ? accent
-              : null,
-        ),
-        onPressed: notifier.selectPathPaintMode,
-      ),
-      ToolBarPullDownButton(
-        label: 'Terrain Type',
-        tooltipMessage:
-            'Terrain Type: ${_terrainTypeLabel(state.selectedTerrainType)}',
-        icon: _terrainTypeIcon(state.selectedTerrainType),
-        items: _terrainPulldownItems(notifier),
-      ),
-      ToolBarIconButton(
-        label: 'Collision Paint',
-        tooltipMessage: 'Collision Paint Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.square_grid_2x2,
-          color: state.activeTool == EditorToolType.collisionPaint
-              ? accent
-              : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.collisionPaint),
-      ),
-      ToolBarIconButton(
-        label: 'Collision brush size',
-        tooltipMessage: state.collisionBrushSizeMode ==
-                CollisionBrushSizeMode.singleTile
-            ? 'Collision Brush Size: 1x1'
-            : 'Collision Brush Size: Brush Footprint',
-        showLabel: false,
-        icon: MacosIcon(
-          state.collisionBrushSizeMode == CollisionBrushSizeMode.singleTile
-              ? CupertinoIcons.number
-              : CupertinoIcons.square_grid_3x2,
-          color: state.activeTool == EditorToolType.collisionPaint ||
-                  (state.activeTool == EditorToolType.eraser &&
-                      state.activeLayerId != null)
-              ? accent
-              : null,
-        ),
-        onPressed: () => notifier.toggleCollisionBrushSizeMode(),
-      ),
-      ToolBarIconButton(
-        label: 'Eraser',
-        tooltipMessage: 'Eraser Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.delete,
-          color: state.activeTool == EditorToolType.eraser ? accent : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.eraser),
-      ),
-      ToolBarIconButton(
-        label: 'Entity',
-        tooltipMessage: 'Entity Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.sparkles,
-          color: state.activeTool == EditorToolType.entityPlacement
-              ? accent
-              : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.entityPlacement),
-      ),
-      if (state.activeTool == EditorToolType.entityPlacement)
-        ToolBarPullDownButton(
-          label: 'Entity Kind',
-          tooltipMessage:
-              'Entity Kind: ${_entityKindLabel(state.selectedEntityKind)}',
-          icon: _entityKindIcon(state.selectedEntityKind),
-          items: _entityKindPulldownItems(notifier),
-        ),
-      ToolBarIconButton(
-        label: 'Trigger',
-        tooltipMessage: 'Trigger Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.square,
-          color: state.activeTool == EditorToolType.triggerPlacement
-              ? accent
-              : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.triggerPlacement),
-      ),
-      ToolBarIconButton(
-        label: 'Warp',
-        tooltipMessage: 'Warp Tool',
-        showLabel: false,
-        icon: MacosIcon(
-          CupertinoIcons.arrow_branch,
-          color: state.activeTool == EditorToolType.warpPlacement
-              ? accent
-              : null,
-        ),
-        onPressed: () => notifier.selectTool(EditorToolType.warpPlacement),
-      ),
-      _divider(context),
-      ToolBarIconButton(
-        label: 'Zoom In',
-        tooltipMessage: 'Zoom In',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.plus_circle),
-        onPressed: () => notifier.zoom(0.1),
-      ),
-      ToolBarIconButton(
-        label: 'Zoom Out',
-        tooltipMessage: 'Zoom Out',
-        showLabel: false,
-        icon: const MacosIcon(CupertinoIcons.minus_circle),
-        onPressed: () => notifier.zoom(-0.1),
-      ),
-      const ToolBarSpacer(spacerUnits: 6),
+      const ToolBarSpacer(spacerUnits: 4),
       if (state.statusMessage != null)
         CustomToolbarItem(
-          inToolbarBuilder: (_) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+          inToolbarBuilder: (_) => Container(
+            margin: const EdgeInsets.only(left: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemFill.resolveFrom(context),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: EditorChrome.subtleSeparator(context),
+              ),
+            ),
             child: Text(
               state.statusMessage!,
-              style: TextStyle(color: subtle, fontSize: 12),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+          inOverflowedBuilder: (_) => const ToolbarOverflowMenuItem(
+            label: 'Status',
+            onPressed: null,
           ),
         ),
     ];
 
     return ToolBar(
-      title: const Text('RPG Editor'),
-      titleWidth: 128,
+      title: _ToolbarBrand(
+        projectName: state.project?.name,
+        workspaceLabel: state.workspaceMode == EditorWorkspaceMode.map
+            ? 'World Editor'
+            : 'Tileset Studio',
+      ),
+      titleWidth: 220,
       automaticallyImplyLeading: false,
       centerTitle: false,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      dividerColor: MacosColors.transparent,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            EditorChrome.panelBackground(context).withValues(alpha: 0.96),
+            EditorChrome.scaffoldBackground(context).withValues(alpha: 0.92),
+          ],
+        ),
+      ),
       actions: actions,
     );
   }
 
-  static IconData _terrainTypeIcon(TerrainType type) {
-    return switch (type) {
-      TerrainType.none => CupertinoIcons.clear_circled,
-      TerrainType.grass => CupertinoIcons.leaf_arrow_circlepath,
-      TerrainType.dirt => CupertinoIcons.circle_grid_hex,
-      TerrainType.sand => CupertinoIcons.circle_grid_3x3,
-      TerrainType.rock => CupertinoIcons.circle_grid_hex,
-      TerrainType.stone => CupertinoIcons.square_grid_4x3_fill,
-      TerrainType.indoor => CupertinoIcons.house,
-    };
+  static CustomToolbarItem _groupItem(
+    BuildContext context, {
+    required String overflowLabel,
+    required List<Widget> children,
+  }) {
+    return CustomToolbarItem(
+      inToolbarBuilder: (_) => _ToolbarCapsuleGroup(children: children),
+      inOverflowedBuilder: (_) => ToolbarOverflowMenuItem(
+        label: overflowLabel,
+        onPressed: null,
+      ),
+    );
   }
 
   static String _terrainTypeLabel(TerrainType type) {
@@ -374,16 +354,6 @@ class TopToolbar extends ConsumerWidget {
       TerrainType.rock => 'Rock Base',
       TerrainType.stone => 'Stone Base',
       TerrainType.indoor => 'Indoor Base',
-    };
-  }
-
-  static IconData _entityKindIcon(MapEntityKind kind) {
-    return switch (kind) {
-      MapEntityKind.npc => CupertinoIcons.person,
-      MapEntityKind.sign => CupertinoIcons.textformat,
-      MapEntityKind.item => CupertinoIcons.cube_box,
-      MapEntityKind.spawn => CupertinoIcons.flag,
-      MapEntityKind.custom => CupertinoIcons.square_stack_3d_up,
     };
   }
 
@@ -744,6 +714,221 @@ class TopToolbar extends ConsumerWidget {
           inputFormatters: inputFormatters,
         ),
       ],
+    );
+  }
+}
+
+class _ToolbarBrand extends StatelessWidget {
+  const _ToolbarBrand({
+    required this.projectName,
+    required this.workspaceLabel,
+  });
+
+  final String? projectName;
+  final String workspaceLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    final accent = EditorChrome.activeAccent(context);
+
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                accent.withValues(alpha: 0.92),
+                accent.withValues(alpha: 0.58),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: 0.22),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: const MacosIcon(
+            CupertinoIcons.square_stack_3d_up_fill,
+            color: CupertinoColors.white,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'RPG Map Editor',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: label,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.15,
+                ),
+              ),
+              Text(
+                projectName == null
+                    ? workspaceLabel
+                    : '$projectName  •  $workspaceLabel',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ToolbarCapsuleGroup extends StatelessWidget {
+  const _ToolbarCapsuleGroup({
+    required this.children,
+  });
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleChildren = children.whereType<Widget>().toList(growable: false);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: EditorChrome.toolbarGroupGradient(context),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var index = 0; index < visibleChildren.length; index++) ...[
+              visibleChildren[index],
+              if (index < visibleChildren.length - 1)
+                const SizedBox(width: 3),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarCapsuleButton extends StatefulWidget {
+  const _ToolbarCapsuleButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final bool selected;
+
+  @override
+  State<_ToolbarCapsuleButton> createState() => _ToolbarCapsuleButtonState();
+}
+
+class _ToolbarCapsuleButtonState extends State<_ToolbarCapsuleButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = EditorChrome.activeAccent(context);
+    final enabled = widget.onPressed != null;
+    final fill = widget.selected
+        ? accent.withValues(alpha: 0.18)
+        : (_hovered ? CupertinoColors.systemFill.resolveFrom(context) : null);
+    final iconColor = !enabled
+        ? CupertinoColors.inactiveGray.resolveFrom(context)
+        : (widget.selected ? accent : EditorChrome.primaryLabel(context));
+    final content = AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOutCubic,
+      width: 34,
+      height: 30,
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      alignment: Alignment.center,
+      child: MacosIcon(
+        widget.icon,
+        size: 18,
+        color: iconColor,
+      ),
+    );
+
+    return MacosTooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+        onExit: enabled ? (_) => setState(() => _hovered = false) : null,
+        cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          behavior: HitTestBehavior.opaque,
+          child: content,
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarCapsulePulldown extends StatelessWidget {
+  const _ToolbarCapsulePulldown({
+    required this.label,
+    required this.items,
+  });
+
+  final String label;
+  final List<MacosPulldownMenuEntry> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor = EditorChrome.primaryLabel(context);
+    return Container(
+      constraints: const BoxConstraints(minWidth: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemFill.resolveFrom(context),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: MacosPulldownButton(
+        items: items,
+        title: label,
+        style: TextStyle(
+          color: labelColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        onTap: () {},
+      ),
     );
   }
 }
