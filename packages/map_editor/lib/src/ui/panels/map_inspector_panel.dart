@@ -45,7 +45,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
 
     if (activeMap == null) {
       return Container(
-        color: EditorChrome.scaffoldBackground(context),
+        color: EditorChrome.panelBackground(context),
         alignment: Alignment.center,
         child: Text(
           'Open a map to inspect layers and map systems',
@@ -94,7 +94,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             : 560.0;
 
         return Container(
-          color: EditorChrome.scaffoldBackground(context),
+          color: EditorChrome.panelBackground(context),
           child: SingleChildScrollView(
             primary: false,
             padding: const EdgeInsets.only(top: 8, bottom: 8),

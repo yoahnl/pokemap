@@ -14,6 +14,17 @@ abstract final class EditorChrome {
   static Color scaffoldBackground(BuildContext context) =>
       CupertinoColors.systemGroupedBackground.resolveFrom(context);
 
+  /// Fond de la zone centrale (carte, éditeur de tileset). En sombre,
+  /// [CupertinoColors.systemGroupedBackground] peut être noir pur ; on utilise
+  /// [MacosThemeData.canvasColor] (gris type fenêtre macOS) pour le même rendu
+  /// que la zone « Content » de macos_ui.
+  static Color mapCanvasViewportBackground(BuildContext context) {
+    if (MacosTheme.brightnessOf(context) == Brightness.dark) {
+      return MacosTheme.of(context).canvasColor;
+    }
+    return CupertinoColors.systemGroupedBackground.resolveFrom(context);
+  }
+
   static Color separator(BuildContext context) =>
       CupertinoColors.separator.resolveFrom(context);
 

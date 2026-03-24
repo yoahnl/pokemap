@@ -152,7 +152,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                     ContentArea(
                       builder: (context, scrollController) {
                         return ColoredBox(
-                          color: EditorChrome.scaffoldBackground(context),
+                          color: EditorChrome.mapCanvasViewportBackground(context),
                           child: Column(
                             children: const [
                               Expanded(
