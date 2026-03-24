@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../shared/cupertino_editor_widgets.dart';
 
 class LayersPanel extends ConsumerWidget {
   const LayersPanel({
@@ -12,16 +14,27 @@ class LayersPanel extends ConsumerWidget {
 
   final bool embedded;
 
+  static String _kindLabel(MapLayerKind k) {
+    return switch (k) {
+      MapLayerKind.tile => 'Tile Layer',
+      MapLayerKind.collision => 'Collision Layer',
+      MapLayerKind.terrain => 'Terrain Layer',
+      MapLayerKind.path => 'Path Layer',
+      MapLayerKind.object => 'Object Layer',
+    };
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
+    final subtle = EditorChrome.subtleLabel(context);
     final content = map == null
-        ? const Center(
+        ? Center(
             child: Text(
               'No map loaded',
-              style: TextStyle(color: Colors.white38),
+              style: TextStyle(color: subtle),
             ),
           )
         : _LayerList(
@@ -41,7 +54,7 @@ class LayersPanel extends ConsumerWidget {
                 _showDeleteAllLayersDialog(context, notifier),
             compact: true,
           ),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(child: content),
         ],
       );
@@ -49,8 +62,10 @@ class LayersPanel extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: const Border(bottom: BorderSide(color: Colors.white10)),
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          bottom: BorderSide(color: EditorChrome.separator(context)),
+        ),
       ),
       child: Column(
         children: [
@@ -61,7 +76,7 @@ class LayersPanel extends ConsumerWidget {
             onDeleteAllLayers: () =>
                 _showDeleteAllLayersDialog(context, notifier),
           ),
-          const Divider(height: 1),
+          const EditorHorizontalDivider(),
           Expanded(child: content),
         ],
       ),
@@ -72,91 +87,68 @@ class LayersPanel extends ConsumerWidget {
     BuildContext context,
     EditorNotifier notifier,
   ) async {
-    final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
     var selectedType = MapLayerKind.tile;
     var shouldSave = false;
 
-    await showDialog(
+    await showMacosEditorModalSheet<void>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add Layer'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Add Layer',
+              style: editorMacosSheetTitleStyle(ctx),
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () async {
+                  final picked = await showCupertinoListPicker<MapLayerKind>(
+                    context: ctx,
+                    title: 'Layer type',
+                    items: MapLayerKind.values,
+                    labelOf: _kindLabel,
+                  );
+                  if (picked != null) {
+                    setState(() => selectedType = picked);
+                  }
+                },
+                child: Text('Type: ${_kindLabel(selectedType)}'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            MacosTextField(
+              controller: nameController,
+              autofocus: true,
+              placeholder: 'Name',
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                DropdownButtonFormField<MapLayerKind>(
-                  initialValue: selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Type',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: MapLayerKind.tile,
-                      child: Text('Tile Layer'),
-                    ),
-                    DropdownMenuItem(
-                      value: MapLayerKind.collision,
-                      child: Text('Collision Layer'),
-                    ),
-                    DropdownMenuItem(
-                      value: MapLayerKind.terrain,
-                      child: Text('Terrain Layer'),
-                    ),
-                    DropdownMenuItem(
-                      value: MapLayerKind.path,
-                      child: Text('Path Layer'),
-                    ),
-                    DropdownMenuItem(
-                      value: MapLayerKind.object,
-                      child: Text('Object Layer'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        selectedType = value;
-                      });
-                    }
-                  },
+                PushButton(
+                  controlSize: ControlSize.large,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: nameController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Required';
-                    }
-                    return null;
+                const SizedBox(width: 10),
+                PushButton(
+                  controlSize: ControlSize.large,
+                  onPressed: () {
+                    if (nameController.text.trim().isEmpty) return;
+                    shouldSave = true;
+                    Navigator.pop(ctx);
                   },
+                  child: const Text('Add'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (!(formKey.currentState?.validate() ?? false)) {
-                  return;
-                }
-                shouldSave = true;
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
             ),
           ],
         ),
@@ -174,28 +166,13 @@ class LayersPanel extends ConsumerWidget {
     BuildContext context,
     EditorNotifier notifier,
   ) async {
-    var shouldDelete = false;
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove All Layers'),
-        content: const Text(
+    final shouldDelete = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Remove All Layers',
+      message:
           'All current layers will be removed. The map can stay with zero layers.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              shouldDelete = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Remove All'),
-          ),
-        ],
-      ),
+      primaryLabel: 'Remove All',
+      primaryIsDestructive: true,
     );
     if (!shouldDelete) return;
     notifier.deleteAllMapLayers();
@@ -219,6 +196,7 @@ class _LayerActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelColor = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Padding(
       padding: compact
           ? const EdgeInsets.fromLTRB(8, 8, 8, 6)
@@ -232,19 +210,21 @@ class _LayerActionsRow extends StatelessWidget {
                 fontSize: compact ? 10 : 11,
                 letterSpacing: compact ? 0.4 : 1.0,
                 fontWeight: FontWeight.bold,
-                color: Colors.white70,
+                color: labelColor,
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.add, size: 18),
-            tooltip: 'Add Layer',
+          EditorToolbarIconButton(
             onPressed: map == null ? null : onAddLayer,
+            icon: CupertinoIcons.add,
+            tooltip: 'Add Layer',
+            iconSize: 18,
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-            tooltip: 'Remove All Layers',
+          EditorToolbarIconButton(
             onPressed: map == null ? null : onDeleteAllLayers,
+            icon: CupertinoIcons.trash_slash,
+            tooltip: 'Remove All Layers',
+            iconSize: 18,
           ),
         ],
       ),
@@ -253,23 +233,28 @@ class _LayerActionsRow extends StatelessWidget {
 }
 
 class _LayerList extends StatelessWidget {
-  final MapData map;
-  final String? activeLayerId;
-  final EditorNotifier notifier;
-
   const _LayerList({
     required this.map,
     required this.activeLayerId,
     required this.notifier,
   });
 
+  final MapData map;
+  final String? activeLayerId;
+  final EditorNotifier notifier;
+
   @override
   Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final accent = EditorChrome.activeAccent(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+
     if (map.layers.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No layers in this map',
-          style: TextStyle(color: Colors.white38),
+          style: TextStyle(color: subtle),
         ),
       );
     }
@@ -283,103 +268,115 @@ class _LayerList extends StatelessWidget {
         final canMoveUp = index > 0;
         final canMoveDown = index < map.layers.length - 1;
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          color: isActive
-              ? Colors.blue.withValues(alpha: 0.12)
-              : Theme.of(context).scaffoldBackgroundColor,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-            child: Column(
-              children: [
-                InkWell(
-                  onTap: () => notifier.setActiveLayer(layer.id),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _iconForLayer(layer),
-                        size: 16,
-                        color: isActive ? Colors.blue : Colors.white60,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              layer.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isActive
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                                color: isActive ? Colors.blue : Colors.white,
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: isActive
+                  ? accent.withValues(alpha: 0.12)
+                  : EditorChrome.scaffoldBackground(context),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: CupertinoColors.separator.resolveFrom(context),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+              child: Column(
+                children: [
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    onPressed: () => notifier.setActiveLayer(layer.id),
+                    child: Row(
+                      children: [
+                        MacosIcon(
+                          _iconForLayer(layer),
+                          size: 16,
+                          color: isActive ? accent : secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                layer.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isActive
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                  color: isActive ? accent : label,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${_labelForLayer(layer)} • ${layer.id}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.white54,
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_labelForLayer(layer)} • ${layer.id}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: secondary,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => notifier.setMapLayerVisibility(
-                          layer.id,
-                          !layer.isVisible,
+                        EditorToolbarIconButton(
+                          onPressed: () => notifier.setMapLayerVisibility(
+                            layer.id,
+                            !layer.isVisible,
+                          ),
+                          icon: layer.isVisible
+                              ? CupertinoIcons.eye
+                              : CupertinoIcons.eye_slash,
+                          tooltip: layer.isVisible ? 'Hide layer' : 'Show layer',
+                          iconSize: 18,
                         ),
-                        icon: Icon(
-                          layer.isVisible
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          size: 18,
+                        EditorToolbarIconButton(
+                          onPressed: canMoveUp
+                              ? () => notifier.moveMapLayerUp(layer.id)
+                              : null,
+                          icon: CupertinoIcons.arrow_up,
+                          tooltip: 'Move up',
+                          iconSize: 18,
                         ),
-                        tooltip: layer.isVisible ? 'Hide layer' : 'Show layer',
-                      ),
-                      IconButton(
-                        onPressed: canMoveUp
-                            ? () => notifier.moveMapLayerUp(layer.id)
-                            : null,
-                        icon: const Icon(Icons.arrow_upward, size: 18),
-                        tooltip: 'Move up',
-                      ),
-                      IconButton(
-                        onPressed: canMoveDown
-                            ? () => notifier.moveMapLayerDown(layer.id)
-                            : null,
-                        icon: const Icon(Icons.arrow_downward, size: 18),
-                        tooltip: 'Move down',
-                      ),
-                      IconButton(
-                        onPressed: () => _showRenameLayerDialog(
-                          context,
-                          notifier,
-                          layer,
+                        EditorToolbarIconButton(
+                          onPressed: canMoveDown
+                              ? () => notifier.moveMapLayerDown(layer.id)
+                              : null,
+                          icon: CupertinoIcons.arrow_down,
+                          tooltip: 'Move down',
+                          iconSize: 18,
                         ),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        tooltip: 'Rename layer',
-                      ),
-                      IconButton(
-                        onPressed: () => _showDeleteLayerDialog(
-                          context,
-                          notifier,
-                          layer,
+                        EditorToolbarIconButton(
+                          onPressed: () => _showRenameLayerDialog(
+                            context,
+                            notifier,
+                            layer,
+                          ),
+                          icon: CupertinoIcons.pencil,
+                          tooltip: 'Rename layer',
+                          iconSize: 18,
                         ),
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                        tooltip: 'Delete layer',
-                      ),
-                    ],
+                        EditorToolbarIconButton(
+                          onPressed: () => _showDeleteLayerDialog(
+                            context,
+                            notifier,
+                            layer,
+                          ),
+                          icon: CupertinoIcons.trash,
+                          tooltip: 'Delete layer',
+                          iconSize: 18,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -389,11 +386,11 @@ class _LayerList extends StatelessWidget {
 
   IconData _iconForLayer(MapLayer layer) {
     return layer.map(
-      tile: (_) => Icons.grid_on_outlined,
-      collision: (_) => Icons.shield_outlined,
-      terrain: (_) => Icons.terrain_outlined,
-      path: (_) => Icons.route_outlined,
-      object: (_) => Icons.category_outlined,
+      tile: (_) => CupertinoIcons.square_grid_2x2,
+      collision: (_) => CupertinoIcons.shield,
+      terrain: (_) => CupertinoIcons.tree,
+      path: (_) => CupertinoIcons.map,
+      object: (_) => CupertinoIcons.square_stack_3d_up,
     );
   }
 
@@ -413,37 +410,14 @@ class _LayerList extends StatelessWidget {
     MapLayer layer,
   ) async {
     final controller = TextEditingController(text: layer.name);
-    var shouldSave = false;
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Layer'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
-            isDense: true,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isEmpty) return;
-              shouldSave = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'Rename Layer',
+      controller: controller,
+      placeholder: 'Name',
+      confirmLabel: 'Save',
     );
-    if (!shouldSave) return;
+    if (!ok) return;
     notifier.renameMapLayer(layer.id, controller.text.trim());
   }
 
@@ -452,26 +426,12 @@ class _LayerList extends StatelessWidget {
     EditorNotifier notifier,
     MapLayer layer,
   ) async {
-    var shouldDelete = false;
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Layer'),
-        content: Text('Delete "${layer.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              shouldDelete = true;
-              Navigator.pop(context);
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final shouldDelete = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Delete Layer',
+      message: 'Delete "${layer.name}"?',
+      primaryLabel: 'Delete',
+      primaryIsDestructive: true,
     );
     if (!shouldDelete) return;
     notifier.deleteMapLayer(layer.id);

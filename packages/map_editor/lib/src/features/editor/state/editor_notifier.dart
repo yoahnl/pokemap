@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:ui' show Offset;
+
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';

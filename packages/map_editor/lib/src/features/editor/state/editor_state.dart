@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'dart:ui' show Offset;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_core/map_core.dart';
 

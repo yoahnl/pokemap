@@ -1,22 +1,54 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/terrain_editor_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
+import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
 
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_state.dart';
 
-class EditorShellPage extends ConsumerWidget {
+class EditorShellPage extends ConsumerStatefulWidget {
   const EditorShellPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditorShellPage> createState() => _EditorShellPageState();
+}
+
+class _EditorShellPageState extends ConsumerState<EditorShellPage> {
+  Timer? _toastTimer;
+  String? _toastMessage;
+  bool _toastIsError = false;
+
+  @override
+  void dispose() {
+    _toastTimer?.cancel();
+    super.dispose();
+  }
+
+  void _flashToast(String message, {required bool isError}) {
+    _toastTimer?.cancel();
+    setState(() {
+      _toastMessage = message;
+      _toastIsError = isError;
+    });
+    _toastTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => _toastMessage = null);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(editorNotifierProvider);
     final workspaceMode = state.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
@@ -24,18 +56,14 @@ class EditorShellPage extends ConsumerWidget {
     ref.listen(editorNotifierProvider.select((s) => s.errorMessage),
         (prev, next) {
       if (next != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next), backgroundColor: Colors.red.shade900),
-        );
+        _flashToast(next, isError: true);
       }
     });
 
     ref.listen(editorNotifierProvider.select((s) => s.statusMessage),
         (prev, next) {
       if (next != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next), duration: const Duration(seconds: 2)),
-        );
+        _flashToast(next, isError: false);
       }
     });
 
@@ -81,43 +109,118 @@ class EditorShellPage extends ConsumerWidget {
         },
         child: Focus(
           autofocus: true,
-          child: Scaffold(
-            body: Column(
-              children: [
-                const TopToolbar(),
-                Expanded(
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 340,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: ProjectExplorerPanel(),
-                            ),
-                            Divider(height: 1),
-                            SizedBox(height: 420, child: TerrainEditorPanel()),
-                          ],
-                        ),
-                      ),
-                      const VerticalDivider(width: 1),
-                      const Expanded(
-                        child: EditorCanvasHost(),
-                      ),
-                      const VerticalDivider(width: 1),
-                      SizedBox(
-                        width: 320,
-                        child: workspaceMode == EditorWorkspaceMode.map
-                            ? const MapInspectorPanel()
-                            : const TilesetPalettePanel(),
-                      ),
-                    ],
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              MacosWindow(
+                titleBar: const TitleBar(
+                  title: Text('RPG Map Editor'),
+                ),
+                child: MacosScaffold(
+                  toolBar: buildMapEditorToolbar(context, ref),
+                  children: [
+                    ContentArea(
+                      builder: (context, scrollController) {
+                        return ColoredBox(
+                          color: EditorChrome.scaffoldBackground(context),
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    const SizedBox(
+                                      width: 340,
+                                      child: Column(
+                                        children: [
+                                          Expanded(
+                                            child: ProjectExplorerPanel(),
+                                          ),
+                                          EditorHorizontalDivider(),
+                                          SizedBox(
+                                            height: 420,
+                                            child: TerrainEditorPanel(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const EditorVerticalDivider(),
+                                    const Expanded(
+                                      child: EditorCanvasHost(),
+                                    ),
+                                    const EditorVerticalDivider(),
+                                    SizedBox(
+                                      width: 320,
+                                      child: workspaceMode ==
+                                              EditorWorkspaceMode.map
+                                          ? const MapInspectorPanel()
+                                          : const TilesetPalettePanel(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const StatusBar(),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              if (_toastMessage != null)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 40,
+                  child: _EditorToastBanner(
+                    message: _toastMessage!,
+                    isError: _toastIsError,
                   ),
                 ),
-                const StatusBar(),
-              ],
-            ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorToastBanner extends StatelessWidget {
+  const _EditorToastBanner({
+    required this.message,
+    required this.isError,
+  });
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isError
+        ? CupertinoColors.destructiveRed.resolveFrom(context)
+        : CupertinoColors.systemGrey.resolveFrom(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Text(
+          message,
+          style: const TextStyle(
+            color: CupertinoColors.white,
+            fontSize: 13,
+          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );

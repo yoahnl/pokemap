@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';
 import 'entity_properties_panel.dart';
 import 'layers_panel.dart';
@@ -44,11 +45,13 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
 
     if (activeMap == null) {
       return Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: EditorChrome.scaffoldBackground(context),
         alignment: Alignment.center,
-        child: const Text(
+        child: Text(
           'Open a map to inspect layers and map systems',
-          style: TextStyle(color: Colors.white38),
+          style: TextStyle(
+            color: EditorChrome.subtleLabel(context),
+          ),
           textAlign: TextAlign.center,
         ),
       );
@@ -91,7 +94,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             : 560.0;
 
         return Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: EditorChrome.scaffoldBackground(context),
           child: SingleChildScrollView(
             primary: false,
             padding: const EdgeInsets.only(top: 8, bottom: 8),
@@ -104,7 +107,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                   subtitle: activeLayer == null
                       ? 'Select the active layer for this map'
                       : 'Active: ${_layerLabel(activeLayer)}',
-                  icon: Icons.layers_outlined,
+                  icon: CupertinoIcons.layers,
                   badgeText: '${activeMap.layers.length}',
                   accentColor: const Color(0xFF4A90E2),
                   expanded: _isExpanded(_InspectorSectionId.layers, true),
@@ -120,7 +123,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     title: 'Tiles & Elements',
                     subtitle:
                         'Tileset palette and element placement for tile layers.',
-                    icon: Icons.grid_view_outlined,
+                    icon: CupertinoIcons.square_grid_2x2,
                     accentColor: const Color(0xFF4D8BFF),
                     expanded: _isExpanded(
                       _InspectorSectionId.tiles,
@@ -139,7 +142,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                   InspectorSectionCard(
                     title: 'Base Ground',
                     subtitle: 'Terrain-only editing for the map background.',
-                    icon: Icons.landscape_outlined,
+                    icon: CupertinoIcons.tree,
                     accentColor: const Color(0xFF3E8D67),
                     expanded: _isExpanded(
                       _InspectorSectionId.ground,
@@ -160,7 +163,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     title: 'Surface Overlays',
                     subtitle:
                         'Path-only editing for roads and specialized surfaces.',
-                    icon: Icons.route_outlined,
+                    icon: CupertinoIcons.map,
                     accentColor: const Color(0xFF9B6230),
                     expanded: _isExpanded(
                       _InspectorSectionId.surfaces,
@@ -182,7 +185,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle: state.selectedEntityId != null
                         ? 'Selected entity ready for editing.'
                         : 'Visible world content such as NPCs, signs, items and spawn points.',
-                    icon: Icons.interests_outlined,
+                    icon: CupertinoIcons.sparkles,
                     badgeText: '${activeMap.entities.length}',
                     accentColor: const Color(0xFF4ED0FF),
                     expanded: _isExpanded(
@@ -203,7 +206,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                   InspectorSectionCard(
                     title: 'Connections',
                     subtitle: 'Link the current map to adjacent world maps.',
-                    icon: Icons.alt_route_outlined,
+                    icon: CupertinoIcons.arrow_branch,
                     badgeText: '${activeMap.connections.length}',
                     accentColor: const Color(0xFF6AA6FF),
                     expanded:
@@ -221,7 +224,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle: state.selectedTriggerId != null
                         ? 'Selected trigger ready for editing.'
                         : 'Gameplay zones and editable trigger areas.',
-                    icon: Icons.crop_din_outlined,
+                    icon: CupertinoIcons.square,
                     badgeText: '${activeMap.triggers.length}',
                     accentColor: const Color(0xFFE59A2E),
                     expanded: _isExpanded(
@@ -244,7 +247,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle: state.selectedWarpId != null
                         ? 'Selected warp ready for editing.'
                         : 'Map transitions such as doors, stairs and exits.',
-                    icon: Icons.move_down_outlined,
+                    icon: CupertinoIcons.arrow_down_circle,
                     badgeText: '${activeMap.warps.length}',
                     accentColor: const Color(0xFF31C3D9),
                     expanded: _isExpanded(

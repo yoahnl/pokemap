@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
@@ -10,49 +11,61 @@ class StatusBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorNotifierProvider);
     final activeMap = state.activeMap;
+    final labelColor = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final bg = state.errorMessage != null
+        ? CupertinoColors.destructiveRed.resolveFrom(context)
+        : CupertinoColors.activeBlue.resolveFrom(context);
 
     return Container(
       height: 24,
-      color: state.errorMessage != null
-          ? Colors.red.shade900
-          : Colors.blue.shade900,
+      color: bg,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(
+          MacosIcon(
             state.errorMessage != null
-                ? Icons.error_outline
-                : Icons.info_outline,
+                ? CupertinoIcons.exclamationmark_circle
+                : CupertinoIcons.info,
             size: 14,
-            color: Colors.white70,
+            color: CupertinoColors.white,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               state.errorMessage ?? state.statusMessage ?? 'Ready',
               style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500),
+                fontSize: 10,
+                color: CupertinoColors.white,
+                fontWeight: FontWeight.w500,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
           if (activeMap != null) ...[
-            const VerticalDivider(
-                width: 16, color: Colors.white24, indent: 4, endIndent: 4),
+            _miniDivider(),
             Text(
               'Map: ${activeMap.id} (${activeMap.size.width}x${activeMap.size.height})',
-              style: const TextStyle(fontSize: 10, color: Colors.white70),
+              style: TextStyle(fontSize: 10, color: labelColor),
             ),
           ],
-          const VerticalDivider(
-              width: 16, color: Colors.white24, indent: 4, endIndent: 4),
+          _miniDivider(),
           Text(
             'Zoom: ${(state.zoom * 100).toInt()}%',
-            style: const TextStyle(fontSize: 10, color: Colors.white70),
+            style: TextStyle(fontSize: 10, color: labelColor),
           ),
           const SizedBox(width: 8),
         ],
+      ),
+    );
+  }
+
+  static Widget _miniDivider() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: SizedBox(
+        height: 12,
+        width: 1,
+        child: ColoredBox(color: Color(0x44FFFFFF)),
       ),
     );
   }
