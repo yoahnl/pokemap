@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import 'terrain_editor_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 
@@ -129,29 +130,6 @@ class ProjectExplorerPanel extends ConsumerWidget {
     final rootMaps = project.maps.where((m) => m.groupId == null).toList();
     final rootGroups =
         project.groups.where((g) => g.parentGroupId == null).toList();
-    final hasTilesets = project.tilesets.isNotEmpty;
-
-    if (rootMaps.isEmpty && rootGroups.isEmpty && !hasTilesets) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'World is empty',
-              style: TextStyle(
-                color: CupertinoColors.placeholderText.resolveFrom(context),
-              ),
-            ),
-            const SizedBox(height: 18),
-            PushButton(
-              controlSize: ControlSize.large,
-              onPressed: () => _showCreateGroupDialog(context, notifier),
-              child: const Text('Add City or Route'),
-            ),
-          ],
-        ),
-      );
-    }
 
     final worldChildren = <Widget>[
       ...rootGroups.map(
@@ -177,79 +155,155 @@ class ProjectExplorerPanel extends ConsumerWidget {
       if (rootGroups.isEmpty && rootMaps.isEmpty)
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
-          child: Text(
-            'No map group or map yet',
-            style: TextStyle(
-              color: CupertinoColors.placeholderText.resolveFrom(context),
-              fontSize: 12,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'World is empty',
+                style: TextStyle(
+                  color: CupertinoColors.placeholderText.resolveFrom(context),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              PushButton(
+                controlSize: ControlSize.regular,
+                onPressed: () => _showCreateGroupDialog(context, notifier),
+                child: const Text('Add City or Route'),
+              ),
+            ],
           ),
         ),
     ];
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+    return Column(
       children: [
-        _ExplorerIslandSurface(
-          tint: const Color(0xFF1B2940),
-          child: _buildTilesetsSection(context, project, state, notifier),
+        Expanded(
+          child: _ExplorerIslandSurface(
+            tint: const Color(0xFF1B2940),
+            child: _buildTilesetsIsland(context, project, state, notifier),
+          ),
         ),
         const SizedBox(height: 14),
-        _ExplorerIslandSurface(
-          tint: const Color(0xFF1B2331),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        ResizablePane.noScrollBar(
+          key: const ValueKey('project_explorer_world_pane'),
+          resizableSide: ResizableSide.top,
+          minSize: 180,
+          maxSize: 420,
+          startSize: 280,
+          decoration: const BoxDecoration(
+            color: MacosColors.transparent,
+            border: Border(
+              top: BorderSide(color: MacosColors.transparent),
+            ),
+          ),
+          child: _ExplorerIslandSurface(
+            tint: const Color(0xFF1B2331),
+            child: _buildWorldIsland(context, worldChildren),
+          ),
+        ),
+        const SizedBox(height: 14),
+        ResizablePane.noScrollBar(
+          key: const ValueKey('project_explorer_surface_pane'),
+          resizableSide: ResizableSide.top,
+          minSize: 180,
+          maxSize: 480,
+          startSize: 280,
+          decoration: const BoxDecoration(
+            color: MacosColors.transparent,
+            border: Border(
+              top: BorderSide(color: MacosColors.transparent),
+            ),
+          ),
+          child: _ExplorerIslandSurface(
+            tint: const Color(0xFF33261D),
+            child: const TerrainEditorPanel(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTilesetsIsland(
+    BuildContext context,
+    ProjectManifest project,
+    dynamic state,
+    EditorNotifier notifier,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 4),
+      child: SingleChildScrollView(
+        primary: false,
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+        child: _buildTilesetsSection(context, project, state, notifier),
+      ),
+    );
+  }
+
+  Widget _buildWorldIsland(
+    BuildContext context,
+    List<Widget> worldChildren,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: Row(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-                child: Row(
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: EditorChrome.activeAccent(context)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: MacosIcon(
+                  CupertinoIcons.map_fill,
+                  size: 15,
+                  color: EditorChrome.activeAccent(context),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: EditorChrome.activeAccent(context)
-                            .withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      alignment: Alignment.center,
-                      child: MacosIcon(
-                        CupertinoIcons.map_fill,
-                        size: 15,
-                        color: EditorChrome.activeAccent(context),
+                    Text(
+                      'World Maps',
+                      style: TextStyle(
+                        color: EditorChrome.primaryLabel(context),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'World Maps',
-                            style: TextStyle(
-                              color: EditorChrome.primaryLabel(context),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Regions, groups and playable maps',
-                            style: TextStyle(
-                              color: EditorChrome.subtleLabel(context),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 2),
+                    Text(
+                      'Regions, groups and playable maps',
+                      style: TextStyle(
+                        color: EditorChrome.subtleLabel(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 2),
-              ...worldChildren,
             ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        Expanded(
+          child: SingleChildScrollView(
+            primary: false,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: worldChildren,
+            ),
           ),
         ),
       ],

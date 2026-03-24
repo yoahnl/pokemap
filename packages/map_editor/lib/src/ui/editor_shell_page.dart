@@ -7,7 +7,6 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
-import 'package:map_editor/src/ui/panels/terrain_editor_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
@@ -145,31 +144,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         ),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
-                          child: Column(
-                            children: [
-                              const Expanded(
-                                child: ProjectExplorerPanel(),
-                              ),
-                              const SizedBox(height: 14),
-                              ResizablePane.noScrollBar(
-                                key: const ValueKey(
-                                  'editor_surface_library_pane',
-                                ),
-                                resizableSide: ResizableSide.top,
-                                minSize: 160,
-                                maxSize: 560,
-                                startSize: 420,
-                                decoration: const BoxDecoration(
-                                  color: MacosColors.transparent,
-                                ),
-                                child: EditorPaneSurface(
-                                  radius: 26,
-                                  tint: const Color(0xFF33261D),
-                                  child: const TerrainEditorPanel(),
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: const ProjectExplorerPanel(),
                         ),
                       ),
                       ContentArea(
