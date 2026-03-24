@@ -32,9 +32,11 @@ class MapEntity with _$MapEntity {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntity({
     required String id,
-    required EntityType type,
+    @Default('') String name,
+    required MapEntityKind kind,
     required GridPos pos,
-    @Default({}) Map<String, dynamic> properties,
+    @Default(GridSize(width: 1, height: 1)) GridSize size,
+    @Default({}) Map<String, String> properties,
   }) = _MapEntity;
 
   factory MapEntity.fromJson(Map<String, dynamic> json) =>

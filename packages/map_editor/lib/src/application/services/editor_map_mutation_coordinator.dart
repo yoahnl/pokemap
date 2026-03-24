@@ -26,6 +26,7 @@ class EditorMapMutationState extends EditorMapHistoryState {
   const EditorMapMutationState({
     required this.activeMap,
     required this.activeLayerId,
+    required this.selectedEntityId,
     required this.selectedWarpId,
     required this.selectedTriggerId,
     required this.selectedTilesetEditorId,
@@ -40,6 +41,7 @@ class EditorMapMutationState extends EditorMapHistoryState {
 
   final MapData activeMap;
   final String? activeLayerId;
+  final String? selectedEntityId;
   final String? selectedWarpId;
   final String? selectedTriggerId;
   final String? selectedTilesetEditorId;
@@ -59,6 +61,7 @@ class EditorMapMutationCoordinator {
   EditorMapHistoryState beginStroke({
     required MapData map,
     required String? activeLayerId,
+    required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
@@ -69,6 +72,7 @@ class EditorMapMutationCoordinator {
     final history = _historyCoordinator.beginStroke(
       map: map,
       activeLayerId: activeLayerId,
+      selectedEntityId: selectedEntityId,
       selectedWarpId: selectedWarpId,
       selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
@@ -115,6 +119,7 @@ class EditorMapMutationCoordinator {
     required MapData previousMap,
     required MapData updatedMap,
     required String? activeLayerId,
+    required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
     required String? selectedTilesetEditorId,
@@ -122,6 +127,7 @@ class EditorMapMutationCoordinator {
     required List<MapHistorySnapshot> redoStack,
     required MapHistorySnapshot? strokeStart,
     required String? preferredActiveLayerId,
+    required String? preferredSelectedEntityId,
     required String? preferredSelectedWarpId,
     required String? preferredSelectedTriggerId,
     required MapData? savedMapSnapshot,
@@ -131,6 +137,7 @@ class EditorMapMutationCoordinator {
     final history = _historyCoordinator.applyMutation(
       previousMap: previousMap,
       activeLayerId: activeLayerId,
+      selectedEntityId: selectedEntityId,
       selectedWarpId: selectedWarpId,
       selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
@@ -141,6 +148,7 @@ class EditorMapMutationCoordinator {
     final session = _sessionCoordinator.resolveSelectionForMap(
       updatedMap,
       preferredLayerId: preferredActiveLayerId,
+      preferredEntityId: preferredSelectedEntityId ?? selectedEntityId,
       preferredWarpId: preferredSelectedWarpId ?? selectedWarpId,
       preferredTriggerId: preferredSelectedTriggerId ?? selectedTriggerId,
       currentSelectedTilesetEditorId: selectedTilesetEditorId,
@@ -150,6 +158,7 @@ class EditorMapMutationCoordinator {
     return EditorMapMutationState(
       activeMap: updatedMap,
       activeLayerId: session.activeLayerId,
+      selectedEntityId: session.selectedEntityId,
       selectedWarpId: session.selectedWarpId,
       selectedTriggerId: session.selectedTriggerId,
       selectedTilesetEditorId: session.selectedTilesetEditorId,
@@ -167,6 +176,7 @@ class EditorMapMutationCoordinator {
   EditorMapMutationState? undo({
     required MapData currentMap,
     required String? activeLayerId,
+    required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
@@ -176,6 +186,7 @@ class EditorMapMutationCoordinator {
     final history = _historyCoordinator.undo(
       currentMap: currentMap,
       activeLayerId: activeLayerId,
+      selectedEntityId: selectedEntityId,
       selectedWarpId: selectedWarpId,
       selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
@@ -186,6 +197,7 @@ class EditorMapMutationCoordinator {
     final session = _sessionCoordinator.resolveSelectionForMap(
       restoredMap,
       preferredLayerId: history.restoredSnapshot.activeLayerId,
+      preferredEntityId: history.restoredSnapshot.selectedEntityId,
       preferredWarpId: history.restoredSnapshot.selectedWarpId,
       preferredTriggerId: history.restoredSnapshot.selectedTriggerId,
       currentSelectedTilesetEditorId: null,
@@ -193,6 +205,7 @@ class EditorMapMutationCoordinator {
     return EditorMapMutationState(
       activeMap: restoredMap,
       activeLayerId: session.activeLayerId,
+      selectedEntityId: session.selectedEntityId,
       selectedWarpId: session.selectedWarpId,
       selectedTriggerId: session.selectedTriggerId,
       selectedTilesetEditorId: session.selectedTilesetEditorId,
@@ -210,6 +223,7 @@ class EditorMapMutationCoordinator {
   EditorMapMutationState? redo({
     required MapData currentMap,
     required String? activeLayerId,
+    required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
     required List<MapHistorySnapshot> undoStack,
@@ -219,6 +233,7 @@ class EditorMapMutationCoordinator {
     final history = _historyCoordinator.redo(
       currentMap: currentMap,
       activeLayerId: activeLayerId,
+      selectedEntityId: selectedEntityId,
       selectedWarpId: selectedWarpId,
       selectedTriggerId: selectedTriggerId,
       undoStack: undoStack,
@@ -229,6 +244,7 @@ class EditorMapMutationCoordinator {
     final session = _sessionCoordinator.resolveSelectionForMap(
       restoredMap,
       preferredLayerId: history.restoredSnapshot.activeLayerId,
+      preferredEntityId: history.restoredSnapshot.selectedEntityId,
       preferredWarpId: history.restoredSnapshot.selectedWarpId,
       preferredTriggerId: history.restoredSnapshot.selectedTriggerId,
       currentSelectedTilesetEditorId: null,
@@ -236,6 +252,7 @@ class EditorMapMutationCoordinator {
     return EditorMapMutationState(
       activeMap: restoredMap,
       activeLayerId: session.activeLayerId,
+      selectedEntityId: session.selectedEntityId,
       selectedWarpId: session.selectedWarpId,
       selectedTriggerId: session.selectedTriggerId,
       selectedTilesetEditorId: session.selectedTilesetEditorId,

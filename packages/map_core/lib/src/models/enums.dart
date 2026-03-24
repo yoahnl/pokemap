@@ -68,15 +68,15 @@ extension MapConnectionDirectionX on MapConnectionDirection {
       this == MapConnectionDirection.south;
 }
 
-enum EntityType {
+enum MapEntityKind {
   @JsonValue('npc')
   npc,
-  @JsonValue('monster')
-  monster,
-  @JsonValue('chest')
-  chest,
   @JsonValue('sign')
   sign,
+  @JsonValue('item')
+  item,
+  @JsonValue('spawn')
+  spawn,
   @JsonValue('custom')
   custom,
 }

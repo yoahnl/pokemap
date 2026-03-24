@@ -93,7 +93,7 @@ class TerrainEditorPanel extends ConsumerWidget {
   }
 }
 
-class _LibraryRoot extends ConsumerWidget {
+class _LibraryRoot extends ConsumerStatefulWidget {
   const _LibraryRoot({
     required this.title,
     required this.subtitle,
@@ -115,13 +115,32 @@ class _LibraryRoot extends ConsumerWidget {
   final String? selectedPresetId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_LibraryRoot> createState() => _LibraryRootState();
+}
+
+class _LibraryRootState extends ConsumerState<_LibraryRoot> {
+  bool _expanded = true;
+  bool _detailsExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.title;
+    final subtitle = widget.subtitle;
+    final kind = widget.kind;
+    final color = widget.color;
+    final icon = widget.icon;
+    final settings = widget.settings;
+    final tilesets = widget.tilesets;
+    final selectedPresetId = widget.selectedPresetId;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final categories = notifier.getPresetCategories(kind: kind);
     final uncategorizedPresets = _rootPresets(notifier, kind);
     final selectedPreset = kind == PresetLibraryKind.terrain
         ? notifier.getTerrainPresetById(selectedPresetId)
         : notifier.getPathPresetById(selectedPresetId);
+    final presetCount = kind == PresetLibraryKind.terrain
+        ? notifier.getTerrainPresets().length
+        : notifier.getPathPresets().length;
 
     return Container(
       decoration: BoxDecoration(
@@ -136,27 +155,64 @@ class _LibraryRoot extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
             child: Row(
               children: [
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () {
+                      setState(() {
+                        _expanded = !_expanded;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Icon(icon, size: 16, color: color),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  subtitle,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white10,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              '$presetCount',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.white70),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
                 IconButton(
@@ -179,11 +235,25 @@ class _LibraryRoot extends ConsumerWidget {
                   ),
                   icon: const Icon(Icons.add_circle_outline, size: 18),
                 ),
+                IconButton(
+                  tooltip: _expanded ? 'Collapse section' : 'Expand section',
+                  onPressed: () {
+                    setState(() {
+                      _expanded = !_expanded;
+                    });
+                  },
+                  icon: Icon(
+                    _expanded
+                        ? Icons.expand_less_outlined
+                        : Icons.expand_more_outlined,
+                    size: 18,
+                  ),
+                ),
               ],
             ),
           ),
-          const Divider(height: 1),
-          if (categories.isEmpty && uncategorizedPresets.isEmpty)
+          if (_expanded) const Divider(height: 1),
+          if (_expanded && categories.isEmpty && uncategorizedPresets.isEmpty)
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
@@ -193,7 +263,7 @@ class _LibraryRoot extends ConsumerWidget {
                 style: const TextStyle(fontSize: 11, color: Colors.white60),
               ),
             )
-          else
+          else if (_expanded)
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
               child: Column(
@@ -224,16 +294,56 @@ class _LibraryRoot extends ConsumerWidget {
                 ],
               ),
             ),
-          if (selectedPreset != null) ...[
+          if (_expanded && selectedPreset != null) ...[
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: _PresetDetailsCard(
-                kind: kind,
-                preset: selectedPreset,
-                color: color,
-                settings: settings,
-                tilesets: tilesets,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () {
+                      setState(() {
+                        _detailsExpanded = !_detailsExpanded;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Selected Preset',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            _detailsExpanded
+                                ? Icons.expand_less_outlined
+                                : Icons.expand_more_outlined,
+                            size: 18,
+                            color: Colors.white60,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_detailsExpanded) ...[
+                    const SizedBox(height: 8),
+                    _PresetDetailsCard(
+                      kind: kind,
+                      preset: selectedPreset,
+                      color: color,
+                      settings: settings,
+                      tilesets: tilesets,
+                    ),
+                  ],
+                ],
               ),
             ),
           ],

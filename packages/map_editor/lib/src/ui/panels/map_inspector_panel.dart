@@ -6,6 +6,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../shared/inspector_section_card.dart';
+import 'entity_properties_panel.dart';
 import 'layers_panel.dart';
 import 'map_connections_panel.dart';
 import 'terrain_map_panel.dart';
@@ -18,6 +19,7 @@ enum _InspectorSectionId {
   tiles,
   ground,
   surfaces,
+  entities,
   connections,
   triggers,
   warps,
@@ -70,9 +72,14 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 state.activeTool == EditorToolType.terrainPaint &&
                 state.terrainSelectionMode == TerrainSelectionMode.path));
     const showConnectionsSection = true;
-    final showTriggerSection = state.activeTool == EditorToolType.triggerPlacement ||
-        state.selectedTriggerId != null ||
-        activeMap.triggers.isNotEmpty;
+    final showEntitySection =
+        state.activeTool == EditorToolType.entityPlacement ||
+            state.selectedEntityId != null ||
+            activeMap.entities.isNotEmpty;
+    final showTriggerSection =
+        state.activeTool == EditorToolType.triggerPlacement ||
+            state.selectedTriggerId != null ||
+            activeMap.triggers.isNotEmpty;
     final showWarpSection = state.activeTool == EditorToolType.warpPlacement ||
         state.selectedWarpId != null ||
         activeMap.warps.isNotEmpty;
@@ -89,6 +96,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             primary: false,
             padding: const EdgeInsets.only(top: 8, bottom: 8),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 InspectorSectionCard(
                   title: 'Layers',
@@ -109,7 +118,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 if (showTilesSection)
                   InspectorSectionCard(
                     title: 'Tiles & Elements',
-                    subtitle: 'Tileset palette and element placement for tile layers.',
+                    subtitle:
+                        'Tileset palette and element placement for tile layers.',
                     icon: Icons.grid_view_outlined,
                     accentColor: const Color(0xFF4D8BFF),
                     expanded: _isExpanded(
@@ -148,7 +158,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 if (showSurfaceSection)
                   InspectorSectionCard(
                     title: 'Surface Overlays',
-                    subtitle: 'Path-only editing for roads and specialized surfaces.',
+                    subtitle:
+                        'Path-only editing for roads and specialized surfaces.',
                     icon: Icons.route_outlined,
                     accentColor: const Color(0xFF9B6230),
                     expanded: _isExpanded(
@@ -165,6 +176,29 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                       mode: TerrainMapPanelMode.surfaceOnly,
                     ),
                   ),
+                if (showEntitySection)
+                  InspectorSectionCard(
+                    title: 'Map Entities',
+                    subtitle: state.selectedEntityId != null
+                        ? 'Selected entity ready for editing.'
+                        : 'Visible world content such as NPCs, signs, items and spawn points.',
+                    icon: Icons.interests_outlined,
+                    badgeText: '${activeMap.entities.length}',
+                    accentColor: const Color(0xFF4ED0FF),
+                    expanded: _isExpanded(
+                      _InspectorSectionId.entities,
+                      state.activeTool == EditorToolType.entityPlacement ||
+                          state.selectedEntityId != null,
+                    ),
+                    onToggle: () => _toggleSection(
+                      _InspectorSectionId.entities,
+                      defaultExpanded:
+                          state.activeTool == EditorToolType.entityPlacement ||
+                              state.selectedEntityId != null,
+                    ),
+                    expandedHeight: 560,
+                    child: const EntityPropertiesPanel(embedded: true),
+                  ),
                 if (showConnectionsSection)
                   InspectorSectionCard(
                     title: 'Connections',
@@ -172,7 +206,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     icon: Icons.alt_route_outlined,
                     badgeText: '${activeMap.connections.length}',
                     accentColor: const Color(0xFF6AA6FF),
-                    expanded: _isExpanded(_InspectorSectionId.connections, false),
+                    expanded:
+                        _isExpanded(_InspectorSectionId.connections, false),
                     onToggle: () => _toggleSection(
                       _InspectorSectionId.connections,
                       defaultExpanded: false,
@@ -243,7 +278,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     required bool defaultExpanded,
   }) {
     setState(() {
-      _expandedSections[section] = !(_expandedSections[section] ?? defaultExpanded);
+      _expandedSections[section] =
+          !(_expandedSections[section] ?? defaultExpanded);
     });
   }
 

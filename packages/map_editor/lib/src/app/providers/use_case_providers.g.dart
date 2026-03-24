@@ -145,6 +145,26 @@ final warpEditingCoordinatorProvider =
 // ignore: unused_element
 typedef WarpEditingCoordinatorRef
     = AutoDisposeProviderRef<WarpEditingCoordinator>;
+String _$entityEditingCoordinatorHash() =>
+    r'ec304cae4faf80cb1d9a2977cf95e054dc1b73ba';
+
+/// See also [entityEditingCoordinator].
+@ProviderFor(entityEditingCoordinator)
+final entityEditingCoordinatorProvider =
+    AutoDisposeProvider<EntityEditingCoordinator>.internal(
+  entityEditingCoordinator,
+  name: r'entityEditingCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$entityEditingCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EntityEditingCoordinatorRef
+    = AutoDisposeProviderRef<EntityEditingCoordinator>;
 String _$triggerEditingCoordinatorHash() =>
     r'0d9ff3c949a38fae41fcbd4cd18c72c8ce2fc8ac';
 
@@ -204,6 +224,25 @@ final triggerEditingServiceProvider =
 // ignore: unused_element
 typedef TriggerEditingServiceRef
     = AutoDisposeProviderRef<TriggerEditingService>;
+String _$entityEditingServiceHash() =>
+    r'701fcf885068bc183dc5e1f557bb7aae03a82bc6';
+
+/// See also [entityEditingService].
+@ProviderFor(entityEditingService)
+final entityEditingServiceProvider =
+    AutoDisposeProvider<EntityEditingService>.internal(
+  entityEditingService,
+  name: r'entityEditingServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$entityEditingServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef EntityEditingServiceRef = AutoDisposeProviderRef<EntityEditingService>;
 String _$mapConnectionEditingServiceHash() =>
     r'1b04bd4861dbfcea12d139a333e98ee10ec35a36';
 
@@ -283,6 +322,66 @@ final createProjectUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CreateProjectUseCaseRef = AutoDisposeProviderRef<CreateProjectUseCase>;
+String _$addEntityToMapUseCaseHash() =>
+    r'495d01652737b65e3c3cbd991bd113951dee1c52';
+
+/// See also [addEntityToMapUseCase].
+@ProviderFor(addEntityToMapUseCase)
+final addEntityToMapUseCaseProvider =
+    AutoDisposeProvider<AddEntityToMapUseCase>.internal(
+  addEntityToMapUseCase,
+  name: r'addEntityToMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addEntityToMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddEntityToMapUseCaseRef
+    = AutoDisposeProviderRef<AddEntityToMapUseCase>;
+String _$updateEntityOnMapUseCaseHash() =>
+    r'67ff3bcd20e272d45fae289f0c79c8f9972bbb83';
+
+/// See also [updateEntityOnMapUseCase].
+@ProviderFor(updateEntityOnMapUseCase)
+final updateEntityOnMapUseCaseProvider =
+    AutoDisposeProvider<UpdateEntityOnMapUseCase>.internal(
+  updateEntityOnMapUseCase,
+  name: r'updateEntityOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateEntityOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateEntityOnMapUseCaseRef
+    = AutoDisposeProviderRef<UpdateEntityOnMapUseCase>;
+String _$deleteEntityFromMapUseCaseHash() =>
+    r'c7f43f3d0ee3ceac36d23adca07c0e2a2f17a356';
+
+/// See also [deleteEntityFromMapUseCase].
+@ProviderFor(deleteEntityFromMapUseCase)
+final deleteEntityFromMapUseCaseProvider =
+    AutoDisposeProvider<DeleteEntityFromMapUseCase>.internal(
+  deleteEntityFromMapUseCase,
+  name: r'deleteEntityFromMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteEntityFromMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteEntityFromMapUseCaseRef
+    = AutoDisposeProviderRef<DeleteEntityFromMapUseCase>;
 String _$loadProjectUseCaseHash() =>
     r'75964ea221f264befbf4a28c4249bd2c1b6df85e';
 

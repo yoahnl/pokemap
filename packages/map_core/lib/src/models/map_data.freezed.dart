@@ -450,9 +450,11 @@ MapEntity _$MapEntityFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$MapEntity {
   String get id => throw _privateConstructorUsedError;
-  EntityType get type => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  MapEntityKind get kind => throw _privateConstructorUsedError;
   GridPos get pos => throw _privateConstructorUsedError;
-  Map<String, dynamic> get properties => throw _privateConstructorUsedError;
+  GridSize get size => throw _privateConstructorUsedError;
+  Map<String, String> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapEntity to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -471,11 +473,14 @@ abstract class $MapEntityCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      EntityType type,
+      String name,
+      MapEntityKind kind,
       GridPos pos,
-      Map<String, dynamic> properties});
+      GridSize size,
+      Map<String, String> properties});
 
   $GridPosCopyWith<$Res> get pos;
+  $GridSizeCopyWith<$Res> get size;
 }
 
 /// @nodoc
@@ -494,8 +499,10 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
   @override
   $Res call({
     Object? id = null,
-    Object? type = null,
+    Object? name = null,
+    Object? kind = null,
     Object? pos = null,
+    Object? size = null,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -503,18 +510,26 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as EntityType,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as MapEntityKind,
       pos: null == pos
           ? _value.pos
           : pos // ignore: cast_nullable_to_non_nullable
               as GridPos,
+      size: null == size
+          ? _value.size
+          : size // ignore: cast_nullable_to_non_nullable
+              as GridSize,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
+              as Map<String, String>,
     ) as $Val);
   }
 
@@ -525,6 +540,16 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
   $GridPosCopyWith<$Res> get pos {
     return $GridPosCopyWith<$Res>(_value.pos, (value) {
       return _then(_value.copyWith(pos: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $GridSizeCopyWith<$Res> get size {
+    return $GridSizeCopyWith<$Res>(_value.size, (value) {
+      return _then(_value.copyWith(size: value) as $Val);
     });
   }
 }
@@ -539,12 +564,16 @@ abstract class _$$MapEntityImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
-      EntityType type,
+      String name,
+      MapEntityKind kind,
       GridPos pos,
-      Map<String, dynamic> properties});
+      GridSize size,
+      Map<String, String> properties});
 
   @override
   $GridPosCopyWith<$Res> get pos;
+  @override
+  $GridSizeCopyWith<$Res> get size;
 }
 
 /// @nodoc
@@ -561,8 +590,10 @@ class __$$MapEntityImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? type = null,
+    Object? name = null,
+    Object? kind = null,
     Object? pos = null,
+    Object? size = null,
     Object? properties = null,
   }) {
     return _then(_$MapEntityImpl(
@@ -570,18 +601,26 @@ class __$$MapEntityImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as EntityType,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as MapEntityKind,
       pos: null == pos
           ? _value.pos
           : pos // ignore: cast_nullable_to_non_nullable
               as GridPos,
+      size: null == size
+          ? _value.size
+          : size // ignore: cast_nullable_to_non_nullable
+              as GridSize,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
+              as Map<String, String>,
     ));
   }
 }
@@ -592,9 +631,11 @@ class __$$MapEntityImplCopyWithImpl<$Res>
 class _$MapEntityImpl implements _MapEntity {
   const _$MapEntityImpl(
       {required this.id,
-      required this.type,
+      this.name = '',
+      required this.kind,
       required this.pos,
-      final Map<String, dynamic> properties = const {}})
+      this.size = const GridSize(width: 1, height: 1),
+      final Map<String, String> properties = const {}})
       : _properties = properties;
 
   factory _$MapEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -603,13 +644,19 @@ class _$MapEntityImpl implements _MapEntity {
   @override
   final String id;
   @override
-  final EntityType type;
+  @JsonKey()
+  final String name;
+  @override
+  final MapEntityKind kind;
   @override
   final GridPos pos;
-  final Map<String, dynamic> _properties;
   @override
   @JsonKey()
-  Map<String, dynamic> get properties {
+  final GridSize size;
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
     if (_properties is EqualUnmodifiableMapView) return _properties;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableMapView(_properties);
@@ -617,7 +664,7 @@ class _$MapEntityImpl implements _MapEntity {
 
   @override
   String toString() {
-    return 'MapEntity(id: $id, type: $type, pos: $pos, properties: $properties)';
+    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, properties: $properties)';
   }
 
   @override
@@ -626,15 +673,17 @@ class _$MapEntityImpl implements _MapEntity {
         (other.runtimeType == runtimeType &&
             other is _$MapEntityImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.type, type) || other.type == type) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.kind, kind) || other.kind == kind) &&
             (identical(other.pos, pos) || other.pos == pos) &&
+            (identical(other.size, size) || other.size == size) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, type, pos,
+  int get hashCode => Object.hash(runtimeType, id, name, kind, pos, size,
       const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapEntity
@@ -656,9 +705,11 @@ class _$MapEntityImpl implements _MapEntity {
 abstract class _MapEntity implements MapEntity {
   const factory _MapEntity(
       {required final String id,
-      required final EntityType type,
+      final String name,
+      required final MapEntityKind kind,
       required final GridPos pos,
-      final Map<String, dynamic> properties}) = _$MapEntityImpl;
+      final GridSize size,
+      final Map<String, String> properties}) = _$MapEntityImpl;
 
   factory _MapEntity.fromJson(Map<String, dynamic> json) =
       _$MapEntityImpl.fromJson;
@@ -666,11 +717,15 @@ abstract class _MapEntity implements MapEntity {
   @override
   String get id;
   @override
-  EntityType get type;
+  String get name;
+  @override
+  MapEntityKind get kind;
   @override
   GridPos get pos;
   @override
-  Map<String, dynamic> get properties;
+  GridSize get size;
+  @override
+  Map<String, String> get properties;
 
   /// Create a copy of MapEntity
   /// with the given fields replaced by the non-null parameter values.

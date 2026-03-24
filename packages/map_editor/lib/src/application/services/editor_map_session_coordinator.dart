@@ -3,12 +3,14 @@ import 'package:map_core/map_core.dart';
 class EditorMapSessionSelection {
   const EditorMapSessionSelection({
     required this.activeLayerId,
+    required this.selectedEntityId,
     required this.selectedWarpId,
     required this.selectedTriggerId,
     required this.selectedTilesetEditorId,
   });
 
   final String? activeLayerId;
+  final String? selectedEntityId;
   final String? selectedWarpId;
   final String? selectedTriggerId;
   final String? selectedTilesetEditorId;
@@ -20,6 +22,7 @@ class EditorMapSessionCoordinator {
   EditorMapSessionSelection resolveSelectionForMap(
     MapData map, {
     String? preferredLayerId,
+    String? preferredEntityId,
     String? preferredWarpId,
     String? preferredTriggerId,
     String? currentSelectedTilesetEditorId,
@@ -27,6 +30,10 @@ class EditorMapSessionCoordinator {
     final activeLayerId = resolveActiveLayerId(
       map,
       preferredLayerId: preferredLayerId,
+    );
+    final selectedEntityId = resolveSelectedEntityId(
+      map,
+      preferredEntityId: preferredEntityId,
     );
     final selectedWarpId = resolveSelectedWarpId(
       map,
@@ -46,6 +53,7 @@ class EditorMapSessionCoordinator {
           );
     return EditorMapSessionSelection(
       activeLayerId: activeLayerId,
+      selectedEntityId: selectedEntityId,
       selectedWarpId: selectedWarpId,
       selectedTriggerId: selectedTriggerId,
       selectedTilesetEditorId: selectedTilesetEditorId,
@@ -93,6 +101,19 @@ class EditorMapSessionCoordinator {
     final normalized = preferredWarpId.trim();
     if (normalized.isEmpty) return null;
     if (map.warps.any((warp) => warp.id == normalized)) {
+      return normalized;
+    }
+    return null;
+  }
+
+  String? resolveSelectedEntityId(
+    MapData map, {
+    String? preferredEntityId,
+  }) {
+    if (preferredEntityId == null) return null;
+    final normalized = preferredEntityId.trim();
+    if (normalized.isEmpty) return null;
+    if (map.entities.any((entity) => entity.id == normalized)) {
       return normalized;
     }
     return null;

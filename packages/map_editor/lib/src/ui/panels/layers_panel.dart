@@ -31,7 +31,20 @@ class LayersPanel extends ConsumerWidget {
           );
 
     if (embedded) {
-      return content;
+      return Column(
+        children: [
+          _LayerActionsRow(
+            map: map,
+            notifier: notifier,
+            onAddLayer: () => _showAddLayerDialog(context, notifier),
+            onDeleteAllLayers: () =>
+                _showDeleteAllLayersDialog(context, notifier),
+            compact: true,
+          ),
+          const Divider(height: 1),
+          Expanded(child: content),
+        ],
+      );
     }
 
     return Container(
@@ -41,37 +54,12 @@ class LayersPanel extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'LAYERS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add, size: 18),
-                  tooltip: 'Add Layer',
-                  onPressed: map == null
-                      ? null
-                      : () => _showAddLayerDialog(context, notifier),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                  tooltip: 'Remove All Layers',
-                  onPressed: map == null
-                      ? null
-                      : () => _showDeleteAllLayersDialog(context, notifier),
-                ),
-              ],
-            ),
+          _LayerActionsRow(
+            map: map,
+            notifier: notifier,
+            onAddLayer: () => _showAddLayerDialog(context, notifier),
+            onDeleteAllLayers: () =>
+                _showDeleteAllLayersDialog(context, notifier),
           ),
           const Divider(height: 1),
           Expanded(child: content),
@@ -211,6 +199,56 @@ class LayersPanel extends ConsumerWidget {
     );
     if (!shouldDelete) return;
     notifier.deleteAllMapLayers();
+  }
+}
+
+class _LayerActionsRow extends StatelessWidget {
+  const _LayerActionsRow({
+    required this.map,
+    required this.notifier,
+    required this.onAddLayer,
+    required this.onDeleteAllLayers,
+    this.compact = false,
+  });
+
+  final MapData? map;
+  final EditorNotifier notifier;
+  final VoidCallback onAddLayer;
+  final VoidCallback onDeleteAllLayers;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: compact
+          ? const EdgeInsets.fromLTRB(8, 8, 8, 6)
+          : const EdgeInsets.fromLTRB(12, 10, 8, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              compact ? 'Layer Actions' : 'LAYERS',
+              style: TextStyle(
+                fontSize: compact ? 10 : 11,
+                letterSpacing: compact ? 0.4 : 1.0,
+                fontWeight: FontWeight.bold,
+                color: Colors.white70,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, size: 18),
+            tooltip: 'Add Layer',
+            onPressed: map == null ? null : onAddLayer,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+            tooltip: 'Remove All Layers',
+            onPressed: map == null ? null : onDeleteAllLayers,
+          ),
+        ],
+      ),
+    );
   }
 }
 

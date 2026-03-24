@@ -84,6 +84,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 state.activeTool == EditorToolType.collisionPaint ||
                 state.activeTool == EditorToolType.eraser;
         final isTapEditingTool = isStrokeEditingTool ||
+            state.activeTool == EditorToolType.entityPlacement ||
             state.activeTool == EditorToolType.warpPlacement ||
             state.activeTool == EditorToolType.triggerPlacement;
 
@@ -105,6 +106,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           }
           if (state.activeTool == EditorToolType.eraser) {
             notifier.eraseAt(gridPos);
+            return;
+          }
+          if (state.activeTool == EditorToolType.entityPlacement) {
+            notifier.placeOrSelectEntityAt(gridPos);
             return;
           }
           if (state.activeTool == EditorToolType.warpPlacement) {
@@ -218,6 +223,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     tilesPerRowById: tilesPerRowById,
                     toolPreview: toolPreview,
                     warps: activeMap.warps,
+                    selectedEntityId: state.selectedEntityId,
                     selectedWarpId: state.selectedWarpId,
                     selectedTriggerId: state.selectedTriggerId,
                     connectionLabelsByDirection: connectionLabelsByDirection,
@@ -346,6 +352,7 @@ class MapGridPainter extends CustomPainter {
   final Map<String, int> tilesPerRowById;
   final MapToolPreview? toolPreview;
   final List<MapWarp> warps;
+  final String? selectedEntityId;
   final String? selectedWarpId;
   final String? selectedTriggerId;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
@@ -367,6 +374,7 @@ class MapGridPainter extends CustomPainter {
     required this.tilesPerRowById,
     this.toolPreview,
     required this.warps,
+    this.selectedEntityId,
     this.selectedWarpId,
     this.selectedTriggerId,
     required this.connectionLabelsByDirection,
@@ -467,6 +475,7 @@ class MapGridPainter extends CustomPainter {
     }
 
     _paintToolPreview(canvas);
+    _paintEntities(canvas);
     _paintTriggers(canvas);
     _paintWarps(canvas);
     _paintConnections(canvas, gridWidth, gridHeight);
@@ -512,6 +521,113 @@ class MapGridPainter extends CustomPainter {
         center,
         (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.14,
         Paint()..color = isSelected ? Colors.white : Colors.purple.shade100,
+      );
+    }
+  }
+
+  void _paintEntities(Canvas canvas) {
+    if (map.entities.isEmpty) return;
+    for (final entity in map.entities) {
+      if (entity.pos.x < 0 ||
+          entity.pos.y < 0 ||
+          entity.pos.x >= map.size.width ||
+          entity.pos.y >= map.size.height) {
+        continue;
+      }
+      final isSelected = entity.id == selectedEntityId;
+      final rect = Rect.fromLTWH(
+        entity.pos.x * tileWidth,
+        entity.pos.y * tileHeight,
+        entity.size.width * tileWidth,
+        entity.size.height * tileHeight,
+      );
+      final color = _entityColor(entity.kind);
+      final fillPaint = Paint()
+        ..color = color.withValues(alpha: isSelected ? 0.28 : 0.18)
+        ..style = PaintingStyle.fill;
+      final borderPaint = Paint()
+        ..color = isSelected ? Colors.white : color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
+      canvas.drawRect(rect, fillPaint);
+      canvas.drawRect(rect, borderPaint);
+
+      if (rect.width < (18 / zoom) || rect.height < (16 / zoom)) {
+        continue;
+      }
+
+      final badgeWidth = math.min(rect.width - (6 / zoom), 42 / zoom);
+      final badgeRect = Rect.fromLTWH(
+        rect.left + (3 / zoom),
+        rect.top + (3 / zoom),
+        badgeWidth,
+        math.min(rect.height - (6 / zoom), 16 / zoom),
+      );
+      if (badgeRect.width <= 0 || badgeRect.height <= 0) {
+        continue;
+      }
+
+      final badge = RRect.fromRectAndRadius(
+        badgeRect,
+        Radius.circular(4 / zoom),
+      );
+      canvas.drawRRect(
+        badge,
+        Paint()
+          ..color = Colors.black.withValues(alpha: isSelected ? 0.72 : 0.56)
+          ..style = PaintingStyle.fill,
+      );
+
+      final badgeTextPainter = TextPainter(
+        text: TextSpan(
+          text: _entityShortLabel(entity.kind),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 9 / zoom,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '...',
+      )..layout(maxWidth: badgeRect.width - (6 / zoom));
+      if (badgeTextPainter.width > 0 && badgeTextPainter.height > 0) {
+        badgeTextPainter.paint(
+          canvas,
+          Offset(
+            badgeRect.left + (3 / zoom),
+            badgeRect.top + ((badgeRect.height - badgeTextPainter.height) / 2),
+          ),
+        );
+      }
+
+      if (rect.width < (44 / zoom) || rect.height < (28 / zoom)) {
+        continue;
+      }
+
+      final label = entity.name.trim().isNotEmpty ? entity.name : entity.id;
+      final labelTextPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10 / zoom,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '...',
+      )..layout(maxWidth: rect.width - (8 / zoom));
+      if (labelTextPainter.width <= 0 || labelTextPainter.height <= 0) {
+        continue;
+      }
+      labelTextPainter.paint(
+        canvas,
+        Offset(
+          rect.left + (4 / zoom),
+          rect.bottom - labelTextPainter.height - (4 / zoom),
+        ),
       );
     }
   }
@@ -1518,6 +1634,26 @@ class MapGridPainter extends CustomPainter {
     };
   }
 
+  Color _entityColor(MapEntityKind kind) {
+    return switch (kind) {
+      MapEntityKind.npc => const Color(0xFF55D0FF),
+      MapEntityKind.sign => const Color(0xFFFFC857),
+      MapEntityKind.item => const Color(0xFF7CE38B),
+      MapEntityKind.spawn => const Color(0xFFFF7B7B),
+      MapEntityKind.custom => const Color(0xFFC18CFF),
+    };
+  }
+
+  String _entityShortLabel(MapEntityKind kind) {
+    return switch (kind) {
+      MapEntityKind.npc => 'NPC',
+      MapEntityKind.sign => 'SIGN',
+      MapEntityKind.item => 'ITEM',
+      MapEntityKind.spawn => 'SPAWN',
+      MapEntityKind.custom => 'CUSTOM',
+    };
+  }
+
   @override
   bool shouldRepaint(covariant MapGridPainter oldDelegate) {
     return oldDelegate.map != map ||
@@ -1528,6 +1664,7 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.tileWidth != tileWidth ||
         oldDelegate.tileHeight != tileHeight ||
         !_sameToolPreview(oldDelegate.toolPreview, toolPreview) ||
+        oldDelegate.selectedEntityId != selectedEntityId ||
         oldDelegate.selectedWarpId != selectedWarpId ||
         oldDelegate.selectedTriggerId != selectedTriggerId ||
         !listEquals(oldDelegate.warps, warps) ||

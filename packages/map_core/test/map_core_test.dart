@@ -53,8 +53,8 @@ void main() {
         tilesetId: 'ts1',
         entities: [
           const MapEntity(
-            id: 'e1', 
-            type: EntityType.npc, 
+            id: 'e1',
+            kind: MapEntityKind.npc,
             pos: GridPos(x: 10, y: 10) // Out of bounds
           ),
         ],

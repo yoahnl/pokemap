@@ -11,6 +11,7 @@ import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
+import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/path_layer_editing_coordinator.dart';
@@ -48,6 +49,8 @@ class EditorNotifier extends _$EditorNotifier {
 
   WarpEditingService get _warpEditingService =>
       ref.read(warpEditingServiceProvider);
+  EntityEditingService get _entityEditingService =>
+      ref.read(entityEditingServiceProvider);
   TriggerEditingService get _triggerEditingService =>
       ref.read(triggerEditingServiceProvider);
   MapConnectionEditingService get _mapConnectionEditingService =>
@@ -109,12 +112,14 @@ class EditorNotifier extends _$EditorNotifier {
         activeBrush: const EditorBrush.none(),
         terrainSelectionMode: presetSelection.selectionMode,
         selectedTerrainType: presetSelection.selectedTerrainType,
+        selectedEntityKind: MapEntityKind.npc,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
         selectedPathPresetId: presetSelection.selectedPathPresetId,
         selectedTerrainPresetByType:
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTriggerId: null,
+        selectedEntityId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -153,12 +158,14 @@ class EditorNotifier extends _$EditorNotifier {
         activeBrush: const EditorBrush.none(),
         terrainSelectionMode: presetSelection.selectionMode,
         selectedTerrainType: presetSelection.selectedTerrainType,
+        selectedEntityKind: MapEntityKind.npc,
         selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
         selectedPathPresetId: presetSelection.selectedPathPresetId,
         selectedTerrainPresetByType:
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTriggerId: null,
+        selectedEntityId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -274,6 +281,7 @@ class EditorNotifier extends _$EditorNotifier {
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTriggerId: null,
+        selectedEntityId: null,
         selectedTilesetEditorId:
             _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
@@ -336,6 +344,7 @@ class EditorNotifier extends _$EditorNotifier {
             presetSelection.selectedTerrainPresetByType,
         selectedWarpId: null,
         selectedTriggerId: null,
+        selectedEntityId: null,
         selectedTilesetEditorId: nextSelectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
@@ -464,12 +473,14 @@ class EditorNotifier extends _$EditorNotifier {
       PaletteCategory? paletteCategoryFilter = state.paletteCategoryFilter;
       String? selectedWarpId = state.selectedWarpId;
       String? selectedTriggerId = state.selectedTriggerId;
+      String? selectedEntityId = state.selectedEntityId;
       if (activeMap?.id == mapId) {
         activeMap = null;
         activePath = null;
         activeBrush = const EditorBrush.none();
         selectedWarpId = null;
         selectedTriggerId = null;
+        selectedEntityId = null;
         selectedTilesetEditorId = null;
         selectedTilesetElementGroupId = null;
         paletteCategoryFilter = null;
@@ -484,6 +495,7 @@ class EditorNotifier extends _$EditorNotifier {
             ? null
             : _editorMapSessionCoordinator.resolveActiveLayerId(activeMap),
         activeBrush: activeBrush,
+        selectedEntityId: selectedEntityId,
         selectedWarpId: selectedWarpId,
         selectedTriggerId: selectedTriggerId,
         selectedTilesetEditorId: selectedTilesetEditorId,
@@ -1907,11 +1919,180 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  MapEntity? getSelectedEntity() {
+    return _entityEditingService.findSelectedEntity(
+      state.activeMap,
+      state.selectedEntityId,
+    );
+  }
+
   MapTrigger? getSelectedTrigger() {
     return _triggerEditingService.findSelectedTrigger(
       state.activeMap,
       state.selectedTriggerId,
     );
+  }
+
+  void placeOrSelectEntityAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final existing = _entityEditingService.findEntityAtPos(map, pos);
+    if (existing != null) {
+      selectEntity(existing.id);
+      return;
+    }
+    addEntityAt(
+      pos,
+      kind: state.selectedEntityKind,
+    );
+  }
+
+  void addEntityAt(
+    GridPos pos, {
+    required MapEntityKind kind,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final result = _entityEditingService.addEntityAt(
+        map,
+        pos,
+        kind: kind,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedEntityId: result.createdEntity.id,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: state.selectedTriggerId,
+        statusMessage: 'Entity "${result.createdEntity.id}" created',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create entity: $e');
+    }
+  }
+
+  void selectEntity(String? entityId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    if (entityId == null) {
+      state = state.copyWith(
+        selectedEntityId: null,
+        errorMessage: null,
+      );
+      return;
+    }
+    final entity = _entityEditingService.findSelectedEntity(map, entityId);
+    if (entity == null) {
+      state = state.copyWith(errorMessage: 'Entity not found: $entityId');
+      return;
+    }
+    state = state.copyWith(
+      selectedEntityId: entity.id,
+      selectedEntityKind: entity.kind,
+      errorMessage: null,
+    );
+  }
+
+  void selectEntityKind(MapEntityKind kind) {
+    state = state.copyWith(
+      selectedEntityKind: kind,
+      statusMessage: 'Entity kind: ${kind.name}',
+      errorMessage: null,
+    );
+  }
+
+  void updateSelectedEntity({
+    required String id,
+    required String name,
+    required MapEntityKind kind,
+    required int x,
+    required int y,
+    required int width,
+    required int height,
+    required Map<String, String> properties,
+  }) {
+    final selectedEntityId = state.selectedEntityId;
+    if (selectedEntityId == null) return;
+    updateEntity(
+      entityId: selectedEntityId,
+      id: id,
+      name: name,
+      kind: kind,
+      pos: GridPos(x: x, y: y),
+      size: GridSize(width: width, height: height),
+      properties: properties,
+    );
+  }
+
+  void updateEntity({
+    required String entityId,
+    String? id,
+    String? name,
+    MapEntityKind? kind,
+    GridPos? pos,
+    GridSize? size,
+    Map<String, String>? properties,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final result = _entityEditingService.updateEntity(
+        map,
+        entityId: entityId,
+        id: id,
+        name: name,
+        kind: kind,
+        pos: pos,
+        size: size,
+        properties: properties,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedEntityId: result.selectedEntityId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: state.selectedTriggerId,
+        statusMessage: 'Entity updated',
+      );
+      if (kind != null && kind != state.selectedEntityKind) {
+        state = state.copyWith(selectedEntityKind: kind);
+      }
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update entity: $e');
+    }
+  }
+
+  void deleteSelectedEntity() {
+    final selectedEntityId = state.selectedEntityId;
+    if (selectedEntityId == null) return;
+    deleteEntity(selectedEntityId);
+  }
+
+  void deleteEntity(String entityId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = _entityEditingService.deleteEntity(
+        map,
+        entityId: entityId,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedEntityId: state.selectedEntityId == entityId
+            ? null
+            : state.selectedEntityId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: state.selectedTriggerId,
+        statusMessage: 'Entity deleted',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete entity: $e');
+    }
   }
 
   void placeOrSelectTriggerAt(GridPos pos) {
@@ -2434,6 +2615,7 @@ class EditorNotifier extends _$EditorNotifier {
     final history = _editorMapMutationCoordinator.beginStroke(
       map: map,
       activeLayerId: state.activeLayerId,
+      selectedEntityId: state.selectedEntityId,
       selectedWarpId: state.selectedWarpId,
       selectedTriggerId: state.selectedTriggerId,
       undoStack: state.mapUndoStack,
@@ -2479,6 +2661,7 @@ class EditorNotifier extends _$EditorNotifier {
     final restored = _editorMapMutationCoordinator.undo(
       currentMap: map,
       activeLayerId: state.activeLayerId,
+      selectedEntityId: state.selectedEntityId,
       selectedWarpId: state.selectedWarpId,
       selectedTriggerId: state.selectedTriggerId,
       undoStack: state.mapUndoStack,
@@ -2489,6 +2672,7 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
+      selectedEntityId: restored.selectedEntityId,
       selectedWarpId: restored.selectedWarpId,
       selectedTriggerId: restored.selectedTriggerId,
       selectedTilesetEditorId: restored.selectedTilesetEditorId,
@@ -2511,6 +2695,7 @@ class EditorNotifier extends _$EditorNotifier {
     final restored = _editorMapMutationCoordinator.redo(
       currentMap: map,
       activeLayerId: state.activeLayerId,
+      selectedEntityId: state.selectedEntityId,
       selectedWarpId: state.selectedWarpId,
       selectedTriggerId: state.selectedTriggerId,
       undoStack: state.mapUndoStack,
@@ -2521,6 +2706,7 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
+      selectedEntityId: restored.selectedEntityId,
       selectedWarpId: restored.selectedWarpId,
       selectedTriggerId: restored.selectedTriggerId,
       selectedTilesetEditorId: restored.selectedTilesetEditorId,
@@ -3980,6 +4166,7 @@ class EditorNotifier extends _$EditorNotifier {
     required MapData previousMap,
     required MapData updatedMap,
     required String? preferredActiveLayerId,
+    String? preferredSelectedEntityId,
     String? preferredSelectedWarpId,
     String? preferredSelectedTriggerId,
     bool partOfStroke = false,
@@ -4000,6 +4187,7 @@ class EditorNotifier extends _$EditorNotifier {
       previousMap: previousMap,
       updatedMap: updatedMap,
       activeLayerId: state.activeLayerId,
+      selectedEntityId: state.selectedEntityId,
       selectedWarpId: state.selectedWarpId,
       selectedTriggerId: state.selectedTriggerId,
       selectedTilesetEditorId: state.selectedTilesetEditorId,
@@ -4007,6 +4195,7 @@ class EditorNotifier extends _$EditorNotifier {
       redoStack: state.mapRedoStack,
       strokeStart: state.mapStrokeStart,
       preferredActiveLayerId: preferredActiveLayerId,
+      preferredSelectedEntityId: preferredSelectedEntityId,
       preferredSelectedWarpId: preferredSelectedWarpId,
       preferredSelectedTriggerId: preferredSelectedTriggerId,
       savedMapSnapshot: state.savedMapSnapshot,
@@ -4016,6 +4205,7 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       activeMap: mutation.activeMap,
       activeLayerId: mutation.activeLayerId,
+      selectedEntityId: mutation.selectedEntityId,
       selectedWarpId: mutation.selectedWarpId,
       selectedTriggerId: mutation.selectedTriggerId,
       selectedTilesetEditorId: mutation.selectedTilesetEditorId,

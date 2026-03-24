@@ -14,6 +14,7 @@ export 'src/operations/map_terrain.dart';
 export 'src/operations/map_terrain_autotile.dart';
 export 'src/operations/map_layers.dart';
 export 'src/operations/map_connections.dart';
+export 'src/operations/map_entities.dart';
 export 'src/operations/map_triggers.dart';
 export 'src/operations/map_warps.dart';
 export 'src/validation/validators.dart';

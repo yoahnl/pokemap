@@ -237,6 +237,60 @@ class TopToolbar extends ConsumerWidget {
             tooltip: 'Eraser Tool',
           ),
           IconButton(
+            onPressed: () => notifier.selectTool(EditorToolType.entityPlacement),
+            icon: Icon(
+              Icons.interests_outlined,
+              size: 20,
+              color: state.activeTool == EditorToolType.entityPlacement
+                  ? Colors.blue
+                  : null,
+            ),
+            tooltip: 'Entity Tool',
+          ),
+          if (state.activeTool == EditorToolType.entityPlacement)
+            PopupMenuButton<MapEntityKind>(
+              tooltip:
+                  'Entity Kind: ${_entityKindLabel(state.selectedEntityKind)}',
+              onSelected: notifier.selectEntityKind,
+              itemBuilder: (context) => MapEntityKind.values
+                  .map(
+                    (kind) => PopupMenuItem<MapEntityKind>(
+                      value: kind,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _entityKindIcon(kind),
+                            size: 18,
+                            color: kind == state.selectedEntityKind
+                                ? Colors.blue
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(_entityKindLabel(kind)),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      _entityKindIcon(state.selectedEntityKind),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _entityKindLabel(state.selectedEntityKind),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const Icon(Icons.arrow_drop_down),
+                  ],
+                ),
+              ),
+            ),
+          IconButton(
             onPressed: () =>
                 notifier.selectTool(EditorToolType.triggerPlacement),
             icon: Icon(
@@ -340,6 +394,26 @@ class TopToolbar extends ConsumerWidget {
       TerrainType.rock => 'Rock Base',
       TerrainType.stone => 'Stone Base',
       TerrainType.indoor => 'Indoor Base',
+    };
+  }
+
+  IconData _entityKindIcon(MapEntityKind kind) {
+    return switch (kind) {
+      MapEntityKind.npc => Icons.person_outline,
+      MapEntityKind.sign => Icons.signpost_outlined,
+      MapEntityKind.item => Icons.inventory_2_outlined,
+      MapEntityKind.spawn => Icons.flag_outlined,
+      MapEntityKind.custom => Icons.extension_outlined,
+    };
+  }
+
+  String _entityKindLabel(MapEntityKind kind) {
+    return switch (kind) {
+      MapEntityKind.npc => 'NPC',
+      MapEntityKind.sign => 'Sign',
+      MapEntityKind.item => 'Item',
+      MapEntityKind.spawn => 'Spawn',
+      MapEntityKind.custom => 'Custom',
     };
   }
 

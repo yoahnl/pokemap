@@ -59,25 +59,34 @@ const _$ProjectVersionEnumMap = {
 _$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
     _$MapEntityImpl(
       id: json['id'] as String,
-      type: $enumDecode(_$EntityTypeEnumMap, json['type']),
+      name: json['name'] as String? ?? '',
+      kind: $enumDecode(_$MapEntityKindEnumMap, json['kind']),
       pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
-      properties: json['properties'] as Map<String, dynamic>? ?? const {},
+      size: json['size'] == null
+          ? const GridSize(width: 1, height: 1)
+          : GridSize.fromJson(json['size'] as Map<String, dynamic>),
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const {},
     );
 
 Map<String, dynamic> _$$MapEntityImplToJson(_$MapEntityImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'type': _$EntityTypeEnumMap[instance.type]!,
+      'name': instance.name,
+      'kind': _$MapEntityKindEnumMap[instance.kind]!,
       'pos': instance.pos.toJson(),
+      'size': instance.size.toJson(),
       'properties': instance.properties,
     };
 
-const _$EntityTypeEnumMap = {
-  EntityType.npc: 'npc',
-  EntityType.monster: 'monster',
-  EntityType.chest: 'chest',
-  EntityType.sign: 'sign',
-  EntityType.custom: 'custom',
+const _$MapEntityKindEnumMap = {
+  MapEntityKind.npc: 'npc',
+  MapEntityKind.sign: 'sign',
+  MapEntityKind.item: 'item',
+  MapEntityKind.spawn: 'spawn',
+  MapEntityKind.custom: 'custom',
 };
 
 _$MapWarpImpl _$$MapWarpImplFromJson(Map<String, dynamic> json) =>

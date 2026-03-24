@@ -548,11 +548,31 @@ class MapValidator {
 
     for (final entity in map.entities) {
       final entityId = _requireNonBlank(entity.id, 'Entity ID cannot be empty');
+      _requireNonBlank(entity.kind.name, 'Entity $entityId has invalid kind');
+      if (entity.size.width <= 0 || entity.size.height <= 0) {
+        throw ValidationException(
+          'Entity $entityId has invalid size: (${entity.size.width}x${entity.size.height})',
+        );
+      }
       _validatePositionInBounds(
         entity.pos,
         map.size,
-        errorLabel: 'Entity $entityId',
+        errorLabel: 'Entity $entityId origin',
       );
+      final entityRight = entity.pos.x + entity.size.width;
+      final entityBottom = entity.pos.y + entity.size.height;
+      if (entityRight > map.size.width || entityBottom > map.size.height) {
+        throw ValidationException(
+          'Entity $entityId has an invalid area extending outside map bounds',
+        );
+      }
+      for (final key in entity.properties.keys) {
+        if (key.trim().isEmpty) {
+          throw ValidationException(
+            'Entity $entityId has an empty property key',
+          );
+        }
+      }
     }
     _validateUniqueIds(
       map.entities,

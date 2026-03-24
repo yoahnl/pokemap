@@ -2,6 +2,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../application/services/editor_map_session_coordinator.dart';
 import '../../application/services/editor_map_mutation_coordinator.dart';
+import '../../application/services/entity_editing_coordinator.dart';
+import '../../application/services/entity_editing_service.dart';
 import '../../application/services/map_history_coordinator.dart';
 import '../../application/services/map_connection_editing_service.dart';
 import '../../application/services/path_autotile_resolver.dart';
@@ -14,6 +16,7 @@ import '../../application/services/trigger_editing_service.dart';
 import '../../application/services/warp_editing_coordinator.dart';
 import '../../application/services/warp_editing_service.dart';
 import '../../application/use_cases/collision_use_cases.dart';
+import '../../application/use_cases/entity_use_cases.dart';
 import '../../application/use_cases/layer_use_cases.dart';
 import '../../application/use_cases/map_connection_use_cases.dart';
 import '../../application/use_cases/map_use_cases.dart';
@@ -75,6 +78,12 @@ WarpEditingCoordinator warpEditingCoordinator(WarpEditingCoordinatorRef ref) {
 }
 
 @riverpod
+EntityEditingCoordinator entityEditingCoordinator(
+    EntityEditingCoordinatorRef ref) {
+  return const EntityEditingCoordinator();
+}
+
+@riverpod
 TriggerEditingCoordinator triggerEditingCoordinator(
     TriggerEditingCoordinatorRef ref) {
   return const TriggerEditingCoordinator();
@@ -100,6 +109,16 @@ TriggerEditingService triggerEditingService(TriggerEditingServiceRef ref) {
     updateTriggerOnMapUseCase: ref.watch(updateTriggerOnMapUseCaseProvider),
     deleteTriggerFromMapUseCase: ref.watch(deleteTriggerFromMapUseCaseProvider),
     triggerEditingCoordinator: ref.watch(triggerEditingCoordinatorProvider),
+  );
+}
+
+@riverpod
+EntityEditingService entityEditingService(EntityEditingServiceRef ref) {
+  return EntityEditingService(
+    addEntityToMapUseCase: ref.watch(addEntityToMapUseCaseProvider),
+    updateEntityOnMapUseCase: ref.watch(updateEntityOnMapUseCaseProvider),
+    deleteEntityFromMapUseCase: ref.watch(deleteEntityFromMapUseCaseProvider),
+    entityEditingCoordinator: ref.watch(entityEditingCoordinatorProvider),
   );
 }
 
@@ -148,6 +167,23 @@ CreateProjectUseCase createProjectUseCase(CreateProjectUseCaseRef ref) {
     ref.watch(projectRepositoryProvider),
     ref.watch(projectWorkspaceFactoryProvider),
   );
+}
+
+@riverpod
+AddEntityToMapUseCase addEntityToMapUseCase(AddEntityToMapUseCaseRef ref) {
+  return AddEntityToMapUseCase();
+}
+
+@riverpod
+UpdateEntityOnMapUseCase updateEntityOnMapUseCase(
+    UpdateEntityOnMapUseCaseRef ref) {
+  return UpdateEntityOnMapUseCase();
+}
+
+@riverpod
+DeleteEntityFromMapUseCase deleteEntityFromMapUseCase(
+    DeleteEntityFromMapUseCaseRef ref) {
+  return DeleteEntityFromMapUseCase();
 }
 
 @riverpod

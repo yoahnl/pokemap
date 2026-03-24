@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-23
+Last updated: 2026-03-24
 
 ## 1. Resume du projet
 Editeur de maps Pokemon-like/RPG sur grille en monorepo Flutter/Dart:
@@ -307,12 +307,73 @@ Separations metier explicites:
     - redo,
     - dirty state,
     - sauvegarde/reload JSON.
+- Entites de map MVP operationnelles:
+  - modele metier `MapEntity` renforce dans `map_core` avec:
+    - `id`,
+    - `name`,
+    - `kind`,
+    - `pos`,
+    - `size`,
+    - `properties` cle/valeur.
+  - enum `MapEntityKind` recentre sur le contenu visible Pokemon-like:
+    - `npc`,
+    - `sign`,
+    - `item`,
+    - `spawn`,
+    - `custom`.
+  - distinction metier explicite entre:
+    - `Trigger` = zone logique,
+    - `Entity` = contenu visible pose sur la map.
+  - operations pures dediees:
+    - recherche par ID,
+    - recherche a une position,
+    - ajout,
+    - update,
+    - move,
+    - resize,
+    - suppression.
+  - validation metier explicite:
+    - ID non vide,
+    - unicite des IDs dans la map,
+    - taille positive,
+    - zone entiere de l entite dans les bornes de la map,
+    - cles de proprietes non vides.
+  - migration legacy map:
+    - ancien champ `type` migre vers `kind`,
+    - `monster` migre vers `npc`,
+    - `chest` migre vers `item`,
+    - normalisation des proprietes en `String -> String`,
+    - taille par defaut `1x1`.
+  - use cases + coordinator + service dedies dans `map_editor`.
+  - outil `entityPlacement` branche dans la toolbar et le canvas map.
+  - clic en mode entity:
+    - selection d une entite existante sous le curseur,
+    - sinon creation d une entite 1x1 du type actuellement choisi.
+  - selection du type de pose visible:
+    - depuis la toolbar,
+    - depuis le panneau de proprietes.
+  - overlay canvas lisible:
+    - zone coloree par type,
+    - bordure plus forte pour l entite selectionnee,
+    - badge court (`NPC`, `SIGN`, `ITEM`, `SPAWN`, `CUSTOM`),
+    - label nom/id si la place est suffisante.
+  - panneau droit `EntityPropertiesPanel` dedie:
+    - liste des entites de la map,
+    - selection,
+    - edition `id/name/kind/x/y/width/height`,
+    - edition des proprietes cle/valeur,
+    - suppression.
+  - integration complete au pipeline map-level:
+    - undo,
+    - redo,
+    - dirty state,
+    - sauvegarde/reload JSON.
 - Inspector map de droite refactorise:
   - sections pliables/depliables pour reduire l encombrement,
   - affichage contextuel selon la layer active,
   - panneau `Tiles & Elements` masque hors contexte tile,
   - panneau `Ground & Surfaces` masque hors contexte terrain/path,
-  - sections map-level (`Connections`, `Triggers`, `Warps`) gardees accessibles mais compactes.
+  - sections map-level (`Map Entities`, `Connections`, `Triggers`, `Warps`) gardees accessibles mais compactes.
 
 ## 4. Fonctionnalites partiellement faites
 - Gestion multi-tilesets: fonctionnelle mais UX de tri/recherche encore simple.
@@ -323,6 +384,7 @@ Separations metier explicites:
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
 - Connexions inter-maps: base metier/editor solide (modele, validation, panneau dedie, preview canvas, jump rapide), mais pas encore de creation assistee de connexion inverse, pas encore de vue monde globale et pas encore de preview de continuite graphique avancee.
 - Triggers: base MVP solide (pose, selection, edition zone/type/proprietes, overlay, undo/redo), mais pas encore de drag-create de zone, pas encore d UI specialisee par type et pas encore de runtime/evenements.
+- Entites de map: base MVP solide (pose/selection/edition generique/overlay/undo-redo), mais pas encore de sprites dedies, pas encore d UI specialisee par type, pas encore de comportement runtime et pas encore d adaptation automatique au resize map.
 - Inspector map de droite: base bien plus lisible (accordeons + filtrage contextuel), mais pas encore d inspector specialise pour collisions/objets ni de personnalisation de layout par utilisateur.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -335,7 +397,12 @@ Separations metier explicites:
 - Outils avances map (fill/selection rect map/copy-paste).
 - Undo/redo global projet (au-dela de la map active).
 - Collisions avancees (types/comportements).
-- NPC/objets/panneaux/spawn (pose + edition dediees).
+- Entites avancees:
+  - NPC avec sprite/direction/dialogue,
+  - panneaux avec texte specialise,
+  - items avec contenu/etat,
+  - spawns plus riches,
+  - objets/interactables avances.
 - Triggers avances (UI specialisee par type, drag-create de zone, logique evenementielle, runtime).
 - Warps avances (lien persistant bidirectionnel, edition/synchronisation de paires, visualisation graphique de destination).
 - Inspector de proprietes complet.
@@ -344,17 +411,86 @@ Separations metier explicites:
 
 ## 6. Tache en cours
 Terminee pour cette etape:
-- stabilisation terrain/path et rendu map:
-  - correction des bords de path sur les limites de map (orientation miroir par cote),
-  - ordre de rendu du canvas aligne sur la pile reelle des layers,
-  - `Fill Layer` terrain corrige pour preserver les cellules `path` existantes,
-  - footprint terrain force en 1x1 pour eviter l heritage de taille d un gros element selectionne.
-- nouveau lot de refonte terrain/path engage:
-  - introduction de `PathLayer` dedie dans le domaine,
-  - premiere integration editor pour peindre/effacer/rendre une `PathLayer` distincte du fond,
-  - compatibilite legacy maintenue pour les anciens chemins stockes dans `TerrainLayer`.
+- lot `Map Entities MVP`:
+  - fondation propre pour du contenu gameplay visible pose sur la map,
+  - separation nette `Trigger` vs `Entity`,
+  - modele metier/editor stable pour `npc`, `sign`, `item`, `spawn`,
+  - outil de pose map, overlay visuel, inspector dedie,
+  - integration complete au pipeline map-level.
+
+Suite logique recommandee:
+- editions specialisees par type d entite:
+  - dialogue NPC,
+  - texte de panneau,
+  - contenu d item,
+  - reglages de spawn.
 
 ## 7. Dernieres modifications realisees
+2026-03-24 (entites de map MVP - contenu gameplay visible):
+- `map_core`:
+  - refonte de `MapEntity`:
+    - ajout `name`,
+    - remplacement de `type` par `kind`,
+    - ajout `size`,
+    - normalisation des proprietes en `Map<String, String>`.
+  - nouvel enum `MapEntityKind`:
+    - `npc`,
+    - `sign`,
+    - `item`,
+    - `spawn`,
+    - `custom`.
+  - ajout `src/operations/map_entities.dart`:
+    - `findEntityById`,
+    - `findEntityAtPos`,
+    - `addEntityToMap`,
+    - `updateEntityOnMap`,
+    - `moveEntityOnMap`,
+    - `resizeEntityOnMap`,
+    - `removeEntityFromMap`.
+  - validation map renforcee pour les entites:
+    - taille positive,
+    - zone en bornes,
+    - cles de proprietes non vides.
+- `map_editor/application`:
+  - ajout:
+    - `entity_use_cases.dart`,
+    - `entity_editing_coordinator.dart`,
+    - `entity_editing_service.dart`.
+  - providers Riverpod dedies pour les use cases/coordinator/service.
+  - integration de `selectedEntityId` dans:
+    - session map,
+    - snapshot historique,
+    - mutation coordinator,
+    - undo/redo map-level.
+- `map_editor/features/editor/state`:
+  - ajout `selectedEntityKind` et `selectedEntityId` dans `EditorState`.
+  - `EditorNotifier` etendu avec:
+    - `getSelectedEntity`,
+    - `placeOrSelectEntityAt`,
+    - `addEntityAt`,
+    - `selectEntity`,
+    - `selectEntityKind`,
+    - `updateSelectedEntity`,
+    - `updateEntity`,
+    - `deleteSelectedEntity`,
+    - `deleteEntity`.
+- `map_editor/ui`:
+  - toolbar:
+    - ajout de l outil `Entity Tool`,
+    - picker du type d entite courant.
+  - canvas map:
+    - creation/selection par clic en mode entity,
+    - overlay colore par type,
+    - mise en evidence de l entite selectionnee.
+  - inspector map:
+    - nouvelle section `Map Entities`.
+  - ajout `EntityPropertiesPanel`:
+    - choix du type a poser,
+    - liste des entites,
+    - edition generique des proprietes.
+- `infrastructure`:
+  - migration legacy des entites JSON vers le nouveau schema (`kind`, `size`, proprietes stringifiees).
+
 2026-03-23 (refacto clean architecture - erreurs applicatives + vrai split des use cases + mutation map):
 - `map_editor`:
   - ajout `application/errors/application_errors.dart`:
@@ -1376,7 +1512,7 @@ Terminee pour cette etape:
 - Dupliquer une map: fait
 - Redimensionner une map: fait
 - Gerer plusieurs maps dans un meme projet: fait
-- Gerer les connexions entre maps: pas fait
+- Gerer les connexions entre maps: fait (MVP)
 - Afficher une grille editable: partiellement fait
 - Se deplacer dans le canvas: fait
 - Zoomer dans le canvas: fait
@@ -1423,11 +1559,11 @@ Terminee pour cette etape:
 - Configurer les warps: partiellement fait (picker map cible + id/targetPos + resume destination + suppression + creation retour assistee; lien persistant bidirectionnel non fait)
 - Poser des triggers: fait (MVP)
 - Configurer les triggers: fait (MVP generique)
-- Poser des PNJ: pas fait
-- Poser des objets ramassables: pas fait
-- Poser des panneaux: pas fait
-- Poser des points de spawn: pas fait
-- Editer les proprietes des entites: pas fait
+- Poser des PNJ: fait (MVP generique via entites)
+- Poser des objets ramassables: fait (MVP generique via entites)
+- Poser des panneaux: fait (MVP generique via entites)
+- Poser des points de spawn: fait (MVP generique via entites)
+- Editer les proprietes des entites: fait (MVP generique)
 - Editer les proprietes des maps: pas fait
 - Editer les proprietes globales du projet: partiellement fait
 - Avoir un inspector de proprietes: partiellement fait (inspector map contextuel + sections pliables; inspector complet multi-systemes encore a pousser)
@@ -1454,4 +1590,4 @@ Terminee pour cette etape:
 - Terrains/Sols: fait (MVP + path auto-connecte + terrain editor UX + presets terrains/paths persistants), comportements gameplay/runtime non faits
 - Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
 - Undo/redo: fait (map active)
-- Warps/triggers/entities: partiellement fait (warps MVP fait, triggers MVP fait, entities non faites)
+- Warps/triggers/entities: partiellement fait (warps MVP faits, triggers MVP faits, entities MVP faites; editions specialisees/runtime non faits)

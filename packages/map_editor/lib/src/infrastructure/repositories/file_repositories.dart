@@ -155,6 +155,40 @@ class FileMapRepository implements MapRepository {
 
 Map<String, dynamic> _migrateLegacyMapJson(Map<String, dynamic> raw) {
   final next = Map<String, dynamic>.from(raw);
+  final entities = raw['entities'];
+  if (entities is List) {
+    next['entities'] = entities.map((entry) {
+      if (entry is! Map) {
+        return entry;
+      }
+      final entity = Map<String, dynamic>.from(entry.cast<String, dynamic>());
+      final rawKind = entity['kind']?.toString();
+      final rawType = entity['type']?.toString();
+      entity['kind'] = _legacyEntityKindValue(rawKind ?? rawType);
+      entity.remove('type');
+      entity['name'] = (entity['name'] ?? entity['id'] ?? '').toString();
+
+      if (!entity.containsKey('size')) {
+        entity['size'] = <String, dynamic>{
+          'width': 1,
+          'height': 1,
+        };
+      }
+
+      final rawProperties = entity['properties'];
+      if (rawProperties is Map) {
+        entity['properties'] = {
+          for (final property in rawProperties.entries)
+            property.key.toString(): property.value?.toString() ?? '',
+        };
+      } else {
+        entity['properties'] = <String, String>{};
+      }
+
+      return entity;
+    }).toList(growable: false);
+  }
+
   final triggers = raw['triggers'];
   if (triggers is List) {
     next['triggers'] = triggers.map((entry) {
@@ -197,6 +231,19 @@ Map<String, dynamic> _migrateLegacyMapJson(Map<String, dynamic> raw) {
     }).toList(growable: false);
   }
   return next;
+}
+
+String _legacyEntityKindValue(String? legacyValue) {
+  return switch (legacyValue) {
+    'npc' => 'npc',
+    'monster' => 'npc',
+    'sign' => 'sign',
+    'chest' => 'item',
+    'item' => 'item',
+    'spawn' => 'spawn',
+    'custom' => 'custom',
+    _ => 'custom',
+  };
 }
 
 class FileTilesetRepository implements TilesetRepository {

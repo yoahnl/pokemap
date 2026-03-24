@@ -58,11 +58,13 @@ class EditorState with _$EditorState {
     @Default(TerrainSelectionMode.terrain)
     TerrainSelectionMode terrainSelectionMode,
     @Default(TerrainType.grass) TerrainType selectedTerrainType,
+    @Default(MapEntityKind.npc) MapEntityKind selectedEntityKind,
     String? selectedTerrainPresetId,
     String? selectedPathPresetId,
     @Default({}) Map<TerrainType, String> selectedTerrainPresetByType,
     @Default(CollisionBrushSizeMode.brushFootprint)
     CollisionBrushSizeMode collisionBrushSizeMode,
+    String? selectedEntityId,
     String? selectedWarpId,
     String? selectedTriggerId,
     String? selectedTilesetEditorId,

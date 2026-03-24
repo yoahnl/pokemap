@@ -8,6 +8,7 @@ class MapHistorySnapshot with _$MapHistorySnapshot {
   const factory MapHistorySnapshot({
     required MapData map,
     String? activeLayerId,
+    String? selectedEntityId,
     String? selectedWarpId,
     String? selectedTriggerId,
   }) = _MapHistorySnapshot;
