@@ -19,12 +19,9 @@ class ProjectExplorerPanel extends ConsumerWidget {
     final project = state.project;
 
     return Container(
-      width: 300,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: EditorChrome.panelBackground(context),
-        border: Border(
-          right: BorderSide(color: EditorChrome.separator(context)),
-        ),
       ),
       child: Column(
         children: [
