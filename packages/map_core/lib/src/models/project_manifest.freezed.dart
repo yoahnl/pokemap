@@ -42,6 +42,10 @@ mixin _$ProjectManifest {
   List<ProjectEncounterTable> get encounterTables =>
       throw _privateConstructorUsedError;
 
+  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
+  List<ProjectDialogueFolder> get dialogueFolders =>
+      throw _privateConstructorUsedError;
+
   /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   List<ProjectDialogueEntry> get dialogues =>
       throw _privateConstructorUsedError;
@@ -79,6 +83,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
       List<ProjectEncounterTable> encounterTables,
+      List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
@@ -114,6 +119,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? terrainPresets = null,
     Object? pathPresets = null,
     Object? encounterTables = null,
+    Object? dialogueFolders = null,
     Object? dialogues = null,
     Object? settings = null,
     Object? globalProperties = null,
@@ -171,6 +177,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.encounterTables
           : encounterTables // ignore: cast_nullable_to_non_nullable
               as List<ProjectEncounterTable>,
+      dialogueFolders: null == dialogueFolders
+          ? _value.dialogueFolders
+          : dialogueFolders // ignore: cast_nullable_to_non_nullable
+              as List<ProjectDialogueFolder>,
       dialogues: null == dialogues
           ? _value.dialogues
           : dialogues // ignore: cast_nullable_to_non_nullable
@@ -219,6 +229,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
       List<ProjectEncounterTable> encounterTables,
+      List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
@@ -253,6 +264,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? terrainPresets = null,
     Object? pathPresets = null,
     Object? encounterTables = null,
+    Object? dialogueFolders = null,
     Object? dialogues = null,
     Object? settings = null,
     Object? globalProperties = null,
@@ -310,6 +322,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._encounterTables
           : encounterTables // ignore: cast_nullable_to_non_nullable
               as List<ProjectEncounterTable>,
+      dialogueFolders: null == dialogueFolders
+          ? _value._dialogueFolders
+          : dialogueFolders // ignore: cast_nullable_to_non_nullable
+              as List<ProjectDialogueFolder>,
       dialogues: null == dialogues
           ? _value._dialogues
           : dialogues // ignore: cast_nullable_to_non_nullable
@@ -344,6 +360,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectTerrainPreset> terrainPresets = const [],
       final List<ProjectPathPreset> pathPresets = const [],
       final List<ProjectEncounterTable> encounterTables = const [],
+      final List<ProjectDialogueFolder> dialogueFolders = const [],
       final List<ProjectDialogueEntry> dialogues = const [],
       this.settings = const ProjectSettings(),
       final Map<String, dynamic> globalProperties = const {}})
@@ -358,6 +375,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _terrainPresets = terrainPresets,
         _pathPresets = pathPresets,
         _encounterTables = encounterTables,
+        _dialogueFolders = dialogueFolders,
         _dialogues = dialogues,
         _globalProperties = globalProperties;
 
@@ -471,6 +489,18 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_encounterTables);
   }
 
+  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
+  final List<ProjectDialogueFolder> _dialogueFolders;
+
+  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
+  @override
+  @JsonKey()
+  List<ProjectDialogueFolder> get dialogueFolders {
+    if (_dialogueFolders is EqualUnmodifiableListView) return _dialogueFolders;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_dialogueFolders);
+  }
+
   /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   final List<ProjectDialogueEntry> _dialogues;
 
@@ -497,7 +527,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogues: $dialogues, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -526,6 +556,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality()
                 .equals(other._encounterTables, _encounterTables) &&
             const DeepCollectionEquality()
+                .equals(other._dialogueFolders, _dialogueFolders) &&
+            const DeepCollectionEquality()
                 .equals(other._dialogues, _dialogues) &&
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
@@ -550,6 +582,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       const DeepCollectionEquality().hash(_terrainPresets),
       const DeepCollectionEquality().hash(_pathPresets),
       const DeepCollectionEquality().hash(_encounterTables),
+      const DeepCollectionEquality().hash(_dialogueFolders),
       const DeepCollectionEquality().hash(_dialogues),
       settings,
       const DeepCollectionEquality().hash(_globalProperties));
@@ -586,6 +619,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectTerrainPreset> terrainPresets,
       final List<ProjectPathPreset> pathPresets,
       final List<ProjectEncounterTable> encounterTables,
+      final List<ProjectDialogueFolder> dialogueFolders,
       final List<ProjectDialogueEntry> dialogues,
       final ProjectSettings settings,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
@@ -621,6 +655,10 @@ abstract class _ProjectManifest implements ProjectManifest {
   /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
   @override
   List<ProjectEncounterTable> get encounterTables;
+
+  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
+  @override
+  List<ProjectDialogueFolder> get dialogueFolders;
 
   /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   @override
@@ -1444,6 +1482,220 @@ abstract class _ProjectMapEntry implements ProjectMapEntry {
       throw _privateConstructorUsedError;
 }
 
+ProjectDialogueFolder _$ProjectDialogueFolderFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectDialogueFolder.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectDialogueFolder {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String? get parentFolderId => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectDialogueFolder to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectDialogueFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectDialogueFolderCopyWith<ProjectDialogueFolder> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectDialogueFolderCopyWith<$Res> {
+  factory $ProjectDialogueFolderCopyWith(ProjectDialogueFolder value,
+          $Res Function(ProjectDialogueFolder) then) =
+      _$ProjectDialogueFolderCopyWithImpl<$Res, ProjectDialogueFolder>;
+  @useResult
+  $Res call({String id, String name, String? parentFolderId, int sortOrder});
+}
+
+/// @nodoc
+class _$ProjectDialogueFolderCopyWithImpl<$Res,
+        $Val extends ProjectDialogueFolder>
+    implements $ProjectDialogueFolderCopyWith<$Res> {
+  _$ProjectDialogueFolderCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectDialogueFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentFolderId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentFolderId: freezed == parentFolderId
+          ? _value.parentFolderId
+          : parentFolderId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectDialogueFolderImplCopyWith<$Res>
+    implements $ProjectDialogueFolderCopyWith<$Res> {
+  factory _$$ProjectDialogueFolderImplCopyWith(
+          _$ProjectDialogueFolderImpl value,
+          $Res Function(_$ProjectDialogueFolderImpl) then) =
+      __$$ProjectDialogueFolderImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, String name, String? parentFolderId, int sortOrder});
+}
+
+/// @nodoc
+class __$$ProjectDialogueFolderImplCopyWithImpl<$Res>
+    extends _$ProjectDialogueFolderCopyWithImpl<$Res,
+        _$ProjectDialogueFolderImpl>
+    implements _$$ProjectDialogueFolderImplCopyWith<$Res> {
+  __$$ProjectDialogueFolderImplCopyWithImpl(_$ProjectDialogueFolderImpl _value,
+      $Res Function(_$ProjectDialogueFolderImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectDialogueFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentFolderId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$ProjectDialogueFolderImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentFolderId: freezed == parentFolderId
+          ? _value.parentFolderId
+          : parentFolderId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProjectDialogueFolderImpl implements _ProjectDialogueFolder {
+  const _$ProjectDialogueFolderImpl(
+      {required this.id,
+      required this.name,
+      this.parentFolderId,
+      this.sortOrder = 0});
+
+  factory _$ProjectDialogueFolderImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectDialogueFolderImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final String? parentFolderId;
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'ProjectDialogueFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectDialogueFolderImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.parentFolderId, parentFolderId) ||
+                other.parentFolderId == parentFolderId) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, name, parentFolderId, sortOrder);
+
+  /// Create a copy of ProjectDialogueFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectDialogueFolderImplCopyWith<_$ProjectDialogueFolderImpl>
+      get copyWith => __$$ProjectDialogueFolderImplCopyWithImpl<
+          _$ProjectDialogueFolderImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectDialogueFolderImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectDialogueFolder implements ProjectDialogueFolder {
+  const factory _ProjectDialogueFolder(
+      {required final String id,
+      required final String name,
+      final String? parentFolderId,
+      final int sortOrder}) = _$ProjectDialogueFolderImpl;
+
+  factory _ProjectDialogueFolder.fromJson(Map<String, dynamic> json) =
+      _$ProjectDialogueFolderImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String? get parentFolderId;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of ProjectDialogueFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectDialogueFolderImplCopyWith<_$ProjectDialogueFolderImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ProjectDialogueEntry _$ProjectDialogueEntryFromJson(Map<String, dynamic> json) {
   return _ProjectDialogueEntry.fromJson(json);
 }
@@ -1460,6 +1712,9 @@ mixin _$ProjectDialogueEntry {
 
   /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
   String? get defaultStartNode => throw _privateConstructorUsedError;
+
+  /// Dossier dans [dialogueFolders] (bibliothèque scripts) ; null = racine.
+  String? get folderId => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
 
   /// Serializes this ProjectDialogueEntry to a JSON map.
@@ -1485,6 +1740,7 @@ abstract class $ProjectDialogueEntryCopyWith<$Res> {
       List<String> tags,
       String description,
       String? defaultStartNode,
+      String? folderId,
       int sortOrder});
 }
 
@@ -1510,6 +1766,7 @@ class _$ProjectDialogueEntryCopyWithImpl<$Res,
     Object? tags = null,
     Object? description = null,
     Object? defaultStartNode = freezed,
+    Object? folderId = freezed,
     Object? sortOrder = null,
   }) {
     return _then(_value.copyWith(
@@ -1537,6 +1794,10 @@ class _$ProjectDialogueEntryCopyWithImpl<$Res,
           ? _value.defaultStartNode
           : defaultStartNode // ignore: cast_nullable_to_non_nullable
               as String?,
+      folderId: freezed == folderId
+          ? _value.folderId
+          : folderId // ignore: cast_nullable_to_non_nullable
+              as String?,
       sortOrder: null == sortOrder
           ? _value.sortOrder
           : sortOrder // ignore: cast_nullable_to_non_nullable
@@ -1560,6 +1821,7 @@ abstract class _$$ProjectDialogueEntryImplCopyWith<$Res>
       List<String> tags,
       String description,
       String? defaultStartNode,
+      String? folderId,
       int sortOrder});
 }
 
@@ -1582,6 +1844,7 @@ class __$$ProjectDialogueEntryImplCopyWithImpl<$Res>
     Object? tags = null,
     Object? description = null,
     Object? defaultStartNode = freezed,
+    Object? folderId = freezed,
     Object? sortOrder = null,
   }) {
     return _then(_$ProjectDialogueEntryImpl(
@@ -1609,6 +1872,10 @@ class __$$ProjectDialogueEntryImplCopyWithImpl<$Res>
           ? _value.defaultStartNode
           : defaultStartNode // ignore: cast_nullable_to_non_nullable
               as String?,
+      folderId: freezed == folderId
+          ? _value.folderId
+          : folderId // ignore: cast_nullable_to_non_nullable
+              as String?,
       sortOrder: null == sortOrder
           ? _value.sortOrder
           : sortOrder // ignore: cast_nullable_to_non_nullable
@@ -1628,6 +1895,7 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
       final List<String> tags = const [],
       this.description = '',
       this.defaultStartNode,
+      this.folderId,
       this.sortOrder = 0})
       : _tags = tags;
 
@@ -1658,13 +1926,17 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
   /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
   @override
   final String? defaultStartNode;
+
+  /// Dossier dans [dialogueFolders] (bibliothèque scripts) ; null = racine.
+  @override
+  final String? folderId;
   @override
   @JsonKey()
   final int sortOrder;
 
   @override
   String toString() {
-    return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, defaultStartNode: $defaultStartNode, sortOrder: $sortOrder)';
+    return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
   }
 
   @override
@@ -1681,6 +1953,8 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
                 other.description == description) &&
             (identical(other.defaultStartNode, defaultStartNode) ||
                 other.defaultStartNode == defaultStartNode) &&
+            (identical(other.folderId, folderId) ||
+                other.folderId == folderId) &&
             (identical(other.sortOrder, sortOrder) ||
                 other.sortOrder == sortOrder));
   }
@@ -1695,6 +1969,7 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
       const DeepCollectionEquality().hash(_tags),
       description,
       defaultStartNode,
+      folderId,
       sortOrder);
 
   /// Create a copy of ProjectDialogueEntry
@@ -1723,6 +1998,7 @@ abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
       final List<String> tags,
       final String description,
       final String? defaultStartNode,
+      final String? folderId,
       final int sortOrder}) = _$ProjectDialogueEntryImpl;
 
   factory _ProjectDialogueEntry.fromJson(Map<String, dynamic> json) =
@@ -1744,6 +2020,10 @@ abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
   /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
   @override
   String? get defaultStartNode;
+
+  /// Dossier dans [dialogueFolders] (bibliothèque scripts) ; null = racine.
+  @override
+  String? get folderId;
   @override
   int get sortOrder;
 

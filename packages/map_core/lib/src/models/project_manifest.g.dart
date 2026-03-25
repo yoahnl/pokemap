@@ -62,6 +62,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectEncounterTable.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      dialogueFolders: (json['dialogueFolders'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectDialogueFolder.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       dialogues: (json['dialogues'] as List<dynamic>?)
               ?.map((e) =>
                   ProjectDialogueEntry.fromJson(e as Map<String, dynamic>))
@@ -93,6 +98,8 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
       'encounterTables':
           instance.encounterTables.map((e) => e.toJson()).toList(),
+      'dialogueFolders':
+          instance.dialogueFolders.map((e) => e.toJson()).toList(),
       'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
@@ -195,6 +202,24 @@ const _$MapRoleEnumMap = {
   MapRole.sub_area: 'sub_area',
 };
 
+_$ProjectDialogueFolderImpl _$$ProjectDialogueFolderImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectDialogueFolderImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentFolderId: json['parentFolderId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectDialogueFolderImplToJson(
+        _$ProjectDialogueFolderImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentFolderId': instance.parentFolderId,
+      'sortOrder': instance.sortOrder,
+    };
+
 _$ProjectDialogueEntryImpl _$$ProjectDialogueEntryImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectDialogueEntryImpl(
@@ -206,6 +231,7 @@ _$ProjectDialogueEntryImpl _$$ProjectDialogueEntryImplFromJson(
               const [],
       description: json['description'] as String? ?? '',
       defaultStartNode: json['defaultStartNode'] as String?,
+      folderId: json['folderId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
 
@@ -218,6 +244,7 @@ Map<String, dynamic> _$$ProjectDialogueEntryImplToJson(
       'tags': instance.tags,
       'description': instance.description,
       'defaultStartNode': instance.defaultStartNode,
+      'folderId': instance.folderId,
       'sortOrder': instance.sortOrder,
     };
 

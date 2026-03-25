@@ -2216,6 +2216,126 @@ final deleteProjectDialogueUseCaseProvider =
 // ignore: unused_element
 typedef DeleteProjectDialogueUseCaseRef
     = AutoDisposeProviderRef<DeleteProjectDialogueUseCase>;
+String _$createDialogueLibraryFolderUseCaseHash() =>
+    r'2a31eee56df7f30c0ee7fb31e28399f4e726db10';
+
+/// See also [createDialogueLibraryFolderUseCase].
+@ProviderFor(createDialogueLibraryFolderUseCase)
+final createDialogueLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<CreateDialogueLibraryFolderUseCase>.internal(
+  createDialogueLibraryFolderUseCase,
+  name: r'createDialogueLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createDialogueLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateDialogueLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<CreateDialogueLibraryFolderUseCase>;
+String _$renameDialogueLibraryFolderUseCaseHash() =>
+    r'4f035b9bc13b353b090279118ed893854c62db6f';
+
+/// See also [renameDialogueLibraryFolderUseCase].
+@ProviderFor(renameDialogueLibraryFolderUseCase)
+final renameDialogueLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<RenameDialogueLibraryFolderUseCase>.internal(
+  renameDialogueLibraryFolderUseCase,
+  name: r'renameDialogueLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameDialogueLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameDialogueLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<RenameDialogueLibraryFolderUseCase>;
+String _$moveDialogueLibraryFolderUseCaseHash() =>
+    r'0c2c0d2897d89f8a4aa7b465ca09be904c461d0f';
+
+/// See also [moveDialogueLibraryFolderUseCase].
+@ProviderFor(moveDialogueLibraryFolderUseCase)
+final moveDialogueLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<MoveDialogueLibraryFolderUseCase>.internal(
+  moveDialogueLibraryFolderUseCase,
+  name: r'moveDialogueLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$moveDialogueLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MoveDialogueLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<MoveDialogueLibraryFolderUseCase>;
+String _$deleteDialogueLibraryFolderUseCaseHash() =>
+    r'5580b9d3b5443da8daca4c383495174f995046cf';
+
+/// See also [deleteDialogueLibraryFolderUseCase].
+@ProviderFor(deleteDialogueLibraryFolderUseCase)
+final deleteDialogueLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<DeleteDialogueLibraryFolderUseCase>.internal(
+  deleteDialogueLibraryFolderUseCase,
+  name: r'deleteDialogueLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteDialogueLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteDialogueLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<DeleteDialogueLibraryFolderUseCase>;
+String _$assignDialogueToLibraryFolderUseCaseHash() =>
+    r'4f1dbe979c6f76e43a869619517f8eeb497d2db7';
+
+/// See also [assignDialogueToLibraryFolderUseCase].
+@ProviderFor(assignDialogueToLibraryFolderUseCase)
+final assignDialogueToLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<AssignDialogueToLibraryFolderUseCase>.internal(
+  assignDialogueToLibraryFolderUseCase,
+  name: r'assignDialogueToLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$assignDialogueToLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AssignDialogueToLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<AssignDialogueToLibraryFolderUseCase>;
+String _$moveDialogueToLibraryRootUseCaseHash() =>
+    r'd40d601d89a12f0e5998fc7b859645765b39d302';
+
+/// See also [moveDialogueToLibraryRootUseCase].
+@ProviderFor(moveDialogueToLibraryRootUseCase)
+final moveDialogueToLibraryRootUseCaseProvider =
+    AutoDisposeProvider<MoveDialogueToLibraryRootUseCase>.internal(
+  moveDialogueToLibraryRootUseCase,
+  name: r'moveDialogueToLibraryRootUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$moveDialogueToLibraryRootUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MoveDialogueToLibraryRootUseCaseRef
+    = AutoDisposeProviderRef<MoveDialogueToLibraryRootUseCase>;
 String _$createEncounterTableUseCaseHash() =>
     r'd97101b62faf54992523844b6d019b72db92c1f1';
 

@@ -111,6 +111,181 @@ void _tilesetLibraryApplyDropOnRoot(
   }
 }
 
+// --- Bibliothèque de scripts (.yarn) : dossiers + glisser-déposer ---
+
+class _DialogueLibraryDragData {
+  const _DialogueLibraryDragData.script(this.id) : isFolder = false;
+  const _DialogueLibraryDragData.folder(this.id) : isFolder = true;
+
+  final String id;
+  final bool isFolder;
+}
+
+ProjectDialogueEntry? _dialogueEntryById(ProjectManifest project, String id) {
+  for (final d in project.dialogues) {
+    if (d.id == id) return d;
+  }
+  return null;
+}
+
+bool _dialogueLibraryCanDropOnFolder(
+  ProjectManifest project,
+  ProjectDialogueFolder target,
+  _DialogueLibraryDragData data,
+) {
+  if (data.isFolder) {
+    if (data.id == target.id) return false;
+    if (dialogueFolderSubtreeIds(project, data.id).contains(target.id)) {
+      return false;
+    }
+    for (final f in project.dialogueFolders) {
+      if (f.id != data.id) continue;
+      final p = f.parentFolderId?.trim() ?? '';
+      if (p == target.id) return false;
+      break;
+    }
+    return true;
+  }
+  final d = _dialogueEntryById(project, data.id);
+  if (d == null) return false;
+  final cur = d.folderId?.trim() ?? '';
+  return cur != target.id;
+}
+
+bool _dialogueLibraryCanDropOnRoot(
+  ProjectManifest project,
+  _DialogueLibraryDragData data,
+) {
+  if (data.isFolder) {
+    ProjectDialogueFolder? folder;
+    for (final f in project.dialogueFolders) {
+      if (f.id == data.id) {
+        folder = f;
+        break;
+      }
+    }
+    if (folder == null) return false;
+    final p = folder.parentFolderId?.trim() ?? '';
+    return p.isNotEmpty;
+  }
+  final d = _dialogueEntryById(project, data.id);
+  if (d == null) return false;
+  final cur = d.folderId?.trim() ?? '';
+  return cur.isNotEmpty;
+}
+
+void _dialogueLibraryApplyDropOnFolder(
+  EditorNotifier notifier,
+  ProjectDialogueFolder target,
+  _DialogueLibraryDragData data,
+) {
+  if (data.isFolder) {
+    notifier.moveDialogueLibraryFolder(
+      folderId: data.id,
+      newParentFolderId: target.id,
+    );
+  } else {
+    notifier.assignDialogueToLibraryFolder(
+      dialogueId: data.id,
+      folderId: target.id,
+    );
+  }
+}
+
+void _dialogueLibraryApplyDropOnRoot(
+  EditorNotifier notifier,
+  _DialogueLibraryDragData data,
+) {
+  if (data.isFolder) {
+    notifier.moveDialogueLibraryFolder(
+      folderId: data.id,
+      newParentFolderId: null,
+    );
+  } else {
+    notifier.moveDialogueToLibraryRoot(data.id);
+  }
+}
+
+Widget _dialogueLibraryScriptDragFeedback(
+  BuildContext context,
+  ProjectDialogueEntry d,
+) {
+  return Material(
+    elevation: 6,
+    borderRadius: BorderRadius.circular(8),
+    color: Colors.transparent,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.65),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MacosIcon(
+            CupertinoIcons.doc_text_fill,
+            size: 16,
+            color: EditorChrome.inspectorJoyPlum,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            d.name,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: EditorChrome.primaryLabel(context),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _dialogueLibraryFolderDragFeedback(
+  BuildContext context,
+  ProjectDialogueFolder f,
+) {
+  return Material(
+    elevation: 6,
+    borderRadius: BorderRadius.circular(8),
+    color: Colors.transparent,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyOrchid.withValues(alpha: 0.65),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MacosIcon(
+            CupertinoIcons.folder_fill,
+            size: 16,
+            color: EditorChrome.inspectorJoyOrchid,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            f.name,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: EditorChrome.primaryLabel(context),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 Widget _tilesetLibraryTilesetDragFeedback(
   BuildContext context,
   ProjectTilesetEntry t,
@@ -348,11 +523,424 @@ Future<void> _openAssignTilesetLibraryFolderSheet(
   }
 }
 
-class ProjectExplorerPanel extends ConsumerWidget {
+class _DialogueFolderMoveOption {
+  const _DialogueFolderMoveOption(this.label, this.newParentId);
+  final String label;
+  final String? newParentId;
+}
+
+Future<void> _promptNewDialogueLibraryFolder(
+  BuildContext context,
+  EditorNotifier notifier, {
+  String? parentFolderId,
+}) async {
+  final controller = TextEditingController();
+  final ok = await showMacosEditorPromptSheet(
+    context,
+    title: parentFolderId == null ? 'Nouveau dossier' : 'Nouveau sous-dossier',
+    controller: controller,
+    placeholder: 'Nom',
+    confirmLabel: 'Créer',
+    compact: true,
+  );
+  if (!ok || !context.mounted) return;
+  final name = controller.text.trim();
+  if (name.isEmpty) return;
+  await notifier.createDialogueLibraryFolder(
+    name: name,
+    parentFolderId: parentFolderId,
+  );
+}
+
+Future<void> _promptRenameDialogueLibraryFolder(
+  BuildContext context,
+  EditorNotifier notifier,
+  ProjectDialogueFolder folder,
+) async {
+  final controller = TextEditingController(text: folder.name);
+  final ok = await showMacosEditorPromptSheet(
+    context,
+    title: 'Renommer le dossier',
+    controller: controller,
+    placeholder: 'Nom',
+    confirmLabel: 'Enregistrer',
+    compact: true,
+  );
+  if (!ok || !context.mounted) return;
+  final name = controller.text.trim();
+  if (name.isEmpty) return;
+  await notifier.renameDialogueLibraryFolder(
+    folderId: folder.id,
+    name: name,
+  );
+}
+
+Future<void> _openDialogueLibraryFolderContextMenu(
+  BuildContext context, {
+  required ProjectDialogueFolder folder,
+  required ProjectManifest project,
+  required EditorNotifier notifier,
+  required Offset anchorGlobal,
+}) async {
+  final action = await showMacosEditorContextMenu<String>(
+    context: context,
+    globalPosition: anchorGlobal,
+    actions: const [
+      MacosEditorSheetAction(label: 'Rename', value: 'rename'),
+      MacosEditorSheetAction(label: 'New subfolder', value: 'sub'),
+      MacosEditorSheetAction(label: 'New script here', value: 'script'),
+      MacosEditorSheetAction(label: 'Import script here', value: 'import'),
+      MacosEditorSheetAction(label: 'Move to…', value: 'move'),
+      MacosEditorSheetAction(
+        label: 'Delete folder',
+        value: 'delete',
+        isDestructive: true,
+      ),
+    ],
+  );
+  if (!context.mounted || action == null) return;
+  switch (action) {
+    case 'rename':
+      await _promptRenameDialogueLibraryFolder(context, notifier, folder);
+    case 'sub':
+      await _promptNewDialogueLibraryFolder(
+        context,
+        notifier,
+        parentFolderId: folder.id,
+      );
+    case 'script':
+      await _promptNewProjectDialogueInFolder(
+        context,
+        notifier,
+        parentFolderId: folder.id,
+      );
+    case 'import':
+      await _importProjectDialoguePicker(
+        context,
+        notifier,
+        folderId: folder.id,
+      );
+    case 'move':
+      await _pickMoveDialogueLibraryFolderTarget(
+        context,
+        project,
+        notifier,
+        folder.id,
+      );
+    case 'delete':
+      await notifier.deleteDialogueLibraryFolder(folder.id);
+  }
+}
+
+Future<void> _pickMoveDialogueLibraryFolderTarget(
+  BuildContext context,
+  ProjectManifest project,
+  EditorNotifier notifier,
+  String folderId,
+) async {
+  final blocked = dialogueFolderSubtreeIds(project, folderId);
+  final options = <_DialogueFolderMoveOption>[
+    const _DialogueFolderMoveOption('Library root', null),
+  ];
+  for (final row in flattenDialogueFoldersForPicker(project)) {
+    if (row.id == folderId) continue;
+    if (blocked.contains(row.id)) continue;
+    options.add(_DialogueFolderMoveOption(row.label, row.id));
+  }
+  final picked = await showCupertinoListPicker<_DialogueFolderMoveOption>(
+    context: context,
+    title: 'Move folder into',
+    items: options,
+    labelOf: (o) => o.label,
+  );
+  if (picked == null || !context.mounted) return;
+  await notifier.moveDialogueLibraryFolder(
+    folderId: folderId,
+    newParentFolderId: picked.newParentId,
+  );
+}
+
+Future<void> _openAssignDialogueScriptFolderSheet(
+  BuildContext context, {
+  required ProjectManifest project,
+  required EditorNotifier notifier,
+  required ProjectDialogueEntry dialogue,
+}) async {
+  final options = <_ImportLibraryDest>[
+    const _ImportLibraryDest('Library root', null),
+    ...flattenDialogueFoldersForPicker(project)
+        .map((r) => _ImportLibraryDest(r.label, r.id)),
+  ];
+  final picked = await showCupertinoListPicker<_ImportLibraryDest>(
+    context: context,
+    title: 'Move script to folder',
+    items: options,
+    labelOf: (o) => o.label,
+  );
+  if (picked == null || !context.mounted) return;
+  if (picked.folderId == null) {
+    await notifier.moveDialogueToLibraryRoot(dialogue.id);
+  } else {
+    await notifier.assignDialogueToLibraryFolder(
+      dialogueId: dialogue.id,
+      folderId: picked.folderId!,
+    );
+  }
+}
+
+Future<void> _importProjectDialoguePicker(
+  BuildContext context,
+  EditorNotifier notifier, {
+  String? folderId,
+}) async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: const ['yarn', 'txt'],
+  );
+  if (result == null || result.files.single.path == null) return;
+  final path = result.files.single.path!;
+  if (!context.mounted) return;
+  final baseName =
+      p.basenameWithoutExtension(path).replaceAll(RegExp(r'[^\w\-]+'), '_');
+  final nameController = TextEditingController(text: baseName);
+  final ok = await showMacosEditorPromptSheet(
+    context,
+    title: 'Import script',
+    controller: nameController,
+    confirmLabel: 'Import',
+    placeholder: 'Name in library',
+  );
+  if (!ok || !context.mounted) return;
+  final displayName = nameController.text.trim();
+  if (displayName.isEmpty) return;
+  await notifier.importProjectDialogue(
+    absoluteSourcePath: path,
+    displayName: displayName,
+    folderId: folderId,
+  );
+}
+
+Future<void> _showProjectDialogueContextMenu(
+  BuildContext context,
+  Offset position,
+  ProjectDialogueEntry entry,
+  EditorNotifier notifier,
+  ProjectManifest project,
+) async {
+  final inFolder = entry.folderId != null && entry.folderId!.trim().isNotEmpty;
+  final action = await showMacosEditorContextMenu<String>(
+    context: context,
+    globalPosition: position,
+    actions: [
+      const MacosEditorSheetAction(label: 'Rename', value: 'rename'),
+      const MacosEditorSheetAction(
+        label: 'Move to folder…',
+        value: 'folder',
+      ),
+      if (inFolder)
+        const MacosEditorSheetAction(
+          label: 'Move to library root',
+          value: 'root',
+        ),
+      const MacosEditorSheetAction(
+        label: 'Delete',
+        value: 'delete',
+        isDestructive: true,
+      ),
+    ],
+  );
+  if (!context.mounted || action == null) return;
+  switch (action) {
+    case 'rename':
+      final c = TextEditingController(text: entry.name);
+      final ok = await showMacosEditorPromptSheet(
+        context,
+        title: 'Rename script',
+        controller: c,
+        confirmLabel: 'Save',
+      );
+      if (ok && context.mounted && c.text.trim().isNotEmpty) {
+        await notifier.renameProjectDialogue(
+          dialogueId: entry.id,
+          newName: c.text.trim(),
+        );
+      }
+    case 'folder':
+      await _openAssignDialogueScriptFolderSheet(
+        context,
+        project: project,
+        notifier: notifier,
+        dialogue: entry,
+      );
+    case 'root':
+      await notifier.moveDialogueToLibraryRoot(entry.id);
+    case 'delete':
+      final confirm = await showMacosEditorTwoChoiceAlert(
+        context,
+        title: 'Delete script?',
+        message:
+            'The file will be removed from the project. Allowed only if no NPC or sign still references this dialogue (including the active map if not saved).',
+        primaryLabel: 'Delete',
+        primaryIsDestructive: true,
+      );
+      if (confirm && context.mounted) {
+        await notifier.deleteProjectDialogue(entry.id);
+      }
+  }
+}
+
+Future<void> _promptNewProjectDialogueInFolder(
+  BuildContext context,
+  EditorNotifier notifier, {
+  required String parentFolderId,
+}) async {
+  final controller = TextEditingController();
+  final ok = await showMacosEditorPromptSheet(
+    context,
+    title: 'New script in folder',
+    controller: controller,
+    confirmLabel: 'Create',
+    placeholder: 'Display name',
+  );
+  if (!ok || !context.mounted) return;
+  final name = controller.text.trim();
+  if (name.isEmpty) return;
+  await notifier.createProjectDialogue(
+    name: name,
+    folderId: parentFolderId,
+  );
+}
+
+Widget _explorerGradientIcon({
+  required BuildContext context,
+  required IconData icon,
+  required Color accent,
+}) {
+  return Container(
+    width: 30,
+    height: 30,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          accent.withValues(alpha: 0.42),
+          accent.withValues(alpha: 0.07),
+        ],
+      ),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: accent.withValues(alpha: 0.55)),
+    ),
+    alignment: Alignment.center,
+    child: MacosIcon(icon, size: 15, color: accent),
+  );
+}
+
+/// Section repliable de l’explorateur (en-tête + chevron + corps).
+class _ExplorerCollapsibleSection extends StatelessWidget {
+  const _ExplorerCollapsibleSection({
+    required this.expanded,
+    required this.onToggle,
+    required this.headerStart,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    required this.body,
+  });
+
+  final bool expanded;
+  final VoidCallback onToggle;
+  final Widget headerStart;
+  final String title;
+  final String subtitle;
+  final List<Widget> trailing;
+  final Widget body;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: CupertinoButton(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+                  minimumSize: Size.zero,
+                  onPressed: onToggle,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      headerStart,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                color: EditorChrome.primaryLabel(context),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: TextStyle(
+                                color: subtle,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              ...trailing,
+              const SizedBox(width: 2),
+              EditorToolbarIconButton(
+                tooltip: expanded ? 'Réduire' : 'Développer',
+                onPressed: onToggle,
+                icon: expanded
+                    ? CupertinoIcons.chevron_up
+                    : CupertinoIcons.chevron_down,
+                iconSize: 18,
+              ),
+            ],
+          ),
+        ),
+        if (expanded) Expanded(child: body),
+      ],
+    );
+  }
+}
+
+class ProjectExplorerPanel extends ConsumerStatefulWidget {
   const ProjectExplorerPanel({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProjectExplorerPanel> createState() =>
+      _ProjectExplorerPanelState();
+}
+
+class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
+  bool _expandTileLib = true;
+  bool _expandScriptLib = true;
+  bool _expandWorld = true;
+  bool _expandSurface = true;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final project = state.project;
@@ -437,7 +1025,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Tilesets, dialogues, maps and terrain',
+                  'Tilesets, scripts (.yarn), maps and surfaces',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -515,7 +1103,35 @@ class ProjectExplorerPanel extends ConsumerWidget {
         Expanded(
           child: _ExplorerIslandSurface(
             tint: EditorChrome.islandCoolTint,
-            child: _buildTilesetsIsland(context, project, state, notifier),
+            child: _ExplorerCollapsibleSection(
+              expanded: _expandTileLib,
+              onToggle: () => setState(() => _expandTileLib = !_expandTileLib),
+              headerStart: _explorerGradientIcon(
+                context: context,
+                icon: CupertinoIcons.square_grid_2x2,
+                accent: EditorChrome.accentWarm,
+              ),
+              title: 'Tileset Library',
+              subtitle: 'Folders, imports, and map painting',
+              trailing: [
+                _SidebarHeaderAction(
+                  enabled: true,
+                  icon: CupertinoIcons.photo_on_rectangle,
+                  tooltip: 'Import tileset',
+                  onPressed: () =>
+                      _showImportTilesetDialog(context, state, notifier),
+                ),
+                const SizedBox(width: 6),
+                _SidebarHeaderAction(
+                  enabled: true,
+                  icon: CupertinoIcons.plus_circle_fill,
+                  tooltip: 'New folder',
+                  onPressed: () =>
+                      _promptNewTilesetLibraryFolder(context, notifier),
+                ),
+              ],
+              body: _buildTilesetsIsland(context, project, state, notifier),
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -532,8 +1148,43 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.14),
-            child: _buildDialoguesIsland(context, project, state, notifier),
+            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.18),
+            child: _ExplorerCollapsibleSection(
+              expanded: _expandScriptLib,
+              onToggle: () => setState(() => _expandScriptLib = !_expandScriptLib),
+              headerStart: _explorerGradientIcon(
+                context: context,
+                icon: CupertinoIcons.doc_text_fill,
+                accent: EditorChrome.inspectorJoyPlum,
+              ),
+              title: 'Script Library',
+              subtitle: '.yarn files under dialogues/ — drag to organize',
+              trailing: [
+                _SidebarHeaderAction(
+                  enabled: true,
+                  icon: CupertinoIcons.plus_circle_fill,
+                  tooltip: 'New script',
+                  onPressed: () => _promptNewProjectDialogue(context, notifier),
+                ),
+                const SizedBox(width: 6),
+                _SidebarHeaderAction(
+                  enabled: true,
+                  icon: CupertinoIcons.folder_badge_plus,
+                  tooltip: 'New folder',
+                  onPressed: () =>
+                      _promptNewDialogueLibraryFolder(context, notifier),
+                ),
+                const SizedBox(width: 6),
+                _SidebarHeaderAction(
+                  enabled: true,
+                  icon: CupertinoIcons.square_arrow_down,
+                  tooltip: 'Import .yarn or .txt',
+                  onPressed: () =>
+                      _importProjectDialoguePicker(context, notifier),
+                ),
+              ],
+              body: _buildScriptLibraryIsland(context, project, state, notifier),
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -551,7 +1202,26 @@ class ProjectExplorerPanel extends ConsumerWidget {
           ),
           child: _ExplorerIslandSurface(
             tint: EditorChrome.islandNeutralTint,
-            child: _buildWorldIsland(context, worldChildren, notifier),
+            child: _ExplorerCollapsibleSection(
+              expanded: _expandWorld,
+              onToggle: () => setState(() => _expandWorld = !_expandWorld),
+              headerStart: _explorerGradientIcon(
+                context: context,
+                icon: CupertinoIcons.map_fill,
+                accent: EditorChrome.accentCyan,
+              ),
+              title: 'World Maps',
+              subtitle: 'Regions, groups and playable maps',
+              trailing: [
+                _SidebarHeaderAction(
+                  enabled: true,
+                  icon: CupertinoIcons.folder_badge_plus,
+                  tooltip: 'New root group',
+                  onPressed: () => _showCreateGroupDialog(context, notifier),
+                ),
+              ],
+              body: _buildWorldIslandBody(context, worldChildren),
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -569,7 +1239,19 @@ class ProjectExplorerPanel extends ConsumerWidget {
           ),
           child: _ExplorerIslandSurface(
             tint: EditorChrome.islandWarmTint,
-            child: const TerrainEditorPanel(),
+            child: _ExplorerCollapsibleSection(
+              expanded: _expandSurface,
+              onToggle: () => setState(() => _expandSurface = !_expandSurface),
+              headerStart: _explorerGradientIcon(
+                context: context,
+                icon: CupertinoIcons.square_stack_3d_down_right_fill,
+                accent: EditorChrome.accentWarm,
+              ),
+              title: 'Surface Library',
+              subtitle: 'Terrains, paths and ground presets',
+              trailing: const [],
+              body: const TerrainEditorPanel(omitOuterHeader: true),
+            ),
           ),
         ),
       ],
@@ -582,160 +1264,103 @@ class ProjectExplorerPanel extends ConsumerWidget {
     dynamic state,
     EditorNotifier notifier,
   ) {
-    const tilesetAccent = EditorChrome.accentWarm;
+    return SingleChildScrollView(
+      primary: false,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: _buildTilesetsSection(context, project, state, notifier),
+    );
+  }
+
+  Widget _buildScriptLibraryIsland(
+    BuildContext context,
+    ProjectManifest project,
+    dynamic state,
+    EditorNotifier notifier,
+  ) {
+    final tree = buildDialogueLibraryTree(project);
+    final empty = project.dialogues.isEmpty && project.dialogueFolders.isEmpty;
+    if (empty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Text(
+          'No scripts yet. Create a .yarn file, import one, or add folders to organize.',
+          style: TextStyle(
+            fontSize: 12,
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      primary: false,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: _buildScriptLibrarySection(context, project, state, notifier, tree),
+    );
+  }
+
+  Widget _buildScriptLibrarySection(
+    BuildContext context,
+    ProjectManifest project,
+    dynamic state,
+    EditorNotifier notifier,
+    DialogueLibraryTreeSnapshot tree,
+  ) {
+    final selectedId = state.selectedProjectDialogueId;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: tilesetAccent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: MacosIcon(
-                  CupertinoIcons.square_grid_2x2,
-                  size: 15,
-                  color: tilesetAccent,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Tileset Library',
-                      style: TextStyle(
-                        color: EditorChrome.primaryLabel(context),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Folders, imports, and map painting',
-                      style: TextStyle(
-                        color: EditorChrome.subtleLabel(context),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _SidebarHeaderAction(
-                enabled: true,
-                icon: CupertinoIcons.photo_on_rectangle,
-                tooltip: 'Import tileset',
-                onPressed: () =>
-                    _showImportTilesetDialog(context, state, notifier),
-              ),
-              const SizedBox(width: 6),
-              _SidebarHeaderAction(
-                enabled: true,
-                icon: CupertinoIcons.plus_circle_fill,
-                tooltip: 'New folder',
-                onPressed: () =>
-                    _promptNewTilesetLibraryFolder(context, notifier),
-              ),
-            ],
+        _DialogueLibraryRootDropStrip(project: project, notifier: notifier),
+        ...tree.rootFolders.map(
+          (branch) => _DialogueLibraryFolderNode(
+            branch: branch,
+            depth: 0,
+            project: project,
+            notifier: notifier,
+            selectedDialogueId: selectedId,
           ),
         ),
-        const SizedBox(height: 2),
-        Expanded(
-          child: SingleChildScrollView(
-            primary: false,
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _buildTilesetsSection(context, project, state, notifier),
+        ...tree.rootDialogues.map(
+          (d) => _DialogueScriptNode(
+            dialogue: d,
+            project: project,
+            notifier: notifier,
+            selected: selectedId == d.id,
+            leftIndent: 14,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildWorldIsland(
+  Future<void> _promptNewProjectDialogue(
+    BuildContext context,
+    EditorNotifier notifier,
+  ) async {
+    final controller = TextEditingController();
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'New dialogue',
+      controller: controller,
+      confirmLabel: 'Create',
+      placeholder: 'Display name',
+    );
+    if (!ok || !context.mounted) return;
+    final name = controller.text.trim();
+    if (name.isEmpty) return;
+    await notifier.createProjectDialogue(name: name);
+  }
+
+  Widget _buildWorldIslandBody(
     BuildContext context,
     List<Widget> worldChildren,
-    EditorNotifier notifier,
   ) {
-    const worldAccent = EditorChrome.accentCyan;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: worldAccent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: MacosIcon(
-                  CupertinoIcons.map_fill,
-                  size: 15,
-                  color: worldAccent,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'World Maps',
-                      style: TextStyle(
-                        color: EditorChrome.primaryLabel(context),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Regions, groups and playable maps',
-                      style: TextStyle(
-                        color: EditorChrome.subtleLabel(context),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _SidebarHeaderAction(
-                enabled: true,
-                icon: CupertinoIcons.folder_badge_plus,
-                tooltip: 'New root group',
-                onPressed: () => _showCreateGroupDialog(context, notifier),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Expanded(
-          child: SingleChildScrollView(
-            primary: false,
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: worldChildren,
-            ),
-          ),
-        ),
-      ],
+    return SingleChildScrollView(
+      primary: false,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: worldChildren,
+      ),
     );
   }
 
@@ -1136,6 +1761,285 @@ class _SidebarHeaderActionState extends State<_SidebarHeaderAction> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DialogueLibraryRootDropStrip extends StatelessWidget {
+  const _DialogueLibraryRootDropStrip({
+    required this.project,
+    required this.notifier,
+  });
+
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    const plum = EditorChrome.inspectorJoyPlum;
+    return DragTarget<_DialogueLibraryDragData>(
+      onWillAcceptWithDetails: (details) =>
+          _dialogueLibraryCanDropOnRoot(project, details.data),
+      onAcceptWithDetails: (details) {
+        _dialogueLibraryApplyDropOnRoot(notifier, details.data);
+      },
+      builder: (context, candidateData, rejected) {
+        final hovering = candidateData.isNotEmpty;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: hovering
+                  ? plum.withValues(alpha: 0.14)
+                  : CupertinoColors.systemFill.resolveFrom(context).withValues(
+                        alpha: 0.35,
+                      ),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: hovering
+                    ? plum.withValues(alpha: 0.75)
+                    : CupertinoColors.separator.resolveFrom(context)
+                        .withValues(alpha: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                MacosIcon(
+                  CupertinoIcons.doc_text_fill,
+                  size: 14,
+                  color: hovering ? plum : subtle,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    hovering
+                        ? 'Release to move to script library root'
+                        : 'Script library root — drop here to ungroup',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: hovering
+                          ? EditorChrome.primaryLabel(context)
+                          : subtle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DialogueFolderHeaderDnD extends StatelessWidget {
+  const _DialogueFolderHeaderDnD({
+    required this.header,
+    required this.folder,
+    required this.project,
+    required this.notifier,
+  });
+
+  final Widget header;
+  final ProjectDialogueFolder folder;
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<_DialogueLibraryDragData>(
+      onWillAcceptWithDetails: (details) =>
+          _dialogueLibraryCanDropOnFolder(project, folder, details.data),
+      onAcceptWithDetails: (details) {
+        _dialogueLibraryApplyDropOnFolder(notifier, folder, details.data);
+      },
+      builder: (context, candidateData, rejected) {
+        final hovering = candidateData.isNotEmpty;
+        return Draggable<_DialogueLibraryDragData>(
+          data: _DialogueLibraryDragData.folder(folder.id),
+          affinity: Axis.vertical,
+          feedback: _dialogueLibraryFolderDragFeedback(context, folder),
+          childWhenDragging: Opacity(
+            opacity: 0.35,
+            child: header,
+          ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOutCubic,
+            decoration: hovering
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: EditorChrome.inspectorJoyOrchid
+                          .withValues(alpha: 0.85),
+                      width: 1.5,
+                    ),
+                    color:
+                        EditorChrome.inspectorJoyOrchid.withValues(alpha: 0.08),
+                  )
+                : null,
+            child: header,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DialogueLibraryFolderNode extends StatelessWidget {
+  const _DialogueLibraryFolderNode({
+    required this.branch,
+    required this.depth,
+    required this.project,
+    required this.notifier,
+    required this.selectedDialogueId,
+  });
+
+  final DialogueLibraryBranch branch;
+  final int depth;
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+  final String? selectedDialogueId;
+
+  @override
+  Widget build(BuildContext context) {
+    final folder = branch.folder;
+    final indent = 6.0 + depth * 10.0;
+
+    return CupertinoDisclosureTile(
+      useEditorMacosSidebarDisclosureStyle: true,
+      initiallyExpanded: true,
+      tilePadding: EdgeInsets.only(left: indent, right: 8, top: 4, bottom: 4),
+      childrenPadding: EdgeInsets.zero,
+      leading: const MacosIcon(CupertinoIcons.folder_fill, size: 16),
+      title: Text(
+        folder.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onSecondaryTapDown: (d) => _openDialogueLibraryFolderContextMenu(
+        context,
+        folder: folder,
+        project: project,
+        notifier: notifier,
+        anchorGlobal: d.globalPosition,
+      ),
+      trailing: Builder(
+        builder: (btnContext) => EditorToolbarIconButton(
+          icon: CupertinoIcons.ellipsis_vertical,
+          tooltip: 'Folder actions',
+          iconSize: 16,
+          onPressed: () => _openDialogueLibraryFolderContextMenu(
+            context,
+            folder: folder,
+            project: project,
+            notifier: notifier,
+            anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
+          ),
+        ),
+      ),
+      wrapHeader: (header) => _DialogueFolderHeaderDnD(
+        header: header,
+        folder: folder,
+        project: project,
+        notifier: notifier,
+      ),
+      children: [
+        ...branch.childFolders.map(
+          (b) => _DialogueLibraryFolderNode(
+            branch: b,
+            depth: depth + 1,
+            project: project,
+            notifier: notifier,
+            selectedDialogueId: selectedDialogueId,
+          ),
+        ),
+        ...branch.dialogues.map(
+          (d) => _DialogueScriptNode(
+            dialogue: d,
+            project: project,
+            notifier: notifier,
+            selected: selectedDialogueId == d.id,
+            leftIndent: indent + 14,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DialogueScriptNode extends StatelessWidget {
+  const _DialogueScriptNode({
+    required this.dialogue,
+    required this.project,
+    required this.notifier,
+    required this.selected,
+    this.leftIndent = 6,
+  });
+
+  final ProjectDialogueEntry dialogue;
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+  final bool selected;
+  final double leftIndent;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = EditorSidebarListRow(
+      selected: selected,
+      onTap: () => notifier.selectProjectDialogue(dialogue.id),
+      onSecondaryTapDown: (d) => _showProjectDialogueContextMenu(
+            context,
+            d.globalPosition,
+            dialogue,
+            notifier,
+            project,
+          ),
+      leftIndent: leftIndent,
+      leading: const MacosIcon(
+        CupertinoIcons.doc_text_fill,
+        size: 16,
+      ),
+      title: Text(dialogue.name),
+      subtitle: Text(
+        dialogue.relativePath,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 10,
+          color: EditorChrome.subtleLabel(context),
+        ),
+      ),
+      trailing: Builder(
+        builder: (btnContext) => EditorToolbarIconButton(
+          icon: CupertinoIcons.ellipsis_vertical,
+          tooltip: 'Script actions',
+          iconSize: 16,
+          color: selected ? MacosColors.white : null,
+          onPressed: () => _showProjectDialogueContextMenu(
+                context,
+                editorMenuAnchorBelowWidget(btnContext),
+                dialogue,
+                notifier,
+                project,
+              ),
+        ),
+      ),
+    );
+    return Draggable<_DialogueLibraryDragData>(
+      data: _DialogueLibraryDragData.script(dialogue.id),
+      affinity: Axis.vertical,
+      feedback: _dialogueLibraryScriptDragFeedback(context, dialogue),
+      childWhenDragging: Opacity(
+        opacity: 0.35,
+        child: row,
+      ),
+      child: row,
     );
   }
 }

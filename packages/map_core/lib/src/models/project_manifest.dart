@@ -23,6 +23,8 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectPathPreset> pathPresets,
     /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
     @Default([]) List<ProjectEncounterTable> encounterTables,
+    /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
+    @Default([]) List<ProjectDialogueFolder> dialogueFolders,
     /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
     @Default([]) List<ProjectDialogueEntry> dialogues,
     @Default(ProjectSettings()) ProjectSettings settings,
@@ -80,6 +82,19 @@ class ProjectMapEntry with _$ProjectMapEntry {
 }
 
 @freezed
+class ProjectDialogueFolder with _$ProjectDialogueFolder {
+  const factory ProjectDialogueFolder({
+    required String id,
+    required String name,
+    String? parentFolderId,
+    @Default(0) int sortOrder,
+  }) = _ProjectDialogueFolder;
+
+  factory ProjectDialogueFolder.fromJson(Map<String, dynamic> json) =>
+      _$ProjectDialogueFolderFromJson(json);
+}
+
+@freezed
 class ProjectDialogueEntry with _$ProjectDialogueEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectDialogueEntry({
@@ -91,6 +106,8 @@ class ProjectDialogueEntry with _$ProjectDialogueEntry {
     @Default('') String description,
     /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
     String? defaultStartNode,
+    /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
+    String? folderId,
     @Default(0) int sortOrder,
   }) = _ProjectDialogueEntry;
 

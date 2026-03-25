@@ -121,6 +121,11 @@ class ProjectValidator {
       duplicateMessagePrefix: 'Duplicate encounter table ID',
     );
     _validateUniqueIds(
+      manifest.dialogueFolders,
+      (f) => f.id,
+      duplicateMessagePrefix: 'Duplicate dialogue folder ID',
+    );
+    _validateUniqueIds(
       manifest.dialogues,
       (d) => d.id,
       duplicateMessagePrefix: 'Duplicate dialogue ID',
@@ -128,6 +133,8 @@ class ProjectValidator {
   }
 
   static void _validateProjectDialogues(ProjectManifest manifest) {
+    final dialogueFolderIds =
+        manifest.dialogueFolders.map((f) => f.id).toSet();
     for (final d in manifest.dialogues) {
       final id = d.id.trim();
       if (id.isEmpty) {
@@ -141,6 +148,12 @@ class ProjectValidator {
         d.defaultStartNode,
         contextLabel: 'Dialogue $id defaultStartNode',
       );
+      final df = d.folderId?.trim();
+      if (df != null && df.isNotEmpty && !dialogueFolderIds.contains(df)) {
+        throw ValidationException(
+          'Dialogue $id references unknown dialogue folder: $df',
+        );
+      }
     }
   }
 
@@ -184,6 +197,7 @@ class ProjectValidator {
     }
 
     _validateTilesetFolders(manifest);
+    _validateDialogueFolders(manifest);
     _validateTilesets(manifest, groupIds);
     _validateElementCategories(manifest);
     _validateElements(manifest, groupIds);
@@ -246,6 +260,46 @@ class ProjectValidator {
         throw ValidationException(
           'Tileset ${tileset.id} references unknown tileset folder: $fid',
         );
+      }
+    }
+  }
+
+  static void _validateDialogueFolders(ProjectManifest manifest) {
+    final folderById = <String, ProjectDialogueFolder>{};
+    for (final folder in manifest.dialogueFolders) {
+      if (folder.id.trim().isEmpty) {
+        throw const ValidationException('Dialogue folder ID cannot be empty');
+      }
+      if (folder.name.trim().isEmpty) {
+        throw ValidationException(
+          'Dialogue folder "${folder.id}" has an empty name',
+        );
+      }
+      folderById[folder.id] = folder;
+    }
+
+    for (final folder in manifest.dialogueFolders) {
+      final parentId = folder.parentFolderId;
+      if (parentId == null) continue;
+      if (!folderById.containsKey(parentId)) {
+        throw ValidationException(
+          'Dialogue folder ${folder.id} references missing parent: $parentId',
+        );
+      }
+      if (parentId == folder.id) {
+        throw ValidationException(
+          'Dialogue folder ${folder.id} cannot be its own parent',
+        );
+      }
+      String? cursor = parentId;
+      final chain = <String>{};
+      while (cursor != null) {
+        if (!chain.add(cursor)) {
+          throw ValidationException(
+            'Cycle detected in dialogue folder hierarchy at ${folder.id}',
+          );
+        }
+        cursor = folderById[cursor]?.parentFolderId;
       }
     }
   }

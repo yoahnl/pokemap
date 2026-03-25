@@ -4604,13 +4604,21 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(selectedProjectDialogueId: dialogueId);
   }
 
-  Future<void> createProjectDialogue({required String name}) async {
+  Future<void> createProjectDialogue({
+    required String name,
+    String? folderId,
+  }) async {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     try {
       final useCase = ref.read(createProjectDialogueUseCaseProvider);
-      final updated = await useCase.execute(fs, project, name: name);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        folderId: folderId,
+      );
       state = state.copyWith(
         project: updated,
         selectedProjectDialogueId: updated.dialogues.isNotEmpty
@@ -4627,6 +4635,7 @@ class EditorNotifier extends _$EditorNotifier {
   Future<void> importProjectDialogue({
     required String absoluteSourcePath,
     required String displayName,
+    String? folderId,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -4638,6 +4647,7 @@ class EditorNotifier extends _$EditorNotifier {
         project,
         absoluteSourcePath: absoluteSourcePath,
         displayName: displayName,
+        folderId: folderId,
       );
       state = state.copyWith(
         project: updated,
@@ -4700,6 +4710,160 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete dialogue: $e');
+    }
+  }
+
+  Future<void> createDialogueLibraryFolder({
+    required String name,
+    String? parentFolderId,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createDialogueLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        parentFolderId: parentFolderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script folder created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to create script folder: $e',
+      );
+    }
+  }
+
+  Future<void> renameDialogueLibraryFolder({
+    required String folderId,
+    required String name,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(renameDialogueLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        folderId: folderId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script folder renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to rename script folder: $e',
+      );
+    }
+  }
+
+  Future<void> moveDialogueLibraryFolder({
+    required String folderId,
+    String? newParentFolderId,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(moveDialogueLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        folderId: folderId,
+        newParentFolderId: newParentFolderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script folder moved',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to move script folder: $e',
+      );
+    }
+  }
+
+  Future<void> deleteDialogueLibraryFolder(String folderId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteDialogueLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        folderId: folderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script folder deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to delete script folder: $e',
+      );
+    }
+  }
+
+  Future<void> assignDialogueToLibraryFolder({
+    required String dialogueId,
+    required String folderId,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(assignDialogueToLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        dialogueId: dialogueId,
+        folderId: folderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script moved to folder',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to move script to folder: $e',
+      );
+    }
+  }
+
+  Future<void> moveDialogueToLibraryRoot(String dialogueId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(moveDialogueToLibraryRootUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        dialogueId: dialogueId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script moved to library root',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to move script to root: $e',
+      );
     }
   }
 

@@ -11,6 +11,11 @@ import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
+/// Source du dialogue sur une entité NPC / panneau (registre projet vs fichier explicite).
+enum _DialogueRefSource { none, manifest, legacy }
+
+typedef _ManifestDlgPick = ({String branch, String dialogueId});
+
 class EntityPropertiesPanel extends ConsumerStatefulWidget {
   const EntityPropertiesPanel({
     super.key,
@@ -58,6 +63,8 @@ class _EntityPropertiesPanelState
 
   String? _boundFingerprint;
   MapEntityKind _selectedKind = MapEntityKind.npc;
+  _DialogueRefSource _npcDialogueSource = _DialogueRefSource.none;
+  _DialogueRefSource _signDialogueSource = _DialogueRefSource.none;
 
   @override
   void dispose() {
@@ -272,6 +279,7 @@ class _EntityPropertiesPanelState
                 _buildSelectedEntityEditor(
                   context: context,
                   notifier: notifier,
+                  project: state.project,
                   selectedEntity: selectedEntity,
                 ),
             ],
@@ -415,6 +423,16 @@ class _EntityPropertiesPanelState
       }
     }
     final node = nodeC.text.trim();
+    if (!isValidDialogueStartNode(node.isEmpty ? null : node)) {
+      await showCupertinoEditorAlert(
+        context,
+        message: _l(
+          'Nœud de départ invalide (lettres, chiffres, espaces, - ou . ; max 256).',
+          'Invalid start node (letters, digits, spaces, - or .; max 256 chars).',
+        ),
+      );
+      return (ref: null, invalid: true);
+    }
     return (
       ref: DialogueRef(
         dialogueId: id,
@@ -425,7 +443,326 @@ class _EntityPropertiesPanelState
     );
   }
 
-  Widget _kindSpecificFields(BuildContext context) {
+  Future<({DialogueRef? ref, bool invalid})> _dialogueRefFromManifestBinding(
+    BuildContext context,
+    TextEditingController idC,
+    TextEditingController nodeC,
+  ) async {
+    final id = idC.text.trim();
+    if (id.isEmpty) {
+      return (ref: null, invalid: false);
+    }
+    final node = nodeC.text.trim();
+    if (!isValidDialogueStartNode(node.isEmpty ? null : node)) {
+      await showCupertinoEditorAlert(
+        context,
+        message: _l(
+          'Nœud de départ invalide (lettres, chiffres, espaces, - ou . ; max 256).',
+          'Invalid start node (letters, digits, spaces, - or .; max 256 chars).',
+        ),
+      );
+      return (ref: null, invalid: true);
+    }
+    return (
+      ref: DialogueRef(
+        dialogueId: id,
+        scriptPathRelative: '',
+        startNode: node.isEmpty ? null : node,
+      ),
+      invalid: false,
+    );
+  }
+
+  String _labelManifestDialoguePick(
+    _ManifestDlgPick p,
+    List<ProjectDialogueEntry> entries,
+  ) {
+    switch (p.branch) {
+      case 'none':
+        return _l('Aucun dialogue', 'No dialogue');
+      case 'legacy':
+        return _l(
+          'Fichier personnalisé (avancé)',
+          'Custom file (advanced)',
+        );
+      default:
+        for (final e in entries) {
+          if (e.id == p.dialogueId) {
+            return e.name;
+          }
+        }
+        return '${_l('Dialogue inconnu', 'Unknown dialogue')} (${p.dialogueId})';
+    }
+  }
+
+  Future<void> _openManifestDialoguePicker({
+    required BuildContext context,
+    required List<ProjectDialogueEntry> entries,
+    required bool forNpc,
+  }) async {
+    final picks = <_ManifestDlgPick>[
+      (branch: 'none', dialogueId: ''),
+      ...entries.map((e) => (branch: 'manifest', dialogueId: e.id)),
+      (branch: 'legacy', dialogueId: ''),
+    ];
+    final picked = await showCupertinoListPicker<_ManifestDlgPick>(
+      context: context,
+      title: _l('Dialogue du projet', 'Project dialogue'),
+      items: picks,
+      labelOf: (p) => _labelManifestDialoguePick(p, entries),
+    );
+    if (!context.mounted || picked == null) {
+      return;
+    }
+    setState(() {
+      if (forNpc) {
+        switch (picked.branch) {
+          case 'none':
+            _npcDialogueSource = _DialogueRefSource.none;
+            _npcDialogueId.text = '';
+            _npcScriptPath.text = '';
+          case 'legacy':
+            _npcDialogueSource = _DialogueRefSource.legacy;
+          case 'manifest':
+            _npcDialogueSource = _DialogueRefSource.manifest;
+            _npcDialogueId.text = picked.dialogueId;
+            _npcScriptPath.text = '';
+        }
+      } else {
+        switch (picked.branch) {
+          case 'none':
+            _signDialogueSource = _DialogueRefSource.none;
+            _signDialogueId.text = '';
+            _signScriptPath.text = '';
+          case 'legacy':
+            _signDialogueSource = _DialogueRefSource.legacy;
+          case 'manifest':
+            _signDialogueSource = _DialogueRefSource.manifest;
+            _signDialogueId.text = picked.dialogueId;
+            _signScriptPath.text = '';
+        }
+      }
+    });
+  }
+
+  String _npcDialoguePickerSummary(List<ProjectDialogueEntry> entries) {
+    switch (_npcDialogueSource) {
+      case _DialogueRefSource.none:
+        return _l('Aucun dialogue', 'No dialogue');
+      case _DialogueRefSource.legacy:
+        final p = _npcScriptPath.text.trim();
+        if (p.isEmpty) {
+          return _l(
+            'Fichier personnalisé (renseigner ID + chemin)',
+            'Custom file (enter ID + path)',
+          );
+        }
+        return '${_l('Fichier', 'File')}: $p';
+      case _DialogueRefSource.manifest:
+        final id = _npcDialogueId.text.trim();
+        if (id.isEmpty) {
+          return _l('Choisir un dialogue…', 'Choose a dialogue…');
+        }
+        for (final e in entries) {
+          if (e.id == id) {
+            return e.name;
+          }
+        }
+        return '${_l('Absent du registre', 'Not in registry')}: $id';
+    }
+  }
+
+  String _signDialoguePickerSummary(List<ProjectDialogueEntry> entries) {
+    switch (_signDialogueSource) {
+      case _DialogueRefSource.none:
+        return _l('Aucun dialogue', 'No dialogue');
+      case _DialogueRefSource.legacy:
+        final p = _signScriptPath.text.trim();
+        if (p.isEmpty) {
+          return _l(
+            'Fichier personnalisé (renseigner ID + chemin)',
+            'Custom file (enter ID + path)',
+          );
+        }
+        return '${_l('Fichier', 'File')}: $p';
+      case _DialogueRefSource.manifest:
+        final id = _signDialogueId.text.trim();
+        if (id.isEmpty) {
+          return _l('Choisir un dialogue…', 'Choose a dialogue…');
+        }
+        for (final e in entries) {
+          if (e.id == id) {
+            return e.name;
+          }
+        }
+        return '${_l('Absent du registre', 'Not in registry')}: $id';
+    }
+  }
+
+  List<Widget> _npcDialogueFields(
+    BuildContext context,
+    ProjectManifest? project,
+  ) {
+    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    if (dialogueEntries.isEmpty) {
+      return [
+        Text(
+          _l(
+            'Ajoutez des dialogues dans l’explorateur (section Dialogues), ou renseignez ID + chemin relatif.',
+            'Add dialogues in the explorer (Dialogues section), or enter ID + relative path.',
+          ),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Dialogue (ID)', 'Dialogue ID'),
+          controller: _npcDialogueId,
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Script (chemin relatif)', 'Script (relative path)'),
+          controller: _npcScriptPath,
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+          controller: _npcStartNode,
+        ),
+      ];
+    }
+    return [
+      Text(
+        _l('Dialogue', 'Dialogue'),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        ),
+      ),
+      const SizedBox(height: 4),
+      CupertinoButton(
+        padding: EdgeInsets.zero,
+        alignment: Alignment.centerLeft,
+        onPressed: () => _openManifestDialoguePicker(
+          context: context,
+          entries: dialogueEntries,
+          forNpc: true,
+        ),
+        child: Text(_npcDialoguePickerSummary(dialogueEntries)),
+      ),
+      if (_npcDialogueSource == _DialogueRefSource.legacy) ...[
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Dialogue (ID)', 'Dialogue ID'),
+          controller: _npcDialogueId,
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Script (chemin relatif)', 'Script (relative path)'),
+          controller: _npcScriptPath,
+        ),
+      ],
+      const SizedBox(height: 8),
+      _labeledField(
+        context,
+        label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+        controller: _npcStartNode,
+      ),
+    ];
+  }
+
+  List<Widget> _signDialogueFields(
+    BuildContext context,
+    ProjectManifest? project,
+  ) {
+    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    if (dialogueEntries.isEmpty) {
+      return [
+        Text(
+          _l(
+            'Ajoutez des dialogues dans l’explorateur (Dialogues), ou renseignez ID + chemin.',
+            'Add dialogues in the explorer (Dialogues), or enter ID + path.',
+          ),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Dialogue (ID)', 'Dialogue ID'),
+          controller: _signDialogueId,
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Script (chemin relatif)', 'Script (relative path)'),
+          controller: _signScriptPath,
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+          controller: _signStartNode,
+        ),
+      ];
+    }
+    return [
+      Text(
+        _l('Dialogue', 'Dialogue'),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        ),
+      ),
+      const SizedBox(height: 4),
+      CupertinoButton(
+        padding: EdgeInsets.zero,
+        alignment: Alignment.centerLeft,
+        onPressed: () => _openManifestDialoguePicker(
+          context: context,
+          entries: dialogueEntries,
+          forNpc: false,
+        ),
+        child: Text(_signDialoguePickerSummary(dialogueEntries)),
+      ),
+      if (_signDialogueSource == _DialogueRefSource.legacy) ...[
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Dialogue (ID)', 'Dialogue ID'),
+          controller: _signDialogueId,
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: _l('Script (chemin relatif)', 'Script (relative path)'),
+          controller: _signScriptPath,
+        ),
+      ],
+      const SizedBox(height: 8),
+      _labeledField(
+        context,
+        label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+        controller: _signStartNode,
+      ),
+    ];
+  }
+
+  Widget _kindSpecificFields(
+    BuildContext context,
+    ProjectManifest? project,
+  ) {
     switch (_selectedKind) {
       case MapEntityKind.npc:
         return Column(
@@ -451,23 +788,7 @@ class _EntityPropertiesPanelState
               ),
             ),
             const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('Dialogue (ID)', 'Dialogue ID'),
-              controller: _npcDialogueId,
-            ),
-            const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('Script (chemin relatif)', 'Script (relative path)'),
-              controller: _npcScriptPath,
-            ),
-            const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('Nœud de départ', 'Start node'),
-              controller: _npcStartNode,
-            ),
+            ..._npcDialogueFields(context, project),
             const SizedBox(height: 8),
             CupertinoButton(
               padding: EdgeInsets.zero,
@@ -529,23 +850,7 @@ class _EntityPropertiesPanelState
               ),
             ),
             const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('Dialogue (ID)', 'Dialogue ID'),
-              controller: _signDialogueId,
-            ),
-            const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('Script (chemin relatif)', 'Script (relative path)'),
-              controller: _signScriptPath,
-            ),
-            const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('Nœud de départ', 'Start node'),
-              controller: _signStartNode,
-            ),
+            ..._signDialogueFields(context, project),
           ],
         );
       case MapEntityKind.item:
@@ -700,6 +1005,7 @@ class _EntityPropertiesPanelState
   Widget _buildSelectedEntityEditor({
     required BuildContext context,
     required EditorNotifier notifier,
+    required ProjectManifest? project,
     required MapEntity selectedEntity,
   }) {
     return Column(
@@ -804,7 +1110,7 @@ class _EntityPropertiesPanelState
           ],
         ),
         const SizedBox(height: 12),
-        _kindSpecificFields(context),
+        _kindSpecificFields(context, project),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -926,8 +1232,20 @@ class _EntityPropertiesPanelState
     _selectedKind = entity?.kind ?? MapEntityKind.npc;
 
     final n = entity?.npc ?? const MapEntityNpcData();
-    _npcDialogueId.text = n.dialogue?.dialogueId ?? '';
-    _npcScriptPath.text = n.dialogue?.scriptPathRelative ?? '';
+    final nd = n.dialogue;
+    if (nd == null) {
+      _npcDialogueSource = _DialogueRefSource.none;
+      _npcDialogueId.text = '';
+      _npcScriptPath.text = '';
+    } else if (nd.scriptPathRelative.trim().isNotEmpty) {
+      _npcDialogueSource = _DialogueRefSource.legacy;
+      _npcDialogueId.text = nd.dialogueId;
+      _npcScriptPath.text = nd.scriptPathRelative;
+    } else {
+      _npcDialogueSource = _DialogueRefSource.manifest;
+      _npcDialogueId.text = nd.dialogueId;
+      _npcScriptPath.text = '';
+    }
     _npcStartNode.text = n.dialogue?.startNode ?? '';
     _npcFacing = n.facing;
     _npcVisualElementId.text = n.visualElementId;
@@ -935,8 +1253,20 @@ class _EntityPropertiesPanelState
     final s = entity?.sign ?? const MapEntitySignData();
     _signTitle.text = s.title;
     _signPlainText.text = s.plainText;
-    _signDialogueId.text = s.dialogue?.dialogueId ?? '';
-    _signScriptPath.text = s.dialogue?.scriptPathRelative ?? '';
+    final sd = s.dialogue;
+    if (sd == null) {
+      _signDialogueSource = _DialogueRefSource.none;
+      _signDialogueId.text = '';
+      _signScriptPath.text = '';
+    } else if (sd.scriptPathRelative.trim().isNotEmpty) {
+      _signDialogueSource = _DialogueRefSource.legacy;
+      _signDialogueId.text = sd.dialogueId;
+      _signScriptPath.text = sd.scriptPathRelative;
+    } else {
+      _signDialogueSource = _DialogueRefSource.manifest;
+      _signDialogueId.text = sd.dialogueId;
+      _signScriptPath.text = '';
+    }
     _signStartNode.text = s.dialogue?.startNode ?? '';
 
     final it = entity?.item ?? const MapEntityItemData();
@@ -1034,35 +1364,65 @@ class _EntityPropertiesPanelState
 
     switch (_selectedKind) {
       case MapEntityKind.npc:
-        final r = await _parseDialogueRef(
-          context,
-          _npcDialogueId,
-          _npcScriptPath,
-          _npcStartNode,
-        );
-        if (r.invalid) {
-          return;
+        final DialogueRef? npcDlg;
+        final npcFileOverride = _npcScriptPath.text.trim().isNotEmpty;
+        if (npcFileOverride) {
+          final r = await _parseDialogueRef(
+            context,
+            _npcDialogueId,
+            _npcScriptPath,
+            _npcStartNode,
+          );
+          if (r.invalid) {
+            return;
+          }
+          npcDlg = r.ref;
+        } else {
+          final r = await _dialogueRefFromManifestBinding(
+            context,
+            _npcDialogueId,
+            _npcStartNode,
+          );
+          if (r.invalid) {
+            return;
+          }
+          npcDlg = r.ref;
         }
         npcPayload = MapEntityNpcData(
           displayName: _nameController.text.trim(),
-          dialogue: r.ref,
+          dialogue: npcDlg,
           facing: _npcFacing,
           visualElementId: _npcVisualElementId.text.trim(),
         );
         break;
       case MapEntityKind.sign:
-        final r = await _parseDialogueRef(
-          context,
-          _signDialogueId,
-          _signScriptPath,
-          _signStartNode,
-        );
-        if (r.invalid) {
-          return;
+        final DialogueRef? signDlg;
+        final signFileOverride = _signScriptPath.text.trim().isNotEmpty;
+        if (signFileOverride) {
+          final r = await _parseDialogueRef(
+            context,
+            _signDialogueId,
+            _signScriptPath,
+            _signStartNode,
+          );
+          if (r.invalid) {
+            return;
+          }
+          signDlg = r.ref;
+        } else {
+          final r = await _dialogueRefFromManifestBinding(
+            context,
+            _signDialogueId,
+            _signStartNode,
+          );
+          if (r.invalid) {
+            return;
+          }
+          signDlg = r.ref;
         }
         signPayload = MapEntitySignData(
           title: _signTitle.text.trim(),
-          dialogue: r.ref,
+          dialogue: signDlg,
           plainText: _signPlainText.text.trim(),
         );
         break;

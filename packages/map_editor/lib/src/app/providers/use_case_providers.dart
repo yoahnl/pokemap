@@ -31,6 +31,7 @@ import '../../application/use_cases/project_group_use_cases.dart';
 import '../../application/use_cases/project_management_use_cases.dart';
 import '../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../application/use_cases/project_dialogue_use_cases.dart';
+import '../../application/use_cases/project_dialogue_library_use_cases.dart';
 import '../../application/use_cases/project_tileset_use_cases.dart';
 import '../../application/use_cases/terrain_preset_use_cases.dart';
 import '../../application/use_cases/terrain_use_cases.dart';
@@ -773,6 +774,54 @@ DeleteProjectDialogueUseCase deleteProjectDialogueUseCase(
   return DeleteProjectDialogueUseCase(
     ref.watch(projectRepositoryProvider),
     ref.watch(mapRepositoryProvider),
+  );
+}
+
+@riverpod
+CreateDialogueLibraryFolderUseCase createDialogueLibraryFolderUseCase(
+    CreateDialogueLibraryFolderUseCaseRef ref) {
+  return CreateDialogueLibraryFolderUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+RenameDialogueLibraryFolderUseCase renameDialogueLibraryFolderUseCase(
+    RenameDialogueLibraryFolderUseCaseRef ref) {
+  return RenameDialogueLibraryFolderUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+MoveDialogueLibraryFolderUseCase moveDialogueLibraryFolderUseCase(
+    MoveDialogueLibraryFolderUseCaseRef ref) {
+  return MoveDialogueLibraryFolderUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+DeleteDialogueLibraryFolderUseCase deleteDialogueLibraryFolderUseCase(
+    DeleteDialogueLibraryFolderUseCaseRef ref) {
+  return DeleteDialogueLibraryFolderUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+AssignDialogueToLibraryFolderUseCase assignDialogueToLibraryFolderUseCase(
+    AssignDialogueToLibraryFolderUseCaseRef ref) {
+  return AssignDialogueToLibraryFolderUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase(
+    MoveDialogueToLibraryRootUseCaseRef ref) {
+  return MoveDialogueToLibraryRootUseCase(
+    ref.watch(projectRepositoryProvider),
   );
 }
 

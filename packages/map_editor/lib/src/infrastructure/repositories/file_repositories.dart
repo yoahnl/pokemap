@@ -43,6 +43,9 @@ Map<String, dynamic> _migrateLegacyProjectJson(Map<String, dynamic> raw) {
   if (!next.containsKey('dialogues')) {
     next['dialogues'] = <dynamic>[];
   }
+  if (!next.containsKey('dialogueFolders')) {
+    next['dialogueFolders'] = <dynamic>[];
+  }
   if (!next.containsKey('tilesetFolders')) {
     next['tilesetFolders'] = <dynamic>[];
   }

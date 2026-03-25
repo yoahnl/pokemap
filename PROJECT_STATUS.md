@@ -1879,6 +1879,36 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 - **racine**: `PROJECT_STATUS.md`
 - **map_runtime**: aucun changement requis pour ce lot
 
+### Lot bibliotheque dialogues projet (registre + editeur)
+
+**Objectif**: fondation editeriale pour gerer les dialogues au niveau projet (sans Yarn dans `map_core`, sans execution runtime dans ce lot).
+
+**Decisions structurantes**
+
+1. **Modele manifest** : liste `ProjectManifest.dialogues` d entrees `ProjectDialogueEntry` (`id`, `name`, `relativePath`, metadonnees optionnelles : description, tags, `defaultStartNode`). IDs uniques, nom et chemin non vides, chemins valides via `dialogue_validation.dart` (relatif, prefixe `dialogues/`, pas de `..` ni chemin absolu).
+2. **Convention fichiers** : dossier racine projet `dialogues/` ; creation standard `dialogues/<id>.yarn` (contenu minimal) ; import conserve l extension source (ex. `.yarn`, `.txt`).
+3. **DialogueRef** : `scriptPathRelative` vide = resolution future via registre (`dialogueId` doit exister dans le manifest a la validation carte) ; chemin non vide = legacy / override fichier, pas d exigence d entree manifest pour cette reference.
+4. **Suppression** : **refusee** si le dialogue est encore reference par une entite NPC ou signe sur une map du projet (fichiers charges) **ou** sur la carte active (y compris non sauvegardee) ; pas de suppression silencieuse ni nettoyage auto des references dans ce lot.
+5. **Validation** : regles de forme et coherence registre dans `map_core` (`validators`, `map_entities`, `project_dialogue_refs`) ; persistance et CRUD dans l editeur (use cases + repo) ; UI affiche les erreurs de sauvegarde / alertes utilisateur.
+6. **Compatibilite** : projets sans cle `dialogues` dans le JSON manifest : migration douce vers `dialogues: []` a la lecture / sauvegarde.
+
+**Fichiers principaux**
+
+- **map_core** : `lib/src/models/project_manifest.dart` (+ codegen), `lib/src/validation/dialogue_validation.dart`, `lib/src/validation/validators.dart`, `lib/src/operations/map_entities.dart`, `lib/src/operations/project_dialogue_refs.dart`, `lib/map_core.dart` (exports), `map_entity_payloads.dart` (doc `DialogueRef`).
+- **map_editor** : `lib/src/application/use_cases/project_dialogue_use_cases.dart`, `map_use_cases.dart` / `SaveMapUseCase` + `file_repositories.dart` (`projectDialogueContext`), `editor_notifier.dart` (actions bibliotheque, pas de logique lourde), `editor_state.dart` (`selectedProjectDialogueId`), `use_case_providers.dart`, `project_explorer_panel.dart` (volet Dialogues), `entity_properties_panel.dart` (picker NPC / signe + mode fichier avance), `cupertino_editor_widgets.dart` (confirmation suppression via `showMacosEditorTwoChoiceAlert`).
+
+**Limites restantes**
+
+- Aucune execution de dialogues dans `map_runtime` ; pas de parse Yarn dans le domaine.
+- Pas d editeur narratif graphique ; la bibliotheque gere les fichiers et les references, pas le contenu Yarn ligne a ligne dans l outil.
+- Autres chemins de sauvegarde de carte hors flux principal peuvent ne pas encore passer `projectDialogueContext` partout (a harmoniser si besoin).
+
+**Extension explorateur (scripts + UI)**
+
+- Volet **Script Library** (fichiers `.yarn` / registre dialogues) : dossiers hierarchiques `ProjectDialogueFolder` + `ProjectDialogueEntry.folderId`, glisser-deposer dossiers/scripts comme la bibliotheque tilesets, bandeau racine de depot.
+- Sections **Tileset**, **Script**, **World Maps**, **Surface** : repliables (chevron), icones en degrades d accent ; `TerrainEditorPanel(omitOuterHeader: true)` dans l explorateur pour eviter le double titre Surface.
+- Fichiers cles supplementaires : `map_core` `dialogue_library_tree.dart`, `project_dialogue_library_use_cases.dart`, migration JSON `dialogueFolders: []`.
+
 ## Mini tableau priorites (etat)
 
 *(Etat factuel des chantiers outil; l ordre strategique global est dans **Vision produit** et **## 8**.)*
@@ -1897,7 +1927,7 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 | Warps | partiellement fait (MVP + retour assiste; lien bidirectionnel non fait) |
 | Triggers | partiellement fait (MVP generique) |
 | Entites (NPC / signe / objet / spawn) | partiellement fait (payloads types + DialogueRef; preview canvas / runtime non faits) |
-| Dialogues / scripts | pas fait |
+| Dialogues / scripts | partiellement fait (registre projet + UI bibliotheque + assignation NPC/signe ; runtime Yarn non fait) |
 | Rencontres sauvages | pas fait |
 | Dresseurs / equipes | pas fait |
 | Proprietes de map | pas fait |

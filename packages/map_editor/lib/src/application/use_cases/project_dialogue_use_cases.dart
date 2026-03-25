@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
+import 'project_use_case_support.dart';
 
 String generateUniqueDialogueId(ProjectManifest project, String seed) {
   final normalized = seed
@@ -59,6 +60,7 @@ class CreateProjectDialogueUseCase {
     required String name,
     String? description,
     String? defaultStartNode,
+    String? folderId,
   }) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
@@ -66,6 +68,12 @@ class CreateProjectDialogueUseCase {
     }
     if (!isValidDialogueStartNode(defaultStartNode)) {
       throw const EditorValidationException('Invalid default start node');
+    }
+    final parent = folderId?.trim();
+    if (parent != null && parent.isNotEmpty) {
+      if (!project.dialogueFolders.any((f) => f.id == parent)) {
+        throw EditorNotFoundException('Dialogue folder not found: $parent');
+      }
     }
     final id = generateUniqueDialogueId(project, trimmed);
     final relativePath = p.posix.join(kProjectDialoguesRelativeDir, '$id.yarn');
@@ -78,9 +86,9 @@ class CreateProjectDialogueUseCase {
       );
     }
     await file.writeAsString(minimalYarnStub(trimmed));
-    final sortOrder = project.dialogues.fold<int>(
-      0,
-      (m, d) => d.sortOrder > m ? d.sortOrder : m,
+    final sortOrder = nextDialogueLibrarySortOrder(
+      project,
+      parent == null || parent.isEmpty ? null : parent,
     );
     final dns = defaultStartNode?.trim();
     final entry = ProjectDialogueEntry(
@@ -90,7 +98,8 @@ class CreateProjectDialogueUseCase {
       description: description?.trim() ?? '',
       defaultStartNode:
           dns == null || dns.isEmpty ? null : dns,
-      sortOrder: sortOrder + 1,
+      folderId: parent == null || parent.isEmpty ? null : parent,
+      sortOrder: sortOrder,
     );
     final updated = project.copyWith(dialogues: [...project.dialogues, entry]);
     ProjectValidator.validate(updated);
@@ -109,6 +118,7 @@ class ImportProjectDialogueUseCase {
     ProjectManifest project, {
     required String absoluteSourcePath,
     required String displayName,
+    String? folderId,
   }) async {
     final src = File(absoluteSourcePath);
     if (!await src.exists()) {
@@ -124,6 +134,12 @@ class ImportProjectDialogueUseCase {
     if (trimmed.isEmpty) {
       throw const EditorValidationException('Dialogue name cannot be empty');
     }
+    final parent = folderId?.trim();
+    if (parent != null && parent.isNotEmpty) {
+      if (!project.dialogueFolders.any((f) => f.id == parent)) {
+        throw EditorNotFoundException('Dialogue folder not found: $parent');
+      }
+    }
     final id = generateUniqueDialogueId(project, trimmed);
     final fileName = '$id$ext';
     final relativePath = p.posix.join(kProjectDialoguesRelativeDir, fileName);
@@ -134,15 +150,16 @@ class ImportProjectDialogueUseCase {
       throw EditorValidationException('Target already exists: $relativePath');
     }
     await src.copy(destAbs);
-    final sortOrder = project.dialogues.fold<int>(
-      0,
-      (m, d) => d.sortOrder > m ? d.sortOrder : m,
+    final sortOrder = nextDialogueLibrarySortOrder(
+      project,
+      parent == null || parent.isEmpty ? null : parent,
     );
     final entry = ProjectDialogueEntry(
       id: id,
       name: trimmed,
       relativePath: relativePath,
-      sortOrder: sortOrder + 1,
+      folderId: parent == null || parent.isEmpty ? null : parent,
+      sortOrder: sortOrder,
     );
     final updated = project.copyWith(dialogues: [...project.dialogues, entry]);
     ProjectValidator.validate(updated);

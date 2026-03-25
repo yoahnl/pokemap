@@ -449,3 +449,54 @@ List<ProjectElementCategory> defaultElementCategories() {
     ),
   ];
 }
+
+String? _normalizedDialogueLibraryFolderId(String? folderId) {
+  final t = folderId?.trim();
+  if (t == null || t.isEmpty) return null;
+  return t;
+}
+
+bool _sameDialogueLibraryFolder(String? a, String? b) =>
+    _normalizedDialogueLibraryFolderId(a) ==
+    _normalizedDialogueLibraryFolderId(b);
+
+/// Prochain [ProjectDialogueEntry.sortOrder] dans un dossier de bibliothèque (ou racine).
+int nextDialogueLibrarySortOrder(ProjectManifest project, String? folderId) {
+  final target = _normalizedDialogueLibraryFolderId(folderId);
+  final filtered = project.dialogues.where(
+    (d) => _sameDialogueLibraryFolder(d.folderId, target),
+  );
+  if (filtered.isEmpty) return 0;
+  return filtered.map((d) => d.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+}
+
+String generateUniqueDialogueFolderId(ProjectManifest project, String seed) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'folder' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  final existingIds = project.dialogueFolders.map((f) => f.id).toSet();
+  while (existingIds.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
+int nextDialogueLibraryFolderSortOrder(
+  ProjectManifest project,
+  String? parentFolderId,
+) {
+  final targetParent = _normalizedDialogueLibraryFolderId(parentFolderId);
+  final filtered = project.dialogueFolders.where(
+    (f) => _sameDialogueLibraryFolder(f.parentFolderId, targetParent),
+  );
+  if (filtered.isEmpty) return 0;
+  return filtered.map((f) => f.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+}

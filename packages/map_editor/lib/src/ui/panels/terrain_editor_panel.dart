@@ -12,7 +12,13 @@ import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 import '../../features/editor/state/editor_notifier.dart';
 
 class TerrainEditorPanel extends ConsumerWidget {
-  const TerrainEditorPanel({super.key});
+  const TerrainEditorPanel({
+    super.key,
+    /// Masque le bandeau « Surface Library » quand l’en-tête est géré par le parent (explorateur).
+    this.omitOuterHeader = false,
+  });
+
+  final bool omitOuterHeader;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,79 +34,81 @@ class TerrainEditorPanel extends ConsumerWidget {
     final subtle = CupertinoColors.placeholderText.resolveFrom(context);
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      EditorChrome.accentWarm.withValues(alpha: 0.22),
-                      EditorChrome.accentJade.withValues(alpha: 0.12),
+        if (!omitOuterHeader) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        EditorChrome.accentWarm.withValues(alpha: 0.22),
+                        EditorChrome.accentJade.withValues(alpha: 0.12),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: const MacosIcon(
+                    CupertinoIcons.square_stack_3d_down_right_fill,
+                    size: 18,
+                    color: EditorChrome.accentWarm,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Surface Library',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: EditorChrome.primaryLabel(context),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Ground presets and path overlays for your world',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: secondary,
+                        ),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                alignment: Alignment.center,
-                child: const MacosIcon(
-                  CupertinoIcons.square_stack_3d_down_right_fill,
-                  size: 18,
-                  color: EditorChrome.accentWarm,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Surface Library',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: EditorChrome.primaryLabel(context),
-                        letterSpacing: -0.2,
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: EditorChrome.chipFill(context),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${(selectedTerrainPreset != null ? 1 : 0) + (selectedPathPreset != null ? 1 : 0)} active',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: secondary,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Ground presets and path overlays for your world',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: EditorChrome.chipFill(context),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${(selectedTerrainPreset != null ? 1 : 0) + (selectedPathPreset != null ? 1 : 0)} active',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: secondary,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
+          const SizedBox(height: 2),
+        ],
         Expanded(
           child: project == null
               ? Center(
