@@ -1053,21 +1053,25 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         Container(
           height: 72,
           margin: const EdgeInsets.symmetric(horizontal: 12),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: listSurface,
             borderRadius: BorderRadius.circular(6),
-            border: Border(
-              left: BorderSide(color: tilesAccent, width: 3),
-              top: BorderSide(color: rim),
-              right: BorderSide(color: rim),
-              bottom: BorderSide(color: rim),
-            ),
+            border: Border.all(color: rim),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: ListView(
-              children: tilesetGroupRows,
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ColoredBox(
+                color: tilesAccent,
+                child: const SizedBox(width: 3),
+              ),
+              Expanded(
+                child: ListView(
+                  children: tilesetGroupRows,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 5),
@@ -1117,21 +1121,25 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         Container(
           height: 72,
           margin: const EdgeInsets.symmetric(horizontal: 12),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: listSurface,
             borderRadius: BorderRadius.circular(6),
-            border: Border(
-              left: BorderSide(color: categoryStripe, width: 3),
-              top: BorderSide(color: rim),
-              right: BorderSide(color: rim),
-              bottom: BorderSide(color: rim),
-            ),
+            border: Border.all(color: rim),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: ListView(
-              children: categoryRows,
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ColoredBox(
+                color: categoryStripe,
+                child: const SizedBox(width: 3),
+              ),
+              Expanded(
+                child: ListView(
+                  children: categoryRows,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 6),

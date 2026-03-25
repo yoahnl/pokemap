@@ -3774,6 +3774,15 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  /// Places [layerId] before [beforeIndex] (0 = top of list, [layers.length] = bottom).
+  void moveMapLayerBeforeIndex(String layerId, int beforeIndex) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final oldIndex = map.layers.indexWhere((layer) => layer.id == layerId);
+    if (oldIndex < 0) return;
+    reorderMapLayers(oldIndex, beforeIndex);
+  }
+
   void setMapLayerVisibility(String layerId, bool isVisible) {
     final map = state.activeMap;
     if (map == null) return;

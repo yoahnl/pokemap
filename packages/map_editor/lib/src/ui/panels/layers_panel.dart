@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show ReorderableListView;
+import 'package:flutter/material.dart'
+    show Colors, Draggable, DragTarget, Material;
 import 'package:macos_ui/macos_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -267,12 +268,45 @@ class _LayerList extends StatelessWidget {
       );
     }
 
-    return ReorderableListView.builder(
-      buildDefaultDragHandles: false,
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-      itemCount: map.layers.length,
-      onReorder: notifier.reorderMapLayers,
+      itemCount: map.layers.length + 1,
       itemBuilder: (context, index) {
+        if (index == map.layers.length) {
+          return DragTarget<String>(
+            onWillAcceptWithDetails: (_) => true,
+            onAcceptWithDetails: (details) {
+              notifier.moveMapLayerBeforeIndex(
+                details.data,
+                map.layers.length,
+              );
+            },
+            builder: (context, candidateData, _) {
+              final hovering = candidateData.isNotEmpty;
+              return Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 4),
+                child: SizedBox(
+                  height: 14,
+                  width: double.infinity,
+                  child: Center(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 100),
+                      height: hovering ? 5 : 3,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: hovering
+                            ? layerAccent.withValues(alpha: 0.85)
+                            : subtle.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+
         final layer = map.layers[index];
         final isActive = layer.id == activeLayerId;
         final canMoveUp = index > 0;
@@ -291,172 +325,284 @@ class _LayerList extends StatelessWidget {
         final metaColor =
             Color.lerp(secondary, layerAccent, isActive ? 0.28 : 0.22)!;
 
-        return Padding(
-          key: ValueKey(layer.id),
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ReorderableDelayedDragStartListener(
-                index: index,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 10, 6, 0),
-                  child: MacosTooltip(
-                    message: 'Glisser pour réordonner',
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.grab,
-                      child: MacosIcon(
-                        CupertinoIcons.line_horizontal_3,
-                        size: 16,
-                        color: metaColor,
+        return DragTarget<String>(
+          onWillAcceptWithDetails: (_) => true,
+          onAcceptWithDetails: (details) {
+            notifier.moveMapLayerBeforeIndex(details.data, index);
+          },
+          builder: (context, candidateData, _) {
+            final dropHovering = candidateData.isNotEmpty;
+            return Padding(
+              key: ValueKey(layer.id),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 100),
+                curve: Curves.easeOutCubic,
+                decoration: dropHovering
+                    ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: layerAccent.withValues(alpha: 0.9),
+                          width: 2,
+                        ),
+                      )
+                    : null,
+                padding: dropHovering
+                    ? const EdgeInsets.all(2)
+                    : EdgeInsets.zero,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Draggable<String>(
+                      data: layer.id,
+                      axis: Axis.vertical,
+                      affinity: Axis.vertical,
+                      feedback: Material(
+                        color: Colors.transparent,
+                        child: _dragFeedback(
+                          context,
+                          layer,
+                          layerAccent,
+                          label,
+                        ),
+                      ),
+                      childWhenDragging: Opacity(
+                        opacity: 0.35,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 10, 6, 0),
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: MacosIcon(
+                              CupertinoIcons.line_horizontal_3,
+                              size: 16,
+                              color: metaColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 10, 6, 0),
+                        child: MacosTooltip(
+                          message: 'Glisser pour réordonner',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.grab,
+                            child: SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: Center(
+                                child: MacosIcon(
+                                  CupertinoIcons.line_horizontal_3,
+                                  size: 16,
+                                  color: metaColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? Color.lerp(
-                            EditorChrome.islandFillElevated(context),
-                            layerAccent,
-                            0.36,
-                          )!
-                        : inactiveFill,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isActive
-                          ? layerAccent.withValues(alpha: 0.82)
-                          : inactiveBorder,
-                      width: 1,
-                    ),
-                    boxShadow: EditorChrome.inspectorTileHardShadows(context),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-                    child: Column(
-                      children: [
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          onPressed: () => notifier.setActiveLayer(layer.id),
-                          child: Row(
+                    Expanded(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Color.lerp(
+                                  EditorChrome.islandFillElevated(context),
+                                  layerAccent,
+                                  0.36,
+                                )!
+                              : inactiveFill,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isActive
+                                ? layerAccent.withValues(alpha: 0.82)
+                                : inactiveBorder,
+                            width: 1,
+                          ),
+                          boxShadow:
+                              EditorChrome.inspectorTileHardShadows(context),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                          child: Column(
                             children: [
-                              MacosIcon(
-                                _iconForLayer(layer),
-                                size: 16,
-                                color: isActive
-                                    ? layerAccent
-                                    : Color.lerp(secondary, layerAccent, 0.55)!,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              CupertinoButton(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                onPressed: () =>
+                                    notifier.setActiveLayer(layer.id),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      layer.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: isActive
-                                            ? FontWeight.w600
-                                            : FontWeight.w500,
-                                        color: isActive
-                                            ? layerAccent
-                                            : Color.lerp(
-                                                label,
-                                                layerAccent,
-                                                0.12,
-                                              )!,
+                                    MacosIcon(
+                                      _iconForLayer(layer),
+                                      size: 16,
+                                      color: isActive
+                                          ? layerAccent
+                                          : Color.lerp(
+                                              secondary,
+                                              layerAccent,
+                                              0.55,
+                                            )!,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            layer.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: isActive
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w500,
+                                              color: isActive
+                                                  ? layerAccent
+                                                  : Color.lerp(
+                                                      label,
+                                                      layerAccent,
+                                                      0.12,
+                                                    )!,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${_labelForLayer(layer)} • ${layer.id}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: metaColor,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${_labelForLayer(layer)} • ${layer.id}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: metaColor,
+                                    const SizedBox(width: 6),
+                                    _LayersAccentIconButton(
+                                      accent: layerAccent,
+                                      onPressed: () =>
+                                          notifier.setMapLayerVisibility(
+                                        layer.id,
+                                        !layer.isVisible,
                                       ),
+                                      icon: layer.isVisible
+                                          ? CupertinoIcons.eye
+                                          : CupertinoIcons.eye_slash,
+                                      tooltip: layer.isVisible
+                                          ? 'Hide layer'
+                                          : 'Show layer',
+                                      iconSize: 15,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    _LayersAccentIconButton(
+                                      accent: layerAccent,
+                                      onPressed: canMoveUp
+                                          ? () =>
+                                              notifier.moveMapLayerUp(layer.id)
+                                          : null,
+                                      icon: CupertinoIcons.arrow_up,
+                                      tooltip: 'Move up',
+                                      iconSize: 15,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    _LayersAccentIconButton(
+                                      accent: layerAccent,
+                                      onPressed: canMoveDown
+                                          ? () => notifier
+                                              .moveMapLayerDown(layer.id)
+                                          : null,
+                                      icon: CupertinoIcons.arrow_down,
+                                      tooltip: 'Move down',
+                                      iconSize: 15,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    _LayersAccentIconButton(
+                                      accent: layerAccent,
+                                      onPressed: () => _showRenameLayerDialog(
+                                        context,
+                                        notifier,
+                                        layer,
+                                      ),
+                                      icon: CupertinoIcons.pencil,
+                                      tooltip: 'Rename layer',
+                                      iconSize: 15,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    _LayersAccentIconButton(
+                                      accent: layerAccent,
+                                      onPressed: () => _showDeleteLayerDialog(
+                                        context,
+                                        notifier,
+                                        layer,
+                                      ),
+                                      icon: CupertinoIcons.trash,
+                                      tooltip: 'Delete layer',
+                                      iconSize: 15,
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              _LayersAccentIconButton(
-                                accent: layerAccent,
-                                onPressed: () => notifier.setMapLayerVisibility(
-                                  layer.id,
-                                  !layer.isVisible,
-                                ),
-                                icon: layer.isVisible
-                                    ? CupertinoIcons.eye
-                                    : CupertinoIcons.eye_slash,
-                                tooltip: layer.isVisible
-                                    ? 'Hide layer'
-                                    : 'Show layer',
-                                iconSize: 15,
-                              ),
-                              const SizedBox(width: 4),
-                              _LayersAccentIconButton(
-                                accent: layerAccent,
-                                onPressed: canMoveUp
-                                    ? () => notifier.moveMapLayerUp(layer.id)
-                                    : null,
-                                icon: CupertinoIcons.arrow_up,
-                                tooltip: 'Move up',
-                                iconSize: 15,
-                              ),
-                              const SizedBox(width: 4),
-                              _LayersAccentIconButton(
-                                accent: layerAccent,
-                                onPressed: canMoveDown
-                                    ? () => notifier.moveMapLayerDown(layer.id)
-                                    : null,
-                                icon: CupertinoIcons.arrow_down,
-                                tooltip: 'Move down',
-                                iconSize: 15,
-                              ),
-                              const SizedBox(width: 4),
-                              _LayersAccentIconButton(
-                                accent: layerAccent,
-                                onPressed: () => _showRenameLayerDialog(
-                                  context,
-                                  notifier,
-                                  layer,
-                                ),
-                                icon: CupertinoIcons.pencil,
-                                tooltip: 'Rename layer',
-                                iconSize: 15,
-                              ),
-                              const SizedBox(width: 4),
-                              _LayersAccentIconButton(
-                                accent: layerAccent,
-                                onPressed: () => _showDeleteLayerDialog(
-                                  context,
-                                  notifier,
-                                  layer,
-                                ),
-                                icon: CupertinoIcons.trash,
-                                tooltip: 'Delete layer',
-                                iconSize: 15,
-                              ),
                             ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _dragFeedback(
+    BuildContext context,
+    MapLayer layer,
+    Color layerAccent,
+    Color label,
+  ) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 280),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: EditorChrome.islandFillElevated(context),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: layerAccent.withValues(alpha: 0.82),
+          ),
+          boxShadow: EditorChrome.inspectorTileHardShadows(context),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MacosIcon(
+              _iconForLayer(layer),
+              size: 16,
+              color: layerAccent,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                layer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: label,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
