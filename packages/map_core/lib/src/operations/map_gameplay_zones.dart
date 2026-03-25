@@ -1,4 +1,5 @@
 import '../exceptions/map_exceptions.dart';
+import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_gameplay_zone_payloads.dart';
