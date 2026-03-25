@@ -230,6 +230,59 @@ enum PathSurfaceKind {
   custom,
 }
 
+/// Kind de zone gameplay posée sur une map.
+/// Sépare explicitement le visuel (PathSurfaceKind / TerrainType) du comportement.
+enum GameplayZoneKind {
+  @JsonValue('encounter')
+  encounter,    // Zone de rencontre aléatoire (herbes, grotte, surf, etc.)
+  @JsonValue('movement')
+  movement,     // Zone à contrainte de déplacement (surf requis, glace, etc.)
+  @JsonValue('hazard')
+  hazard,       // Danger environnemental (lave, marais, etc.)
+  @JsonValue('transition')
+  transition,   // Transition de scène / d'ambiance (intérieur, bord de zone)
+  @JsonValue('special')
+  special,      // Comportement scripté ou spécial
+  @JsonValue('custom')
+  custom,
+}
+
+/// Mode de déplacement requis ou appliqué dans une zone gameplay.
+enum MovementMode {
+  @JsonValue('walk')
+  walk,
+  @JsonValue('surf')
+  surf,
+  @JsonValue('fly')
+  fly,
+  @JsonValue('cut')
+  cut,
+  @JsonValue('strength')
+  strength,
+  @JsonValue('rock_smash')
+  rockSmash,
+}
+
+/// Mode de déclenchement d'une rencontre Pokémon-like.
+enum EncounterKind {
+  @JsonValue('walk')
+  walk,         // Herbes hautes, caverne, etc.
+  @JsonValue('surf')
+  surf,         // Navigation sur l'eau
+  @JsonValue('headbutt')
+  headbutt,     // Secouer un arbre
+  @JsonValue('old_rod')
+  oldRod,
+  @JsonValue('good_rod')
+  goodRod,
+  @JsonValue('super_rod')
+  superRod,
+  @JsonValue('gift')
+  gift,         // Rencontre / don statique
+  @JsonValue('special')
+  special,      // Déclenchement ad-hoc
+}
+
 enum TilesetScope {
   @JsonValue('global')
   global,

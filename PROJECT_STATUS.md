@@ -54,6 +54,41 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 
 > **Derniers lots documentés** — detail technique des deux lots les plus recents (historique complet dans **## 7**).
 
+## Lot: Zones gameplay + Tables de rencontres (domaine + editor complet)
+
+Objectif: introduire la séparation propre entre **visuel** (`PathSurfaceKind`), **comportement de terrain** (futur runtime) et **logique de rencontre**; fournir à l'éditeur un système complet de zones rectangulaires sur map et de tables de rencontres réutilisables au niveau projet.
+
+### Modèle (`map_core`)
+
+- `GameplayZoneKind`: `encounter`, `movement`, `hazard`, `transition`, `special`, `custom`.
+- `MovementMode`: `walk`, `surf`, `fly`, `cut`, `strength`, `rockSmash`.
+- `EncounterKind`: `walk`, `surf`, `headbutt`, `oldRod`, `goodRod`, `superRod`, `gift`, `special`.
+- `MapGameplayZone` (freezed + JSON) sur `MapData.gameplayZones`: id, name, kind, area (`MapRect`), `encounterTableId?`, `movementMode?`, priority, properties.
+- `ProjectEncounterEntry` (freezed + JSON): `speciesId`, `minLevel`, `maxLevel`, `weight`.
+- `ProjectEncounterTable` (freezed + JSON) sur `ProjectManifest.encounterTables`: id, name, `encounterKind`, entries, tags.
+- `map_gameplay_zones.dart`: opérations CRUD pures (`find*`, `add*`, `update*`, `move*`, `resize*`, `remove*`) avec sentinelle `_kUnset` pour les champs nullable optionnels.
+- `ProjectValidator`: validation tables (unicité id, entries valides: levels, weight, speciesId).
+- `MapValidator`: validation zones (id non vide, area > 0, propriétés sans clé vide, unicité id).
+
+### Editor (`map_editor`)
+
+- **Architecture**: `GameplayZoneEditingCoordinator` (helpers stateless) + `GameplayZoneEditingService` (orchestration) + 3 use cases map-level (`Add/Update/DeleteGameplayZoneToMapUseCase`) + 6 use cases projet (`Create/Update/DeleteEncounterTableUseCase`, `Add/Update/DeleteEncounterEntryUseCase`).
+- **Providers Riverpod** enregistrés pour tous les use cases et services.
+- **`EditorState`**: `selectedGameplayZoneId` + outil `gameplayZonePlacement`.
+- **`EditorNotifier`**: `placeOrSelectGameplayZoneAt`, `addGameplayZoneAt`, `selectGameplayZone`, `updateSelectedGameplayZone`, `updateGameplayZone`, `deleteSelectedGameplayZone`, `deleteGameplayZone`; `createEncounterTable`, `updateEncounterTable`, `deleteEncounterTable`, `addEncounterEntry`, `updateEncounterEntry`, `deleteEncounterEntry`.
+- **Canvas**: overlay coloré par `GameplayZoneKind` (remplissage + bordure + label) avec sélection visuellement distincte; clic via outil `gameplayZonePlacement`.
+- **`GameplayZonePropertiesPanel`**: liste des zones + éditeur (id, name, kind, area, encounterTableId dropdown, movementMode dropdown, priority) + Save/Delete.
+- **`EncounterTablesPanel`**: liste des tables projet + formulaire création/édition table + édition inline des entrées (species, levels, weight).
+- **`MapInspectorPanel`**: sections "Gameplay Zones" et "Encounter Tables" conditionnelles.
+- **`TopToolbar`**: bouton outil "Gameplay Zone Tool" dans le groupe Gameplay Tools.
+
+### Fichiers touchés dans ce lot
+
+- `map_core`: `enums.dart`, `map_data.dart`, `project_manifest.dart`, `map_gameplay_zones.dart` (nouveau), `validators.dart`, `map_core.dart`.
+- `map_editor`: `editor_tool.dart`, `editor_state.dart`, `gameplay_zone_editing_coordinator.dart` (nouveau), `gameplay_zone_editing_service.dart` (nouveau), `gameplay_zone_use_cases.dart` (nouveau), `encounter_table_use_cases.dart` (nouveau), `use_cases.dart`, `use_case_providers.dart`, `editor_notifier.dart`, `map_canvas.dart`, `gameplay_zone_properties_panel.dart` (nouveau), `encounter_tables_panel.dart` (nouveau), `map_inspector_panel.dart`, `top_toolbar.dart`.
+
+---
+
 ## Lot: Entites structurees + DialogueRef (domaine + inspector)
 
 Objectif: sortir les champs gameplay des seules `properties` pour `npc`, `sign`, `item`, `spawn`, preparer les references de dialogue sans coupler `map_core` a Yarn Spinner.
@@ -563,23 +598,29 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 
 ### Phase actuelle (alignee vision produit)
 
-**En cours / immediate:** poursuivre l **editeur de contenu riche** en specialisant le metier et en preparant les **schemas consommables par le runtime**:
+**Zones gameplay + tables de rencontres**: lot livré (2026-03-25). `MapGameplayZone` sur map + `ProjectEncounterTable` au niveau projet, éditeur complet (overlay canvas, panels, toolbar, inspector).
 
-- **Entites**: poursuite de la specialisation (`npc`, `sign`, `item`, `spawn`, `custom`) — deja amorcee (payloads typés, `DialogueRef`, inspector contextuel); reste preview visuelle, catalogues, liens gameplay plus fins.
-- **References dialogue / scripts**: `DialogueRef` et champs associes cote entites; a etendre vers une **vraie gestion projet** des fichiers de dialogue (sans coupler `map_core` a Yarn).
-- **Rencontres**: zones, tables, integration terrain / triggers — **a concevoir** dans `map_core` puis UI.
-- **Dresseurs / equipes**: **a concevoir** (donnees + UI + validation).
-- **Preparation du runtime standard**: chaque nouveau bloc metier doit preciser **comment** `map_runtime` le lira et l executera (meme si l implementation arrive apres).
+**Prochaines priorités immédiates:**
 
-### Reference historique (lot deja livre)
+- **Entités**: preview visuelle canvas (sprites/éléments), catalogues objets, affinage gameplay NPC/item/spawn.
+- **Dialogues**: vrai système de gestion projet fichiers Yarn (résolution `DialogueRef` → fichiers relatifs, UI d'assignation, validation runtime).
+- **Dresseurs / équipes**: à concevoir (données + UI + validation).
+- **Préparation du runtime standard**: chaque nouveau bloc métier doit préciser comment `map_runtime` le lira et l'exécutera (même si l'implémentation arrive après).
 
-- Fondation **Map Entities MVP** (pose, selection, trigger vs entity, pipeline map-level, undo/redo) — voir **7**.
+### Référence historique (lots déjà livrés)
+
+- **Zones gameplay + tables de rencontres**: `MapGameplayZone`, `ProjectEncounterTable`, overlay canvas, panels — voir lot ci-dessus.
+- **Entités structurées + DialogueRef**: payloads typés, `DialogueRef`, inspector contextuel — voir lot précédent.
 
 ### Suite directe (hors scope de cette section detaillee)
 
 Voir **8. Prochaines etapes recommandees** (decoupage **editor court terme** / **runtime moyen terme**).
 
 ## 7. Dernieres modifications realisees
+2026-03-25 (zones gameplay + tables de rencontres — domaine + editor complet):
+- `map_core`: nouveaux enums `GameplayZoneKind`/`MovementMode`/`EncounterKind`; modele `MapGameplayZone` sur `MapData`; modeles `ProjectEncounterEntry`/`ProjectEncounterTable` sur `ProjectManifest`; operations CRUD `map_gameplay_zones.dart`; validation `ProjectValidator` et `MapValidator`.
+- `map_editor`: `GameplayZoneEditingCoordinator` + `GameplayZoneEditingService` + 9 use cases (3 map-level + 6 projet); providers Riverpod; `EditorState.selectedGameplayZoneId` + outil `gameplayZonePlacement`; `EditorNotifier` (7 methodes zones + 6 methodes tables); overlay canvas coloré par kind; `GameplayZonePropertiesPanel` + `EncounterTablesPanel`; sections inspector + bouton toolbar.
+
 2026-03-25 (documentation — renforcement recadrage + coherence documentaire):
 - **Tableau de bord des phases** ajoute dans la section Vision produit (etat factuel des 3 phases avec colonnes claires).
 - **Sections lots recents** renommees (`## Lot:` / `## Lot precedent:`) pour ne plus perturber la numerotation principale; note introductive ajoutee.

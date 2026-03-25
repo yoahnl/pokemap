@@ -37,6 +37,10 @@ mixin _$ProjectManifest {
   List<ProjectTerrainPreset> get terrainPresets =>
       throw _privateConstructorUsedError;
   List<ProjectPathPreset> get pathPresets => throw _privateConstructorUsedError;
+
+  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
+  List<ProjectEncounterTable> get encounterTables =>
+      throw _privateConstructorUsedError;
   ProjectSettings get settings => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
@@ -70,6 +74,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectPresetCategory> pathCategories,
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
+      List<ProjectEncounterTable> encounterTables,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -103,6 +108,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? pathCategories = null,
     Object? terrainPresets = null,
     Object? pathPresets = null,
+    Object? encounterTables = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -155,6 +161,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.pathPresets
           : pathPresets // ignore: cast_nullable_to_non_nullable
               as List<ProjectPathPreset>,
+      encounterTables: null == encounterTables
+          ? _value.encounterTables
+          : encounterTables // ignore: cast_nullable_to_non_nullable
+              as List<ProjectEncounterTable>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -198,6 +208,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectPresetCategory> pathCategories,
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
+      List<ProjectEncounterTable> encounterTables,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -230,6 +241,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? pathCategories = null,
     Object? terrainPresets = null,
     Object? pathPresets = null,
+    Object? encounterTables = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -282,6 +294,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._pathPresets
           : pathPresets // ignore: cast_nullable_to_non_nullable
               as List<ProjectPathPreset>,
+      encounterTables: null == encounterTables
+          ? _value._encounterTables
+          : encounterTables // ignore: cast_nullable_to_non_nullable
+              as List<ProjectEncounterTable>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -311,6 +327,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectPresetCategory> pathCategories = const [],
       final List<ProjectTerrainPreset> terrainPresets = const [],
       final List<ProjectPathPreset> pathPresets = const [],
+      final List<ProjectEncounterTable> encounterTables = const [],
       this.settings = const ProjectSettings(),
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
@@ -323,6 +340,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _pathCategories = pathCategories,
         _terrainPresets = terrainPresets,
         _pathPresets = pathPresets,
+        _encounterTables = encounterTables,
         _globalProperties = globalProperties;
 
   factory _$ProjectManifestImpl.fromJson(Map<String, dynamic> json) =>
@@ -423,6 +441,18 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_pathPresets);
   }
 
+  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
+  final List<ProjectEncounterTable> _encounterTables;
+
+  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
+  @override
+  @JsonKey()
+  List<ProjectEncounterTable> get encounterTables {
+    if (_encounterTables is EqualUnmodifiableListView) return _encounterTables;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_encounterTables);
+  }
+
   @override
   @JsonKey()
   final ProjectSettings settings;
@@ -437,7 +467,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -463,6 +493,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._terrainPresets, _terrainPresets) &&
             const DeepCollectionEquality()
                 .equals(other._pathPresets, _pathPresets) &&
+            const DeepCollectionEquality()
+                .equals(other._encounterTables, _encounterTables) &&
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
             const DeepCollectionEquality()
@@ -485,6 +517,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       const DeepCollectionEquality().hash(_pathCategories),
       const DeepCollectionEquality().hash(_terrainPresets),
       const DeepCollectionEquality().hash(_pathPresets),
+      const DeepCollectionEquality().hash(_encounterTables),
       settings,
       const DeepCollectionEquality().hash(_globalProperties));
 
@@ -519,6 +552,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectPresetCategory> pathCategories,
       final List<ProjectTerrainPreset> terrainPresets,
       final List<ProjectPathPreset> pathPresets,
+      final List<ProjectEncounterTable> encounterTables,
       final ProjectSettings settings,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
 
@@ -549,6 +583,10 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectTerrainPreset> get terrainPresets;
   @override
   List<ProjectPathPreset> get pathPresets;
+
+  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
+  @override
+  List<ProjectEncounterTable> get encounterTables;
   @override
   ProjectSettings get settings;
   @override
@@ -4613,5 +4651,490 @@ abstract class _ProjectPresetCategory implements ProjectPresetCategory {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectPresetCategoryImplCopyWith<_$ProjectPresetCategoryImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectEncounterEntry _$ProjectEncounterEntryFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectEncounterEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectEncounterEntry {
+  /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
+  String get speciesId => throw _privateConstructorUsedError;
+  int get minLevel => throw _privateConstructorUsedError;
+  int get maxLevel => throw _privateConstructorUsedError;
+
+  /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
+  int get weight => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectEncounterEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectEncounterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectEncounterEntryCopyWith<ProjectEncounterEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectEncounterEntryCopyWith<$Res> {
+  factory $ProjectEncounterEntryCopyWith(ProjectEncounterEntry value,
+          $Res Function(ProjectEncounterEntry) then) =
+      _$ProjectEncounterEntryCopyWithImpl<$Res, ProjectEncounterEntry>;
+  @useResult
+  $Res call({String speciesId, int minLevel, int maxLevel, int weight});
+}
+
+/// @nodoc
+class _$ProjectEncounterEntryCopyWithImpl<$Res,
+        $Val extends ProjectEncounterEntry>
+    implements $ProjectEncounterEntryCopyWith<$Res> {
+  _$ProjectEncounterEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectEncounterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? speciesId = null,
+    Object? minLevel = null,
+    Object? maxLevel = null,
+    Object? weight = null,
+  }) {
+    return _then(_value.copyWith(
+      speciesId: null == speciesId
+          ? _value.speciesId
+          : speciesId // ignore: cast_nullable_to_non_nullable
+              as String,
+      minLevel: null == minLevel
+          ? _value.minLevel
+          : minLevel // ignore: cast_nullable_to_non_nullable
+              as int,
+      maxLevel: null == maxLevel
+          ? _value.maxLevel
+          : maxLevel // ignore: cast_nullable_to_non_nullable
+              as int,
+      weight: null == weight
+          ? _value.weight
+          : weight // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectEncounterEntryImplCopyWith<$Res>
+    implements $ProjectEncounterEntryCopyWith<$Res> {
+  factory _$$ProjectEncounterEntryImplCopyWith(
+          _$ProjectEncounterEntryImpl value,
+          $Res Function(_$ProjectEncounterEntryImpl) then) =
+      __$$ProjectEncounterEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String speciesId, int minLevel, int maxLevel, int weight});
+}
+
+/// @nodoc
+class __$$ProjectEncounterEntryImplCopyWithImpl<$Res>
+    extends _$ProjectEncounterEntryCopyWithImpl<$Res,
+        _$ProjectEncounterEntryImpl>
+    implements _$$ProjectEncounterEntryImplCopyWith<$Res> {
+  __$$ProjectEncounterEntryImplCopyWithImpl(_$ProjectEncounterEntryImpl _value,
+      $Res Function(_$ProjectEncounterEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectEncounterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? speciesId = null,
+    Object? minLevel = null,
+    Object? maxLevel = null,
+    Object? weight = null,
+  }) {
+    return _then(_$ProjectEncounterEntryImpl(
+      speciesId: null == speciesId
+          ? _value.speciesId
+          : speciesId // ignore: cast_nullable_to_non_nullable
+              as String,
+      minLevel: null == minLevel
+          ? _value.minLevel
+          : minLevel // ignore: cast_nullable_to_non_nullable
+              as int,
+      maxLevel: null == maxLevel
+          ? _value.maxLevel
+          : maxLevel // ignore: cast_nullable_to_non_nullable
+              as int,
+      weight: null == weight
+          ? _value.weight
+          : weight // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProjectEncounterEntryImpl implements _ProjectEncounterEntry {
+  const _$ProjectEncounterEntryImpl(
+      {required this.speciesId,
+      required this.minLevel,
+      required this.maxLevel,
+      this.weight = 1});
+
+  factory _$ProjectEncounterEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectEncounterEntryImplFromJson(json);
+
+  /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
+  @override
+  final String speciesId;
+  @override
+  final int minLevel;
+  @override
+  final int maxLevel;
+
+  /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
+  @override
+  @JsonKey()
+  final int weight;
+
+  @override
+  String toString() {
+    return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectEncounterEntryImpl &&
+            (identical(other.speciesId, speciesId) ||
+                other.speciesId == speciesId) &&
+            (identical(other.minLevel, minLevel) ||
+                other.minLevel == minLevel) &&
+            (identical(other.maxLevel, maxLevel) ||
+                other.maxLevel == maxLevel) &&
+            (identical(other.weight, weight) || other.weight == weight));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, speciesId, minLevel, maxLevel, weight);
+
+  /// Create a copy of ProjectEncounterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectEncounterEntryImplCopyWith<_$ProjectEncounterEntryImpl>
+      get copyWith => __$$ProjectEncounterEntryImplCopyWithImpl<
+          _$ProjectEncounterEntryImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectEncounterEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectEncounterEntry implements ProjectEncounterEntry {
+  const factory _ProjectEncounterEntry(
+      {required final String speciesId,
+      required final int minLevel,
+      required final int maxLevel,
+      final int weight}) = _$ProjectEncounterEntryImpl;
+
+  factory _ProjectEncounterEntry.fromJson(Map<String, dynamic> json) =
+      _$ProjectEncounterEntryImpl.fromJson;
+
+  /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
+  @override
+  String get speciesId;
+  @override
+  int get minLevel;
+  @override
+  int get maxLevel;
+
+  /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
+  @override
+  int get weight;
+
+  /// Create a copy of ProjectEncounterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectEncounterEntryImplCopyWith<_$ProjectEncounterEntryImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectEncounterTable _$ProjectEncounterTableFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectEncounterTable.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectEncounterTable {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  EncounterKind get encounterKind => throw _privateConstructorUsedError;
+  List<ProjectEncounterEntry> get entries => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectEncounterTable to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectEncounterTable
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectEncounterTableCopyWith<ProjectEncounterTable> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectEncounterTableCopyWith<$Res> {
+  factory $ProjectEncounterTableCopyWith(ProjectEncounterTable value,
+          $Res Function(ProjectEncounterTable) then) =
+      _$ProjectEncounterTableCopyWithImpl<$Res, ProjectEncounterTable>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      EncounterKind encounterKind,
+      List<ProjectEncounterEntry> entries,
+      List<String> tags});
+}
+
+/// @nodoc
+class _$ProjectEncounterTableCopyWithImpl<$Res,
+        $Val extends ProjectEncounterTable>
+    implements $ProjectEncounterTableCopyWith<$Res> {
+  _$ProjectEncounterTableCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectEncounterTable
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? encounterKind = null,
+    Object? entries = null,
+    Object? tags = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      encounterKind: null == encounterKind
+          ? _value.encounterKind
+          : encounterKind // ignore: cast_nullable_to_non_nullable
+              as EncounterKind,
+      entries: null == entries
+          ? _value.entries
+          : entries // ignore: cast_nullable_to_non_nullable
+              as List<ProjectEncounterEntry>,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectEncounterTableImplCopyWith<$Res>
+    implements $ProjectEncounterTableCopyWith<$Res> {
+  factory _$$ProjectEncounterTableImplCopyWith(
+          _$ProjectEncounterTableImpl value,
+          $Res Function(_$ProjectEncounterTableImpl) then) =
+      __$$ProjectEncounterTableImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      EncounterKind encounterKind,
+      List<ProjectEncounterEntry> entries,
+      List<String> tags});
+}
+
+/// @nodoc
+class __$$ProjectEncounterTableImplCopyWithImpl<$Res>
+    extends _$ProjectEncounterTableCopyWithImpl<$Res,
+        _$ProjectEncounterTableImpl>
+    implements _$$ProjectEncounterTableImplCopyWith<$Res> {
+  __$$ProjectEncounterTableImplCopyWithImpl(_$ProjectEncounterTableImpl _value,
+      $Res Function(_$ProjectEncounterTableImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectEncounterTable
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? encounterKind = null,
+    Object? entries = null,
+    Object? tags = null,
+  }) {
+    return _then(_$ProjectEncounterTableImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      encounterKind: null == encounterKind
+          ? _value.encounterKind
+          : encounterKind // ignore: cast_nullable_to_non_nullable
+              as EncounterKind,
+      entries: null == entries
+          ? _value._entries
+          : entries // ignore: cast_nullable_to_non_nullable
+              as List<ProjectEncounterEntry>,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectEncounterTableImpl implements _ProjectEncounterTable {
+  const _$ProjectEncounterTableImpl(
+      {required this.id,
+      required this.name,
+      required this.encounterKind,
+      final List<ProjectEncounterEntry> entries = const [],
+      final List<String> tags = const []})
+      : _entries = entries,
+        _tags = tags;
+
+  factory _$ProjectEncounterTableImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectEncounterTableImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final EncounterKind encounterKind;
+  final List<ProjectEncounterEntry> _entries;
+  @override
+  @JsonKey()
+  List<ProjectEncounterEntry> get entries {
+    if (_entries is EqualUnmodifiableListView) return _entries;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_entries);
+  }
+
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  String toString() {
+    return 'ProjectEncounterTable(id: $id, name: $name, encounterKind: $encounterKind, entries: $entries, tags: $tags)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectEncounterTableImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.encounterKind, encounterKind) ||
+                other.encounterKind == encounterKind) &&
+            const DeepCollectionEquality().equals(other._entries, _entries) &&
+            const DeepCollectionEquality().equals(other._tags, _tags));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      encounterKind,
+      const DeepCollectionEquality().hash(_entries),
+      const DeepCollectionEquality().hash(_tags));
+
+  /// Create a copy of ProjectEncounterTable
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectEncounterTableImplCopyWith<_$ProjectEncounterTableImpl>
+      get copyWith => __$$ProjectEncounterTableImplCopyWithImpl<
+          _$ProjectEncounterTableImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectEncounterTableImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectEncounterTable implements ProjectEncounterTable {
+  const factory _ProjectEncounterTable(
+      {required final String id,
+      required final String name,
+      required final EncounterKind encounterKind,
+      final List<ProjectEncounterEntry> entries,
+      final List<String> tags}) = _$ProjectEncounterTableImpl;
+
+  factory _ProjectEncounterTable.fromJson(Map<String, dynamic> json) =
+      _$ProjectEncounterTableImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  EncounterKind get encounterKind;
+  @override
+  List<ProjectEncounterEntry> get entries;
+  @override
+  List<String> get tags;
+
+  /// Create a copy of ProjectEncounterTable
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectEncounterTableImplCopyWith<_$ProjectEncounterTableImpl>
       get copyWith => throw _privateConstructorUsedError;
 }

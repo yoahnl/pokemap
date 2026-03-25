@@ -8,7 +8,9 @@ import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';
+import 'encounter_tables_panel.dart';
 import 'entity_properties_panel.dart';
+import 'gameplay_zone_properties_panel.dart';
 import 'layers_panel.dart';
 import 'map_connections_panel.dart';
 import 'terrain_map_panel.dart';
@@ -25,6 +27,8 @@ enum _InspectorSectionId {
   connections,
   triggers,
   warps,
+  gameplayZones,
+  encounterTables,
 }
 
 class MapInspectorPanel extends ConsumerStatefulWidget {
@@ -82,6 +86,13 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     final showWarpSection = state.activeTool == EditorToolType.warpPlacement ||
         state.selectedWarpId != null ||
         activeMap.warps.isNotEmpty;
+    final showGameplayZoneSection =
+        state.activeTool == EditorToolType.gameplayZonePlacement ||
+            state.selectedGameplayZoneId != null ||
+            activeMap.gameplayZones.isNotEmpty;
+    final showEncounterTablesSection =
+        (state.project?.encounterTables.isNotEmpty ?? false) ||
+            showGameplayZoneSection;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -261,6 +272,50 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     ),
                     expandedHeight: 320,
                     child: const WarpPropertiesPanel(embedded: true),
+                  ),
+                if (showGameplayZoneSection)
+                  InspectorSectionCard(
+                    title: 'Gameplay Zones',
+                    subtitle: state.selectedGameplayZoneId != null
+                        ? 'Selected zone ready for editing.'
+                        : 'Encounter areas, movement constraints and special zones.',
+                    icon: CupertinoIcons.leaf_arrow_circlepath,
+                    badgeText: '${activeMap.gameplayZones.length}',
+                    accentColor: EditorChrome.inspectorJoyMint,
+                    expanded: _isExpanded(
+                      _InspectorSectionId.gameplayZones,
+                      state.activeTool ==
+                              EditorToolType.gameplayZonePlacement ||
+                          state.selectedGameplayZoneId != null,
+                    ),
+                    onToggle: () => _toggleSection(
+                      _InspectorSectionId.gameplayZones,
+                      defaultExpanded:
+                          state.activeTool ==
+                                  EditorToolType.gameplayZonePlacement ||
+                              state.selectedGameplayZoneId != null,
+                    ),
+                    expandedHeight: 520,
+                    child: const GameplayZonePropertiesPanel(embedded: true),
+                  ),
+                if (showEncounterTablesSection)
+                  InspectorSectionCard(
+                    title: 'Encounter Tables',
+                    subtitle: 'Project-level encounter tables for wild Pokémon.',
+                    icon: CupertinoIcons.list_bullet,
+                    badgeText:
+                        '${state.project?.encounterTables.length ?? 0}',
+                    accentColor: EditorChrome.inspectorJoyCyan,
+                    expanded: _isExpanded(
+                      _InspectorSectionId.encounterTables,
+                      false,
+                    ),
+                    onToggle: () => _toggleSection(
+                      _InspectorSectionId.encounterTables,
+                      defaultExpanded: false,
+                    ),
+                    expandedHeight: 480,
+                    child: const EncounterTablesPanel(embedded: true),
                   ),
             ],
           ),

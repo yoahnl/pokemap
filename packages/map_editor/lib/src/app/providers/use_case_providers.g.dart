@@ -2036,5 +2036,225 @@ final renameGroupUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RenameGroupUseCaseRef = AutoDisposeProviderRef<RenameGroupUseCase>;
+String _$gameplayZoneEditingCoordinatorHash() =>
+    r'6a4d829079177cf2c31562b9ab5599b2fcf290bf';
+
+/// See also [gameplayZoneEditingCoordinator].
+@ProviderFor(gameplayZoneEditingCoordinator)
+final gameplayZoneEditingCoordinatorProvider =
+    AutoDisposeProvider<GameplayZoneEditingCoordinator>.internal(
+  gameplayZoneEditingCoordinator,
+  name: r'gameplayZoneEditingCoordinatorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$gameplayZoneEditingCoordinatorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GameplayZoneEditingCoordinatorRef
+    = AutoDisposeProviderRef<GameplayZoneEditingCoordinator>;
+String _$addGameplayZoneToMapUseCaseHash() =>
+    r'e799eaf52a0b1c3f899be688fa1c4ce84196fba9';
+
+/// See also [addGameplayZoneToMapUseCase].
+@ProviderFor(addGameplayZoneToMapUseCase)
+final addGameplayZoneToMapUseCaseProvider =
+    AutoDisposeProvider<AddGameplayZoneToMapUseCase>.internal(
+  addGameplayZoneToMapUseCase,
+  name: r'addGameplayZoneToMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addGameplayZoneToMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddGameplayZoneToMapUseCaseRef
+    = AutoDisposeProviderRef<AddGameplayZoneToMapUseCase>;
+String _$updateGameplayZoneOnMapUseCaseHash() =>
+    r'60a5c3ad51b9ee8d57cf4e7f7bb5bf5d549e3ad8';
+
+/// See also [updateGameplayZoneOnMapUseCase].
+@ProviderFor(updateGameplayZoneOnMapUseCase)
+final updateGameplayZoneOnMapUseCaseProvider =
+    AutoDisposeProvider<UpdateGameplayZoneOnMapUseCase>.internal(
+  updateGameplayZoneOnMapUseCase,
+  name: r'updateGameplayZoneOnMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateGameplayZoneOnMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateGameplayZoneOnMapUseCaseRef
+    = AutoDisposeProviderRef<UpdateGameplayZoneOnMapUseCase>;
+String _$deleteGameplayZoneFromMapUseCaseHash() =>
+    r'b868f59fd3b722fda3f2ba63ad984b3c800c6bb3';
+
+/// See also [deleteGameplayZoneFromMapUseCase].
+@ProviderFor(deleteGameplayZoneFromMapUseCase)
+final deleteGameplayZoneFromMapUseCaseProvider =
+    AutoDisposeProvider<DeleteGameplayZoneFromMapUseCase>.internal(
+  deleteGameplayZoneFromMapUseCase,
+  name: r'deleteGameplayZoneFromMapUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteGameplayZoneFromMapUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteGameplayZoneFromMapUseCaseRef
+    = AutoDisposeProviderRef<DeleteGameplayZoneFromMapUseCase>;
+String _$gameplayZoneEditingServiceHash() =>
+    r'a7287076e260e6bde4196e647b574ee65dc2b003';
+
+/// See also [gameplayZoneEditingService].
+@ProviderFor(gameplayZoneEditingService)
+final gameplayZoneEditingServiceProvider =
+    AutoDisposeProvider<GameplayZoneEditingService>.internal(
+  gameplayZoneEditingService,
+  name: r'gameplayZoneEditingServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$gameplayZoneEditingServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GameplayZoneEditingServiceRef
+    = AutoDisposeProviderRef<GameplayZoneEditingService>;
+String _$createEncounterTableUseCaseHash() =>
+    r'd97101b62faf54992523844b6d019b72db92c1f1';
+
+/// See also [createEncounterTableUseCase].
+@ProviderFor(createEncounterTableUseCase)
+final createEncounterTableUseCaseProvider =
+    AutoDisposeProvider<CreateEncounterTableUseCase>.internal(
+  createEncounterTableUseCase,
+  name: r'createEncounterTableUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createEncounterTableUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateEncounterTableUseCaseRef
+    = AutoDisposeProviderRef<CreateEncounterTableUseCase>;
+String _$updateEncounterTableUseCaseHash() =>
+    r'58ce9b450f81284c2bf677553f66d7597fe006c6';
+
+/// See also [updateEncounterTableUseCase].
+@ProviderFor(updateEncounterTableUseCase)
+final updateEncounterTableUseCaseProvider =
+    AutoDisposeProvider<UpdateEncounterTableUseCase>.internal(
+  updateEncounterTableUseCase,
+  name: r'updateEncounterTableUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateEncounterTableUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateEncounterTableUseCaseRef
+    = AutoDisposeProviderRef<UpdateEncounterTableUseCase>;
+String _$deleteEncounterTableUseCaseHash() =>
+    r'7d2be2844af1a47125a272744f390a8acb59dc87';
+
+/// See also [deleteEncounterTableUseCase].
+@ProviderFor(deleteEncounterTableUseCase)
+final deleteEncounterTableUseCaseProvider =
+    AutoDisposeProvider<DeleteEncounterTableUseCase>.internal(
+  deleteEncounterTableUseCase,
+  name: r'deleteEncounterTableUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteEncounterTableUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteEncounterTableUseCaseRef
+    = AutoDisposeProviderRef<DeleteEncounterTableUseCase>;
+String _$addEncounterEntryUseCaseHash() =>
+    r'14d9800620d3c10edba9c09df768d9f09fff02ed';
+
+/// See also [addEncounterEntryUseCase].
+@ProviderFor(addEncounterEntryUseCase)
+final addEncounterEntryUseCaseProvider =
+    AutoDisposeProvider<AddEncounterEntryUseCase>.internal(
+  addEncounterEntryUseCase,
+  name: r'addEncounterEntryUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addEncounterEntryUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddEncounterEntryUseCaseRef
+    = AutoDisposeProviderRef<AddEncounterEntryUseCase>;
+String _$updateEncounterEntryUseCaseHash() =>
+    r'9ca7629c11525140dd724449fb4d7b1e93bbf995';
+
+/// See also [updateEncounterEntryUseCase].
+@ProviderFor(updateEncounterEntryUseCase)
+final updateEncounterEntryUseCaseProvider =
+    AutoDisposeProvider<UpdateEncounterEntryUseCase>.internal(
+  updateEncounterEntryUseCase,
+  name: r'updateEncounterEntryUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateEncounterEntryUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateEncounterEntryUseCaseRef
+    = AutoDisposeProviderRef<UpdateEncounterEntryUseCase>;
+String _$deleteEncounterEntryUseCaseHash() =>
+    r'e9c94495b00077fa72b5b60132ca64ee42741c7f';
+
+/// See also [deleteEncounterEntryUseCase].
+@ProviderFor(deleteEncounterEntryUseCase)
+final deleteEncounterEntryUseCaseProvider =
+    AutoDisposeProvider<DeleteEncounterEntryUseCase>.internal(
+  deleteEncounterEntryUseCase,
+  name: r'deleteEncounterEntryUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteEncounterEntryUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteEncounterEntryUseCaseRef
+    = AutoDisposeProviderRef<DeleteEncounterEntryUseCase>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

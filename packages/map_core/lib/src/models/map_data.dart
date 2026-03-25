@@ -21,11 +21,46 @@ class MapData with _$MapData {
     @Default([]) List<MapConnection> connections,
     @Default([]) List<MapWarp> warps,
     @Default([]) List<MapTrigger> triggers,
+    /// Zones gameplay (rencontres, déplacement, dangers, etc.).
+    /// Séparées des triggers (logiques scriptées) et des layers visuelles.
+    @Default([]) List<MapGameplayZone> gameplayZones,
     @Default({}) Map<String, dynamic> properties,
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) =>
       _$MapDataFromJson(json);
+}
+
+// ---------------------------------------------------------------------------
+// MapGameplayZone
+// ---------------------------------------------------------------------------
+
+/// Zone gameplay rectangulaire sur une map.
+///
+/// Sépare le **comportement gameplay** (rencontres, déplacement, danger)
+/// du **visuel** ([PathSurfaceKind] / [TerrainType]).
+///
+/// Le runtime peut lire ces zones pour décider : tirer une rencontre,
+/// appliquer un effet de déplacement, etc.
+@freezed
+class MapGameplayZone with _$MapGameplayZone {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapGameplayZone({
+    required String id,
+    @Default('') String name,
+    required GameplayZoneKind kind,
+    required MapRect area,
+    /// ID d'une [ProjectEncounterTable] du projet (optionnel).
+    String? encounterTableId,
+    /// Mode de déplacement requis / appliqué dans la zone (optionnel).
+    MovementMode? movementMode,
+    /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
+    @Default(0) int priority,
+    @Default({}) Map<String, String> properties,
+  }) = _MapGameplayZone;
+
+  factory MapGameplayZone.fromJson(Map<String, dynamic> json) =>
+      _$MapGameplayZoneFromJson(json);
 }
 
 @freezed

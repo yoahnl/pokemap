@@ -58,6 +58,7 @@ class ProjectValidator {
   static void validate(ProjectManifest manifest) {
     _validateUniqueness(manifest);
     _validateHierarchy(manifest);
+    _validateEncounterTables(manifest.encounterTables);
     _validateSettings(manifest.settings);
   }
 
@@ -111,6 +112,11 @@ class ProjectValidator {
       manifest.pathPresets,
       (preset) => preset.id,
       duplicateMessagePrefix: 'Duplicate path preset ID',
+    );
+    _validateUniqueIds(
+      manifest.encounterTables,
+      (table) => table.id,
+      duplicateMessagePrefix: 'Duplicate encounter table ID',
     );
   }
 
@@ -583,6 +589,41 @@ class ProjectValidator {
     }
   }
 
+  static void _validateEncounterTables(List<ProjectEncounterTable> tables) {
+    for (final table in tables) {
+      final id = table.id.trim();
+      if (id.isEmpty) {
+        throw const ValidationException('Encounter table ID cannot be empty');
+      }
+      if (table.name.trim().isEmpty) {
+        throw ValidationException('Encounter table $id name cannot be empty');
+      }
+      for (var i = 0; i < table.entries.length; i++) {
+        final entry = table.entries[i];
+        if (entry.speciesId.trim().isEmpty) {
+          throw ValidationException(
+            'Encounter table $id entry $i has empty speciesId',
+          );
+        }
+        if (entry.minLevel <= 0 || entry.maxLevel <= 0) {
+          throw ValidationException(
+            'Encounter table $id entry $i levels must be positive',
+          );
+        }
+        if (entry.minLevel > entry.maxLevel) {
+          throw ValidationException(
+            'Encounter table $id entry $i minLevel (${entry.minLevel}) > maxLevel (${entry.maxLevel})',
+          );
+        }
+        if (entry.weight <= 0) {
+          throw ValidationException(
+            'Encounter table $id entry $i weight must be positive (got ${entry.weight})',
+          );
+        }
+      }
+    }
+  }
+
   static void _validateSettings(ProjectSettings settings) {
     if (settings.tileWidth <= 0 || settings.tileHeight <= 0) {
       throw const ValidationException('Tile size must be positive');
@@ -744,6 +785,41 @@ class MapValidator {
       map.triggers,
       (trigger) => trigger.id,
       duplicateMessagePrefix: 'Duplicate trigger ID',
+    );
+
+    for (final zone in map.gameplayZones) {
+      final zoneId = _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
+      _requireNonBlank(zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
+      for (final key in zone.properties.keys) {
+        if (key.trim().isEmpty) {
+          throw ValidationException(
+            'Gameplay zone $zoneId has an empty property key',
+          );
+        }
+      }
+      _validatePositionInBounds(
+        zone.area.pos,
+        map.size,
+        errorLabel: 'Gameplay zone $zoneId area origin',
+      );
+      if (zone.area.size.width <= 0 || zone.area.size.height <= 0) {
+        throw ValidationException(
+          'Gameplay zone $zoneId has invalid area size: '
+          '(${zone.area.size.width}x${zone.area.size.height})',
+        );
+      }
+      final zoneRight = zone.area.pos.x + zone.area.size.width;
+      final zoneBottom = zone.area.pos.y + zone.area.size.height;
+      if (zoneRight > map.size.width || zoneBottom > map.size.height) {
+        throw ValidationException(
+          'Gameplay zone $zoneId area extends outside map bounds',
+        );
+      }
+    }
+    _validateUniqueIds(
+      map.gameplayZones,
+      (zone) => zone.id,
+      duplicateMessagePrefix: 'Duplicate gameplay zone ID',
     );
   }
 

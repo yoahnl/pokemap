@@ -723,6 +723,7 @@ mixin _$EditorState {
   String? get selectedEntityId => throw _privateConstructorUsedError;
   String? get selectedWarpId => throw _privateConstructorUsedError;
   String? get selectedTriggerId => throw _privateConstructorUsedError;
+  String? get selectedGameplayZoneId => throw _privateConstructorUsedError;
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
@@ -776,6 +777,7 @@ abstract class $EditorStateCopyWith<$Res> {
       String? selectedEntityId,
       String? selectedWarpId,
       String? selectedTriggerId,
+      String? selectedGameplayZoneId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -834,6 +836,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedEntityId = freezed,
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
+    Object? selectedGameplayZoneId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -926,6 +929,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedTriggerId: freezed == selectedTriggerId
           ? _value.selectedTriggerId
           : selectedTriggerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedGameplayZoneId: freezed == selectedGameplayZoneId
+          ? _value.selectedGameplayZoneId
+          : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
@@ -1099,6 +1106,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? selectedEntityId,
       String? selectedWarpId,
       String? selectedTriggerId,
+      String? selectedGameplayZoneId,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -1161,6 +1169,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedEntityId = freezed,
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
+    Object? selectedGameplayZoneId = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -1254,6 +1263,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedTriggerId
           : selectedTriggerId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedGameplayZoneId: freezed == selectedGameplayZoneId
+          ? _value.selectedGameplayZoneId
+          : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
+              as String?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
           : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
@@ -1341,6 +1354,7 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedEntityId,
       this.selectedWarpId,
       this.selectedTriggerId,
+      this.selectedGameplayZoneId,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
       this.paletteCategoryFilter,
@@ -1417,6 +1431,8 @@ class _$EditorStateImpl implements _EditorState {
   @override
   final String? selectedTriggerId;
   @override
+  final String? selectedGameplayZoneId;
+  @override
   final String? selectedTilesetEditorId;
   @override
   final String? selectedTilesetElementGroupId;
@@ -1472,7 +1488,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1518,6 +1534,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedWarpId == selectedWarpId) &&
             (identical(other.selectedTriggerId, selectedTriggerId) ||
                 other.selectedTriggerId == selectedTriggerId) &&
+            (identical(other.selectedGameplayZoneId, selectedGameplayZoneId) ||
+                other.selectedGameplayZoneId == selectedGameplayZoneId) &&
             (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) ||
                 other.selectedTilesetEditorId == selectedTilesetEditorId) &&
             (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
@@ -1571,6 +1589,7 @@ class _$EditorStateImpl implements _EditorState {
         selectedEntityId,
         selectedWarpId,
         selectedTriggerId,
+        selectedGameplayZoneId,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
         paletteCategoryFilter,
@@ -1618,6 +1637,7 @@ abstract class _EditorState implements EditorState {
       final String? selectedEntityId,
       final String? selectedWarpId,
       final String? selectedTriggerId,
+      final String? selectedGameplayZoneId,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
       final PaletteCategory? paletteCategoryFilter,
@@ -1673,6 +1693,8 @@ abstract class _EditorState implements EditorState {
   String? get selectedWarpId;
   @override
   String? get selectedTriggerId;
+  @override
+  String? get selectedGameplayZoneId;
   @override
   String? get selectedTilesetEditorId;
   @override
