@@ -173,6 +173,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedEntityId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
+        selectedProjectDialogueId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -227,7 +228,11 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final useCase = ref.read(saveMapUseCaseProvider);
-      await useCase.execute(map, path);
+      await useCase.execute(
+        map,
+        path,
+        projectDialogueContext: state.project,
+      );
 
       state = state.copyWith(
         isSaving: false,
@@ -4588,6 +4593,113 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       state =
           state.copyWith(errorMessage: 'Failed to delete encounter table: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project dialogues (bibliothèque)
+  // ---------------------------------------------------------------------------
+
+  void selectProjectDialogue(String? dialogueId) {
+    state = state.copyWith(selectedProjectDialogueId: dialogueId);
+  }
+
+  Future<void> createProjectDialogue({required String name}) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createProjectDialogueUseCaseProvider);
+      final updated = await useCase.execute(fs, project, name: name);
+      state = state.copyWith(
+        project: updated,
+        selectedProjectDialogueId: updated.dialogues.isNotEmpty
+            ? updated.dialogues.last.id
+            : null,
+        statusMessage: 'Dialogue created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create dialogue: $e');
+    }
+  }
+
+  Future<void> importProjectDialogue({
+    required String absoluteSourcePath,
+    required String displayName,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(importProjectDialogueUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        absoluteSourcePath: absoluteSourcePath,
+        displayName: displayName,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedProjectDialogueId: updated.dialogues.isNotEmpty
+            ? updated.dialogues.last.id
+            : null,
+        statusMessage: 'Dialogue imported',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to import dialogue: $e');
+    }
+  }
+
+  Future<void> renameProjectDialogue({
+    required String dialogueId,
+    required String newName,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateProjectDialogueUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        dialogueId: dialogueId,
+        name: newName,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Dialogue renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to rename dialogue: $e');
+    }
+  }
+
+  Future<void> deleteProjectDialogue(String dialogueId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteProjectDialogueUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        dialogueId: dialogueId,
+        alsoScanUnsavedMap: state.activeMap,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedProjectDialogueId:
+            state.selectedProjectDialogueId == dialogueId
+                ? null
+                : state.selectedProjectDialogueId,
+        statusMessage: 'Dialogue deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete dialogue: $e');
     }
   }
 

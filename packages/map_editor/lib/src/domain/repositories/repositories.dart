@@ -7,7 +7,11 @@ abstract class ProjectRepository {
 }
 
 abstract class MapRepository {
-  Future<void> saveMap(MapData map, String path);
+  Future<void> saveMap(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  });
 
   Future<MapData> loadMap(String path);
 

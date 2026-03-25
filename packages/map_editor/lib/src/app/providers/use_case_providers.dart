@@ -30,6 +30,7 @@ import '../../application/use_cases/project_element_use_cases.dart';
 import '../../application/use_cases/project_group_use_cases.dart';
 import '../../application/use_cases/project_management_use_cases.dart';
 import '../../application/use_cases/project_tileset_library_use_cases.dart';
+import '../../application/use_cases/project_dialogue_use_cases.dart';
 import '../../application/use_cases/project_tileset_use_cases.dart';
 import '../../application/use_cases/terrain_preset_use_cases.dart';
 import '../../application/use_cases/terrain_use_cases.dart';
@@ -741,6 +742,37 @@ GameplayZoneEditingService gameplayZoneEditingService(
     deleteGameplayZoneFromMapUseCase:
         ref.watch(deleteGameplayZoneFromMapUseCaseProvider),
     coordinator: ref.watch(gameplayZoneEditingCoordinatorProvider),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Project dialogues
+// ---------------------------------------------------------------------------
+
+@riverpod
+CreateProjectDialogueUseCase createProjectDialogueUseCase(
+    CreateProjectDialogueUseCaseRef ref) {
+  return CreateProjectDialogueUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+ImportProjectDialogueUseCase importProjectDialogueUseCase(
+    ImportProjectDialogueUseCaseRef ref) {
+  return ImportProjectDialogueUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateProjectDialogueUseCase updateProjectDialogueUseCase(
+    UpdateProjectDialogueUseCaseRef ref) {
+  return UpdateProjectDialogueUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteProjectDialogueUseCase deleteProjectDialogueUseCase(
+    DeleteProjectDialogueUseCaseRef ref) {
+  return DeleteProjectDialogueUseCase(
+    ref.watch(projectRepositoryProvider),
+    ref.watch(mapRepositoryProvider),
   );
 }
 

@@ -40,6 +40,9 @@ class FileProjectRepository implements ProjectRepository {
 
 Map<String, dynamic> _migrateLegacyProjectJson(Map<String, dynamic> raw) {
   final next = Map<String, dynamic>.from(raw);
+  if (!next.containsKey('dialogues')) {
+    next['dialogues'] = <dynamic>[];
+  }
   if (!next.containsKey('tilesetFolders')) {
     next['tilesetFolders'] = <dynamic>[];
   }
@@ -105,9 +108,16 @@ String _legacyPathSurfaceKindValue(String? legacyValue) {
 
 class FileMapRepository implements MapRepository {
   @override
-  Future<void> saveMap(MapData map, String path) async {
+  Future<void> saveMap(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {
     debugPrint('FileMapRepository: Validating and saving map to $path');
-    MapValidator.validate(map);
+    MapValidator.validate(
+      map,
+      projectDialogueContext: projectDialogueContext,
+    );
     final file = File(path);
     if (!await file.parent.exists()) await file.parent.create(recursive: true);
     final json = map.toJson();

@@ -2136,6 +2136,86 @@ final gameplayZoneEditingServiceProvider =
 // ignore: unused_element
 typedef GameplayZoneEditingServiceRef
     = AutoDisposeProviderRef<GameplayZoneEditingService>;
+String _$createProjectDialogueUseCaseHash() =>
+    r'072928856f6ac2197f02cb5bdfa7ee543bb05495';
+
+/// See also [createProjectDialogueUseCase].
+@ProviderFor(createProjectDialogueUseCase)
+final createProjectDialogueUseCaseProvider =
+    AutoDisposeProvider<CreateProjectDialogueUseCase>.internal(
+  createProjectDialogueUseCase,
+  name: r'createProjectDialogueUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createProjectDialogueUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateProjectDialogueUseCaseRef
+    = AutoDisposeProviderRef<CreateProjectDialogueUseCase>;
+String _$importProjectDialogueUseCaseHash() =>
+    r'79dbd6ac29696f89bef66109dc59cf28cb536c5e';
+
+/// See also [importProjectDialogueUseCase].
+@ProviderFor(importProjectDialogueUseCase)
+final importProjectDialogueUseCaseProvider =
+    AutoDisposeProvider<ImportProjectDialogueUseCase>.internal(
+  importProjectDialogueUseCase,
+  name: r'importProjectDialogueUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$importProjectDialogueUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ImportProjectDialogueUseCaseRef
+    = AutoDisposeProviderRef<ImportProjectDialogueUseCase>;
+String _$updateProjectDialogueUseCaseHash() =>
+    r'8dffe2aeab9db8405f26f7495a3ee6c177c8f6cd';
+
+/// See also [updateProjectDialogueUseCase].
+@ProviderFor(updateProjectDialogueUseCase)
+final updateProjectDialogueUseCaseProvider =
+    AutoDisposeProvider<UpdateProjectDialogueUseCase>.internal(
+  updateProjectDialogueUseCase,
+  name: r'updateProjectDialogueUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateProjectDialogueUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateProjectDialogueUseCaseRef
+    = AutoDisposeProviderRef<UpdateProjectDialogueUseCase>;
+String _$deleteProjectDialogueUseCaseHash() =>
+    r'50a55d0934c49753855e81a6f71a248505a2385b';
+
+/// See also [deleteProjectDialogueUseCase].
+@ProviderFor(deleteProjectDialogueUseCase)
+final deleteProjectDialogueUseCaseProvider =
+    AutoDisposeProvider<DeleteProjectDialogueUseCase>.internal(
+  deleteProjectDialogueUseCase,
+  name: r'deleteProjectDialogueUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteProjectDialogueUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteProjectDialogueUseCaseRef
+    = AutoDisposeProviderRef<DeleteProjectDialogueUseCase>;
 String _$createEncounterTableUseCaseHash() =>
     r'd97101b62faf54992523844b6d019b72db92c1f1';
 

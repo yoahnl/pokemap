@@ -20,10 +20,10 @@ DialogueRef _$DialogueRefFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$DialogueRef {
-  /// Identifiant stable du dialogue dans le projet (clé métier).
+  /// Identifiant stable : typiquement [ProjectDialogueEntry.id] lorsque [scriptPathRelative] est vide.
   String get dialogueId => throw _privateConstructorUsedError;
 
-  /// Chemin relatif au projet vers le fichier script, si applicable.
+  /// Vide = résolution via le registre projet ; non vide = script explicite (legacy ou override).
   String get scriptPathRelative => throw _privateConstructorUsedError;
 
   /// Nœud d’entrée optionnel (ex. titre de nœud Yarn).
@@ -139,11 +139,11 @@ class _$DialogueRefImpl implements _DialogueRef {
   factory _$DialogueRefImpl.fromJson(Map<String, dynamic> json) =>
       _$$DialogueRefImplFromJson(json);
 
-  /// Identifiant stable du dialogue dans le projet (clé métier).
+  /// Identifiant stable : typiquement [ProjectDialogueEntry.id] lorsque [scriptPathRelative] est vide.
   @override
   final String dialogueId;
 
-  /// Chemin relatif au projet vers le fichier script, si applicable.
+  /// Vide = résolution via le registre projet ; non vide = script explicite (legacy ou override).
   @override
   @JsonKey()
   final String scriptPathRelative;
@@ -200,11 +200,11 @@ abstract class _DialogueRef implements DialogueRef {
   factory _DialogueRef.fromJson(Map<String, dynamic> json) =
       _$DialogueRefImpl.fromJson;
 
-  /// Identifiant stable du dialogue dans le projet (clé métier).
+  /// Identifiant stable : typiquement [ProjectDialogueEntry.id] lorsque [scriptPathRelative] est vide.
   @override
   String get dialogueId;
 
-  /// Chemin relatif au projet vers le fichier script, si applicable.
+  /// Vide = résolution via le registre projet ; non vide = script explicite (legacy ou override).
   @override
   String get scriptPathRelative;
 

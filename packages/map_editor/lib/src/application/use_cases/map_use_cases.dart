@@ -10,8 +10,16 @@ class SaveMapUseCase {
 
   SaveMapUseCase(this._repo);
 
-  Future<void> execute(MapData map, String path) async {
-    await _repo.saveMap(map, path);
+  Future<void> execute(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {
+    await _repo.saveMap(
+      map,
+      path,
+      projectDialogueContext: projectDialogueContext,
+    );
   }
 }
 

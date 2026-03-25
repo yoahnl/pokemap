@@ -437,7 +437,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Maps, regions, tilesets and project structure',
+                  'Tilesets, dialogues, maps and terrain',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -516,6 +516,24 @@ class ProjectExplorerPanel extends ConsumerWidget {
           child: _ExplorerIslandSurface(
             tint: EditorChrome.islandCoolTint,
             child: _buildTilesetsIsland(context, project, state, notifier),
+          ),
+        ),
+        const SizedBox(height: 14),
+        ResizablePane.noScrollBar(
+          key: const ValueKey('project_explorer_dialogues_pane'),
+          resizableSide: ResizableSide.top,
+          minSize: 140,
+          maxSize: 400,
+          startSize: 200,
+          decoration: const BoxDecoration(
+            color: MacosColors.transparent,
+            border: Border(
+              top: BorderSide(color: MacosColors.transparent),
+            ),
+          ),
+          child: _ExplorerIslandSurface(
+            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.14),
+            child: _buildDialoguesIsland(context, project, state, notifier),
           ),
         ),
         const SizedBox(height: 14),

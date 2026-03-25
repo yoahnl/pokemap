@@ -3,6 +3,8 @@ import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_entity_payloads.dart';
+import '../models/project_manifest.dart';
+import '../validation/dialogue_validation.dart';
 
 /// Valeur sentinelle pour [updateEntityOnMap] : ne pas modifier le bloc typé existant.
 ///
@@ -294,6 +296,10 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
       }
       if (d != null) {
         _assertDialogueScriptPath(d.scriptPathRelative, entity.id);
+        assertValidDialogueStartNode(
+          d.startNode,
+          contextLabel: 'Entity ${entity.id} (NPC dialogue)',
+        );
       }
       break;
     case MapEntityKind.sign:
@@ -306,6 +312,10 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
       }
       if (d != null) {
         _assertDialogueScriptPath(d.scriptPathRelative, entity.id);
+        assertValidDialogueStartNode(
+          d.startNode,
+          contextLabel: 'Entity ${entity.id} (sign dialogue)',
+        );
       }
       break;
     case MapEntityKind.item:
@@ -333,6 +343,52 @@ void _assertDialogueScriptPath(String path, String entityId) {
   if (p.contains('..')) {
     throw ValidationException(
       'Entity $entityId dialogue scriptPathRelative must not escape the project',
+    );
+  }
+}
+
+/// Si [manifest] est fourni et que la référence n’utilise pas de chemin legacy
+/// ([DialogueRef.scriptPathRelative] vide), vérifie que [dialogueId] existe dans le registre projet.
+void assertEntityDialogueRefsAgainstProject(
+  MapEntity entity,
+  ProjectManifest manifest,
+) {
+  switch (entity.kind) {
+    case MapEntityKind.npc:
+      _assertDialogueRefAgainstRegistry(
+        entity.npc?.dialogue,
+        entity.id,
+        manifest,
+      );
+      break;
+    case MapEntityKind.sign:
+      _assertDialogueRefAgainstRegistry(
+        entity.sign?.dialogue,
+        entity.id,
+        manifest,
+      );
+      break;
+    default:
+      break;
+  }
+}
+
+void _assertDialogueRefAgainstRegistry(
+  DialogueRef? d,
+  String entityId,
+  ProjectManifest manifest,
+) {
+  if (d == null) return;
+  final path = d.scriptPathRelative.trim();
+  if (path.isNotEmpty) {
+    return;
+  }
+  final id = d.dialogueId.trim();
+  if (id.isEmpty) return;
+  final exists = manifest.dialogues.any((e) => e.id == id);
+  if (!exists) {
+    throw ValidationException(
+      'Entity $entityId references unknown dialogue id "$id" (add it to Project dialogues or set a script path)',
     );
   }
 }

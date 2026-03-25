@@ -5,6 +5,7 @@ import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
 import '../operations/map_entities.dart';
+import 'dialogue_validation.dart';
 
 class ProjectValidator {
   /// Rectangles sources valides, [durationMs] > 0 si présent, au moins une frame,
@@ -59,6 +60,7 @@ class ProjectValidator {
     _validateUniqueness(manifest);
     _validateHierarchy(manifest);
     _validateEncounterTables(manifest.encounterTables);
+    _validateProjectDialogues(manifest);
     _validateSettings(manifest.settings);
   }
 
@@ -118,6 +120,28 @@ class ProjectValidator {
       (table) => table.id,
       duplicateMessagePrefix: 'Duplicate encounter table ID',
     );
+    _validateUniqueIds(
+      manifest.dialogues,
+      (d) => d.id,
+      duplicateMessagePrefix: 'Duplicate dialogue ID',
+    );
+  }
+
+  static void _validateProjectDialogues(ProjectManifest manifest) {
+    for (final d in manifest.dialogues) {
+      final id = d.id.trim();
+      if (id.isEmpty) {
+        throw const ValidationException('Dialogue entry has an empty id');
+      }
+      if (d.name.trim().isEmpty) {
+        throw ValidationException('Dialogue $id has an empty name');
+      }
+      assertValidProjectDialogueRelativePath(d.relativePath, dialogueId: id);
+      assertValidDialogueStartNode(
+        d.defaultStartNode,
+        contextLabel: 'Dialogue $id defaultStartNode',
+      );
+    }
   }
 
   static void _validateHierarchy(ProjectManifest manifest) {
@@ -658,7 +682,11 @@ class ProjectValidator {
 }
 
 class MapValidator {
-  static void validate(MapData map) {
+  /// [projectDialogueContext] : si fourni, les [DialogueRef] sans chemin legacy doivent pointer vers [ProjectManifest.dialogues].
+  static void validate(
+    MapData map, {
+    ProjectManifest? projectDialogueContext,
+  }) {
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
     _requireNonBlank(map.name, 'Map name cannot be empty');
     if (map.size.width <= 0 || map.size.height <= 0) {
@@ -706,6 +734,9 @@ class MapValidator {
         }
       }
       assertValidMapEntityTypedPayloads(entity);
+      if (projectDialogueContext != null) {
+        assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
+      }
     }
     _validateUniqueIds(
       map.entities,

@@ -72,6 +72,8 @@ class EditorState with _$EditorState {
     MapRect? gameplayZoneDraftArea,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
+    /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
+    String? selectedProjectDialogueId,
     PaletteCategory? paletteCategoryFilter,
 
     // Viewport

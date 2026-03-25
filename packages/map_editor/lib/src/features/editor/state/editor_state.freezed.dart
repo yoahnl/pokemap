@@ -730,6 +730,9 @@ mixin _$EditorState {
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
+
+  /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
+  String? get selectedProjectDialogueId => throw _privateConstructorUsedError;
   PaletteCategory? get paletteCategoryFilter =>
       throw _privateConstructorUsedError; // Viewport
   double get zoom => throw _privateConstructorUsedError;
@@ -784,6 +787,7 @@ abstract class $EditorStateCopyWith<$Res> {
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
+      String? selectedProjectDialogueId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -845,6 +849,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
+    Object? selectedProjectDialogueId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -951,6 +956,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId
           ? _value.selectedTilesetElementGroupId
           : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedProjectDialogueId: freezed == selectedProjectDialogueId
+          ? _value.selectedProjectDialogueId
+          : selectedProjectDialogueId // ignore: cast_nullable_to_non_nullable
               as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
@@ -1134,6 +1143,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
+      String? selectedProjectDialogueId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -1200,6 +1210,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
+    Object? selectedProjectDialogueId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -1307,6 +1318,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedTilesetElementGroupId
           : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedProjectDialogueId: freezed == selectedProjectDialogueId
+          ? _value.selectedProjectDialogueId
+          : selectedProjectDialogueId // ignore: cast_nullable_to_non_nullable
+              as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
           : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
@@ -1390,6 +1405,7 @@ class _$EditorStateImpl implements _EditorState {
       this.gameplayZoneDraftArea,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
+      this.selectedProjectDialogueId,
       this.paletteCategoryFilter,
       this.zoom = 1.0,
       this.panOffset = Offset.zero,
@@ -1473,6 +1489,10 @@ class _$EditorStateImpl implements _EditorState {
   final String? selectedTilesetEditorId;
   @override
   final String? selectedTilesetElementGroupId;
+
+  /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
+  @override
+  final String? selectedProjectDialogueId;
   @override
   final PaletteCategory? paletteCategoryFilter;
 // Viewport
@@ -1525,7 +1545,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, selectedProjectDialogueId: $selectedProjectDialogueId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1580,6 +1600,8 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
                 other.selectedTilesetElementGroupId ==
                     selectedTilesetElementGroupId) &&
+            (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) ||
+                other.selectedProjectDialogueId == selectedProjectDialogueId) &&
             (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
                 other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
@@ -1600,8 +1622,7 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.isDirty, isDirty) || other.isDirty == isDirty) &&
             (identical(other.isSaving, isSaving) ||
                 other.isSaving == isSaving) &&
-            (identical(other.statusMessage, statusMessage) ||
-                other.statusMessage == statusMessage) &&
+            (identical(other.statusMessage, statusMessage) || other.statusMessage == statusMessage) &&
             (identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
   }
 
@@ -1631,6 +1652,7 @@ class _$EditorStateImpl implements _EditorState {
         gameplayZoneDraftArea,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
+        selectedProjectDialogueId,
         paletteCategoryFilter,
         zoom,
         panOffset,
@@ -1680,6 +1702,7 @@ abstract class _EditorState implements EditorState {
       final MapRect? gameplayZoneDraftArea,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
+      final String? selectedProjectDialogueId,
       final PaletteCategory? paletteCategoryFilter,
       final double zoom,
       final Offset panOffset,
@@ -1743,6 +1766,10 @@ abstract class _EditorState implements EditorState {
   String? get selectedTilesetEditorId;
   @override
   String? get selectedTilesetElementGroupId;
+
+  /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
+  @override
+  String? get selectedProjectDialogueId;
   @override
   PaletteCategory? get paletteCategoryFilter; // Viewport
   @override

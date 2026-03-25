@@ -62,6 +62,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectEncounterTable.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      dialogues: (json['dialogues'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectDialogueEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -88,6 +93,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
       'encounterTables':
           instance.encounterTables.map((e) => e.toJson()).toList(),
+      'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
     };
@@ -188,6 +194,32 @@ const _$MapRoleEnumMap = {
   MapRole.section: 'section',
   MapRole.sub_area: 'sub_area',
 };
+
+_$ProjectDialogueEntryImpl _$$ProjectDialogueEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectDialogueEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      relativePath: json['relativePath'] as String,
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      description: json['description'] as String? ?? '',
+      defaultStartNode: json['defaultStartNode'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectDialogueEntryImplToJson(
+        _$ProjectDialogueEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'relativePath': instance.relativePath,
+      'tags': instance.tags,
+      'description': instance.description,
+      'defaultStartNode': instance.defaultStartNode,
+      'sortOrder': instance.sortOrder,
+    };
 
 _$ProjectTilesetFolderImpl _$$ProjectTilesetFolderImplFromJson(
         Map<String, dynamic> json) =>

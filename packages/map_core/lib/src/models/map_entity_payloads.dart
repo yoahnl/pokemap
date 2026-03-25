@@ -5,14 +5,16 @@ import 'enums.dart';
 part 'map_entity_payloads.freezed.dart';
 part 'map_entity_payloads.g.dart';
 
-/// Référence logique à un script de dialogue (Yarn / autre) — sans dépendance moteur.
+/// Référence à un dialogue : id métier aligné sur [ProjectDialogueEntry] si le chemin ci-dessous est vide ; sinon chemin legacy / override.
+///
+/// Sans dépendance Yarn ou autre moteur dans `map_core`.
 @freezed
 class DialogueRef with _$DialogueRef {
   @JsonSerializable(explicitToJson: true)
   const factory DialogueRef({
-    /// Identifiant stable du dialogue dans le projet (clé métier).
+    /// Identifiant stable : typiquement [ProjectDialogueEntry.id] lorsque [scriptPathRelative] est vide.
     required String dialogueId,
-    /// Chemin relatif au projet vers le fichier script, si applicable.
+    /// Vide = résolution via le registre projet ; non vide = script explicite (legacy ou override).
     @Default('') String scriptPathRelative,
     /// Nœud d’entrée optionnel (ex. titre de nœud Yarn).
     String? startNode,

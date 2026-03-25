@@ -41,6 +41,10 @@ mixin _$ProjectManifest {
   /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
   List<ProjectEncounterTable> get encounterTables =>
       throw _privateConstructorUsedError;
+
+  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
+  List<ProjectDialogueEntry> get dialogues =>
+      throw _privateConstructorUsedError;
   ProjectSettings get settings => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
@@ -75,6 +79,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
       List<ProjectEncounterTable> encounterTables,
+      List<ProjectDialogueEntry> dialogues,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -109,6 +114,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? terrainPresets = null,
     Object? pathPresets = null,
     Object? encounterTables = null,
+    Object? dialogues = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -165,6 +171,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.encounterTables
           : encounterTables // ignore: cast_nullable_to_non_nullable
               as List<ProjectEncounterTable>,
+      dialogues: null == dialogues
+          ? _value.dialogues
+          : dialogues // ignore: cast_nullable_to_non_nullable
+              as List<ProjectDialogueEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -209,6 +219,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
       List<ProjectEncounterTable> encounterTables,
+      List<ProjectDialogueEntry> dialogues,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -242,6 +253,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? terrainPresets = null,
     Object? pathPresets = null,
     Object? encounterTables = null,
+    Object? dialogues = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -298,6 +310,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._encounterTables
           : encounterTables // ignore: cast_nullable_to_non_nullable
               as List<ProjectEncounterTable>,
+      dialogues: null == dialogues
+          ? _value._dialogues
+          : dialogues // ignore: cast_nullable_to_non_nullable
+              as List<ProjectDialogueEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -328,6 +344,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectTerrainPreset> terrainPresets = const [],
       final List<ProjectPathPreset> pathPresets = const [],
       final List<ProjectEncounterTable> encounterTables = const [],
+      final List<ProjectDialogueEntry> dialogues = const [],
       this.settings = const ProjectSettings(),
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
@@ -341,6 +358,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _terrainPresets = terrainPresets,
         _pathPresets = pathPresets,
         _encounterTables = encounterTables,
+        _dialogues = dialogues,
         _globalProperties = globalProperties;
 
   factory _$ProjectManifestImpl.fromJson(Map<String, dynamic> json) =>
@@ -453,6 +471,18 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_encounterTables);
   }
 
+  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
+  final List<ProjectDialogueEntry> _dialogues;
+
+  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
+  @override
+  @JsonKey()
+  List<ProjectDialogueEntry> get dialogues {
+    if (_dialogues is EqualUnmodifiableListView) return _dialogues;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_dialogues);
+  }
+
   @override
   @JsonKey()
   final ProjectSettings settings;
@@ -467,7 +497,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogues: $dialogues, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -495,6 +525,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._pathPresets, _pathPresets) &&
             const DeepCollectionEquality()
                 .equals(other._encounterTables, _encounterTables) &&
+            const DeepCollectionEquality()
+                .equals(other._dialogues, _dialogues) &&
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
             const DeepCollectionEquality()
@@ -518,6 +550,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       const DeepCollectionEquality().hash(_terrainPresets),
       const DeepCollectionEquality().hash(_pathPresets),
       const DeepCollectionEquality().hash(_encounterTables),
+      const DeepCollectionEquality().hash(_dialogues),
       settings,
       const DeepCollectionEquality().hash(_globalProperties));
 
@@ -553,6 +586,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectTerrainPreset> terrainPresets,
       final List<ProjectPathPreset> pathPresets,
       final List<ProjectEncounterTable> encounterTables,
+      final List<ProjectDialogueEntry> dialogues,
       final ProjectSettings settings,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
 
@@ -587,6 +621,10 @@ abstract class _ProjectManifest implements ProjectManifest {
   /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
   @override
   List<ProjectEncounterTable> get encounterTables;
+
+  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
+  @override
+  List<ProjectDialogueEntry> get dialogues;
   @override
   ProjectSettings get settings;
   @override
@@ -1404,6 +1442,317 @@ abstract class _ProjectMapEntry implements ProjectMapEntry {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectMapEntryImplCopyWith<_$ProjectMapEntryImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+ProjectDialogueEntry _$ProjectDialogueEntryFromJson(Map<String, dynamic> json) {
+  return _ProjectDialogueEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectDialogueEntry {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+
+  /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
+  String get relativePath => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+  String get description => throw _privateConstructorUsedError;
+
+  /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+  String? get defaultStartNode => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectDialogueEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectDialogueEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectDialogueEntryCopyWith<ProjectDialogueEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectDialogueEntryCopyWith<$Res> {
+  factory $ProjectDialogueEntryCopyWith(ProjectDialogueEntry value,
+          $Res Function(ProjectDialogueEntry) then) =
+      _$ProjectDialogueEntryCopyWithImpl<$Res, ProjectDialogueEntry>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String relativePath,
+      List<String> tags,
+      String description,
+      String? defaultStartNode,
+      int sortOrder});
+}
+
+/// @nodoc
+class _$ProjectDialogueEntryCopyWithImpl<$Res,
+        $Val extends ProjectDialogueEntry>
+    implements $ProjectDialogueEntryCopyWith<$Res> {
+  _$ProjectDialogueEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectDialogueEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? relativePath = null,
+    Object? tags = null,
+    Object? description = null,
+    Object? defaultStartNode = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      relativePath: null == relativePath
+          ? _value.relativePath
+          : relativePath // ignore: cast_nullable_to_non_nullable
+              as String,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      description: null == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String,
+      defaultStartNode: freezed == defaultStartNode
+          ? _value.defaultStartNode
+          : defaultStartNode // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectDialogueEntryImplCopyWith<$Res>
+    implements $ProjectDialogueEntryCopyWith<$Res> {
+  factory _$$ProjectDialogueEntryImplCopyWith(_$ProjectDialogueEntryImpl value,
+          $Res Function(_$ProjectDialogueEntryImpl) then) =
+      __$$ProjectDialogueEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String relativePath,
+      List<String> tags,
+      String description,
+      String? defaultStartNode,
+      int sortOrder});
+}
+
+/// @nodoc
+class __$$ProjectDialogueEntryImplCopyWithImpl<$Res>
+    extends _$ProjectDialogueEntryCopyWithImpl<$Res, _$ProjectDialogueEntryImpl>
+    implements _$$ProjectDialogueEntryImplCopyWith<$Res> {
+  __$$ProjectDialogueEntryImplCopyWithImpl(_$ProjectDialogueEntryImpl _value,
+      $Res Function(_$ProjectDialogueEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectDialogueEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? relativePath = null,
+    Object? tags = null,
+    Object? description = null,
+    Object? defaultStartNode = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$ProjectDialogueEntryImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      relativePath: null == relativePath
+          ? _value.relativePath
+          : relativePath // ignore: cast_nullable_to_non_nullable
+              as String,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      description: null == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String,
+      defaultStartNode: freezed == defaultStartNode
+          ? _value.defaultStartNode
+          : defaultStartNode // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
+  const _$ProjectDialogueEntryImpl(
+      {required this.id,
+      required this.name,
+      required this.relativePath,
+      final List<String> tags = const [],
+      this.description = '',
+      this.defaultStartNode,
+      this.sortOrder = 0})
+      : _tags = tags;
+
+  factory _$ProjectDialogueEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectDialogueEntryImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+
+  /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
+  @override
+  final String relativePath;
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  @JsonKey()
+  final String description;
+
+  /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+  @override
+  final String? defaultStartNode;
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, defaultStartNode: $defaultStartNode, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectDialogueEntryImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.relativePath, relativePath) ||
+                other.relativePath == relativePath) &&
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            (identical(other.description, description) ||
+                other.description == description) &&
+            (identical(other.defaultStartNode, defaultStartNode) ||
+                other.defaultStartNode == defaultStartNode) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      relativePath,
+      const DeepCollectionEquality().hash(_tags),
+      description,
+      defaultStartNode,
+      sortOrder);
+
+  /// Create a copy of ProjectDialogueEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectDialogueEntryImplCopyWith<_$ProjectDialogueEntryImpl>
+      get copyWith =>
+          __$$ProjectDialogueEntryImplCopyWithImpl<_$ProjectDialogueEntryImpl>(
+              this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectDialogueEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
+  const factory _ProjectDialogueEntry(
+      {required final String id,
+      required final String name,
+      required final String relativePath,
+      final List<String> tags,
+      final String description,
+      final String? defaultStartNode,
+      final int sortOrder}) = _$ProjectDialogueEntryImpl;
+
+  factory _ProjectDialogueEntry.fromJson(Map<String, dynamic> json) =
+      _$ProjectDialogueEntryImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+
+  /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
+  @override
+  String get relativePath;
+  @override
+  List<String> get tags;
+  @override
+  String get description;
+
+  /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+  @override
+  String? get defaultStartNode;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of ProjectDialogueEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectDialogueEntryImplCopyWith<_$ProjectDialogueEntryImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 ProjectTilesetFolder _$ProjectTilesetFolderFromJson(Map<String, dynamic> json) {

@@ -23,6 +23,8 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectPathPreset> pathPresets,
     /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
     @Default([]) List<ProjectEncounterTable> encounterTables,
+    /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
+    @Default([]) List<ProjectDialogueEntry> dialogues,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
@@ -75,6 +77,25 @@ class ProjectMapEntry with _$ProjectMapEntry {
 
   factory ProjectMapEntry.fromJson(Map<String, dynamic> json) =>
       _$ProjectMapEntryFromJson(json);
+}
+
+@freezed
+class ProjectDialogueEntry with _$ProjectDialogueEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectDialogueEntry({
+    required String id,
+    required String name,
+    /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
+    required String relativePath,
+    @Default([]) List<String> tags,
+    @Default('') String description,
+    /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+    String? defaultStartNode,
+    @Default(0) int sortOrder,
+  }) = _ProjectDialogueEntry;
+
+  factory ProjectDialogueEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectDialogueEntryFromJson(json);
 }
 
 @freezed
