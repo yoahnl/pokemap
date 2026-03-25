@@ -35,6 +35,12 @@
       <excludeFolder url="file://$MODULE_DIR$/packages/map_runtime/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/packages/map_runtime/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/packages/map_runtime/build" />
+      <excludeFolder url="file://$MODULE_DIR$/.claude/worktrees/optimistic-einstein/packages/map_core/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/.claude/worktrees/optimistic-einstein/packages/map_core/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/.claude/worktrees/optimistic-einstein/packages/map_core/build" />
+      <excludeFolder url="file://$MODULE_DIR$/.claude/worktrees/optimistic-einstein/packages/map_editor/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/.claude/worktrees/optimistic-einstein/packages/map_editor/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/.claude/worktrees/optimistic-einstein/packages/map_editor/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
