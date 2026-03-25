@@ -34,11 +34,11 @@ class InspectorSectionCard extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     final fillTop = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.06),
+      accentColor.withValues(alpha: 0.03),
       EditorChrome.elevatedPanelBackground(context),
     );
     final fillBottom = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.02),
+      accentColor.withValues(alpha: 0.012),
       EditorChrome.panelBackground(context),
     );
 

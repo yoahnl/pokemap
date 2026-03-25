@@ -13,14 +13,13 @@ class StatusBar extends ConsumerWidget {
     final state = ref.watch(editorNotifierProvider);
     final activeMap = state.activeMap;
     final hasError = state.errorMessage != null;
-    final labelColor = hasError
-        ? const Color(0xFFF3C5CB)
-        : EditorChrome.subtleLabel(context);
-    final tint =
-        hasError ? EditorChrome.errorTint(context) : EditorChrome.statusTint(context);
-    final leadingTint = hasError
-        ? const Color(0xFFE2A3AD)
-        : EditorChrome.accentJade;
+    final labelColor =
+        hasError ? const Color(0xFFF3C5CB) : EditorChrome.subtleLabel(context);
+    final tint = hasError
+        ? EditorChrome.errorTint(context)
+        : EditorChrome.islandCoolTint;
+    final leadingTint =
+        hasError ? const Color(0xFFE2A3AD) : EditorChrome.accentJade;
     final icon = hasError
         ? CupertinoIcons.exclamationmark_triangle_fill
         : CupertinoIcons.sparkles;

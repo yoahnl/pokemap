@@ -202,11 +202,11 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
           end: Alignment.bottomRight,
           colors: [
             Color.alphaBlend(
-              color.withValues(alpha: 0.08),
+              color.withValues(alpha: 0.04),
               EditorChrome.elevatedPanelBackground(context),
             ),
             Color.alphaBlend(
-              color.withValues(alpha: 0.03),
+              color.withValues(alpha: 0.015),
               EditorChrome.panelBackground(context),
             ),
           ],

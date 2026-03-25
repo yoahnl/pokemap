@@ -17,9 +17,9 @@ abstract final class EditorChrome {
   static const Color accentWarm = Color(0xFFE0A65D);
   static const Color accentCoral = Color(0xFFD97A68);
   static const Color accentPrune = Color(0xFF5A406B);
-  static const Color islandCoolTint = Color(0xFF35506A);
-  static const Color islandNeutralTint = Color(0xFF324A61);
-  static const Color islandWarmTint = Color(0xFF425042);
+  static const Color islandCoolTint = Color(0xFF364C62);
+  static const Color islandNeutralTint = Color(0xFF35495E);
+  static const Color islandWarmTint = Color(0xFF3A4A57);
 
   static Color windowBackground(BuildContext context) =>
       _isDark(context) ? const Color(0xFF0E0D12) : const Color(0xFFF2F4F8);
@@ -91,11 +91,11 @@ abstract final class EditorChrome {
   }) {
     if (_isDark(context)) {
       final top = Color.alphaBlend(
-        (tint ?? const Color(0xFF4C8DFF)).withValues(alpha: 0.12),
+        (tint ?? const Color(0xFF4C8DFF)).withValues(alpha: 0.07),
         const Color.fromRGBO(30, 36, 50, 0.78),
       );
       final bottom = Color.alphaBlend(
-        (tint ?? const Color(0xFFE0A65D)).withValues(alpha: 0.08),
+        (tint ?? const Color(0xFFE0A65D)).withValues(alpha: 0.045),
         const Color.fromRGBO(34, 40, 56, 0.74),
       );
       return LinearGradient(
@@ -339,7 +339,7 @@ Color editorSidebarSelectionColor(BuildContext context) {
 
   if (isDark) {
     if (!isMain) {
-      return const Color.fromRGBO(76, 78, 65, 1.0);
+      return const Color.fromRGBO(50, 94, 167, 0.66);
     }
     return switch (accent) {
       AccentColor.blue => const Color.fromRGBO(37, 88, 168, 0.72),
