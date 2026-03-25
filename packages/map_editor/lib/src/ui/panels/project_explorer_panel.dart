@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -14,6 +15,180 @@ String _mapGroupTypeDisplayLabel(MapGroupType t) {
   final n = t.name;
   if (n.isEmpty) return '';
   return '${n[0].toUpperCase()}${n.substring(1)}';
+}
+
+/// Données de glisser-déposer pour la bibliothèque tilesets.
+class _TilesetLibraryDragData {
+  const _TilesetLibraryDragData.tileset(this.id) : isFolder = false;
+  const _TilesetLibraryDragData.folder(this.id) : isFolder = true;
+
+  final String id;
+  final bool isFolder;
+}
+
+ProjectTilesetEntry? _tilesetById(ProjectManifest project, String tilesetId) {
+  for (final t in project.tilesets) {
+    if (t.id == tilesetId) return t;
+  }
+  return null;
+}
+
+bool _tilesetLibraryCanDropOnFolder(
+  ProjectManifest project,
+  ProjectTilesetFolder target,
+  _TilesetLibraryDragData data,
+) {
+  if (data.isFolder) {
+    if (data.id == target.id) return false;
+    if (tilesetFolderSubtreeIds(project, data.id).contains(target.id)) {
+      return false;
+    }
+    for (final f in project.tilesetFolders) {
+      if (f.id != data.id) continue;
+      final p = f.parentFolderId?.trim() ?? '';
+      if (p == target.id) return false;
+      break;
+    }
+    return true;
+  }
+  final tileset = _tilesetById(project, data.id);
+  if (tileset == null) return false;
+  final cur = tileset.folderId?.trim() ?? '';
+  return cur != target.id;
+}
+
+bool _tilesetLibraryCanDropOnRoot(
+  ProjectManifest project,
+  _TilesetLibraryDragData data,
+) {
+  if (data.isFolder) {
+    ProjectTilesetFolder? folder;
+    for (final f in project.tilesetFolders) {
+      if (f.id == data.id) {
+        folder = f;
+        break;
+      }
+    }
+    if (folder == null) return false;
+    final p = folder.parentFolderId?.trim() ?? '';
+    return p.isNotEmpty;
+  }
+  final tileset = _tilesetById(project, data.id);
+  if (tileset == null) return false;
+  final cur = tileset.folderId?.trim() ?? '';
+  return cur.isNotEmpty;
+}
+
+void _tilesetLibraryApplyDropOnFolder(
+  EditorNotifier notifier,
+  ProjectTilesetFolder target,
+  _TilesetLibraryDragData data,
+) {
+  if (data.isFolder) {
+    notifier.moveTilesetLibraryFolder(
+      folderId: data.id,
+      newParentFolderId: target.id,
+    );
+  } else {
+    notifier.assignTilesetToLibraryFolder(
+      tilesetId: data.id,
+      folderId: target.id,
+    );
+  }
+}
+
+void _tilesetLibraryApplyDropOnRoot(
+  EditorNotifier notifier,
+  _TilesetLibraryDragData data,
+) {
+  if (data.isFolder) {
+    notifier.moveTilesetLibraryFolder(
+      folderId: data.id,
+      newParentFolderId: null,
+    );
+  } else {
+    notifier.moveTilesetToLibraryRoot(data.id);
+  }
+}
+
+Widget _tilesetLibraryTilesetDragFeedback(
+  BuildContext context,
+  ProjectTilesetEntry t,
+) {
+  return Material(
+    elevation: 6,
+    borderRadius: BorderRadius.circular(8),
+    color: Colors.transparent,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.accentWarm.withValues(alpha: 0.65),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MacosIcon(
+            CupertinoIcons.square_stack_3d_up,
+            size: 16,
+            color: EditorChrome.accentWarm,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            t.name,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: EditorChrome.primaryLabel(context),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _tilesetLibraryFolderDragFeedback(
+  BuildContext context,
+  ProjectTilesetFolder f,
+) {
+  return Material(
+    elevation: 6,
+    borderRadius: BorderRadius.circular(8),
+    color: Colors.transparent,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.accentCyan.withValues(alpha: 0.65),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MacosIcon(
+            CupertinoIcons.folder_fill,
+            size: 16,
+            color: EditorChrome.accentCyan,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            f.name,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: EditorChrome.primaryLabel(context),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ImportLibraryDest {
@@ -569,6 +744,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _TilesetLibraryRootDropStrip(project: project, notifier: notifier),
         if (project.tilesets.isEmpty && project.tilesetFolders.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
@@ -1347,6 +1523,133 @@ class _MapNode extends StatelessWidget {
   }
 }
 
+/// En-tête de dossier : cible de dépôt + source de glisser pour changer de parent.
+class _TilesetFolderHeaderDnD extends StatelessWidget {
+  const _TilesetFolderHeaderDnD({
+    required this.header,
+    required this.folder,
+    required this.project,
+    required this.notifier,
+  });
+
+  final Widget header;
+  final ProjectTilesetFolder folder;
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<_TilesetLibraryDragData>(
+      onWillAcceptWithDetails: (details) =>
+          _tilesetLibraryCanDropOnFolder(project, folder, details.data),
+      onAcceptWithDetails: (details) {
+        _tilesetLibraryApplyDropOnFolder(notifier, folder, details.data);
+      },
+      builder: (context, candidateData, rejected) {
+        final hovering = candidateData.isNotEmpty;
+        return Draggable<_TilesetLibraryDragData>(
+          data: _TilesetLibraryDragData.folder(folder.id),
+          affinity: Axis.vertical,
+          feedback: _tilesetLibraryFolderDragFeedback(context, folder),
+          childWhenDragging: Opacity(
+            opacity: 0.35,
+            child: header,
+          ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOutCubic,
+            decoration: hovering
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: EditorChrome.accentCyan.withValues(alpha: 0.85),
+                      width: 1.5,
+                    ),
+                    color: EditorChrome.accentCyan.withValues(alpha: 0.08),
+                  )
+                : null,
+            child: header,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Zone de dépôt pour remettre un tileset ou un dossier à la racine de la bibliothèque.
+class _TilesetLibraryRootDropStrip extends StatelessWidget {
+  const _TilesetLibraryRootDropStrip({
+    required this.project,
+    required this.notifier,
+  });
+
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    return DragTarget<_TilesetLibraryDragData>(
+      onWillAcceptWithDetails: (details) =>
+          _tilesetLibraryCanDropOnRoot(project, details.data),
+      onAcceptWithDetails: (details) {
+        _tilesetLibraryApplyDropOnRoot(notifier, details.data);
+      },
+      builder: (context, candidateData, rejected) {
+        final hovering = candidateData.isNotEmpty;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: hovering
+                  ? EditorChrome.accentWarm.withValues(alpha: 0.12)
+                  : CupertinoColors.systemFill.resolveFrom(context).withValues(
+                        alpha: 0.35,
+                      ),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: hovering
+                    ? EditorChrome.accentWarm.withValues(alpha: 0.75)
+                    : CupertinoColors.separator.resolveFrom(context)
+                        .withValues(alpha: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                MacosIcon(
+                  CupertinoIcons.square_stack_3d_up,
+                  size: 14,
+                  color: hovering
+                      ? EditorChrome.accentWarm
+                      : subtle,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    hovering
+                        ? 'Release to move to library root'
+                        : 'Library root — drop here to ungroup',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: hovering
+                          ? EditorChrome.primaryLabel(context)
+                          : subtle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _TilesetLibraryFolderNode extends StatelessWidget {
   const _TilesetLibraryFolderNode({
     required this.branch,
@@ -1401,6 +1704,12 @@ class _TilesetLibraryFolderNode extends StatelessWidget {
           ),
         ),
       ),
+      wrapHeader: (header) => _TilesetFolderHeaderDnD(
+        header: header,
+        folder: folder,
+        project: project,
+        notifier: notifier,
+      ),
       children: [
         ...branch.childFolders.map(
           (b) => _TilesetLibraryFolderNode(
@@ -1446,7 +1755,7 @@ class _TilesetNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EditorSidebarListRow(
+    final row = EditorSidebarListRow(
       selected: selected,
       onTap: () => notifier.selectTilesetWorkspace(tileset.id),
       onSecondaryTapDown: (d) =>
@@ -1476,6 +1785,16 @@ class _TilesetNode extends StatelessWidget {
           ),
         ),
       ),
+    );
+    return Draggable<_TilesetLibraryDragData>(
+      data: _TilesetLibraryDragData.tileset(tileset.id),
+      affinity: Axis.vertical,
+      feedback: _tilesetLibraryTilesetDragFeedback(context, tileset),
+      childWhenDragging: Opacity(
+        opacity: 0.35,
+        child: row,
+      ),
+      child: row,
     );
   }
 

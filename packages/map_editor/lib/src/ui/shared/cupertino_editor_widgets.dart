@@ -625,6 +625,9 @@ class CupertinoDisclosureTile extends StatefulWidget {
 
     /// En-tête pleine largeur, typographie / icônes comme la sidebar macos_ui.
     this.useEditorMacosSidebarDisclosureStyle = false,
+
+    /// Enveloppe l’en-tête (ex. [DragTarget] / [Draggable]) après le geste secondaire.
+    this.wrapHeader,
   });
 
   final Widget title;
@@ -638,6 +641,7 @@ class CupertinoDisclosureTile extends StatefulWidget {
   /// Clic droit sur la ligne d’en-tête (menu contextuel).
   final void Function(TapDownDetails details)? onSecondaryTapDown;
   final bool useEditorMacosSidebarDisclosureStyle;
+  final Widget Function(Widget header)? wrapHeader;
 
   @override
   State<CupertinoDisclosureTile> createState() =>
@@ -722,6 +726,9 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
         behavior: HitTestBehavior.opaque,
         child: header,
       );
+    }
+    if (widget.wrapHeader != null) {
+      header = widget.wrapHeader!(header);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
