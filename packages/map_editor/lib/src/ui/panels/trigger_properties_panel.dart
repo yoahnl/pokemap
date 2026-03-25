@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
+import '../shared/inspector_embedded_widgets.dart';
 
 class TriggerPropertiesPanel extends ConsumerStatefulWidget {
   const TriggerPropertiesPanel({
@@ -56,26 +57,32 @@ class _TriggerPropertiesPanelState
     _syncControllers(selectedTrigger);
 
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
-    const accent = EditorPaintColors.orangeAccent;
+    final listAccent = widget.embedded
+        ? EditorChrome.inspectorJoyCoral
+        : EditorPaintColors.orangeAccent;
     final labelColor = CupertinoColors.label.resolveFrom(context);
 
     final content = map == null
         ? Center(
             child: Text(
-              'No map loaded',
+              widget.embedded ? 'Aucune carte chargée' : 'No map loaded',
               style: TextStyle(
                 color: CupertinoColors.placeholderText.resolveFrom(context),
               ),
             ),
           )
         : ListView(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            padding: widget.embedded
+                ? kInspectorTileBodyPadding
+                : const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
               if (map.triggers.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
-                    'No triggers on this map.\nSelect the Trigger tool and click on the map to add one.',
+                    widget.embedded
+                        ? 'Aucun trigger sur cette carte.\nChoisissez l’outil Trigger et cliquez sur la carte pour en ajouter.'
+                        : 'No triggers on this map.\nSelect the Trigger tool and click on the map to add one.',
                     style: TextStyle(
                       color: CupertinoColors.placeholderText.resolveFrom(context),
                       fontSize: 12,
@@ -91,15 +98,14 @@ class _TriggerPropertiesPanelState
                         color: trigger.id == state.selectedTriggerId
                             ? Color.lerp(
                                 EditorChrome.islandFillElevated(context),
-                                EditorChrome.inspectorJoyCoral,
+                                listAccent,
                                 0.3,
                               )!
                             : EditorChrome.islandFillElevated(context),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: trigger.id == state.selectedTriggerId
-                              ? EditorChrome.inspectorJoyCoral
-                                  .withValues(alpha: 0.78)
+                              ? listAccent.withValues(alpha: 0.78)
                               : EditorChrome.editorIslandRim(context),
                           width: 1,
                         ),
@@ -117,7 +123,7 @@ class _TriggerPropertiesPanelState
                               _iconForTriggerType(trigger.type),
                               size: 16,
                               color: trigger.id == state.selectedTriggerId
-                                  ? accent
+                                  ? listAccent
                                   : subtle,
                             ),
                             const SizedBox(width: 8),
@@ -131,10 +137,7 @@ class _TriggerPropertiesPanelState
                                         : trigger.id,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: trigger.id ==
-                                              state.selectedTriggerId
-                                          ? accent
-                                          : labelColor,
+                                      color: labelColor,
                                       fontWeight: trigger.id ==
                                               state.selectedTriggerId
                                           ? FontWeight.w600
@@ -143,7 +146,7 @@ class _TriggerPropertiesPanelState
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${_triggerTypeLabel(trigger.type)} | ${trigger.id} | (${trigger.area.pos.x}, ${trigger.area.pos.y}) ${trigger.area.size.width}x${trigger.area.size.height}',
+                                    '${_triggerTypeLabel(trigger.type, french: widget.embedded)} | ${trigger.id} | (${trigger.area.pos.x}, ${trigger.area.pos.y}) ${trigger.area.size.width}x${trigger.area.size.height}',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: subtle,
@@ -163,7 +166,9 @@ class _TriggerPropertiesPanelState
               const SizedBox(height: 8),
               if (selectedTrigger == null)
                 Text(
-                  'Select a trigger to edit its properties.',
+                  widget.embedded
+                      ? 'Sélectionnez un trigger pour modifier ses propriétés.'
+                      : 'Select a trigger to edit its properties.',
                   style: TextStyle(
                     color: CupertinoColors.placeholderText.resolveFrom(context),
                     fontSize: 12,
@@ -174,6 +179,7 @@ class _TriggerPropertiesPanelState
                   context: context,
                   notifier: notifier,
                   selectedTrigger: selectedTrigger,
+                  embedded: widget.embedded,
                 ),
             ],
           );
@@ -251,47 +257,83 @@ class _TriggerPropertiesPanelState
     required BuildContext context,
     required EditorNotifier notifier,
     required MapTrigger selectedTrigger,
+    required bool embedded,
   }) {
+    const coral = EditorChrome.inspectorJoyCoral;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Selected Trigger',
-          style: TextStyle(
-            fontSize: 12,
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            fontWeight: FontWeight.w600,
+        if (embedded)
+          const InspectorEmbeddedSectionLabel('Trigger sélectionné')
+        else
+          Text(
+            'Selected Trigger',
+            style: TextStyle(
+              fontSize: 12,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
         const SizedBox(height: 8),
         Text(
-          'Area: (${selectedTrigger.area.pos.x}, ${selectedTrigger.area.pos.y}) ${selectedTrigger.area.size.width}x${selectedTrigger.area.size.height}',
+          embedded
+              ? 'Zone : (${selectedTrigger.area.pos.x}, ${selectedTrigger.area.pos.y}) ${selectedTrigger.area.size.width}×${selectedTrigger.area.size.height}'
+              : 'Area: (${selectedTrigger.area.pos.x}, ${selectedTrigger.area.pos.y}) ${selectedTrigger.area.size.width}x${selectedTrigger.area.size.height}',
           style: TextStyle(
             fontSize: 11,
             color: CupertinoColors.secondaryLabel.resolveFrom(context),
           ),
         ),
         const SizedBox(height: 8),
-        _labeledField(context, label: 'ID', controller: _idController),
-        const SizedBox(height: 8),
-        _labeledField(context, label: 'Name', controller: _nameController),
-        const SizedBox(height: 8),
-        CupertinoButton(
-          padding: EdgeInsets.zero,
-          alignment: Alignment.centerLeft,
-          onPressed: () async {
-            final picked = await showCupertinoListPicker<TriggerType>(
-              context: context,
-              title: 'Type',
-              items: TriggerType.values,
-              labelOf: _triggerTypeLabel,
-            );
-            if (picked != null) {
-              setState(() => _selectedType = picked);
-            }
-          },
-          child: Text('Type: ${_triggerTypeLabel(_selectedType)}'),
+        _labeledField(
+          context,
+          label: embedded ? 'Identifiant' : 'ID',
+          controller: _idController,
         ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          label: embedded ? 'Nom' : 'Name',
+          controller: _nameController,
+        ),
+        const SizedBox(height: 8),
+        if (embedded)
+          InspectorEmbeddedDropdown(
+            accent: coral,
+            fieldLabel: 'Type',
+            valueLabel: _triggerTypeLabel(_selectedType, french: true),
+            orderedIds: TriggerType.values.map((t) => t.name).toList(),
+            selectedMenuValue: _selectedType.name,
+            selectedIdForCheck: _selectedType.name,
+            idToLabel: (id) => _triggerTypeLabel(
+              TriggerType.values.firstWhere((t) => t.name == id),
+              french: true,
+            ),
+            onSelected: (id) {
+              setState(() {
+                _selectedType =
+                    TriggerType.values.firstWhere((t) => t.name == id);
+              });
+            },
+            tooltip: 'Type de trigger',
+          )
+        else
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            alignment: Alignment.centerLeft,
+            onPressed: () async {
+              final picked = await showCupertinoListPicker<TriggerType>(
+                context: context,
+                title: 'Type',
+                items: TriggerType.values,
+                labelOf: _triggerTypeLabel,
+              );
+              if (picked != null) {
+                setState(() => _selectedType = picked);
+              }
+            },
+            child: Text('Type: ${_triggerTypeLabel(_selectedType)}'),
+          ),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -326,7 +368,7 @@ class _TriggerPropertiesPanelState
             Expanded(
               child: _labeledField(
                 context,
-                label: 'Width',
+                label: embedded ? 'Largeur' : 'Width',
                 controller: _widthController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -336,7 +378,7 @@ class _TriggerPropertiesPanelState
             Expanded(
               child: _labeledField(
                 context,
-                label: 'Height',
+                label: embedded ? 'Hauteur' : 'Height',
                 controller: _heightController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -348,14 +390,18 @@ class _TriggerPropertiesPanelState
         Row(
           children: [
             Expanded(
-              child: Text(
-                'Properties',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: embedded
+                  ? const InspectorEmbeddedSectionLabel('Propriétés')
+                  : Text(
+                      'Properties',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CupertinoColors.secondaryLabel.resolveFrom(
+                          context,
+                        ),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
             EditorToolbarIconButton(
               onPressed: () {
@@ -364,7 +410,7 @@ class _TriggerPropertiesPanelState
                 });
               },
               icon: CupertinoIcons.add,
-              tooltip: 'Add Property',
+              tooltip: embedded ? 'Ajouter une propriété' : 'Add Property',
             ),
           ],
         ),
@@ -372,7 +418,7 @@ class _TriggerPropertiesPanelState
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'No properties yet.',
+              embedded ? 'Aucune propriété pour l’instant.' : 'No properties yet.',
               style: TextStyle(
                 fontSize: 11,
                 color: CupertinoColors.placeholderText.resolveFrom(context),
@@ -390,7 +436,7 @@ class _TriggerPropertiesPanelState
                   Expanded(
                     child: _labeledField(
                       context,
-                      label: 'Key',
+                      label: embedded ? 'Clé' : 'Key',
                       controller: row.keyController,
                     ),
                   ),
@@ -398,7 +444,7 @@ class _TriggerPropertiesPanelState
                   Expanded(
                     child: _labeledField(
                       context,
-                      label: 'Value',
+                      label: embedded ? 'Valeur' : 'Value',
                       controller: row.valueController,
                     ),
                   ),
@@ -410,30 +456,55 @@ class _TriggerPropertiesPanelState
                       });
                     },
                     icon: CupertinoIcons.trash,
-                    tooltip: 'Remove Property',
+                    tooltip: embedded ? 'Retirer la propriété' : 'Remove Property',
                   ),
                 ],
               ),
             );
           }),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: CupertinoButton.filled(
-                onPressed: () => _saveSelectedTrigger(context, notifier),
-                child: const Text('Save Trigger'),
+        if (embedded)
+          Row(
+            children: [
+              Expanded(
+                child: InspectorEmbeddedPrimaryCapsule(
+                  accent: coral,
+                  icon: CupertinoIcons.checkmark_circle_fill,
+                  label: 'Enregistrer',
+                  prominent: true,
+                  onPressed: () => _saveSelectedTrigger(context, notifier),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: CupertinoButton(
-                onPressed: notifier.deleteSelectedTrigger,
-                child: const Text('Delete'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InspectorEmbeddedSecondaryCapsule(
+                  accent: coral,
+                  icon: CupertinoIcons.trash,
+                  label: 'Supprimer',
+                  enabled: true,
+                  onPressed: notifier.deleteSelectedTrigger,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: CupertinoButton.filled(
+                  onPressed: () => _saveSelectedTrigger(context, notifier),
+                  child: const Text('Save Trigger'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: CupertinoButton(
+                  onPressed: notifier.deleteSelectedTrigger,
+                  child: const Text('Delete'),
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -544,7 +615,18 @@ class _TriggerPropertiesPanelState
     };
   }
 
-  static String _triggerTypeLabel(TriggerType type) {
+  static String _triggerTypeLabel(TriggerType type, {bool french = false}) {
+    if (french) {
+      return switch (type) {
+        TriggerType.warp => 'Téléportation',
+        TriggerType.message => 'Message',
+        TriggerType.interaction => 'Interaction',
+        TriggerType.event => 'Événement',
+        TriggerType.spawn => 'Apparition',
+        TriggerType.camera => 'Caméra',
+        TriggerType.custom => 'Personnalisé',
+      };
+    }
     return switch (type) {
       TriggerType.warp => 'Warp',
       TriggerType.message => 'Message',

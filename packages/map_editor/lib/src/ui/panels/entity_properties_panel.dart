@@ -7,6 +7,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
+import '../shared/inspector_embedded_widgets.dart';
 
 class EntityPropertiesPanel extends ConsumerStatefulWidget {
   const EntityPropertiesPanel({
@@ -70,32 +71,63 @@ class _EntityPropertiesPanelState
             ),
           )
         : ListView(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            padding: widget.embedded
+                ? kInspectorTileBodyPadding
+                : const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                alignment: Alignment.centerLeft,
-                onPressed: () async {
-                  final picked = await showCupertinoListPicker<MapEntityKind>(
-                    context: context,
-                    title: 'Placement kind',
-                    items: MapEntityKind.values,
-                    labelOf: _entityKindLabel,
-                  );
-                  if (picked != null) {
-                    notifier.selectEntityKind(picked);
-                  }
-                },
-                child: Text(
-                  'Placement Kind: ${_entityKindLabel(state.selectedEntityKind)}',
+              if (widget.embedded)
+                InspectorEmbeddedDropdown(
+                  accent: EditorChrome.inspectorJoyCyan,
+                  fieldLabel: 'Type à placer',
+                  valueLabel: _entityKindLabel(state.selectedEntityKind),
+                  orderedIds:
+                      MapEntityKind.values.map((k) => k.name).toList(),
+                  selectedMenuValue: state.selectedEntityKind.name,
+                  selectedIdForCheck: state.selectedEntityKind.name,
+                  idToLabel: (id) => _entityKindLabel(
+                    MapEntityKind.values.firstWhere((k) => k.name == id),
+                  ),
+                  onSelected: (id) {
+                    final k = MapEntityKind.values.firstWhere(
+                      (e) => e.name == id,
+                    );
+                    notifier.selectEntityKind(k);
+                  },
+                  tooltip: 'Type d’entité à placer sur la carte',
+                )
+              else
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  alignment: Alignment.centerLeft,
+                  onPressed: () async {
+                    final picked = await showCupertinoListPicker<MapEntityKind>(
+                      context: context,
+                      title: 'Placement kind',
+                      items: MapEntityKind.values,
+                      labelOf: _entityKindLabel,
+                    );
+                    if (picked != null) {
+                      notifier.selectEntityKind(picked);
+                    }
+                  },
+                  child: Text(
+                    'Placement Kind: ${_entityKindLabel(state.selectedEntityKind)}',
+                  ),
                 ),
-              ),
               const SizedBox(height: 8),
               Text(
                 state.activeTool == EditorToolType.entityPlacement
-                    ? 'Entity tool active. Click on the map to place the selected kind.'
-                    : 'Select the Entity tool to place visible world content on the map.',
-                style: TextStyle(fontSize: 11, color: subtle),
+                    ? (widget.embedded
+                        ? 'Outil Entités actif : cliquez sur la carte pour placer ce type.'
+                        : 'Entity tool active. Click on the map to place the selected kind.')
+                    : (widget.embedded
+                        ? 'Activez l’outil Entités pour placer des éléments sur la carte.'
+                        : 'Select the Entity tool to place visible world content on the map.'),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: subtle,
+                  height: 1.25,
+                ),
               ),
               const SizedBox(height: 12),
               if (map.entities.isEmpty)
@@ -144,7 +176,9 @@ class _EntityPropertiesPanelState
                               _iconForEntityKind(entity.kind),
                               size: 16,
                               color: entity.id == state.selectedEntityId
-                                  ? EditorPaintColors.white
+                                  ? (widget.embedded
+                                      ? EditorChrome.inspectorJoyCyan
+                                      : EditorPaintColors.white)
                                   : _entityColor(entity.kind),
                             ),
                             const SizedBox(width: 8),
@@ -161,7 +195,7 @@ class _EntityPropertiesPanelState
                                       color: labelColor,
                                       fontWeight: entity.id ==
                                               state.selectedEntityId
-                                          ? FontWeight.w600
+                                          ? FontWeight.w700
                                           : FontWeight.w500,
                                     ),
                                   ),

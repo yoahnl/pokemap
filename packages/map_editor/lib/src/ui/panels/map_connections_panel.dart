@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
+import '../shared/inspector_embedded_widgets.dart';
 
 class MapConnectionsPanel extends ConsumerStatefulWidget {
   const MapConnectionsPanel({
@@ -76,13 +77,21 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
             ),
           )
         : ListView(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            padding: widget.embedded
+                ? kInspectorTileBodyPadding
+                : const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
-                  'Connect map edges to build a continuous world. Each side can point to one other map.',
-                  style: TextStyle(color: subtle, fontSize: 12),
+                  widget.embedded
+                      ? 'Reliez chaque bord à une carte du projet pour un monde continu.'
+                      : 'Connect map edges to build a continuous world. Each side can point to one other map.',
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 12,
+                    height: 1.25,
+                  ),
                 ),
               ),
               if (sortedProjectMaps.isEmpty)
@@ -106,6 +115,7 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
                     projectMapById: projectMapById,
                     selectedTargetMapId: _selectedTargetMapIds[direction],
                     offsetController: _offsetControllers[direction]!,
+                    useInspectorEmbedded: widget.embedded,
                     onTargetChanged: (value) {
                       setState(() {
                         _selectedTargetMapIds[direction] = value;
@@ -228,6 +238,7 @@ class _DirectionConnectionCard extends StatelessWidget {
     required this.projectMapById,
     required this.selectedTargetMapId,
     required this.offsetController,
+    required this.useInspectorEmbedded,
     required this.onTargetChanged,
     required this.onSave,
     required this.onOpen,
@@ -240,6 +251,7 @@ class _DirectionConnectionCard extends StatelessWidget {
   final Map<String, ProjectMapEntry> projectMapById;
   final String? selectedTargetMapId;
   final TextEditingController offsetController;
+  final bool useInspectorEmbedded;
   final ValueChanged<String?> onTargetChanged;
   final VoidCallback onSave;
   final VoidCallback onOpen;
@@ -265,6 +277,7 @@ class _DirectionConnectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const plum = EditorChrome.inspectorJoyPlum;
     final currentTargetEntry = existingConnection == null
         ? null
         : projectMapById[existingConnection!.targetMapId];
@@ -278,11 +291,19 @@ class _DirectionConnectionCard extends StatelessWidget {
 
     final displayName = selectedTargetMapId == null
         ? (projectMaps.isEmpty
-            ? 'No other map available'
-            : 'Select map')
+            ? (useInspectorEmbedded
+                ? 'Aucune autre carte'
+                : 'No other map available')
+            : (useInspectorEmbedded ? 'Choisir une carte…' : 'Select map'))
         : (selectedTargetExists
             ? '${projectMapById[selectedTargetMapId]!.name} ($selectedTargetMapId)'
             : 'Missing: $selectedTargetMapId');
+
+    final mapMenuIds = <String>['', ...projectMaps.map((m) => m.id)];
+    final effectiveMapMenuId = selectedTargetMapId ?? '';
+    final hasDraft = existingConnection != null ||
+        (selectedTargetMapId != null && selectedTargetMapId!.isNotEmpty) ||
+        offsetController.text.trim() != '0';
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -357,7 +378,7 @@ class _DirectionConnectionCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Connected Map',
+            useInspectorEmbedded ? 'Carte liée' : 'Connected Map',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -365,21 +386,51 @@ class _DirectionConnectionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            alignment: Alignment.centerLeft,
-            onPressed:
-                projectMaps.isEmpty ? null : () => _pickMap(context),
-            child: Text(
+          if (useInspectorEmbedded && projectMaps.isNotEmpty)
+            InspectorEmbeddedDropdown(
+              accent: plum,
+              fieldLabel: 'Destination',
+              valueLabel: displayName,
+              orderedIds: mapMenuIds,
+              selectedMenuValue: mapMenuIds.contains(effectiveMapMenuId)
+                  ? effectiveMapMenuId
+                  : mapMenuIds.first,
+              selectedIdForCheck:
+                  selectedTargetMapId != null && selectedTargetMapId!.isNotEmpty
+                      ? selectedTargetMapId
+                      : null,
+              idToLabel: (id) => id.isEmpty
+                  ? 'Aucune carte'
+                  : (projectMapById.containsKey(id)
+                      ? '${projectMapById[id]!.name} ($id)'
+                      : id),
+              onSelected: (id) => onTargetChanged(id.isEmpty ? null : id),
+              tooltip: 'Carte connectée sur ce bord',
+            )
+          else if (!useInspectorEmbedded)
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              alignment: Alignment.centerLeft,
+              onPressed:
+                  projectMaps.isEmpty ? null : () => _pickMap(context),
+              child: Text(
+                displayName,
+                style: TextStyle(
+                  color: projectMaps.isEmpty
+                      ? CupertinoColors.placeholderText.resolveFrom(context)
+                      : CupertinoColors.label.resolveFrom(context),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            )
+          else
+            Text(
               displayName,
               style: TextStyle(
-                color: projectMaps.isEmpty
-                    ? CupertinoColors.placeholderText.resolveFrom(context)
-                    : CupertinoColors.label.resolveFrom(context),
+                fontSize: 12,
+                color: CupertinoColors.placeholderText.resolveFrom(context),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
           if (selectedTargetMapId != null && !selectedTargetExists) ...[
             const SizedBox(height: 6),
             Text(
@@ -389,7 +440,7 @@ class _DirectionConnectionCard extends StatelessWidget {
           ],
           const SizedBox(height: 8),
           Text(
-            'Offset',
+            useInspectorEmbedded ? 'Décalage' : 'Offset',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -411,40 +462,81 @@ class _DirectionConnectionCard extends StatelessWidget {
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*'))],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: CupertinoButton.filled(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  onPressed: projectMaps.isEmpty ? null : onSave,
-                  child: Text(
-                    existingConnection == null ? 'Set Connection' : 'Save',
+          if (useInspectorEmbedded) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: InspectorEmbeddedPrimaryCapsule(
+                    accent: plum,
+                    icon: CupertinoIcons.checkmark_circle_fill,
+                    label: existingConnection == null
+                        ? 'Enregistrer'
+                        : 'Mettre à jour',
+                    prominent: true,
+                    enabled: projectMaps.isNotEmpty,
+                    onPressed: onSave,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: CupertinoButton(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  onPressed: existingConnection == null ? null : onOpen,
-                  child: const Text('Open'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: InspectorEmbeddedSecondaryCapsule(
+                    accent: plum,
+                    icon: CupertinoIcons.arrow_up_right_square,
+                    label: 'Ouvrir',
+                    enabled: existingConnection != null,
+                    onPressed: onOpen,
+                  ),
                 ),
+              ],
+            ),
+            if (hasDraft) ...[
+              const SizedBox(height: 8),
+              InspectorEmbeddedSecondaryCapsule(
+                accent: plum,
+                icon: CupertinoIcons.xmark_circle,
+                label: existingConnection == null
+                    ? 'Réinitialiser'
+                    : 'Supprimer la liaison',
+                enabled: true,
+                onPressed: onClear,
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: CupertinoButton(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              onPressed: onClear,
-              child: Text(
-                existingConnection == null
-                    ? 'Clear Draft'
-                    : 'Remove Connection',
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: CupertinoButton.filled(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    onPressed: projectMaps.isEmpty ? null : onSave,
+                    child: Text(
+                      existingConnection == null ? 'Set Connection' : 'Save',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    onPressed: existingConnection == null ? null : onOpen,
+                    child: const Text('Open'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: CupertinoButton(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                onPressed: onClear,
+                child: Text(
+                  existingConnection == null
+                      ? 'Clear Draft'
+                      : 'Remove Connection',
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
