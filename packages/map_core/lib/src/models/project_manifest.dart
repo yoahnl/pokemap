@@ -21,6 +21,8 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectPresetCategory> pathCategories,
     @Default([]) List<ProjectTerrainPreset> terrainPresets,
     @Default([]) List<ProjectPathPreset> pathPresets,
+    /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
+    @Default([]) List<ProjectEncounterTable> encounterTables,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
@@ -270,6 +272,45 @@ class ProjectPresetCategory with _$ProjectPresetCategory {
 
   factory ProjectPresetCategory.fromJson(Map<String, dynamic> json) =>
       _$ProjectPresetCategoryFromJson(json);
+}
+
+// ---------------------------------------------------------------------------
+// ProjectEncounterEntry / ProjectEncounterTable
+// ---------------------------------------------------------------------------
+
+/// Entrée pondérée dans une table de rencontres.
+@freezed
+class ProjectEncounterEntry with _$ProjectEncounterEntry {
+  const factory ProjectEncounterEntry({
+    /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
+    required String speciesId,
+    required int minLevel,
+    required int maxLevel,
+    /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
+    @Default(1) int weight,
+  }) = _ProjectEncounterEntry;
+
+  factory ProjectEncounterEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectEncounterEntryFromJson(json);
+}
+
+/// Table de rencontres réutilisable au niveau projet.
+///
+/// Une [MapGameplayZone] peut y faire référence via [MapGameplayZone.encounterTableId].
+/// Le runtime choisit une entrée au tirage pondéré et déclenche le système de combat.
+@freezed
+class ProjectEncounterTable with _$ProjectEncounterTable {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectEncounterTable({
+    required String id,
+    required String name,
+    required EncounterKind encounterKind,
+    @Default([]) List<ProjectEncounterEntry> entries,
+    @Default([]) List<String> tags,
+  }) = _ProjectEncounterTable;
+
+  factory ProjectEncounterTable.fromJson(Map<String, dynamic> json) =>
+      _$ProjectEncounterTableFromJson(json);
 }
 
 extension TilesetVisualFrameListX on List<TilesetVisualFrame> {

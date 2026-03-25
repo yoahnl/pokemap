@@ -287,6 +287,15 @@ class TopToolbar extends ConsumerWidget {
                 EditorToolType.warpPlacement,
               ),
             ),
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.leaf_arrow_circlepath,
+              tooltip: 'Gameplay Zone Tool',
+              selected:
+                  state.activeTool == EditorToolType.gameplayZonePlacement,
+              onPressed: () => notifier.selectTool(
+                EditorToolType.gameplayZonePlacement,
+              ),
+            ),
           ],
         ),
       if (showContextStrip)

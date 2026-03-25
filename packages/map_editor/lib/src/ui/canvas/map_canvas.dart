@@ -94,7 +94,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         final isTapEditingTool = isStrokeEditingTool ||
             state.activeTool == EditorToolType.entityPlacement ||
             state.activeTool == EditorToolType.warpPlacement ||
-            state.activeTool == EditorToolType.triggerPlacement;
+            state.activeTool == EditorToolType.triggerPlacement ||
+            state.activeTool == EditorToolType.gameplayZonePlacement;
 
         void applyToolAt(GridPos gridPos) {
           if (state.activeTool == EditorToolType.tilePaint) {
@@ -126,6 +127,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           }
           if (state.activeTool == EditorToolType.triggerPlacement) {
             notifier.placeOrSelectTriggerAt(gridPos);
+            return;
+          }
+          if (state.activeTool == EditorToolType.gameplayZonePlacement) {
+            notifier.placeOrSelectGameplayZoneAt(gridPos);
           }
         }
 
@@ -219,9 +224,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     tilesPerRowById: tilesPerRowById,
                     toolPreview: toolPreview,
                     warps: activeMap.warps,
+                    gameplayZones: activeMap.gameplayZones,
                     selectedEntityId: state.selectedEntityId,
                     selectedWarpId: state.selectedWarpId,
                     selectedTriggerId: state.selectedTriggerId,
+                    selectedGameplayZoneId: state.selectedGameplayZoneId,
                     connectionLabelsByDirection: connectionLabelsByDirection,
                     selectedPathAutotileSet: selectedPathAutotileSet,
                     pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
@@ -415,9 +422,11 @@ class MapGridPainter extends CustomPainter {
   final Map<String, int> tilesPerRowById;
   final MapToolPreview? toolPreview;
   final List<MapWarp> warps;
+  final List<MapGameplayZone> gameplayZones;
   final String? selectedEntityId;
   final String? selectedWarpId;
   final String? selectedTriggerId;
+  final String? selectedGameplayZoneId;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final PathAutotileSet? selectedPathAutotileSet;
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
@@ -437,9 +446,11 @@ class MapGridPainter extends CustomPainter {
     required this.tilesPerRowById,
     this.toolPreview,
     required this.warps,
+    required this.gameplayZones,
     this.selectedEntityId,
     this.selectedWarpId,
     this.selectedTriggerId,
+    this.selectedGameplayZoneId,
     required this.connectionLabelsByDirection,
     this.selectedPathAutotileSet,
     required this.pathAutotileSetsByPresetId,
@@ -537,6 +548,7 @@ class MapGridPainter extends CustomPainter {
       );
     }
 
+    _paintGameplayZones(canvas);
     _paintToolPreview(canvas);
     _paintEntities(canvas);
     _paintTriggers(canvas);
@@ -1686,6 +1698,74 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
+  void _paintGameplayZones(Canvas canvas) {
+    if (gameplayZones.isEmpty) return;
+    for (final zone in gameplayZones) {
+      final isSelected = zone.id == selectedGameplayZoneId;
+      final left = zone.area.pos.x * tileWidth;
+      final top = zone.area.pos.y * tileHeight;
+      final width = zone.area.size.width * tileWidth;
+      final height = zone.area.size.height * tileHeight;
+      final rect = Rect.fromLTWH(left, top, width, height);
+      final color = _gameplayZoneColor(zone.kind);
+
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = color.withValues(alpha: isSelected ? 0.20 : 0.12)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = isSelected ? Colors.white : color.withValues(alpha: 0.85)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = isSelected ? 2.0 / zoom : 1.3 / zoom,
+      );
+
+      if (rect.width < (28 / zoom) || rect.height < (18 / zoom)) {
+        continue;
+      }
+      final label = zone.name.trim().isNotEmpty
+          ? zone.name.trim()
+          : '${zone.kind.name}:${zone.id}';
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10 / zoom,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '...',
+      )..layout(maxWidth: rect.width - (8 / zoom));
+      if (textPainter.width <= 0 || textPainter.height <= 0) {
+        continue;
+      }
+      textPainter.paint(
+        canvas,
+        Offset(
+          rect.left + (4 / zoom),
+          rect.top + (3 / zoom),
+        ),
+      );
+    }
+  }
+
+  Color _gameplayZoneColor(GameplayZoneKind kind) {
+    return switch (kind) {
+      GameplayZoneKind.encounter => const Color(0xFF66FF99),
+      GameplayZoneKind.movement => const Color(0xFF66AAFF),
+      GameplayZoneKind.hazard => const Color(0xFFFF6666),
+      GameplayZoneKind.transition => const Color(0xFFFFCC66),
+      GameplayZoneKind.special => const Color(0xFFCC66FF),
+      GameplayZoneKind.custom => const Color(0xFF66FFFF),
+    };
+  }
+
   Color _triggerColor(TriggerType type) {
     return switch (type) {
       TriggerType.warp => Colors.deepPurpleAccent,
@@ -1731,7 +1811,9 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.selectedEntityId != selectedEntityId ||
         oldDelegate.selectedWarpId != selectedWarpId ||
         oldDelegate.selectedTriggerId != selectedTriggerId ||
+        oldDelegate.selectedGameplayZoneId != selectedGameplayZoneId ||
         !listEquals(oldDelegate.warps, warps) ||
+        !listEquals(oldDelegate.gameplayZones, gameplayZones) ||
         !_samePathAutotileSet(
           oldDelegate.selectedPathAutotileSet,
           selectedPathAutotileSet,

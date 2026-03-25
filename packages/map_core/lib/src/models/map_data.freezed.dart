@@ -30,6 +30,10 @@ mixin _$MapData {
   List<MapConnection> get connections => throw _privateConstructorUsedError;
   List<MapWarp> get warps => throw _privateConstructorUsedError;
   List<MapTrigger> get triggers => throw _privateConstructorUsedError;
+
+  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
+  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
+  List<MapGameplayZone> get gameplayZones => throw _privateConstructorUsedError;
   Map<String, dynamic> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapData to a JSON map.
@@ -57,6 +61,7 @@ abstract class $MapDataCopyWith<$Res> {
       List<MapConnection> connections,
       List<MapWarp> warps,
       List<MapTrigger> triggers,
+      List<MapGameplayZone> gameplayZones,
       Map<String, dynamic> properties});
 
   $GridSizeCopyWith<$Res> get size;
@@ -87,6 +92,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
     Object? connections = null,
     Object? warps = null,
     Object? triggers = null,
+    Object? gameplayZones = null,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -130,6 +136,10 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
           ? _value.triggers
           : triggers // ignore: cast_nullable_to_non_nullable
               as List<MapTrigger>,
+      gameplayZones: null == gameplayZones
+          ? _value.gameplayZones
+          : gameplayZones // ignore: cast_nullable_to_non_nullable
+              as List<MapGameplayZone>,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -166,6 +176,7 @@ abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
       List<MapConnection> connections,
       List<MapWarp> warps,
       List<MapTrigger> triggers,
+      List<MapGameplayZone> gameplayZones,
       Map<String, dynamic> properties});
 
   @override
@@ -195,6 +206,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
     Object? connections = null,
     Object? warps = null,
     Object? triggers = null,
+    Object? gameplayZones = null,
     Object? properties = null,
   }) {
     return _then(_$MapDataImpl(
@@ -238,6 +250,10 @@ class __$$MapDataImplCopyWithImpl<$Res>
           ? _value._triggers
           : triggers // ignore: cast_nullable_to_non_nullable
               as List<MapTrigger>,
+      gameplayZones: null == gameplayZones
+          ? _value._gameplayZones
+          : gameplayZones // ignore: cast_nullable_to_non_nullable
+              as List<MapGameplayZone>,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -261,12 +277,14 @@ class _$MapDataImpl implements _MapData {
       final List<MapConnection> connections = const [],
       final List<MapWarp> warps = const [],
       final List<MapTrigger> triggers = const [],
+      final List<MapGameplayZone> gameplayZones = const [],
       final Map<String, dynamic> properties = const {}})
       : _layers = layers,
         _entities = entities,
         _connections = connections,
         _warps = warps,
         _triggers = triggers,
+        _gameplayZones = gameplayZones,
         _properties = properties;
 
   factory _$MapDataImpl.fromJson(Map<String, dynamic> json) =>
@@ -329,6 +347,20 @@ class _$MapDataImpl implements _MapData {
     return EqualUnmodifiableListView(_triggers);
   }
 
+  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
+  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
+  final List<MapGameplayZone> _gameplayZones;
+
+  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
+  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
+  @override
+  @JsonKey()
+  List<MapGameplayZone> get gameplayZones {
+    if (_gameplayZones is EqualUnmodifiableListView) return _gameplayZones;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_gameplayZones);
+  }
+
   final Map<String, dynamic> _properties;
   @override
   @JsonKey()
@@ -340,7 +372,7 @@ class _$MapDataImpl implements _MapData {
 
   @override
   String toString() {
-    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, properties: $properties)';
+    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, properties: $properties)';
   }
 
   @override
@@ -361,6 +393,8 @@ class _$MapDataImpl implements _MapData {
             const DeepCollectionEquality().equals(other._warps, _warps) &&
             const DeepCollectionEquality().equals(other._triggers, _triggers) &&
             const DeepCollectionEquality()
+                .equals(other._gameplayZones, _gameplayZones) &&
+            const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
 
@@ -378,6 +412,7 @@ class _$MapDataImpl implements _MapData {
       const DeepCollectionEquality().hash(_connections),
       const DeepCollectionEquality().hash(_warps),
       const DeepCollectionEquality().hash(_triggers),
+      const DeepCollectionEquality().hash(_gameplayZones),
       const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapData
@@ -408,6 +443,7 @@ abstract class _MapData implements MapData {
       final List<MapConnection> connections,
       final List<MapWarp> warps,
       final List<MapTrigger> triggers,
+      final List<MapGameplayZone> gameplayZones,
       final Map<String, dynamic> properties}) = _$MapDataImpl;
 
   factory _MapData.fromJson(Map<String, dynamic> json) = _$MapDataImpl.fromJson;
@@ -432,6 +468,11 @@ abstract class _MapData implements MapData {
   List<MapWarp> get warps;
   @override
   List<MapTrigger> get triggers;
+
+  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
+  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
+  @override
+  List<MapGameplayZone> get gameplayZones;
   @override
   Map<String, dynamic> get properties;
 
@@ -440,6 +481,356 @@ abstract class _MapData implements MapData {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$MapDataImplCopyWith<_$MapDataImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+MapGameplayZone _$MapGameplayZoneFromJson(Map<String, dynamic> json) {
+  return _MapGameplayZone.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapGameplayZone {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  GameplayZoneKind get kind => throw _privateConstructorUsedError;
+  MapRect get area => throw _privateConstructorUsedError;
+
+  /// ID d'une [ProjectEncounterTable] du projet (optionnel).
+  String? get encounterTableId => throw _privateConstructorUsedError;
+
+  /// Mode de déplacement requis / appliqué dans la zone (optionnel).
+  MovementMode? get movementMode => throw _privateConstructorUsedError;
+
+  /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
+  int get priority => throw _privateConstructorUsedError;
+  Map<String, String> get properties => throw _privateConstructorUsedError;
+
+  /// Serializes this MapGameplayZone to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapGameplayZoneCopyWith<MapGameplayZone> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapGameplayZoneCopyWith<$Res> {
+  factory $MapGameplayZoneCopyWith(
+          MapGameplayZone value, $Res Function(MapGameplayZone) then) =
+      _$MapGameplayZoneCopyWithImpl<$Res, MapGameplayZone>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      GameplayZoneKind kind,
+      MapRect area,
+      String? encounterTableId,
+      MovementMode? movementMode,
+      int priority,
+      Map<String, String> properties});
+
+  $MapRectCopyWith<$Res> get area;
+}
+
+/// @nodoc
+class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
+    implements $MapGameplayZoneCopyWith<$Res> {
+  _$MapGameplayZoneCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? kind = null,
+    Object? area = null,
+    Object? encounterTableId = freezed,
+    Object? movementMode = freezed,
+    Object? priority = null,
+    Object? properties = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as GameplayZoneKind,
+      area: null == area
+          ? _value.area
+          : area // ignore: cast_nullable_to_non_nullable
+              as MapRect,
+      encounterTableId: freezed == encounterTableId
+          ? _value.encounterTableId
+          : encounterTableId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      movementMode: freezed == movementMode
+          ? _value.movementMode
+          : movementMode // ignore: cast_nullable_to_non_nullable
+              as MovementMode?,
+      priority: null == priority
+          ? _value.priority
+          : priority // ignore: cast_nullable_to_non_nullable
+              as int,
+      properties: null == properties
+          ? _value.properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ) as $Val);
+  }
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapRectCopyWith<$Res> get area {
+    return $MapRectCopyWith<$Res>(_value.area, (value) {
+      return _then(_value.copyWith(area: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$MapGameplayZoneImplCopyWith<$Res>
+    implements $MapGameplayZoneCopyWith<$Res> {
+  factory _$$MapGameplayZoneImplCopyWith(_$MapGameplayZoneImpl value,
+          $Res Function(_$MapGameplayZoneImpl) then) =
+      __$$MapGameplayZoneImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      GameplayZoneKind kind,
+      MapRect area,
+      String? encounterTableId,
+      MovementMode? movementMode,
+      int priority,
+      Map<String, String> properties});
+
+  @override
+  $MapRectCopyWith<$Res> get area;
+}
+
+/// @nodoc
+class __$$MapGameplayZoneImplCopyWithImpl<$Res>
+    extends _$MapGameplayZoneCopyWithImpl<$Res, _$MapGameplayZoneImpl>
+    implements _$$MapGameplayZoneImplCopyWith<$Res> {
+  __$$MapGameplayZoneImplCopyWithImpl(
+      _$MapGameplayZoneImpl _value, $Res Function(_$MapGameplayZoneImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? kind = null,
+    Object? area = null,
+    Object? encounterTableId = freezed,
+    Object? movementMode = freezed,
+    Object? priority = null,
+    Object? properties = null,
+  }) {
+    return _then(_$MapGameplayZoneImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as GameplayZoneKind,
+      area: null == area
+          ? _value.area
+          : area // ignore: cast_nullable_to_non_nullable
+              as MapRect,
+      encounterTableId: freezed == encounterTableId
+          ? _value.encounterTableId
+          : encounterTableId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      movementMode: freezed == movementMode
+          ? _value.movementMode
+          : movementMode // ignore: cast_nullable_to_non_nullable
+              as MovementMode?,
+      priority: null == priority
+          ? _value.priority
+          : priority // ignore: cast_nullable_to_non_nullable
+              as int,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapGameplayZoneImpl implements _MapGameplayZone {
+  const _$MapGameplayZoneImpl(
+      {required this.id,
+      this.name = '',
+      required this.kind,
+      required this.area,
+      this.encounterTableId,
+      this.movementMode,
+      this.priority = 0,
+      final Map<String, String> properties = const {}})
+      : _properties = properties;
+
+  factory _$MapGameplayZoneImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MapGameplayZoneImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  @JsonKey()
+  final String name;
+  @override
+  final GameplayZoneKind kind;
+  @override
+  final MapRect area;
+
+  /// ID d'une [ProjectEncounterTable] du projet (optionnel).
+  @override
+  final String? encounterTableId;
+
+  /// Mode de déplacement requis / appliqué dans la zone (optionnel).
+  @override
+  final MovementMode? movementMode;
+
+  /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
+  @override
+  @JsonKey()
+  final int priority;
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @override
+  String toString() {
+    return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, encounterTableId: $encounterTableId, movementMode: $movementMode, priority: $priority, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapGameplayZoneImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.kind, kind) || other.kind == kind) &&
+            (identical(other.area, area) || other.area == area) &&
+            (identical(other.encounterTableId, encounterTableId) ||
+                other.encounterTableId == encounterTableId) &&
+            (identical(other.movementMode, movementMode) ||
+                other.movementMode == movementMode) &&
+            (identical(other.priority, priority) ||
+                other.priority == priority) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      kind,
+      area,
+      encounterTableId,
+      movementMode,
+      priority,
+      const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapGameplayZoneImplCopyWith<_$MapGameplayZoneImpl> get copyWith =>
+      __$$MapGameplayZoneImplCopyWithImpl<_$MapGameplayZoneImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapGameplayZoneImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapGameplayZone implements MapGameplayZone {
+  const factory _MapGameplayZone(
+      {required final String id,
+      final String name,
+      required final GameplayZoneKind kind,
+      required final MapRect area,
+      final String? encounterTableId,
+      final MovementMode? movementMode,
+      final int priority,
+      final Map<String, String> properties}) = _$MapGameplayZoneImpl;
+
+  factory _MapGameplayZone.fromJson(Map<String, dynamic> json) =
+      _$MapGameplayZoneImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  GameplayZoneKind get kind;
+  @override
+  MapRect get area;
+
+  /// ID d'une [ProjectEncounterTable] du projet (optionnel).
+  @override
+  String? get encounterTableId;
+
+  /// Mode de déplacement requis / appliqué dans la zone (optionnel).
+  @override
+  MovementMode? get movementMode;
+
+  /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
+  @override
+  int get priority;
+  @override
+  Map<String, String> get properties;
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapGameplayZoneImplCopyWith<_$MapGameplayZoneImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

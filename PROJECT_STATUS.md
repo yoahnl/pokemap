@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-24 (recadrage vision produit + priorites editor / runtime)
+Last updated: 2026-03-25 (renforcement recadrage : tableau de bord phases, lot labels, checklist complete)
 
 ## Vision produit
 
@@ -13,6 +13,16 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 1. **Editeur de contenu de jeu tres riche** — **priorite actuelle**. Permettre a une personne **non developpeuse** de construire: maps, liens entre maps, terrains et surfaces, entites, dialogues (a venir), rencontres (a venir), interactions, donnees standard de gameplay — avec des ecrans et workflows **guides**, pas un simple editeur technique.
 2. **Package Flutter / Flame lecteur de projet** (`map_runtime`) — **prochaine grande etape**. Lire les memes donnees que l editeur et rendre le contenu **directement jouable** avec un maximum de **comportements standards** (deplacement, collisions, warps, dialogues, entites, etc.).
 3. **Couches plus haut niveau** (framework super abstrait, no-code integral) — **volontairement plus tard**. Ce n est **pas** la priorite immediate; l objectif immediat est la **qualite du contenu modelise** et sa **future execution standard**, pas un meta-moteur tout-fait sur la premiere iteration.
+
+### Tableau de bord des phases (etat actuel)
+
+| Phase | Contenu | Etat |
+|-------|---------|------|
+| **1 — Editeur de contenu riche** | Maps, connexions, terrains, collisions, warps, triggers, entites (NPC/signe/objet/spawn), dialogues, rencontres, dresseurs, proprietes de map | **En cours — priorite actuelle** |
+| **2 — Runtime standard** (`map_runtime`) | Lecteur de projet, scene jouable, deplacement/collisions/warps, interactions, dialogues, comportements standards Pokemon-like | **A construire — prochaine grande etape** |
+| **3 — Couches haut niveau** | No-code, framework abstrait, simplification maximale creation jeu | **Volontairement plus tard** |
+
+*Phase 1 avancee: maps/layers/tilesets/terrains/collisions/warps/triggers/entites faits (MVP). Manque encore: dialogues, rencontres, dresseurs, proprietes de map.*
 
 ### Repartition des roles
 
@@ -31,13 +41,55 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 - Les **references metier** (ex. `DialogueRef`) vivent dans `map_core`.
 - Les **adaptateurs moteur** (chargement Yarn, VM, etc.) vivent dans `map_runtime` ou une couche infra — **pas** de dependance sale du domaine vers un runtime concret.
 
-### Lecture du reste du document
+### Structure du document
 
-Les sections **0.x** et **7** conservent l **historique par lots** (decisions et fichiers touches). Elles peuvent mentionner des objectifs ponctuels d une epoque; en cas de tension avec cette section, **c est la Vision produit ci-dessus qui fait foi** pour l orientation globale.
+- **Sections 1–2**: resume et architecture — vue d ensemble stable.
+- **Sections 3–6**: etat des fonctionnalites et tache en cours — reference vivante.
+- **Sections 8–9**: prochaines etapes et decisions d architecture — directive.
+- **Section 7 et lots ci-dessous**: historique technique des lots livres — archive.
+
+> En cas de tension entre un lot historique et la presente section Vision produit, **c est la Vision produit qui fait foi**.
 
 ---
 
-## 0.1. Entites map structurees + DialogueRef (domaine + inspector)
+> **Derniers lots documentés** — detail technique des deux lots les plus recents (historique complet dans **## 7**).
+
+## Lot: Zones gameplay + Tables de rencontres (domaine + editor complet)
+
+Objectif: introduire la séparation propre entre **visuel** (`PathSurfaceKind`), **comportement de terrain** (futur runtime) et **logique de rencontre**; fournir à l'éditeur un système complet de zones rectangulaires sur map et de tables de rencontres réutilisables au niveau projet.
+
+### Modèle (`map_core`)
+
+- `GameplayZoneKind`: `encounter`, `movement`, `hazard`, `transition`, `special`, `custom`.
+- `MovementMode`: `walk`, `surf`, `fly`, `cut`, `strength`, `rockSmash`.
+- `EncounterKind`: `walk`, `surf`, `headbutt`, `oldRod`, `goodRod`, `superRod`, `gift`, `special`.
+- `MapGameplayZone` (freezed + JSON) sur `MapData.gameplayZones`: id, name, kind, area (`MapRect`), `encounterTableId?`, `movementMode?`, priority, properties.
+- `ProjectEncounterEntry` (freezed + JSON): `speciesId`, `minLevel`, `maxLevel`, `weight`.
+- `ProjectEncounterTable` (freezed + JSON) sur `ProjectManifest.encounterTables`: id, name, `encounterKind`, entries, tags.
+- `map_gameplay_zones.dart`: opérations CRUD pures (`find*`, `add*`, `update*`, `move*`, `resize*`, `remove*`) avec sentinelle `_kUnset` pour les champs nullable optionnels.
+- `ProjectValidator`: validation tables (unicité id, entries valides: levels, weight, speciesId).
+- `MapValidator`: validation zones (id non vide, area > 0, propriétés sans clé vide, unicité id).
+
+### Editor (`map_editor`)
+
+- **Architecture**: `GameplayZoneEditingCoordinator` (helpers stateless) + `GameplayZoneEditingService` (orchestration) + 3 use cases map-level (`Add/Update/DeleteGameplayZoneToMapUseCase`) + 6 use cases projet (`Create/Update/DeleteEncounterTableUseCase`, `Add/Update/DeleteEncounterEntryUseCase`).
+- **Providers Riverpod** enregistrés pour tous les use cases et services.
+- **`EditorState`**: `selectedGameplayZoneId` + outil `gameplayZonePlacement`.
+- **`EditorNotifier`**: `placeOrSelectGameplayZoneAt`, `addGameplayZoneAt`, `selectGameplayZone`, `updateSelectedGameplayZone`, `updateGameplayZone`, `deleteSelectedGameplayZone`, `deleteGameplayZone`; `createEncounterTable`, `updateEncounterTable`, `deleteEncounterTable`, `addEncounterEntry`, `updateEncounterEntry`, `deleteEncounterEntry`.
+- **Canvas**: overlay coloré par `GameplayZoneKind` (remplissage + bordure + label) avec sélection visuellement distincte; clic via outil `gameplayZonePlacement`.
+- **`GameplayZonePropertiesPanel`**: liste des zones + éditeur (id, name, kind, area, encounterTableId dropdown, movementMode dropdown, priority) + Save/Delete.
+- **`EncounterTablesPanel`**: liste des tables projet + formulaire création/édition table + édition inline des entrées (species, levels, weight).
+- **`MapInspectorPanel`**: sections "Gameplay Zones" et "Encounter Tables" conditionnelles.
+- **`TopToolbar`**: bouton outil "Gameplay Zone Tool" dans le groupe Gameplay Tools.
+
+### Fichiers touchés dans ce lot
+
+- `map_core`: `enums.dart`, `map_data.dart`, `project_manifest.dart`, `map_gameplay_zones.dart` (nouveau), `validators.dart`, `map_core.dart`.
+- `map_editor`: `editor_tool.dart`, `editor_state.dart`, `gameplay_zone_editing_coordinator.dart` (nouveau), `gameplay_zone_editing_service.dart` (nouveau), `gameplay_zone_use_cases.dart` (nouveau), `encounter_table_use_cases.dart` (nouveau), `use_cases.dart`, `use_case_providers.dart`, `editor_notifier.dart`, `map_canvas.dart`, `gameplay_zone_properties_panel.dart` (nouveau), `encounter_tables_panel.dart` (nouveau), `map_inspector_panel.dart`, `top_toolbar.dart`.
+
+---
+
+## Lot: Entites structurees + DialogueRef (domaine + inspector)
 
 Objectif: sortir les champs gameplay des seules `properties` pour `npc`, `sign`, `item`, `spawn`, preparer les references de dialogue sans coupler `map_core` a Yarn Spinner.
 
@@ -70,7 +122,7 @@ Objectif: sortir les champs gameplay des seules `properties` pour `npc`, `sign`,
 
 ---
 
-## 0. Visuels multi-frames (domaine + JSON)
+## Lot precedent: Visuels multi-frames (domaine + JSON)
 
 Objectif: preparer animations futures (eau, lave, herbes, etc.) sans UI d’animation lourde.
 
@@ -546,23 +598,36 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 
 ### Phase actuelle (alignee vision produit)
 
-**En cours / immediate:** poursuivre l **editeur de contenu riche** en specialisant le metier et en preparant les **schemas consommables par le runtime**:
+**Zones gameplay + tables de rencontres**: lot livré (2026-03-25). `MapGameplayZone` sur map + `ProjectEncounterTable` au niveau projet, éditeur complet (overlay canvas, panels, toolbar, inspector).
 
-- **Entites**: poursuite de la specialisation (`npc`, `sign`, `item`, `spawn`, `custom`) — deja amorcee (payloads typés, `DialogueRef`, inspector contextuel); reste preview visuelle, catalogues, liens gameplay plus fins.
-- **References dialogue / scripts**: `DialogueRef` et champs associes cote entites; a etendre vers une **vraie gestion projet** des fichiers de dialogue (sans coupler `map_core` a Yarn).
-- **Rencontres**: zones, tables, integration terrain / triggers — **a concevoir** dans `map_core` puis UI.
-- **Dresseurs / equipes**: **a concevoir** (donnees + UI + validation).
-- **Preparation du runtime standard**: chaque nouveau bloc metier doit preciser **comment** `map_runtime` le lira et l executera (meme si l implementation arrive apres).
+**Prochaines priorités immédiates:**
 
-### Reference historique (lot deja livre)
+- **Entités**: preview visuelle canvas (sprites/éléments), catalogues objets, affinage gameplay NPC/item/spawn.
+- **Dialogues**: vrai système de gestion projet fichiers Yarn (résolution `DialogueRef` → fichiers relatifs, UI d'assignation, validation runtime).
+- **Dresseurs / équipes**: à concevoir (données + UI + validation).
+- **Préparation du runtime standard**: chaque nouveau bloc métier doit préciser comment `map_runtime` le lira et l'exécutera (même si l'implémentation arrive après).
 
-- Fondation **Map Entities MVP** (pose, selection, trigger vs entity, pipeline map-level, undo/redo) — voir **7**.
+### Référence historique (lots déjà livrés)
+
+- **Zones gameplay + tables de rencontres**: `MapGameplayZone`, `ProjectEncounterTable`, overlay canvas, panels — voir lot ci-dessus.
+- **Entités structurées + DialogueRef**: payloads typés, `DialogueRef`, inspector contextuel — voir lot précédent.
 
 ### Suite directe (hors scope de cette section detaillee)
 
 Voir **8. Prochaines etapes recommandees** (decoupage **editor court terme** / **runtime moyen terme**).
 
 ## 7. Dernieres modifications realisees
+2026-03-25 (zones gameplay + tables de rencontres — domaine + editor complet):
+- `map_core`: nouveaux enums `GameplayZoneKind`/`MovementMode`/`EncounterKind`; modele `MapGameplayZone` sur `MapData`; modeles `ProjectEncounterEntry`/`ProjectEncounterTable` sur `ProjectManifest`; operations CRUD `map_gameplay_zones.dart`; validation `ProjectValidator` et `MapValidator`.
+- `map_editor`: `GameplayZoneEditingCoordinator` + `GameplayZoneEditingService` + 9 use cases (3 map-level + 6 projet); providers Riverpod; `EditorState.selectedGameplayZoneId` + outil `gameplayZonePlacement`; `EditorNotifier` (7 methodes zones + 6 methodes tables); overlay canvas coloré par kind; `GameplayZonePropertiesPanel` + `EncounterTablesPanel`; sections inspector + bouton toolbar.
+
+2026-03-25 (documentation — renforcement recadrage + coherence documentaire):
+- **Tableau de bord des phases** ajoute dans la section Vision produit (etat factuel des 3 phases avec colonnes claires).
+- **Sections lots recents** renommees (`## Lot:` / `## Lot precedent:`) pour ne plus perturber la numerotation principale; note introductive ajoutee.
+- **Section "Structure du document"** remplace "Lecture du reste du document" : plus directive, liste les sections par role.
+- **Checklist enrichie**: ajout des blocs produits manquants (DialogueRef partiel, dialogues, rencontres, dresseurs, proprietes map, items runtime: lecteur projet, scene jouable, deplacement/warps, interactions, dialogues runtime, rencontres, comportement Pokemon-like).
+- **Mini tableau priorites** restructure en deux tableaux distincts (Phase 1 editorial / Phase 2 runtime) avec etat factuel par chantier.
+
 2026-03-24 (documentation — recadrage **Vision produit**):
 - Ajout section **Vision produit** en tete du document (priorites: editeur de contenu riche -> runtime standard -> couches haut niveau plus tard).
 - Reecriture **1. Resume**, enrichissement **2. Architecture**, restructuration **5 / 6 / 8 / 9** et **Mini tableau priorites** pour alignement editor/runtime; conservation de l historique technique existant.
@@ -1732,8 +1797,13 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 - Poser des objets ramassables: fait (MVP generique via entites)
 - Poser des panneaux: fait (MVP generique via entites)
 - Poser des points de spawn: fait (MVP generique via entites)
-- Editer les proprietes des entites: fait (MVP generique)
-- Editer les proprietes des maps: pas fait
+- Editer les proprietes des entites: fait (MVP generique + payloads types par kind + DialogueRef)
+- Lier une entite a un fichier de dialogue (DialogueRef): partiellement fait (modele + inspector; resolution fichier / execution non faits)
+- Gerer une bibliotheque de fichiers de dialogues / scripts projet: pas fait
+- Definir des zones de rencontres sauvages (areas + tables): pas fait
+- Configurer les tables de rencontres (especes, niveaux, taux): pas fait
+- Creer et editer des dresseurs / equipes PNJ: pas fait
+- Editer les proprietes de map (nom affiche, musique, meteo, flags): pas fait
 - Editer les proprietes globales du projet: partiellement fait
 - Avoir un inspector de proprietes: partiellement fait (inspector map contextuel + sections pliables; inspector complet multi-systemes encore a pousser)
 - Avoir un explorateur de projet: fait
@@ -1742,7 +1812,13 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 - Supporter l undo/redo: fait (map active)
 - Avoir une sauvegarde propre avec etat dirty: partiellement fait
 - Pouvoir previsualiser le rendu in-game: pas fait
-- Preparer un runtime compatible Flame: partiellement fait
+- Charger un projet dans le runtime et afficher les maps: pas fait
+- Avoir une boucle d exploration jouable (deplacement / collisions / warps): pas fait
+- Interagir avec les entites via le runtime (PNJ / panneaux / objets): pas fait
+- Executer les dialogues via le runtime (resolution DialogueRef / Yarn): pas fait
+- Declencher des rencontres sauvages selon les zones terrain: pas fait
+- Avoir un comportement standard Pokemon-like jouable out-of-the-box: pas fait
+- Preparer un runtime compatible Flame: partiellement fait (base Flame en place; interpretation donnees non faite)
 - Avoir un format JSON propre et stable: fait
 - Valider les donnees metier: fait
 - Verifier les erreurs de coherence: partiellement fait
@@ -1760,13 +1836,35 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 
 ## Mini tableau priorites (etat)
 
-*(Etat factuel des chantiers outil; l ordre strategique global est dans **Vision produit** et **8**.)*
+*(Etat factuel des chantiers outil; l ordre strategique global est dans **Vision produit** et **## 8**.)*
 
-- Vision **editeur de contenu riche** puis **runtime standard**: en cours de realisation (voir sections 1, 6, 8)
-- Ghost preview + erase: fait
-- Systeme de brush: fait
-- Layers: fait (base MVP), evolutions avancees non faites
-- Terrains/Sols: fait (MVP + path auto-connecte + terrain editor UX + presets terrains/paths persistants), comportements gameplay/runtime non faits
-- Collisions: partiellement fait (MVP bool paint/erase/overlay/preview)
-- Undo/redo: fait (map active)
-- Warps/triggers/entities: partiellement fait (warps MVP faits, triggers MVP faits, entities MVP faites; editions specialisees/runtime non faits)
+### Phase 1 — Editeur de contenu (priorite actuelle)
+
+| Chantier | Etat |
+|----------|------|
+| Maps / groupes / connexions | fait |
+| Layers (tile/terrain/path/collision/object) | fait (MVP) |
+| Tilesets + bibliotheque hierarchique | fait |
+| Elements + categories | fait |
+| Visuels multi-frames | fait (domaine + JSON; UI animation non faite) |
+| Terrains + paths autotile | fait (MVP + presets visuels) |
+| Collisions | partiellement fait (MVP bool) |
+| Warps | partiellement fait (MVP + retour assiste; lien bidirectionnel non fait) |
+| Triggers | partiellement fait (MVP generique) |
+| Entites (NPC / signe / objet / spawn) | partiellement fait (payloads types + DialogueRef; preview canvas / runtime non faits) |
+| Dialogues / scripts | pas fait |
+| Rencontres sauvages | pas fait |
+| Dresseurs / equipes | pas fait |
+| Proprietes de map | pas fait |
+
+### Phase 2 — Runtime standard (prochaine grande etape)
+
+| Chantier | Etat |
+|----------|------|
+| Lecteur de projet (manifest + maps + assets) | pas fait |
+| Scene de jeu (grille + camera + layers) | pas fait |
+| Deplacement / collisions / warps | pas fait |
+| Interactions entites | pas fait |
+| Dialogues (resolution DialogueRef) | pas fait |
+| Rencontres sauvages | pas fait |
+| Comportements standard Pokemon-like jouable | pas fait |

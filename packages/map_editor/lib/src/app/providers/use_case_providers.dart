@@ -4,6 +4,8 @@ import '../../application/services/editor_map_session_coordinator.dart';
 import '../../application/services/editor_map_mutation_coordinator.dart';
 import '../../application/services/entity_editing_coordinator.dart';
 import '../../application/services/entity_editing_service.dart';
+import '../../application/services/gameplay_zone_editing_coordinator.dart';
+import '../../application/services/gameplay_zone_editing_service.dart';
 import '../../application/services/map_history_coordinator.dart';
 import '../../application/services/map_connection_editing_service.dart';
 import '../../application/services/path_autotile_resolver.dart';
@@ -16,7 +18,9 @@ import '../../application/services/trigger_editing_service.dart';
 import '../../application/services/warp_editing_coordinator.dart';
 import '../../application/services/warp_editing_service.dart';
 import '../../application/use_cases/collision_use_cases.dart';
+import '../../application/use_cases/encounter_table_use_cases.dart';
 import '../../application/use_cases/entity_use_cases.dart';
+import '../../application/use_cases/gameplay_zone_use_cases.dart';
 import '../../application/use_cases/layer_use_cases.dart';
 import '../../application/use_cases/map_connection_use_cases.dart';
 import '../../application/use_cases/map_use_cases.dart';
@@ -696,4 +700,86 @@ MoveMapToGroupUseCase moveMapToGroupUseCase(MoveMapToGroupUseCaseRef ref) {
 @riverpod
 RenameGroupUseCase renameGroupUseCase(RenameGroupUseCaseRef ref) {
   return RenameGroupUseCase(ref.watch(projectRepositoryProvider));
+}
+
+// ---------------------------------------------------------------------------
+// Gameplay zones
+// ---------------------------------------------------------------------------
+
+@riverpod
+GameplayZoneEditingCoordinator gameplayZoneEditingCoordinator(
+    GameplayZoneEditingCoordinatorRef ref) {
+  return const GameplayZoneEditingCoordinator();
+}
+
+@riverpod
+AddGameplayZoneToMapUseCase addGameplayZoneToMapUseCase(
+    AddGameplayZoneToMapUseCaseRef ref) {
+  return AddGameplayZoneToMapUseCase();
+}
+
+@riverpod
+UpdateGameplayZoneOnMapUseCase updateGameplayZoneOnMapUseCase(
+    UpdateGameplayZoneOnMapUseCaseRef ref) {
+  return UpdateGameplayZoneOnMapUseCase();
+}
+
+@riverpod
+DeleteGameplayZoneFromMapUseCase deleteGameplayZoneFromMapUseCase(
+    DeleteGameplayZoneFromMapUseCaseRef ref) {
+  return DeleteGameplayZoneFromMapUseCase();
+}
+
+@riverpod
+GameplayZoneEditingService gameplayZoneEditingService(
+    GameplayZoneEditingServiceRef ref) {
+  return GameplayZoneEditingService(
+    addGameplayZoneToMapUseCase:
+        ref.watch(addGameplayZoneToMapUseCaseProvider),
+    updateGameplayZoneOnMapUseCase:
+        ref.watch(updateGameplayZoneOnMapUseCaseProvider),
+    deleteGameplayZoneFromMapUseCase:
+        ref.watch(deleteGameplayZoneFromMapUseCaseProvider),
+    coordinator: ref.watch(gameplayZoneEditingCoordinatorProvider),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Encounter tables
+// ---------------------------------------------------------------------------
+
+@riverpod
+CreateEncounterTableUseCase createEncounterTableUseCase(
+    CreateEncounterTableUseCaseRef ref) {
+  return CreateEncounterTableUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateEncounterTableUseCase updateEncounterTableUseCase(
+    UpdateEncounterTableUseCaseRef ref) {
+  return UpdateEncounterTableUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteEncounterTableUseCase deleteEncounterTableUseCase(
+    DeleteEncounterTableUseCaseRef ref) {
+  return DeleteEncounterTableUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+AddEncounterEntryUseCase addEncounterEntryUseCase(
+    AddEncounterEntryUseCaseRef ref) {
+  return AddEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateEncounterEntryUseCase updateEncounterEntryUseCase(
+    UpdateEncounterEntryUseCaseRef ref) {
+  return UpdateEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteEncounterEntryUseCase deleteEncounterEntryUseCase(
+    DeleteEncounterEntryUseCaseRef ref) {
+  return DeleteEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
 }

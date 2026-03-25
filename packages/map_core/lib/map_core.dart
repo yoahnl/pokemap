@@ -19,6 +19,7 @@ export 'src/operations/map_connections.dart';
 export 'src/operations/map_entities.dart';
 export 'src/operations/map_triggers.dart';
 export 'src/operations/map_warps.dart';
+export 'src/operations/map_gameplay_zones.dart';
 export 'src/operations/tileset_library_tree.dart';
 export 'src/validation/validators.dart';
 export 'src/exceptions/map_exceptions.dart';

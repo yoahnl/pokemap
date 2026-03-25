@@ -6,6 +6,7 @@ enum EditorToolType {
   entityPlacement,
   warpPlacement,
   triggerPlacement,
+  gameplayZonePlacement,
   eraser,
 }
 

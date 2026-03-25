@@ -34,6 +34,10 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => MapTrigger.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      gameplayZones: (json['gameplayZones'] as List<dynamic>?)
+              ?.map((e) => MapGameplayZone.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       properties: json['properties'] as Map<String, dynamic>? ?? const {},
     );
 
@@ -49,11 +53,60 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'connections': instance.connections.map((e) => e.toJson()).toList(),
       'warps': instance.warps.map((e) => e.toJson()).toList(),
       'triggers': instance.triggers.map((e) => e.toJson()).toList(),
+      'gameplayZones': instance.gameplayZones.map((e) => e.toJson()).toList(),
       'properties': instance.properties,
     };
 
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
+};
+
+_$MapGameplayZoneImpl _$$MapGameplayZoneImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapGameplayZoneImpl(
+      id: json['id'] as String,
+      name: json['name'] as String? ?? '',
+      kind: $enumDecode(_$GameplayZoneKindEnumMap, json['kind']),
+      area: MapRect.fromJson(json['area'] as Map<String, dynamic>),
+      encounterTableId: json['encounterTableId'] as String?,
+      movementMode:
+          $enumDecodeNullable(_$MovementModeEnumMap, json['movementMode']),
+      priority: (json['priority'] as num?)?.toInt() ?? 0,
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const {},
+    );
+
+Map<String, dynamic> _$$MapGameplayZoneImplToJson(
+        _$MapGameplayZoneImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'kind': _$GameplayZoneKindEnumMap[instance.kind]!,
+      'area': instance.area.toJson(),
+      'encounterTableId': instance.encounterTableId,
+      'movementMode': _$MovementModeEnumMap[instance.movementMode],
+      'priority': instance.priority,
+      'properties': instance.properties,
+    };
+
+const _$GameplayZoneKindEnumMap = {
+  GameplayZoneKind.encounter: 'encounter',
+  GameplayZoneKind.movement: 'movement',
+  GameplayZoneKind.hazard: 'hazard',
+  GameplayZoneKind.transition: 'transition',
+  GameplayZoneKind.special: 'special',
+  GameplayZoneKind.custom: 'custom',
+};
+
+const _$MovementModeEnumMap = {
+  MovementMode.walk: 'walk',
+  MovementMode.surf: 'surf',
+  MovementMode.fly: 'fly',
+  MovementMode.cut: 'cut',
+  MovementMode.strength: 'strength',
+  MovementMode.rockSmash: 'rock_smash',
 };
 
 _$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>

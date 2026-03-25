@@ -67,6 +67,7 @@ class EditorState with _$EditorState {
     String? selectedEntityId,
     String? selectedWarpId,
     String? selectedTriggerId,
+    String? selectedGameplayZoneId,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
     PaletteCategory? paletteCategoryFilter,

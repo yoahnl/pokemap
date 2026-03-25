@@ -14,6 +14,7 @@ import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
 import '../../../application/services/entity_editing_service.dart';
+import '../../../application/services/gameplay_zone_editing_service.dart';
 import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/path_layer_editing_coordinator.dart';
@@ -55,6 +56,8 @@ class EditorNotifier extends _$EditorNotifier {
       ref.read(entityEditingServiceProvider);
   TriggerEditingService get _triggerEditingService =>
       ref.read(triggerEditingServiceProvider);
+  GameplayZoneEditingService get _gameplayZoneEditingService =>
+      ref.read(gameplayZoneEditingServiceProvider);
   MapConnectionEditingService get _mapConnectionEditingService =>
       ref.read(mapConnectionEditingServiceProvider);
   TerrainPaintingCoordinator get _terrainPaintingCoordinator =>
@@ -2425,6 +2428,149 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Gameplay zones
+  // ---------------------------------------------------------------------------
+
+  MapGameplayZone? getSelectedGameplayZone() {
+    return _gameplayZoneEditingService.findSelectedZone(
+      state.activeMap,
+      state.selectedGameplayZoneId,
+    );
+  }
+
+  void placeOrSelectGameplayZoneAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final existing = _gameplayZoneEditingService.findZoneAtPos(map, pos);
+    if (existing != null) {
+      selectGameplayZone(existing.id);
+      return;
+    }
+    addGameplayZoneAt(pos);
+  }
+
+  void addGameplayZoneAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final result = _gameplayZoneEditingService.addZoneAt(map, pos);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Zone "${result.createdZone.id}" created',
+      );
+      state = state.copyWith(selectedGameplayZoneId: result.createdZone.id);
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create zone: $e');
+    }
+  }
+
+  void selectGameplayZone(String? zoneId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    if (zoneId == null) {
+      state = state.copyWith(selectedGameplayZoneId: null);
+      return;
+    }
+    final zone = _gameplayZoneEditingService.findSelectedZone(map, zoneId);
+    if (zone == null) {
+      state = state.copyWith(errorMessage: 'Zone not found: $zoneId');
+      return;
+    }
+    state = state.copyWith(selectedGameplayZoneId: zone.id);
+  }
+
+  void updateSelectedGameplayZone({
+    String? id,
+    String? name,
+    GameplayZoneKind? kind,
+    MapRect? area,
+    Object? encounterTableId,
+    Object? movementMode,
+    int? priority,
+    Map<String, String>? properties,
+  }) {
+    final selectedZoneId = state.selectedGameplayZoneId;
+    if (selectedZoneId == null) return;
+    updateGameplayZone(
+      zoneId: selectedZoneId,
+      id: id,
+      name: name,
+      kind: kind,
+      area: area,
+      encounterTableId: encounterTableId,
+      movementMode: movementMode,
+      priority: priority,
+      properties: properties,
+    );
+  }
+
+  void updateGameplayZone({
+    required String zoneId,
+    String? id,
+    String? name,
+    GameplayZoneKind? kind,
+    MapRect? area,
+    Object? encounterTableId,
+    Object? movementMode,
+    int? priority,
+    Map<String, String>? properties,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final result = _gameplayZoneEditingService.updateZone(
+        map,
+        zoneId: zoneId,
+        id: id,
+        name: name,
+        kind: kind,
+        area: area,
+        encounterTableId: encounterTableId,
+        movementMode: movementMode,
+        priority: priority,
+        properties: properties,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Zone updated',
+      );
+      state = state.copyWith(selectedGameplayZoneId: result.selectedZoneId);
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update zone: $e');
+    }
+  }
+
+  void deleteSelectedGameplayZone() {
+    final selectedZoneId = state.selectedGameplayZoneId;
+    if (selectedZoneId == null) return;
+    deleteGameplayZone(selectedZoneId);
+  }
+
+  void deleteGameplayZone(String zoneId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated =
+          _gameplayZoneEditingService.deleteZone(map, zoneId: zoneId);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Zone deleted',
+      );
+      if (state.selectedGameplayZoneId == zoneId) {
+        state = state.copyWith(selectedGameplayZoneId: null);
+      }
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete zone: $e');
+    }
+  }
+
   void placeOrSelectWarpAt(GridPos pos) {
     final map = state.activeMap;
     if (map == null) return;
@@ -4314,6 +4460,179 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Encounter tables
+  // ---------------------------------------------------------------------------
+
+  Future<void> createEncounterTable({
+    required String name,
+    required EncounterKind encounterKind,
+    List<String> tags = const [],
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createEncounterTableUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        encounterKind: encounterKind,
+        tags: tags,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Encounter table created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to create encounter table: $e');
+    }
+  }
+
+  Future<void> updateEncounterTable({
+    required String tableId,
+    String? name,
+    EncounterKind? encounterKind,
+    List<String>? tags,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateEncounterTableUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tableId: tableId,
+        name: name,
+        encounterKind: encounterKind,
+        tags: tags,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Encounter table updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to update encounter table: $e');
+    }
+  }
+
+  Future<void> deleteEncounterTable(String tableId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteEncounterTableUseCaseProvider);
+      final updated =
+          await useCase.execute(fs, project, tableId: tableId);
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Encounter table deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to delete encounter table: $e');
+    }
+  }
+
+  Future<void> addEncounterEntry({
+    required String tableId,
+    required String speciesId,
+    required int minLevel,
+    required int maxLevel,
+    int weight = 1,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(addEncounterEntryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tableId: tableId,
+        speciesId: speciesId,
+        minLevel: minLevel,
+        maxLevel: maxLevel,
+        weight: weight,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Encounter entry added',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to add encounter entry: $e');
+    }
+  }
+
+  Future<void> updateEncounterEntry({
+    required String tableId,
+    required int entryIndex,
+    String? speciesId,
+    int? minLevel,
+    int? maxLevel,
+    int? weight,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateEncounterEntryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tableId: tableId,
+        entryIndex: entryIndex,
+        speciesId: speciesId,
+        minLevel: minLevel,
+        maxLevel: maxLevel,
+        weight: weight,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Encounter entry updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to update encounter entry: $e');
+    }
+  }
+
+  Future<void> deleteEncounterEntry({
+    required String tableId,
+    required int entryIndex,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteEncounterEntryUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tableId: tableId,
+        entryIndex: entryIndex,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Encounter entry deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to delete encounter entry: $e');
+    }
+  }
+
   void activateFirstTerrainLayer({
     bool createIfMissing = false,
   }) {
@@ -4427,6 +4746,7 @@ class EditorNotifier extends _$EditorNotifier {
       case EditorToolType.entityPlacement:
       case EditorToolType.triggerPlacement:
       case EditorToolType.warpPlacement:
+      case EditorToolType.gameplayZonePlacement:
         return true;
       case EditorToolType.tilePaint:
         return layer is TileLayer;

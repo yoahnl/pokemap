@@ -57,6 +57,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   (e) => ProjectPathPreset.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      encounterTables: (json['encounterTables'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectEncounterTable.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -81,6 +86,8 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'pathCategories': instance.pathCategories.map((e) => e.toJson()).toList(),
       'terrainPresets': instance.terrainPresets.map((e) => e.toJson()).toList(),
       'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
+      'encounterTables':
+          instance.encounterTables.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
     };
@@ -542,3 +549,58 @@ Map<String, dynamic> _$$ProjectPresetCategoryImplToJson(
       'parentCategoryId': instance.parentCategoryId,
       'sortOrder': instance.sortOrder,
     };
+
+_$ProjectEncounterEntryImpl _$$ProjectEncounterEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectEncounterEntryImpl(
+      speciesId: json['speciesId'] as String,
+      minLevel: (json['minLevel'] as num).toInt(),
+      maxLevel: (json['maxLevel'] as num).toInt(),
+      weight: (json['weight'] as num?)?.toInt() ?? 1,
+    );
+
+Map<String, dynamic> _$$ProjectEncounterEntryImplToJson(
+        _$ProjectEncounterEntryImpl instance) =>
+    <String, dynamic>{
+      'speciesId': instance.speciesId,
+      'minLevel': instance.minLevel,
+      'maxLevel': instance.maxLevel,
+      'weight': instance.weight,
+    };
+
+_$ProjectEncounterTableImpl _$$ProjectEncounterTableImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectEncounterTableImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      encounterKind: $enumDecode(_$EncounterKindEnumMap, json['encounterKind']),
+      entries: (json['entries'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectEncounterEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+    );
+
+Map<String, dynamic> _$$ProjectEncounterTableImplToJson(
+        _$ProjectEncounterTableImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
+      'entries': instance.entries.map((e) => e.toJson()).toList(),
+      'tags': instance.tags,
+    };
+
+const _$EncounterKindEnumMap = {
+  EncounterKind.walk: 'walk',
+  EncounterKind.surf: 'surf',
+  EncounterKind.headbutt: 'headbutt',
+  EncounterKind.oldRod: 'old_rod',
+  EncounterKind.goodRod: 'good_rod',
+  EncounterKind.superRod: 'super_rod',
+  EncounterKind.gift: 'gift',
+  EncounterKind.special: 'special',
+};
