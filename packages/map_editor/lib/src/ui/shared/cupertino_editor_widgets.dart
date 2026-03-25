@@ -30,17 +30,17 @@ abstract final class EditorChrome {
   /// Surface Library — ambre / terre chaude.
   static const Color islandWarmTint = Color(0xFF6B5438);
 
-  // --- Accents inspecteur : **chauds & joyeux** (miel, pêche, soleil — pas froid) ---
-  static const Color inspectorJoyHoney = Color(0xFFFFD28A);
-  static const Color inspectorJoyApricot = Color(0xFFFFAC7A);
-  static const Color inspectorJoyBlue = Color(0xFF9EC8FF);
-  static const Color inspectorJoyLilac = Color(0xFFE8C4F8);
-  static const Color inspectorJoyMint = Color(0xFF94F0C0);
-  static const Color inspectorJoyAmber = Color(0xFFFFD078);
-  static const Color inspectorJoyCyan = Color(0xFF6AE8DC);
-  static const Color inspectorJoyPlum = Color(0xFFDDB0F5);
-  static const Color inspectorJoyCoral = Color(0xFFFFB09A);
-  static const Color inspectorJoyOrchid = Color(0xFFFFB8E0);
+  // --- Accents inspecteur : **chauds & acides** (saturation forte, pas pastel) ---
+  static const Color inspectorJoyHoney = Color(0xFFFFC400);
+  static const Color inspectorJoyApricot = Color(0xFFFF6B2C);
+  static const Color inspectorJoyBlue = Color(0xFFFF9500);
+  static const Color inspectorJoyLilac = Color(0xFFFF3D9A);
+  static const Color inspectorJoyMint = Color(0xFFC8FF2E);
+  static const Color inspectorJoyAmber = Color(0xFFFFB000);
+  static const Color inspectorJoyCyan = Color(0xFF00E8D4);
+  static const Color inspectorJoyPlum = Color(0xFFD930FF);
+  static const Color inspectorJoyCoral = Color(0xFFFF4A2E);
+  static const Color inspectorJoyOrchid = Color(0xFFFF1A8C);
 
   // --- Tokens de structure (seuls fonds d’architecture) ---
   static Color appBackground(BuildContext context) =>
@@ -227,6 +227,31 @@ abstract final class EditorChrome {
         color: Color(0x0C000000),
         blurRadius: 12,
         offset: Offset(0, 5),
+      ),
+    ];
+  }
+
+  /// Tuiles inspecteur : relief **net**, sans halo coloré ni gros blur.
+  static List<BoxShadow> inspectorTileHardShadows(BuildContext context) {
+    if (_isDark(context)) {
+      return const [
+        BoxShadow(
+          color: Color(0x72000000),
+          blurRadius: 0,
+          offset: Offset(0, 2),
+        ),
+        BoxShadow(
+          color: Color(0x28000000),
+          blurRadius: 3,
+          offset: Offset(0, 3),
+        ),
+      ];
+    }
+    return const [
+      BoxShadow(
+        color: Color(0x1A000000),
+        blurRadius: 4,
+        offset: Offset(0, 2),
       ),
     ];
   }

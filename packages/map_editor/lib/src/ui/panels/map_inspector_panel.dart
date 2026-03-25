@@ -341,21 +341,16 @@ class _InspectorOverviewCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color.lerp(hi, accentA, 0.32)!,
-            Color.lerp(hi, accentB, 0.22)!,
-            Color.lerp(lo, accentB, 0.2)!,
+            Color.lerp(hi, accentA, 0.44)!,
+            Color.lerp(lo, accentB, 0.38)!,
           ],
-          stops: const [0.0, 0.42, 1.0],
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          ...EditorChrome.sectionCardShadows(context),
-          BoxShadow(
-            color: EditorChrome.inspectorJoyApricot.withValues(alpha: 0.14),
-            blurRadius: 20,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        border: Border.all(
+          color: Color.lerp(accentA, accentB, 0.5)!.withValues(alpha: 0.75),
+          width: 1,
+        ),
+        boxShadow: EditorChrome.inspectorTileHardShadows(context),
       ),
       child: Row(
         children: [
@@ -367,23 +362,15 @@ class _InspectorOverviewCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color.lerp(const Color(0xFFFFF8F0), accentA, 0.62)!,
-                  Color.lerp(accentB, const Color(0xFF6A3828), 0.22)!,
+                  Color.lerp(CupertinoColors.white, accentA, 0.78)!,
+                  Color.lerp(accentB, const Color(0xFF1A0804), 0.35)!,
                 ],
               ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: accentA.withValues(alpha: 0.45),
-                  blurRadius: 14,
-                  offset: const Offset(0, 3),
-                ),
-                BoxShadow(
-                  color: accentB.withValues(alpha: 0.25),
-                  blurRadius: 18,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: accentA.withValues(alpha: 0.9),
+                width: 1.25,
+              ),
             ),
             alignment: Alignment.center,
             child: const MacosIcon(

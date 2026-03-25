@@ -27,9 +27,8 @@ class InspectorSectionCard extends StatelessWidget {
   final String? badgeText;
   final Color accentColor;
 
-  /// Blanc cassé chaud pour les pastilles d’icônes.
-  static const Color _iconWellHi = Color(0xFFFFF4EB);
-  static const Color _warmLift = Color(0xFFFFE8CC);
+  static const Color _iconHi = Color(0xFFFFFFFF);
+  static const Color _iconLo = Color(0xFF120808);
 
   @override
   Widget build(BuildContext context) {
@@ -40,20 +39,17 @@ class InspectorSectionCard extends StatelessWidget {
     final baseHi = EditorChrome.islandFillElevated(context);
     final baseLo = EditorChrome.islandFill(context);
 
-    final fillTop = Color.lerp(baseHi, accentColor, 0.34)!;
-    final fillMid = Color.lerp(
-      Color.lerp(baseHi, accentColor, 0.24)!,
-      _warmLift,
-      0.14,
-    )!;
-    final fillBottom = Color.lerp(baseLo, accentColor, 0.15)!;
+    final fillTop = Color.lerp(baseHi, accentColor, 0.46)!;
+    final fillBottom = Color.lerp(baseLo, accentColor, 0.32)!;
 
-    final iconWellTop = Color.lerp(_iconWellHi, accentColor, 0.78)!;
-    final iconWellBottom =
-        Color.lerp(accentColor, const Color(0xFF4A2820), 0.38)!;
+    final iconTop = Color.lerp(_iconHi, accentColor, 0.88)!;
+    final iconBottom = Color.lerp(accentColor, _iconLo, 0.42)!;
 
-    final subtitleTinted =
-        Color.lerp(subtle, accentColor, 0.32)!.withValues(alpha: 0.96);
+    final subtitleTinted = Color.lerp(subtle, accentColor, 0.45)!;
+
+    final iconOnAccent = _luminance(accentColor) > 0.62
+        ? const Color(0xFF1A0A08)
+        : CupertinoColors.white;
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 180),
@@ -66,25 +62,15 @@ class InspectorSectionCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               fillTop,
-              fillMid,
               fillBottom,
             ],
-            stops: const [0.0, 0.48, 1.0],
           ),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            ...EditorChrome.sectionCardShadows(context),
-            BoxShadow(
-              color: EditorChrome.inspectorJoyApricot.withValues(alpha: 0.12),
-              blurRadius: 22,
-              offset: const Offset(0, 5),
-            ),
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.2),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: accentColor.withValues(alpha: 0.65),
+            width: 1,
+          ),
+          boxShadow: EditorChrome.inspectorTileHardShadows(context),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -103,24 +89,21 @@ class InspectorSectionCard extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          iconWellTop,
-                          iconWellBottom,
+                          iconTop,
+                          iconBottom,
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: accentColor.withValues(alpha: 0.45),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.85),
+                        width: 1.25,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: MacosIcon(
                       icon,
                       size: 19,
-                      color: CupertinoColors.white,
+                      color: iconOnAccent,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -161,26 +144,12 @@ class InspectorSectionCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color.lerp(accentColor, CupertinoColors.white, 0.5)!,
-                            Color.lerp(
-                              accentColor,
-                              const Color(0xFF5A3028),
-                              0.18,
-                            )!,
-                          ],
-                        ),
+                        color: Color.lerp(accentColor, _iconLo, 0.28)!,
                         borderRadius: BorderRadius.circular(999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: accentColor.withValues(alpha: 0.35),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.9),
+                          width: 1,
+                        ),
                       ),
                       child: Text(
                         badgeText,
@@ -199,7 +168,7 @@ class InspectorSectionCard extends StatelessWidget {
                         ? CupertinoIcons.chevron_up
                         : CupertinoIcons.chevron_down,
                     size: 18,
-                    color: Color.lerp(subtle, accentColor, 0.35)!,
+                    color: subtitleTinted,
                   ),
                 ],
               ),
@@ -216,5 +185,13 @@ class InspectorSectionCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Luminance relative 0–1 (sRGB), pour choisir icône claire ou foncée.
+  static double _luminance(Color c) {
+    final r = c.r;
+    final g = c.g;
+    final b = c.b;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 }
