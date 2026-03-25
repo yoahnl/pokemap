@@ -11,10 +11,30 @@ import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
-/// Source du dialogue sur une entité NPC / panneau (registre projet vs fichier explicite).
+/// Source du dialogue sur une entité NPC / panneau (registre projet vs ancien chemin fichier).
 enum _DialogueRefSource { none, manifest, legacy }
 
-typedef _ManifestDlgPick = ({String branch, String dialogueId});
+const _kDialogueNoneMenuId = '__dialogue_none__';
+
+String _normalizeDialogueRelPath(String raw) {
+  return raw.trim().replaceAll(r'\', '/');
+}
+
+ProjectDialogueEntry? _dialogueEntryForLegacyPath(
+  List<ProjectDialogueEntry> entries,
+  String scriptPathRelative,
+) {
+  final norm = _normalizeDialogueRelPath(scriptPathRelative);
+  if (norm.isEmpty) {
+    return null;
+  }
+  for (final e in entries) {
+    if (_normalizeDialogueRelPath(e.relativePath) == norm) {
+      return e;
+    }
+  }
+  return null;
+}
 
 class EntityPropertiesPanel extends ConsumerStatefulWidget {
   const EntityPropertiesPanel({
@@ -99,7 +119,7 @@ class _EntityPropertiesPanelState
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
     final selectedEntity = notifier.getSelectedEntity();
-    _syncControllers(selectedEntity);
+    _syncControllers(selectedEntity, state.project);
 
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
     final accent = EditorChrome.activeAccent(context);
@@ -473,161 +493,129 @@ class _EntityPropertiesPanelState
     );
   }
 
-  String _labelManifestDialoguePick(
-    _ManifestDlgPick p,
+  List<ProjectDialogueEntry> _sortedDialogueEntries(
     List<ProjectDialogueEntry> entries,
   ) {
-    switch (p.branch) {
-      case 'none':
-        return _l('Aucun dialogue', 'No dialogue');
-      case 'legacy':
-        return _l(
-          'Fichier personnalisé (avancé)',
-          'Custom file (advanced)',
-        );
-      default:
-        for (final e in entries) {
-          if (e.id == p.dialogueId) {
-            return e.name;
-          }
-        }
-        return '${_l('Dialogue inconnu', 'Unknown dialogue')} (${p.dialogueId})';
-    }
+    final sorted = List<ProjectDialogueEntry>.of(entries);
+    sorted.sort((a, b) {
+      final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      if (byName != 0) {
+        return byName;
+      }
+      return a.id.compareTo(b.id);
+    });
+    return sorted;
   }
 
-  Future<void> _openManifestDialoguePicker({
-    required BuildContext context,
-    required List<ProjectDialogueEntry> entries,
-    required bool forNpc,
-  }) async {
-    final picks = <_ManifestDlgPick>[
-      (branch: 'none', dialogueId: ''),
-      ...entries.map((e) => (branch: 'manifest', dialogueId: e.id)),
-      (branch: 'legacy', dialogueId: ''),
+  List<String> _dialogueDropdownIds(
+    List<ProjectDialogueEntry> sorted,
+    String currentId,
+  ) {
+    final ids = <String>[
+      _kDialogueNoneMenuId,
+      ...sorted.map((e) => e.id),
     ];
-    final picked = await showCupertinoListPicker<_ManifestDlgPick>(
-      context: context,
-      title: _l('Dialogue du projet', 'Project dialogue'),
-      items: picks,
-      labelOf: (p) => _labelManifestDialoguePick(p, entries),
-    );
-    if (!context.mounted || picked == null) {
-      return;
+    final c = currentId.trim();
+    if (c.isNotEmpty && !ids.contains(c)) {
+      ids.add(c);
     }
+    return ids;
+  }
+
+  String _dialogueDropdownValueLabel(
+    List<ProjectDialogueEntry> sorted,
+    String menuId,
+  ) {
+    if (menuId == _kDialogueNoneMenuId) {
+      return _l('Aucun script', 'No script');
+    }
+    for (final e in sorted) {
+      if (e.id == menuId) {
+        return e.name;
+      }
+    }
+    return '$menuId (${_l('absent du projet', 'missing from project')})';
+  }
+
+  String _npcDialogueSelectedMenuId() {
+    if (_npcDialogueSource == _DialogueRefSource.none) {
+      return _kDialogueNoneMenuId;
+    }
+    if (_npcDialogueSource == _DialogueRefSource.legacy) {
+      return _kDialogueNoneMenuId;
+    }
+    final id = _npcDialogueId.text.trim();
+    return id.isEmpty ? _kDialogueNoneMenuId : id;
+  }
+
+  String _signDialogueSelectedMenuId() {
+    if (_signDialogueSource == _DialogueRefSource.none) {
+      return _kDialogueNoneMenuId;
+    }
+    if (_signDialogueSource == _DialogueRefSource.legacy) {
+      return _kDialogueNoneMenuId;
+    }
+    final id = _signDialogueId.text.trim();
+    return id.isEmpty ? _kDialogueNoneMenuId : id;
+  }
+
+  void _onDialogueMenuSelected({
+    required bool forNpc,
+    required String menuId,
+  }) {
     setState(() {
       if (forNpc) {
-        switch (picked.branch) {
-          case 'none':
-            _npcDialogueSource = _DialogueRefSource.none;
-            _npcDialogueId.text = '';
-            _npcScriptPath.text = '';
-          case 'legacy':
-            _npcDialogueSource = _DialogueRefSource.legacy;
-          case 'manifest':
-            _npcDialogueSource = _DialogueRefSource.manifest;
-            _npcDialogueId.text = picked.dialogueId;
-            _npcScriptPath.text = '';
+        if (menuId == _kDialogueNoneMenuId) {
+          _npcDialogueSource = _DialogueRefSource.none;
+          _npcDialogueId.text = '';
+          _npcScriptPath.text = '';
+        } else {
+          _npcDialogueSource = _DialogueRefSource.manifest;
+          _npcDialogueId.text = menuId;
+          _npcScriptPath.text = '';
         }
       } else {
-        switch (picked.branch) {
-          case 'none':
-            _signDialogueSource = _DialogueRefSource.none;
-            _signDialogueId.text = '';
-            _signScriptPath.text = '';
-          case 'legacy':
-            _signDialogueSource = _DialogueRefSource.legacy;
-          case 'manifest':
-            _signDialogueSource = _DialogueRefSource.manifest;
-            _signDialogueId.text = picked.dialogueId;
-            _signScriptPath.text = '';
+        if (menuId == _kDialogueNoneMenuId) {
+          _signDialogueSource = _DialogueRefSource.none;
+          _signDialogueId.text = '';
+          _signScriptPath.text = '';
+        } else {
+          _signDialogueSource = _DialogueRefSource.manifest;
+          _signDialogueId.text = menuId;
+          _signScriptPath.text = '';
         }
       }
     });
-  }
-
-  String _npcDialoguePickerSummary(List<ProjectDialogueEntry> entries) {
-    switch (_npcDialogueSource) {
-      case _DialogueRefSource.none:
-        return _l('Aucun dialogue', 'No dialogue');
-      case _DialogueRefSource.legacy:
-        final p = _npcScriptPath.text.trim();
-        if (p.isEmpty) {
-          return _l(
-            'Fichier personnalisé (renseigner ID + chemin)',
-            'Custom file (enter ID + path)',
-          );
-        }
-        return '${_l('Fichier', 'File')}: $p';
-      case _DialogueRefSource.manifest:
-        final id = _npcDialogueId.text.trim();
-        if (id.isEmpty) {
-          return _l('Choisir un dialogue…', 'Choose a dialogue…');
-        }
-        for (final e in entries) {
-          if (e.id == id) {
-            return e.name;
-          }
-        }
-        return '${_l('Absent du registre', 'Not in registry')}: $id';
-    }
-  }
-
-  String _signDialoguePickerSummary(List<ProjectDialogueEntry> entries) {
-    switch (_signDialogueSource) {
-      case _DialogueRefSource.none:
-        return _l('Aucun dialogue', 'No dialogue');
-      case _DialogueRefSource.legacy:
-        final p = _signScriptPath.text.trim();
-        if (p.isEmpty) {
-          return _l(
-            'Fichier personnalisé (renseigner ID + chemin)',
-            'Custom file (enter ID + path)',
-          );
-        }
-        return '${_l('Fichier', 'File')}: $p';
-      case _DialogueRefSource.manifest:
-        final id = _signDialogueId.text.trim();
-        if (id.isEmpty) {
-          return _l('Choisir un dialogue…', 'Choose a dialogue…');
-        }
-        for (final e in entries) {
-          if (e.id == id) {
-            return e.name;
-          }
-        }
-        return '${_l('Absent du registre', 'Not in registry')}: $id';
-    }
   }
 
   List<Widget> _npcDialogueFields(
     BuildContext context,
     ProjectManifest? project,
   ) {
+    const scriptAccent = EditorChrome.inspectorJoyLilac;
     final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final sorted = _sortedDialogueEntries(dialogueEntries);
+
     if (dialogueEntries.isEmpty) {
       return [
-        Text(
-          _l(
-            'Ajoutez des dialogues dans l’explorateur (section Dialogues), ou renseignez ID + chemin relatif.',
-            'Add dialogues in the explorer (Dialogues section), or enter ID + relative path.',
+        InspectorEmbeddedFootnote(
+          text: _l(
+            'Ajoutez des scripts dans l’explorateur (bibliothèque Dialogues), puis sélectionnez-les ici — plus besoin de chemin relatif.',
+            'Add scripts in the explorer (Dialogues library), then pick them here — no relative paths.',
           ),
-          style: TextStyle(
-            fontSize: 11,
-            color: CupertinoColors.placeholderText.resolveFrom(context),
+          accent: scriptAccent,
+        ),
+        if (_npcDialogueSource == _DialogueRefSource.legacy &&
+            _npcScriptPath.text.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          InspectorEmbeddedFootnote(
+            text: _l(
+              'Référence fichier héritée : ${_npcScriptPath.text.trim()}. Importez ce fichier dans la bibliothèque Dialogues pour le lier proprement.',
+              'Legacy file reference: ${_npcScriptPath.text.trim()}. Import it into the Dialogues library to bind it cleanly.',
+            ),
+            accent: scriptAccent,
           ),
-        ),
-        const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Dialogue (ID)', 'Dialogue ID'),
-          controller: _npcDialogueId,
-        ),
-        const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Script (chemin relatif)', 'Script (relative path)'),
-          controller: _npcScriptPath,
-        ),
+        ],
         const SizedBox(height: 8),
         _labeledField(
           context,
@@ -636,40 +624,50 @@ class _EntityPropertiesPanelState
         ),
       ];
     }
+
+    final menuIds = _dialogueDropdownIds(sorted, _npcDialogueId.text);
+    final selectedMenu = _npcDialogueSelectedMenuId();
+
     return [
-      Text(
-        _l('Dialogue', 'Dialogue'),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+      if (widget.embedded)
+        InspectorEmbeddedSectionLabel(
+          _l('Script (bibliothèque)', 'Script (library)'),
+        )
+      else
+        Text(
+          _l('Script (bibliothèque)', 'Script (library)'),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
         ),
-      ),
-      const SizedBox(height: 4),
-      CupertinoButton(
-        padding: EdgeInsets.zero,
-        alignment: Alignment.centerLeft,
-        onPressed: () => _openManifestDialoguePicker(
-          context: context,
-          entries: dialogueEntries,
-          forNpc: true,
-        ),
-        child: Text(_npcDialoguePickerSummary(dialogueEntries)),
-      ),
-      if (_npcDialogueSource == _DialogueRefSource.legacy) ...[
-        const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Dialogue (ID)', 'Dialogue ID'),
-          controller: _npcDialogueId,
+      const SizedBox(height: 6),
+      if (_npcDialogueSource == _DialogueRefSource.legacy &&
+          _npcScriptPath.text.trim().isNotEmpty) ...[
+        InspectorEmbeddedFootnote(
+          text: _l(
+            'Ancienne référence par chemin : ${_npcScriptPath.text.trim()}\nChoisissez un script dans la liste pour enregistrer une liaison bibliothèque.',
+            'Legacy path reference: ${_npcScriptPath.text.trim()}\nPick a script from the list to save a library binding.',
+          ),
+          accent: scriptAccent,
         ),
         const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Script (chemin relatif)', 'Script (relative path)'),
-          controller: _npcScriptPath,
-        ),
       ],
+      InspectorEmbeddedDropdown(
+        accent: scriptAccent,
+        fieldLabel: _l('Dialogue Yarn', 'Yarn dialogue'),
+        valueLabel: _dialogueDropdownValueLabel(sorted, selectedMenu),
+        orderedIds: menuIds,
+        selectedMenuValue: selectedMenu,
+        selectedIdForCheck: selectedMenu,
+        idToLabel: (id) => _dialogueDropdownValueLabel(sorted, id),
+        onSelected: (id) => _onDialogueMenuSelected(forNpc: true, menuId: id),
+        tooltip: _l(
+          'Scripts enregistrés dans le manifeste projet',
+          'Scripts registered in the project manifest',
+        ),
+      ),
       const SizedBox(height: 8),
       _labeledField(
         context,
@@ -683,31 +681,30 @@ class _EntityPropertiesPanelState
     BuildContext context,
     ProjectManifest? project,
   ) {
+    const scriptAccent = EditorChrome.inspectorJoyLilac;
     final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final sorted = _sortedDialogueEntries(dialogueEntries);
+
     if (dialogueEntries.isEmpty) {
       return [
-        Text(
-          _l(
-            'Ajoutez des dialogues dans l’explorateur (Dialogues), ou renseignez ID + chemin.',
-            'Add dialogues in the explorer (Dialogues), or enter ID + path.',
+        InspectorEmbeddedFootnote(
+          text: _l(
+            'Ajoutez des scripts dans l’explorateur (bibliothèque Dialogues), puis sélectionnez-les ici.',
+            'Add scripts in the explorer (Dialogues library), then pick them here.',
           ),
-          style: TextStyle(
-            fontSize: 11,
-            color: CupertinoColors.placeholderText.resolveFrom(context),
+          accent: scriptAccent,
+        ),
+        if (_signDialogueSource == _DialogueRefSource.legacy &&
+            _signScriptPath.text.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          InspectorEmbeddedFootnote(
+            text: _l(
+              'Référence fichier héritée : ${_signScriptPath.text.trim()}. Importez ce fichier dans la bibliothèque Dialogues.',
+              'Legacy file reference: ${_signScriptPath.text.trim()}. Import it into the Dialogues library.',
+            ),
+            accent: scriptAccent,
           ),
-        ),
-        const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Dialogue (ID)', 'Dialogue ID'),
-          controller: _signDialogueId,
-        ),
-        const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Script (chemin relatif)', 'Script (relative path)'),
-          controller: _signScriptPath,
-        ),
+        ],
         const SizedBox(height: 8),
         _labeledField(
           context,
@@ -716,40 +713,50 @@ class _EntityPropertiesPanelState
         ),
       ];
     }
+
+    final menuIds = _dialogueDropdownIds(sorted, _signDialogueId.text);
+    final selectedMenu = _signDialogueSelectedMenuId();
+
     return [
-      Text(
-        _l('Dialogue', 'Dialogue'),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+      if (widget.embedded)
+        InspectorEmbeddedSectionLabel(
+          _l('Script (bibliothèque)', 'Script (library)'),
+        )
+      else
+        Text(
+          _l('Script (bibliothèque)', 'Script (library)'),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
         ),
-      ),
-      const SizedBox(height: 4),
-      CupertinoButton(
-        padding: EdgeInsets.zero,
-        alignment: Alignment.centerLeft,
-        onPressed: () => _openManifestDialoguePicker(
-          context: context,
-          entries: dialogueEntries,
-          forNpc: false,
-        ),
-        child: Text(_signDialoguePickerSummary(dialogueEntries)),
-      ),
-      if (_signDialogueSource == _DialogueRefSource.legacy) ...[
-        const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Dialogue (ID)', 'Dialogue ID'),
-          controller: _signDialogueId,
+      const SizedBox(height: 6),
+      if (_signDialogueSource == _DialogueRefSource.legacy &&
+          _signScriptPath.text.trim().isNotEmpty) ...[
+        InspectorEmbeddedFootnote(
+          text: _l(
+            'Ancienne référence par chemin : ${_signScriptPath.text.trim()}\nChoisissez un script dans la liste pour migrer.',
+            'Legacy path reference: ${_signScriptPath.text.trim()}\nPick a script from the list to migrate.',
+          ),
+          accent: scriptAccent,
         ),
         const SizedBox(height: 8),
-        _labeledField(
-          context,
-          label: _l('Script (chemin relatif)', 'Script (relative path)'),
-          controller: _signScriptPath,
-        ),
       ],
+      InspectorEmbeddedDropdown(
+        accent: scriptAccent,
+        fieldLabel: _l('Dialogue Yarn', 'Yarn dialogue'),
+        valueLabel: _dialogueDropdownValueLabel(sorted, selectedMenu),
+        orderedIds: menuIds,
+        selectedMenuValue: selectedMenu,
+        selectedIdForCheck: selectedMenu,
+        idToLabel: (id) => _dialogueDropdownValueLabel(sorted, id),
+        onSelected: (id) => _onDialogueMenuSelected(forNpc: false, menuId: id),
+        tooltip: _l(
+          'Scripts enregistrés dans le manifeste projet',
+          'Scripts registered in the project manifest',
+        ),
+      ),
       const SizedBox(height: 8),
       _labeledField(
         context,
@@ -768,14 +775,17 @@ class _EntityPropertiesPanelState
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _l('PNJ', 'NPC'),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            if (widget.embedded)
+              InspectorEmbeddedSectionLabel(_l('PNJ', 'NPC'))
+            else
+              Text(
+                _l('PNJ', 'NPC'),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
               ),
-            ),
             const SizedBox(height: 6),
             Text(
               _l(
@@ -784,30 +794,52 @@ class _EntityPropertiesPanelState
               ),
               style: TextStyle(
                 fontSize: 11,
+                height: 1.25,
                 color: CupertinoColors.placeholderText.resolveFrom(context),
               ),
             ),
             const SizedBox(height: 8),
             ..._npcDialogueFields(context, project),
             const SizedBox(height: 8),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              alignment: Alignment.centerLeft,
-              onPressed: () async {
-                final picked = await showCupertinoListPicker<EntityFacing>(
-                  context: context,
-                  title: _l('Orientation', 'Facing'),
-                  items: EntityFacing.values,
-                  labelOf: _facingLabel,
-                );
-                if (picked != null) {
-                  setState(() => _npcFacing = picked);
-                }
-              },
-              child: Text(
-                '${_l('Orientation', 'Facing')}: ${_facingLabel(_npcFacing)}',
+            if (widget.embedded)
+              InspectorEmbeddedDropdown(
+                accent: EditorChrome.inspectorJoyCyan,
+                fieldLabel: _l('Orientation', 'Facing'),
+                valueLabel: _facingLabel(_npcFacing),
+                orderedIds: EntityFacing.values
+                    .map((f) => f.name)
+                    .toList(growable: false),
+                selectedMenuValue: _npcFacing.name,
+                selectedIdForCheck: _npcFacing.name,
+                idToLabel: (id) => _facingLabel(
+                  EntityFacing.values.firstWhere((f) => f.name == id),
+                ),
+                onSelected: (id) {
+                  final f =
+                      EntityFacing.values.firstWhere((e) => e.name == id);
+                  setState(() => _npcFacing = f);
+                },
+                tooltip: _l('Direction du PNJ', 'NPC facing'),
+              )
+            else
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                alignment: Alignment.centerLeft,
+                onPressed: () async {
+                  final picked = await showCupertinoListPicker<EntityFacing>(
+                    context: context,
+                    title: _l('Orientation', 'Facing'),
+                    items: EntityFacing.values,
+                    labelOf: _facingLabel,
+                  );
+                  if (picked != null) {
+                    setState(() => _npcFacing = picked);
+                  }
+                },
+                child: Text(
+                  '${_l('Orientation', 'Facing')}: ${_facingLabel(_npcFacing)}',
+                ),
               ),
-            ),
             const SizedBox(height: 8),
             _labeledField(
               context,
@@ -820,14 +852,17 @@ class _EntityPropertiesPanelState
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _l('Panneau', 'Sign'),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            if (widget.embedded)
+              InspectorEmbeddedSectionLabel(_l('Panneau', 'Sign'))
+            else
+              Text(
+                _l('Panneau', 'Sign'),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
               ),
-            ),
             const SizedBox(height: 8),
             _labeledField(
               context,
@@ -842,13 +877,19 @@ class _EntityPropertiesPanelState
               maxLines: 4,
             ),
             const SizedBox(height: 12),
-            Text(
-              _l('Ou dialogue scripté', 'Or scripted dialogue'),
-              style: TextStyle(
-                fontSize: 11,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            if (widget.embedded)
+              InspectorEmbeddedSectionLabel(
+                _l('Dialogue scripté (optionnel)', 'Scripted dialogue (optional)'),
+              )
+            else
+              Text(
+                _l('Dialogue scripté (optionnel)', 'Scripted dialogue (optional)'),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
               ),
-            ),
             const SizedBox(height: 8),
             ..._signDialogueFields(context, project),
           ],
@@ -1011,14 +1052,19 @@ class _EntityPropertiesPanelState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _l('Entité sélectionnée', 'Selected entity'),
-          style: TextStyle(
-            fontSize: 12,
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            fontWeight: FontWeight.w600,
+        if (widget.embedded)
+          InspectorEmbeddedSectionLabel(
+            _l('Entité sélectionnée', 'Selected entity'),
+          )
+        else
+          Text(
+            _l('Entité sélectionnée', 'Selected entity'),
+            style: TextStyle(
+              fontSize: 12,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
         const SizedBox(height: 8),
         Text(
           '${_l('Position', 'Position')}: (${selectedEntity.pos.x}, ${selectedEntity.pos.y}) | ${_l('Taille', 'Size')}: ${selectedEntity.size.width}x${selectedEntity.size.height}',
@@ -1039,24 +1085,43 @@ class _EntityPropertiesPanelState
           controller: _nameController,
         ),
         const SizedBox(height: 8),
-        CupertinoButton(
-          padding: EdgeInsets.zero,
-          alignment: Alignment.centerLeft,
-          onPressed: () async {
-            final picked = await showCupertinoListPicker<MapEntityKind>(
-              context: context,
-              title: _l('Type d’entité', 'Kind'),
-              items: MapEntityKind.values,
-              labelOf: _entityKindLabel,
-            );
-            if (picked != null) {
-              setState(() => _selectedKind = picked);
-            }
-          },
-          child: Text(
-            '${_l('Type', 'Kind')}: ${_entityKindLabel(_selectedKind)}',
+        if (widget.embedded)
+          InspectorEmbeddedDropdown(
+            accent: EditorChrome.inspectorJoyCyan,
+            fieldLabel: _l('Type d’entité', 'Entity kind'),
+            valueLabel: _entityKindLabel(_selectedKind),
+            orderedIds:
+                MapEntityKind.values.map((k) => k.name).toList(growable: false),
+            selectedMenuValue: _selectedKind.name,
+            selectedIdForCheck: _selectedKind.name,
+            idToLabel: (id) => _entityKindLabel(
+              MapEntityKind.values.firstWhere((k) => k.name == id),
+            ),
+            onSelected: (id) {
+              final k = MapEntityKind.values.firstWhere((e) => e.name == id);
+              setState(() => _selectedKind = k);
+            },
+            tooltip: _l('Type d’entité sur la carte', 'Map entity kind'),
+          )
+        else
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            alignment: Alignment.centerLeft,
+            onPressed: () async {
+              final picked = await showCupertinoListPicker<MapEntityKind>(
+                context: context,
+                title: _l('Type d’entité', 'Kind'),
+                items: MapEntityKind.values,
+                labelOf: _entityKindLabel,
+              );
+              if (picked != null) {
+                setState(() => _selectedKind = picked);
+              }
+            },
+            child: Text(
+              '${_l('Type', 'Kind')}: ${_entityKindLabel(_selectedKind)}',
+            ),
           ),
-        ),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -1210,12 +1275,14 @@ class _EntityPropertiesPanelState
     );
   }
 
-  void _syncControllers(MapEntity? entity) {
+  void _syncControllers(MapEntity? entity, ProjectManifest? project) {
     final fingerprint = _entityFingerprint(entity);
     if (_boundFingerprint == fingerprint) {
       return;
     }
     _boundFingerprint = fingerprint;
+
+    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
 
     _idController.text = entity?.id ?? '';
     if (entity != null && entity.kind == MapEntityKind.npc) {
@@ -1238,9 +1305,17 @@ class _EntityPropertiesPanelState
       _npcDialogueId.text = '';
       _npcScriptPath.text = '';
     } else if (nd.scriptPathRelative.trim().isNotEmpty) {
-      _npcDialogueSource = _DialogueRefSource.legacy;
-      _npcDialogueId.text = nd.dialogueId;
-      _npcScriptPath.text = nd.scriptPathRelative;
+      final matched =
+          _dialogueEntryForLegacyPath(dialogueEntries, nd.scriptPathRelative);
+      if (matched != null) {
+        _npcDialogueSource = _DialogueRefSource.manifest;
+        _npcDialogueId.text = matched.id;
+        _npcScriptPath.text = '';
+      } else {
+        _npcDialogueSource = _DialogueRefSource.legacy;
+        _npcDialogueId.text = nd.dialogueId;
+        _npcScriptPath.text = nd.scriptPathRelative;
+      }
     } else {
       _npcDialogueSource = _DialogueRefSource.manifest;
       _npcDialogueId.text = nd.dialogueId;
@@ -1259,9 +1334,17 @@ class _EntityPropertiesPanelState
       _signDialogueId.text = '';
       _signScriptPath.text = '';
     } else if (sd.scriptPathRelative.trim().isNotEmpty) {
-      _signDialogueSource = _DialogueRefSource.legacy;
-      _signDialogueId.text = sd.dialogueId;
-      _signScriptPath.text = sd.scriptPathRelative;
+      final matched =
+          _dialogueEntryForLegacyPath(dialogueEntries, sd.scriptPathRelative);
+      if (matched != null) {
+        _signDialogueSource = _DialogueRefSource.manifest;
+        _signDialogueId.text = matched.id;
+        _signScriptPath.text = '';
+      } else {
+        _signDialogueSource = _DialogueRefSource.legacy;
+        _signDialogueId.text = sd.dialogueId;
+        _signScriptPath.text = sd.scriptPathRelative;
+      }
     } else {
       _signDialogueSource = _DialogueRefSource.manifest;
       _signDialogueId.text = sd.dialogueId;

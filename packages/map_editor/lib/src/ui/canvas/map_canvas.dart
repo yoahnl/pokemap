@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
+import '../../application/services/entity_editor_element_visual.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
@@ -56,6 +57,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final tilesetPathsById = _collectLayerTilesetPaths(
       activeMap,
       notifier,
+      project: state.project,
       selectedPathAutotileSet: selectedPathAutotileSet,
       pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
       terrainPresetsByType: terrainPresetsByType,
@@ -285,6 +287,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     selectedPathAutotileSet: selectedPathAutotileSet,
                     pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
                     terrainPresetsByType: terrainPresetsByType,
+                    project: state.project,
                   ),
                 ),
             ),
@@ -365,12 +368,26 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Map<String, String> _collectLayerTilesetPaths(
     MapData? map,
     EditorNotifier notifier, {
+    ProjectManifest? project,
     PathAutotileSet? selectedPathAutotileSet,
     required Map<String, PathAutotileSet> pathAutotileSetsByPresetId,
     required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
   }) {
     final result = <String, String>{};
     if (map != null) {
+      collectTilesetIdsForEntityEditorVisuals(
+        map: map,
+        project: project,
+        onTilesetId: (tilesetId) {
+          if (result.containsKey(tilesetId)) {
+            return;
+          }
+          final p = notifier.getTilesetAbsolutePathById(tilesetId);
+          if (p != null && p.isNotEmpty) {
+            result[tilesetId] = p;
+          }
+        },
+      );
       for (final layer in map.layers) {
         if (layer is! TileLayer) continue;
         final tilesetId = layer.tilesetId?.trim();
@@ -496,6 +513,7 @@ class MapGridPainter extends CustomPainter {
   final PathAutotileSet? selectedPathAutotileSet;
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
   final Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType;
+  final ProjectManifest? project;
 
   MapGridPainter({
     required this.map,
@@ -521,6 +539,7 @@ class MapGridPainter extends CustomPainter {
     this.selectedPathAutotileSet,
     required this.pathAutotileSetsByPresetId,
     required this.terrainPresetsByType,
+    this.project,
   });
 
   @override
@@ -682,95 +701,221 @@ class MapGridPainter extends CustomPainter {
         entity.size.width * tileWidth,
         entity.size.height * tileHeight,
       );
-      final color = _entityColor(entity.kind);
-      final fillPaint = Paint()
-        ..color = color.withValues(alpha: isSelected ? 0.28 : 0.18)
-        ..style = PaintingStyle.fill;
-      final borderPaint = Paint()
-        ..color = isSelected ? Colors.white : color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
-      canvas.drawRect(rect, fillPaint);
-      canvas.drawRect(rect, borderPaint);
-
-      if (rect.width < (18 / zoom) || rect.height < (16 / zoom)) {
-        continue;
-      }
-
-      final badgeWidth = math.min(rect.width - (6 / zoom), 42 / zoom);
-      final badgeRect = Rect.fromLTWH(
-        rect.left + (3 / zoom),
-        rect.top + (3 / zoom),
-        badgeWidth,
-        math.min(rect.height - (6 / zoom), 16 / zoom),
+      final resolved = resolveEntityPrimaryFrameVisual(
+        entity: entity,
+        project: project,
+        tilesetImagesById: tilesetImagesById,
+        sourceTileWidth: sourceTileWidth,
+        sourceTileHeight: sourceTileHeight,
       );
-      if (badgeRect.width <= 0 || badgeRect.height <= 0) {
-        continue;
-      }
-
-      final badge = RRect.fromRectAndRadius(
-        badgeRect,
-        Radius.circular(4 / zoom),
-      );
-      canvas.drawRRect(
-        badge,
-        Paint()
-          ..color = Colors.black.withValues(alpha: isSelected ? 0.72 : 0.56)
-          ..style = PaintingStyle.fill,
-      );
-
-      final badgeTextPainter = TextPainter(
-        text: TextSpan(
-          text: _entityShortLabel(entity.kind),
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 9 / zoom,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-        maxLines: 1,
-        ellipsis: '...',
-      )..layout(maxWidth: badgeRect.width - (6 / zoom));
-      if (badgeTextPainter.width > 0 && badgeTextPainter.height > 0) {
-        badgeTextPainter.paint(
-          canvas,
-          Offset(
-            badgeRect.left + (3 / zoom),
-            badgeRect.top + ((badgeRect.height - badgeTextPainter.height) / 2),
-          ),
+      if (resolved != null) {
+        final shade = RRect.fromRectAndRadius(
+          rect,
+          Radius.circular(5 / zoom),
         );
+        canvas.drawRRect(
+          shade,
+          Paint()
+            ..color = Colors.black.withValues(alpha: isSelected ? 0.28 : 0.2)
+            ..style = PaintingStyle.fill,
+        );
+        _paintEntitySpriteContained(
+          canvas,
+          resolved.image,
+          resolved.srcRect,
+          rect,
+        );
+      } else {
+        _paintEntityFallbackBody(canvas, entity, rect, isSelected);
       }
+      _paintEntitySelectionAndChrome(canvas, entity, rect, isSelected);
+    }
+  }
 
-      if (rect.width < (44 / zoom) || rect.height < (28 / zoom)) {
-        continue;
-      }
+  void _paintEntitySpriteContained(
+    Canvas canvas,
+    ui.Image image,
+    Rect src,
+    Rect bounds,
+  ) {
+    if (src.width <= 0 || src.height <= 0) {
+      return;
+    }
+    final srcAr = src.width / src.height;
+    final bAr = bounds.width / bounds.height;
+    late Rect dst;
+    if (srcAr > bAr) {
+      final w = bounds.width;
+      final h = w / srcAr;
+      dst = Rect.fromCenter(center: bounds.center, width: w, height: h);
+    } else {
+      final h = bounds.height;
+      final w = h * srcAr;
+      dst = Rect.fromCenter(center: bounds.center, width: w, height: h);
+    }
+    canvas.save();
+    canvas.clipRRect(
+      RRect.fromRectAndRadius(bounds, Radius.circular(5 / zoom)),
+    );
+    canvas.drawImageRect(
+      image,
+      src,
+      dst,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
+    canvas.restore();
+  }
 
-      final label = entity.inspectorHeadline;
-      final labelTextPainter = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 10 / zoom,
-            fontWeight: FontWeight.w600,
-          ),
+  void _paintEntityFallbackBody(
+    Canvas canvas,
+    MapEntity entity,
+    Rect rect,
+    bool isSelected,
+  ) {
+    final color = _entityColor(entity.kind);
+    final r = RRect.fromRectAndRadius(rect, Radius.circular(6 / zoom));
+    canvas.drawRRect(
+      r,
+      Paint()
+        ..color = color.withValues(alpha: isSelected ? 0.32 : 0.2)
+        ..style = PaintingStyle.fill,
+    );
+    final letter = _entityFallbackGlyph(entity.kind);
+    final fontSize = math.min(rect.width, rect.height) * 0.38;
+    if (fontSize < 4 / zoom) {
+      return;
+    }
+    final tp = TextPainter(
+      text: TextSpan(
+        text: letter,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.92),
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900,
         ),
-        textDirection: TextDirection.ltr,
-        maxLines: 1,
-        ellipsis: '...',
-      )..layout(maxWidth: rect.width - (8 / zoom));
-      if (labelTextPainter.width <= 0 || labelTextPainter.height <= 0) {
-        continue;
-      }
-      labelTextPainter.paint(
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(
+      canvas,
+      Offset(
+        rect.center.dx - tp.width / 2,
+        rect.center.dy - tp.height / 2,
+      ),
+    );
+  }
+
+  String _entityFallbackGlyph(MapEntityKind kind) {
+    return switch (kind) {
+      MapEntityKind.npc => 'N',
+      MapEntityKind.sign => 'S',
+      MapEntityKind.item => 'I',
+      MapEntityKind.spawn => 'P',
+      MapEntityKind.custom => '+',
+    };
+  }
+
+  void _paintEntitySelectionAndChrome(
+    Canvas canvas,
+    MapEntity entity,
+    Rect rect,
+    bool isSelected,
+  ) {
+    final color = _entityColor(entity.kind);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, Radius.circular(5 / zoom)),
+      Paint()
+        ..color = (isSelected ? Colors.white : color)
+            .withValues(alpha: isSelected ? 0.95 : 0.55)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.4 / zoom : 1.5 / zoom,
+    );
+
+    if (rect.width < (18 / zoom) || rect.height < (16 / zoom)) {
+      return;
+    }
+
+    final badgeWidth = math.min(rect.width - (6 / zoom), 42 / zoom);
+    final badgeRect = Rect.fromLTWH(
+      rect.left + (3 / zoom),
+      rect.top + (3 / zoom),
+      badgeWidth,
+      math.min(rect.height - (6 / zoom), 16 / zoom),
+    );
+    if (badgeRect.width <= 0 || badgeRect.height <= 0) {
+      return;
+    }
+
+    final badge = RRect.fromRectAndRadius(
+      badgeRect,
+      Radius.circular(4 / zoom),
+    );
+    canvas.drawRRect(
+      badge,
+      Paint()
+        ..color = Colors.black.withValues(alpha: isSelected ? 0.72 : 0.56)
+        ..style = PaintingStyle.fill,
+    );
+
+    final badgeTextPainter = TextPainter(
+      text: TextSpan(
+        text: _entityShortLabel(entity.kind),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 9 / zoom,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '...',
+    )..layout(maxWidth: badgeRect.width - (6 / zoom));
+    if (badgeTextPainter.width > 0 && badgeTextPainter.height > 0) {
+      badgeTextPainter.paint(
         canvas,
         Offset(
-          rect.left + (4 / zoom),
-          rect.bottom - labelTextPainter.height - (4 / zoom),
+          badgeRect.left + (3 / zoom),
+          badgeRect.top +
+              ((badgeRect.height - badgeTextPainter.height) / 2),
         ),
       );
     }
+
+    if (rect.width < (44 / zoom) || rect.height < (28 / zoom)) {
+      return;
+    }
+
+    final label = entity.inspectorHeadline;
+    final labelTextPainter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 10 / zoom,
+          fontWeight: FontWeight.w600,
+          shadows: const [
+            Shadow(
+              offset: Offset(0.5, 0.5),
+              blurRadius: 2,
+              color: Color(0xCC000000),
+            ),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '...',
+    )..layout(maxWidth: rect.width - (8 / zoom));
+    if (labelTextPainter.width <= 0 || labelTextPainter.height <= 0) {
+      return;
+    }
+    labelTextPainter.paint(
+      canvas,
+      Offset(
+        rect.left + (4 / zoom),
+        rect.bottom - labelTextPainter.height - (4 / zoom),
+      ),
+    );
   }
 
   void _paintTriggers(Canvas canvas) {

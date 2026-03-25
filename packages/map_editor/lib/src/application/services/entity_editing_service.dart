@@ -109,6 +109,7 @@ class EntityEditingService {
     MapEntitySignData? sign,
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
+    MapEntityEditorVisual? editorVisual,
   }) {
     final updated = _updateEntityOnMapUseCase.execute(
       map,
@@ -123,6 +124,7 @@ class EntityEditingService {
       sign: sign,
       item: item,
       spawn: spawn,
+      editorVisual: editorVisual,
     );
     final nextSelectedEntityId =
         id?.trim().isNotEmpty == true ? id!.trim() : entityId;

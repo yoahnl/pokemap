@@ -2,6 +2,7 @@ import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_entity_editor_visual.dart';
 import '../models/map_entity_payloads.dart';
 import '../models/project_manifest.dart';
 import '../validation/dialogue_validation.dart';
@@ -69,6 +70,7 @@ MapData updateEntityOnMap(
   Object? sign = mapEntityTypedPayloadUnset,
   Object? item = mapEntityTypedPayloadUnset,
   Object? spawn = mapEntityTypedPayloadUnset,
+  Object? editorVisual = mapEntityTypedPayloadUnset,
 }) {
   final index = map.entities.indexWhere((entity) => entity.id == entityId);
   if (index < 0) {
@@ -96,6 +98,9 @@ MapData updateEntityOnMap(
   }
   if (!identical(spawn, mapEntityTypedPayloadUnset)) {
     draft = draft.copyWith(spawn: spawn as MapEntitySpawnData?);
+  }
+  if (!identical(editorVisual, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(editorVisual: editorVisual as MapEntityEditorVisual?);
   }
   final next = _normalizeEntity(draft);
   _validateEntity(
@@ -163,8 +168,20 @@ MapEntity _normalizeEntity(MapEntity entity) {
     sign: entity.sign != null ? _normalizeSign(entity.sign!) : null,
     item: entity.item,
     spawn: entity.spawn != null ? _normalizeSpawn(entity.spawn!) : null,
+    editorVisual: _normalizeEditorVisual(entity.editorVisual),
   );
   return _coercePayloadsToKind(trimmed);
+}
+
+MapEntityEditorVisual? _normalizeEditorVisual(MapEntityEditorVisual? v) {
+  if (v == null) {
+    return null;
+  }
+  final id = v.elementId.trim();
+  if (id.isEmpty) {
+    return null;
+  }
+  return MapEntityEditorVisual(elementId: id);
 }
 
 MapEntityNpcData _normalizeNpc(MapEntityNpcData n) {

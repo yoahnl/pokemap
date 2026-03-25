@@ -129,6 +129,10 @@ _$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
       spawn: json['spawn'] == null
           ? null
           : MapEntitySpawnData.fromJson(json['spawn'] as Map<String, dynamic>),
+      editorVisual: json['editorVisual'] == null
+          ? null
+          : MapEntityEditorVisual.fromJson(
+              json['editorVisual'] as Map<String, dynamic>),
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -146,6 +150,7 @@ Map<String, dynamic> _$$MapEntityImplToJson(_$MapEntityImpl instance) =>
       'sign': instance.sign?.toJson(),
       'item': instance.item?.toJson(),
       'spawn': instance.spawn?.toJson(),
+      'editorVisual': instance.editorVisual?.toJson(),
       'properties': instance.properties,
     };
 

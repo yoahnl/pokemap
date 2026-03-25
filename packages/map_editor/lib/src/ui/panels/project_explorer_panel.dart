@@ -10,6 +10,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import 'terrain_editor_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
+import '../shared/inspector_section_card.dart';
 
 String _mapGroupTypeDisplayLabel(MapGroupType t) {
   final n = t.name;
@@ -811,120 +812,6 @@ Future<void> _promptNewProjectDialogueInFolder(
   );
 }
 
-Widget _explorerGradientIcon({
-  required BuildContext context,
-  required IconData icon,
-  required Color accent,
-}) {
-  return Container(
-    width: 30,
-    height: 30,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          accent.withValues(alpha: 0.42),
-          accent.withValues(alpha: 0.07),
-        ],
-      ),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: accent.withValues(alpha: 0.55)),
-    ),
-    alignment: Alignment.center,
-    child: MacosIcon(icon, size: 15, color: accent),
-  );
-}
-
-/// Section repliable de l’explorateur (en-tête + chevron + corps).
-class _ExplorerCollapsibleSection extends StatelessWidget {
-  const _ExplorerCollapsibleSection({
-    required this.expanded,
-    required this.onToggle,
-    required this.headerStart,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    required this.body,
-  });
-
-  final bool expanded;
-  final VoidCallback onToggle;
-  final Widget headerStart;
-  final String title;
-  final String subtitle;
-  final List<Widget> trailing;
-  final Widget body;
-
-  @override
-  Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: CupertinoButton(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
-                  minimumSize: Size.zero,
-                  onPressed: onToggle,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      headerStart,
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                color: EditorChrome.primaryLabel(context),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                color: subtle,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              ...trailing,
-              const SizedBox(width: 2),
-              EditorToolbarIconButton(
-                tooltip: expanded ? 'Réduire' : 'Développer',
-                onPressed: onToggle,
-                icon: expanded
-                    ? CupertinoIcons.chevron_up
-                    : CupertinoIcons.chevron_down,
-                iconSize: 18,
-              ),
-            ],
-          ),
-        ),
-        if (expanded) Expanded(child: body),
-      ],
-    );
-  }
-}
-
 class ProjectExplorerPanel extends ConsumerStatefulWidget {
   const ProjectExplorerPanel({super.key});
 
@@ -948,25 +835,44 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     return SizedBox(
       width: double.infinity,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(context),
-          const SizedBox(height: 2),
           Expanded(
             child: project == null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        'Open a project to browse your world, maps and tilesets.',
-                        style: TextStyle(
-                          color: CupertinoColors.placeholderText
-                              .resolveFrom(context),
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildHeader(context),
+                      const SizedBox(height: 2),
+                      Expanded(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              'Open a project to browse your world, maps and tilesets.',
+                              style: TextStyle(
+                                color: CupertinoColors.placeholderText
+                                    .resolveFrom(context),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                    ),
+                    ],
                   )
-                : _buildTree(context, project, state, notifier),
+                : SingleChildScrollView(
+                    primary: false,
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildHeader(context),
+                        const SizedBox(height: 10),
+                        _buildTree(context, project, state, notifier),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -1098,161 +1004,136 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
     ];
 
+    final screenH = MediaQuery.sizeOf(context).height;
+    final hTileset = (screenH * 0.30).clamp(240.0, 400.0);
+    final hScript = (screenH * 0.28).clamp(220.0, 380.0);
+    final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
+    final hSurface = (screenH * 0.36).clamp(280.0, 500.0);
+    const explorerTileRadius = 28.0;
+    final actionIcon = CupertinoColors.white.withValues(alpha: 0.92);
+    final actionHover = CupertinoColors.white.withValues(alpha: 0.16);
+    final presetCount =
+        project.terrainPresets.length + project.pathPresets.length;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: _ExplorerIslandSurface(
-            tint: EditorChrome.islandCoolTint,
-            child: _ExplorerCollapsibleSection(
-              expanded: _expandTileLib,
-              onToggle: () => setState(() => _expandTileLib = !_expandTileLib),
-              headerStart: _explorerGradientIcon(
-                context: context,
-                icon: CupertinoIcons.square_grid_2x2,
-                accent: EditorChrome.accentWarm,
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Tileset Library',
+          subtitle: 'Folders, imports, and map painting',
+          icon: CupertinoIcons.square_grid_2x2,
+          accentColor: EditorChrome.inspectorJoyBlue,
+          badgeText: '${project.tilesets.length}',
+          expanded: _expandTileLib,
+          onToggle: () => setState(() => _expandTileLib = !_expandTileLib),
+          expandedHeight: hTileset,
+          headerTrailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.photo_on_rectangle,
+                tooltip: 'Import tileset',
+                onPressed: () =>
+                    _showImportTilesetDialog(context, state, notifier),
+                iconColor: actionIcon,
+                hoverFill: actionHover,
               ),
-              title: 'Tileset Library',
-              subtitle: 'Folders, imports, and map painting',
-              trailing: [
-                _SidebarHeaderAction(
-                  enabled: true,
-                  icon: CupertinoIcons.photo_on_rectangle,
-                  tooltip: 'Import tileset',
-                  onPressed: () =>
-                      _showImportTilesetDialog(context, state, notifier),
-                ),
-                const SizedBox(width: 6),
-                _SidebarHeaderAction(
-                  enabled: true,
-                  icon: CupertinoIcons.plus_circle_fill,
-                  tooltip: 'New folder',
-                  onPressed: () =>
-                      _promptNewTilesetLibraryFolder(context, notifier),
-                ),
-              ],
-              body: _buildTilesetsIsland(context, project, state, notifier),
-            ),
+              const SizedBox(width: 6),
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.plus_circle_fill,
+                tooltip: 'New folder',
+                onPressed: () =>
+                    _promptNewTilesetLibraryFolder(context, notifier),
+                iconColor: actionIcon,
+                hoverFill: actionHover,
+              ),
+            ],
           ),
+          child: _buildTilesetsIsland(context, project, state, notifier),
         ),
-        const SizedBox(height: 14),
-        ResizablePane.noScrollBar(
-          key: const ValueKey('project_explorer_dialogues_pane'),
-          resizableSide: ResizableSide.top,
-          minSize: 140,
-          maxSize: 400,
-          startSize: 200,
-          decoration: const BoxDecoration(
-            color: MacosColors.transparent,
-            border: Border(
-              top: BorderSide(color: MacosColors.transparent),
-            ),
-          ),
-          child: _ExplorerIslandSurface(
-            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.18),
-            child: _ExplorerCollapsibleSection(
-              expanded: _expandScriptLib,
-              onToggle: () => setState(() => _expandScriptLib = !_expandScriptLib),
-              headerStart: _explorerGradientIcon(
-                context: context,
-                icon: CupertinoIcons.doc_text_fill,
-                accent: EditorChrome.inspectorJoyPlum,
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Script Library',
+          subtitle: '.yarn under dialogues/ — drag folders to organize',
+          icon: CupertinoIcons.doc_text_fill,
+          accentColor: EditorChrome.inspectorJoyLilac,
+          badgeText: '${project.dialogues.length}',
+          expanded: _expandScriptLib,
+          onToggle: () => setState(() => _expandScriptLib = !_expandScriptLib),
+          expandedHeight: hScript,
+          headerTrailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.plus_circle_fill,
+                tooltip: 'New script',
+                onPressed: () => _promptNewProjectDialogue(context, notifier),
+                iconColor: actionIcon,
+                hoverFill: actionHover,
               ),
-              title: 'Script Library',
-              subtitle: '.yarn files under dialogues/ — drag to organize',
-              trailing: [
-                _SidebarHeaderAction(
-                  enabled: true,
-                  icon: CupertinoIcons.plus_circle_fill,
-                  tooltip: 'New script',
-                  onPressed: () => _promptNewProjectDialogue(context, notifier),
-                ),
-                const SizedBox(width: 6),
-                _SidebarHeaderAction(
-                  enabled: true,
-                  icon: CupertinoIcons.folder_badge_plus,
-                  tooltip: 'New folder',
-                  onPressed: () =>
-                      _promptNewDialogueLibraryFolder(context, notifier),
-                ),
-                const SizedBox(width: 6),
-                _SidebarHeaderAction(
-                  enabled: true,
-                  icon: CupertinoIcons.square_arrow_down,
-                  tooltip: 'Import .yarn or .txt',
-                  onPressed: () =>
-                      _importProjectDialoguePicker(context, notifier),
-                ),
-              ],
-              body: _buildScriptLibraryIsland(context, project, state, notifier),
-            ),
+              const SizedBox(width: 6),
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.folder_badge_plus,
+                tooltip: 'New folder',
+                onPressed: () =>
+                    _promptNewDialogueLibraryFolder(context, notifier),
+                iconColor: actionIcon,
+                hoverFill: actionHover,
+              ),
+              const SizedBox(width: 6),
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.square_arrow_down,
+                tooltip: 'Import .yarn or .txt',
+                onPressed: () => _importProjectDialoguePicker(context, notifier),
+                iconColor: actionIcon,
+                hoverFill: actionHover,
+              ),
+            ],
           ),
+          child: _buildScriptLibraryIsland(context, project, state, notifier),
         ),
-        const SizedBox(height: 14),
-        ResizablePane.noScrollBar(
-          key: const ValueKey('project_explorer_world_pane'),
-          resizableSide: ResizableSide.top,
-          minSize: 180,
-          maxSize: 420,
-          startSize: 280,
-          decoration: const BoxDecoration(
-            color: MacosColors.transparent,
-            border: Border(
-              top: BorderSide(color: MacosColors.transparent),
-            ),
-          ),
-          child: _ExplorerIslandSurface(
-            tint: EditorChrome.islandNeutralTint,
-            child: _ExplorerCollapsibleSection(
-              expanded: _expandWorld,
-              onToggle: () => setState(() => _expandWorld = !_expandWorld),
-              headerStart: _explorerGradientIcon(
-                context: context,
-                icon: CupertinoIcons.map_fill,
-                accent: EditorChrome.accentCyan,
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'World Maps',
+          subtitle: 'Regions, groups and playable maps',
+          icon: CupertinoIcons.map_fill,
+          accentColor: EditorChrome.inspectorJoyPlum,
+          badgeText: '${project.maps.length}',
+          expanded: _expandWorld,
+          onToggle: () => setState(() => _expandWorld = !_expandWorld),
+          expandedHeight: hWorld,
+          headerTrailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.folder_badge_plus,
+                tooltip: 'New root group',
+                onPressed: () => _showCreateGroupDialog(context, notifier),
+                iconColor: actionIcon,
+                hoverFill: actionHover,
               ),
-              title: 'World Maps',
-              subtitle: 'Regions, groups and playable maps',
-              trailing: [
-                _SidebarHeaderAction(
-                  enabled: true,
-                  icon: CupertinoIcons.folder_badge_plus,
-                  tooltip: 'New root group',
-                  onPressed: () => _showCreateGroupDialog(context, notifier),
-                ),
-              ],
-              body: _buildWorldIslandBody(context, worldChildren),
-            ),
+            ],
           ),
+          child: _buildWorldIslandBody(context, worldChildren),
         ),
-        const SizedBox(height: 14),
-        ResizablePane.noScrollBar(
-          key: const ValueKey('project_explorer_surface_pane'),
-          resizableSide: ResizableSide.top,
-          minSize: 180,
-          maxSize: 480,
-          startSize: 280,
-          decoration: const BoxDecoration(
-            color: MacosColors.transparent,
-            border: Border(
-              top: BorderSide(color: MacosColors.transparent),
-            ),
-          ),
-          child: _ExplorerIslandSurface(
-            tint: EditorChrome.islandWarmTint,
-            child: _ExplorerCollapsibleSection(
-              expanded: _expandSurface,
-              onToggle: () => setState(() => _expandSurface = !_expandSurface),
-              headerStart: _explorerGradientIcon(
-                context: context,
-                icon: CupertinoIcons.square_stack_3d_down_right_fill,
-                accent: EditorChrome.accentWarm,
-              ),
-              title: 'Surface Library',
-              subtitle: 'Terrains, paths and ground presets',
-              trailing: const [],
-              body: const TerrainEditorPanel(omitOuterHeader: true),
-            ),
-          ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Surface Library',
+          subtitle: 'Terrains, paths and ground presets',
+          icon: CupertinoIcons.square_stack_3d_down_right_fill,
+          accentColor: EditorChrome.inspectorJoyMint,
+          badgeText: '$presetCount',
+          expanded: _expandSurface,
+          onToggle: () => setState(() => _expandSurface = !_expandSurface),
+          expandedHeight: hSurface,
+          child: const TerrainEditorPanel(omitOuterHeader: true),
         ),
       ],
     );
@@ -1690,37 +1571,22 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   }
 }
 
-class _ExplorerIslandSurface extends StatelessWidget {
-  const _ExplorerIslandSurface({
-    required this.child,
-    required this.tint,
-  });
-
-  final Widget child;
-  final Color tint;
-
-  @override
-  Widget build(BuildContext context) {
-    return EditorIsland(
-      radius: 24,
-      tint: tint,
-      child: child,
-    );
-  }
-}
-
 class _SidebarHeaderAction extends StatefulWidget {
   const _SidebarHeaderAction({
     required this.enabled,
     required this.icon,
     required this.tooltip,
     required this.onPressed,
+    this.iconColor,
+    this.hoverFill,
   });
 
   final bool enabled;
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
+  final Color? iconColor;
+  final Color? hoverFill;
 
   @override
   State<_SidebarHeaderAction> createState() => _SidebarHeaderActionState();
@@ -1746,7 +1612,8 @@ class _SidebarHeaderActionState extends State<_SidebarHeaderAction> {
             height: 30,
             decoration: BoxDecoration(
               color: _hovered && enabled
-                  ? CupertinoColors.systemFill.resolveFrom(context)
+                  ? (widget.hoverFill ??
+                      CupertinoColors.systemFill.resolveFrom(context))
                   : CupertinoColors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
@@ -1755,7 +1622,8 @@ class _SidebarHeaderActionState extends State<_SidebarHeaderAction> {
               widget.icon,
               size: 16,
               color: enabled
-                  ? EditorChrome.primaryLabel(context)
+                  ? (widget.iconColor ??
+                      EditorChrome.primaryLabel(context))
                   : CupertinoColors.inactiveGray.resolveFrom(context),
             ),
           ),

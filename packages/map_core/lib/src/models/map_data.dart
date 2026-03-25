@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'geometry.dart';
 import 'enums.dart';
 import 'map_entity_payloads.dart';
+import 'map_entity_editor_visual.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 
@@ -86,6 +87,8 @@ class MapEntity with _$MapEntity {
     MapEntitySignData? sign,
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
+    /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
+    MapEntityEditorVisual? editorVisual,
     /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
     @Default({}) Map<String, String> properties,
   }) = _MapEntity;
@@ -119,6 +122,22 @@ extension MapEntityDisplayX on MapEntity {
     }
     final n = name.trim();
     return n.isNotEmpty ? n : id;
+  }
+}
+
+extension MapEntityEditorVisualResolutionX on MapEntity {
+  String? get resolvedEditorElementId {
+    final id = editorVisual?.elementId.trim();
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    if (kind == MapEntityKind.npc) {
+      final legacy = npc?.visualElementId.trim() ?? '';
+      if (legacy.isNotEmpty) {
+        return legacy;
+      }
+    }
+    return null;
   }
 }
 

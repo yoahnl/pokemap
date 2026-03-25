@@ -2201,6 +2201,7 @@ class EditorNotifier extends _$EditorNotifier {
     MapEntitySignData? sign,
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
+    MapEntityEditorVisual? editorVisual,
   }) {
     final selectedEntityId = state.selectedEntityId;
     if (selectedEntityId == null) return;
@@ -2216,6 +2217,7 @@ class EditorNotifier extends _$EditorNotifier {
       sign: sign,
       item: item,
       spawn: spawn,
+      editorVisual: editorVisual,
     );
   }
 
@@ -2231,6 +2233,7 @@ class EditorNotifier extends _$EditorNotifier {
     MapEntitySignData? sign,
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
+    MapEntityEditorVisual? editorVisual,
   }) {
     final map = state.activeMap;
     if (map == null) return;
@@ -2248,6 +2251,7 @@ class EditorNotifier extends _$EditorNotifier {
         sign: sign,
         item: item,
         spawn: spawn,
+        editorVisual: editorVisual,
       );
       _applyMapMutation(
         previousMap: map,

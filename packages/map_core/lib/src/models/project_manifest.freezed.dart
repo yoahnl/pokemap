@@ -1713,7 +1713,7 @@ mixin _$ProjectDialogueEntry {
   /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
   String? get defaultStartNode => throw _privateConstructorUsedError;
 
-  /// Dossier dans [dialogueFolders] (bibliothèque scripts) ; null = racine.
+  /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
   String? get folderId => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
 
@@ -1927,7 +1927,7 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
   @override
   final String? defaultStartNode;
 
-  /// Dossier dans [dialogueFolders] (bibliothèque scripts) ; null = racine.
+  /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
   @override
   final String? folderId;
   @override
@@ -2021,7 +2021,7 @@ abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
   @override
   String? get defaultStartNode;
 
-  /// Dossier dans [dialogueFolders] (bibliothèque scripts) ; null = racine.
+  /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
   @override
   String? get folderId;
   @override

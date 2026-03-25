@@ -15,6 +15,10 @@ class InspectorSectionCard extends StatelessWidget {
     this.subtitle,
     this.badgeText,
     this.accentColor = EditorChrome.accentPrimary,
+    /// Boutons ou actions entre le titre et le badge (n’ouvrent pas / ne ferment pas la section).
+    this.headerTrailing,
+    /// Rayon des coins ; défaut 20 (inspecteur), ~28 pour tuiles type « pilule ».
+    this.borderRadius = 20,
   });
 
   final String title;
@@ -26,6 +30,8 @@ class InspectorSectionCard extends StatelessWidget {
   final double expandedHeight;
   final String? badgeText;
   final Color accentColor;
+  final Widget? headerTrailing;
+  final double borderRadius;
 
   static const Color _iconHi = Color(0xFFFFFFFF);
   static const Color _iconLo = Color(0xFF120808);
@@ -65,7 +71,7 @@ class InspectorSectionCard extends StatelessWidget {
               fillBottom,
             ],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
             color: accentColor.withValues(alpha: 0.65),
             width: 1,
@@ -75,103 +81,116 @@ class InspectorSectionCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Column(
           children: [
-            CupertinoButton(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              minimumSize: Size.zero,
-              onPressed: onToggle,
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          iconTop,
-                          iconBottom,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(11),
-                      border: Border.all(
-                        color: accentColor.withValues(alpha: 0.85),
-                        width: 1.25,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: MacosIcon(
-                      icon,
-                      size: 19,
-                      color: iconOnAccent,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                    minimumSize: Size.zero,
+                    onPressed: onToggle,
+                    child: Row(
                       children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: label,
-                            letterSpacing: -0.1,
-                          ),
-                        ),
-                        if (subtitle != null &&
-                            subtitle!.trim().isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            subtitle!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: subtitleTinted,
-                              fontWeight: FontWeight.w600,
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                iconTop,
+                                iconBottom,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(11),
+                            border: Border.all(
+                              color: accentColor.withValues(alpha: 0.85),
+                              width: 1.25,
                             ),
                           ),
-                        ],
+                          alignment: Alignment.center,
+                          child: MacosIcon(
+                            icon,
+                            size: 19,
+                            color: iconOnAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: label,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                              if (subtitle != null &&
+                                  subtitle!.trim().isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  subtitle!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: subtitleTinted,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  if (hasBadge) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Color.lerp(accentColor, _iconLo, 0.28)!,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: accentColor.withValues(alpha: 0.9),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        badgeText,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: CupertinoColors.white,
-                          letterSpacing: 0.2,
-                        ),
+                ),
+                if (headerTrailing != null) headerTrailing!,
+                if (hasBadge) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Color.lerp(accentColor, _iconLo, 0.28)!,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.9),
+                        width: 1,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                  ],
-                  MacosIcon(
+                    child: Text(
+                      badgeText,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: CupertinoColors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                CupertinoButton(
+                  padding: const EdgeInsets.fromLTRB(4, 12, 12, 12),
+                  minimumSize: Size.zero,
+                  onPressed: onToggle,
+                  child: MacosIcon(
                     expanded
                         ? CupertinoIcons.chevron_up
                         : CupertinoIcons.chevron_down,
                     size: 18,
                     color: subtitleTinted,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
             if (expanded)
               Padding(

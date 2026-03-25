@@ -934,6 +934,9 @@ mixin _$MapEntity {
   MapEntityItemData? get item => throw _privateConstructorUsedError;
   MapEntitySpawnData? get spawn => throw _privateConstructorUsedError;
 
+  /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
+  MapEntityEditorVisual? get editorVisual => throw _privateConstructorUsedError;
+
   /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   Map<String, String> get properties => throw _privateConstructorUsedError;
 
@@ -962,6 +965,7 @@ abstract class $MapEntityCopyWith<$Res> {
       MapEntitySignData? sign,
       MapEntityItemData? item,
       MapEntitySpawnData? spawn,
+      MapEntityEditorVisual? editorVisual,
       Map<String, String> properties});
 
   $GridPosCopyWith<$Res> get pos;
@@ -970,6 +974,7 @@ abstract class $MapEntityCopyWith<$Res> {
   $MapEntitySignDataCopyWith<$Res>? get sign;
   $MapEntityItemDataCopyWith<$Res>? get item;
   $MapEntitySpawnDataCopyWith<$Res>? get spawn;
+  $MapEntityEditorVisualCopyWith<$Res>? get editorVisual;
 }
 
 /// @nodoc
@@ -996,6 +1001,7 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
     Object? sign = freezed,
     Object? item = freezed,
     Object? spawn = freezed,
+    Object? editorVisual = freezed,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -1035,6 +1041,10 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
           ? _value.spawn
           : spawn // ignore: cast_nullable_to_non_nullable
               as MapEntitySpawnData?,
+      editorVisual: freezed == editorVisual
+          ? _value.editorVisual
+          : editorVisual // ignore: cast_nullable_to_non_nullable
+              as MapEntityEditorVisual?,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -1117,6 +1127,20 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
       return _then(_value.copyWith(spawn: value) as $Val);
     });
   }
+
+  /// Create a copy of MapEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntityEditorVisualCopyWith<$Res>? get editorVisual {
+    if (_value.editorVisual == null) {
+      return null;
+    }
+
+    return $MapEntityEditorVisualCopyWith<$Res>(_value.editorVisual!, (value) {
+      return _then(_value.copyWith(editorVisual: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -1137,6 +1161,7 @@ abstract class _$$MapEntityImplCopyWith<$Res>
       MapEntitySignData? sign,
       MapEntityItemData? item,
       MapEntitySpawnData? spawn,
+      MapEntityEditorVisual? editorVisual,
       Map<String, String> properties});
 
   @override
@@ -1151,6 +1176,8 @@ abstract class _$$MapEntityImplCopyWith<$Res>
   $MapEntityItemDataCopyWith<$Res>? get item;
   @override
   $MapEntitySpawnDataCopyWith<$Res>? get spawn;
+  @override
+  $MapEntityEditorVisualCopyWith<$Res>? get editorVisual;
 }
 
 /// @nodoc
@@ -1175,6 +1202,7 @@ class __$$MapEntityImplCopyWithImpl<$Res>
     Object? sign = freezed,
     Object? item = freezed,
     Object? spawn = freezed,
+    Object? editorVisual = freezed,
     Object? properties = null,
   }) {
     return _then(_$MapEntityImpl(
@@ -1214,6 +1242,10 @@ class __$$MapEntityImplCopyWithImpl<$Res>
           ? _value.spawn
           : spawn // ignore: cast_nullable_to_non_nullable
               as MapEntitySpawnData?,
+      editorVisual: freezed == editorVisual
+          ? _value.editorVisual
+          : editorVisual // ignore: cast_nullable_to_non_nullable
+              as MapEntityEditorVisual?,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -1236,6 +1268,7 @@ class _$MapEntityImpl implements _MapEntity {
       this.sign,
       this.item,
       this.spawn,
+      this.editorVisual,
       final Map<String, String> properties = const {}})
       : _properties = properties;
 
@@ -1263,6 +1296,10 @@ class _$MapEntityImpl implements _MapEntity {
   @override
   final MapEntitySpawnData? spawn;
 
+  /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
+  @override
+  final MapEntityEditorVisual? editorVisual;
+
   /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   final Map<String, String> _properties;
 
@@ -1277,7 +1314,7 @@ class _$MapEntityImpl implements _MapEntity {
 
   @override
   String toString() {
-    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, properties: $properties)';
+    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, editorVisual: $editorVisual, properties: $properties)';
   }
 
   @override
@@ -1294,14 +1331,27 @@ class _$MapEntityImpl implements _MapEntity {
             (identical(other.sign, sign) || other.sign == sign) &&
             (identical(other.item, item) || other.item == item) &&
             (identical(other.spawn, spawn) || other.spawn == spawn) &&
+            (identical(other.editorVisual, editorVisual) ||
+                other.editorVisual == editorVisual) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, kind, pos, size, npc,
-      sign, item, spawn, const DeepCollectionEquality().hash(_properties));
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      kind,
+      pos,
+      size,
+      npc,
+      sign,
+      item,
+      spawn,
+      editorVisual,
+      const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -1330,6 +1380,7 @@ abstract class _MapEntity implements MapEntity {
       final MapEntitySignData? sign,
       final MapEntityItemData? item,
       final MapEntitySpawnData? spawn,
+      final MapEntityEditorVisual? editorVisual,
       final Map<String, String> properties}) = _$MapEntityImpl;
 
   factory _MapEntity.fromJson(Map<String, dynamic> json) =
@@ -1353,6 +1404,10 @@ abstract class _MapEntity implements MapEntity {
   MapEntityItemData? get item;
   @override
   MapEntitySpawnData? get spawn;
+
+  /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
+  @override
+  MapEntityEditorVisual? get editorVisual;
 
   /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   @override

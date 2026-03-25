@@ -1844,14 +1844,14 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 - Poser des points de spawn: fait (MVP generique via entites)
 - Editer les proprietes des entites: fait (MVP generique + payloads types par kind + DialogueRef)
 - Lier une entite a un fichier de dialogue (DialogueRef): partiellement fait (modele + inspector; resolution fichier / execution non faits)
-- Gerer une bibliotheque de fichiers de dialogues / scripts projet: pas fait
+- Gerer une bibliotheque de fichiers de dialogues / scripts projet: partiellement fait (registre manifest + dossiers + DnD + Script Library ; pas d editeur Yarn integre)
 - Definir des zones de rencontres sauvages (areas + tables): pas fait
 - Configurer les tables de rencontres (especes, niveaux, taux): pas fait
 - Creer et editer des dresseurs / equipes PNJ: pas fait
 - Editer les proprietes de map (nom affiche, musique, meteo, flags): pas fait
 - Editer les proprietes globales du projet: partiellement fait
 - Avoir un inspector de proprietes: partiellement fait (inspector map contextuel + sections pliables; inspector complet multi-systemes encore a pousser)
-- Avoir un explorateur de projet: fait
+- Avoir un explorateur de projet: fait (tuiles repliables type inspecteur, liste deroulante globale, sans redimensionnement vertical entre cartes)
 - Avoir une toolbar claire: fait
 - Avoir une barre de statut: fait
 - Supporter l undo/redo: fait (map active)
@@ -1895,7 +1895,7 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 **Fichiers principaux**
 
 - **map_core** : `lib/src/models/project_manifest.dart` (+ codegen), `lib/src/validation/dialogue_validation.dart`, `lib/src/validation/validators.dart`, `lib/src/operations/map_entities.dart`, `lib/src/operations/project_dialogue_refs.dart`, `lib/map_core.dart` (exports), `map_entity_payloads.dart` (doc `DialogueRef`).
-- **map_editor** : `lib/src/application/use_cases/project_dialogue_use_cases.dart`, `map_use_cases.dart` / `SaveMapUseCase` + `file_repositories.dart` (`projectDialogueContext`), `editor_notifier.dart` (actions bibliotheque, pas de logique lourde), `editor_state.dart` (`selectedProjectDialogueId`), `use_case_providers.dart`, `project_explorer_panel.dart` (volet Dialogues), `entity_properties_panel.dart` (picker NPC / signe + mode fichier avance), `cupertino_editor_widgets.dart` (confirmation suppression via `showMacosEditorTwoChoiceAlert`).
+- **map_editor** : `lib/src/application/use_cases/project_dialogue_use_cases.dart`, `map_use_cases.dart` / `SaveMapUseCase` + `file_repositories.dart` (`projectDialogueContext`), `editor_notifier.dart` (actions bibliotheque, pas de logique lourde), `editor_state.dart` (`selectedProjectDialogueId`), `use_case_providers.dart`, `project_explorer_panel.dart` (Script Library + tuiles), `entity_properties_panel.dart` (picker NPC / signe + mode fichier avance), `cupertino_editor_widgets.dart` (confirmation suppression via `showMacosEditorTwoChoiceAlert`), `inspector_section_card.dart` (tuiles explorateur = meme widget que panneau inspecteur map).
 
 **Limites restantes**
 
@@ -1906,8 +1906,15 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 **Extension explorateur (scripts + UI)**
 
 - Volet **Script Library** (fichiers `.yarn` / registre dialogues) : dossiers hierarchiques `ProjectDialogueFolder` + `ProjectDialogueEntry.folderId`, glisser-deposer dossiers/scripts comme la bibliotheque tilesets, bandeau racine de depot.
-- Sections **Tileset**, **Script**, **World Maps**, **Surface** : repliables (chevron), icones en degrades d accent ; `TerrainEditorPanel(omitOuterHeader: true)` dans l explorateur pour eviter le double titre Surface.
 - Fichiers cles supplementaires : `map_core` `dialogue_library_tree.dart`, `project_dialogue_library_use_cases.dart`, migration JSON `dialogueFolders: []`.
+
+**World Explorer — tuiles repliables + scroll (alignement panneau droit)**
+
+- Le panneau gauche **World Explorer** n utilise plus de **`ResizablePane`** entre les zones : tout le contenu projet (en-tete + sections) est dans un **`SingleChildScrollView`** vertical.
+- Les quatre zones **Tileset Library**, **Script Library**, **World Maps**, **Surface Library** sont des **`InspectorSectionCard`** (meme composant que l inspecteur de map a droite) : degrades colores, coins arrondis (~28 px), icone encadree, titre / sous-titre, **badge** (compteurs : tilesets, scripts, maps, presets terrain+chemins), chevron, actions d en-tete (`headerTrailing`) sans declencher le repli.
+- Couleurs d accent par tuile (proches de l inspecteur) : orange `inspectorJoyBlue` (tilesets), rose `inspectorJoyLilac` (scripts), violet `inspectorJoyPlum` (cartes), vert `inspectorJoyMint` (surfaces).
+- Hauteur du corps d une tuile ouverte : fonction de la hauteur d ecran (clamp), avec scroll interne dans la zone comme pour l inspecteur ; `TerrainEditorPanel(omitOuterHeader: true)` conserve un seul titre « Surface » sur la tuile.
+- **`_SidebarHeaderAction`** supporte `iconColor` / `hoverFill` pour les icones claires sur fond de tuile coloree.
 
 ## Mini tableau priorites (etat)
 

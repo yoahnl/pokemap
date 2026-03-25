@@ -6,6 +6,7 @@ import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
 import '../operations/map_entities.dart';
 import 'dialogue_validation.dart';
+import 'entity_editor_visual_validation.dart';
 
 class ProjectValidator {
   /// Rectangles sources valides, [durationMs] > 0 si présent, au moins une frame,
@@ -790,6 +791,7 @@ class MapValidator {
       assertValidMapEntityTypedPayloads(entity);
       if (projectDialogueContext != null) {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
+        assertEntityEditorVisualAgainstProject(entity, projectDialogueContext);
       }
     }
     _validateUniqueIds(

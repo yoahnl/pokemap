@@ -28,6 +28,7 @@ class UpdateEntityOnMapUseCase {
     MapEntitySignData? sign,
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
+    MapEntityEditorVisual? editorVisual,
   }) {
     final updated = updateEntityOnMap(
       map,
@@ -42,6 +43,7 @@ class UpdateEntityOnMapUseCase {
       sign: sign ?? mapEntityTypedPayloadUnset,
       item: item ?? mapEntityTypedPayloadUnset,
       spawn: spawn ?? mapEntityTypedPayloadUnset,
+      editorVisual: editorVisual ?? mapEntityTypedPayloadUnset,
     );
     MapValidator.validate(updated);
     return updated;
