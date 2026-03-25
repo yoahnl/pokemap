@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "map_editor (macOS debug)",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "macos", "--debug"],
+      "port": 8181
+    },
+    {
+      "name": "map_editor (macOS release)",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "macos", "--release"],
+      "port": 8181
+    }
+  ]
+}
