@@ -2063,6 +2063,7 @@ class MapGridPainter extends CustomPainter {
           pathAutotileSetsByPresetId,
         ) ||
         !mapEquals(oldDelegate.terrainPresetsByType, terrainPresetsByType) ||
+        oldDelegate.project != project ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||

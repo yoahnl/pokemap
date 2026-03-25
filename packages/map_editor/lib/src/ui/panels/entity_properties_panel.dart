@@ -15,6 +15,7 @@ import '../shared/inspector_embedded_widgets.dart';
 enum _DialogueRefSource { none, manifest, legacy }
 
 const _kDialogueNoneMenuId = '__dialogue_none__';
+const _kElementNoneMenuId = '__entity_element_none__';
 
 String _normalizeDialogueRelPath(String raw) {
   return raw.trim().replaceAll(r'\', '/');
@@ -62,7 +63,6 @@ class _EntityPropertiesPanelState
   final _npcDialogueId = TextEditingController();
   final _npcScriptPath = TextEditingController();
   final _npcStartNode = TextEditingController();
-  final _npcVisualElementId = TextEditingController();
   EntityFacing _npcFacing = EntityFacing.south;
 
   final _signTitle = TextEditingController();
@@ -85,6 +85,7 @@ class _EntityPropertiesPanelState
   MapEntityKind _selectedKind = MapEntityKind.npc;
   _DialogueRefSource _npcDialogueSource = _DialogueRefSource.none;
   _DialogueRefSource _signDialogueSource = _DialogueRefSource.none;
+  String _editorVisualMenuId = _kElementNoneMenuId;
 
   @override
   void dispose() {
@@ -97,7 +98,6 @@ class _EntityPropertiesPanelState
     _npcDialogueId.dispose();
     _npcScriptPath.dispose();
     _npcStartNode.dispose();
-    _npcVisualElementId.dispose();
     _signTitle.dispose();
     _signDialogueId.dispose();
     _signScriptPath.dispose();
@@ -766,6 +766,147 @@ class _EntityPropertiesPanelState
     ];
   }
 
+  List<ProjectElementEntry> _sortedProjectElements(
+    List<ProjectElementEntry> raw,
+  ) {
+    final list = List<ProjectElementEntry>.of(raw);
+    list.sort((a, b) {
+      final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      if (byName != 0) {
+        return byName;
+      }
+      return a.id.compareTo(b.id);
+    });
+    return list;
+  }
+
+  List<String> _elementVisualMenuIds(
+    List<ProjectElementEntry> sorted,
+    String currentId,
+  ) {
+    final ids = <String>[
+      _kElementNoneMenuId,
+      ...sorted.map((e) => e.id),
+    ];
+    final c = currentId.trim();
+    if (c.isNotEmpty &&
+        c != _kElementNoneMenuId &&
+        !ids.contains(c)) {
+      ids.add(c);
+    }
+    return ids;
+  }
+
+  String _elementVisualMenuLabel(
+    List<ProjectElementEntry> sorted,
+    String menuId,
+  ) {
+    if (menuId == _kElementNoneMenuId) {
+      return _l('Aucun visuel', 'No visual');
+    }
+    for (final e in sorted) {
+      if (e.id == menuId) {
+        return e.name;
+      }
+    }
+    return '$menuId (${_l('absent', 'missing')})';
+  }
+
+  String _editorVisualSelectedMenuId() {
+    final m = _editorVisualMenuId.trim();
+    if (m.isEmpty || m == _kElementNoneMenuId) {
+      return _kElementNoneMenuId;
+    }
+    return m;
+  }
+
+  List<Widget> _editorVisualFields(
+    BuildContext context,
+    ProjectManifest? project,
+  ) {
+    const accent = EditorChrome.inspectorJoyCyan;
+    final elements = project?.elements ?? const <ProjectElementEntry>[];
+    final sorted = _sortedProjectElements(elements);
+
+    if (widget.embedded) {
+      return [
+        InspectorEmbeddedSectionLabel(
+          _l('Visuel sur la carte', 'Map visual'),
+        ),
+        const SizedBox(height: 6),
+        if (sorted.isEmpty)
+          InspectorEmbeddedFootnote(
+            text: _l(
+              'Créez des éléments dans l’explorateur (bibliothèque Éléments) pour les afficher ici.',
+              'Create elements in the explorer (Elements library) to use them here.',
+            ),
+            accent: accent,
+          )
+        else ...[
+          InspectorEmbeddedDropdown(
+            accent: accent,
+            fieldLabel: _l('Élément projet', 'Project element'),
+            valueLabel: _elementVisualMenuLabel(
+              sorted,
+              _editorVisualSelectedMenuId(),
+            ),
+            orderedIds: _elementVisualMenuIds(sorted, _editorVisualMenuId),
+            selectedMenuValue: _editorVisualSelectedMenuId(),
+            selectedIdForCheck: _editorVisualSelectedMenuId(),
+            idToLabel: (id) => _elementVisualMenuLabel(sorted, id),
+            onSelected: (id) => setState(() => _editorVisualMenuId = id),
+            tooltip: _l(
+              'Première frame du sprite (tileset)',
+              'First sprite frame (tileset)',
+            ),
+          ),
+        ],
+      ];
+    }
+    return [
+      Text(
+        _l('Visuel sur la carte', 'Map visual'),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        ),
+      ),
+      const SizedBox(height: 6),
+      if (sorted.isEmpty)
+        Text(
+          _l(
+            'Ajoutez des éléments projet dans l’explorateur.',
+            'Add project elements in the explorer.',
+          ),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        )
+      else
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: () async {
+            final ids = _elementVisualMenuIds(sorted, _editorVisualMenuId);
+            final picked = await showCupertinoListPicker<String>(
+              context: context,
+              title: _l('Élément projet', 'Project element'),
+              items: ids,
+              labelOf: (id) => _elementVisualMenuLabel(sorted, id),
+            );
+            if (picked != null && context.mounted) {
+              setState(() => _editorVisualMenuId = picked);
+            }
+          },
+          child: Text(
+            _elementVisualMenuLabel(sorted, _editorVisualSelectedMenuId()),
+          ),
+        ),
+    ];
+  }
+
   Widget _kindSpecificFields(
     BuildContext context,
     ProjectManifest? project,
@@ -840,12 +981,6 @@ class _EntityPropertiesPanelState
                   '${_l('Orientation', 'Facing')}: ${_facingLabel(_npcFacing)}',
                 ),
               ),
-            const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('Visuel (ID élément)', 'Visual (element ID)'),
-              controller: _npcVisualElementId,
-            ),
           ],
         );
       case MapEntityKind.sign:
@@ -1175,6 +1310,8 @@ class _EntityPropertiesPanelState
           ],
         ),
         const SizedBox(height: 12),
+        ..._editorVisualFields(context, project),
+        const SizedBox(height: 12),
         _kindSpecificFields(context, project),
         const SizedBox(height: 12),
         Row(
@@ -1323,7 +1460,11 @@ class _EntityPropertiesPanelState
     }
     _npcStartNode.text = n.dialogue?.startNode ?? '';
     _npcFacing = n.facing;
-    _npcVisualElementId.text = n.visualElementId;
+
+    final resolvedEv = entity?.resolvedEditorElementId;
+    _editorVisualMenuId = (resolvedEv == null || resolvedEv.isEmpty)
+        ? _kElementNoneMenuId
+        : resolvedEv;
 
     final s = entity?.sign ?? const MapEntitySignData();
     _signTitle.text = s.title;
@@ -1408,6 +1549,7 @@ class _EntityPropertiesPanelState
       enc(entity.sign?.toJson()),
       enc(entity.item?.toJson()),
       enc(entity.spawn?.toJson()),
+      enc(entity.editorVisual?.toJson()),
     ].join('|');
   }
 
@@ -1445,6 +1587,12 @@ class _EntityPropertiesPanelState
     MapEntityItemData? itemPayload;
     MapEntitySpawnData? spawnPayload;
 
+    final evMenu = _editorVisualMenuId.trim();
+    final MapEntityEditorVisual? editorVisualPayload =
+        evMenu == _kElementNoneMenuId || evMenu.isEmpty
+            ? null
+            : MapEntityEditorVisual(elementId: evMenu);
+
     switch (_selectedKind) {
       case MapEntityKind.npc:
         final DialogueRef? npcDlg;
@@ -1475,7 +1623,7 @@ class _EntityPropertiesPanelState
           displayName: _nameController.text.trim(),
           dialogue: npcDlg,
           facing: _npcFacing,
-          visualElementId: _npcVisualElementId.text.trim(),
+          visualElementId: '',
         );
         break;
       case MapEntityKind.sign:
@@ -1605,6 +1753,7 @@ class _EntityPropertiesPanelState
       sign: _selectedKind == MapEntityKind.sign ? signPayload : null,
       item: _selectedKind == MapEntityKind.item ? itemPayload : null,
       spawn: _selectedKind == MapEntityKind.spawn ? spawnPayload : null,
+      editorVisual: editorVisualPayload,
     );
   }
 

@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-25 (refactoring gameplay zones : payloads typés, drag-to-draw canvas)
+Last updated: 2026-03-25 (lot visuel entités éditeur : MapEntityEditorVisual, canvas, inspector)
 
 ## Vision produit
 
@@ -22,7 +22,7 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 | **2 — Runtime standard** (`map_runtime`) | Lecteur de projet, scene jouable, deplacement/collisions/warps, interactions, dialogues, comportements standards Pokemon-like | **A construire — prochaine grande etape** |
 | **3 — Couches haut niveau** | No-code, framework abstrait, simplification maximale creation jeu | **Volontairement plus tard** |
 
-*Phase 1 avancee: maps/layers/tilesets/terrains/collisions/warps/triggers/entites faits (MVP). Manque encore: dialogues, rencontres, dresseurs, proprietes de map.*
+*Phase 1 avancee: maps/layers/tilesets/terrains/collisions/warps/triggers/entites avec visuel editeur (element + fallback canvas) faits (MVP). Manque encore: dialogues (partiel), rencontres (partiel), dresseurs, proprietes de map.*
 
 ### Repartition des roles
 
@@ -53,6 +53,37 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 ---
 
 > **Derniers lots documentés** — detail technique des deux lots les plus recents (historique complet dans **## 7**).
+
+## Lot: Visuel entités éditeur — Entity Visual Presentation (2026-03-25)
+
+Objectif: sur le canvas, ne plus seulement un rectangle coloré : afficher le **sprite** issu d’un **élément projet** (première frame `TilesetVisualFrame`) quand il est configuré, sinon un **fallback** lisible par type (`npc` / `sign` / `item` / `spawn` / `custom`). Le domaine porte une référence **éditeur** explicite, distincte du futur runtime.
+
+### Modèle (`map_core`)
+
+- **`MapEntityEditorVisual`** (`map_entity_editor_visual.dart`, Freezed + JSON) : `elementId` → `ProjectElementEntry.id` (sémantique **éditeur uniquement**).
+- **`MapEntity.editorVisual?`** : champ optionnel (pas dans `properties`) ; JSON `editorVisual` ; rétrocompat absences → `null` → fallback canvas.
+- **`MapEntityEditorVisualResolutionX.resolvedEditorElementId`** sur `MapEntity` (`map_data.dart`) : `editorVisual.elementId` sinon rétrocompat **`npc.visualElementId`** non vide.
+- **`updateEntityOnMap`** : paramètre `editorVisual` avec sentinelle `mapEntityTypedPayloadUnset` ; `_normalizeEditorVisual` (trim, id vide → `null`).
+- **`assertEntityEditorVisualAgainstProject`** : si `MapValidator.validate(..., projectDialogueContext: project)` est appelé avec un manifeste, l’`elementId` doit exister dans `project.elements`.
+- Export `map_core.dart`, `entity_editor_visual_validation.dart`.
+
+### Éditeur (`map_editor`)
+
+- **`entity_editor_element_visual.dart`** : résolution `resolveEntityPrimaryFrameVisual` (image tileset + `Rect` source pixels) ; `collectTilesetIdsForEntityEditorVisuals` pour précharger les tilesets référencés par les entités.
+- **`MapCanvas`** : `_collectLayerTilesetPaths` inclut ces tilesets ; `MapGridPainter` reçoit `project` ; `_paintEntities` : sprite en **contain** dans la hitbox (coins arrondis, clip) ou fallback (fond teinté + glyphe **N/S/I/P/+**) ; **bordure de sélection**, badge type et **label** conservés.
+- **`EntityPropertiesPanel`** : section **Visuel sur la carte** (liste déroulante des `ProjectElementEntry`, option aucun) pour **tous** les kinds ; suppression du champ texte PNJ « ID élément » — à l’enregistrement : `editorVisual` + `npc.visualElementId` vidé (source unique côté nouveau champ).
+- **`EntityEditingService`**, **`UpdateEntityOnMapUseCase`**, **`EditorNotifier`** : paramètre `editorVisual` sur update.
+
+### Hors scope (volontaire)
+
+- Pas d’animation multi-frame entité, pas de Flame / `map_runtime`, pas de preview image async dans l’inspector (libellé + dropdown seulement dans ce lot).
+
+### Fichiers principaux touchés
+
+- `map_core` : `map_entity_editor_visual.dart`, `map_data.dart`, `map_entities.dart`, `validators.dart`, `entity_editor_visual_validation.dart`, `map_core.dart` ; fichiers générés Freezed/JSON.
+- `map_editor` : `entity_editor_element_visual.dart`, `map_canvas.dart`, `entity_properties_panel.dart`, `entity_editing_service.dart`, `entity_use_cases.dart`, `editor_notifier.dart`.
+
+---
 
 ## Lot: Refactoring zones gameplay — payloads typés + drag-to-draw (2026-03-25)
 
@@ -656,12 +687,17 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 
 - **Zones gameplay + tables de rencontres**: `MapGameplayZone`, `ProjectEncounterTable`, overlay canvas, panels — voir lot ci-dessus.
 - **Entités structurées + DialogueRef**: payloads typés, `DialogueRef`, inspector contextuel — voir lot précédent.
+- **Visuel entités éditeur**: `MapEntityEditorVisual`, rendu canvas (élément projet / fallback), inspector — voir lot en tête de document.
 
 ### Suite directe (hors scope de cette section detaillee)
 
 Voir **8. Prochaines etapes recommandees** (decoupage **editor court terme** / **runtime moyen terme**).
 
 ## 7. Dernieres modifications realisees
+2026-03-25 (visuel entites editeur — Entity Visual Presentation):
+- `map_core`: `MapEntityEditorVisual`, champ `MapEntity.editorVisual`, extension `MapEntityEditorVisualResolutionX.resolvedEditorElementId`, `assertEntityEditorVisualAgainstProject`, parametre `editorVisual` sur `updateEntityOnMap`.
+- `map_editor`: service `entity_editor_element_visual.dart` (resolution premiere frame + collecte tilesets), `MapCanvas` / `MapGridPainter` (sprite + fallbacks N/S/I/P/+), `EntityPropertiesPanel` (section visuel pour tous les kinds), filiere `editorVisual` jusqu a `EditorNotifier`.
+
 2026-03-25 (zones gameplay + tables de rencontres — domaine + editor complet):
 - `map_core`: nouveaux enums `GameplayZoneKind`/`MovementMode`/`EncounterKind`; modele `MapGameplayZone` sur `MapData`; modeles `ProjectEncounterEntry`/`ProjectEncounterTable` sur `ProjectManifest`; operations CRUD `map_gameplay_zones.dart`; validation `ProjectValidator` et `MapValidator`.
 - `map_editor`: `GameplayZoneEditingCoordinator` + `GameplayZoneEditingService` + 9 use cases (3 map-level + 6 projet); providers Riverpod; `EditorState.selectedGameplayZoneId` + outil `gameplayZonePlacement`; `EditorNotifier` (7 methodes zones + 6 methodes tables); overlay canvas coloré par kind; `GameplayZonePropertiesPanel` + `EncounterTablesPanel`; sections inspector + bouton toolbar.
