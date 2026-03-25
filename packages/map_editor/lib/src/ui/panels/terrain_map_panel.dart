@@ -61,7 +61,8 @@ class TerrainMapPanel extends ConsumerWidget {
 
     final terrainLayers =
         map.layers.whereType<TerrainLayer>().toList(growable: false);
-    final pathLayers = map.layers.whereType<PathLayer>().toList(growable: false);
+    final pathLayers =
+        map.layers.whereType<PathLayer>().toList(growable: false);
     final activeLayer = _findLayerById(map, state.activeLayerId);
     final activeTerrainLayer = activeLayer is TerrainLayer ? activeLayer : null;
     final activePathLayer = activeLayer is PathLayer ? activeLayer : null;
@@ -97,7 +98,8 @@ class TerrainMapPanel extends ConsumerWidget {
                 ? null
                 : '${selectedTerrainPreset.name} • ${_terrainLabel(selectedTerrainPreset.terrainType)}',
             onPick: () async {
-              final picked = await showCupertinoListPicker<ProjectTerrainPreset>(
+              final picked =
+                  await showCupertinoListPicker<ProjectTerrainPreset>(
                 context: context,
                 title: 'Terrain preset',
                 items: terrainPresets,
@@ -116,12 +118,12 @@ class TerrainMapPanel extends ConsumerWidget {
               CupertinoButton.filled(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                onPressed: activeTerrainLayer == null ||
-                        selectedTerrainPreset == null
-                    ? null
-                    : () => notifier.selectTerrainPaintMode(
-                          terrainType: selectedTerrainPreset.terrainType,
-                        ),
+                onPressed:
+                    activeTerrainLayer == null || selectedTerrainPreset == null
+                        ? null
+                        : () => notifier.selectTerrainPaintMode(
+                              terrainType: selectedTerrainPreset.terrainType,
+                            ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -134,12 +136,12 @@ class TerrainMapPanel extends ConsumerWidget {
               CupertinoButton(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                onPressed: activeTerrainLayer == null ||
-                        selectedTerrainPreset == null
-                    ? null
-                    : () => notifier.fillActiveTerrainLayer(
-                          selectedTerrainPreset.terrainType,
-                        ),
+                onPressed:
+                    activeTerrainLayer == null || selectedTerrainPreset == null
+                        ? null
+                        : () => notifier.fillActiveTerrainLayer(
+                              selectedTerrainPreset.terrainType,
+                            ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -358,7 +360,8 @@ class TerrainMapPanel extends ConsumerWidget {
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
@@ -427,8 +430,7 @@ List<Widget> _pathInspectorEmbeddedChildren({
 }) {
   final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
   final subtle = EditorChrome.subtleLabel(context);
-  void onCreatePath() =>
-      notifier.activateFirstPathLayer(createIfMissing: true);
+  void onCreatePath() => notifier.activateFirstPathLayer(createIfMissing: true);
 
   return [
     if (pathLayers.isEmpty)
@@ -462,17 +464,7 @@ List<Widget> _pathInspectorEmbeddedChildren({
       Text(
         'Le calque sélectionné n’est pas un path. Choisissez un calque de path dans le panneau Calques.',
         style: TextStyle(fontSize: 12, color: subtle, height: 1.25),
-      )
-    else
-      Text(
-        '« ${activePathLayer.name} » — calque actif (Calques)',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: EditorChrome.primaryLabel(context),
-        ),
       ),
-    const SizedBox(height: 10),
     Text(
       'Preset de path',
       style: TextStyle(
@@ -665,13 +657,14 @@ class _TerrainInspectorDropdown extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 22,
-                    child: selectedIdForCheck != null && id == selectedIdForCheck
-                        ? Icon(
-                            CupertinoIcons.checkmark,
-                            size: 14,
-                            color: accent,
-                          )
-                        : null,
+                    child:
+                        selectedIdForCheck != null && id == selectedIdForCheck
+                            ? Icon(
+                                CupertinoIcons.checkmark,
+                                size: 14,
+                                color: accent,
+                              )
+                            : null,
                   ),
                   Expanded(
                     child: Text(
@@ -679,10 +672,10 @@ class _TerrainInspectorDropdown extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontWeight:
-                            selectedIdForCheck != null && id == selectedIdForCheck
-                                ? FontWeight.w600
-                                : FontWeight.w500,
+                        fontWeight: selectedIdForCheck != null &&
+                                id == selectedIdForCheck
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                         color: labelColor,
                       ),
                     ),
@@ -931,8 +924,7 @@ class _PresetPickerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1046,8 +1038,7 @@ class _LayerSelector<T extends MapLayer> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
