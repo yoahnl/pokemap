@@ -33,7 +33,7 @@ class TerrainMapPanel extends ConsumerWidget {
     if (map == null) {
       final empty = Center(
         child: Text(
-          'Open a map to edit base ground and surfaces',
+          'Open a map to edit base ground and paths',
           style: TextStyle(
             color: CupertinoColors.placeholderText.resolveFrom(context),
           ),
@@ -65,217 +65,230 @@ class TerrainMapPanel extends ConsumerWidget {
     final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
     final selectedPathPreset = notifier.getSelectedPathPreset();
     final showGround = mode != TerrainMapPanelMode.surfaceOnly;
-    final showSurfaces = mode != TerrainMapPanelMode.groundOnly;
+    final showPaths = mode != TerrainMapPanelMode.groundOnly;
     final sections = <Widget>[];
 
     if (showGround) {
-      sections.add(
-        _SurfaceSectionCard(
-          title: 'Base Ground',
-          subtitle: 'Terrain layers paint the map background only.',
-          color: const Color(0xFF2B6F53),
-          icon: CupertinoIcons.tree,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      final groundContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _LayerSelector<TerrainLayer>(
+            label: 'Active Terrain Layer',
+            layers: terrainLayers,
+            activeLayerId: activeTerrainLayer?.id,
+            emptyLabel: 'No terrain layer yet',
+            onSelected: notifier.setActiveLayer,
+            onCreate: () => notifier.activateFirstTerrainLayer(
+              createIfMissing: true,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _PresetPickerRow(
+            label: 'Selected Terrain Preset',
+            hint: 'No terrain preset',
+            enabled: terrainPresets.isNotEmpty,
+            currentLabel: selectedTerrainPreset == null
+                ? null
+                : '${selectedTerrainPreset.name} • ${_terrainLabel(selectedTerrainPreset.terrainType)}',
+            onPick: () async {
+              final picked = await showCupertinoListPicker<ProjectTerrainPreset>(
+                context: context,
+                title: 'Terrain preset',
+                items: terrainPresets,
+                labelOf: (p) => '${p.name} • ${_terrainLabel(p.terrainType)}',
+              );
+              if (picked != null) {
+                notifier.selectTerrainPreset(picked.id);
+              }
+            },
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              _LayerSelector<TerrainLayer>(
-                label: 'Active Terrain Layer',
-                layers: terrainLayers,
-                activeLayerId: activeTerrainLayer?.id,
-                emptyLabel: 'No terrain layer yet',
-                onSelected: notifier.setActiveLayer,
-                onCreate: () => notifier.activateFirstTerrainLayer(
-                  createIfMissing: true,
+              CupertinoButton.filled(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: activeTerrainLayer == null ||
+                        selectedTerrainPreset == null
+                    ? null
+                    : () => notifier.selectTerrainPaintMode(
+                          terrainType: selectedTerrainPreset.terrainType,
+                        ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.paintbrush, size: 16),
+                    SizedBox(width: 6),
+                    Text('Paint Base'),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              _PresetPickerRow(
-                label: 'Selected Terrain Preset',
-                hint: 'No terrain preset',
-                enabled: terrainPresets.isNotEmpty,
-                currentLabel: selectedTerrainPreset == null
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: activeTerrainLayer == null ||
+                        selectedTerrainPreset == null
                     ? null
-                    : '${selectedTerrainPreset.name} • ${_terrainLabel(selectedTerrainPreset.terrainType)}',
-                onPick: () async {
-                  final picked = await showCupertinoListPicker<ProjectTerrainPreset>(
-                    context: context,
-                    title: 'Terrain preset',
-                    items: terrainPresets,
-                    labelOf: (p) => '${p.name} • ${_terrainLabel(p.terrainType)}',
-                  );
-                  if (picked != null) {
-                    notifier.selectTerrainPreset(picked.id);
-                  }
-                },
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  CupertinoButton.filled(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    onPressed: activeTerrainLayer == null ||
-                            selectedTerrainPreset == null
-                        ? null
-                        : () => notifier.selectTerrainPaintMode(
-                              terrainType: selectedTerrainPreset.terrainType,
-                            ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(CupertinoIcons.paintbrush, size: 16),
-                        SizedBox(width: 6),
-                        Text('Paint Base'),
-                      ],
-                    ),
-                  ),
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    onPressed: activeTerrainLayer == null ||
-                            selectedTerrainPreset == null
-                        ? null
-                        : () => notifier.fillActiveTerrainLayer(
-                              selectedTerrainPreset.terrainType,
-                            ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(CupertinoIcons.drop, size: 16),
-                        SizedBox(width: 6),
-                        Text('Fill Base'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _InfoStrip(
-                text: activeTerrainLayer == null
-                    ? 'Select or create a terrain layer to paint the map background.'
-                    : selectedTerrainPreset == null
-                        ? 'Create a terrain preset in the library to paint this background layer.'
-                        : 'Active base: ${selectedTerrainPreset.name} on ${activeTerrainLayer.name}',
+                    : () => notifier.fillActiveTerrainLayer(
+                          selectedTerrainPreset.terrainType,
+                        ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.drop, size: 16),
+                    SizedBox(width: 6),
+                    Text('Fill Base'),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          _InfoStrip(
+            text: activeTerrainLayer == null
+                ? 'Select or create a terrain layer to paint the map background.'
+                : selectedTerrainPreset == null
+                    ? 'Create a terrain preset in the library to paint this background layer.'
+                    : 'Active base: ${selectedTerrainPreset.name} on ${activeTerrainLayer.name}',
+          ),
+        ],
+      );
+
+      sections.add(
+        embedded && mode == TerrainMapPanelMode.groundOnly
+            ? groundContent
+            : _SurfaceSectionCard(
+                title: 'Base Ground',
+                subtitle: 'Terrain layers paint the map background only.',
+                color: const Color(0xFF2B6F53),
+                icon: CupertinoIcons.tree,
+                child: groundContent,
+              ),
       );
     }
 
-    if (showGround && showSurfaces) {
+    if (showGround && showPaths) {
       sections.add(const SizedBox(height: 12));
     }
 
-    if (showSurfaces) {
-      sections.add(
-        _SurfaceSectionCard(
-          title: 'Surface Overlays',
-          subtitle:
-              'Path layers carry roads, water, tall grass, ice and every specialized surface.',
-          color: const Color(0xFF7A4A1E),
-          icon: CupertinoIcons.map,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    if (showPaths) {
+      final pathContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _LayerSelector<PathLayer>(
+            label: 'Active Path Layer',
+            layers: pathLayers,
+            activeLayerId: activePathLayer?.id,
+            emptyLabel: 'No path layer yet',
+            onSelected: notifier.setActiveLayer,
+            onCreate: () => notifier.activateFirstPathLayer(
+              createIfMissing: true,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _PresetPickerRow(
+            label: 'Assigned Path Preset',
+            hint: 'No path preset',
+            enabled: pathPresets.isNotEmpty,
+            currentLabel: _pathPresetLabel(
+              activePathLayer,
+              pathPresets,
+              selectedPathPreset,
+            ),
+            onPick: () async {
+              final picked = await showCupertinoListPicker<ProjectPathPreset>(
+                context: context,
+                title: 'Path preset',
+                items: pathPresets,
+                labelOf: (p) => '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}',
+              );
+              if (picked != null) {
+                if (activePathLayer != null) {
+                  notifier.selectPathPresetForActivePathLayer(picked.id);
+                } else {
+                  notifier.selectPathPreset(picked.id);
+                }
+              }
+            },
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              _LayerSelector<PathLayer>(
-                label: 'Active Path Layer',
-                layers: pathLayers,
-                activeLayerId: activePathLayer?.id,
-                emptyLabel: 'No path layer yet',
-                onSelected: notifier.setActiveLayer,
-                onCreate: () => notifier.activateFirstPathLayer(
+              CupertinoButton.filled(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: activePathLayer == null
+                    ? null
+                    : notifier.selectPathPaintMode,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.map, size: 16),
+                    SizedBox(width: 6),
+                    Text('Paint Path'),
+                  ],
+                ),
+              ),
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: activePathLayer == null
+                    ? null
+                    : () => notifier.selectTool(EditorToolType.eraser),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.delete_left, size: 16),
+                    SizedBox(width: 6),
+                    Text('Erase Path'),
+                  ],
+                ),
+              ),
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: () => notifier.activateFirstPathLayer(
                   createIfMissing: true,
                 ),
-              ),
-              const SizedBox(height: 10),
-              _PresetPickerRow(
-                label: 'Assigned Surface Preset',
-                hint: 'No surface preset',
-                enabled: pathPresets.isNotEmpty,
-                currentLabel: _pathPresetLabel(
-                  activePathLayer,
-                  pathPresets,
-                  selectedPathPreset,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.add_circled, size: 16),
+                    SizedBox(width: 6),
+                    Text('New Path Layer'),
+                  ],
                 ),
-                onPick: () async {
-                  final picked = await showCupertinoListPicker<ProjectPathPreset>(
-                    context: context,
-                    title: 'Surface preset',
-                    items: pathPresets,
-                    labelOf: (p) => '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}',
-                  );
-                  if (picked != null) {
-                    if (activePathLayer != null) {
-                      notifier.selectPathPresetForActivePathLayer(picked.id);
-                    } else {
-                      notifier.selectPathPreset(picked.id);
-                    }
-                  }
-                },
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  CupertinoButton.filled(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    onPressed: activePathLayer == null
-                        ? null
-                        : notifier.selectPathPaintMode,
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(CupertinoIcons.map, size: 16),
-                        SizedBox(width: 6),
-                        Text('Paint Surface'),
-                      ],
-                    ),
-                  ),
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    onPressed: activePathLayer == null
-                        ? null
-                        : () => notifier.selectTool(EditorToolType.eraser),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(CupertinoIcons.delete_left, size: 16),
-                        SizedBox(width: 6),
-                        Text('Erase Surface'),
-                      ],
-                    ),
-                  ),
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    onPressed: () => notifier.activateFirstPathLayer(
-                      createIfMissing: true,
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(CupertinoIcons.add_circled, size: 16),
-                        SizedBox(width: 6),
-                        Text('New Path Layer'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _PathLayerPropertiesBlock(layer: activePathLayer),
-              const SizedBox(height: 10),
-              _InfoStrip(
-                text: activePathLayer == null
-                    ? 'Create a path layer for roads, water, tall grass and every surface overlay.'
-                    : activePathLayer.presetId.trim().isEmpty
-                        ? 'Assign a surface preset to ${activePathLayer.name} before painting.'
-                        : 'Active surface layer: ${activePathLayer.name}',
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          _PathLayerPropertiesBlock(layer: activePathLayer),
+          const SizedBox(height: 10),
+          _InfoStrip(
+            text: activePathLayer == null
+                ? 'Create a path layer for roads, water, tall grass and other path surfaces.'
+                : activePathLayer.presetId.trim().isEmpty
+                    ? 'Assign a path preset to ${activePathLayer.name} before painting.'
+                    : 'Active path layer: ${activePathLayer.name}',
+          ),
+        ],
+      );
+
+      sections.add(
+        embedded && mode == TerrainMapPanelMode.surfaceOnly
+            ? pathContent
+            : _SurfaceSectionCard(
+                title: 'Paths',
+                subtitle:
+                    'Path layers carry roads, water, tall grass, ice and every specialized path surface.',
+                color: const Color(0xFF7A4A1E),
+                icon: CupertinoIcons.map,
+                child: pathContent,
+              ),
       );
     }
 
@@ -285,9 +298,9 @@ class TerrainMapPanel extends ConsumerWidget {
         _InfoStrip(
           text: state.activeTool == EditorToolType.terrainPaint
               ? state.terrainSelectionMode == TerrainSelectionMode.path
-                  ? 'Surface paint mode enabled.'
+                  ? 'Path paint mode enabled.'
                   : 'Base ground paint mode enabled.'
-              : 'Use the controls above to switch between base ground and surface painting.',
+              : 'Use the controls above to switch between base ground and path painting.',
         ),
       );
     }
@@ -320,7 +333,7 @@ class TerrainMapPanel extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'MAP GROUND & SURFACES',
+                    'MAP GROUND & PATHS',
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.0,

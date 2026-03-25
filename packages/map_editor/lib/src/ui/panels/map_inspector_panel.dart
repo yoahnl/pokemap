@@ -69,11 +69,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             (activeLayer is! PathLayer &&
                 state.activeTool == EditorToolType.terrainPaint &&
                 state.terrainSelectionMode == TerrainSelectionMode.terrain));
-    final showSurfaceSection = hasPathLayers &&
-        (activeLayer is PathLayer ||
-            (activeLayer is! TerrainLayer &&
-                state.activeTool == EditorToolType.terrainPaint &&
-                state.terrainSelectionMode == TerrainSelectionMode.path));
+    final showSurfaceSection = hasPathLayers && activeLayer is PathLayer;
     const showConnectionsSection = true;
     final showEntitySection =
         state.activeTool == EditorToolType.entityPlacement ||
@@ -162,9 +158,9 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                   ),
                 if (showSurfaceSection)
                   InspectorSectionCard(
-                    title: 'Surface Overlays',
+                    title: 'Paths',
                     subtitle:
-                        'Path-only editing for roads and specialized surfaces.',
+                        'Edit the active path layer for roads and specialized surfaces.',
                     icon: CupertinoIcons.map,
                     accentColor: const Color(0xFF9B6230),
                     expanded: _isExpanded(
