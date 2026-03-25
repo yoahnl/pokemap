@@ -12,6 +12,7 @@ class ProjectManifest with _$ProjectManifest {
     @Default(ProjectVersion.v1) ProjectVersion version,
     required List<ProjectMapEntry> maps,
     @Default([]) List<ProjectMapGroup> groups,
+    @Default([]) List<ProjectTilesetFolder> tilesetFolders,
     required List<ProjectTilesetEntry> tilesets,
     @Default([]) List<ProjectElementCategory> elementCategories,
     @Default([]) List<ProjectElementEntry> elements,
@@ -74,6 +75,19 @@ class ProjectMapEntry with _$ProjectMapEntry {
 }
 
 @freezed
+class ProjectTilesetFolder with _$ProjectTilesetFolder {
+  const factory ProjectTilesetFolder({
+    required String id,
+    required String name,
+    String? parentFolderId,
+    @Default(0) int sortOrder,
+  }) = _ProjectTilesetFolder;
+
+  factory ProjectTilesetFolder.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTilesetFolderFromJson(json);
+}
+
+@freezed
 class ProjectTilesetEntry with _$ProjectTilesetEntry {
   const factory ProjectTilesetEntry({
     required String id,
@@ -81,6 +95,8 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
     required String relativePath,
     @Default(TilesetScope.global) TilesetScope scope,
     String? groupId,
+    /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
+    String? folderId,
     @Default(0) int sortOrder,
     @Default(false) bool isWorldTileset,
     @Default([]) List<TilesetElementGroup> elementGroups,

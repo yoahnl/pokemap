@@ -19,6 +19,7 @@ class ImportProjectTilesetUseCase {
     required TilesetScope scope,
     String? groupId,
     bool isWorldTileset = false,
+    String? folderId,
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
@@ -37,6 +38,20 @@ class ImportProjectTilesetUseCase {
       );
     }
 
+    var libraryFolderId = folderId?.trim();
+    if (libraryFolderId != null && libraryFolderId.isEmpty) {
+      libraryFolderId = null;
+    }
+    if (libraryFolderId != null) {
+      final folderOk =
+          project.tilesetFolders.any((f) => f.id == libraryFolderId);
+      if (!folderOk) {
+        throw EditorNotFoundException(
+          'Tileset folder not found: $libraryFolderId',
+        );
+      }
+    }
+
     final sourceExt = p.extension(sourcePath).toLowerCase();
     const allowedExtensions = {'.png', '.jpg', '.jpeg', '.webp', '.bmp'};
     if (!allowedExtensions.contains(sourceExt)) {
@@ -51,13 +66,21 @@ class ImportProjectTilesetUseCase {
       preferredName: id,
     );
 
-    final sortOrder = nextTilesetSortOrder(project, scope, groupId);
+    final sortOrder = nextTilesetSortOrder(
+      project,
+      scope,
+      groupId,
+      libraryFolderId: libraryFolderId,
+    );
     final entry = ProjectTilesetEntry(
       id: id,
       name: trimmedName,
       relativePath: relativePath,
       scope: scope,
       groupId: groupId,
+      folderId: libraryFolderId == null || libraryFolderId.isEmpty
+          ? null
+          : libraryFolderId,
       sortOrder: sortOrder,
       isWorldTileset: isWorldTileset,
     );
@@ -90,6 +113,8 @@ class UpdateProjectTilesetUseCase {
     String? groupId,
     bool? isWorldTileset,
     int? sortOrder,
+    String? folderId,
+    bool clearLibraryFolder = false,
   }) async {
     final current = project.tilesets.firstWhere(
       (tileset) => tileset.id == tilesetId,
@@ -112,6 +137,42 @@ class UpdateProjectTilesetUseCase {
       nextWorld = false;
     }
 
+    String? nextFolderId = current.folderId;
+    if (clearLibraryFolder) {
+      nextFolderId = null;
+    } else if (folderId != null) {
+      final fid = folderId.trim();
+      nextFolderId = fid.isEmpty ? null : fid;
+      if (nextFolderId != null) {
+        final folderOk =
+            project.tilesetFolders.any((f) => f.id == nextFolderId);
+        if (!folderOk) {
+          throw EditorNotFoundException(
+            'Tileset folder not found: $nextFolderId',
+          );
+        }
+      }
+    }
+
+    bool sameLibraryFolder(String? a, String? b) {
+      final na = a?.trim();
+      final nb = b?.trim();
+      final ea = na == null || na.isEmpty;
+      final eb = nb == null || nb.isEmpty;
+      if (ea && eb) return true;
+      return na == nb;
+    }
+
+    var nextSort = sortOrder ?? current.sortOrder;
+    if (!sameLibraryFolder(current.folderId, nextFolderId)) {
+      nextSort = nextTilesetSortOrder(
+        project,
+        nextScope,
+        nextGroupId,
+        libraryFolderId: nextFolderId,
+      );
+    }
+
     final updatedTilesets = project.tilesets.map((tileset) {
       if (tileset.id != tilesetId) return tileset;
       return tileset.copyWith(
@@ -119,7 +180,8 @@ class UpdateProjectTilesetUseCase {
         scope: nextScope,
         groupId: nextGroupId,
         isWorldTileset: nextWorld,
-        sortOrder: sortOrder ?? tileset.sortOrder,
+        sortOrder: nextSort,
+        folderId: nextFolderId,
       );
     }).toList(growable: false);
 
@@ -216,8 +278,16 @@ class ReorderProjectTilesetUseCase {
           throw EditorNotFoundException('Tileset not found: $tilesetId'),
     );
 
+    String? normFolder(String? f) {
+      final t = f?.trim();
+      if (t == null || t.isEmpty) return null;
+      return t;
+    }
+
+    final targetFolder = normFolder(target.folderId);
     final bucket = project.tilesets.where((tileset) {
       if (tileset.scope != target.scope) return false;
+      if (normFolder(tileset.folderId) != targetFolder) return false;
       if (target.scope == TilesetScope.global) return true;
       return tileset.groupId == target.groupId;
     }).toList()

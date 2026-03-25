@@ -25,6 +25,7 @@ import '../../application/use_cases/path_layer_use_cases.dart';
 import '../../application/use_cases/project_element_use_cases.dart';
 import '../../application/use_cases/project_group_use_cases.dart';
 import '../../application/use_cases/project_management_use_cases.dart';
+import '../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../application/use_cases/project_tileset_use_cases.dart';
 import '../../application/use_cases/terrain_preset_use_cases.dart';
 import '../../application/use_cases/terrain_use_cases.dart';
@@ -237,6 +238,42 @@ DeleteProjectTilesetUseCase deleteProjectTilesetUseCase(
 ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(
     ReorderProjectTilesetUseCaseRef ref) {
   return ReorderProjectTilesetUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+CreateTilesetLibraryFolderUseCase createTilesetLibraryFolderUseCase(
+    CreateTilesetLibraryFolderUseCaseRef ref) {
+  return CreateTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+RenameTilesetLibraryFolderUseCase renameTilesetLibraryFolderUseCase(
+    RenameTilesetLibraryFolderUseCaseRef ref) {
+  return RenameTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+MoveTilesetLibraryFolderUseCase moveTilesetLibraryFolderUseCase(
+    MoveTilesetLibraryFolderUseCaseRef ref) {
+  return MoveTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteTilesetLibraryFolderUseCase deleteTilesetLibraryFolderUseCase(
+    DeleteTilesetLibraryFolderUseCaseRef ref) {
+  return DeleteTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+AssignTilesetToLibraryFolderUseCase assignTilesetToLibraryFolderUseCase(
+    AssignTilesetToLibraryFolderUseCaseRef ref) {
+  return AssignTilesetToLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+MoveTilesetToLibraryRootUseCase moveTilesetToLibraryRootUseCase(
+    MoveTilesetToLibraryRootUseCaseRef ref) {
+  return MoveTilesetToLibraryRootUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod

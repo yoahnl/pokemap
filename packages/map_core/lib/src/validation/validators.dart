@@ -29,6 +29,11 @@ class ProjectValidator {
       duplicateMessagePrefix: 'Duplicate tileset ID',
     );
     _validateUniqueIds(
+      manifest.tilesetFolders,
+      (folder) => folder.id,
+      duplicateMessagePrefix: 'Duplicate tileset folder ID',
+    );
+    _validateUniqueIds(
       manifest.elementCategories,
       (category) => category.id,
       duplicateMessagePrefix: 'Duplicate element category ID',
@@ -99,6 +104,7 @@ class ProjectValidator {
       _validateRelativePath(map.relativePath, 'Map ${map.id}');
     }
 
+    _validateTilesetFolders(manifest);
     _validateTilesets(manifest, groupIds);
     _validateElementCategories(manifest);
     _validateElements(manifest, groupIds);
@@ -112,6 +118,57 @@ class ProjectValidator {
     );
     _validateTerrainPresets(manifest);
     _validatePathPresets(manifest);
+  }
+
+  static void _validateTilesetFolders(ProjectManifest manifest) {
+    final folderById = <String, ProjectTilesetFolder>{};
+    for (final folder in manifest.tilesetFolders) {
+      if (folder.id.trim().isEmpty) {
+        throw const ValidationException('Tileset folder ID cannot be empty');
+      }
+      if (folder.name.trim().isEmpty) {
+        throw ValidationException(
+          'Tileset folder "${folder.id}" has an empty name',
+        );
+      }
+      folderById[folder.id] = folder;
+    }
+
+    for (final folder in manifest.tilesetFolders) {
+      final parentId = folder.parentFolderId;
+      if (parentId == null) continue;
+      if (!folderById.containsKey(parentId)) {
+        throw ValidationException(
+          'Tileset folder ${folder.id} references missing parent: $parentId',
+        );
+      }
+      if (parentId == folder.id) {
+        throw ValidationException(
+          'Tileset folder ${folder.id} cannot be its own parent',
+        );
+      }
+      String? cursor = parentId;
+      final chain = <String>{};
+      while (cursor != null) {
+        if (!chain.add(cursor)) {
+          throw ValidationException(
+            'Cycle detected in tileset folder hierarchy at ${folder.id}',
+          );
+        }
+        cursor = folderById[cursor]?.parentFolderId;
+      }
+    }
+
+    final folderIds = folderById.keys.toSet();
+    for (final tileset in manifest.tilesets) {
+      final fid = tileset.folderId?.trim();
+      if (fid == null || fid.isEmpty) continue;
+      if (!folderIds.contains(fid)) {
+        throw ValidationException(
+          'Tileset ${tileset.id} references unknown tileset folder: $fid',
+        );
+      }
+    }
   }
 
   static void _validateTilesets(

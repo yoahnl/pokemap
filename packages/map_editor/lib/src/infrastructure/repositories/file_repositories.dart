@@ -40,6 +40,9 @@ class FileProjectRepository implements ProjectRepository {
 
 Map<String, dynamic> _migrateLegacyProjectJson(Map<String, dynamic> raw) {
   final next = Map<String, dynamic>.from(raw);
+  if (!next.containsKey('tilesetFolders')) {
+    next['tilesetFolders'] = <dynamic>[];
+  }
   final legacyCategories = raw['terrainPresetCategories'];
   if (!next.containsKey('terrainCategories') && legacyCategories is List) {
     next['terrainCategories'] = legacyCategories

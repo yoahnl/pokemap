@@ -21,6 +21,7 @@ les tests ne sont pas une priorite pour le moment. Ne pas ajouter de tests ni pa
 
 Separations metier explicites:
 - Groupes du monde (`ProjectMapGroup`) pour l organisation des maps.
+- Dossiers de bibliotheque tilesets (`ProjectTilesetFolder`, `ProjectTilesetEntry.folderId`) pour classer les tilesets dans l explorateur: independants des groupes de maps et des groupes d elements de tileset.
 - Groupes internes de tileset (`TilesetElementGroup`) pour organiser la bibliotheque d elements d un tileset.
 - Categories d elements (`ProjectElementCategory`) pour classifier la bibliotheque.
 - Layers de map (`TileLayer`, `TerrainLayer`, `PathLayer`, `CollisionLayer`, `ObjectLayer`) pour la cible de peinture.
@@ -32,6 +33,14 @@ Separations metier explicites:
 - Creer/charger/sauvegarder/renommer/supprimer/dupliquer/resize de map.
 - Parametres globaux projet (`tileWidth`, `tileHeight`, `displayScale`, `defaultMapWidth`, `defaultMapHeight`).
 - Import tilesets (copie locale + chemin relatif), scope global/groupe, assignation a une `TileLayer`.
+- Bibliotheque tilesets hierarchique (dossiers projet):
+  - modele `ProjectTilesetFolder` + `folderId` sur `ProjectTilesetEntry`, persistance dans `project.json` (`tilesetFolders`),
+  - validation `ProjectValidator`: IDs dossiers uniques, noms non vides, parents valides, pas de cycles, `folderId` tileset coherent,
+  - operations pures `buildTilesetLibraryTree`, `flattenTilesetFoldersForPicker`, `tilesetFolderSubtreeIds` dans `map_core`,
+  - use cases dedies: creer/renommer/deplacer/supprimer dossier, assigner tileset a un dossier, racine bibliotheque; suppression dossier **refusee** si sous-dossiers ou tilesets presents (message explicite),
+  - tri / reorder tilesets par bucket: scope, groupe (si groupe) **et** dossier bibliotheque,
+  - UI explorateur: arbre repliable sous TILESETS, actions dossier (menu) et tileset (deplacer vers dossier / racine), import avec choix du dossier cible optionnel,
+  - projets anciens sans `tilesetFolders`: chargement OK (liste vide implicite), tilesets a la racine.
 - Rendu des tile layers sur canvas + peinture tile unitaire et multi-tile.
 - Ghost preview map operationnel:
   - preview paint pour tile simple, palette entry et project element,
@@ -1582,6 +1591,12 @@ Suite logique recommandee:
 - Etre pense specifiquement pour un jeu de type Pokemon sur grille: partiellement fait
 - Rester coherent avec une Clean Architecture stricte: partiellement fait
 - Rester modulaire entre core, editor et runtime: fait
+
+### Fichiers touches — bibliotheque tilesets hierarchique (lot recent)
+- **map_core**: `lib/map_core.dart`, `lib/src/models/project_manifest.dart` (+ `.freezed.dart` / `.g.dart` generes), `lib/src/validation/validators.dart`, `lib/src/operations/tileset_library_tree.dart`
+- **map_editor**: `lib/src/application/use_cases/project_tileset_library_use_cases.dart`, `project_tileset_use_cases.dart`, `project_use_case_support.dart`, `lib/src/app/providers/use_case_providers.dart` (+ `.g.dart`), `lib/src/infrastructure/repositories/file_repositories.dart`, `lib/src/features/editor/state/editor_notifier.dart`, `lib/src/ui/panels/project_explorer_panel.dart`
+- **racine**: `PROJECT_STATUS.md`
+- **map_runtime**: aucun changement requis pour ce lot
 
 ## Mini tableau priorites (etat)
 - Ghost preview + erase: fait

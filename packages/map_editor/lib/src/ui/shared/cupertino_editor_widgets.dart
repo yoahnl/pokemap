@@ -1152,6 +1152,9 @@ Future<bool> showMacosEditorTwoChoiceAlert(
 }
 
 /// Feuille modale avec un champ texte (style macOS).
+///
+/// [compact]: marges réduites, titre discret, champs et boutons plus petits
+/// (libellés courts, renommages simples).
 Future<bool> showMacosEditorPromptSheet(
   BuildContext context, {
   required String title,
@@ -1162,15 +1165,32 @@ Future<bool> showMacosEditorPromptSheet(
   bool requireNonEmpty = true,
   TextInputType? keyboardType,
   List<TextInputFormatter>? inputFormatters,
+  bool compact = false,
 }) async {
   var saved = false;
   await showMacosSheet<void>(
     context: context,
-    builder: (ctx) => MacosSheet(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    builder: (ctx) {
+      final typo = MacosTheme.of(ctx).typography;
+      final titleStyle = compact
+          ? typo.body.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: (typo.body.fontSize ?? 13) + 1,
+            )
+          : typo.title2;
+      final innerPad = compact
+          ? const EdgeInsets.fromLTRB(16, 14, 16, 12)
+          : const EdgeInsets.all(24);
+      final fieldGap = compact ? 10.0 : 16.0;
+      final beforeButtons = compact ? 14.0 : 24.0;
+      final sheetWidth = compact ? 268.0 : 340.0;
+      final btnSize = compact ? ControlSize.regular : ControlSize.large;
+      final btnGap = compact ? 8.0 : 12.0;
+
+      final sheetBody = Padding(
+        padding: innerPad,
         child: SizedBox(
-          width: 340,
+          width: sheetWidth,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1178,9 +1198,11 @@ Future<bool> showMacosEditorPromptSheet(
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: MacosTheme.of(ctx).typography.title2,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: titleStyle,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: fieldGap),
               MacosTextField(
                 controller: controller,
                 placeholder: placeholder,
@@ -1188,23 +1210,24 @@ Future<bool> showMacosEditorPromptSheet(
                 keyboardType: keyboardType ?? TextInputType.text,
                 inputFormatters: inputFormatters,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: beforeButtons),
               Row(
                 children: [
                   Expanded(
                     child: PushButton(
-                      controlSize: ControlSize.large,
+                      controlSize: btnSize,
                       secondary: true,
                       onPressed: () => Navigator.of(ctx).pop(),
                       child: Text(cancelLabel),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: btnGap),
                   Expanded(
                     child: PushButton(
-                      controlSize: ControlSize.large,
+                      controlSize: btnSize,
                       onPressed: () {
-                        if (requireNonEmpty && controller.text.trim().isEmpty) {
+                        if (requireNonEmpty &&
+                            controller.text.trim().isEmpty) {
                           return;
                         }
                         saved = true;
@@ -1218,8 +1241,19 @@ Future<bool> showMacosEditorPromptSheet(
             ],
           ),
         ),
-      ),
-    ),
+      );
+
+      // La route modale est plein écran : sans [Center], le [MacosSheet] étire
+      // son fond sur toute la fenêtre (vide sous les boutons).
+      final sheet = compact
+          ? MacosSheet(
+              insetPadding:
+                  const EdgeInsets.symmetric(horizontal: 56, vertical: 28),
+              child: sheetBody,
+            )
+          : MacosSheet(child: sheetBody);
+      return Center(child: sheet);
+    },
   );
   return saved;
 }

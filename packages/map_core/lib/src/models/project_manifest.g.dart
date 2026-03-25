@@ -19,6 +19,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
               ?.map((e) => ProjectMapGroup.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      tilesetFolders: (json['tilesetFolders'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectTilesetFolder.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       tilesets: (json['tilesets'] as List<dynamic>)
           .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -66,6 +71,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'version': _$ProjectVersionEnumMap[instance.version]!,
       'maps': instance.maps.map((e) => e.toJson()).toList(),
       'groups': instance.groups.map((e) => e.toJson()).toList(),
+      'tilesetFolders': instance.tilesetFolders.map((e) => e.toJson()).toList(),
       'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
       'elementCategories':
           instance.elementCategories.map((e) => e.toJson()).toList(),
@@ -176,6 +182,24 @@ const _$MapRoleEnumMap = {
   MapRole.sub_area: 'sub_area',
 };
 
+_$ProjectTilesetFolderImpl _$$ProjectTilesetFolderImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTilesetFolderImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentFolderId: json['parentFolderId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectTilesetFolderImplToJson(
+        _$ProjectTilesetFolderImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentFolderId': instance.parentFolderId,
+      'sortOrder': instance.sortOrder,
+    };
+
 _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectTilesetEntryImpl(
@@ -185,6 +209,7 @@ _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
       scope: $enumDecodeNullable(_$TilesetScopeEnumMap, json['scope']) ??
           TilesetScope.global,
       groupId: json['groupId'] as String?,
+      folderId: json['folderId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       isWorldTileset: json['isWorldTileset'] as bool? ?? false,
       elementGroups: (json['elementGroups'] as List<dynamic>?)
@@ -207,6 +232,7 @@ Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
       'relativePath': instance.relativePath,
       'scope': _$TilesetScopeEnumMap[instance.scope]!,
       'groupId': instance.groupId,
+      'folderId': instance.folderId,
       'sortOrder': instance.sortOrder,
       'isWorldTileset': instance.isWorldTileset,
       'elementGroups': instance.elementGroups,

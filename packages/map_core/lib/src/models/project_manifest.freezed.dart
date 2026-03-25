@@ -24,6 +24,8 @@ mixin _$ProjectManifest {
   ProjectVersion get version => throw _privateConstructorUsedError;
   List<ProjectMapEntry> get maps => throw _privateConstructorUsedError;
   List<ProjectMapGroup> get groups => throw _privateConstructorUsedError;
+  List<ProjectTilesetFolder> get tilesetFolders =>
+      throw _privateConstructorUsedError;
   List<ProjectTilesetEntry> get tilesets => throw _privateConstructorUsedError;
   List<ProjectElementCategory> get elementCategories =>
       throw _privateConstructorUsedError;
@@ -60,6 +62,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       ProjectVersion version,
       List<ProjectMapEntry> maps,
       List<ProjectMapGroup> groups,
+      List<ProjectTilesetFolder> tilesetFolders,
       List<ProjectTilesetEntry> tilesets,
       List<ProjectElementCategory> elementCategories,
       List<ProjectElementEntry> elements,
@@ -92,6 +95,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? version = null,
     Object? maps = null,
     Object? groups = null,
+    Object? tilesetFolders = null,
     Object? tilesets = null,
     Object? elementCategories = null,
     Object? elements = null,
@@ -119,6 +123,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.groups
           : groups // ignore: cast_nullable_to_non_nullable
               as List<ProjectMapGroup>,
+      tilesetFolders: null == tilesetFolders
+          ? _value.tilesetFolders
+          : tilesetFolders // ignore: cast_nullable_to_non_nullable
+              as List<ProjectTilesetFolder>,
       tilesets: null == tilesets
           ? _value.tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
@@ -182,6 +190,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       ProjectVersion version,
       List<ProjectMapEntry> maps,
       List<ProjectMapGroup> groups,
+      List<ProjectTilesetFolder> tilesetFolders,
       List<ProjectTilesetEntry> tilesets,
       List<ProjectElementCategory> elementCategories,
       List<ProjectElementEntry> elements,
@@ -213,6 +222,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? version = null,
     Object? maps = null,
     Object? groups = null,
+    Object? tilesetFolders = null,
     Object? tilesets = null,
     Object? elementCategories = null,
     Object? elements = null,
@@ -240,6 +250,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._groups
           : groups // ignore: cast_nullable_to_non_nullable
               as List<ProjectMapGroup>,
+      tilesetFolders: null == tilesetFolders
+          ? _value._tilesetFolders
+          : tilesetFolders // ignore: cast_nullable_to_non_nullable
+              as List<ProjectTilesetFolder>,
       tilesets: null == tilesets
           ? _value._tilesets
           : tilesets // ignore: cast_nullable_to_non_nullable
@@ -289,6 +303,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       this.version = ProjectVersion.v1,
       required final List<ProjectMapEntry> maps,
       final List<ProjectMapGroup> groups = const [],
+      final List<ProjectTilesetFolder> tilesetFolders = const [],
       required final List<ProjectTilesetEntry> tilesets,
       final List<ProjectElementCategory> elementCategories = const [],
       final List<ProjectElementEntry> elements = const [],
@@ -300,6 +315,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
         _groups = groups,
+        _tilesetFolders = tilesetFolders,
         _tilesets = tilesets,
         _elementCategories = elementCategories,
         _elements = elements,
@@ -332,6 +348,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     if (_groups is EqualUnmodifiableListView) return _groups;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_groups);
+  }
+
+  final List<ProjectTilesetFolder> _tilesetFolders;
+  @override
+  @JsonKey()
+  List<ProjectTilesetFolder> get tilesetFolders {
+    if (_tilesetFolders is EqualUnmodifiableListView) return _tilesetFolders;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tilesetFolders);
   }
 
   final List<ProjectTilesetEntry> _tilesets;
@@ -412,7 +437,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -424,6 +449,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             (identical(other.version, version) || other.version == version) &&
             const DeepCollectionEquality().equals(other._maps, _maps) &&
             const DeepCollectionEquality().equals(other._groups, _groups) &&
+            const DeepCollectionEquality()
+                .equals(other._tilesetFolders, _tilesetFolders) &&
             const DeepCollectionEquality().equals(other._tilesets, _tilesets) &&
             const DeepCollectionEquality()
                 .equals(other._elementCategories, _elementCategories) &&
@@ -450,6 +477,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       version,
       const DeepCollectionEquality().hash(_maps),
       const DeepCollectionEquality().hash(_groups),
+      const DeepCollectionEquality().hash(_tilesetFolders),
       const DeepCollectionEquality().hash(_tilesets),
       const DeepCollectionEquality().hash(_elementCategories),
       const DeepCollectionEquality().hash(_elements),
@@ -483,6 +511,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final ProjectVersion version,
       required final List<ProjectMapEntry> maps,
       final List<ProjectMapGroup> groups,
+      final List<ProjectTilesetFolder> tilesetFolders,
       required final List<ProjectTilesetEntry> tilesets,
       final List<ProjectElementCategory> elementCategories,
       final List<ProjectElementEntry> elements,
@@ -504,6 +533,8 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectMapEntry> get maps;
   @override
   List<ProjectMapGroup> get groups;
+  @override
+  List<ProjectTilesetFolder> get tilesetFolders;
   @override
   List<ProjectTilesetEntry> get tilesets;
   @override
@@ -1337,6 +1368,218 @@ abstract class _ProjectMapEntry implements ProjectMapEntry {
       throw _privateConstructorUsedError;
 }
 
+ProjectTilesetFolder _$ProjectTilesetFolderFromJson(Map<String, dynamic> json) {
+  return _ProjectTilesetFolder.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectTilesetFolder {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String? get parentFolderId => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectTilesetFolder to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectTilesetFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectTilesetFolderCopyWith<ProjectTilesetFolder> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectTilesetFolderCopyWith<$Res> {
+  factory $ProjectTilesetFolderCopyWith(ProjectTilesetFolder value,
+          $Res Function(ProjectTilesetFolder) then) =
+      _$ProjectTilesetFolderCopyWithImpl<$Res, ProjectTilesetFolder>;
+  @useResult
+  $Res call({String id, String name, String? parentFolderId, int sortOrder});
+}
+
+/// @nodoc
+class _$ProjectTilesetFolderCopyWithImpl<$Res,
+        $Val extends ProjectTilesetFolder>
+    implements $ProjectTilesetFolderCopyWith<$Res> {
+  _$ProjectTilesetFolderCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectTilesetFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentFolderId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentFolderId: freezed == parentFolderId
+          ? _value.parentFolderId
+          : parentFolderId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectTilesetFolderImplCopyWith<$Res>
+    implements $ProjectTilesetFolderCopyWith<$Res> {
+  factory _$$ProjectTilesetFolderImplCopyWith(_$ProjectTilesetFolderImpl value,
+          $Res Function(_$ProjectTilesetFolderImpl) then) =
+      __$$ProjectTilesetFolderImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, String name, String? parentFolderId, int sortOrder});
+}
+
+/// @nodoc
+class __$$ProjectTilesetFolderImplCopyWithImpl<$Res>
+    extends _$ProjectTilesetFolderCopyWithImpl<$Res, _$ProjectTilesetFolderImpl>
+    implements _$$ProjectTilesetFolderImplCopyWith<$Res> {
+  __$$ProjectTilesetFolderImplCopyWithImpl(_$ProjectTilesetFolderImpl _value,
+      $Res Function(_$ProjectTilesetFolderImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectTilesetFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? parentFolderId = freezed,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$ProjectTilesetFolderImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentFolderId: freezed == parentFolderId
+          ? _value.parentFolderId
+          : parentFolderId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProjectTilesetFolderImpl implements _ProjectTilesetFolder {
+  const _$ProjectTilesetFolderImpl(
+      {required this.id,
+      required this.name,
+      this.parentFolderId,
+      this.sortOrder = 0});
+
+  factory _$ProjectTilesetFolderImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectTilesetFolderImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final String? parentFolderId;
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'ProjectTilesetFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectTilesetFolderImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.parentFolderId, parentFolderId) ||
+                other.parentFolderId == parentFolderId) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, name, parentFolderId, sortOrder);
+
+  /// Create a copy of ProjectTilesetFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectTilesetFolderImplCopyWith<_$ProjectTilesetFolderImpl>
+      get copyWith =>
+          __$$ProjectTilesetFolderImplCopyWithImpl<_$ProjectTilesetFolderImpl>(
+              this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectTilesetFolderImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectTilesetFolder implements ProjectTilesetFolder {
+  const factory _ProjectTilesetFolder(
+      {required final String id,
+      required final String name,
+      final String? parentFolderId,
+      final int sortOrder}) = _$ProjectTilesetFolderImpl;
+
+  factory _ProjectTilesetFolder.fromJson(Map<String, dynamic> json) =
+      _$ProjectTilesetFolderImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String? get parentFolderId;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of ProjectTilesetFolder
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectTilesetFolderImplCopyWith<_$ProjectTilesetFolderImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ProjectTilesetEntry _$ProjectTilesetEntryFromJson(Map<String, dynamic> json) {
   return _ProjectTilesetEntry.fromJson(json);
 }
@@ -1348,6 +1591,9 @@ mixin _$ProjectTilesetEntry {
   String get relativePath => throw _privateConstructorUsedError;
   TilesetScope get scope => throw _privateConstructorUsedError;
   String? get groupId => throw _privateConstructorUsedError;
+
+  /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
+  String? get folderId => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
   bool get isWorldTileset => throw _privateConstructorUsedError;
   List<TilesetElementGroup> get elementGroups =>
@@ -1377,6 +1623,7 @@ abstract class $ProjectTilesetEntryCopyWith<$Res> {
       String relativePath,
       TilesetScope scope,
       String? groupId,
+      String? folderId,
       int sortOrder,
       bool isWorldTileset,
       List<TilesetElementGroup> elementGroups,
@@ -1403,6 +1650,7 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
     Object? relativePath = null,
     Object? scope = null,
     Object? groupId = freezed,
+    Object? folderId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
     Object? elementGroups = null,
@@ -1428,6 +1676,10 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      folderId: freezed == folderId
+          ? _value.folderId
+          : folderId // ignore: cast_nullable_to_non_nullable
               as String?,
       sortOrder: null == sortOrder
           ? _value.sortOrder
@@ -1463,6 +1715,7 @@ abstract class _$$ProjectTilesetEntryImplCopyWith<$Res>
       String relativePath,
       TilesetScope scope,
       String? groupId,
+      String? folderId,
       int sortOrder,
       bool isWorldTileset,
       List<TilesetElementGroup> elementGroups,
@@ -1487,6 +1740,7 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
     Object? relativePath = null,
     Object? scope = null,
     Object? groupId = freezed,
+    Object? folderId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
     Object? elementGroups = null,
@@ -1512,6 +1766,10 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      folderId: freezed == folderId
+          ? _value.folderId
+          : folderId // ignore: cast_nullable_to_non_nullable
               as String?,
       sortOrder: null == sortOrder
           ? _value.sortOrder
@@ -1542,6 +1800,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       required this.relativePath,
       this.scope = TilesetScope.global,
       this.groupId,
+      this.folderId,
       this.sortOrder = 0,
       this.isWorldTileset = false,
       final List<TilesetElementGroup> elementGroups = const [],
@@ -1563,6 +1822,10 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   final TilesetScope scope;
   @override
   final String? groupId;
+
+  /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
+  @override
+  final String? folderId;
   @override
   @JsonKey()
   final int sortOrder;
@@ -1589,7 +1852,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
 
   @override
   String toString() {
-    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
+    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
   }
 
   @override
@@ -1603,6 +1866,8 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
                 other.relativePath == relativePath) &&
             (identical(other.scope, scope) || other.scope == scope) &&
             (identical(other.groupId, groupId) || other.groupId == groupId) &&
+            (identical(other.folderId, folderId) ||
+                other.folderId == folderId) &&
             (identical(other.sortOrder, sortOrder) ||
                 other.sortOrder == sortOrder) &&
             (identical(other.isWorldTileset, isWorldTileset) ||
@@ -1622,6 +1887,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       relativePath,
       scope,
       groupId,
+      folderId,
       sortOrder,
       isWorldTileset,
       const DeepCollectionEquality().hash(_elementGroups),
@@ -1651,6 +1917,7 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
           required final String relativePath,
           final TilesetScope scope,
           final String? groupId,
+          final String? folderId,
           final int sortOrder,
           final bool isWorldTileset,
           final List<TilesetElementGroup> elementGroups,
@@ -1670,6 +1937,10 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   TilesetScope get scope;
   @override
   String? get groupId;
+
+  /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
+  @override
+  String? get folderId;
   @override
   int get sortOrder;
   @override

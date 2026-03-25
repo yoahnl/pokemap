@@ -541,6 +541,126 @@ final reorderProjectTilesetUseCaseProvider =
 // ignore: unused_element
 typedef ReorderProjectTilesetUseCaseRef
     = AutoDisposeProviderRef<ReorderProjectTilesetUseCase>;
+String _$createTilesetLibraryFolderUseCaseHash() =>
+    r'b106f204f29790e23f743f90ecabb43905f6935b';
+
+/// See also [createTilesetLibraryFolderUseCase].
+@ProviderFor(createTilesetLibraryFolderUseCase)
+final createTilesetLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<CreateTilesetLibraryFolderUseCase>.internal(
+  createTilesetLibraryFolderUseCase,
+  name: r'createTilesetLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createTilesetLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateTilesetLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<CreateTilesetLibraryFolderUseCase>;
+String _$renameTilesetLibraryFolderUseCaseHash() =>
+    r'6dc6e30f54f57f936c5d2f5913726b95e92dc02e';
+
+/// See also [renameTilesetLibraryFolderUseCase].
+@ProviderFor(renameTilesetLibraryFolderUseCase)
+final renameTilesetLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<RenameTilesetLibraryFolderUseCase>.internal(
+  renameTilesetLibraryFolderUseCase,
+  name: r'renameTilesetLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameTilesetLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameTilesetLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<RenameTilesetLibraryFolderUseCase>;
+String _$moveTilesetLibraryFolderUseCaseHash() =>
+    r'2bfa02c379cba4cd6558c2fa64ffe9cf90e930eb';
+
+/// See also [moveTilesetLibraryFolderUseCase].
+@ProviderFor(moveTilesetLibraryFolderUseCase)
+final moveTilesetLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<MoveTilesetLibraryFolderUseCase>.internal(
+  moveTilesetLibraryFolderUseCase,
+  name: r'moveTilesetLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$moveTilesetLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MoveTilesetLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<MoveTilesetLibraryFolderUseCase>;
+String _$deleteTilesetLibraryFolderUseCaseHash() =>
+    r'a63f4fe65c0fb713d9d9cd80f935cdff5359f743';
+
+/// See also [deleteTilesetLibraryFolderUseCase].
+@ProviderFor(deleteTilesetLibraryFolderUseCase)
+final deleteTilesetLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<DeleteTilesetLibraryFolderUseCase>.internal(
+  deleteTilesetLibraryFolderUseCase,
+  name: r'deleteTilesetLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteTilesetLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteTilesetLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<DeleteTilesetLibraryFolderUseCase>;
+String _$assignTilesetToLibraryFolderUseCaseHash() =>
+    r'c6177e718c6dceabe2974dc4e84ae51a5d7100bc';
+
+/// See also [assignTilesetToLibraryFolderUseCase].
+@ProviderFor(assignTilesetToLibraryFolderUseCase)
+final assignTilesetToLibraryFolderUseCaseProvider =
+    AutoDisposeProvider<AssignTilesetToLibraryFolderUseCase>.internal(
+  assignTilesetToLibraryFolderUseCase,
+  name: r'assignTilesetToLibraryFolderUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$assignTilesetToLibraryFolderUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AssignTilesetToLibraryFolderUseCaseRef
+    = AutoDisposeProviderRef<AssignTilesetToLibraryFolderUseCase>;
+String _$moveTilesetToLibraryRootUseCaseHash() =>
+    r'8a509aea5c943d96acef0981ee1f66c1d5546476';
+
+/// See also [moveTilesetToLibraryRootUseCase].
+@ProviderFor(moveTilesetToLibraryRootUseCase)
+final moveTilesetToLibraryRootUseCaseProvider =
+    AutoDisposeProvider<MoveTilesetToLibraryRootUseCase>.internal(
+  moveTilesetToLibraryRootUseCase,
+  name: r'moveTilesetToLibraryRootUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$moveTilesetToLibraryRootUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MoveTilesetToLibraryRootUseCaseRef
+    = AutoDisposeProviderRef<MoveTilesetToLibraryRootUseCase>;
 String _$createElementCategoryUseCaseHash() =>
     r'1b9069e594d0a98610ac4b6886608b4ccdab4b81';
 

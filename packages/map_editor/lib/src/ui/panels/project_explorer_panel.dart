@@ -10,6 +10,169 @@ import 'terrain_editor_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 
+String _mapGroupTypeDisplayLabel(MapGroupType t) {
+  final n = t.name;
+  if (n.isEmpty) return '';
+  return '${n[0].toUpperCase()}${n.substring(1)}';
+}
+
+class _ImportLibraryDest {
+  const _ImportLibraryDest(this.label, this.folderId);
+  final String label;
+  final String? folderId;
+}
+
+class _TilesetFolderMoveOption {
+  const _TilesetFolderMoveOption(this.label, this.newParentId);
+  final String label;
+  final String? newParentId;
+}
+
+Future<void> _promptNewTilesetLibraryFolder(
+  BuildContext context,
+  EditorNotifier notifier, {
+  String? parentFolderId,
+}) async {
+  final controller = TextEditingController();
+  final ok = await showMacosEditorPromptSheet(
+    context,
+    title: parentFolderId == null ? 'New folder' : 'New subfolder',
+    controller: controller,
+    placeholder: 'Name',
+    confirmLabel: 'Create',
+    compact: true,
+  );
+  if (!ok || !context.mounted) return;
+  final name = controller.text.trim();
+  if (name.isEmpty) return;
+  await notifier.createTilesetLibraryFolder(
+    name: name,
+    parentFolderId: parentFolderId,
+  );
+}
+
+Future<void> _promptRenameTilesetLibraryFolder(
+  BuildContext context,
+  EditorNotifier notifier,
+  ProjectTilesetFolder folder,
+) async {
+  final controller = TextEditingController(text: folder.name);
+  final ok = await showMacosEditorPromptSheet(
+    context,
+    title: 'Rename folder',
+    controller: controller,
+    placeholder: 'Name',
+    confirmLabel: 'Rename',
+    compact: true,
+  );
+  if (!ok || !context.mounted) return;
+  final name = controller.text.trim();
+  if (name.isEmpty) return;
+  await notifier.renameTilesetLibraryFolder(
+    folderId: folder.id,
+    name: name,
+  );
+}
+
+Future<void> _openTilesetLibraryFolderContextMenu(
+  BuildContext context, {
+  required ProjectTilesetFolder folder,
+  required ProjectManifest project,
+  required EditorNotifier notifier,
+  required Offset anchorGlobal,
+}) async {
+  final action = await showMacosEditorContextMenu<String>(
+    context: context,
+    globalPosition: anchorGlobal,
+    actions: const [
+      MacosEditorSheetAction(label: 'Rename', value: 'rename'),
+      MacosEditorSheetAction(label: 'New subfolder', value: 'sub'),
+      MacosEditorSheetAction(label: 'Move to…', value: 'move'),
+      MacosEditorSheetAction(
+        label: 'Delete folder',
+        value: 'delete',
+        isDestructive: true,
+      ),
+    ],
+  );
+  if (!context.mounted || action == null) return;
+  switch (action) {
+    case 'rename':
+      await _promptRenameTilesetLibraryFolder(context, notifier, folder);
+    case 'sub':
+      await _promptNewTilesetLibraryFolder(
+        context,
+        notifier,
+        parentFolderId: folder.id,
+      );
+    case 'move':
+      await _pickMoveTilesetLibraryFolderTarget(
+        context,
+        project,
+        notifier,
+        folder.id,
+      );
+    case 'delete':
+      await notifier.deleteTilesetLibraryFolder(folder.id);
+  }
+}
+
+Future<void> _pickMoveTilesetLibraryFolderTarget(
+  BuildContext context,
+  ProjectManifest project,
+  EditorNotifier notifier,
+  String folderId,
+) async {
+  final blocked = tilesetFolderSubtreeIds(project, folderId);
+  final options = <_TilesetFolderMoveOption>[
+    const _TilesetFolderMoveOption('Library root', null),
+  ];
+  for (final row in flattenTilesetFoldersForPicker(project)) {
+    if (row.id == folderId) continue;
+    if (blocked.contains(row.id)) continue;
+    options.add(_TilesetFolderMoveOption(row.label, row.id));
+  }
+  final picked = await showCupertinoListPicker<_TilesetFolderMoveOption>(
+    context: context,
+    title: 'Move folder into',
+    items: options,
+    labelOf: (o) => o.label,
+  );
+  if (picked == null || !context.mounted) return;
+  await notifier.moveTilesetLibraryFolder(
+    folderId: folderId,
+    newParentFolderId: picked.newParentId,
+  );
+}
+
+Future<void> _openAssignTilesetLibraryFolderSheet(
+  BuildContext context, {
+  required ProjectManifest project,
+  required EditorNotifier notifier,
+  required ProjectTilesetEntry tileset,
+}) async {
+  final options = <_ImportLibraryDest>[
+    const _ImportLibraryDest('Library root', null),
+    ...flattenTilesetFoldersForPicker(project)
+        .map((r) => _ImportLibraryDest(r.label, r.id)),
+  ];
+  final picked = await showCupertinoListPicker<_ImportLibraryDest>(
+    context: context,
+    title: 'Move tileset to folder',
+    items: options,
+    labelOf: (o) => o.label,
+  );
+  if (picked == null || !context.mounted) return;
+  if (picked.folderId == null) {
+    await notifier.moveTilesetToLibraryRoot(tileset.id);
+  } else {
+    await notifier.assignTilesetToLibraryFolder(
+      tilesetId: tileset.id,
+      folderId: picked.folderId!,
+    );
+  }
+}
+
 class ProjectExplorerPanel extends ConsumerWidget {
   const ProjectExplorerPanel({super.key});
 
@@ -23,7 +186,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
       width: double.infinity,
       child: Column(
         children: [
-          _buildHeader(context, state, notifier),
+          _buildHeader(context),
           const SizedBox(height: 2),
           Expanded(
             child: project == null
@@ -47,11 +210,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(
-    BuildContext context,
-    dynamic state,
-    EditorNotifier notifier,
-  ) {
+  Widget _buildHeader(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     const explorerAccent = EditorChrome.inspectorJoyCyan;
@@ -114,19 +273,6 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-          _SidebarHeaderAction(
-            enabled: state.project != null,
-            icon: CupertinoIcons.photo_on_rectangle,
-            tooltip: 'Import Tileset',
-            onPressed: () => _showImportTilesetDialog(context, state, notifier),
-          ),
-          const SizedBox(width: 6),
-          _SidebarHeaderAction(
-            enabled: state.project != null,
-            icon: CupertinoIcons.folder_badge_plus,
-            tooltip: 'New Root Group',
-            onPressed: () => _showCreateGroupDialog(context, notifier),
           ),
         ],
       ),
@@ -212,7 +358,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
           ),
           child: _ExplorerIslandSurface(
             tint: EditorChrome.islandNeutralTint,
-            child: _buildWorldIsland(context, worldChildren),
+            child: _buildWorldIsland(context, worldChildren, notifier),
           ),
         ),
         const SizedBox(height: 14),
@@ -243,19 +389,89 @@ class ProjectExplorerPanel extends ConsumerWidget {
     dynamic state,
     EditorNotifier notifier,
   ) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 4, 0, 4),
-      child: SingleChildScrollView(
-        primary: false,
-        padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
-        child: _buildTilesetsSection(context, project, state, notifier),
-      ),
+    const tilesetAccent = EditorChrome.accentWarm;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: tilesetAccent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: MacosIcon(
+                  CupertinoIcons.square_grid_2x2,
+                  size: 15,
+                  color: tilesetAccent,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Tileset Library',
+                      style: TextStyle(
+                        color: EditorChrome.primaryLabel(context),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Folders, imports, and map painting',
+                      style: TextStyle(
+                        color: EditorChrome.subtleLabel(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.photo_on_rectangle,
+                tooltip: 'Import tileset',
+                onPressed: () =>
+                    _showImportTilesetDialog(context, state, notifier),
+              ),
+              const SizedBox(width: 6),
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.plus_circle_fill,
+                tooltip: 'New folder',
+                onPressed: () =>
+                    _promptNewTilesetLibraryFolder(context, notifier),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        Expanded(
+          child: SingleChildScrollView(
+            primary: false,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildTilesetsSection(context, project, state, notifier),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildWorldIsland(
     BuildContext context,
     List<Widget> worldChildren,
+    EditorNotifier notifier,
   ) {
     const worldAccent = EditorChrome.accentCyan;
     return Column(
@@ -264,6 +480,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 30,
@@ -283,6 +500,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'World Maps',
@@ -303,6 +521,12 @@ class ProjectExplorerPanel extends ConsumerWidget {
                     ),
                   ],
                 ),
+              ),
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.folder_badge_plus,
+                tooltip: 'New root group',
+                onPressed: () => _showCreateGroupDialog(context, notifier),
               ),
             ],
           ),
@@ -330,98 +554,53 @@ class ProjectExplorerPanel extends ConsumerWidget {
   ) {
     final selectedTilesetId =
         state.selectedTilesetEditorId ?? notifier.getSelectedTilesetEntry()?.id;
-    final globalTilesets =
-        project.tilesets.where((t) => t.scope == TilesetScope.global).toList()
-          ..sort((a, b) {
-            if (a.isWorldTileset != b.isWorldTileset) {
-              return a.isWorldTileset ? -1 : 1;
-            }
-            final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-            if (sortCompare != 0) return sortCompare;
-            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-          });
+    final tree = buildTilesetLibraryTree(project);
 
-    final groupedTilesets = project.tilesets
-        .where((t) => t.scope == TilesetScope.group && t.groupId != null)
-        .toList()
-      ..sort((a, b) {
-        final groupCompare = (a.groupId ?? '').compareTo(b.groupId ?? '');
-        if (groupCompare != 0) return groupCompare;
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-
-    final tilesetsByGroup = <String, List<ProjectTilesetEntry>>{};
-    for (final tileset in groupedTilesets) {
-      final key = tileset.groupId!;
-      tilesetsByGroup.putIfAbsent(key, () => []).add(tileset);
+    String scopeLabel(ProjectTilesetEntry t) {
+      if (t.scope == TilesetScope.global) return 'Global';
+      final gid = t.groupId;
+      if (gid == null) return 'Group';
+      for (final g in project.groups) {
+        if (g.id == gid) return g.name;
+      }
+      return 'Group';
     }
 
-    final sortedGroups = project.groups.toList()
-      ..sort((a, b) {
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) return sortCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-
-    final children = <Widget>[
-      if (project.tilesets.isEmpty)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
-          child: Text(
-            'No tilesets imported',
-            style: TextStyle(
-              color: CupertinoColors.placeholderText.resolveFrom(context),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (project.tilesets.isEmpty && project.tilesetFolders.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+            child: Text(
+              'No tilesets yet. Import an image or create folders to organize your library.',
+              style: TextStyle(
+                color: CupertinoColors.placeholderText.resolveFrom(context),
+                fontSize: 12,
+              ),
             ),
           ),
+        ...tree.rootFolders.map(
+          (branch) => _TilesetLibraryFolderNode(
+            branch: branch,
+            depth: 0,
+            project: project,
+            notifier: notifier,
+            selectedTilesetId: selectedTilesetId,
+            scopeLabel: scopeLabel,
+          ),
         ),
-      if (globalTilesets.isNotEmpty) ...[
-        const EditorSidebarSectionTitle('GLOBAL', leftInset: 14),
-        ...globalTilesets.map(
+        ...tree.rootTilesets.map(
           (tileset) => _TilesetNode(
             tileset: tileset,
             project: project,
             notifier: notifier,
             selected: selectedTilesetId == tileset.id,
+            leftIndent: 14,
+            scopeLabel: scopeLabel(tileset),
           ),
         ),
       ],
-      for (final group in sortedGroups)
-        if (tilesetsByGroup[group.id]?.isNotEmpty ?? false) ...[
-          EditorSidebarSectionTitle(group.name.toUpperCase(), leftInset: 14),
-          ...tilesetsByGroup[group.id]!.map(
-            (tileset) => _TilesetNode(
-              tileset: tileset,
-              project: project,
-              notifier: notifier,
-              selected: selectedTilesetId == tileset.id,
-            ),
-          ),
-        ],
-    ];
-
-    final theme = MacosTheme.of(context);
-    final tilesetsTitleBase = theme.typography.body;
-    final tilesetsTitleDark = theme.brightness == Brightness.dark;
-
-    return CupertinoDisclosureTile(
-      useEditorMacosSidebarDisclosureStyle: true,
-      initiallyExpanded: true,
-      tilePadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      childrenPadding: EdgeInsets.zero,
-      leading: const MacosIcon(CupertinoIcons.square_grid_2x2, size: 16),
-      title: Text(
-        'TILESETS',
-        style: tilesetsTitleBase.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: (tilesetsTitleBase.fontSize ?? 14) * 0.85,
-          color: tilesetsTitleDark
-              ? MacosColors.white.withValues(alpha: 0.3)
-              : MacosColors.black.withValues(alpha: 0.3),
-        ),
-      ),
-      children: children,
     );
   }
 
@@ -449,12 +628,22 @@ class ProjectExplorerPanel extends ConsumerWidget {
         project.groups.isNotEmpty ? project.groups.first.id : null;
     var isWorld = project.tilesets.every((t) => !t.isWorldTileset);
     var shouldImport = false;
+    String? importLibraryFolderId;
 
     await showMacosEditorModalSheet<void>(
       context: context,
       maxWidth: 480,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => Column(
+        builder: (ctx, setState) {
+          String libraryFolderButtonLabel() {
+            if (importLibraryFolderId == null) return 'Library root';
+            for (final r in flattenTilesetFoldersForPicker(project)) {
+              if (r.id == importLibraryFolderId) return r.label;
+            }
+            return 'Library root';
+          }
+
+          return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -475,6 +664,33 @@ class ProjectExplorerPanel extends ConsumerWidget {
             Text('Tileset Name', style: editorMacosFormLabelStyle(ctx)),
             const SizedBox(height: 6),
             MacosTextField(controller: nameController),
+            const SizedBox(height: 10),
+            Text('Library folder', style: editorMacosFormLabelStyle(ctx)),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () async {
+                  final options = <_ImportLibraryDest>[
+                    const _ImportLibraryDest('Library root', null),
+                    ...flattenTilesetFoldersForPicker(project)
+                        .map((r) => _ImportLibraryDest(r.label, r.id)),
+                  ];
+                  final p = await showCupertinoListPicker<_ImportLibraryDest>(
+                    context: ctx,
+                    title: 'Library folder',
+                    items: options,
+                    labelOf: (o) => o.label,
+                  );
+                  if (p != null) {
+                    setState(() => importLibraryFolderId = p.folderId);
+                  }
+                },
+                child: Text(libraryFolderButtonLabel()),
+              ),
+            ),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
@@ -562,7 +778,8 @@ class ProjectExplorerPanel extends ConsumerWidget {
               ],
             ),
           ],
-        ),
+        );
+        },
       ),
     );
 
@@ -573,6 +790,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
       scope: scope,
       groupId: scope == TilesetScope.group ? selectedGroupId : null,
       isWorldTileset: scope == TilesetScope.global ? isWorld : false,
+      libraryFolderId: importLibraryFolderId,
     );
   }
 
@@ -602,21 +820,22 @@ class ProjectExplorerPanel extends ConsumerWidget {
               placeholder: 'Group Name',
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PushButton(
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: () async {
-                  final t = await showCupertinoListPicker<MapGroupType>(
-                    context: ctx,
-                    title: 'Group Type',
-                    items: MapGroupType.values,
-                    labelOf: (x) => x.name.toUpperCase(),
-                  );
-                  if (t != null) setState(() => selectedType = t);
+            Text('Group type', style: editorMacosFormLabelStyle(ctx)),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: MacosPopupButton<MapGroupType>(
+                value: selectedType,
+                onChanged: (MapGroupType? v) {
+                  if (v != null) setState(() => selectedType = v);
                 },
-                child: Text('Type: ${selectedType.name.toUpperCase()}'),
+                items: [
+                  for (final t in MapGroupType.values)
+                    MacosPopupMenuItem<MapGroupType>(
+                      value: t,
+                      child: Text(_mapGroupTypeDisplayLabel(t)),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -633,9 +852,9 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 PushButton(
                   controlSize: ControlSize.large,
                   onPressed: () {
-                    if (nameController.text.isEmpty) return;
+                    if (nameController.text.trim().isEmpty) return;
                     notifier.createGroup(
-                      nameController.text,
+                      nameController.text.trim(),
                       selectedType,
                       parentId: parentId,
                     );
@@ -961,21 +1180,22 @@ class _GroupNode extends StatelessWidget {
               placeholder: 'Group Name',
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PushButton(
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: () async {
-                  final t = await showCupertinoListPicker<MapGroupType>(
-                    context: ctx,
-                    title: 'Group Type',
-                    items: MapGroupType.values,
-                    labelOf: (x) => x.name.toUpperCase(),
-                  );
-                  if (t != null) setState(() => selectedType = t);
+            Text('Group type', style: editorMacosFormLabelStyle(ctx)),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: MacosPopupButton<MapGroupType>(
+                value: selectedType,
+                onChanged: (MapGroupType? v) {
+                  if (v != null) setState(() => selectedType = v);
                 },
-                child: Text('Type: ${selectedType.name.toUpperCase()}'),
+                items: [
+                  for (final t in MapGroupType.values)
+                    MacosPopupMenuItem<MapGroupType>(
+                      value: t,
+                      child: Text(_mapGroupTypeDisplayLabel(t)),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -992,9 +1212,9 @@ class _GroupNode extends StatelessWidget {
                 PushButton(
                   controlSize: ControlSize.large,
                   onPressed: () {
-                    if (nameController.text.isEmpty) return;
+                    if (nameController.text.trim().isEmpty) return;
                     notifier.createGroup(
-                      nameController.text,
+                      nameController.text.trim(),
                       selectedType,
                       parentId: parentId,
                     );
@@ -1127,17 +1347,101 @@ class _MapNode extends StatelessWidget {
   }
 }
 
+class _TilesetLibraryFolderNode extends StatelessWidget {
+  const _TilesetLibraryFolderNode({
+    required this.branch,
+    required this.depth,
+    required this.project,
+    required this.notifier,
+    required this.selectedTilesetId,
+    required this.scopeLabel,
+  });
+
+  final TilesetLibraryBranch branch;
+  final int depth;
+  final ProjectManifest project;
+  final EditorNotifier notifier;
+  final String? selectedTilesetId;
+  final String Function(ProjectTilesetEntry) scopeLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final folder = branch.folder;
+    final indent = 6.0 + depth * 10.0;
+
+    return CupertinoDisclosureTile(
+      useEditorMacosSidebarDisclosureStyle: true,
+      initiallyExpanded: true,
+      tilePadding: EdgeInsets.only(left: indent, right: 8, top: 4, bottom: 4),
+      childrenPadding: EdgeInsets.zero,
+      leading: const MacosIcon(CupertinoIcons.folder_fill, size: 16),
+      title: Text(
+        folder.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onSecondaryTapDown: (d) => _openTilesetLibraryFolderContextMenu(
+        context,
+        folder: folder,
+        project: project,
+        notifier: notifier,
+        anchorGlobal: d.globalPosition,
+      ),
+      trailing: Builder(
+        builder: (btnContext) => EditorToolbarIconButton(
+          icon: CupertinoIcons.ellipsis_vertical,
+          tooltip: 'Folder actions',
+          iconSize: 16,
+          onPressed: () => _openTilesetLibraryFolderContextMenu(
+            context,
+            folder: folder,
+            project: project,
+            notifier: notifier,
+            anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
+          ),
+        ),
+      ),
+      children: [
+        ...branch.childFolders.map(
+          (b) => _TilesetLibraryFolderNode(
+            branch: b,
+            depth: depth + 1,
+            project: project,
+            notifier: notifier,
+            selectedTilesetId: selectedTilesetId,
+            scopeLabel: scopeLabel,
+          ),
+        ),
+        ...branch.tilesets.map(
+          (t) => _TilesetNode(
+            tileset: t,
+            project: project,
+            notifier: notifier,
+            selected: selectedTilesetId == t.id,
+            leftIndent: indent + 14,
+            scopeLabel: scopeLabel(t),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _TilesetNode extends StatelessWidget {
   final ProjectTilesetEntry tileset;
   final ProjectManifest project;
   final EditorNotifier notifier;
   final bool selected;
+  final double leftIndent;
+  final String scopeLabel;
 
   const _TilesetNode({
     required this.tileset,
     required this.project,
     required this.notifier,
     required this.selected,
+    this.leftIndent = 6,
+    required this.scopeLabel,
   });
 
   @override
@@ -1147,7 +1451,7 @@ class _TilesetNode extends StatelessWidget {
       onTap: () => notifier.selectTilesetWorkspace(tileset.id),
       onSecondaryTapDown: (d) =>
           _showTilesetMenu(context, anchorGlobal: d.globalPosition),
-      leftIndent: 6,
+      leftIndent: leftIndent,
       leadingIconUnselectedColor:
           tileset.isWorldTileset ? EditorPaintColors.amberAccent : null,
       leading: MacosIcon(
@@ -1159,7 +1463,7 @@ class _TilesetNode extends StatelessWidget {
         size: 16,
       ),
       title: Text(tileset.name),
-      subtitle: Text('${tileset.id} | sort ${tileset.sortOrder}'),
+      subtitle: Text('$scopeLabel · ${tileset.id}'),
       trailing: Builder(
         builder: (btnContext) => EditorToolbarIconButton(
           icon: CupertinoIcons.ellipsis_vertical,
@@ -1192,6 +1496,15 @@ class _TilesetNode extends StatelessWidget {
           label: 'Attach to Group',
           value: 'assign_group',
         ),
+        const MacosEditorSheetAction(
+          label: 'Move to folder…',
+          value: 'library_folder',
+        ),
+        if (tileset.folderId != null && tileset.folderId!.trim().isNotEmpty)
+          const MacosEditorSheetAction(
+            label: 'Move to library root',
+            value: 'library_root',
+          ),
         if (tileset.scope == TilesetScope.global)
           MacosEditorSheetAction(
             label: tileset.isWorldTileset
@@ -1218,6 +1531,15 @@ class _TilesetNode extends StatelessWidget {
         );
       case 'assign_group':
         _showAssignGroupDialog(context);
+      case 'library_folder':
+        await _openAssignTilesetLibraryFolderSheet(
+          context,
+          project: project,
+          notifier: notifier,
+          tileset: tileset,
+        );
+      case 'library_root':
+        await notifier.moveTilesetToLibraryRoot(tileset.id);
       case 'toggle_world':
         notifier.updateProjectTileset(
           tilesetId: tileset.id,

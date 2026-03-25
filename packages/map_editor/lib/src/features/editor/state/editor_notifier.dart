@@ -643,6 +643,7 @@ class EditorNotifier extends _$EditorNotifier {
     required TilesetScope scope,
     String? groupId,
     bool isWorldTileset = false,
+    String? libraryFolderId,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -658,6 +659,7 @@ class EditorNotifier extends _$EditorNotifier {
         scope: scope,
         groupId: groupId,
         isWorldTileset: isWorldTileset,
+        folderId: libraryFolderId,
       );
       state = state.copyWith(
         project: updated,
@@ -680,6 +682,8 @@ class EditorNotifier extends _$EditorNotifier {
     String? groupId,
     bool? isWorldTileset,
     int? sortOrder,
+    String? libraryFolderId,
+    bool clearLibraryFolder = false,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -696,6 +700,8 @@ class EditorNotifier extends _$EditorNotifier {
         groupId: groupId,
         isWorldTileset: isWorldTileset,
         sortOrder: sortOrder,
+        folderId: libraryFolderId,
+        clearLibraryFolder: clearLibraryFolder,
       );
       state = state.copyWith(
         project: updated,
@@ -729,6 +735,166 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       debugPrint('EditorNotifier: Error reordering tileset: $e');
       state = state.copyWith(errorMessage: 'Failed to reorder tileset: $e');
+    }
+  }
+
+  Future<void> createTilesetLibraryFolder({
+    required String name,
+    String? parentFolderId,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createTilesetLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        parentFolderId: parentFolderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset folder created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error creating tileset folder: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to create tileset folder: $e',
+      );
+    }
+  }
+
+  Future<void> renameTilesetLibraryFolder({
+    required String folderId,
+    required String name,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(renameTilesetLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        folderId: folderId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset folder renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error renaming tileset folder: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to rename tileset folder: $e',
+      );
+    }
+  }
+
+  Future<void> moveTilesetLibraryFolder({
+    required String folderId,
+    String? newParentFolderId,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(moveTilesetLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        folderId: folderId,
+        newParentFolderId: newParentFolderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset folder moved',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error moving tileset folder: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to move tileset folder: $e',
+      );
+    }
+  }
+
+  Future<void> deleteTilesetLibraryFolder(String folderId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteTilesetLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        folderId: folderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset folder deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error deleting tileset folder: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to delete tileset folder: $e',
+      );
+    }
+  }
+
+  Future<void> assignTilesetToLibraryFolder({
+    required String tilesetId,
+    required String folderId,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(assignTilesetToLibraryFolderUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tilesetId,
+        folderId: folderId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset moved to folder',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error assigning tileset folder: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to move tileset to folder: $e',
+      );
+    }
+  }
+
+  Future<void> moveTilesetToLibraryRoot(String tilesetId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(moveTilesetToLibraryRootUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        tilesetId: tilesetId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Tileset moved to library root',
+        errorMessage: null,
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: Error moving tileset to library root: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to move tileset to library root: $e',
+      );
     }
   }
 

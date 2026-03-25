@@ -19,19 +19,66 @@ String generateUniqueTilesetId(ProjectManifest project, String seed) {
   return candidate;
 }
 
+String? _normalizedLibraryFolderId(String? folderId) {
+  final t = folderId?.trim();
+  if (t == null || t.isEmpty) return null;
+  return t;
+}
+
+bool _sameLibraryFolder(String? a, String? b) =>
+    _normalizedLibraryFolderId(a) == _normalizedLibraryFolderId(b);
+
 int nextTilesetSortOrder(
   ProjectManifest project,
   TilesetScope scope,
-  String? groupId,
-) {
+  String? groupId, {
+  String? libraryFolderId,
+}) {
+  final targetFolder = _normalizedLibraryFolderId(libraryFolderId);
   final filtered = project.tilesets.where((tileset) {
     if (tileset.scope != scope) return false;
+    if (!_sameLibraryFolder(tileset.folderId, targetFolder)) return false;
     if (scope == TilesetScope.global) return true;
     return tileset.groupId == groupId;
   });
   if (filtered.isEmpty) return 0;
   return filtered
           .map((tileset) => tileset.sortOrder)
+          .reduce((a, b) => a > b ? a : b) +
+      1;
+}
+
+String generateUniqueTilesetFolderId(ProjectManifest project, String seed) {
+  final normalized = seed
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = normalized.isEmpty ? 'folder' : normalized;
+
+  var candidate = base;
+  var suffix = 1;
+  final existingIds =
+      project.tilesetFolders.map((folder) => folder.id).toSet();
+  while (existingIds.contains(candidate)) {
+    candidate = '${base}_$suffix';
+    suffix++;
+  }
+  return candidate;
+}
+
+int nextTilesetLibraryFolderSortOrder(
+  ProjectManifest project,
+  String? parentFolderId,
+) {
+  final targetParent = _normalizedLibraryFolderId(parentFolderId);
+  final filtered = project.tilesetFolders.where((folder) {
+    return _sameLibraryFolder(folder.parentFolderId, targetParent);
+  });
+  if (filtered.isEmpty) return 0;
+  return filtered
+          .map((folder) => folder.sortOrder)
           .reduce((a, b) => a > b ? a : b) +
       1;
 }
