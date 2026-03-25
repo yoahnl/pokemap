@@ -289,6 +289,11 @@ class _DirectionConnectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: EditorChrome.islandFillElevated(context),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.35),
+          width: 1,
+        ),
+        boxShadow: EditorChrome.inspectorTileHardShadows(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,15 +319,16 @@ class _DirectionConnectionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.14),
+                  color: Color.lerp(
+                    EditorChrome.islandFillElevated(context),
+                    statusColor,
+                    0.35,
+                  ),
                   borderRadius: BorderRadius.circular(999),
-                  boxShadow: [
-                    BoxShadow(
-                      color: statusColor.withValues(alpha: 0.22),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  border: Border.all(
+                    color: statusColor.withValues(alpha: 0.85),
+                    width: 1,
+                  ),
                 ),
                 child: Text(
                   existingConnection == null ? 'Open' : 'Linked',

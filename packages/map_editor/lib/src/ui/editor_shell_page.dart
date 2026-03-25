@@ -309,8 +309,9 @@ class _EditorToastBanner extends StatelessWidget {
     final tint = isError
         ? EditorChrome.errorTint(context)
         : EditorChrome.statusTint(context);
-    final accent =
-        isError ? const Color(0xFFE7A7AF) : EditorChrome.accentPrimary;
+    final accent = isError
+        ? EditorChrome.inspectorJoyCoral
+        : EditorChrome.inspectorJoyMint;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 380),
       child: EditorIsland(
@@ -325,15 +326,26 @@ class _EditorToastBanner extends StatelessWidget {
                 width: 26,
                 height: 26,
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.14),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.lerp(CupertinoColors.white, accent, 0.75)!,
+                      Color.lerp(accent, const Color(0xFF102010), 0.35)!,
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.88),
+                    width: 1,
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: MacosIcon(
                   isError
                       ? CupertinoIcons.exclamationmark_triangle_fill
                       : CupertinoIcons.check_mark_circled_solid,
-                  color: accent,
+                  color: CupertinoColors.white,
                   size: 15,
                 ),
               ),
@@ -371,11 +383,13 @@ class _WorkspaceStageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    final accent = EditorChrome.activeAccent(context);
     final chipFill = EditorChrome.chipFill(context);
     final chipAccent = workspaceMode == EditorWorkspaceMode.map
-        ? EditorChrome.accentWarm
-        : EditorChrome.accentCyan;
+        ? EditorChrome.inspectorJoyHoney
+        : EditorChrome.inspectorJoyLilac;
+    final chipAccent2 = workspaceMode == EditorWorkspaceMode.map
+        ? EditorChrome.inspectorJoyApricot
+        : EditorChrome.inspectorJoyPlum;
 
     return Row(
       children: [
@@ -387,18 +401,22 @@ class _WorkspaceStageHeader extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                accent.withValues(alpha: 0.22),
-                chipAccent.withValues(alpha: 0.16),
+                Color.lerp(CupertinoColors.white, chipAccent, 0.72)!,
+                Color.lerp(chipAccent2, const Color(0xFF1A0A08), 0.38)!,
               ],
             ),
             borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: chipAccent.withValues(alpha: 0.88),
+              width: 1.2,
+            ),
           ),
           alignment: Alignment.center,
           child: MacosIcon(
             workspaceMode == EditorWorkspaceMode.map
                 ? CupertinoIcons.map
                 : CupertinoIcons.square_grid_2x2,
-            color: accent,
+            color: CupertinoColors.white,
             size: 22,
           ),
         ),
@@ -435,8 +453,12 @@ class _WorkspaceStageHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: chipFill,
+            color: Color.lerp(chipFill, chipAccent, 0.22),
             borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: chipAccent.withValues(alpha: 0.65),
+              width: 1,
+            ),
           ),
           child: Text(
             workspaceMode == EditorWorkspaceMode.map ? 'Scene' : 'Library',

@@ -18,8 +18,9 @@ class StatusBar extends ConsumerWidget {
     final tint = hasError
         ? EditorChrome.errorTint(context)
         : EditorChrome.islandCoolTint;
-    final leadingTint =
-        hasError ? const Color(0xFFE2A3AD) : EditorChrome.accentCyan;
+    final leadingTint = hasError
+        ? EditorChrome.inspectorJoyCoral
+        : EditorChrome.inspectorJoyCyan;
     final icon = hasError
         ? CupertinoIcons.exclamationmark_triangle_fill
         : CupertinoIcons.sparkles;
@@ -37,14 +38,25 @@ class StatusBar extends ConsumerWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: leadingTint.withValues(alpha: 0.14),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.lerp(CupertinoColors.white, leadingTint, 0.82)!,
+                      Color.lerp(leadingTint, const Color(0xFF1A0A08), 0.42)!,
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: leadingTint.withValues(alpha: 0.88),
+                    width: 1.1,
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: MacosIcon(
                   icon,
                   size: 15,
-                  color: leadingTint,
+                  color: CupertinoColors.white,
                 ),
               ),
               const SizedBox(width: 10),
@@ -97,13 +109,16 @@ class StatusBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            EditorChrome.badgeFill(context),
-            EditorChrome.chipFill(context),
-          ],
+        color: Color.lerp(
+          EditorChrome.chipFill(context),
+          EditorChrome.inspectorJoyHoney,
+          0.18,
         ),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyApricot.withValues(alpha: 0.45),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

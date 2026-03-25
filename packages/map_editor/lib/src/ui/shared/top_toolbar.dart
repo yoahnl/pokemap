@@ -725,9 +725,8 @@ class _ToolbarBrand extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    final accent = EditorChrome.accentCyan;
-    final warmGlow = EditorChrome.accentWarm;
-    final lilac = EditorChrome.accentLilac;
+    const honey = EditorChrome.inspectorJoyHoney;
+    const cyan = EditorChrome.inspectorJoyCyan;
 
     return SizedBox(
       height: 40,
@@ -741,18 +740,15 @@ class _ToolbarBrand extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  accent,
-                  Color.lerp(lilac, warmGlow, 0.35)!,
+                  Color.lerp(CupertinoColors.white, honey, 0.75)!,
+                  Color.lerp(cyan, const Color(0xFF102828), 0.4)!,
                 ],
               ),
               borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withValues(alpha: 0.18),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              border: Border.all(
+                color: honey.withValues(alpha: 0.9),
+                width: 1.25,
+              ),
             ),
             alignment: Alignment.center,
             child: const MacosIcon(
@@ -816,6 +812,10 @@ class _ToolbarCapsuleGroup extends StatelessWidget {
         decoration: BoxDecoration(
           color: EditorChrome.toolbarCapsuleFill(context),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF524A64),
+            width: 1,
+          ),
           boxShadow: EditorChrome.toolbarCapsuleShadows(context),
         ),
         child: Padding(

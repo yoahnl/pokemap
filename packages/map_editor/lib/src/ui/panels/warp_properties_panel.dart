@@ -56,7 +56,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     _syncControllers(selectedWarp);
 
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final accent = EditorChrome.activeAccent(context);
+    const accent = EditorChrome.inspectorJoyOrchid;
 
     final content = map == null
         ? Center(
@@ -88,9 +88,21 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: warp.id == state.selectedWarpId
-                            ? accent.withValues(alpha: 0.12)
+                            ? Color.lerp(
+                                EditorChrome.islandFillElevated(context),
+                                accent,
+                                0.28,
+                              )!
                             : EditorChrome.islandFillElevated(context),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: warp.id == state.selectedWarpId
+                              ? accent.withValues(alpha: 0.78)
+                              : EditorChrome.editorIslandRim(context),
+                          width: 1,
+                        ),
+                        boxShadow:
+                            EditorChrome.inspectorTileHardShadows(context),
                       ),
                       child: CupertinoButton(
                         padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),

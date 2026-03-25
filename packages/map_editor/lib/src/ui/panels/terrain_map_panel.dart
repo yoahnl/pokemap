@@ -445,9 +445,13 @@ class _SurfaceSectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.34)),
+        border: Border.all(
+          color: color.withValues(alpha: 0.72),
+          width: 1.15,
+        ),
+        boxShadow: EditorChrome.inspectorTileHardShadows(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

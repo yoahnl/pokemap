@@ -116,9 +116,22 @@ class _EntityPropertiesPanelState
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: entity.id == state.selectedEntityId
-                            ? _entityColor(entity.kind).withValues(alpha: 0.16)
+                            ? Color.lerp(
+                                EditorChrome.islandFillElevated(context),
+                                _entityColor(entity.kind),
+                                0.3,
+                              )!
                             : EditorChrome.islandFillElevated(context),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: entity.id == state.selectedEntityId
+                              ? _entityColor(entity.kind)
+                                  .withValues(alpha: 0.78)
+                              : EditorChrome.editorIslandRim(context),
+                          width: 1,
+                        ),
+                        boxShadow:
+                            EditorChrome.inspectorTileHardShadows(context),
                       ),
                       child: CupertinoButton(
                         padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),

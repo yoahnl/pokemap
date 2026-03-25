@@ -3,6 +3,15 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart'
+    show
+        BorderSide,
+        BoxShadow,
+        Colors,
+        Material,
+        PopupMenuButton,
+        PopupMenuItem,
+        RoundedRectangleBorder;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -12,6 +21,18 @@ import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
+
+class _InspectorPulldownAction {
+  const _InspectorPulldownAction({
+    required this.label,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool enabled;
+}
 
 class TilesetPalettePanel extends ConsumerStatefulWidget {
   const TilesetPalettePanel({
@@ -43,6 +64,142 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     _selectionHorizontalScrollController.dispose();
     _selectionVerticalScrollController.dispose();
     super.dispose();
+  }
+
+  Widget _inspectorPickerPill({
+    required BuildContext context,
+    required Color accent,
+    required String fieldLabel,
+    required String valueLabel,
+    required VoidCallback onTap,
+  }) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final labelColor = EditorChrome.primaryLabel(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: accent.withValues(alpha: 0.09),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: accent.withValues(alpha: 0.45)),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.14),
+              blurRadius: 0,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    fieldLabel,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    valueLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: labelColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(CupertinoIcons.chevron_down, size: 14, color: accent),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _inspectorAccentPopupMenu({
+    required BuildContext context,
+    required Color accent,
+    required String buttonLabel,
+    required List<_InspectorPulldownAction> actions,
+  }) {
+    final labelColor = EditorChrome.primaryLabel(context);
+    return Material(
+      color: Colors.transparent,
+      child: PopupMenuButton<int>(
+        tooltip: buttonLabel,
+        padding: EdgeInsets.zero,
+        splashRadius: 16,
+        offset: const Offset(0, 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: accent.withValues(alpha: 0.35)),
+        ),
+        color: EditorChrome.islandFillElevated(context),
+        elevation: 3,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: accent.withValues(alpha: 0.1),
+            ),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: accent.withValues(alpha: 0.45)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                buttonLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: labelColor,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Icon(CupertinoIcons.chevron_down, size: 11, color: accent),
+            ],
+          ),
+        ),
+        itemBuilder: (ctx) => [
+          for (var i = 0; i < actions.length; i++)
+            PopupMenuItem<int>(
+              value: i,
+              enabled: actions[i].enabled,
+              child: Text(
+                actions[i].label,
+                style: TextStyle(
+                  color: actions[i].enabled
+                      ? labelColor
+                      : CupertinoColors.placeholderText.resolveFrom(ctx),
+                ),
+              ),
+            ),
+        ],
+        onSelected: (i) {
+          final a = actions[i];
+          if (a.enabled) a.onTap();
+        },
+      ),
+    );
   }
 
   TilesetSourceRect? get _selectionRect {
@@ -176,14 +333,16 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         }
 
         final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-        final labelColor = CupertinoColors.label.resolveFrom(context);
+        final pickerAccent = widget.embedded
+            ? EditorChrome.inspectorJoyLilac
+            : CupertinoTheme.of(context).primaryColor;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
               padding:
-                  EdgeInsets.fromLTRB(12, widget.embedded ? 10 : 12, 12, 8),
+                  EdgeInsets.fromLTRB(12, widget.embedded ? 8 : 12, 12, 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -197,21 +356,13 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         color: secondary,
                       ),
                     ),
-                  SizedBox(height: widget.embedded ? 0 : 6),
-                  Text(
-                    selectedTileset.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: labelColor,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    alignment: Alignment.centerLeft,
-                    onPressed: () async {
+                  if (!widget.embedded) const SizedBox(height: 6),
+                  _inspectorPickerPill(
+                    context: context,
+                    accent: pickerAccent,
+                    fieldLabel: 'Tileset',
+                    valueLabel: selectedTileset.name,
+                    onTap: () async {
                       final picked = await showCupertinoListPicker<String>(
                         context: context,
                         title: 'Tileset',
@@ -225,50 +376,43 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         notifier.selectTilesetEditorContext(picked);
                       }
                     },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tileset',
-                          style: TextStyle(fontSize: 12, color: secondary),
-                        ),
-                        Text(
-                          selectedTileset.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: labelColor),
-                        ),
-                      ],
-                    ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
-                    '${columns * rows} tiles',
-                    style: TextStyle(color: secondary, fontSize: 12),
+                    '${columns * rows} tuiles',
+                    style: TextStyle(color: secondary, fontSize: 11),
                   ),
                   if (map == null)
-                    Text(
-                      'No active map: edition mode only',
-                      style: TextStyle(color: secondary, fontSize: 11),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'No active map: edition mode only',
+                        style: TextStyle(color: secondary, fontSize: 11),
+                      ),
                     ),
                 ],
               ),
             ),
             if (tileLayers.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
                 child: Builder(
                   builder: (ctx) {
                     final effectiveLayerId =
                         tileLayers.any((l) => l.id == state.activeLayerId)
                             ? state.activeLayerId!
                             : tileLayers.first.id;
-                    return CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      alignment: Alignment.centerLeft,
-                      onPressed: () async {
+                    return _inspectorPickerPill(
+                      context: ctx,
+                      accent: pickerAccent,
+                      fieldLabel: 'Calque cible',
+                      valueLabel: tileLayers
+                          .firstWhere((l) => l.id == effectiveLayerId)
+                          .name,
+                      onTap: () async {
                         final picked = await showCupertinoListPicker<String>(
                           context: ctx,
-                          title: 'Target Layer',
+                          title: 'Calque cible',
                           items: tileLayers.map((l) => l.id).toList(),
                           labelOf: (id) =>
                               tileLayers.firstWhere((l) => l.id == id).name,
@@ -277,26 +421,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           notifier.setActiveLayer(picked);
                         }
                       },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Target Layer',
-                            style: TextStyle(fontSize: 12, color: secondary),
-                          ),
-                          Text(
-                            tileLayers
-                                .firstWhere((l) => l.id == effectiveLayerId)
-                                .name,
-                            style: TextStyle(color: labelColor),
-                          ),
-                        ],
-                      ),
                     );
                   },
                 ),
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Expanded(
               child: _buildElementsTab(
                 state: state,
@@ -732,13 +861,101 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       for (final group in project.groups) group.id: group,
     };
 
+    const tilesAccent = EditorChrome.inspectorJoyLilac;
+    final secondaryLabel = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final rim = EditorChrome.editorIslandRim(context);
+    final listSurface = EditorChrome.largeIslandSurfaceColor(
+      context,
+      tint: tilesAccent.withValues(alpha: 0.07),
+    );
+    const categoryStripe = EditorChrome.inspectorJoyCyan;
+
+    final tilesetGroupActions = <_InspectorPulldownAction>[
+      _InspectorPulldownAction(
+        label: 'Nouveau groupe racine',
+        onTap: () => _showCreateTilesetGroupDialog(
+          context,
+          notifier: notifier,
+          tilesetId: activeTileset.id,
+        ),
+      ),
+      _InspectorPulldownAction(
+        label: 'Nouveau sous-groupe',
+        enabled: validSelectedTilesetGroupId != null,
+        onTap: () {
+          final id = validSelectedTilesetGroupId;
+          if (id == null) return;
+          _showCreateTilesetSubgroupDialog(
+            context,
+            notifier: notifier,
+            tilesetId: activeTileset.id,
+            parentGroupId: id,
+          );
+        },
+      ),
+      _InspectorPulldownAction(
+        label: 'Renommer la sélection',
+        enabled: validSelectedTilesetGroupId != null,
+        onTap: () {
+          final id = validSelectedTilesetGroupId;
+          if (id == null) return;
+          _showRenameTilesetGroupDialog(
+            context,
+            notifier: notifier,
+            tilesetId: activeTileset.id,
+            groupId: id,
+            currentName: tilesetGroupById[id]?.name ?? '',
+          );
+        },
+      ),
+    ];
+
+    final categoryActions = <_InspectorPulldownAction>[
+      _InspectorPulldownAction(
+        label: 'Nouvelle catégorie racine',
+        onTap: () => _showCreateCategoryDialog(
+          context,
+          notifier: notifier,
+          parentCategoryId: null,
+        ),
+      ),
+      _InspectorPulldownAction(
+        label: 'Nouvelle sous-catégorie',
+        enabled: selectedCategoryId != null,
+        onTap: () {
+          final id = selectedCategoryId;
+          if (id == null) return;
+          _showCreateCategoryDialog(
+            context,
+            notifier: notifier,
+            parentCategoryId: id,
+          );
+        },
+      ),
+      _InspectorPulldownAction(
+        label: 'Renommer la catégorie',
+        enabled: selectedCategoryId != null,
+        onTap: () {
+          final id = selectedCategoryId;
+          if (id == null) return;
+          _showRenameCategoryDialog(
+            context,
+            notifier: notifier,
+            categoryId: id,
+            currentName: categoriesById[id]?.name ?? '',
+          );
+        },
+      ),
+    ];
+
     final tilesetGroupRows = <Widget>[
       _CategoryTreeRow(
         depth: 0,
         selected: validSelectedTilesetGroupId == null,
-        label: 'All Internal Groups',
+        label: 'Tous les groupes',
         hasChildren: false,
         expanded: false,
+        accentOverride: tilesAccent,
         onTap: () => notifier.selectTilesetElementGroupFilter(null),
       ),
       const EditorHorizontalDivider(),
@@ -746,6 +963,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         groupsByParent: tilesetGroupsByParent,
         parentGroupId: null,
         selectedGroupId: validSelectedTilesetGroupId,
+        rowAccent: tilesAccent,
         onSelect: (groupId) =>
             notifier.selectTilesetElementGroupFilter(groupId),
       ),
@@ -755,9 +973,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       _CategoryTreeRow(
         depth: 0,
         selected: selectedCategoryId == null,
-        label: 'All Categories',
+        label: 'Toutes les catégories',
         hasChildren: false,
         expanded: false,
+        accentOverride: categoryStripe,
         onTap: () {
           setState(() {
             _selectedCategoryId = null;
@@ -769,6 +988,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         categoriesByParent: categoriesByParent,
         parentCategoryId: null,
         depth: 0,
+        rowAccent: categoryStripe,
       ),
     ];
 
@@ -776,224 +996,264 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       padding: const EdgeInsets.only(bottom: 12),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Text(
-                  'Tileset Internal Groups',
-                  style: TextStyle(
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                    fontSize: 12,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    CupertinoIcons.square_stack_3d_up_fill,
+                    size: 14,
+                    color: tilesAccent,
                   ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Groupes internes (tileset)',
+                      style: TextStyle(
+                        color: secondaryLabel,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  _inspectorAccentPopupMenu(
+                    context: context,
+                    accent: tilesAccent,
+                    buttonLabel: 'Actions',
+                    actions: tilesetGroupActions,
+                  ),
+                ],
+              ),
+              Text(
+                'Filtre les éléments selon le groupe dans ce tileset.',
+                style: TextStyle(
+                  color: secondaryLabel,
+                  fontSize: 10,
+                  height: 1.2,
                 ),
-              ),
-              EditorToolbarIconButton(
-                onPressed: () => _showCreateTilesetGroupDialog(
-                  context,
-                  notifier: notifier,
-                  tilesetId: activeTileset.id,
-                ),
-                icon: CupertinoIcons.folder_badge_plus,
-                tooltip: 'New Group',
-              ),
-              EditorToolbarIconButton(
-                onPressed: validSelectedTilesetGroupId == null
-                    ? null
-                    : () => _showCreateTilesetSubgroupDialog(
-                          context,
-                          notifier: notifier,
-                          tilesetId: activeTileset.id,
-                          parentGroupId: validSelectedTilesetGroupId,
-                        ),
-                icon: CupertinoIcons.folder_fill,
-                tooltip: 'New Subgroup',
-              ),
-              EditorToolbarIconButton(
-                onPressed: validSelectedTilesetGroupId == null
-                    ? null
-                    : () => _showRenameTilesetGroupDialog(
-                          context,
-                          notifier: notifier,
-                          tilesetId: activeTileset.id,
-                          groupId: validSelectedTilesetGroupId,
-                          currentName:
-                              tilesetGroupById[validSelectedTilesetGroupId]
-                                      ?.name ??
-                                  '',
-                        ),
-                icon: CupertinoIcons.pencil,
-                tooltip: 'Rename Group',
               ),
             ],
           ),
         ),
         Container(
-          height: 130,
+          height: 72,
           margin: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            border: Border.all(
-              color: CupertinoColors.separator.resolveFrom(context),
-            ),
+            color: listSurface,
             borderRadius: BorderRadius.circular(6),
+            border: Border(
+              left: BorderSide(color: tilesAccent, width: 3),
+              top: BorderSide(color: rim),
+              right: BorderSide(color: rim),
+              bottom: BorderSide(color: rim),
+            ),
           ),
-          child: ListView(
-            children: tilesetGroupRows,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: ListView(
+              children: tilesetGroupRows,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 5),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(12, 2, 12, 3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Text(
-                  'Element Categories',
-                  style: TextStyle(
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                    fontSize: 12,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    CupertinoIcons.tag_fill,
+                    size: 14,
+                    color: categoryStripe,
                   ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      "Catégories d'éléments",
+                      style: TextStyle(
+                        color: secondaryLabel,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  _inspectorAccentPopupMenu(
+                    context: context,
+                    accent: categoryStripe,
+                    buttonLabel: 'Actions',
+                    actions: categoryActions,
+                  ),
+                ],
+              ),
+              Text(
+                'Filtre la liste par catégorie projet (pas le tileset).',
+                style: TextStyle(
+                  color: secondaryLabel,
+                  fontSize: 10,
+                  height: 1.2,
                 ),
-              ),
-              EditorToolbarIconButton(
-                onPressed: () => _showCreateCategoryDialog(
-                  context,
-                  notifier: notifier,
-                  parentCategoryId: null,
-                ),
-                icon: CupertinoIcons.folder_badge_plus,
-                tooltip: 'New Category',
-              ),
-              EditorToolbarIconButton(
-                onPressed: _selectedCategoryId == null
-                    ? null
-                    : () => _showCreateCategoryDialog(
-                          context,
-                          notifier: notifier,
-                          parentCategoryId: _selectedCategoryId,
-                        ),
-                icon: CupertinoIcons.folder_fill,
-                tooltip: 'New Subcategory',
-              ),
-              EditorToolbarIconButton(
-                onPressed: _selectedCategoryId == null
-                    ? null
-                    : () => _showRenameCategoryDialog(
-                          context,
-                          notifier: notifier,
-                          categoryId: _selectedCategoryId!,
-                          currentName:
-                              categoriesById[_selectedCategoryId]?.name ?? '',
-                        ),
-                icon: CupertinoIcons.pencil,
-                tooltip: 'Rename Category',
               ),
             ],
           ),
         ),
         Container(
-          height: 130,
+          height: 72,
           margin: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            border: Border.all(
-              color: CupertinoColors.separator.resolveFrom(context),
-            ),
+            color: listSurface,
             borderRadius: BorderRadius.circular(6),
+            border: Border(
+              left: BorderSide(color: categoryStripe, width: 3),
+              top: BorderSide(color: rim),
+              right: BorderSide(color: rim),
+              bottom: BorderSide(color: rim),
+            ),
           ),
-          child: ListView(
-            children: categoryRows,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '${filteredElements.length} elements',
-              style: TextStyle(
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                fontSize: 12,
-              ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: ListView(
+              children: categoryRows,
             ),
           ),
         ),
-        const SizedBox(height: 4),
-        if (filteredElements.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            child: Text(
-              'No element for current filters',
-              style: TextStyle(
-                color: CupertinoColors.placeholderText.resolveFrom(context),
-              ),
+        const SizedBox(height: 6),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          decoration: BoxDecoration(
+            color: EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: tilesAccent.withValues(alpha: 0.08),
             ),
-          )
-        else
-          ListView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-            itemCount: filteredElements.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (context, index) {
-              final element = filteredElements[index];
-              final categoryPath = _buildCategoryPathLabel(
-                categoriesById: categoriesById,
-                categoryId: element.categoryId,
-              );
-              final tilesetName = activeTileset.name;
-              final groupLabel = element.groupId == null
-                  ? 'Global'
-                  : 'Group: ${_buildGroupPathLabel(groupById, element.groupId!)}';
-              final tilesetGroupLabel = element.tilesetGroupId == null
-                  ? 'Internal: none'
-                  : 'Internal: ${_buildTilesetGroupPathLabel(tilesetGroupById, element.tilesetGroupId!)}';
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _ProjectElementCard(
-                  image: image,
-                  element: element,
-                  tileWidth: tileWidth,
-                  tileHeight: tileHeight,
-                  selected: state.activeBrush.maybeMap(
-                    projectElement: (brush) => brush.elementId == element.id,
-                    orElse: () => false,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: tilesAccent.withValues(alpha: 0.4)),
+            boxShadow: [
+              BoxShadow(
+                color: tilesAccent.withValues(alpha: 0.1),
+                blurRadius: 0,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.cube_box_fill,
+                    size: 15,
+                    color: tilesAccent,
                   ),
-                  categoryPath: categoryPath,
-                  tilesetName: tilesetName,
-                  groupLabel: groupLabel,
-                  tilesetGroupLabel: tilesetGroupLabel,
-                  onTap: () {
-                    notifier.selectProjectElement(element.id);
-                    if (element.recommendedLayerId != null &&
-                        (state.activeMap?.layers.any(
-                              (layer) =>
-                                  layer is TileLayer &&
-                                  layer.id == element.recommendedLayerId,
-                            ) ??
-                            false)) {
-                      notifier.setActiveLayer(element.recommendedLayerId!);
-                    }
-                    notifier.selectTool(EditorToolType.tilePaint);
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Éléments à placer',
+                      style: TextStyle(
+                        color: EditorChrome.primaryLabel(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${filteredElements.length}',
+                    style: TextStyle(
+                      color: secondaryLabel,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (filteredElements.isEmpty)
+                Text(
+                  'Aucun élément pour ces filtres',
+                  style: TextStyle(
+                    color: CupertinoColors.placeholderText.resolveFrom(context),
+                    fontSize: 12,
+                  ),
+                )
+              else
+                ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: filteredElements.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final element = filteredElements[index];
+                    final categoryPath = _buildCategoryPathLabel(
+                      categoriesById: categoriesById,
+                      categoryId: element.categoryId,
+                    );
+                    final tilesetName = activeTileset.name;
+                    final groupLabel = element.groupId == null
+                        ? 'Global'
+                        : 'Groupe : ${_buildGroupPathLabel(groupById, element.groupId!)}';
+                    final tilesetGroupLabel = element.tilesetGroupId == null
+                        ? 'Interne : aucun'
+                        : 'Interne : ${_buildTilesetGroupPathLabel(tilesetGroupById, element.tilesetGroupId!)}';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: _ProjectElementCard(
+                        image: image,
+                        element: element,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                        selectionAccent: tilesAccent,
+                        selected: state.activeBrush.maybeMap(
+                          projectElement: (brush) =>
+                              brush.elementId == element.id,
+                          orElse: () => false,
+                        ),
+                        categoryPath: categoryPath,
+                        tilesetName: tilesetName,
+                        groupLabel: groupLabel,
+                        tilesetGroupLabel: tilesetGroupLabel,
+                        onTap: () {
+                          notifier.selectProjectElement(element.id);
+                          if (element.recommendedLayerId != null &&
+                              (state.activeMap?.layers.any(
+                                    (layer) =>
+                                        layer is TileLayer &&
+                                        layer.id ==
+                                            element.recommendedLayerId,
+                                  ) ??
+                                  false)) {
+                            notifier.setActiveLayer(
+                              element.recommendedLayerId!,
+                            );
+                          }
+                          notifier.selectTool(EditorToolType.tilePaint);
+                        },
+                        onEdit: () => _showEditElementDialog(
+                          context,
+                          notifier: notifier,
+                          project: project,
+                          element: element,
+                          categories: categories,
+                          tileLayers: tileLayers,
+                          tilesetGroups: tilesetGroups,
+                        ),
+                        onDelete: () => _showDeleteElementDialog(
+                          context,
+                          notifier: notifier,
+                          element: element,
+                        ),
+                      ),
+                    );
                   },
-                  onEdit: () => _showEditElementDialog(
-                    context,
-                    notifier: notifier,
-                    project: project,
-                    element: element,
-                    categories: categories,
-                    tileLayers: tileLayers,
-                    tilesetGroups: tilesetGroups,
-                  ),
-                  onDelete: () => _showDeleteElementDialog(
-                    context,
-                    notifier: notifier,
-                    element: element,
-                  ),
                 ),
-              );
-            },
+            ],
           ),
+        ),
       ],
     );
   }
@@ -1002,6 +1262,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     required Map<String?, List<ProjectElementCategory>> categoriesByParent,
     required String? parentCategoryId,
     required int depth,
+    Color? rowAccent,
   }) {
     final rows = <Widget>[];
     final children = categoriesByParent[parentCategoryId] ?? const [];
@@ -1017,6 +1278,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           label: category.name,
           hasChildren: hasChildren,
           expanded: expanded,
+          accentOverride: rowAccent,
           onTap: () {
             setState(() {
               _selectedCategoryId = category.id;
@@ -1041,6 +1303,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             categoriesByParent: categoriesByParent,
             parentCategoryId: category.id,
             depth: depth + 1,
+            rowAccent: rowAccent,
           ),
         );
       }
@@ -1054,6 +1317,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     required String? selectedGroupId,
     required ValueChanged<String> onSelect,
     int depth = 0,
+    Color? rowAccent,
   }) {
     final rows = <Widget>[];
     final children = groupsByParent[parentGroupId] ?? const [];
@@ -1069,6 +1333,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           label: group.name,
           hasChildren: hasChildren,
           expanded: expanded,
+          accentOverride: rowAccent,
           onTap: () => onSelect(group.id),
           onToggleExpanded: hasChildren
               ? () {
@@ -1091,6 +1356,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             selectedGroupId: selectedGroupId,
             onSelect: onSelect,
             depth: depth + 1,
+            rowAccent: rowAccent,
           ),
         );
       }
@@ -2154,6 +2420,7 @@ class _CategoryTreeRow extends StatelessWidget {
   final bool expanded;
   final VoidCallback onTap;
   final VoidCallback? onToggleExpanded;
+  final Color? accentOverride;
 
   const _CategoryTreeRow({
     required this.depth,
@@ -2163,11 +2430,13 @@ class _CategoryTreeRow extends StatelessWidget {
     required this.expanded,
     required this.onTap,
     this.onToggleExpanded,
+    this.accentOverride,
   });
 
   @override
   Widget build(BuildContext context) {
-    final accent = CupertinoTheme.of(context).primaryColor;
+    final accent =
+        accentOverride ?? CupertinoTheme.of(context).primaryColor;
     final labelColor = CupertinoColors.label.resolveFrom(context);
     final background = selected
         ? accent.withValues(alpha: 0.14)
@@ -2178,19 +2447,20 @@ class _CategoryTreeRow extends StatelessWidget {
       onPressed: onTap,
       child: Container(
         color: background,
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 1),
         child: Row(
           children: [
-            SizedBox(width: 12.0 * depth),
+            SizedBox(width: 10.0 * depth),
             SizedBox(
-              width: 24,
+              width: 22,
               child: hasChildren
                   ? EditorToolbarIconButton(
                       onPressed: onToggleExpanded,
                       icon: expanded
                           ? CupertinoIcons.chevron_down
                           : CupertinoIcons.chevron_right,
-                      iconSize: 16,
+                      iconSize: 14,
+                      color: accent,
                     )
                   : const SizedBox.shrink(),
             ),
@@ -2200,7 +2470,7 @@ class _CategoryTreeRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   color: selected ? accent : labelColor,
                 ),
               ),
@@ -2218,6 +2488,7 @@ class _ProjectElementCard extends StatelessWidget {
   final int tileWidth;
   final int tileHeight;
   final bool selected;
+  final Color selectionAccent;
   final String categoryPath;
   final String tilesetName;
   final String groupLabel;
@@ -2232,6 +2503,7 @@ class _ProjectElementCard extends StatelessWidget {
     required this.tileWidth,
     required this.tileHeight,
     required this.selected,
+    required this.selectionAccent,
     required this.categoryPath,
     required this.tilesetName,
     required this.groupLabel,
@@ -2243,12 +2515,20 @@ class _ProjectElementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = CupertinoTheme.of(context).primaryColor;
     final sep = CupertinoColors.separator.resolveFrom(context);
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final labelColor = CupertinoColors.label.resolveFrom(context);
-    final baseColor =
-        selected ? accent.withValues(alpha: 0.12) : EditorPaintColors.transparent;
+    final tertiary = CupertinoColors.placeholderText.resolveFrom(context);
+    final baseColor = selected
+        ? selectionAccent.withValues(alpha: 0.1)
+        : EditorPaintColors.transparent;
+    final meta2 = [
+      groupLabel,
+      tilesetGroupLabel,
+      if (element.recommendedLayerId != null &&
+          element.recommendedLayerId!.isNotEmpty)
+        'Calque : ${element.recommendedLayerId}',
+    ].join(' · ');
     return CupertinoButton(
       padding: EdgeInsets.zero,
       minimumSize: Size.zero,
@@ -2258,15 +2538,15 @@ class _ProjectElementCard extends StatelessWidget {
           color: baseColor,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: selected ? accent : sep,
+            color: selected ? selectionAccent : sep,
           ),
         ),
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
         child: Row(
           children: [
             SizedBox(
-              width: 64,
-              height: 64,
+              width: 46,
+              height: 46,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border.all(color: sep),
@@ -2279,7 +2559,7 @@ class _ProjectElementCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2291,65 +2571,91 @@ class _ProjectElementCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
+                      fontSize: 13,
                       color: labelColor,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
-                    categoryPath,
+                    '$categoryPath · $tilesetName',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: secondary, fontSize: 11),
+                    style: TextStyle(color: secondary, fontSize: 10),
                   ),
                   Text(
-                    tilesetName,
+                    meta2,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: secondary, fontSize: 11),
+                    style: TextStyle(color: tertiary, fontSize: 10),
                   ),
-                  Text(
-                    groupLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: CupertinoColors.placeholderText.resolveFrom(context),
-                      fontSize: 11,
-                    ),
-                  ),
-                  Text(
-                    tilesetGroupLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: CupertinoColors.placeholderText.resolveFrom(context),
-                      fontSize: 11,
-                    ),
-                  ),
-                  if (element.recommendedLayerId != null &&
-                      element.recommendedLayerId!.isNotEmpty)
-                    Text(
-                      'Layer: ${element.recommendedLayerId}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: CupertinoColors.placeholderText.resolveFrom(context),
-                        fontSize: 11,
-                      ),
-                    ),
                 ],
               ),
             ),
-            EditorToolbarIconButton(
-              onPressed: onEdit,
-              icon: CupertinoIcons.pencil,
-              iconSize: 18,
-              tooltip: 'Edit',
-            ),
-            EditorToolbarIconButton(
-              onPressed: onDelete,
-              icon: CupertinoIcons.trash,
-              iconSize: 18,
-              tooltip: 'Delete',
+            const SizedBox(width: 4),
+            Material(
+              color: Colors.transparent,
+              child: PopupMenuButton<int>(
+                tooltip: 'Actions',
+                padding: EdgeInsets.zero,
+                splashRadius: 14,
+                offset: const Offset(0, 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7),
+                  side: BorderSide(
+                    color: selectionAccent.withValues(alpha: 0.45),
+                  ),
+                ),
+                color: EditorChrome.islandFillElevated(context),
+                elevation: 3,
+                itemBuilder: (ctx) => [
+                  PopupMenuItem<int>(
+                    value: 0,
+                    child: Text(
+                      'Modifier',
+                      style: TextStyle(color: labelColor),
+                    ),
+                  ),
+                  PopupMenuItem<int>(
+                    value: 1,
+                    child: Text(
+                      'Supprimer',
+                      style: TextStyle(
+                        color: CupertinoColors.destructiveRed.resolveFrom(
+                          ctx,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                onSelected: (i) {
+                  if (i == 0) {
+                    onEdit();
+                  } else if (i == 1) {
+                    onDelete();
+                  }
+                },
+                child: SizedBox(
+                  width: 36,
+                  height: 28,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: EditorChrome.largeIslandSurfaceColor(
+                        context,
+                        tint: selectionAccent.withValues(alpha: 0.12),
+                      ),
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: selectionAccent.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.ellipsis_vertical,
+                      size: 16,
+                      color: labelColor,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),

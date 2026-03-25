@@ -54,7 +54,8 @@ class ProjectExplorerPanel extends ConsumerWidget {
   ) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    const explorerAccent = EditorChrome.accentCyan;
+    const explorerAccent = EditorChrome.inspectorJoyCyan;
+    const explorerDeep = EditorChrome.inspectorJoyPlum;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       child: Row(
@@ -67,17 +68,21 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  explorerAccent.withValues(alpha: 0.22),
-                  EditorChrome.accentPrune.withValues(alpha: 0.14),
+                  Color.lerp(CupertinoColors.white, explorerAccent, 0.78)!,
+                  Color.lerp(explorerDeep, const Color(0xFF140818), 0.35)!,
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: explorerAccent.withValues(alpha: 0.88),
+                width: 1.15,
+              ),
             ),
             alignment: Alignment.center,
-            child: Icon(
+            child: const Icon(
               CupertinoIcons.square_stack_3d_up,
               size: 18,
-              color: explorerAccent,
+              color: CupertinoColors.white,
             ),
           ),
           const SizedBox(width: 10),

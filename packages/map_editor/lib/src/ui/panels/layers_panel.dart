@@ -43,12 +43,15 @@ class LayersPanel extends ConsumerWidget {
             notifier: notifier,
           );
 
+    const layerAccent = EditorChrome.inspectorJoyBlue;
+
     if (embedded) {
       return Column(
         children: [
           _LayerActionsRow(
             map: map,
             notifier: notifier,
+            accent: layerAccent,
             onAddLayer: () => _showAddLayerDialog(context, notifier),
             onDeleteAllLayers: () =>
                 _showDeleteAllLayersDialog(context, notifier),
@@ -69,6 +72,7 @@ class LayersPanel extends ConsumerWidget {
           _LayerActionsRow(
             map: map,
             notifier: notifier,
+            accent: layerAccent,
             onAddLayer: () => _showAddLayerDialog(context, notifier),
             onDeleteAllLayers: () =>
                 _showDeleteAllLayersDialog(context, notifier),
@@ -180,6 +184,7 @@ class _LayerActionsRow extends StatelessWidget {
   const _LayerActionsRow({
     required this.map,
     required this.notifier,
+    required this.accent,
     required this.onAddLayer,
     required this.onDeleteAllLayers,
     this.compact = false,
@@ -187,13 +192,15 @@ class _LayerActionsRow extends StatelessWidget {
 
   final MapData? map;
   final EditorNotifier notifier;
+  final Color accent;
   final VoidCallback onAddLayer;
   final VoidCallback onDeleteAllLayers;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final labelColor = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final muted = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final labelColor = Color.lerp(muted, accent, 0.42)!;
     return Padding(
       padding: compact
           ? const EdgeInsets.fromLTRB(8, 8, 8, 6)
@@ -211,17 +218,20 @@ class _LayerActionsRow extends StatelessWidget {
               ),
             ),
           ),
-          EditorToolbarIconButton(
+          _LayersAccentIconButton(
+            accent: accent,
             onPressed: map == null ? null : onAddLayer,
             icon: CupertinoIcons.add,
             tooltip: 'Add Layer',
-            iconSize: 18,
+            iconSize: 17,
           ),
-          EditorToolbarIconButton(
+          const SizedBox(width: 6),
+          _LayersAccentIconButton(
+            accent: accent,
             onPressed: map == null ? null : onDeleteAllLayers,
             icon: CupertinoIcons.trash_slash,
             tooltip: 'Remove All Layers',
-            iconSize: 18,
+            iconSize: 17,
           ),
         ],
       ),
@@ -243,7 +253,7 @@ class _LayerList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
-    const layerAccent = EditorChrome.accentPrimary;
+    const layerAccent = EditorChrome.inspectorJoyBlue;
     final label = CupertinoColors.label.resolveFrom(context);
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
 
@@ -265,6 +275,19 @@ class _LayerList extends StatelessWidget {
         final canMoveUp = index > 0;
         final canMoveDown = index < map.layers.length - 1;
 
+        final inactiveFill = Color.lerp(
+          EditorChrome.islandFillElevated(context),
+          layerAccent,
+          0.16,
+        )!;
+        final inactiveBorder = Color.lerp(
+          EditorChrome.editorIslandRim(context),
+          layerAccent,
+          0.45,
+        )!;
+        final metaColor =
+            Color.lerp(secondary, layerAccent, isActive ? 0.28 : 0.22)!;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: DecoratedBox(
@@ -273,25 +296,17 @@ class _LayerList extends StatelessWidget {
                   ? Color.lerp(
                       EditorChrome.islandFillElevated(context),
                       layerAccent,
-                      0.22,
+                      0.36,
                     )!
-                  : EditorChrome.islandFillElevated(context),
+                  : inactiveFill,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: isActive
-                  ? [
-                      BoxShadow(
-                        color: layerAccent.withValues(alpha: 0.12),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : const [
-                      BoxShadow(
-                        color: Color(0x28000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
+              border: Border.all(
+                color: isActive
+                    ? layerAccent.withValues(alpha: 0.82)
+                    : inactiveBorder,
+                width: 1,
+              ),
+              boxShadow: EditorChrome.inspectorTileHardShadows(context),
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
@@ -306,7 +321,9 @@ class _LayerList extends StatelessWidget {
                         MacosIcon(
                           _iconForLayer(layer),
                           size: 16,
-                          color: isActive ? layerAccent : secondary,
+                          color: isActive
+                              ? layerAccent
+                              : Color.lerp(secondary, layerAccent, 0.55)!,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -322,7 +339,9 @@ class _LayerList extends StatelessWidget {
                                   fontWeight: isActive
                                       ? FontWeight.w600
                                       : FontWeight.w500,
-                                  color: isActive ? layerAccent : label,
+                                  color: isActive
+                                      ? layerAccent
+                                      : Color.lerp(label, layerAccent, 0.12)!,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -332,13 +351,15 @@ class _LayerList extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: secondary,
+                                  color: metaColor,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        EditorToolbarIconButton(
+                        const SizedBox(width: 6),
+                        _LayersAccentIconButton(
+                          accent: layerAccent,
                           onPressed: () => notifier.setMapLayerVisibility(
                             layer.id,
                             !layer.isVisible,
@@ -347,25 +368,31 @@ class _LayerList extends StatelessWidget {
                               ? CupertinoIcons.eye
                               : CupertinoIcons.eye_slash,
                           tooltip: layer.isVisible ? 'Hide layer' : 'Show layer',
-                          iconSize: 18,
+                          iconSize: 15,
                         ),
-                        EditorToolbarIconButton(
+                        const SizedBox(width: 4),
+                        _LayersAccentIconButton(
+                          accent: layerAccent,
                           onPressed: canMoveUp
                               ? () => notifier.moveMapLayerUp(layer.id)
                               : null,
                           icon: CupertinoIcons.arrow_up,
                           tooltip: 'Move up',
-                          iconSize: 18,
+                          iconSize: 15,
                         ),
-                        EditorToolbarIconButton(
+                        const SizedBox(width: 4),
+                        _LayersAccentIconButton(
+                          accent: layerAccent,
                           onPressed: canMoveDown
                               ? () => notifier.moveMapLayerDown(layer.id)
                               : null,
                           icon: CupertinoIcons.arrow_down,
                           tooltip: 'Move down',
-                          iconSize: 18,
+                          iconSize: 15,
                         ),
-                        EditorToolbarIconButton(
+                        const SizedBox(width: 4),
+                        _LayersAccentIconButton(
+                          accent: layerAccent,
                           onPressed: () => _showRenameLayerDialog(
                             context,
                             notifier,
@@ -373,9 +400,11 @@ class _LayerList extends StatelessWidget {
                           ),
                           icon: CupertinoIcons.pencil,
                           tooltip: 'Rename layer',
-                          iconSize: 18,
+                          iconSize: 15,
                         ),
-                        EditorToolbarIconButton(
+                        const SizedBox(width: 4),
+                        _LayersAccentIconButton(
+                          accent: layerAccent,
                           onPressed: () => _showDeleteLayerDialog(
                             context,
                             notifier,
@@ -383,7 +412,7 @@ class _LayerList extends StatelessWidget {
                           ),
                           icon: CupertinoIcons.trash,
                           tooltip: 'Delete layer',
-                          iconSize: 18,
+                          iconSize: 15,
                         ),
                       ],
                     ),
@@ -448,5 +477,81 @@ class _LayerList extends StatelessWidget {
     );
     if (!shouldDelete) return;
     notifier.deleteMapLayer(layer.id);
+  }
+}
+
+/// Pastilles icônes chaudes / acides, cohérentes avec la tuile « Layers ».
+class _LayersAccentIconButton extends StatefulWidget {
+  const _LayersAccentIconButton({
+    required this.accent,
+    required this.onPressed,
+    required this.icon,
+    this.tooltip,
+    this.iconSize = 15,
+  });
+
+  final Color accent;
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String? tooltip;
+  final double iconSize;
+
+  @override
+  State<_LayersAccentIconButton> createState() =>
+      _LayersAccentIconButtonState();
+}
+
+class _LayersAccentIconButtonState extends State<_LayersAccentIconButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onPressed != null;
+    final a = widget.accent;
+    final bg = !enabled
+        ? a.withValues(alpha: 0.08)
+        : _hovered
+            ? Color.lerp(a, const Color(0xFFFFF2E6), 0.4)!
+            : Color.lerp(a, const Color(0xFF1A0C04), 0.52)!;
+    final iconColor = enabled
+        ? CupertinoColors.white
+        : CupertinoColors.inactiveGray.resolveFrom(context);
+
+    Widget core = MouseRegion(
+      onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+      onExit: enabled ? (_) => setState(() => _hovered = false) : null,
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 110),
+          curve: Curves.easeOutCubic,
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: a.withValues(alpha: enabled ? 0.75 : 0.22),
+              width: 1,
+            ),
+          ),
+          child: MacosIcon(
+            widget.icon,
+            size: widget.iconSize,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
+
+    final tip = widget.tooltip;
+    if (tip != null && tip.isNotEmpty) {
+      return MacosTooltip(message: tip, child: core);
+    }
+    return core;
   }
 }

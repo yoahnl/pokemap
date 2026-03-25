@@ -169,6 +169,12 @@ abstract final class EditorChrome {
   static Color panelBorder(BuildContext context) =>
       _isDark(context) ? const Color(0x04000000) : const Color(0x14000000);
 
+  /// Contour net des grands îlots (même logique que les tuiles inspecteur).
+  static const Color editorIslandRimDark = Color(0xFF4D465E);
+
+  static Color editorIslandRim(BuildContext context) =>
+      _isDark(context) ? editorIslandRimDark : const Color(0x22000000);
+
   /// Petit module en thème clair uniquement (cartes légères).
   static LinearGradient panelGradientLight(BuildContext context) {
     return const LinearGradient(
@@ -181,21 +187,10 @@ abstract final class EditorChrome {
     );
   }
 
-  /// Ombres des **grands îlots** : profondeur sobre, peu de halos colorés.
+  /// Ombres des grands îlots : **relief net** (aligné sur les tuiles inspecteur).
   static List<BoxShadow> panelShadows(BuildContext context) {
     if (_isDark(context)) {
-      return const [
-        BoxShadow(
-          color: Color(0x48000000),
-          blurRadius: 28,
-          offset: Offset(0, 14),
-        ),
-        BoxShadow(
-          color: Color(0x0E000000),
-          blurRadius: 10,
-          offset: Offset(0, 3),
-        ),
-      ];
+      return inspectorTileHardShadows(context);
     }
     return const [
       BoxShadow(
@@ -206,21 +201,10 @@ abstract final class EditorChrome {
     ];
   }
 
-  /// Cartes / sections inspecteur : relief discret (évite l’effet « double îlot »).
+  /// Cartes internes : même système d’ombre dure.
   static List<BoxShadow> sectionCardShadows(BuildContext context) {
     if (_isDark(context)) {
-      return const [
-        BoxShadow(
-          color: Color(0x38000000),
-          blurRadius: 14,
-          offset: Offset(0, 6),
-        ),
-        BoxShadow(
-          color: Color(0x0A000000),
-          blurRadius: 6,
-          offset: Offset(0, 2),
-        ),
-      ];
+      return inspectorTileHardShadows(context);
     }
     return const [
       BoxShadow(
@@ -260,17 +244,22 @@ abstract final class EditorChrome {
     if (_isDark(context)) {
       return const [
         BoxShadow(
-          color: Color(0x2E000000),
-          blurRadius: 10,
-          offset: Offset(0, 5),
+          color: Color(0x5C000000),
+          blurRadius: 0,
+          offset: Offset(0, 1),
+        ),
+        BoxShadow(
+          color: Color(0x22000000),
+          blurRadius: 2,
+          offset: Offset(0, 2),
         ),
       ];
     }
     return const [
       BoxShadow(
         color: Color(0x10000000),
-        blurRadius: 10,
-        offset: Offset(0, 4),
+        blurRadius: 6,
+        offset: Offset(0, 3),
       ),
     ];
   }
@@ -317,7 +306,12 @@ class EditorPaneSurface extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
             border: showBorder
                 ? Border.all(color: EditorChrome.panelBorder(context))
-                : null,
+                : (MacosTheme.brightnessOf(context) == Brightness.dark
+                    ? Border.all(
+                        color: EditorChrome.editorIslandRim(context),
+                        width: 1,
+                      )
+                    : null),
           ),
           child: Padding(
             padding: padding,
