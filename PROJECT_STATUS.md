@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-25 (lot visuel entités éditeur : MapEntityEditorVisual, canvas, inspector)
+Last updated: 2026-03-26 (visuel entités : lot livré + consolidation architecture canonique `editorVisual` / legacy `npc.visualElementId`, doc alignée)
 
 ## Vision produit
 
@@ -10,7 +10,7 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 
 **Ordre de priorite explicite (strategie produit):**
 
-1. **Editeur de contenu de jeu tres riche** — **priorite actuelle**. Permettre a une personne **non developpeuse** de construire: maps, liens entre maps, terrains et surfaces, entites, dialogues (a venir), rencontres (a venir), interactions, donnees standard de gameplay — avec des ecrans et workflows **guides**, pas un simple editeur technique.
+1. **Editeur de contenu de jeu tres riche** — **priorite actuelle**. Permettre a une personne **non developpeuse** de construire: maps, liens entre maps, terrains et surfaces, entites (visuel editeur via elements projet), dialogues (partiel : registre + assignation), rencontres (partiel : zones + tables), interactions, donnees standard de gameplay — avec des ecrans et workflows **guides**, pas un simple editeur technique.
 2. **Package Flutter / Flame lecteur de projet** (`map_runtime`) — **prochaine grande etape**. Lire les memes donnees que l editeur et rendre le contenu **directement jouable** avec un maximum de **comportements standards** (deplacement, collisions, warps, dialogues, entites, etc.).
 3. **Couches plus haut niveau** (framework super abstrait, no-code integral) — **volontairement plus tard**. Ce n est **pas** la priorite immediate; l objectif immediat est la **qualite du contenu modelise** et sa **future execution standard**, pas un meta-moteur tout-fait sur la premiere iteration.
 
@@ -56,22 +56,23 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 
 ## Lot: Visuel entités éditeur — Entity Visual Presentation (2026-03-25)
 
-Objectif: sur le canvas, ne plus seulement un rectangle coloré : afficher le **sprite** issu d’un **élément projet** (première frame `TilesetVisualFrame`) quand il est configuré, sinon un **fallback** lisible par type (`npc` / `sign` / `item` / `spawn` / `custom`). Le domaine porte une référence **éditeur** explicite, distincte du futur runtime.
+Objectif: sur le canvas, ne plus seulement un rectangle coloré : afficher le **visuel** issu d’un **`ProjectElementEntry`** (première frame `TilesetVisualFrame` dans l’éditeur ; plusieurs frames possibles sur l’élément pour l’animation future) quand il est configuré, sinon un **fallback** lisible par type. Référence canonique : **`MapEntity.editorVisual.elementId`** ; **`npc.visualElementId`** = compatibilité legacy uniquement.
 
 ### Modèle (`map_core`)
 
 - **`MapEntityEditorVisual`** (`map_entity_editor_visual.dart`, Freezed + JSON) : `elementId` → `ProjectElementEntry.id` (sémantique **éditeur uniquement**).
 - **`MapEntity.editorVisual?`** : champ optionnel (pas dans `properties`) ; JSON `editorVisual` ; rétrocompat absences → `null` → fallback canvas.
-- **`MapEntityEditorVisualResolutionX.resolvedEditorElementId`** sur `MapEntity` (`map_data.dart`) : `editorVisual.elementId` sinon rétrocompat **`npc.visualElementId`** non vide.
+- **`MapEntityProjectElementVisualX`** sur `MapEntity` (`map_data.dart`) : `canonicalEditorVisualProjectElementId` (= `editorVisual.elementId`), `legacyNpcVisualProjectElementId` (= ancien `npc.visualElementId`), `resolvedProjectElementIdForEditor` (canonique puis legacy).
 - **`updateEntityOnMap`** : paramètre `editorVisual` avec sentinelle `mapEntityTypedPayloadUnset` ; `_normalizeEditorVisual` (trim, id vide → `null`).
 - **`assertEntityEditorVisualAgainstProject`** : si `MapValidator.validate(..., projectDialogueContext: project)` est appelé avec un manifeste, l’`elementId` doit exister dans `project.elements`.
+- **Pas de système visuel parallèle** : animation éventuelle = `frames` sur `ProjectElementEntry` ; l’entité ne duplique pas cette structure.
 - Export `map_core.dart`, `entity_editor_visual_validation.dart`.
 
 ### Éditeur (`map_editor`)
 
 - **`entity_editor_element_visual.dart`** : résolution `resolveEntityPrimaryFrameVisual` (image tileset + `Rect` source pixels) ; `collectTilesetIdsForEntityEditorVisuals` pour précharger les tilesets référencés par les entités.
-- **`MapCanvas`** : `_collectLayerTilesetPaths` inclut ces tilesets ; `MapGridPainter` reçoit `project` ; `_paintEntities` : sprite en **contain** dans la hitbox (coins arrondis, clip) ou fallback (fond teinté + glyphe **N/S/I/P/+**) ; **bordure de sélection**, badge type et **label** conservés.
-- **`EntityPropertiesPanel`** : section **Visuel sur la carte** (liste déroulante des `ProjectElementEntry`, option aucun) pour **tous** les kinds ; suppression du champ texte PNJ « ID élément » — à l’enregistrement : `editorVisual` + `npc.visualElementId` vidé (source unique côté nouveau champ).
+- **`MapCanvas`** : `_collectLayerTilesetPaths` inclut ces tilesets ; `MapGridPainter` reçoit `project` ; `_paintEntities` : première frame d’élément en **contain** dans la hitbox (coins arrondis, clip) ou fallback (fond teinté + glyphe **N/S/I/P/+**) ; **bordure de sélection**, badge type et **label** conservés.
+- **`EntityPropertiesPanel`** : section **Référence visuelle (bibliothèque)** — même liste `ProjectElementEntry` pour **tous** les kinds (pas de volet « sprite PNJ » séparé) ; à l’enregistrement : `editorVisual` + `npc.visualElementId` vidé.
 - **`EntityEditingService`**, **`UpdateEntityOnMapUseCase`**, **`EditorNotifier`** : paramètre `editorVisual` sur update.
 
 ### Hors scope (volontaire)
@@ -82,6 +83,13 @@ Objectif: sur le canvas, ne plus seulement un rectangle coloré : afficher le **
 
 - `map_core` : `map_entity_editor_visual.dart`, `map_data.dart`, `map_entities.dart`, `validators.dart`, `entity_editor_visual_validation.dart`, `map_core.dart` ; fichiers générés Freezed/JSON.
 - `map_editor` : `entity_editor_element_visual.dart`, `map_canvas.dart`, `entity_properties_panel.dart`, `entity_editing_service.dart`, `entity_use_cases.dart`, `editor_notifier.dart`.
+
+### Consolidation architecture (recadrage 2026-03-26)
+
+- **Règle unique** : bibliothèque visuelle = `ProjectElementEntry` (`frames` statiques ou animés) ; l’entité ne porte qu’une **référence** `MapEntity.editorVisual.elementId` — pas de structure de frames dupliquée côté entité.
+- **Legacy** : `MapEntityNpcData.visualElementId` conservé pour compatibilité / migration ; résolution éditeur explicite via `legacyNpcVisualProjectElementId` vs `canonicalEditorVisualProjectElementId`.
+- **UI** : libellés inspector centrés sur « référence visuelle (bibliothèque) » et `ProjectElementEntry` pour **tous** les kinds ; tooltip précise première frame éditeur vs frames élément pour animation future.
+- **Canvas** : méthode interne renommée autour de la **première frame d’élément projet** (`_paintEntityProjectElementFirstFrame`), pas de lecteur d’animation dans ce lot.
 
 ---
 
@@ -663,7 +671,7 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 - Outils avances map (fill/selection rect map/copy-paste).
 - Undo/redo global projet (au-dela de la map active).
 - Collisions avancees (types/comportements).
-- Entites: preview visuelle riche sur canvas (sprites / elements), catalogues d objets, affinage gameplay au-dela des payloads actuels.
+- Entites: preview canvas **première frame** via `ProjectElementEntry` deja en place ; restent: animation canvas, catalogues d’objets dédiés, affinage gameplay au-dela des payloads actuels, interpretation runtime.
 - Triggers avances (UI specialisee par type, drag-create de zone, logique evenementielle, runtime).
 - Warps avances (lien persistant bidirectionnel, edition/synchronisation de paires, visualisation graphique de destination).
 - Inspector de proprietes complet sur tous les objets.
@@ -678,8 +686,8 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 
 **Prochaines priorités immédiates:**
 
-- **Entités**: preview visuelle canvas (sprites/éléments), catalogues objets, affinage gameplay NPC/item/spawn.
-- **Dialogues**: vrai système de gestion projet fichiers Yarn (résolution `DialogueRef` → fichiers relatifs, UI d'assignation, validation runtime).
+- **Entités**: animation / multi-frame sur le canvas (les `frames` restent sur `ProjectElementEntry`) ; catalogues objets ; affinage gameplay NPC/item/spawn ; pas de nouveau pipeline visuel parallèle.
+- **Dialogues**: poursuite integration projet fichiers Yarn (résolution `DialogueRef`, UI, validation runtime) — partie registre + assignation NPC/signe deja en place.
 - **Dresseurs / équipes**: à concevoir (données + UI + validation).
 - **Préparation du runtime standard**: chaque nouveau bloc métier doit préciser comment `map_runtime` le lira et l'exécutera (même si l'implémentation arrive après).
 
@@ -694,9 +702,10 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 Voir **8. Prochaines etapes recommandees** (decoupage **editor court terme** / **runtime moyen terme**).
 
 ## 7. Dernieres modifications realisees
-2026-03-25 (visuel entites editeur — Entity Visual Presentation):
-- `map_core`: `MapEntityEditorVisual`, champ `MapEntity.editorVisual`, extension `MapEntityEditorVisualResolutionX.resolvedEditorElementId`, `assertEntityEditorVisualAgainstProject`, parametre `editorVisual` sur `updateEntityOnMap`.
-- `map_editor`: service `entity_editor_element_visual.dart` (resolution premiere frame + collecte tilesets), `MapCanvas` / `MapGridPainter` (sprite + fallbacks N/S/I/P/+), `EntityPropertiesPanel` (section visuel pour tous les kinds), filiere `editorVisual` jusqu a `EditorNotifier`.
+2026-03-25–26 (visuel entites editeur — Entity Visual Presentation + consolidation):
+- `map_core`: `MapEntityEditorVisual`, champ `MapEntity.editorVisual`, extension `MapEntityProjectElementVisualX` (`canonicalEditorVisualProjectElementId` / `legacyNpcVisualProjectElementId` / `resolvedProjectElementIdForEditor`), `assertEntityEditorVisualAgainstProject`, parametre `editorVisual` sur `updateEntityOnMap`.
+- `map_editor`: service `entity_editor_element_visual.dart` (resolution premiere frame + collecte tilesets), `MapCanvas` / `MapGridPainter` (premiere frame element + fallbacks N/S/I/P/+), `EntityPropertiesPanel` (reference visuelle bibliotheque pour tous les kinds), filiere `editorVisual` jusqu a `EditorNotifier`.
+- **2026-03-26**: recadrage doc + code — pas de systeme visuel parallele ; libelles UI et nommage canvas alignes sur `ProjectElementEntry` ; `PROJECT_STATUS` (lot + lacunes + tableau priorites) synchronise.
 
 2026-03-25 (zones gameplay + tables de rencontres — domaine + editor complet):
 - `map_core`: nouveaux enums `GameplayZoneKind`/`MovementMode`/`EncounterKind`; modele `MapGameplayZone` sur `MapData`; modeles `ProjectEncounterEntry`/`ProjectEncounterTable` sur `ProjectManifest`; operations CRUD `map_gameplay_zones.dart`; validation `ProjectValidator` et `MapValidator`.
@@ -1969,7 +1978,7 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 | Collisions | partiellement fait (MVP bool) |
 | Warps | partiellement fait (MVP + retour assiste; lien bidirectionnel non fait) |
 | Triggers | partiellement fait (MVP generique) |
-| Entites (NPC / signe / objet / spawn) | partiellement fait (payloads types + DialogueRef; preview canvas / runtime non faits) |
+| Entites (NPC / signe / objet / spawn) | partiellement fait (payloads types + DialogueRef + **preview canvas** via `editorVisual` → `ProjectElementEntry`, premiere frame ; animation canvas / runtime non faits) |
 | Dialogues / scripts | partiellement fait (registre projet + UI bibliotheque + assignation NPC/signe ; runtime Yarn non fait) |
 | Rencontres sauvages | pas fait |
 | Dresseurs / equipes | pas fait |

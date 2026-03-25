@@ -87,9 +87,7 @@ class MapEntity with _$MapEntity {
     MapEntitySignData? sign,
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
-    /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
     MapEntityEditorVisual? editorVisual,
-    /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
     @Default({}) Map<String, String> properties,
   }) = _MapEntity;
 
@@ -125,19 +123,29 @@ extension MapEntityDisplayX on MapEntity {
   }
 }
 
-extension MapEntityEditorVisualResolutionX on MapEntity {
-  String? get resolvedEditorElementId {
+extension MapEntityProjectElementVisualX on MapEntity {
+  String? get canonicalEditorVisualProjectElementId {
     final id = editorVisual?.elementId.trim();
-    if (id != null && id.isNotEmpty) {
-      return id;
+    if (id == null || id.isEmpty) {
+      return null;
     }
-    if (kind == MapEntityKind.npc) {
-      final legacy = npc?.visualElementId.trim() ?? '';
-      if (legacy.isNotEmpty) {
-        return legacy;
-      }
+    return id;
+  }
+
+  String? get legacyNpcVisualProjectElementId {
+    if (kind != MapEntityKind.npc) {
+      return null;
     }
-    return null;
+    final leg = npc?.visualElementId.trim() ?? '';
+    if (leg.isEmpty) {
+      return null;
+    }
+    return leg;
+  }
+
+  String? get resolvedProjectElementIdForEditor {
+    return canonicalEditorVisualProjectElementId ??
+        legacyNpcVisualProjectElementId;
   }
 }
 

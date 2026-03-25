@@ -31,7 +31,6 @@ class MapEntityNpcData with _$MapEntityNpcData {
     @Default('') String displayName,
     DialogueRef? dialogue,
     @Default(EntityFacing.south) EntityFacing facing,
-    /// ID d’élément projet / sprite (optionnel).
     @Default('') String visualElementId,
   }) = _MapEntityNpcData;
 

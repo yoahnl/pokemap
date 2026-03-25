@@ -831,14 +831,17 @@ class _EntityPropertiesPanelState
     if (widget.embedded) {
       return [
         InspectorEmbeddedSectionLabel(
-          _l('Visuel sur la carte', 'Map visual'),
+          _l(
+            'Référence visuelle (bibliothèque)',
+            'Visual reference (library)',
+          ),
         ),
         const SizedBox(height: 6),
         if (sorted.isEmpty)
           InspectorEmbeddedFootnote(
             text: _l(
-              'Créez des éléments dans l’explorateur (bibliothèque Éléments) pour les afficher ici.',
-              'Create elements in the explorer (Elements library) to use them here.',
+              'Les visuels réutilisables sont des ProjectElementEntry (une ou plusieurs frames). Créez-les dans l’explorateur, puis liez-les ici pour tout type d’entité.',
+              'Reusable visuals are ProjectElementEntry values (one or more frames). Create them in the explorer, then bind them here for any entity kind.',
             ),
             accent: accent,
           )
@@ -856,8 +859,8 @@ class _EntityPropertiesPanelState
             idToLabel: (id) => _elementVisualMenuLabel(sorted, id),
             onSelected: (id) => setState(() => _editorVisualMenuId = id),
             tooltip: _l(
-              'Première frame du sprite (tileset)',
-              'First sprite frame (tileset)',
+              'Même bibliothèque pour PNJ, panneaux, objets, etc. L’éditeur n’affiche que la première frame ; l’animation repose sur les frames de l’élément.',
+              'Same library for NPCs, signs, items, etc. The editor shows the first frame only; animation lives on the element’s frames.',
             ),
           ),
         ],
@@ -865,7 +868,10 @@ class _EntityPropertiesPanelState
     }
     return [
       Text(
-        _l('Visuel sur la carte', 'Map visual'),
+        _l(
+          'Référence visuelle (bibliothèque)',
+          'Visual reference (library)',
+        ),
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -876,8 +882,8 @@ class _EntityPropertiesPanelState
       if (sorted.isEmpty)
         Text(
           _l(
-            'Ajoutez des éléments projet dans l’explorateur.',
-            'Add project elements in the explorer.',
+            'Ajoutez des ProjectElementEntry dans l’explorateur (éléments du projet).',
+            'Add ProjectElementEntry items in the explorer.',
           ),
           style: TextStyle(
             fontSize: 11,
@@ -1461,7 +1467,7 @@ class _EntityPropertiesPanelState
     _npcStartNode.text = n.dialogue?.startNode ?? '';
     _npcFacing = n.facing;
 
-    final resolvedEv = entity?.resolvedEditorElementId;
+    final resolvedEv = entity?.resolvedProjectElementIdForEditor;
     _editorVisualMenuId = (resolvedEv == null || resolvedEv.isEmpty)
         ? _kElementNoneMenuId
         : resolvedEv;

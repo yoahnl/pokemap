@@ -933,11 +933,7 @@ mixin _$MapEntity {
   MapEntitySignData? get sign => throw _privateConstructorUsedError;
   MapEntityItemData? get item => throw _privateConstructorUsedError;
   MapEntitySpawnData? get spawn => throw _privateConstructorUsedError;
-
-  /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
   MapEntityEditorVisual? get editorVisual => throw _privateConstructorUsedError;
-
-  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   Map<String, String> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapEntity to a JSON map.
@@ -1295,15 +1291,9 @@ class _$MapEntityImpl implements _MapEntity {
   final MapEntityItemData? item;
   @override
   final MapEntitySpawnData? spawn;
-
-  /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
   @override
   final MapEntityEditorVisual? editorVisual;
-
-  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   final Map<String, String> _properties;
-
-  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   @override
   @JsonKey()
   Map<String, String> get properties {
@@ -1404,12 +1394,8 @@ abstract class _MapEntity implements MapEntity {
   MapEntityItemData? get item;
   @override
   MapEntitySpawnData? get spawn;
-
-  /// Visuel éditeur : [ProjectElementEntry.id], première frame uniquement (hors runtime).
   @override
   MapEntityEditorVisual? get editorVisual;
-
-  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   @override
   Map<String, String> get properties;
 

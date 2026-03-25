@@ -719,7 +719,7 @@ class MapGridPainter extends CustomPainter {
             ..color = Colors.black.withValues(alpha: isSelected ? 0.28 : 0.2)
             ..style = PaintingStyle.fill,
         );
-        _paintEntitySpriteContained(
+        _paintEntityProjectElementFirstFrame(
           canvas,
           resolved.image,
           resolved.srcRect,
@@ -732,7 +732,7 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintEntitySpriteContained(
+  void _paintEntityProjectElementFirstFrame(
     Canvas canvas,
     ui.Image image,
     Rect src,

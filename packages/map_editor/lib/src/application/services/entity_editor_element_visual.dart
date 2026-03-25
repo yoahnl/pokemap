@@ -23,7 +23,7 @@ ResolvedEntityElementVisual? resolveEntityPrimaryFrameVisual({
   if (project == null) {
     return null;
   }
-  final elementId = entity.resolvedEditorElementId;
+  final elementId = entity.resolvedProjectElementIdForEditor;
   if (elementId == null) {
     return null;
   }
@@ -84,7 +84,7 @@ void collectTilesetIdsForEntityEditorVisuals({
     for (final e in project.elements) e.id: e,
   };
   for (final ent in map.entities) {
-    final id = ent.resolvedEditorElementId;
+    final id = ent.resolvedProjectElementIdForEditor;
     if (id == null) {
       continue;
     }

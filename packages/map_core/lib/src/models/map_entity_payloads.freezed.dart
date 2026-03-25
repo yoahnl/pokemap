@@ -229,8 +229,6 @@ mixin _$MapEntityNpcData {
   String get displayName => throw _privateConstructorUsedError;
   DialogueRef? get dialogue => throw _privateConstructorUsedError;
   EntityFacing get facing => throw _privateConstructorUsedError;
-
-  /// ID d’élément projet / sprite (optionnel).
   String get visualElementId => throw _privateConstructorUsedError;
 
   /// Serializes this MapEntityNpcData to a JSON map.
@@ -391,8 +389,6 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
   @override
   @JsonKey()
   final EntityFacing facing;
-
-  /// ID d’élément projet / sprite (optionnel).
   @override
   @JsonKey()
   final String visualElementId;
@@ -454,8 +450,6 @@ abstract class _MapEntityNpcData implements MapEntityNpcData {
   DialogueRef? get dialogue;
   @override
   EntityFacing get facing;
-
-  /// ID d’élément projet / sprite (optionnel).
   @override
   String get visualElementId;
 
