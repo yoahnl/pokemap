@@ -54,7 +54,7 @@ class LayersPanel extends ConsumerWidget {
                 _showDeleteAllLayersDialog(context, notifier),
             compact: true,
           ),
-          const EditorHorizontalDivider(),
+          const SizedBox(height: 10),
           Expanded(child: content),
         ],
       );
@@ -62,10 +62,7 @@ class LayersPanel extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: EditorChrome.panelBackground(context),
-        border: Border(
-          bottom: BorderSide(color: EditorChrome.separator(context)),
-        ),
+        color: EditorChrome.islandFill(context),
       ),
       child: Column(
         children: [
@@ -274,11 +271,17 @@ class _LayerList extends StatelessWidget {
             decoration: BoxDecoration(
               color: isActive
                   ? accent.withValues(alpha: 0.12)
-                  : EditorChrome.scaffoldBackground(context),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: CupertinoColors.separator.resolveFrom(context),
-              ),
+                  : EditorChrome.islandFillElevated(context),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: isActive
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x28000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),

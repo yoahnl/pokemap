@@ -125,10 +125,7 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
 
     return Container(
       decoration: BoxDecoration(
-        color: EditorChrome.panelBackground(context),
-        border: Border(
-          bottom: BorderSide(color: EditorChrome.separator(context)),
-        ),
+        color: EditorChrome.islandFill(context),
       ),
       child: Column(
         children: [
@@ -290,9 +287,8 @@ class _DirectionConnectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: EditorChrome.scaffoldBackground(context),
+        color: EditorChrome.islandFillElevated(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: EditorChrome.separator(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,11 +314,15 @@ class _DirectionConnectionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
+                  color: statusColor.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: statusColor.withValues(alpha: 0.35),
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: statusColor.withValues(alpha: 0.22),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Text(
                   existingConnection == null ? 'Open' : 'Linked',

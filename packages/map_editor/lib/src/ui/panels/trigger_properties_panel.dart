@@ -90,11 +90,8 @@ class _TriggerPropertiesPanelState
                       decoration: BoxDecoration(
                         color: trigger.id == state.selectedTriggerId
                             ? EditorPaintColors.orange.withValues(alpha: 0.14)
-                            : EditorChrome.scaffoldBackground(context),
+                            : EditorChrome.islandFillElevated(context),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: EditorChrome.separator(context),
-                        ),
                       ),
                       child: CupertinoButton(
                         padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
@@ -174,10 +171,7 @@ class _TriggerPropertiesPanelState
 
     return Container(
       decoration: BoxDecoration(
-        color: EditorChrome.panelBackground(context),
-        border: Border(
-          bottom: BorderSide(color: EditorChrome.separator(context)),
-        ),
+        color: EditorChrome.islandFill(context),
       ),
       child: Column(
         children: [

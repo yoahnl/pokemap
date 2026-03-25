@@ -44,10 +44,7 @@ class TerrainMapPanel extends ConsumerWidget {
       }
       return Container(
         decoration: BoxDecoration(
-          color: EditorChrome.panelBackground(context),
-          border: Border(
-            bottom: BorderSide(color: EditorChrome.separator(context)),
-          ),
+          color: EditorChrome.islandFill(context),
         ),
         child: empty,
       );
@@ -320,10 +317,7 @@ class TerrainMapPanel extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: EditorChrome.panelBackground(context),
-        border: Border(
-          bottom: BorderSide(color: EditorChrome.separator(context)),
-        ),
+        color: EditorChrome.islandFill(context),
       ),
       child: Column(
         children: [

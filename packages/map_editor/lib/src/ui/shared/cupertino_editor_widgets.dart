@@ -1,52 +1,65 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show BoxShadow, Colors, Material;
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import 'editor_visual_tokens.dart';
+
 abstract final class EditorChrome {
   static bool _isDark(BuildContext context) =>
       MacosTheme.brightnessOf(context) == Brightness.dark;
 
-  static const Color accentPrimary = Color(0xFF4C8DFF);
-  static const Color accentCyan = Color(0xFF67D4FF);
-  static const Color accentJade = Color(0xFF58C7A5);
-  static const Color accentWarm = Color(0xFFE0A65D);
-  static const Color accentCoral = Color(0xFFD97A68);
-  static const Color accentPrune = Color(0xFF5A406B);
-  static const Color islandCoolTint = Color(0xFF364C62);
-  static const Color islandNeutralTint = Color(0xFF35495E);
-  static const Color islandWarmTint = Color(0xFF3A4A57);
+  static const Color accentPrimary = Color(0xFF6BA8FF);
+  static const Color accentCyan = Color(0xFF5FD4E8);
+  static const Color accentJade = Color(0xFF5FD4B0);
+  static const Color accentWarm = Color(0xFFE8B068);
+  static const Color accentCoral = Color(0xFFE8887A);
+  static const Color accentPrune = Color(0xFF7A5A92);
+  static const Color accentLilac = Color(0xFFC8B0F2);
+  /// Rose chaud discret (halos, milieu de dégradé).
+  static const Color accentRose = Color(0xFFD898B0);
+  /// Magenta profond, usage rare (accents nobles).
+  static const Color accentMagentaDeep = Color(0xFF6E4A78);
+  /// World Explorer — sarcelle / bleu profond chaleureux (pas gris-bleu admin).
+  static const Color islandCoolTint = Color(0xFF3A5A72);
+  /// Inspector — violet prune rosé.
+  static const Color islandNeutralTint = Color(0xFF5C4670);
+  /// Surface Library — ambre / terre chaude.
+  static const Color islandWarmTint = Color(0xFF6B5438);
 
-  static Color windowBackground(BuildContext context) =>
-      _isDark(context) ? const Color(0xFF0E0D12) : const Color(0xFFF2F4F8);
+  // --- Tokens de structure (seuls fonds d’architecture) ---
+  static Color appBackground(BuildContext context) =>
+      EditorVisualTokens.appBackground(context);
 
-  static Color scaffoldBackground(BuildContext context) =>
-      _isDark(context) ? const Color(0xFF11131A) : const Color(0xFFF6F4F1);
+  static LinearGradient appBackgroundGradient(BuildContext context) =>
+      EditorVisualTokens.appBackgroundGradient(context);
 
-  static Color leftSidebarBackground(BuildContext context) =>
-      _isDark(context) ? const Color(0xFF11131A) : const Color(0xFFF6F4F1);
+  static Color islandFill(BuildContext context) =>
+      EditorVisualTokens.islandFill(context);
 
-  static Color rightSidebarBackground(BuildContext context) =>
-      _isDark(context) ? const Color(0xFF11131A) : const Color(0xFFF7F5F2);
+  static Color islandFillElevated(BuildContext context) =>
+      EditorVisualTokens.islandFillElevated(context);
 
-  static Color panelBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF1C2230)
-      : CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
+  /// Compat : base d’îlot.
+  static Color panelBackground(BuildContext context) => islandFill(context);
 
-  static Color elevatedPanelBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF202636)
-      : CupertinoColors.systemBackground.resolveFrom(context);
+  /// Compat : surface surélevée dans un îlot.
+  static Color elevatedPanelBackground(BuildContext context) =>
+      islandFillElevated(context);
 
-  static Color mapCanvasViewportBackground(BuildContext context) {
-    if (_isDark(context)) {
-      return CupertinoColors.transparent;
-    }
-    return CupertinoColors.systemGroupedBackground.resolveFrom(context);
-  }
+  /// Compat : zones « liste » — aligné sur le fond global pour éviter le patchwork.
+  static Color scaffoldBackground(BuildContext context) => appBackground(context);
+
+  /// Toujours transparent : le canvas laisse voir le même matériau que l’îlot parent.
+  static Color mapCanvasViewportBackground(BuildContext context) =>
+      CupertinoColors.transparent;
+
+  /// Compat : même dégradé que [appBackgroundGradient].
+  static LinearGradient windowBackdropGradient(BuildContext context) =>
+      appBackgroundGradient(context);
 
   static Color separator(BuildContext context) => _isDark(context)
       ? const Color(0x08FFFFFF)
@@ -65,16 +78,30 @@ abstract final class EditorChrome {
       CupertinoTheme.of(context).primaryColor;
 
   static Color statusTint(BuildContext context) => _isDark(context)
-      ? const Color(0xFF2E4760)
-      : const Color(0xFFE8EEF8);
+      ? const Color(0xFF3A3A52)
+      : const Color(0xFFF2EBE6);
 
   static Color errorTint(BuildContext context) => _isDark(context)
       ? const Color(0xFF32242A)
       : const Color(0xFFF8E8EA);
 
+  /// Remplissage discret, **opaque** (pas de translucidité type verre).
   static Color chipFill(BuildContext context) => _isDark(context)
-      ? CupertinoColors.white.withValues(alpha: 0.07)
-      : CupertinoColors.black.withValues(alpha: 0.04);
+      ? Color.lerp(
+          islandFillElevated(context),
+          accentPrimary,
+          0.1,
+        )!
+      : CupertinoColors.black.withValues(alpha: 0.045);
+
+  /// Badges / compteurs : chaleureux, lisible, surface nette.
+  static Color badgeFill(BuildContext context) => _isDark(context)
+      ? Color.lerp(
+          islandFillElevated(context),
+          accentWarm,
+          0.16,
+        )!
+      : accentWarm.withValues(alpha: 0.14);
 
   static Color sidebarHoverFill(BuildContext context) =>
       _isDark(context) ? const Color(0x1FFFFFFF) : const Color(0x10000000);
@@ -90,21 +117,34 @@ abstract final class EditorChrome {
     Color? tint,
   }) {
     if (_isDark(context)) {
+      final t = tint ?? accentPrimary;
+      final mid = Color.lerp(
+            Color.lerp(t, accentLilac, 0.22)!,
+            accentRose,
+            0.18,
+          ) ??
+          t;
       final top = Color.alphaBlend(
-        (tint ?? const Color(0xFF4C8DFF)).withValues(alpha: 0.07),
-        const Color.fromRGBO(30, 36, 50, 0.78),
+        Color.lerp(t, accentCyan, 0.18)!.withValues(alpha: 0.17),
+        islandFill(context),
+      );
+      final center = Color.alphaBlend(
+        mid.withValues(alpha: 0.11),
+        islandFill(context),
       );
       final bottom = Color.alphaBlend(
-        (tint ?? const Color(0xFFE0A65D)).withValues(alpha: 0.045),
-        const Color.fromRGBO(34, 40, 56, 0.74),
+        Color.lerp(accentWarm, accentCoral, 0.4)!.withValues(alpha: 0.12),
+        islandFillElevated(context),
       );
       return LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+        begin: const Alignment(-0.9, -1.0),
+        end: const Alignment(1.0, 1.1),
         colors: [
           top,
+          center,
           bottom,
         ],
+        stops: const [0.0, 0.52, 1.0],
       );
     }
     return const LinearGradient(
@@ -117,94 +157,33 @@ abstract final class EditorChrome {
     );
   }
 
-  static LinearGradient workspaceGradient(BuildContext context) {
-    if (_isDark(context)) {
-      return windowBackdropGradient(context);
-    }
-    return const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        Color(0xFFF8FAFD),
-        Color(0xFFEDEFF5),
-      ],
-    );
-  }
+  static LinearGradient toolbarGroupGradient(BuildContext context) =>
+      EditorVisualTokens.toolbarCapsuleGradient(context);
 
-  static LinearGradient workspaceStageGradient(BuildContext context) {
-    if (_isDark(context)) {
-      return const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF252B3A),
-          Color(0xFF202636),
-        ],
-      );
-    }
-    return const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color(0xFFFFFFFF),
-        Color(0xFFF3F6FA),
-      ],
-    );
-  }
-
-  static LinearGradient toolbarGroupGradient(BuildContext context) {
-    if (_isDark(context)) {
-      return const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color.fromRGBO(38, 46, 64, 0.84),
-          Color.fromRGBO(32, 40, 56, 0.8),
-        ],
-      );
-    }
-    return const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        Color(0xFFFFFFFF),
-        Color(0xFFF4F6FA),
-      ],
-    );
-  }
-
-  static LinearGradient toolbarShellGradient(BuildContext context) {
-    if (_isDark(context)) {
-      return const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color.fromRGBO(36, 44, 62, 0.46),
-          Color.fromRGBO(18, 24, 34, 0.16),
-        ],
-      );
-    }
-    return const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color(0xFFFFFFFF),
-        Color(0xFFF3F5F8),
-      ],
-    );
-  }
+  static LinearGradient toolbarShellGradient(BuildContext context) =>
+      EditorVisualTokens.toolbarSurfaceGradient(context);
 
   static List<BoxShadow> panelShadows(BuildContext context) {
     if (_isDark(context)) {
-      return const [
+      return [
         BoxShadow(
-          color: Color(0x30000000),
-          blurRadius: 42,
-          offset: Offset(0, 22),
+          color: accentCyan.withValues(alpha: 0.045),
+          blurRadius: 32,
+          offset: const Offset(0, 16),
         ),
         BoxShadow(
-          color: Color(0x12000000),
-          blurRadius: 14,
+          color: accentPrune.withValues(alpha: 0.08),
+          blurRadius: 36,
+          offset: const Offset(0, 18),
+        ),
+        const BoxShadow(
+          color: Color(0x3A000000),
+          blurRadius: 36,
+          offset: Offset(0, 18),
+        ),
+        const BoxShadow(
+          color: Color(0x10000000),
+          blurRadius: 12,
           offset: Offset(0, 4),
         ),
       ];
@@ -218,61 +197,38 @@ abstract final class EditorChrome {
     ];
   }
 
+  static List<BoxShadow> toolbarCapsuleShadows(BuildContext context) {
+    if (_isDark(context)) {
+      return [
+        BoxShadow(
+          color: accentLilac.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+        const BoxShadow(
+          color: Color(0x32000000),
+          blurRadius: 16,
+          offset: Offset(0, 8),
+        ),
+      ];
+    }
+    return const [
+      BoxShadow(
+        color: Color(0x10000000),
+        blurRadius: 12,
+        offset: Offset(0, 6),
+      ),
+    ];
+  }
+
   static const Color borderSubtle = Color(0x08FFFFFF);
-
-  static LinearGradient windowBackdropGradient(BuildContext context) {
-    if (_isDark(context)) {
-      return const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF141824),
-          Color(0xFF111722),
-          Color(0xFF10151D),
-        ],
-      );
-    }
-    return const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color(0xFFFFFFFF),
-        Color(0xFFF4F2EF),
-      ],
-    );
-  }
-
-  static LinearGradient glassHighlightGradient(BuildContext context) {
-    if (_isDark(context)) {
-      return const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0x16FFFFFF),
-          Color(0x08FFFFFF),
-          Color(0x00FFFFFF),
-        ],
-        stops: [0.0, 0.22, 0.58],
-      );
-    }
-    return const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color(0x66FFFFFF),
-        Color(0x14FFFFFF),
-        Color(0x00FFFFFF),
-      ],
-      stops: [0.0, 0.24, 0.62],
-    );
-  }
 }
 
 class EditorPaneSurface extends StatelessWidget {
   const EditorPaneSurface({
     super.key,
     required this.child,
-    this.radius = 22,
+    this.radius = 26,
     this.margin = EdgeInsets.zero,
     this.padding = EdgeInsets.zero,
     this.tint,
@@ -296,39 +252,26 @@ class EditorPaneSurface extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: EditorChrome.panelGradient(context, tint: tint),
-              borderRadius: BorderRadius.circular(radius),
-              border: showBorder
-                  ? Border.all(color: EditorChrome.panelBorder(context))
-                  : null,
-            ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: EditorChrome.glassHighlightGradient(context),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: padding,
-                  child: child,
-                ),
-              ],
-            ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: EditorChrome.panelGradient(context, tint: tint),
+            borderRadius: BorderRadius.circular(radius),
+            border: showBorder
+                ? Border.all(color: EditorChrome.panelBorder(context))
+                : null,
+          ),
+          child: Padding(
+            padding: padding,
+            child: child,
           ),
         ),
       ),
     );
   }
 }
+
+/// Îlot visuel unifié : même matériau que les autres panneaux ([EditorPaneSurface]).
+typedef EditorIsland = EditorPaneSurface;
 
 /// Fond de ligne sélectionnée, identique à [SidebarItems] (package macos_ui).
 Color editorSidebarSelectionColor(BuildContext context) {
@@ -339,10 +282,10 @@ Color editorSidebarSelectionColor(BuildContext context) {
 
   if (isDark) {
     if (!isMain) {
-      return const Color.fromRGBO(50, 94, 167, 0.66);
+      return const Color.fromRGBO(72, 56, 118, 0.7);
     }
     return switch (accent) {
-      AccentColor.blue => const Color.fromRGBO(37, 88, 168, 0.72),
+      AccentColor.blue => const Color.fromRGBO(88, 62, 152, 0.74),
       AccentColor.purple => const Color.fromRGBO(154, 53, 173, 0.7),
       AccentColor.pink => const Color.fromRGBO(201, 81, 146, 0.7),
       AccentColor.red => const Color.fromRGBO(183, 72, 86, 0.72),

@@ -89,11 +89,8 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                       decoration: BoxDecoration(
                         color: warp.id == state.selectedWarpId
                             ? accent.withValues(alpha: 0.12)
-                            : EditorChrome.scaffoldBackground(context),
+                            : EditorChrome.islandFillElevated(context),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: EditorChrome.separator(context),
-                        ),
                       ),
                       child: CupertinoButton(
                         padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
@@ -172,10 +169,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
 
     return Container(
       decoration: BoxDecoration(
-        color: EditorChrome.panelBackground(context),
-        border: Border(
-          bottom: BorderSide(color: EditorChrome.separator(context)),
-        ),
+        color: EditorChrome.islandFill(context),
       ),
       child: Column(
         children: [

@@ -14,7 +14,7 @@ class InspectorSectionCard extends StatelessWidget {
     required this.expandedHeight,
     this.subtitle,
     this.badgeText,
-    this.accentColor = const Color(0xFF4A90E2),
+    this.accentColor = EditorChrome.accentPrimary,
   });
 
   final String title;
@@ -34,12 +34,12 @@ class InspectorSectionCard extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     final fillTop = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.03),
-      EditorChrome.elevatedPanelBackground(context),
+      accentColor.withValues(alpha: 0.055),
+      EditorChrome.islandFillElevated(context),
     );
     final fillBottom = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.012),
-      EditorChrome.panelBackground(context),
+      accentColor.withValues(alpha: 0.022),
+      EditorChrome.islandFill(context),
     );
 
     return AnimatedSize(
@@ -57,13 +57,7 @@ class InspectorSectionCard extends StatelessWidget {
             ],
           ),
           borderRadius: BorderRadius.circular(22),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1A000000),
-              blurRadius: 20,
-              offset: Offset(0, 10),
-            ),
-          ],
+          boxShadow: EditorChrome.panelShadows(context),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -78,7 +72,12 @@ class InspectorSectionCard extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.1),
+                      gradient: LinearGradient(
+                        colors: [
+                          accentColor.withValues(alpha: 0.22),
+                          accentColor.withValues(alpha: 0.08),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     alignment: Alignment.center,

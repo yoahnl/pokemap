@@ -658,7 +658,7 @@ class _ExplorerIslandSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EditorPaneSurface(
+    return EditorIsland(
       radius: 24,
       tint: tint,
       child: child,

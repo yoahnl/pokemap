@@ -336,7 +336,7 @@ class _InspectorOverviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Color.alphaBlend(
           accent.withValues(alpha: 0.08),
-          EditorChrome.elevatedPanelBackground(context),
+          EditorChrome.islandFillElevated(context),
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
