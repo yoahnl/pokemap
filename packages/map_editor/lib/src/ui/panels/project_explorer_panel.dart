@@ -63,7 +63,14 @@ class ProjectExplorerPanel extends ConsumerWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: explorerAccent.withValues(alpha: 0.14),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  explorerAccent.withValues(alpha: 0.22),
+                  const Color(0xFF5A406B).withValues(alpha: 0.14),
+                ],
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
@@ -181,7 +188,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
       children: [
         Expanded(
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF23272E),
+            tint: const Color(0xFF273142),
             child: _buildTilesetsIsland(context, project, state, notifier),
           ),
         ),
@@ -199,7 +206,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF21252C),
+            tint: const Color(0xFF25303F),
             child: _buildWorldIsland(context, worldChildren),
           ),
         ),
@@ -217,7 +224,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF2A231F),
+            tint: const Color(0xFF293240),
             child: const TerrainEditorPanel(),
           ),
         ),
@@ -652,7 +659,7 @@ class _ExplorerIslandSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EditorPaneSurface(
-      radius: 22,
+      radius: 24,
       tint: tint,
       child: child,
     );

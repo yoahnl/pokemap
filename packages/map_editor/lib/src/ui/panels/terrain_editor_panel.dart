@@ -36,7 +36,14 @@ class TerrainEditorPanel extends ConsumerWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFB67B44).withValues(alpha: 0.16),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFFB67B44).withValues(alpha: 0.22),
+                      const Color(0xFF5FC7A1).withValues(alpha: 0.12),
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
@@ -78,7 +85,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemFill.resolveFrom(context),
+                  color: CupertinoColors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(

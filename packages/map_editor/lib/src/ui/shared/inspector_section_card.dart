@@ -56,12 +56,12 @@ class InspectorSectionCard extends StatelessWidget {
               fillBottom,
             ],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x12000000),
-              blurRadius: 14,
-              offset: Offset(0, 7),
+              color: Color(0x1A000000),
+              blurRadius: 20,
+              offset: Offset(0, 10),
             ),
           ],
         ),

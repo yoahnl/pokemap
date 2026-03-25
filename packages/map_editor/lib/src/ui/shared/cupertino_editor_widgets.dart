@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show BoxShadow, Colors, Material;
@@ -10,45 +11,39 @@ abstract final class EditorChrome {
   static bool _isDark(BuildContext context) =>
       MacosTheme.brightnessOf(context) == Brightness.dark;
 
-  static Color windowBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF0C0D11)
-      : const Color(0xFFF2F4F8);
+  static Color windowBackground(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF0E0D12) : const Color(0xFFF2F4F8);
 
-  static Color scaffoldBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF111318)
-      : const Color(0xFFF6F4F1);
+  static Color scaffoldBackground(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF11131A) : const Color(0xFFF6F4F1);
 
-  static Color leftSidebarBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF111318)
-      : const Color(0xFFF6F4F1);
+  static Color leftSidebarBackground(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF11131A) : const Color(0xFFF6F4F1);
 
-  static Color rightSidebarBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF111318)
-      : const Color(0xFFF7F5F2);
+  static Color rightSidebarBackground(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF11131A) : const Color(0xFFF7F5F2);
 
   static Color panelBackground(BuildContext context) => _isDark(context)
-      ? const Color(0xFF1A1D23)
+      ? const Color(0xFF1C2230)
       : CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
 
-  static Color elevatedPanelBackground(BuildContext context) =>
-      _isDark(context)
-          ? const Color(0xFF20242C)
-          : CupertinoColors.systemBackground.resolveFrom(context);
+  static Color elevatedPanelBackground(BuildContext context) => _isDark(context)
+      ? const Color(0xFF202636)
+      : CupertinoColors.systemBackground.resolveFrom(context);
 
   static Color mapCanvasViewportBackground(BuildContext context) {
     if (_isDark(context)) {
-      return const Color(0xFF13161C);
+      return const Color(0xFF151B25);
     }
     return CupertinoColors.systemGroupedBackground.resolveFrom(context);
   }
 
   static Color separator(BuildContext context) => _isDark(context)
-      ? const Color(0x14E4D5C2)
+      ? const Color(0x08FFFFFF)
       : CupertinoColors.separator.resolveFrom(context);
 
-  static Color subtleSeparator(BuildContext context) => _isDark(context)
-      ? const Color(0x0FDCCCBD)
-      : const Color(0x14000000);
+  static Color subtleSeparator(BuildContext context) =>
+      _isDark(context) ? const Color(0x06FFFFFF) : const Color(0x14000000);
 
   static Color subtleLabel(BuildContext context) =>
       CupertinoColors.placeholderText.resolveFrom(context);
@@ -59,17 +54,14 @@ abstract final class EditorChrome {
   static Color activeAccent(BuildContext context) =>
       CupertinoTheme.of(context).primaryColor;
 
-  static Color sidebarHoverFill(BuildContext context) => _isDark(context)
-      ? const Color(0x1FFFFFFF)
-      : const Color(0x10000000);
+  static Color sidebarHoverFill(BuildContext context) =>
+      _isDark(context) ? const Color(0x1FFFFFFF) : const Color(0x10000000);
 
-  static Color disclosureHoverFill(BuildContext context) => _isDark(context)
-      ? const Color(0x12FFFFFF)
-      : const Color(0x0E000000);
+  static Color disclosureHoverFill(BuildContext context) =>
+      _isDark(context) ? const Color(0x12FFFFFF) : const Color(0x0E000000);
 
-  static Color panelBorder(BuildContext context) => _isDark(context)
-      ? const Color(0x0EDFD1C3)
-      : const Color(0x14000000);
+  static Color panelBorder(BuildContext context) =>
+      _isDark(context) ? const Color(0x04000000) : const Color(0x14000000);
 
   static LinearGradient panelGradient(
     BuildContext context, {
@@ -77,12 +69,12 @@ abstract final class EditorChrome {
   }) {
     if (_isDark(context)) {
       final top = Color.alphaBlend(
-        (tint ?? const Color(0xFF241F26)).withValues(alpha: 0.2),
-        const Color(0xFF242129),
+        (tint ?? const Color(0xFF5A406B)).withValues(alpha: 0.08),
+        const Color.fromRGBO(28, 34, 48, 0.72),
       );
       final bottom = Color.alphaBlend(
-        (tint ?? const Color(0xFF241F26)).withValues(alpha: 0.1),
-        const Color(0xFF181A20),
+        (tint ?? const Color(0xFFE0A65D)).withValues(alpha: 0.035),
+        const Color.fromRGBO(34, 40, 56, 0.72),
       );
       return LinearGradient(
         begin: Alignment.topLeft,
@@ -109,9 +101,9 @@ abstract final class EditorChrome {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color(0xFF141117),
-          Color(0xFF111318),
-          Color(0xFF0F1115),
+          Color(0xFF13151D),
+          Color(0xFF11131A),
+          Color(0xFF0F1117),
         ],
       );
     }
@@ -131,8 +123,8 @@ abstract final class EditorChrome {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color(0xFF222027),
-          Color(0xFF17191F),
+          Color(0xFF252B3A),
+          Color(0xFF202636),
         ],
       );
     }
@@ -152,8 +144,8 @@ abstract final class EditorChrome {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color(0xFF292D35),
-          Color(0xFF1E2128),
+          Color.fromRGBO(34, 40, 56, 0.76),
+          Color.fromRGBO(30, 36, 50, 0.72),
         ],
       );
     }
@@ -171,14 +163,14 @@ abstract final class EditorChrome {
     if (_isDark(context)) {
       return const [
         BoxShadow(
-          color: Color(0x22000000),
-          blurRadius: 26,
-          offset: Offset(0, 16),
+          color: Color(0x30000000),
+          blurRadius: 42,
+          offset: Offset(0, 22),
         ),
         BoxShadow(
           color: Color(0x12000000),
-          blurRadius: 8,
-          offset: Offset(0, 2),
+          blurRadius: 14,
+          offset: Offset(0, 4),
         ),
       ];
     }
@@ -191,7 +183,54 @@ abstract final class EditorChrome {
     ];
   }
 
-  static const Color borderSubtle = Color(0x14FFFFFF);
+  static const Color borderSubtle = Color(0x08FFFFFF);
+
+  static LinearGradient windowBackdropGradient(BuildContext context) {
+    if (_isDark(context)) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF13151D),
+          Color(0xFF11131A),
+          Color(0xFF0F1117),
+        ],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFFFFFFFF),
+        Color(0xFFF4F2EF),
+      ],
+    );
+  }
+
+  static LinearGradient glassHighlightGradient(BuildContext context) {
+    if (_isDark(context)) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0x16FFFFFF),
+          Color(0x08FFFFFF),
+          Color(0x00FFFFFF),
+        ],
+        stops: [0.0, 0.22, 0.58],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0x66FFFFFF),
+        Color(0x14FFFFFF),
+        Color(0x00FFFFFF),
+      ],
+      stops: [0.0, 0.24, 0.62],
+    );
+  }
 }
 
 class EditorPaneSurface extends StatelessWidget {
@@ -217,16 +256,40 @@ class EditorPaneSurface extends StatelessWidget {
     return Container(
       margin: margin,
       decoration: BoxDecoration(
-        gradient: EditorChrome.panelGradient(context, tint: tint),
         borderRadius: BorderRadius.circular(radius),
-        border:
-            showBorder ? Border.all(color: EditorChrome.panelBorder(context)) : null,
         boxShadow: EditorChrome.panelShadows(context),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: padding,
-        child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: EditorChrome.panelGradient(context, tint: tint),
+              borderRadius: BorderRadius.circular(radius),
+              border: showBorder
+                  ? Border.all(color: EditorChrome.panelBorder(context))
+                  : null,
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: EditorChrome.glassHighlightGradient(context),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: padding,
+                  child: child,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -319,6 +382,7 @@ class EditorSidebarListRow extends StatefulWidget {
   final bool selected;
   final VoidCallback onTap;
   final Widget? leading;
+
   /// Si non null et [selected] est false, couleur de l’icône (sinon [MacosTheme.primaryColor]).
   final Color? leadingIconUnselectedColor;
   final Widget title;
@@ -341,7 +405,9 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
     const rowHeight = 30.0;
     final fill = widget.selected
         ? editorSidebarSelectionColor(context)
-        : (_hovered ? EditorChrome.sidebarHoverFill(context) : Colors.transparent);
+        : (_hovered
+            ? EditorChrome.sidebarHoverFill(context)
+            : Colors.transparent);
 
     Widget core = StreamBuilder<bool>(
       stream: WindowMainStateListener.instance.onChanged,
@@ -383,9 +449,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
                       children: [
                         DefaultTextStyle(
                           style: theme.typography.body.copyWith(
-                            color: widget.selected
-                                ? MacosColors.white
-                                : null,
+                            color: widget.selected ? MacosColors.white : null,
                             fontWeight: widget.selected
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -527,6 +591,7 @@ class CupertinoDisclosureTile extends StatefulWidget {
     this.tilePadding = EdgeInsets.zero,
     this.childrenPadding = EdgeInsets.zero,
     this.onSecondaryTapDown,
+
     /// En-tête pleine largeur, typographie / icônes comme la sidebar macos_ui.
     this.useEditorMacosSidebarDisclosureStyle = false,
   });
@@ -538,6 +603,7 @@ class CupertinoDisclosureTile extends StatefulWidget {
   final bool initiallyExpanded;
   final EdgeInsetsGeometry tilePadding;
   final EdgeInsetsGeometry childrenPadding;
+
   /// Clic droit sur la ligne d’en-tête (menu contextuel).
   final void Function(TapDownDetails details)? onSecondaryTapDown;
   final bool useEditorMacosSidebarDisclosureStyle;
@@ -553,8 +619,7 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
 
   @override
   Widget build(BuildContext context) {
-    final chevronColor =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final chevronColor = CupertinoColors.secondaryLabel.resolveFrom(context);
     final macosTheme = MacosTheme.of(context);
     final titleMergeStyle = widget.useEditorMacosSidebarDisclosureStyle
         ? macosTheme.typography.body
@@ -684,7 +749,8 @@ Future<T?> showMacosListPicker<T>({
     builder: (ctx) {
       return Center(
         child: MacosSheet(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 72, vertical: 44),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 72, vertical: 44),
           child: SizedBox(
             width: 380,
             height: maxH,
@@ -974,7 +1040,8 @@ Future<T?> showMacosEditorTallSheet<T>({
       final w = math.min(maxWidth, s.width - 56);
       return Center(
         child: MacosSheet(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: w, maxHeight: maxH),
             child: builder(ctx),
@@ -1106,8 +1173,7 @@ Future<bool> showMacosEditorPromptSheet(
                     child: PushButton(
                       controlSize: ControlSize.large,
                       onPressed: () {
-                        if (requireNonEmpty &&
-                            controller.text.trim().isEmpty) {
+                        if (requireNonEmpty && controller.text.trim().isEmpty) {
                           return;
                         }
                         saved = true;

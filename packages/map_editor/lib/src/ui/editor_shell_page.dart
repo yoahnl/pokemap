@@ -127,137 +127,174 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: EditorChrome.windowBackground(context),
+                  gradient: EditorChrome.windowBackdropGradient(context),
                 ),
-                child: MacosWindow(
-                  child: MacosScaffold(
-                    toolBar: buildMapEditorToolbar(context, ref),
-                    children: [
-                      ResizablePane.noScrollBar(
-                        key: const ValueKey('editor_left_pane'),
-                        resizableSide: ResizableSide.right,
-                        minSize: 240,
-                        maxSize: 520,
-                        startSize: 344,
-                        decoration: BoxDecoration(
-                          color: EditorChrome.leftSidebarBackground(context)
-                              .withValues(alpha: 0.88),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
-                          child: const ProjectExplorerPanel(),
-                        ),
+                child: Stack(
+                  children: [
+                    const Positioned(
+                      left: -140,
+                      top: -110,
+                      child: _AmbientGlow(
+                        size: 420,
+                        color: Color(0xFF5A406B),
+                        opacity: 0.24,
                       ),
-                      ContentArea(
-                        builder: (context, scrollController) {
-                          return DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: EditorChrome.workspaceGradient(context),
+                    ),
+                    const Positioned(
+                      right: -90,
+                      top: 120,
+                      child: _AmbientGlow(
+                        size: 360,
+                        color: Color(0xFFE0A65D),
+                        opacity: 0.14,
+                      ),
+                    ),
+                    const Positioned(
+                      left: 260,
+                      bottom: -120,
+                      child: _AmbientGlow(
+                        size: 480,
+                        color: Color(0xFF5FC7A1),
+                        opacity: 0.1,
+                      ),
+                    ),
+                    MacosWindow(
+                      child: MacosScaffold(
+                        toolBar: buildMapEditorToolbar(context, ref),
+                        children: [
+                          ResizablePane.noScrollBar(
+                            key: const ValueKey('editor_left_pane'),
+                            resizableSide: ResizableSide.right,
+                            minSize: 240,
+                            maxSize: 520,
+                            startSize: 344,
+                            decoration: const BoxDecoration(
+                              color: MacosColors.transparent,
                             ),
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      20,
-                                      20,
-                                      20,
-                                      10,
-                                    ),
-                                    child: EditorPaneSurface(
-                                      radius: 30,
-                                      tint: const Color(0xFF2A2423),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 18, 12, 18),
+                              child: const ProjectExplorerPanel(),
+                            ),
+                          ),
+                          ContentArea(
+                            builder: (context, scrollController) {
+                              return DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient:
+                                      EditorChrome.workspaceGradient(context),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Expanded(
                                       child: Padding(
                                         padding: const EdgeInsets.fromLTRB(
-                                          14,
-                                          14,
-                                          14,
-                                          14,
+                                          18,
+                                          18,
+                                          18,
+                                          8,
                                         ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            _WorkspaceStageHeader(
-                                              title: workspaceTitle,
-                                              subtitle: workspaceSubtitle,
-                                              workspaceMode: workspaceMode,
+                                        child: EditorPaneSurface(
+                                          radius: 34,
+                                          tint: const Color(0xFF2B3345),
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              18,
+                                              18,
+                                              18,
+                                              16,
                                             ),
-                                            const SizedBox(height: 14),
-                                            Expanded(
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  gradient: EditorChrome
-                                                      .workspaceStageGradient(
-                                                    context,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(24),
-                                                  boxShadow: const [
-                                                    BoxShadow(
-                                                      color: Color(0x14000000),
-                                                      blurRadius: 16,
-                                                      offset: Offset(0, 8),
-                                                    ),
-                                                  ],
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.stretch,
+                                              children: [
+                                                _WorkspaceStageHeader(
+                                                  title: workspaceTitle,
+                                                  subtitle: workspaceSubtitle,
+                                                  workspaceMode: workspaceMode,
                                                 ),
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(10),
-                                                  child: ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                      20,
+                                                const SizedBox(height: 18),
+                                                Expanded(
+                                                  child: DecoratedBox(
+                                                    decoration: BoxDecoration(
+                                                      gradient: EditorChrome
+                                                          .workspaceStageGradient(
+                                                        context,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              28),
+                                                      boxShadow: const [
+                                                        BoxShadow(
+                                                          color:
+                                                              Color(0x22000000),
+                                                          blurRadius: 24,
+                                                          offset: Offset(0, 14),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    child: DecoratedBox(
-                                                      decoration: BoxDecoration(
-                                                        color: EditorChrome
-                                                            .mapCanvasViewportBackground(
-                                                          context,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              14),
+                                                      child: ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(
+                                                          24,
+                                                        ),
+                                                        child: DecoratedBox(
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: EditorChrome
+                                                                .mapCanvasViewportBackground(
+                                                              context,
+                                                            ),
+                                                          ),
+                                                          child:
+                                                              const EditorCanvasHost(),
                                                         ),
                                                       ),
-                                                      child:
-                                                          const EditorCanvasHost(),
                                                     ),
                                                   ),
                                                 ),
-                                              ),
+                                              ],
                                             ),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                                    const StatusBar(),
+                                  ],
                                 ),
-                                const StatusBar(),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      ResizablePane.noScrollBar(
-                        key: const ValueKey('editor_right_pane'),
-                        resizableSide: ResizableSide.left,
-                        minSize: 240,
-                        maxSize: 620,
-                        startSize: 336,
-                        decoration: BoxDecoration(
-                          color: EditorChrome.rightSidebarBackground(context)
-                              .withValues(alpha: 0.88),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 18, 16, 18),
-                          child: EditorPaneSurface(
-                            radius: 28,
-                            tint: const Color(0xFF24232A),
-                            child: workspaceMode == EditorWorkspaceMode.map
-                                ? const MapInspectorPanel()
-                                : const TilesetPalettePanel(),
+                              );
+                            },
                           ),
-                        ),
+                          ResizablePane.noScrollBar(
+                            key: const ValueKey('editor_right_pane'),
+                            resizableSide: ResizableSide.left,
+                            minSize: 240,
+                            maxSize: 620,
+                            startSize: 336,
+                            decoration: const BoxDecoration(
+                              color: MacosColors.transparent,
+                            ),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(12, 18, 16, 18),
+                              child: EditorPaneSurface(
+                                radius: 30,
+                                tint: const Color(0xFF293342),
+                                child: workspaceMode == EditorWorkspaceMode.map
+                                    ? const MapInspectorPanel()
+                                    : const TilesetPalettePanel(),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               if (_toastMessage != null)
@@ -351,6 +388,10 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     final accent = EditorChrome.activeAccent(context);
+    final chipFill = CupertinoColors.white.withValues(alpha: 0.06);
+    final chipAccent = workspaceMode == EditorWorkspaceMode.map
+        ? const Color(0xFFE0A65D)
+        : const Color(0xFF67D4FF);
 
     return Row(
       children: [
@@ -358,7 +399,14 @@ class _WorkspaceStageHeader extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.14),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accent.withValues(alpha: 0.22),
+                chipAccent.withValues(alpha: 0.16),
+              ],
+            ),
             borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
@@ -403,16 +451,13 @@ class _WorkspaceStageHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: CupertinoColors.systemFill.resolveFrom(context),
+            color: chipFill,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: EditorChrome.subtleSeparator(context),
-            ),
           ),
           child: Text(
             workspaceMode == EditorWorkspaceMode.map ? 'Scene' : 'Library',
             style: TextStyle(
-              color: subtle,
+              color: chipAccent,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.3,
@@ -420,6 +465,39 @@ class _WorkspaceStageHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AmbientGlow extends StatelessWidget {
+  const _AmbientGlow({
+    required this.size,
+    required this.color,
+    required this.opacity,
+  });
+
+  final double size;
+  final Color color;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              color.withValues(alpha: opacity),
+              color.withValues(alpha: opacity * 0.4),
+              color.withValues(alpha: 0),
+            ],
+            stops: const [0.0, 0.38, 1.0],
+          ),
+        ),
+      ),
     );
   }
 }

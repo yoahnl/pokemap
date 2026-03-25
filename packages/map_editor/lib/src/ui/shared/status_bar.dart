@@ -18,7 +18,7 @@ class StatusBar extends ConsumerWidget {
         : EditorChrome.subtleLabel(context);
     final tint = hasError
         ? const Color(0xFF271B1F)
-        : const Color(0xFF1C1D24);
+        : const Color(0xFF202636);
     final leadingTint = hasError
         ? const Color(0xFFE2A3AD)
         : const Color(0xFF8FC7BC);
@@ -27,12 +27,12 @@ class StatusBar extends ConsumerWidget {
         : CupertinoIcons.sparkles;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 0, 22, 18),
+      padding: const EdgeInsets.fromLTRB(22, 2, 22, 18),
       child: EditorPaneSurface(
-        radius: 18,
+        radius: 22,
         tint: tint,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               Container(
@@ -55,7 +55,7 @@ class StatusBar extends ConsumerWidget {
                   state.errorMessage ?? state.statusMessage ?? 'Ready',
                   style: TextStyle(
                     fontSize: 12,
-                    color: hasError ? leadingTint : CupertinoColors.white,
+                    color: hasError ? leadingTint : const Color(0xFFF2F2F4),
                     fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -99,7 +99,7 @@ class StatusBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: CupertinoColors.white.withValues(alpha: 0.045),
+        color: CupertinoColors.white.withValues(alpha: 0.055),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
