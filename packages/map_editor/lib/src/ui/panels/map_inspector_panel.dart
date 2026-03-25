@@ -111,7 +111,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                       : 'Active: ${_layerLabel(activeLayer)}',
                   icon: CupertinoIcons.layers,
                   badgeText: '${activeMap.layers.length}',
-                  accentColor: const Color(0xFF4A90E2),
+                  accentColor: const Color(0xFF8DA5BA),
                   expanded: _isExpanded(_InspectorSectionId.layers, true),
                   onToggle: () => _toggleSection(
                     _InspectorSectionId.layers,
@@ -126,7 +126,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle:
                         'Tileset palette and element placement for tile layers.',
                     icon: CupertinoIcons.square_grid_2x2,
-                    accentColor: const Color(0xFF4D8BFF),
+                    accentColor: const Color(0xFF7E97D8),
                     expanded: _isExpanded(
                       _InspectorSectionId.tiles,
                       activeLayer is TileLayer ||
@@ -189,7 +189,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Visible world content such as NPCs, signs, items and spawn points.',
                     icon: CupertinoIcons.sparkles,
                     badgeText: '${activeMap.entities.length}',
-                    accentColor: const Color(0xFF4ED0FF),
+                    accentColor: const Color(0xFF63C2C6),
                     expanded: _isExpanded(
                       _InspectorSectionId.entities,
                       state.activeTool == EditorToolType.entityPlacement ||
@@ -210,7 +210,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle: 'Link the current map to adjacent world maps.',
                     icon: CupertinoIcons.arrow_branch,
                     badgeText: '${activeMap.connections.length}',
-                    accentColor: const Color(0xFF6AA6FF),
+                    accentColor: const Color(0xFF8B98C4),
                     expanded:
                         _isExpanded(_InspectorSectionId.connections, false),
                     onToggle: () => _toggleSection(
@@ -323,7 +323,7 @@ class _InspectorOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    final accent = EditorChrome.activeAccent(context);
+    const accent = Color(0xFF8CB4B1);
     final activeLayerText = activeLayer == null
         ? 'No active layer'
         : switch (activeLayer!) {

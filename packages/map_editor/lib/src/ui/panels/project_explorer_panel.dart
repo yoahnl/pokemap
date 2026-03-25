@@ -245,6 +245,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
     BuildContext context,
     List<Widget> worldChildren,
   ) {
+    const worldAccent = Color(0xFF82AAB6);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -256,15 +257,14 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: EditorChrome.activeAccent(context)
-                      .withValues(alpha: 0.12),
+                  color: worldAccent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
                 child: MacosIcon(
                   CupertinoIcons.map_fill,
                   size: 15,
-                  color: EditorChrome.activeAccent(context),
+                  color: worldAccent,
                 ),
               ),
               const SizedBox(width: 10),

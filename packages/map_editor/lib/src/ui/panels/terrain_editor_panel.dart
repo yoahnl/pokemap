@@ -43,7 +43,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                 child: const MacosIcon(
                   CupertinoIcons.square_stack_3d_down_right_fill,
                   size: 18,
-                  color: Color(0xFFE6AF63),
+                  color: Color(0xFFE2B67C),
                 ),
               ),
               const SizedBox(width: 10),
@@ -112,7 +112,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                         title: 'Terrains',
                         subtitle: 'Base ground presets only',
                         kind: PresetLibraryKind.terrain,
-                        color: const Color(0xFF2B6F53),
+                        color: const Color(0xFF4E7559),
                         icon: CupertinoIcons.map,
                         settings: settings,
                         tilesets: tilesets,
@@ -124,7 +124,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                         subtitle:
                             'Surface overlays: roads, water, tall grass, ice, lava, rails...',
                         kind: PresetLibraryKind.path,
-                        color: const Color(0xFF7A4A1E),
+                        color: const Color(0xFF9B6B40),
                         icon: CupertinoIcons.arrow_branch,
                         settings: settings,
                         tilesets: tilesets,
@@ -190,7 +190,20 @@ class _LibraryRootState extends ConsumerState<_LibraryRoot> {
 
     return Container(
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.alphaBlend(
+              color.withValues(alpha: 0.08),
+              EditorChrome.elevatedPanelBackground(context),
+            ),
+            Color.alphaBlend(
+              color.withValues(alpha: 0.03),
+              EditorChrome.panelBackground(context),
+            ),
+          ],
+        ),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
