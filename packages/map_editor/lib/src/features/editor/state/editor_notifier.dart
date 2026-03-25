@@ -1818,20 +1818,27 @@ class EditorNotifier extends _$EditorNotifier {
 
     TilesetPaletteEntry? existing;
     for (final entry in tileset.paletteEntries) {
-      if (entry.source.width == 1 &&
-          entry.source.height == 1 &&
-          entry.source.x == sourceX &&
-          entry.source.y == sourceY) {
+      final ps = entry.frames.primarySource;
+      if (ps.width == 1 &&
+          ps.height == 1 &&
+          ps.x == sourceX &&
+          ps.y == sourceY) {
         existing = entry;
         break;
       }
     }
 
+    final rect = TilesetSourceRect(x: sourceX, y: sourceY);
     final entry = TilesetPaletteEntry(
       id: existing?.id ?? 'tile_$tileId',
       name: existing?.name.isNotEmpty == true ? existing!.name : 'tile_$tileId',
       category: category,
-      source: TilesetSourceRect(x: sourceX, y: sourceY),
+      frames: existing == null
+          ? [TilesetVisualFrame(source: rect)]
+          : [
+              TilesetVisualFrame(source: rect),
+              ...existing.frames.skip(1),
+            ],
       recommendedLayerId: recommendedLayerId,
     );
 
@@ -2182,6 +2189,10 @@ class EditorNotifier extends _$EditorNotifier {
     required int width,
     required int height,
     required Map<String, String> properties,
+    MapEntityNpcData? npc,
+    MapEntitySignData? sign,
+    MapEntityItemData? item,
+    MapEntitySpawnData? spawn,
   }) {
     final selectedEntityId = state.selectedEntityId;
     if (selectedEntityId == null) return;
@@ -2193,6 +2204,10 @@ class EditorNotifier extends _$EditorNotifier {
       pos: GridPos(x: x, y: y),
       size: GridSize(width: width, height: height),
       properties: properties,
+      npc: npc,
+      sign: sign,
+      item: item,
+      spawn: spawn,
     );
   }
 
@@ -2204,6 +2219,10 @@ class EditorNotifier extends _$EditorNotifier {
     GridPos? pos,
     GridSize? size,
     Map<String, String>? properties,
+    MapEntityNpcData? npc,
+    MapEntitySignData? sign,
+    MapEntityItemData? item,
+    MapEntitySpawnData? spawn,
   }) {
     final map = state.activeMap;
     if (map == null) return;
@@ -2217,6 +2236,10 @@ class EditorNotifier extends _$EditorNotifier {
         pos: pos,
         size: size,
         properties: properties,
+        npc: npc,
+        sign: sign,
+        item: item,
+        spawn: spawn,
       );
       _applyMapMutation(
         previousMap: map,
@@ -2994,7 +3017,7 @@ class EditorNotifier extends _$EditorNotifier {
         tilesetId: tilesetId,
         failureLabel: 'palette entry',
         pattern: _buildPatternFromSource(
-          entry.source,
+          entry.frames.primarySource,
           tilesetColumns: tilesetColumns,
         ),
       );
@@ -3026,7 +3049,7 @@ class EditorNotifier extends _$EditorNotifier {
         tilesetId: tilesetId,
         failureLabel: 'element',
         pattern: _buildPatternFromSource(
-          element.source,
+          element.frames.primarySource,
           tilesetColumns: tilesetColumns,
         ),
       );
@@ -3113,8 +3136,8 @@ class EditorNotifier extends _$EditorNotifier {
       }
       return _ResolvedBrushFootprint(
         size: GridSize(
-          width: entry.source.width,
-          height: entry.source.height,
+          width: entry.frames.primarySource.width,
+          height: entry.frames.primarySource.height,
         ),
         failureLabel: 'palette entry',
       );
@@ -3129,8 +3152,8 @@ class EditorNotifier extends _$EditorNotifier {
       }
       return _ResolvedBrushFootprint(
         size: GridSize(
-          width: element.source.width,
-          height: element.source.height,
+          width: element.frames.primarySource.width,
+          height: element.frames.primarySource.height,
         ),
         failureLabel: 'element',
       );

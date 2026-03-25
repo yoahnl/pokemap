@@ -1432,7 +1432,7 @@ Future<void> _showPathPresetDialog(
   final variants = <TerrainPathVariant, TilesetSourceRect>{
     for (final mapping
         in preset?.variants ?? const <PathPresetVariantMapping>[])
-      mapping.variant: mapping.source,
+      mapping.variant: mapping.frames.primarySource,
   };
   final categories = _flattenCategories(
     notifier,
@@ -1661,7 +1661,9 @@ Future<void> _showPathPresetDialog(
                           .map(
                             (entry) => PathPresetVariantMapping(
                               variant: entry.key,
-                              source: entry.value,
+                              frames: [
+                                TilesetVisualFrame(source: entry.value),
+                              ],
                             ),
                           )
                           .toList(growable: false)
@@ -1761,13 +1763,14 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
   TerrainPresetVariant? initial,
 }) async {
   final xController =
-      TextEditingController(text: (initial?.source.x ?? 0).toString());
-  final yController =
-      TextEditingController(text: (initial?.source.y ?? 0).toString());
-  final widthController =
-      TextEditingController(text: (initial?.source.width ?? 1).toString());
-  final heightController =
-      TextEditingController(text: (initial?.source.height ?? 1).toString());
+      TextEditingController(
+          text: (initial?.frames.primarySource.x ?? 0).toString());
+  final yController = TextEditingController(
+      text: (initial?.frames.primarySource.y ?? 0).toString());
+  final widthController = TextEditingController(
+      text: (initial?.frames.primarySource.width ?? 1).toString());
+  final heightController = TextEditingController(
+      text: (initial?.frames.primarySource.height ?? 1).toString());
   final weightController =
       TextEditingController(text: (initial?.weight ?? 1).toString());
 
@@ -1896,12 +1899,16 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
                         return;
                       }
                       result = TerrainPresetVariant(
-                        source: TilesetSourceRect(
-                          x: int.parse(xController.text.trim()),
-                          y: int.parse(yController.text.trim()),
-                          width: int.parse(widthController.text.trim()),
-                          height: int.parse(heightController.text.trim()),
-                        ),
+                        frames: [
+                          TilesetVisualFrame(
+                            source: TilesetSourceRect(
+                              x: int.parse(xController.text.trim()),
+                              y: int.parse(yController.text.trim()),
+                              width: int.parse(widthController.text.trim()),
+                              height: int.parse(heightController.text.trim()),
+                            ),
+                          ),
+                        ],
                         weight: int.parse(weightController.text.trim()),
                       );
                       Navigator.pop(ctx);
@@ -2601,7 +2608,12 @@ Future<void> _runTerrainMemberAssistant(
     if (picked == null) {
       break;
     }
-    variants.add(TerrainPresetVariant(source: picked, weight: 1));
+    variants.add(
+      TerrainPresetVariant(
+        frames: [TilesetVisualFrame(source: picked)],
+        weight: 1,
+      ),
+    );
     await notifier.updateTerrainPreset(
       presetId: preset.id,
       variants: variants,
@@ -2639,7 +2651,8 @@ Future<void> _runPathMappingAssistant(
     settings: settings,
     tilesetId: tilesetId,
     initialMappings: {
-      for (final mapping in preset.variants) mapping.variant: mapping.source,
+      for (final mapping in preset.variants)
+        mapping.variant: mapping.frames.primarySource,
     },
   );
   if (mapped == null) {
@@ -2649,7 +2662,7 @@ Future<void> _runPathMappingAssistant(
       .map(
         (entry) => PathPresetVariantMapping(
           variant: entry.key,
-          source: entry.value,
+          frames: [TilesetVisualFrame(source: entry.value)],
         ),
       )
       .toList(growable: false)
@@ -2801,7 +2814,8 @@ String _pathSurfaceLabel(PathSurfaceKind kind) {
 }
 
 String _terrainVariantLabel(TerrainPresetVariant variant) {
-  return '(${variant.source.x}, ${variant.source.y}) ${variant.source.width}x${variant.source.height} • w${variant.weight}';
+  final s = variant.frames.primarySource;
+  return '(${s.x}, ${s.y}) ${s.width}x${s.height} • w${variant.weight}';
 }
 
 String _pathVariantDisplayName(TerrainPathVariant variant) {

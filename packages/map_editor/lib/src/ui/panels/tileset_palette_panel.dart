@@ -472,8 +472,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }) {
     final unitEntryByTileId = <int, TilesetPaletteEntry>{};
     for (final entry in activeTileset.paletteEntries) {
-      if (entry.source.width != 1 || entry.source.height != 1) continue;
-      final tileId = entry.source.y * columns + entry.source.x + 1;
+      final ps = entry.frames.primarySource;
+      if (ps.width != 1 || ps.height != 1) continue;
+      final tileId = ps.y * columns + ps.x + 1;
       if (tileId > 0 && tileId <= columns * rows) {
         unitEntryByTileId[tileId] = entry;
       }
@@ -2573,7 +2574,7 @@ class _ProjectElementCard extends StatelessWidget {
                 ),
                 child: _PaletteRectPreview(
                   image: image,
-                  source: element.source,
+                  source: element.frames.primarySource,
                   tileWidth: tileWidth,
                   tileHeight: tileHeight,
                 ),

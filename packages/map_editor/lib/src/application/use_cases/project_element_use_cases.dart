@@ -330,7 +330,7 @@ class CreateProjectElementUseCase {
       tilesetId: tilesetId,
       categoryId: categoryId,
       tilesetGroupId: tilesetGroupId,
-      source: source,
+      frames: [TilesetVisualFrame(source: source)],
       groupId: groupId,
       recommendedLayerId: recommendedLayerId,
       tags: normalizedTags,
@@ -401,13 +401,24 @@ class UpdateProjectElementUseCase {
       throw EditorNotFoundException('Group not found: $nextGroupId');
     }
 
-    final nextSource = source ?? current.source;
+    final nextSource = source ?? current.frames.primarySource;
     if (nextSource.width <= 0 ||
         nextSource.height <= 0 ||
         nextSource.x < 0 ||
         nextSource.y < 0) {
       throw const EditorValidationException('Element source rect is invalid');
     }
+
+    final nextFrames = source == null
+        ? current.frames
+        : [
+            TilesetVisualFrame(
+              tilesetId: current.frames.first.tilesetId,
+              source: nextSource,
+              durationMs: current.frames.first.durationMs,
+            ),
+            ...current.frames.skip(1),
+          ];
 
     final nextTags = tags == null
         ? current.tags
@@ -427,7 +438,7 @@ class UpdateProjectElementUseCase {
         categoryId: nextCategoryId,
         tilesetGroupId: nextTilesetGroupId,
         groupId: nextGroupId,
-        source: nextSource,
+        frames: nextFrames,
         recommendedLayerId: nextRecommendedLayerId,
         tags: nextTags,
       );

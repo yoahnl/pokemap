@@ -252,8 +252,9 @@ _$TilesetPaletteEntryImpl _$$TilesetPaletteEntryImplFromJson(
       category:
           $enumDecodeNullable(_$PaletteCategoryEnumMap, json['category']) ??
               PaletteCategory.uncategorized,
-      source:
-          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
       recommendedLayerId: json['recommendedLayerId'] as String?,
     );
 
@@ -263,7 +264,7 @@ Map<String, dynamic> _$$TilesetPaletteEntryImplToJson(
       'id': instance.id,
       'name': instance.name,
       'category': _$PaletteCategoryEnumMap[instance.category]!,
-      'source': instance.source,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
       'recommendedLayerId': instance.recommendedLayerId,
     };
 
@@ -298,6 +299,23 @@ Map<String, dynamic> _$$TilesetSourceRectImplToJson(
       'y': instance.y,
       'width': instance.width,
       'height': instance.height,
+    };
+
+_$TilesetVisualFrameImpl _$$TilesetVisualFrameImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetVisualFrameImpl(
+      tilesetId: json['tilesetId'] as String? ?? '',
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      durationMs: (json['durationMs'] as num?)?.toInt(),
+    );
+
+Map<String, dynamic> _$$TilesetVisualFrameImplToJson(
+        _$TilesetVisualFrameImpl instance) =>
+    <String, dynamic>{
+      'tilesetId': instance.tilesetId,
+      'source': instance.source.toJson(),
+      'durationMs': instance.durationMs,
     };
 
 _$TilesetElementGroupImpl _$$TilesetElementGroupImplFromJson(
@@ -344,8 +362,9 @@ _$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
       tilesetId: json['tilesetId'] as String,
       categoryId: json['categoryId'] as String,
       tilesetGroupId: json['tilesetGroupId'] as String?,
-      source:
-          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
       groupId: json['groupId'] as String?,
       recommendedLayerId: json['recommendedLayerId'] as String?,
       tags:
@@ -362,7 +381,7 @@ Map<String, dynamic> _$$ProjectElementEntryImplToJson(
       'tilesetId': instance.tilesetId,
       'categoryId': instance.categoryId,
       'tilesetGroupId': instance.tilesetGroupId,
-      'source': instance.source,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
       'groupId': instance.groupId,
       'recommendedLayerId': instance.recommendedLayerId,
       'tags': instance.tags,
@@ -410,15 +429,16 @@ const _$TerrainTypeEnumMap = {
 _$TerrainPresetVariantImpl _$$TerrainPresetVariantImplFromJson(
         Map<String, dynamic> json) =>
     _$TerrainPresetVariantImpl(
-      source:
-          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
       weight: (json['weight'] as num?)?.toInt() ?? 1,
     );
 
 Map<String, dynamic> _$$TerrainPresetVariantImplToJson(
         _$TerrainPresetVariantImpl instance) =>
     <String, dynamic>{
-      'source': instance.source,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
       'weight': instance.weight,
     };
 
@@ -470,15 +490,16 @@ _$PathPresetVariantMappingImpl _$$PathPresetVariantMappingImplFromJson(
         Map<String, dynamic> json) =>
     _$PathPresetVariantMappingImpl(
       variant: $enumDecode(_$TerrainPathVariantEnumMap, json['variant']),
-      source:
-          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$$PathPresetVariantMappingImplToJson(
         _$PathPresetVariantMappingImpl instance) =>
     <String, dynamic>{
       'variant': _$TerrainPathVariantEnumMap[instance.variant]!,
-      'source': instance.source,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
     };
 
 const _$TerrainPathVariantEnumMap = {

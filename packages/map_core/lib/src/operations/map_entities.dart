@@ -1,7 +1,14 @@
 import '../exceptions/map_exceptions.dart';
+import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
-import '../models/enums.dart';
+import '../models/map_entity_payloads.dart';
+
+/// Valeur sentinelle pour [updateEntityOnMap] : ne pas modifier le bloc typé existant.
+///
+/// `null` signifie « effacer / remplacer par null » avant coercition ; omettre avec cette
+/// constante signifie « conserver la valeur courante sur l’entité ».
+const Object mapEntityTypedPayloadUnset = Object();
 
 MapEntity? findEntityById(
   MapData map,
@@ -56,24 +63,39 @@ MapData updateEntityOnMap(
   GridPos? pos,
   GridSize? size,
   Map<String, String>? properties,
+  Object? npc = mapEntityTypedPayloadUnset,
+  Object? sign = mapEntityTypedPayloadUnset,
+  Object? item = mapEntityTypedPayloadUnset,
+  Object? spawn = mapEntityTypedPayloadUnset,
 }) {
   final index = map.entities.indexWhere((entity) => entity.id == entityId);
   if (index < 0) {
     throw ValidationException('Entity not found: $entityId');
   }
   final current = map.entities[index];
-  final next = _normalizeEntity(
-    current.copyWith(
-      id: id?.trim() ?? current.id,
-      name: name?.trim() ?? current.name,
-      kind: kind ?? current.kind,
-      pos: pos ?? current.pos,
-      size: size ?? current.size,
-      properties: properties == null
-          ? current.properties
-          : _normalizeProperties(properties),
-    ),
+  var draft = current.copyWith(
+    id: id?.trim() ?? current.id,
+    name: name?.trim() ?? current.name,
+    kind: kind ?? current.kind,
+    pos: pos ?? current.pos,
+    size: size ?? current.size,
+    properties: properties == null
+        ? current.properties
+        : _normalizeProperties(properties),
   );
+  if (!identical(npc, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(npc: npc as MapEntityNpcData?);
+  }
+  if (!identical(sign, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(sign: sign as MapEntitySignData?);
+  }
+  if (!identical(item, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(item: item as MapEntityItemData?);
+  }
+  if (!identical(spawn, mapEntityTypedPayloadUnset)) {
+    draft = draft.copyWith(spawn: spawn as MapEntitySpawnData?);
+  }
+  final next = _normalizeEntity(draft);
   _validateEntity(
     map,
     next,
@@ -131,11 +153,89 @@ MapData removeEntityFromMap(
 }
 
 MapEntity _normalizeEntity(MapEntity entity) {
-  return entity.copyWith(
+  final trimmed = entity.copyWith(
     id: entity.id.trim(),
     name: entity.name.trim(),
     properties: _normalizeProperties(entity.properties),
+    npc: entity.npc != null ? _normalizeNpc(entity.npc!) : null,
+    sign: entity.sign != null ? _normalizeSign(entity.sign!) : null,
+    item: entity.item,
+    spawn: entity.spawn != null ? _normalizeSpawn(entity.spawn!) : null,
   );
+  return _coercePayloadsToKind(trimmed);
+}
+
+MapEntityNpcData _normalizeNpc(MapEntityNpcData n) {
+  final d = n.dialogue;
+  return n.copyWith(
+    displayName: n.displayName.trim(),
+    visualElementId: n.visualElementId.trim(),
+    dialogue: d == null
+        ? null
+        : DialogueRef(
+            dialogueId: d.dialogueId.trim(),
+            scriptPathRelative: d.scriptPathRelative.trim(),
+            startNode: d.startNode?.trim().isEmpty == true ? null : d.startNode?.trim(),
+          ),
+  );
+}
+
+MapEntitySignData _normalizeSign(MapEntitySignData s) {
+  final d = s.dialogue;
+  return s.copyWith(
+    title: s.title.trim(),
+    plainText: s.plainText.trim(),
+    dialogue: d == null
+        ? null
+        : DialogueRef(
+            dialogueId: d.dialogueId.trim(),
+            scriptPathRelative: d.scriptPathRelative.trim(),
+            startNode: d.startNode?.trim().isEmpty == true ? null : d.startNode?.trim(),
+          ),
+  );
+}
+
+MapEntitySpawnData _normalizeSpawn(MapEntitySpawnData s) {
+  return s.copyWith(
+    spawnKey: s.spawnKey.trim(),
+    categoryTag: s.categoryTag.trim(),
+  );
+}
+
+/// Une seule charge utile typée selon [MapEntity.kind] ; défauts pour les kinds structurés.
+MapEntity _coercePayloadsToKind(MapEntity e) {
+  return switch (e.kind) {
+    MapEntityKind.npc => e.copyWith(
+        npc: e.npc ?? const MapEntityNpcData(),
+        sign: null,
+        item: null,
+        spawn: null,
+      ),
+    MapEntityKind.sign => e.copyWith(
+        sign: e.sign ?? const MapEntitySignData(),
+        npc: null,
+        item: null,
+        spawn: null,
+      ),
+    MapEntityKind.item => e.copyWith(
+        item: e.item ?? const MapEntityItemData(),
+        npc: null,
+        sign: null,
+        spawn: null,
+      ),
+    MapEntityKind.spawn => e.copyWith(
+        spawn: e.spawn ?? const MapEntitySpawnData(),
+        npc: null,
+        sign: null,
+        item: null,
+      ),
+    MapEntityKind.custom => e.copyWith(
+        npc: null,
+        sign: null,
+        item: null,
+        spawn: null,
+      ),
+  };
 }
 
 Map<String, String> _normalizeProperties(Map<String, String> properties) {
@@ -177,6 +277,63 @@ void _validateEntity(
     if (key.trim().isEmpty) {
       throw ValidationException('Entity $id has an empty property key');
     }
+  }
+  assertValidMapEntityTypedPayloads(entity);
+}
+
+/// Règles métier sur les champs typés (également utilisées par [MapValidator]).
+void assertValidMapEntityTypedPayloads(MapEntity entity) {
+  switch (entity.kind) {
+    case MapEntityKind.npc:
+      final n = entity.npc ?? const MapEntityNpcData();
+      final d = n.dialogue;
+      if (d != null && d.dialogueId.trim().isEmpty) {
+        throw ValidationException(
+          'Entity ${entity.id} has an NPC dialogue reference without dialogueId',
+        );
+      }
+      if (d != null) {
+        _assertDialogueScriptPath(d.scriptPathRelative, entity.id);
+      }
+      break;
+    case MapEntityKind.sign:
+      final s = entity.sign ?? const MapEntitySignData();
+      final d = s.dialogue;
+      if (d != null && d.dialogueId.trim().isEmpty) {
+        throw ValidationException(
+          'Entity ${entity.id} has a sign dialogue reference without dialogueId',
+        );
+      }
+      if (d != null) {
+        _assertDialogueScriptPath(d.scriptPathRelative, entity.id);
+      }
+      break;
+    case MapEntityKind.item:
+      final it = entity.item ?? const MapEntityItemData();
+      if (it.quantity <= 0) {
+        throw ValidationException(
+          'Entity ${entity.id} has invalid item quantity: ${it.quantity}',
+        );
+      }
+      break;
+    case MapEntityKind.spawn:
+    case MapEntityKind.custom:
+      break;
+  }
+}
+
+void _assertDialogueScriptPath(String path, String entityId) {
+  final p = path.trim();
+  if (p.isEmpty) return;
+  if (p.startsWith('/') || p.startsWith('\\')) {
+    throw ValidationException(
+      'Entity $entityId dialogue scriptPathRelative must be relative',
+    );
+  }
+  if (p.contains('..')) {
+    throw ValidationException(
+      'Entity $entityId dialogue scriptPathRelative must not escape the project',
+    );
   }
 }
 

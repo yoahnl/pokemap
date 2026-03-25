@@ -24,6 +24,10 @@ class UpdateEntityOnMapUseCase {
     GridPos? pos,
     GridSize? size,
     Map<String, String>? properties,
+    MapEntityNpcData? npc,
+    MapEntitySignData? sign,
+    MapEntityItemData? item,
+    MapEntitySpawnData? spawn,
   }) {
     final updated = updateEntityOnMap(
       map,
@@ -34,6 +38,10 @@ class UpdateEntityOnMapUseCase {
       pos: pos,
       size: size,
       properties: properties,
+      npc: npc ?? mapEntityTypedPayloadUnset,
+      sign: sign ?? mapEntityTypedPayloadUnset,
+      item: item ?? mapEntityTypedPayloadUnset,
+      spawn: spawn ?? mapEntityTypedPayloadUnset,
     );
     MapValidator.validate(updated);
     return updated;

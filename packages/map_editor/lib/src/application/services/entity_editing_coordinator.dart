@@ -45,6 +45,22 @@ class EntityEditingCoordinator {
       kind: kind,
       pos: pos,
       size: const core.GridSize(width: 1, height: 1),
+      npc: switch (kind) {
+        core.MapEntityKind.npc => const core.MapEntityNpcData(),
+        _ => null,
+      },
+      sign: switch (kind) {
+        core.MapEntityKind.sign => const core.MapEntitySignData(),
+        _ => null,
+      },
+      item: switch (kind) {
+        core.MapEntityKind.item => const core.MapEntityItemData(),
+        _ => null,
+      },
+      spawn: switch (kind) {
+        core.MapEntityKind.spawn => const core.MapEntitySpawnData(),
+        _ => null,
+      },
       properties: const {},
     );
   }

@@ -1,23 +1,138 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-24
+Last updated: 2026-03-24 (recadrage vision produit + priorites editor / runtime)
+
+## Vision produit
+
+### Positionnement
+
+Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-like ». La vision cible est une **suite outil + format + runtime** pour produire et jouer un jeu de type Pokemon-like sur grille.
+
+**Ordre de priorite explicite (strategie produit):**
+
+1. **Editeur de contenu de jeu tres riche** — **priorite actuelle**. Permettre a une personne **non developpeuse** de construire: maps, liens entre maps, terrains et surfaces, entites, dialogues (a venir), rencontres (a venir), interactions, donnees standard de gameplay — avec des ecrans et workflows **guides**, pas un simple editeur technique.
+2. **Package Flutter / Flame lecteur de projet** (`map_runtime`) — **prochaine grande etape**. Lire les memes donnees que l editeur et rendre le contenu **directement jouable** avec un maximum de **comportements standards** (deplacement, collisions, warps, dialogues, entites, etc.).
+3. **Couches plus haut niveau** (framework super abstrait, no-code integral) — **volontairement plus tard**. Ce n est **pas** la priorite immediate; l objectif immediat est la **qualite du contenu modelise** et sa **future execution standard**, pas un meta-moteur tout-fait sur la premiere iteration.
+
+### Repartition des roles
+
+- **Createur de contenu (non dev)**: travaille dans `map_editor`, manipule des concepts metier (maps, groupes, tilesets, entites, triggers, warps, etc.), exporte / sauvegarde un **projet structure** (JSON + assets).
+- **Developpeur jeu**: integre le package runtime (ou le dossier projet) dans une app Flutter/Flame, se concentre sur **l integration technique**, les extensions et ce qui depasse le comportement standard — **pas** sur la re-saisie manuelle du contenu dans le code.
+
+### Consequences pour la conception des donnees
+
+- Toute **nouvelle donnee metier** doit etre pensee **a la fois** pour l edition (`map_editor`) et pour une **execution future** par `map_runtime` (semantique claire, validation dans `map_core`, serialisation stable).
+- `map_core` = **schema metier + invariants + operations pures** (pas de Flutter, pas de Yarn, pas de Flame).
+- `map_editor` = **production** de ces donnees (UI, use cases, fichiers).
+- `map_runtime` = **interpretation standard** progressive des memes schemas (lecture projet, scenes, gameplay de base).
+
+### Integrations externes (ex. Yarn Spinner)
+
+- Les **references metier** (ex. `DialogueRef`) vivent dans `map_core`.
+- Les **adaptateurs moteur** (chargement Yarn, VM, etc.) vivent dans `map_runtime` ou une couche infra — **pas** de dependance sale du domaine vers un runtime concret.
+
+### Lecture du reste du document
+
+Les sections **0.x** et **7** conservent l **historique par lots** (decisions et fichiers touches). Elles peuvent mentionner des objectifs ponctuels d une epoque; en cas de tension avec cette section, **c est la Vision produit ci-dessus qui fait foi** pour l orientation globale.
+
+---
+
+## 0.1. Entites map structurees + DialogueRef (domaine + inspector)
+
+Objectif: sortir les champs gameplay des seules `properties` pour `npc`, `sign`, `item`, `spawn`, preparer les references de dialogue sans coupler `map_core` a Yarn Spinner.
+
+### Modele (`map_core`)
+
+- `DialogueRef`: `dialogueId`, `scriptPathRelative`, `startNode` (optionnel) — logique metier uniquement.
+- Payloads optionnels sur `MapEntity`: `npc`, `sign`, `item`, `spawn` (freezed + JSON + `explicitToJson`).
+- Enums: `EntityFacing`, `ItemPickupMode`, `ItemRespawnPolicy`, `EntitySpawnRole`.
+- `migrateMapEntityJson`: remonte les cles legacy depuis `properties` vers les blocs typés au chargement.
+- `updateEntityOnMap`: fusionne `id/name/kind/pos/size/properties` et les blocs typés ; constante `mapEntityTypedPayloadUnset` pour **omettre** un bloc (ne pas ecraser lors des updates partiels). `null` explicite sur un bloc reste supporte via `copyWith`.
+- `assertValidMapEntityTypedPayloads`: dialogue avec `dialogueId` non vide si ref presente ; chemin script relatif sans `..` s il est renseigne ; quantite item > 0.
+- Extension `MapEntityDisplayX.inspectorHeadline` pour libelles liste / canvas.
+
+### Editor (`map_editor`)
+
+- `EntityPropertiesPanel`: sections contextuelles par `MapEntityKind` (formulaires PNJ, panneau, objet, spawn) + proprietes libres en **extensions** ; `custom` reste oriente proprietes libres.
+- Validation UX basique des chemins de script dialogue avant sauvegarde.
+- `UpdateEntityOnMapUseCase`: `?? mapEntityTypedPayloadUnset` pour ne pas ecraser les payloads quand le caller omet les parametres optionnels.
+- Canvas: etiquette entite basee sur `inspectorHeadline`.
+
+### Yarn Spinner / runtime (hors lot)
+
+- Aucune dependance moteur dans `map_core`. Prochaine etape: infrastructure `map_runtime` ou couche projet qui resout `DialogueRef` vers des fichiers Yarn.
+
+### Fichiers touches dans ce lot (complement)
+
+- `map_core`: `map_entities.dart` (update typed + sentinelle `mapEntityTypedPayloadUnset`).
+- `map_editor`: `entity_use_cases.dart`, `entity_properties_panel.dart`, `map_canvas.dart`.
+- Deja en place avant ce complement (reference): `map_entity_payloads.dart`, `map_data.dart`, `enums.dart`, `validators.dart`, `entity_editing_*`, `editor_notifier`.
+
+---
+
+## 0. Visuels multi-frames (domaine + JSON)
+
+Objectif: preparer animations futures (eau, lave, herbes, etc.) sans UI d’animation lourde.
+
+### Modele unique: `TilesetVisualFrame` (`map_core`)
+
+- Champs: `tilesetId` (vide = heriter du tileset parent), `source` ([`TilesetSourceRect`]), `durationMs` (optionnel, futur lecteur).
+- Liste ordonnee `frames` partout ou un visuel etait un seul `source`:
+  - `ProjectElementEntry.frames`
+  - `TilesetPaletteEntry.frames`
+  - `TerrainPresetVariant.frames`
+  - `PathPresetVariantMapping.frames`
+- Extension `TilesetVisualFrameListX`: `primaryFrame` / `primarySource` (premiere frame).
+
+### Regles de validation (`ProjectValidator._validateVisualFrames`)
+
+- Au moins une frame; rectangles sources valides; `durationMs` > 0 si present.
+- Si plusieurs frames: meme `width` et `height` sur toutes les sources (cohérence animation).
+- `tilesetId` non vide sur une frame doit exister dans le manifest.
+
+### Migration JSON (chargement)
+
+- Fichier pur: `map_core/lib/src/models/visual_frame_json.dart` — `jsonCoerceLegacySourceToFrames`.
+- Ancienne forme avec `"source": { x, y, width, height }` au meme niveau que l’objet → convertie en `"frames": [ { "source": … } ]` avant `fromJson`.
+- La serialisation **sortante** n’ecrit que `frames` (plus de cle `source` au niveau entree/variante).
+
+### Rendu editeur (comportement actuel)
+
+- Tout utilise **uniquement la premiere frame** (canvas, brush, previews, autotile path, panneaux terrain/path/palette).
+
+### Non couvert dans ce lot
+
+- Pas de timeline, pas de lecteur d’animation, pas d’edition multi-frame dans l’UI.
+- `TileLayer` / tuiles numeriques, entites map, triggers: **non** passes en multi-frame (hors scope).
+- `map_runtime`: inchangé ; le modele JSON est pret pour un futur lecteur.
+
+### Fichiers touches (resume)
+
+- `map_core`: `project_manifest.dart`, `project_manifest.*.dart`, `visual_frame_json.dart`, `validators.dart`
+- `map_editor`: use cases elements/tilesets/terrain presets, `editor_notifier`, `map_canvas`, `path_autotile_set`, `terrain_editor_panel`, `tileset_palette_panel`
+
+---
 
 ## 1. Resume du projet
-Editeur de maps Pokemon-like/RPG sur grille en monorepo Flutter/Dart:
-- `packages/map_core`
-- `packages/map_editor`
-- `packages/map_runtime`
+Suite **edition de contenu + format de projet + runtime** pour jeux Pokemon-like / RPG sur grille, en monorepo Flutter/Dart:
+- `packages/map_core` — **schemas metier**, validation, JSON, operations pures (cible: consommation par editeur **et** runtime).
+- `packages/map_editor` — application desktop **productrice** de contenu (Flutter, Riverpod, use cases, fichiers).
+- `packages/map_runtime` — base Flame **lectrice / executrice** du meme format (objectif: jeu jouable avec comportements standards; aujourd hui encore minimal).
 
-Architecture visee:
+Pipeline editeur (application):
 UI -> `EditorNotifier` -> use cases -> repositories/filesystem -> JSON.
+
+**Priorite immediate:** enrichir et stabiliser le **contenu modelise** dans l editeur de facon **lisible et durable** pour une future **lecture standard** par le runtime.
 
 Note importante:
 les tests ne sont pas une priorite pour le moment. Ne pas ajouter de tests ni passer du temps sur la couverture sauf demande explicite.
 
 ## 2. Architecture actuelle
-- `map_core`: modeles metier, serialization JSON, validation metier, operations pures.
-- `map_editor`: Flutter Desktop, Riverpod, use cases, persistance filesystem, UI.
-- `map_runtime`: base Flame minimale (preparation, pas encore une preview complete).
+- `map_core`: modeles metier, serialization JSON, validation metier, operations pures — **contrat** partage entre editeur et futur runtime.
+- `map_editor`: Flutter Desktop, Riverpod, use cases, persistance filesystem, UI — **produit** les donnees conformes a `map_core`.
+- `map_runtime`: base Flame minimale a ce jour; **doit evoluer** vers un executeur standard des memes schemas (deplacement, collisions, warps, dialogues, entites, etc.).
+
+Toute evolution metier significative doit se demander: *est-ce serialisable, valide dans `map_core`, editable dans l editeur, et interpretable par le runtime sans hack ad hoc ?*
 
 Separations metier explicites:
 - Groupes du monde (`ProjectMapGroup`) pour l organisation des maps.
@@ -71,7 +186,7 @@ Separations metier explicites:
   - actions directes (move/rename/delete/visibility/opacity/add).
 - Bibliotheque d elements projet persistee:
   - categories hierarchiques,
-  - elements nommes avec source rect,
+  - elements nommes avec liste de frames visuelles (`frames`, premiere frame = rendu actuel),
   - scope monde optionnel (`groupId`),
   - layer recommandee optionnelle,
   - tags optionnels.
@@ -95,7 +210,7 @@ Separations metier explicites:
   - unicite IDs (maps, groupes monde, tilesets, categories, elements),
   - coherence hierarchies (groupes monde, categories, groupes internes tileset),
   - detection de cycles,
-  - coherence element -> tileset/category/groupId/tilesetGroupId/source rect.
+  - coherence element -> tileset/category/groupId/tilesetGroupId/frames (sources valides).
 - Validation map renforcee (`MapValidator.validate`):
   - checks stricts des champs map (id/name/size),
   - unicite IDs internes (layers/entities/warps/triggers),
@@ -393,7 +508,7 @@ Separations metier explicites:
 - Warps: edition utile avec validation inter-map + picker map cible + resume destination texte + creation assistee d un warp retour; lien persistant bidirectionnel et visualisation graphique de destination non implementes.
 - Connexions inter-maps: base metier/editor solide (modele, validation, panneau dedie, preview canvas, jump rapide), mais pas encore de creation assistee de connexion inverse, pas encore de vue monde globale et pas encore de preview de continuite graphique avancee.
 - Triggers: base MVP solide (pose, selection, edition zone/type/proprietes, overlay, undo/redo), mais pas encore de drag-create de zone, pas encore d UI specialisee par type et pas encore de runtime/evenements.
-- Entites de map: base MVP solide (pose/selection/edition generique/overlay/undo-redo), mais pas encore de sprites dedies, pas encore d UI specialisee par type, pas encore de comportement runtime et pas encore d adaptation automatique au resize map.
+- Entites de map: payloads typés + inspector par type + `DialogueRef` persistes ; pas encore de sprites dedies sur le canvas, pas encore de runtime gameplay ni adaptation auto au resize map.
 - Inspector map de droite: base bien plus lisible (accordeons + filtrage contextuel), mais pas encore d inspector specialise pour collisions/objets ni de personnalisation de layout par utilisateur.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
 - Workspace tileset: suppression/reorder des groupes internes non implementes.
@@ -402,39 +517,64 @@ Separations metier explicites:
 - Runtime Flame: base en place, integration preview in-game non terminee.
 
 ## 5. Fonctionnalites non faites
+
+### Blocs produits centraux encore absents ou tres incomplets
+
+Ces themes sont **structurants** pour la vision « contenu riche + runtime standard »; ils completent les lacunes editoriales deja listees ailleurs.
+
+- **Dialogues / scripts**: bibliotheque projet, edition, liens depuis entites — au-dela des `DialogueRef` deja modelises; execution runtime (Yarn ou autre) non branchee.
+- **Rencontres sauvages**: zones, tables, taux, conditions — modele + UI + runtime combat / rencontre.
+- **Dresseurs / equipes PNJ**: donnees d equipe, IA basique ou scriptee, declencheurs — modele + UI + runtime.
+- **Proprietes de map / metadonnees gameplay**: nom d affichage, musique, climat, interdictions, flags de progression, etc. — au-dela de `MapData` minimal actuel.
+- **Runtime standard** (`map_runtime`): lecteur de projet, scene de jeu, boucle exploration, application des collisions / warps / triggers / entites / dialogues tels que definis dans `map_core`.
+- **Comportements Pokemon-like standard**: interaction PNJ, ramassage objet, panneaux, spawns joueur, transitions de map, base inventaire / progression si le scope le requiert — en coherence avec les schemas.
+
+### Lacunes editoriales et outillage (deja identifiees, toujours valides)
+
 - Edition avancee des layers (locks/groupes/presets/layers specialisees).
 - Outils avances map (fill/selection rect map/copy-paste).
 - Undo/redo global projet (au-dela de la map active).
 - Collisions avancees (types/comportements).
-- Entites avancees:
-  - NPC avec sprite/direction/dialogue,
-  - panneaux avec texte specialise,
-  - items avec contenu/etat,
-  - spawns plus riches,
-  - objets/interactables avances.
+- Entites: preview visuelle riche sur canvas (sprites / elements), catalogues d objets, affinage gameplay au-dela des payloads actuels.
 - Triggers avances (UI specialisee par type, drag-create de zone, logique evenementielle, runtime).
 - Warps avances (lien persistant bidirectionnel, edition/synchronisation de paires, visualisation graphique de destination).
-- Inspector de proprietes complet.
-- Preview runtime in-game.
+- Inspector de proprietes complet sur tous les objets.
+- Preview runtime in-game integree a l editeur (optionnel; le runtime peut rester un package separe au debut).
 - Gestion assets projet au-dela des tilesets.
 
 ## 6. Tache en cours
-Terminee pour cette etape:
-- lot `Map Entities MVP`:
-  - fondation propre pour du contenu gameplay visible pose sur la map,
-  - separation nette `Trigger` vs `Entity`,
-  - modele metier/editor stable pour `npc`, `sign`, `item`, `spawn`,
-  - outil de pose map, overlay visuel, inspector dedie,
-  - integration complete au pipeline map-level.
 
-Suite logique recommandee:
-- editions specialisees par type d entite:
-  - dialogue NPC,
-  - texte de panneau,
-  - contenu d item,
-  - reglages de spawn.
+### Phase actuelle (alignee vision produit)
+
+**En cours / immediate:** poursuivre l **editeur de contenu riche** en specialisant le metier et en preparant les **schemas consommables par le runtime**:
+
+- **Entites**: poursuite de la specialisation (`npc`, `sign`, `item`, `spawn`, `custom`) — deja amorcee (payloads typés, `DialogueRef`, inspector contextuel); reste preview visuelle, catalogues, liens gameplay plus fins.
+- **References dialogue / scripts**: `DialogueRef` et champs associes cote entites; a etendre vers une **vraie gestion projet** des fichiers de dialogue (sans coupler `map_core` a Yarn).
+- **Rencontres**: zones, tables, integration terrain / triggers — **a concevoir** dans `map_core` puis UI.
+- **Dresseurs / equipes**: **a concevoir** (donnees + UI + validation).
+- **Preparation du runtime standard**: chaque nouveau bloc metier doit preciser **comment** `map_runtime` le lira et l executera (meme si l implementation arrive apres).
+
+### Reference historique (lot deja livre)
+
+- Fondation **Map Entities MVP** (pose, selection, trigger vs entity, pipeline map-level, undo/redo) — voir **7**.
+
+### Suite directe (hors scope de cette section detaillee)
+
+Voir **8. Prochaines etapes recommandees** (decoupage **editor court terme** / **runtime moyen terme**).
 
 ## 7. Dernieres modifications realisees
+2026-03-24 (documentation — recadrage **Vision produit**):
+- Ajout section **Vision produit** en tete du document (priorites: editeur de contenu riche -> runtime standard -> couches haut niveau plus tard).
+- Reecriture **1. Resume**, enrichissement **2. Architecture**, restructuration **5 / 6 / 8 / 9** et **Mini tableau priorites** pour alignement editor/runtime; conservation de l historique technique existant.
+
+2026-03-24 (entites structurees + inspector contextuel + correctif `updateEntityOnMap`):
+- `map_core` `map_entities.dart`:
+  - `mapEntityTypedPayloadUnset` et parametres optionnels typés sur `updateEntityOnMap` avec fusion correcte avant `_normalizeEntity` / coercition par `kind`.
+- `map_editor`:
+  - `entity_use_cases.dart`: passage des payloads avec sentinelle `?? mapEntityTypedPayloadUnset`.
+  - `entity_properties_panel.dart`: formulaires par type (NPC, sign, item, spawn, custom), champs `DialogueRef`, validation chemin script, fingerprint de sync incluant JSON des blocs typés.
+  - `map_canvas.dart`: libelle d entite via `inspectorHeadline`.
+
 2026-03-24 (entites de map MVP - contenu gameplay visible):
 - `map_core`:
   - refonte de `MapEntity`:
@@ -1373,28 +1513,48 @@ Suite logique recommandee:
     - liste des elements du tileset avec metadonnees (groupe monde + groupe interne + layer).
 
 ## 8. Prochaines etapes recommandees
-- Etendre les warps apres MVP:
-  - lien persistant optionnel entre warp source et warp retour (pairing explicite),
-  - edition/synchronisation de paire (mise a jour cible/retour sans recreation manuelle),
-  - visualisation graphique optionnelle de la destination (preview mini-map ou jump-to-map).
-- Etendre les terrains apres MVP:
-  - support de comportements de sol (tags/proprietes),
-  - interactions gameplay (rencontres, surf, glissade) cote runtime,
-  - gestion de presets plus avances (biomes, import/export, duplication, tri/recherche),
-  - separation plus fine entre rendu terrain editor et rendu runtime (eau animee, autotiles de transition, blending).
-- Finaliser l eclatement complet du monolithe `project_use_cases.dart` (tilesets/elements/projet) pour aligner toute la couche application sur la meme granularite.
-- Ajouter suppression/reorder des groupes internes de tileset et suppression de palette entries.
-- Lier explicitement l UI du brush (labels/preview) a des metadonnees uniformes par type de brush.
-- Ajouter locks, duplication et eventuel grouping de layers.
-- Etendre les collisions au-dela du bool (types de collisions, comportements de sol, presets).
-- Ajouter drag/drop de classement des elements dans un tileset.
-- Ajouter filtres rapides (tags, recherche texte, layer recommandee).
-- Ajouter edition/suppression des elements directement depuis le workspace central tileset.
-- Ajouter des interactions de navigation plus avancees dans `TilesetEditorCanvas` (panning dedie, raccourcis).
-- Ajouter un feedback explicite de la raison d invalidite directement dans l UI quand la preview est en mode refuse.
-- Ajouter ensuite une validation batch de coherence inter-maps au niveau projet (ex: verification globale de tous les `targetMapId` et references croisees), en complement de la validation editor deja en place.
+
+Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de contenu**, puis **construire le runtime standard**. Les deux listes ne sont pas exclusives (certains sujets touchent les deux), mais l **ordre de priorite** reste: modeliser et editer proprement **avant** ou **en parallele raisonnable** avec l execution.
+
+### 8.1. Priorites editoriales (court terme)
+
+- **Entites / gameplay pose sur map**: specialisation continue (catalogues, preview visuelle canvas, affinage item / spawn / PNJ / panneaux).
+- **Dialogues / scripts**: gestion projet des fichiers, UI de selection liee aux `DialogueRef`, workflow auteur — sans polluer `map_core`.
+- **Rencontres**: definition des zones et tables dans le projet + outils d edition sur map ou calques dedies.
+- **Dresseurs / equipes**: modele + panneaux dedies (lie aux entites / triggers selon le design retenu).
+- **Proprietes de map**: metadonnees gameplay (musique, climat, flags, affichage) — schema `map_core` + UI.
+- **Outils d edition avances**: fill / copy-paste map, selection rect etendue, filtres et navigation explorateur.
+- **Collisions enrichies**: types, comportements de sol, presets — toujours valides dans `map_core`.
+- **Triggers / warps / terrains (extensions MVP)**: UI plus specialisee, pairing warps, presets terrains avances (biomes, import/export), feedback d invalidite dans l UI.
+- **Qualite de vie editeur**: eclatement `project_use_cases.dart`, brush metadata uniforme, locks/groupes layers, drag/drop elements tileset, filtres tags/recherche, navigation `TilesetEditorCanvas`, validation batch inter-maps (`targetMapId`, references croisees).
+
+### 8.2. Priorites runtime (moyen terme)
+
+- **Lecteur standard de projet**: chargement manifest + maps + assets references par `map_core`.
+- **Scene de jeu**: grille, camera, layers tile / collision / terrain (interpretation minimale puis enrichie).
+- **Deplacement / collisions / warps**: comportements alignes sur les donnees map (y compris triggers d entree si definis).
+- **Interactions**: PNJ, panneaux, objets ramassables, spawns — branchement sur les payloads entites existants et futurs.
+- **Dialogues**: resolution de `DialogueRef` vers fichiers scripts via couche **infra** (Yarn ou autre); **aucune** logique Yarn dans `map_core`.
+- **Execution standard**: objectif **jouable** avec un minimum d integration dans une app Flutter/Flame (le runtime encapsule le maximum de comportements communs).
+- **Separation editor / runtime**: l editeur peut eventuellement embarquer une **preview** plus tard; le coeur reste le **package runtime** consommant les memes JSON.
+
+### 8.3. Themes transverses (editor + runtime)
+
+- Comportements de sol et rencontres (tags terrains, zones) — **schema** dans `map_core`, **edition** dans `map_editor`, **effet** dans `map_runtime`.
+- Separation rendu editor vs rendu runtime pour terrains animes / transitions (deja amorcee conceptuellement pour les paths).
 
 ## 9. Decisions d architecture importantes
+
+### 9.1. Strategie monorepo (vision produit + execution)
+
+- Les **nouvelles donnees metier** ne sont pas concues **uniquement** pour l editeur: elles doivent rester **validables dans `map_core`** et **interpretables** par un **`map_runtime` standard** qui evolue en parallele.
+- **`map_core`**: schema metier, invariants, serialisation JSON, operations pures — **aucune** dependance Flutter / Flame / Yarn / moteur de dialogue concret.
+- **`map_editor`**: production et maintenance des donnees conformes (UI, use cases, fichiers).
+- **`map_runtime`**: lecture et execution progressive des memes schemas; les integrations externes (ex. Yarn Spinner) s y branchent via **adaptateurs**, pas via fuites depuis le domaine.
+- **No-code / framework tres haut niveau**: hors priorite immediate; la feuille de route court terme est **contenu riche + runtime standard**, pas un meta-outil complet sur la premiere vague.
+
+### 9.2. Decisions editeur et UX (detail operationnel)
+
 - `EditorState.activeBrush` est la seule source de verite pour la selection de brush.
 - Les types de brush restent explicites et distincts:
   - tile unitaire (`tileId` + `tilesetId`),
@@ -1599,6 +1759,10 @@ Suite logique recommandee:
 - **map_runtime**: aucun changement requis pour ce lot
 
 ## Mini tableau priorites (etat)
+
+*(Etat factuel des chantiers outil; l ordre strategique global est dans **Vision produit** et **8**.)*
+
+- Vision **editeur de contenu riche** puis **runtime standard**: en cours de realisation (voir sections 1, 6, 8)
 - Ghost preview + erase: fait
 - Systeme de brush: fait
 - Layers: fait (base MVP), evolutions avancees non faites

@@ -485,7 +485,7 @@ class CreateTilesetPaletteEntryUseCase {
       id: id,
       name: trimmedName,
       category: category,
-      source: source,
+      frames: [TilesetVisualFrame(source: source)],
       recommendedLayerId: recommendedLayerId,
     );
 

@@ -1967,7 +1967,9 @@ mixin _$TilesetPaletteEntry {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   PaletteCategory get category => throw _privateConstructorUsedError;
-  TilesetSourceRect get source => throw _privateConstructorUsedError;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
 
   /// Serializes this TilesetPaletteEntry to a JSON map.
@@ -1990,10 +1992,8 @@ abstract class $TilesetPaletteEntryCopyWith<$Res> {
       {String id,
       String name,
       PaletteCategory category,
-      TilesetSourceRect source,
+      List<TilesetVisualFrame> frames,
       String? recommendedLayerId});
-
-  $TilesetSourceRectCopyWith<$Res> get source;
 }
 
 /// @nodoc
@@ -2014,7 +2014,7 @@ class _$TilesetPaletteEntryCopyWithImpl<$Res, $Val extends TilesetPaletteEntry>
     Object? id = null,
     Object? name = null,
     Object? category = null,
-    Object? source = null,
+    Object? frames = null,
     Object? recommendedLayerId = freezed,
   }) {
     return _then(_value.copyWith(
@@ -2030,25 +2030,15 @@ class _$TilesetPaletteEntryCopyWithImpl<$Res, $Val extends TilesetPaletteEntry>
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
               as PaletteCategory,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value.frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
       recommendedLayerId: freezed == recommendedLayerId
           ? _value.recommendedLayerId
           : recommendedLayerId // ignore: cast_nullable_to_non_nullable
               as String?,
     ) as $Val);
-  }
-
-  /// Create a copy of TilesetPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $TilesetSourceRectCopyWith<$Res> get source {
-    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
-      return _then(_value.copyWith(source: value) as $Val);
-    });
   }
 }
 
@@ -2064,11 +2054,8 @@ abstract class _$$TilesetPaletteEntryImplCopyWith<$Res>
       {String id,
       String name,
       PaletteCategory category,
-      TilesetSourceRect source,
+      List<TilesetVisualFrame> frames,
       String? recommendedLayerId});
-
-  @override
-  $TilesetSourceRectCopyWith<$Res> get source;
 }
 
 /// @nodoc
@@ -2087,7 +2074,7 @@ class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? category = null,
-    Object? source = null,
+    Object? frames = null,
     Object? recommendedLayerId = freezed,
   }) {
     return _then(_$TilesetPaletteEntryImpl(
@@ -2103,10 +2090,10 @@ class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
               as PaletteCategory,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value._frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
       recommendedLayerId: freezed == recommendedLayerId
           ? _value.recommendedLayerId
           : recommendedLayerId // ignore: cast_nullable_to_non_nullable
@@ -2116,14 +2103,16 @@ class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
   const _$TilesetPaletteEntryImpl(
       {required this.id,
       this.name = '',
       this.category = PaletteCategory.uncategorized,
-      required this.source,
-      this.recommendedLayerId});
+      required final List<TilesetVisualFrame> frames,
+      this.recommendedLayerId})
+      : _frames = frames;
 
   factory _$TilesetPaletteEntryImpl.fromJson(Map<String, dynamic> json) =>
       _$$TilesetPaletteEntryImplFromJson(json);
@@ -2136,14 +2125,24 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
   @override
   @JsonKey()
   final PaletteCategory category;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  final List<TilesetVisualFrame> _frames;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
   @override
-  final TilesetSourceRect source;
+  List<TilesetVisualFrame> get frames {
+    if (_frames is EqualUnmodifiableListView) return _frames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_frames);
+  }
+
   @override
   final String? recommendedLayerId;
 
   @override
   String toString() {
-    return 'TilesetPaletteEntry(id: $id, name: $name, category: $category, source: $source, recommendedLayerId: $recommendedLayerId)';
+    return 'TilesetPaletteEntry(id: $id, name: $name, category: $category, frames: $frames, recommendedLayerId: $recommendedLayerId)';
   }
 
   @override
@@ -2155,15 +2154,15 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.category, category) ||
                 other.category == category) &&
-            (identical(other.source, source) || other.source == source) &&
+            const DeepCollectionEquality().equals(other._frames, _frames) &&
             (identical(other.recommendedLayerId, recommendedLayerId) ||
                 other.recommendedLayerId == recommendedLayerId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, category, source, recommendedLayerId);
+  int get hashCode => Object.hash(runtimeType, id, name, category,
+      const DeepCollectionEquality().hash(_frames), recommendedLayerId);
 
   /// Create a copy of TilesetPaletteEntry
   /// with the given fields replaced by the non-null parameter values.
@@ -2187,7 +2186,7 @@ abstract class _TilesetPaletteEntry implements TilesetPaletteEntry {
       {required final String id,
       final String name,
       final PaletteCategory category,
-      required final TilesetSourceRect source,
+      required final List<TilesetVisualFrame> frames,
       final String? recommendedLayerId}) = _$TilesetPaletteEntryImpl;
 
   factory _TilesetPaletteEntry.fromJson(Map<String, dynamic> json) =
@@ -2199,8 +2198,10 @@ abstract class _TilesetPaletteEntry implements TilesetPaletteEntry {
   String get name;
   @override
   PaletteCategory get category;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
   @override
-  TilesetSourceRect get source;
+  List<TilesetVisualFrame> get frames;
   @override
   String? get recommendedLayerId;
 
@@ -2414,6 +2415,217 @@ abstract class _TilesetSourceRect implements TilesetSourceRect {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$TilesetSourceRectImplCopyWith<_$TilesetSourceRectImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+TilesetVisualFrame _$TilesetVisualFrameFromJson(Map<String, dynamic> json) {
+  return _TilesetVisualFrame.fromJson(json);
+}
+
+/// @nodoc
+mixin _$TilesetVisualFrame {
+  String get tilesetId => throw _privateConstructorUsedError;
+  TilesetSourceRect get source => throw _privateConstructorUsedError;
+
+  /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+  int? get durationMs => throw _privateConstructorUsedError;
+
+  /// Serializes this TilesetVisualFrame to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of TilesetVisualFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $TilesetVisualFrameCopyWith<TilesetVisualFrame> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $TilesetVisualFrameCopyWith<$Res> {
+  factory $TilesetVisualFrameCopyWith(
+          TilesetVisualFrame value, $Res Function(TilesetVisualFrame) then) =
+      _$TilesetVisualFrameCopyWithImpl<$Res, TilesetVisualFrame>;
+  @useResult
+  $Res call({String tilesetId, TilesetSourceRect source, int? durationMs});
+
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class _$TilesetVisualFrameCopyWithImpl<$Res, $Val extends TilesetVisualFrame>
+    implements $TilesetVisualFrameCopyWith<$Res> {
+  _$TilesetVisualFrameCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of TilesetVisualFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tilesetId = null,
+    Object? source = null,
+    Object? durationMs = freezed,
+  }) {
+    return _then(_value.copyWith(
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      durationMs: freezed == durationMs
+          ? _value.durationMs
+          : durationMs // ignore: cast_nullable_to_non_nullable
+              as int?,
+    ) as $Val);
+  }
+
+  /// Create a copy of TilesetVisualFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $TilesetSourceRectCopyWith<$Res> get source {
+    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
+      return _then(_value.copyWith(source: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$TilesetVisualFrameImplCopyWith<$Res>
+    implements $TilesetVisualFrameCopyWith<$Res> {
+  factory _$$TilesetVisualFrameImplCopyWith(_$TilesetVisualFrameImpl value,
+          $Res Function(_$TilesetVisualFrameImpl) then) =
+      __$$TilesetVisualFrameImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String tilesetId, TilesetSourceRect source, int? durationMs});
+
+  @override
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class __$$TilesetVisualFrameImplCopyWithImpl<$Res>
+    extends _$TilesetVisualFrameCopyWithImpl<$Res, _$TilesetVisualFrameImpl>
+    implements _$$TilesetVisualFrameImplCopyWith<$Res> {
+  __$$TilesetVisualFrameImplCopyWithImpl(_$TilesetVisualFrameImpl _value,
+      $Res Function(_$TilesetVisualFrameImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of TilesetVisualFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tilesetId = null,
+    Object? source = null,
+    Object? durationMs = freezed,
+  }) {
+    return _then(_$TilesetVisualFrameImpl(
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      durationMs: freezed == durationMs
+          ? _value.durationMs
+          : durationMs // ignore: cast_nullable_to_non_nullable
+              as int?,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$TilesetVisualFrameImpl implements _TilesetVisualFrame {
+  const _$TilesetVisualFrameImpl(
+      {this.tilesetId = '', required this.source, this.durationMs});
+
+  factory _$TilesetVisualFrameImpl.fromJson(Map<String, dynamic> json) =>
+      _$$TilesetVisualFrameImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final String tilesetId;
+  @override
+  final TilesetSourceRect source;
+
+  /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+  @override
+  final int? durationMs;
+
+  @override
+  String toString() {
+    return 'TilesetVisualFrame(tilesetId: $tilesetId, source: $source, durationMs: $durationMs)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TilesetVisualFrameImpl &&
+            (identical(other.tilesetId, tilesetId) ||
+                other.tilesetId == tilesetId) &&
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.durationMs, durationMs) ||
+                other.durationMs == durationMs));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, tilesetId, source, durationMs);
+
+  /// Create a copy of TilesetVisualFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TilesetVisualFrameImplCopyWith<_$TilesetVisualFrameImpl> get copyWith =>
+      __$$TilesetVisualFrameImplCopyWithImpl<_$TilesetVisualFrameImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$TilesetVisualFrameImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _TilesetVisualFrame implements TilesetVisualFrame {
+  const factory _TilesetVisualFrame(
+      {final String tilesetId,
+      required final TilesetSourceRect source,
+      final int? durationMs}) = _$TilesetVisualFrameImpl;
+
+  factory _TilesetVisualFrame.fromJson(Map<String, dynamic> json) =
+      _$TilesetVisualFrameImpl.fromJson;
+
+  @override
+  String get tilesetId;
+  @override
+  TilesetSourceRect get source;
+
+  /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+  @override
+  int? get durationMs;
+
+  /// Create a copy of TilesetVisualFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TilesetVisualFrameImplCopyWith<_$TilesetVisualFrameImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -2853,7 +3065,9 @@ mixin _$ProjectElementEntry {
   String get tilesetId => throw _privateConstructorUsedError;
   String get categoryId => throw _privateConstructorUsedError;
   String? get tilesetGroupId => throw _privateConstructorUsedError;
-  TilesetSourceRect get source => throw _privateConstructorUsedError;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
   String? get groupId => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -2881,13 +3095,11 @@ abstract class $ProjectElementEntryCopyWith<$Res> {
       String tilesetId,
       String categoryId,
       String? tilesetGroupId,
-      TilesetSourceRect source,
+      List<TilesetVisualFrame> frames,
       String? groupId,
       String? recommendedLayerId,
       List<String> tags,
       int sortOrder});
-
-  $TilesetSourceRectCopyWith<$Res> get source;
 }
 
 /// @nodoc
@@ -2910,7 +3122,7 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
     Object? tilesetId = null,
     Object? categoryId = null,
     Object? tilesetGroupId = freezed,
-    Object? source = null,
+    Object? frames = null,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
     Object? tags = null,
@@ -2937,10 +3149,10 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
           ? _value.tilesetGroupId
           : tilesetGroupId // ignore: cast_nullable_to_non_nullable
               as String?,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value.frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
@@ -2959,16 +3171,6 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
               as int,
     ) as $Val);
   }
-
-  /// Create a copy of ProjectElementEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $TilesetSourceRectCopyWith<$Res> get source {
-    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
-      return _then(_value.copyWith(source: value) as $Val);
-    });
-  }
 }
 
 /// @nodoc
@@ -2985,14 +3187,11 @@ abstract class _$$ProjectElementEntryImplCopyWith<$Res>
       String tilesetId,
       String categoryId,
       String? tilesetGroupId,
-      TilesetSourceRect source,
+      List<TilesetVisualFrame> frames,
       String? groupId,
       String? recommendedLayerId,
       List<String> tags,
       int sortOrder});
-
-  @override
-  $TilesetSourceRectCopyWith<$Res> get source;
 }
 
 /// @nodoc
@@ -3013,7 +3212,7 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
     Object? tilesetId = null,
     Object? categoryId = null,
     Object? tilesetGroupId = freezed,
-    Object? source = null,
+    Object? frames = null,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
     Object? tags = null,
@@ -3040,10 +3239,10 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
           ? _value.tilesetGroupId
           : tilesetGroupId // ignore: cast_nullable_to_non_nullable
               as String?,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value._frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
@@ -3065,7 +3264,8 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ProjectElementEntryImpl implements _ProjectElementEntry {
   const _$ProjectElementEntryImpl(
       {required this.id,
@@ -3073,12 +3273,13 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       required this.tilesetId,
       required this.categoryId,
       this.tilesetGroupId,
-      required this.source,
+      required final List<TilesetVisualFrame> frames,
       this.groupId,
       this.recommendedLayerId,
       final List<String> tags = const [],
       this.sortOrder = 0})
-      : _tags = tags;
+      : _frames = frames,
+        _tags = tags;
 
   factory _$ProjectElementEntryImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectElementEntryImplFromJson(json);
@@ -3093,8 +3294,18 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
   final String categoryId;
   @override
   final String? tilesetGroupId;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  final List<TilesetVisualFrame> _frames;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
   @override
-  final TilesetSourceRect source;
+  List<TilesetVisualFrame> get frames {
+    if (_frames is EqualUnmodifiableListView) return _frames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_frames);
+  }
+
   @override
   final String? groupId;
   @override
@@ -3114,7 +3325,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
 
   @override
   String toString() {
-    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, source: $source, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
+    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
   }
 
   @override
@@ -3130,7 +3341,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
                 other.categoryId == categoryId) &&
             (identical(other.tilesetGroupId, tilesetGroupId) ||
                 other.tilesetGroupId == tilesetGroupId) &&
-            (identical(other.source, source) || other.source == source) &&
+            const DeepCollectionEquality().equals(other._frames, _frames) &&
             (identical(other.groupId, groupId) || other.groupId == groupId) &&
             (identical(other.recommendedLayerId, recommendedLayerId) ||
                 other.recommendedLayerId == recommendedLayerId) &&
@@ -3148,7 +3359,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       tilesetId,
       categoryId,
       tilesetGroupId,
-      source,
+      const DeepCollectionEquality().hash(_frames),
       groupId,
       recommendedLayerId,
       const DeepCollectionEquality().hash(_tags),
@@ -3178,7 +3389,7 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
       required final String tilesetId,
       required final String categoryId,
       final String? tilesetGroupId,
-      required final TilesetSourceRect source,
+      required final List<TilesetVisualFrame> frames,
       final String? groupId,
       final String? recommendedLayerId,
       final List<String> tags,
@@ -3197,8 +3408,10 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
   String get categoryId;
   @override
   String? get tilesetGroupId;
+
+  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
   @override
-  TilesetSourceRect get source;
+  List<TilesetVisualFrame> get frames;
   @override
   String? get groupId;
   @override
@@ -3520,7 +3733,8 @@ TerrainPresetVariant _$TerrainPresetVariantFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$TerrainPresetVariant {
-  TilesetSourceRect get source => throw _privateConstructorUsedError;
+  /// Au moins une frame ; rendu éditeur = première frame.
+  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
   int get weight => throw _privateConstructorUsedError;
 
   /// Serializes this TerrainPresetVariant to a JSON map.
@@ -3539,9 +3753,7 @@ abstract class $TerrainPresetVariantCopyWith<$Res> {
           $Res Function(TerrainPresetVariant) then) =
       _$TerrainPresetVariantCopyWithImpl<$Res, TerrainPresetVariant>;
   @useResult
-  $Res call({TilesetSourceRect source, int weight});
-
-  $TilesetSourceRectCopyWith<$Res> get source;
+  $Res call({List<TilesetVisualFrame> frames, int weight});
 }
 
 /// @nodoc
@@ -3560,29 +3772,19 @@ class _$TerrainPresetVariantCopyWithImpl<$Res,
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? source = null,
+    Object? frames = null,
     Object? weight = null,
   }) {
     return _then(_value.copyWith(
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value.frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
       weight: null == weight
           ? _value.weight
           : weight // ignore: cast_nullable_to_non_nullable
               as int,
     ) as $Val);
-  }
-
-  /// Create a copy of TerrainPresetVariant
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $TilesetSourceRectCopyWith<$Res> get source {
-    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
-      return _then(_value.copyWith(source: value) as $Val);
-    });
   }
 }
 
@@ -3594,10 +3796,7 @@ abstract class _$$TerrainPresetVariantImplCopyWith<$Res>
       __$$TerrainPresetVariantImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({TilesetSourceRect source, int weight});
-
-  @override
-  $TilesetSourceRectCopyWith<$Res> get source;
+  $Res call({List<TilesetVisualFrame> frames, int weight});
 }
 
 /// @nodoc
@@ -3613,14 +3812,14 @@ class __$$TerrainPresetVariantImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? source = null,
+    Object? frames = null,
     Object? weight = null,
   }) {
     return _then(_$TerrainPresetVariantImpl(
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value._frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
       weight: null == weight
           ? _value.weight
           : weight // ignore: cast_nullable_to_non_nullable
@@ -3630,22 +3829,34 @@ class __$$TerrainPresetVariantImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
-  const _$TerrainPresetVariantImpl({required this.source, this.weight = 1});
+  const _$TerrainPresetVariantImpl(
+      {required final List<TilesetVisualFrame> frames, this.weight = 1})
+      : _frames = frames;
 
   factory _$TerrainPresetVariantImpl.fromJson(Map<String, dynamic> json) =>
       _$$TerrainPresetVariantImplFromJson(json);
 
+  /// Au moins une frame ; rendu éditeur = première frame.
+  final List<TilesetVisualFrame> _frames;
+
+  /// Au moins une frame ; rendu éditeur = première frame.
   @override
-  final TilesetSourceRect source;
+  List<TilesetVisualFrame> get frames {
+    if (_frames is EqualUnmodifiableListView) return _frames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_frames);
+  }
+
   @override
   @JsonKey()
   final int weight;
 
   @override
   String toString() {
-    return 'TerrainPresetVariant(source: $source, weight: $weight)';
+    return 'TerrainPresetVariant(frames: $frames, weight: $weight)';
   }
 
   @override
@@ -3653,13 +3864,14 @@ class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$TerrainPresetVariantImpl &&
-            (identical(other.source, source) || other.source == source) &&
+            const DeepCollectionEquality().equals(other._frames, _frames) &&
             (identical(other.weight, weight) || other.weight == weight));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, source, weight);
+  int get hashCode => Object.hash(
+      runtimeType, const DeepCollectionEquality().hash(_frames), weight);
 
   /// Create a copy of TerrainPresetVariant
   /// with the given fields replaced by the non-null parameter values.
@@ -3681,14 +3893,15 @@ class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
 
 abstract class _TerrainPresetVariant implements TerrainPresetVariant {
   const factory _TerrainPresetVariant(
-      {required final TilesetSourceRect source,
+      {required final List<TilesetVisualFrame> frames,
       final int weight}) = _$TerrainPresetVariantImpl;
 
   factory _TerrainPresetVariant.fromJson(Map<String, dynamic> json) =
       _$TerrainPresetVariantImpl.fromJson;
 
+  /// Au moins une frame ; rendu éditeur = première frame.
   @override
-  TilesetSourceRect get source;
+  List<TilesetVisualFrame> get frames;
   @override
   int get weight;
 
@@ -4006,7 +4219,9 @@ PathPresetVariantMapping _$PathPresetVariantMappingFromJson(
 /// @nodoc
 mixin _$PathPresetVariantMapping {
   TerrainPathVariant get variant => throw _privateConstructorUsedError;
-  TilesetSourceRect get source => throw _privateConstructorUsedError;
+
+  /// Au moins une frame ; rendu éditeur / autotile = première frame.
+  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
 
   /// Serializes this PathPresetVariantMapping to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -4024,9 +4239,7 @@ abstract class $PathPresetVariantMappingCopyWith<$Res> {
           $Res Function(PathPresetVariantMapping) then) =
       _$PathPresetVariantMappingCopyWithImpl<$Res, PathPresetVariantMapping>;
   @useResult
-  $Res call({TerrainPathVariant variant, TilesetSourceRect source});
-
-  $TilesetSourceRectCopyWith<$Res> get source;
+  $Res call({TerrainPathVariant variant, List<TilesetVisualFrame> frames});
 }
 
 /// @nodoc
@@ -4046,28 +4259,18 @@ class _$PathPresetVariantMappingCopyWithImpl<$Res,
   @override
   $Res call({
     Object? variant = null,
-    Object? source = null,
+    Object? frames = null,
   }) {
     return _then(_value.copyWith(
       variant: null == variant
           ? _value.variant
           : variant // ignore: cast_nullable_to_non_nullable
               as TerrainPathVariant,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value.frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
     ) as $Val);
-  }
-
-  /// Create a copy of PathPresetVariantMapping
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $TilesetSourceRectCopyWith<$Res> get source {
-    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
-      return _then(_value.copyWith(source: value) as $Val);
-    });
   }
 }
 
@@ -4080,10 +4283,7 @@ abstract class _$$PathPresetVariantMappingImplCopyWith<$Res>
       __$$PathPresetVariantMappingImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({TerrainPathVariant variant, TilesetSourceRect source});
-
-  @override
-  $TilesetSourceRectCopyWith<$Res> get source;
+  $Res call({TerrainPathVariant variant, List<TilesetVisualFrame> frames});
 }
 
 /// @nodoc
@@ -4102,38 +4302,49 @@ class __$$PathPresetVariantMappingImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? variant = null,
-    Object? source = null,
+    Object? frames = null,
   }) {
     return _then(_$PathPresetVariantMappingImpl(
       variant: null == variant
           ? _value.variant
           : variant // ignore: cast_nullable_to_non_nullable
               as TerrainPathVariant,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
+      frames: null == frames
+          ? _value._frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<TilesetVisualFrame>,
     ));
   }
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$PathPresetVariantMappingImpl implements _PathPresetVariantMapping {
   const _$PathPresetVariantMappingImpl(
-      {required this.variant, required this.source});
+      {required this.variant, required final List<TilesetVisualFrame> frames})
+      : _frames = frames;
 
   factory _$PathPresetVariantMappingImpl.fromJson(Map<String, dynamic> json) =>
       _$$PathPresetVariantMappingImplFromJson(json);
 
   @override
   final TerrainPathVariant variant;
+
+  /// Au moins une frame ; rendu éditeur / autotile = première frame.
+  final List<TilesetVisualFrame> _frames;
+
+  /// Au moins une frame ; rendu éditeur / autotile = première frame.
   @override
-  final TilesetSourceRect source;
+  List<TilesetVisualFrame> get frames {
+    if (_frames is EqualUnmodifiableListView) return _frames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_frames);
+  }
 
   @override
   String toString() {
-    return 'PathPresetVariantMapping(variant: $variant, source: $source)';
+    return 'PathPresetVariantMapping(variant: $variant, frames: $frames)';
   }
 
   @override
@@ -4142,12 +4353,13 @@ class _$PathPresetVariantMappingImpl implements _PathPresetVariantMapping {
         (other.runtimeType == runtimeType &&
             other is _$PathPresetVariantMappingImpl &&
             (identical(other.variant, variant) || other.variant == variant) &&
-            (identical(other.source, source) || other.source == source));
+            const DeepCollectionEquality().equals(other._frames, _frames));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, variant, source);
+  int get hashCode => Object.hash(
+      runtimeType, variant, const DeepCollectionEquality().hash(_frames));
 
   /// Create a copy of PathPresetVariantMapping
   /// with the given fields replaced by the non-null parameter values.
@@ -4169,7 +4381,7 @@ class _$PathPresetVariantMappingImpl implements _PathPresetVariantMapping {
 abstract class _PathPresetVariantMapping implements PathPresetVariantMapping {
   const factory _PathPresetVariantMapping(
           {required final TerrainPathVariant variant,
-          required final TilesetSourceRect source}) =
+          required final List<TilesetVisualFrame> frames}) =
       _$PathPresetVariantMappingImpl;
 
   factory _PathPresetVariantMapping.fromJson(Map<String, dynamic> json) =
@@ -4177,8 +4389,10 @@ abstract class _PathPresetVariantMapping implements PathPresetVariantMapping {
 
   @override
   TerrainPathVariant get variant;
+
+  /// Au moins une frame ; rendu éditeur / autotile = première frame.
   @override
-  TilesetSourceRect get source;
+  List<TilesetVisualFrame> get frames;
 
   /// Create a copy of PathPresetVariantMapping
   /// with the given fields replaced by the non-null parameter values.

@@ -105,6 +105,10 @@ class EntityEditingService {
     GridPos? pos,
     GridSize? size,
     Map<String, String>? properties,
+    MapEntityNpcData? npc,
+    MapEntitySignData? sign,
+    MapEntityItemData? item,
+    MapEntitySpawnData? spawn,
   }) {
     final updated = _updateEntityOnMapUseCase.execute(
       map,
@@ -115,6 +119,10 @@ class EntityEditingService {
       pos: pos,
       size: size,
       properties: properties,
+      npc: npc,
+      sign: sign,
+      item: item,
+      spawn: spawn,
     );
     final nextSelectedEntityId =
         id?.trim().isNotEmpty == true ? id!.trim() : entityId;

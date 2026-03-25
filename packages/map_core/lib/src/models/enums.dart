@@ -81,6 +81,49 @@ enum MapEntityKind {
   custom,
 }
 
+/// Orientation d’un sprite / d’un spawn sur la grille (vue top-down).
+enum EntityFacing {
+  @JsonValue('north')
+  north,
+  @JsonValue('south')
+  south,
+  @JsonValue('east')
+  east,
+  @JsonValue('west')
+  west,
+}
+
+enum ItemPickupMode {
+  @JsonValue('once')
+  once,
+  @JsonValue('always')
+  always,
+  @JsonValue('quest_gated')
+  questGated,
+}
+
+enum ItemRespawnPolicy {
+  @JsonValue('none')
+  none,
+  @JsonValue('on_map_reload')
+  onMapReload,
+  @JsonValue('timed')
+  timed,
+}
+
+enum EntitySpawnRole {
+  @JsonValue('player_start')
+  playerStart,
+  @JsonValue('event')
+  event,
+  @JsonValue('npc_spawn')
+  npcSpawn,
+  @JsonValue('debug')
+  debug,
+  @JsonValue('other')
+  other,
+}
+
 enum TriggerType {
   @JsonValue('warp')
   warp,

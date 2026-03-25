@@ -454,6 +454,12 @@ mixin _$MapEntity {
   MapEntityKind get kind => throw _privateConstructorUsedError;
   GridPos get pos => throw _privateConstructorUsedError;
   GridSize get size => throw _privateConstructorUsedError;
+  MapEntityNpcData? get npc => throw _privateConstructorUsedError;
+  MapEntitySignData? get sign => throw _privateConstructorUsedError;
+  MapEntityItemData? get item => throw _privateConstructorUsedError;
+  MapEntitySpawnData? get spawn => throw _privateConstructorUsedError;
+
+  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   Map<String, String> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapEntity to a JSON map.
@@ -477,10 +483,18 @@ abstract class $MapEntityCopyWith<$Res> {
       MapEntityKind kind,
       GridPos pos,
       GridSize size,
+      MapEntityNpcData? npc,
+      MapEntitySignData? sign,
+      MapEntityItemData? item,
+      MapEntitySpawnData? spawn,
       Map<String, String> properties});
 
   $GridPosCopyWith<$Res> get pos;
   $GridSizeCopyWith<$Res> get size;
+  $MapEntityNpcDataCopyWith<$Res>? get npc;
+  $MapEntitySignDataCopyWith<$Res>? get sign;
+  $MapEntityItemDataCopyWith<$Res>? get item;
+  $MapEntitySpawnDataCopyWith<$Res>? get spawn;
 }
 
 /// @nodoc
@@ -503,6 +517,10 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
     Object? kind = null,
     Object? pos = null,
     Object? size = null,
+    Object? npc = freezed,
+    Object? sign = freezed,
+    Object? item = freezed,
+    Object? spawn = freezed,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -526,6 +544,22 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
           ? _value.size
           : size // ignore: cast_nullable_to_non_nullable
               as GridSize,
+      npc: freezed == npc
+          ? _value.npc
+          : npc // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcData?,
+      sign: freezed == sign
+          ? _value.sign
+          : sign // ignore: cast_nullable_to_non_nullable
+              as MapEntitySignData?,
+      item: freezed == item
+          ? _value.item
+          : item // ignore: cast_nullable_to_non_nullable
+              as MapEntityItemData?,
+      spawn: freezed == spawn
+          ? _value.spawn
+          : spawn // ignore: cast_nullable_to_non_nullable
+              as MapEntitySpawnData?,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -552,6 +586,62 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
       return _then(_value.copyWith(size: value) as $Val);
     });
   }
+
+  /// Create a copy of MapEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntityNpcDataCopyWith<$Res>? get npc {
+    if (_value.npc == null) {
+      return null;
+    }
+
+    return $MapEntityNpcDataCopyWith<$Res>(_value.npc!, (value) {
+      return _then(_value.copyWith(npc: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntitySignDataCopyWith<$Res>? get sign {
+    if (_value.sign == null) {
+      return null;
+    }
+
+    return $MapEntitySignDataCopyWith<$Res>(_value.sign!, (value) {
+      return _then(_value.copyWith(sign: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntityItemDataCopyWith<$Res>? get item {
+    if (_value.item == null) {
+      return null;
+    }
+
+    return $MapEntityItemDataCopyWith<$Res>(_value.item!, (value) {
+      return _then(_value.copyWith(item: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapEntity
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntitySpawnDataCopyWith<$Res>? get spawn {
+    if (_value.spawn == null) {
+      return null;
+    }
+
+    return $MapEntitySpawnDataCopyWith<$Res>(_value.spawn!, (value) {
+      return _then(_value.copyWith(spawn: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -568,12 +658,24 @@ abstract class _$$MapEntityImplCopyWith<$Res>
       MapEntityKind kind,
       GridPos pos,
       GridSize size,
+      MapEntityNpcData? npc,
+      MapEntitySignData? sign,
+      MapEntityItemData? item,
+      MapEntitySpawnData? spawn,
       Map<String, String> properties});
 
   @override
   $GridPosCopyWith<$Res> get pos;
   @override
   $GridSizeCopyWith<$Res> get size;
+  @override
+  $MapEntityNpcDataCopyWith<$Res>? get npc;
+  @override
+  $MapEntitySignDataCopyWith<$Res>? get sign;
+  @override
+  $MapEntityItemDataCopyWith<$Res>? get item;
+  @override
+  $MapEntitySpawnDataCopyWith<$Res>? get spawn;
 }
 
 /// @nodoc
@@ -594,6 +696,10 @@ class __$$MapEntityImplCopyWithImpl<$Res>
     Object? kind = null,
     Object? pos = null,
     Object? size = null,
+    Object? npc = freezed,
+    Object? sign = freezed,
+    Object? item = freezed,
+    Object? spawn = freezed,
     Object? properties = null,
   }) {
     return _then(_$MapEntityImpl(
@@ -617,6 +723,22 @@ class __$$MapEntityImplCopyWithImpl<$Res>
           ? _value.size
           : size // ignore: cast_nullable_to_non_nullable
               as GridSize,
+      npc: freezed == npc
+          ? _value.npc
+          : npc // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcData?,
+      sign: freezed == sign
+          ? _value.sign
+          : sign // ignore: cast_nullable_to_non_nullable
+              as MapEntitySignData?,
+      item: freezed == item
+          ? _value.item
+          : item // ignore: cast_nullable_to_non_nullable
+              as MapEntityItemData?,
+      spawn: freezed == spawn
+          ? _value.spawn
+          : spawn // ignore: cast_nullable_to_non_nullable
+              as MapEntitySpawnData?,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -635,6 +757,10 @@ class _$MapEntityImpl implements _MapEntity {
       required this.kind,
       required this.pos,
       this.size = const GridSize(width: 1, height: 1),
+      this.npc,
+      this.sign,
+      this.item,
+      this.spawn,
       final Map<String, String> properties = const {}})
       : _properties = properties;
 
@@ -653,7 +779,19 @@ class _$MapEntityImpl implements _MapEntity {
   @override
   @JsonKey()
   final GridSize size;
+  @override
+  final MapEntityNpcData? npc;
+  @override
+  final MapEntitySignData? sign;
+  @override
+  final MapEntityItemData? item;
+  @override
+  final MapEntitySpawnData? spawn;
+
+  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   final Map<String, String> _properties;
+
+  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   @override
   @JsonKey()
   Map<String, String> get properties {
@@ -664,7 +802,7 @@ class _$MapEntityImpl implements _MapEntity {
 
   @override
   String toString() {
-    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, properties: $properties)';
+    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, properties: $properties)';
   }
 
   @override
@@ -677,14 +815,18 @@ class _$MapEntityImpl implements _MapEntity {
             (identical(other.kind, kind) || other.kind == kind) &&
             (identical(other.pos, pos) || other.pos == pos) &&
             (identical(other.size, size) || other.size == size) &&
+            (identical(other.npc, npc) || other.npc == npc) &&
+            (identical(other.sign, sign) || other.sign == sign) &&
+            (identical(other.item, item) || other.item == item) &&
+            (identical(other.spawn, spawn) || other.spawn == spawn) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, kind, pos, size,
-      const DeepCollectionEquality().hash(_properties));
+  int get hashCode => Object.hash(runtimeType, id, name, kind, pos, size, npc,
+      sign, item, spawn, const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -709,6 +851,10 @@ abstract class _MapEntity implements MapEntity {
       required final MapEntityKind kind,
       required final GridPos pos,
       final GridSize size,
+      final MapEntityNpcData? npc,
+      final MapEntitySignData? sign,
+      final MapEntityItemData? item,
+      final MapEntitySpawnData? spawn,
       final Map<String, String> properties}) = _$MapEntityImpl;
 
   factory _MapEntity.fromJson(Map<String, dynamic> json) =
@@ -724,6 +870,16 @@ abstract class _MapEntity implements MapEntity {
   GridPos get pos;
   @override
   GridSize get size;
+  @override
+  MapEntityNpcData? get npc;
+  @override
+  MapEntitySignData? get sign;
+  @override
+  MapEntityItemData? get item;
+  @override
+  MapEntitySpawnData? get spawn;
+
+  /// Propriétés libres (surtout pour [MapEntityKind.custom] et extensions).
   @override
   Map<String, String> get properties;
 

@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'enums.dart';
+import 'visual_frame_json.dart';
 
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
@@ -109,16 +110,18 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
 
 @freezed
 class TilesetPaletteEntry with _$TilesetPaletteEntry {
+  @JsonSerializable(explicitToJson: true)
   const factory TilesetPaletteEntry({
     required String id,
     @Default('') String name,
     @Default(PaletteCategory.uncategorized) PaletteCategory category,
-    required TilesetSourceRect source,
+    /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+    required List<TilesetVisualFrame> frames,
     String? recommendedLayerId,
   }) = _TilesetPaletteEntry;
 
   factory TilesetPaletteEntry.fromJson(Map<String, dynamic> json) =>
-      _$TilesetPaletteEntryFromJson(json);
+      _$TilesetPaletteEntryFromJson(jsonCoerceLegacySourceToFrames(json));
 }
 
 @freezed
@@ -132,6 +135,23 @@ class TilesetSourceRect with _$TilesetSourceRect {
 
   factory TilesetSourceRect.fromJson(Map<String, dynamic> json) =>
       _$TilesetSourceRectFromJson(json);
+}
+
+/// Une frame d’animation ou l’unique frame d’un visuel statique dans un tileset.
+///
+/// [tilesetId] vide = utiliser le tileset du contexte parent (élément, preset, entrée palette).
+@freezed
+class TilesetVisualFrame with _$TilesetVisualFrame {
+  @JsonSerializable(explicitToJson: true)
+  const factory TilesetVisualFrame({
+    @Default('') String tilesetId,
+    required TilesetSourceRect source,
+    /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+    int? durationMs,
+  }) = _TilesetVisualFrame;
+
+  factory TilesetVisualFrame.fromJson(Map<String, dynamic> json) =>
+      _$TilesetVisualFrameFromJson(json);
 }
 
 @freezed
@@ -162,13 +182,15 @@ class ProjectElementCategory with _$ProjectElementCategory {
 
 @freezed
 class ProjectElementEntry with _$ProjectElementEntry {
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectElementEntry({
     required String id,
     required String name,
     required String tilesetId,
     required String categoryId,
     String? tilesetGroupId,
-    required TilesetSourceRect source,
+    /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+    required List<TilesetVisualFrame> frames,
     String? groupId,
     String? recommendedLayerId,
     @Default([]) List<String> tags,
@@ -176,7 +198,7 @@ class ProjectElementEntry with _$ProjectElementEntry {
   }) = _ProjectElementEntry;
 
   factory ProjectElementEntry.fromJson(Map<String, dynamic> json) =>
-      _$ProjectElementEntryFromJson(json);
+      _$ProjectElementEntryFromJson(jsonCoerceLegacySourceToFrames(json));
 }
 
 @freezed
@@ -197,13 +219,15 @@ class ProjectTerrainPreset with _$ProjectTerrainPreset {
 
 @freezed
 class TerrainPresetVariant with _$TerrainPresetVariant {
+  @JsonSerializable(explicitToJson: true)
   const factory TerrainPresetVariant({
-    required TilesetSourceRect source,
+    /// Au moins une frame ; rendu éditeur = première frame.
+    required List<TilesetVisualFrame> frames,
     @Default(1) int weight,
   }) = _TerrainPresetVariant;
 
   factory TerrainPresetVariant.fromJson(Map<String, dynamic> json) =>
-      _$TerrainPresetVariantFromJson(json);
+      _$TerrainPresetVariantFromJson(jsonCoerceLegacySourceToFrames(json));
 }
 
 @freezed
@@ -224,13 +248,15 @@ class ProjectPathPreset with _$ProjectPathPreset {
 
 @freezed
 class PathPresetVariantMapping with _$PathPresetVariantMapping {
+  @JsonSerializable(explicitToJson: true)
   const factory PathPresetVariantMapping({
     required TerrainPathVariant variant,
-    required TilesetSourceRect source,
+    /// Au moins une frame ; rendu éditeur / autotile = première frame.
+    required List<TilesetVisualFrame> frames,
   }) = _PathPresetVariantMapping;
 
   factory PathPresetVariantMapping.fromJson(Map<String, dynamic> json) =>
-      _$PathPresetVariantMappingFromJson(json);
+      _$PathPresetVariantMappingFromJson(jsonCoerceLegacySourceToFrames(json));
 }
 
 @freezed
@@ -244,4 +270,16 @@ class ProjectPresetCategory with _$ProjectPresetCategory {
 
   factory ProjectPresetCategory.fromJson(Map<String, dynamic> json) =>
       _$ProjectPresetCategoryFromJson(json);
+}
+
+extension TilesetVisualFrameListX on List<TilesetVisualFrame> {
+  /// Première frame : seul visuel utilisé par l’éditeur et l’autotile path pour l’instant.
+  TilesetVisualFrame get primaryFrame {
+    if (isEmpty) {
+      throw StateError('At least one TilesetVisualFrame is required');
+    }
+    return first;
+  }
+
+  TilesetSourceRect get primarySource => primaryFrame.source;
 }

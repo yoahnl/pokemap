@@ -4,8 +4,57 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import '../operations/map_entities.dart';
 
 class ProjectValidator {
+  /// Rectangles sources valides, [durationMs] > 0 si présent, au moins une frame,
+  /// tailles identiques si plusieurs frames (préparation animation).
+  static void _validateVisualFrames(
+    List<TilesetVisualFrame> frames, {
+    required String context,
+    required Set<String> knownTilesetIds,
+  }) {
+    if (frames.isEmpty) {
+      throw ValidationException('$context must have at least one visual frame');
+    }
+    for (var i = 0; i < frames.length; i++) {
+      final frame = frames[i];
+      final src = frame.source;
+      if (src.x < 0 || src.y < 0) {
+        throw ValidationException(
+          '$context frame $i has invalid source coordinates',
+        );
+      }
+      if (src.width <= 0 || src.height <= 0) {
+        throw ValidationException('$context frame $i has invalid source size');
+      }
+      final overrideId = frame.tilesetId.trim();
+      if (overrideId.isNotEmpty && !knownTilesetIds.contains(overrideId)) {
+        throw ValidationException(
+          '$context frame $i references missing tileset: $overrideId',
+        );
+      }
+      final d = frame.durationMs;
+      if (d != null && d <= 0) {
+        throw ValidationException(
+          '$context frame $i durationMs must be positive when set',
+        );
+      }
+    }
+    if (frames.length > 1) {
+      final w = frames.first.source.width;
+      final h = frames.first.source.height;
+      for (var i = 1; i < frames.length; i++) {
+        final s = frames[i].source;
+        if (s.width != w || s.height != h) {
+          throw ValidationException(
+            '$context animation frames must share the same width and height',
+          );
+        }
+      }
+    }
+  }
+
   static void validate(ProjectManifest manifest) {
     _validateUniqueness(manifest);
     _validateHierarchy(manifest);
@@ -175,6 +224,7 @@ class ProjectValidator {
       ProjectManifest manifest, Set<String> groupIds) {
     var worldTilesetCount = 0;
     final tilesetElementGroupIdsByTileset = <String, Set<String>>{};
+    final allTilesetIds = manifest.tilesets.map((t) => t.id).toSet();
 
     for (final tileset in manifest.tilesets) {
       _validateRelativePath(tileset.relativePath, 'Tileset ${tileset.id}');
@@ -262,16 +312,11 @@ class ProjectValidator {
             'Duplicate palette entry ID in tileset ${tileset.id}: ${entry.id}',
           );
         }
-        if (entry.source.x < 0 || entry.source.y < 0) {
-          throw ValidationException(
-            'Palette entry ${entry.id} in tileset ${tileset.id} has invalid source coordinates',
-          );
-        }
-        if (entry.source.width <= 0 || entry.source.height <= 0) {
-          throw ValidationException(
-            'Palette entry ${entry.id} in tileset ${tileset.id} has invalid source size',
-          );
-        }
+        _validateVisualFrames(
+          entry.frames,
+          context: 'Palette entry ${entry.id} in tileset ${tileset.id}',
+          knownTilesetIds: allTilesetIds,
+        );
       }
     }
 
@@ -366,14 +411,11 @@ class ProjectValidator {
           );
         }
       }
-      if (element.source.x < 0 || element.source.y < 0) {
-        throw ValidationException(
-          'Element ${element.id} has invalid source coordinates',
-        );
-      }
-      if (element.source.width <= 0 || element.source.height <= 0) {
-        throw ValidationException('Element ${element.id} has invalid size');
-      }
+      _validateVisualFrames(
+        element.frames,
+        context: 'Element ${element.id}',
+        knownTilesetIds: tilesetIds,
+      );
     }
   }
 
@@ -453,22 +495,18 @@ class ProjectValidator {
           'Terrain preset ${preset.id} references missing terrain category: $categoryId',
         );
       }
-      for (final variant in preset.variants) {
+      for (var vi = 0; vi < preset.variants.length; vi++) {
+        final variant = preset.variants[vi];
         if (variant.weight <= 0) {
           throw ValidationException(
             'Terrain preset ${preset.id} has an invalid variant weight',
           );
         }
-        if (variant.source.x < 0 || variant.source.y < 0) {
-          throw ValidationException(
-            'Terrain preset ${preset.id} has invalid variant source coordinates',
-          );
-        }
-        if (variant.source.width <= 0 || variant.source.height <= 0) {
-          throw ValidationException(
-            'Terrain preset ${preset.id} has an invalid variant source size',
-          );
-        }
+        _validateVisualFrames(
+          variant.frames,
+          context: 'Terrain preset ${preset.id} variant index $vi',
+          knownTilesetIds: tilesetIds,
+        );
       }
     }
   }
@@ -506,16 +544,12 @@ class ProjectValidator {
             'Path preset ${preset.id} has duplicate variant mapping: ${mapping.variant.name}',
           );
         }
-        if (mapping.source.x < 0 || mapping.source.y < 0) {
-          throw ValidationException(
-            'Path preset ${preset.id} has invalid variant source coordinates',
-          );
-        }
-        if (mapping.source.width <= 0 || mapping.source.height <= 0) {
-          throw ValidationException(
-            'Path preset ${preset.id} has an invalid variant source size',
-          );
-        }
+        _validateVisualFrames(
+          mapping.frames,
+          context:
+              'Path preset ${preset.id} variant ${mapping.variant.name}',
+          knownTilesetIds: tilesetIds,
+        );
       }
     }
 
@@ -630,6 +664,7 @@ class MapValidator {
           );
         }
       }
+      assertValidMapEntityTypedPayloads(entity);
     }
     _validateUniqueIds(
       map.entities,

@@ -65,6 +65,18 @@ _$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
       size: json['size'] == null
           ? const GridSize(width: 1, height: 1)
           : GridSize.fromJson(json['size'] as Map<String, dynamic>),
+      npc: json['npc'] == null
+          ? null
+          : MapEntityNpcData.fromJson(json['npc'] as Map<String, dynamic>),
+      sign: json['sign'] == null
+          ? null
+          : MapEntitySignData.fromJson(json['sign'] as Map<String, dynamic>),
+      item: json['item'] == null
+          ? null
+          : MapEntityItemData.fromJson(json['item'] as Map<String, dynamic>),
+      spawn: json['spawn'] == null
+          ? null
+          : MapEntitySpawnData.fromJson(json['spawn'] as Map<String, dynamic>),
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -78,6 +90,10 @@ Map<String, dynamic> _$$MapEntityImplToJson(_$MapEntityImpl instance) =>
       'kind': _$MapEntityKindEnumMap[instance.kind]!,
       'pos': instance.pos.toJson(),
       'size': instance.size.toJson(),
+      'npc': instance.npc?.toJson(),
+      'sign': instance.sign?.toJson(),
+      'item': instance.item?.toJson(),
+      'spawn': instance.spawn?.toJson(),
       'properties': instance.properties,
     };
 

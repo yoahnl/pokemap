@@ -39,7 +39,7 @@ class PathAutotileSet {
   factory PathAutotileSet.fromPreset(ProjectPathPreset preset) {
     final mapping = <TerrainPathVariant, TilesetSourceRect>{};
     for (final entry in preset.variants) {
-      mapping[entry.variant] = entry.source;
+      mapping[entry.variant] = entry.frames.primarySource;
     }
     return PathAutotileSet(
       id: preset.id,

@@ -668,7 +668,7 @@ class MapGridPainter extends CustomPainter {
         continue;
       }
 
-      final label = entity.name.trim().isNotEmpty ? entity.name : entity.id;
+      final label = entity.inspectorHeadline;
       final labelTextPainter = TextPainter(
         text: TextSpan(
           text: label,
@@ -1600,19 +1600,20 @@ class MapGridPainter extends CustomPainter {
       selectedWeight -= weight;
     }
 
-    final width = chosen.source.width <= 0 ? 1 : chosen.source.width;
-    final height = chosen.source.height <= 0 ? 1 : chosen.source.height;
+    final primary = chosen.frames.primarySource;
+    final width = primary.width <= 0 ? 1 : primary.width;
+    final height = primary.height <= 0 ? 1 : primary.height;
     final cellSeed = _stableCellSeed(
       x: x,
       y: y,
-      salt: chosen.source.x * 73856093 + chosen.source.y * 19349663,
+      salt: primary.x * 73856093 + primary.y * 19349663,
     );
     final tileIndex = cellSeed % (width * height);
     final offsetX = tileIndex % width;
     final offsetY = tileIndex ~/ width;
     return Offset(
-      (chosen.source.x + offsetX).toDouble(),
-      (chosen.source.y + offsetY).toDouble(),
+      (primary.x + offsetX).toDouble(),
+      (primary.y + offsetY).toDouble(),
     );
   }
 

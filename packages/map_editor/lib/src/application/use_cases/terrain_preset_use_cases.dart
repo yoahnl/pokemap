@@ -470,7 +470,9 @@ List<TerrainPresetVariant> _normalizeTerrainPresetVariants(
   List<TerrainPresetVariant> variants,
 ) {
   return variants
-      .where((variant) => variant.source.width > 0 && variant.source.height > 0)
+      .where((variant) =>
+          variant.frames.primarySource.width > 0 &&
+          variant.frames.primarySource.height > 0)
       .map(
         (variant) => variant.copyWith(
           weight: variant.weight <= 0 ? 1 : variant.weight,
@@ -481,10 +483,11 @@ List<TerrainPresetVariant> _normalizeTerrainPresetVariants(
 
 void _validateTerrainPresetVariants(List<TerrainPresetVariant> variants) {
   for (final variant in variants) {
-    if (variant.source.x < 0 ||
-        variant.source.y < 0 ||
-        variant.source.width <= 0 ||
-        variant.source.height <= 0) {
+    final src = variant.frames.primarySource;
+    if (src.x < 0 ||
+        src.y < 0 ||
+        src.width <= 0 ||
+        src.height <= 0) {
       throw const EditorValidationException(
         'Terrain preset variant source is invalid',
       );
@@ -514,10 +517,11 @@ void _validatePathPresetVariants(List<PathPresetVariantMapping> variants) {
         'Duplicate path variant mapping: ${variant.variant.name}',
       );
     }
-    if (variant.source.x < 0 ||
-        variant.source.y < 0 ||
-        variant.source.width <= 0 ||
-        variant.source.height <= 0) {
+    final src = variant.frames.primarySource;
+    if (src.x < 0 ||
+        src.y < 0 ||
+        src.width <= 0 ||
+        src.height <= 0) {
       throw const EditorValidationException(
         'Path preset variant source is invalid',
       );
