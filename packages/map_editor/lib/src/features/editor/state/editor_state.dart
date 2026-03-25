@@ -68,6 +68,8 @@ class EditorState with _$EditorState {
     String? selectedWarpId,
     String? selectedTriggerId,
     String? selectedGameplayZoneId,
+    /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
+    MapRect? gameplayZoneDraftArea,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
     PaletteCategory? paletteCategoryFilter,

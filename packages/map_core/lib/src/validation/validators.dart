@@ -790,11 +790,14 @@ class MapValidator {
     for (final zone in map.gameplayZones) {
       final zoneId = _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
       _requireNonBlank(zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
-      for (final key in zone.properties.keys) {
-        if (key.trim().isEmpty) {
-          throw ValidationException(
-            'Gameplay zone $zoneId has an empty property key',
-          );
+      final specialProps = zone.special?.properties;
+      if (specialProps != null) {
+        for (final key in specialProps.keys) {
+          if (key.trim().isEmpty) {
+            throw ValidationException(
+              'Gameplay zone $zoneId has an empty special property key',
+            );
+          }
         }
       }
       _validatePositionInBounds(

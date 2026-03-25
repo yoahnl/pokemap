@@ -724,6 +724,9 @@ mixin _$EditorState {
   String? get selectedWarpId => throw _privateConstructorUsedError;
   String? get selectedTriggerId => throw _privateConstructorUsedError;
   String? get selectedGameplayZoneId => throw _privateConstructorUsedError;
+
+  /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
+  MapRect? get gameplayZoneDraftArea => throw _privateConstructorUsedError;
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
@@ -778,6 +781,7 @@ abstract class $EditorStateCopyWith<$Res> {
       String? selectedWarpId,
       String? selectedTriggerId,
       String? selectedGameplayZoneId,
+      MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -798,6 +802,7 @@ abstract class $EditorStateCopyWith<$Res> {
   $MapDataCopyWith<$Res>? get activeMap;
   $GridPosCopyWith<$Res>? get hoveredTile;
   $EditorBrushCopyWith<$Res> get activeBrush;
+  $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
   $MapDataCopyWith<$Res>? get savedMapSnapshot;
 }
@@ -837,6 +842,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
     Object? selectedGameplayZoneId = freezed,
+    Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -934,6 +940,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.selectedGameplayZoneId
           : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
               as String?,
+      gameplayZoneDraftArea: freezed == gameplayZoneDraftArea
+          ? _value.gameplayZoneDraftArea
+          : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
+              as MapRect?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
           : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
@@ -1053,6 +1063,20 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
+  $MapRectCopyWith<$Res>? get gameplayZoneDraftArea {
+    if (_value.gameplayZoneDraftArea == null) {
+      return null;
+    }
+
+    return $MapRectCopyWith<$Res>(_value.gameplayZoneDraftArea!, (value) {
+      return _then(_value.copyWith(gameplayZoneDraftArea: value) as $Val);
+    });
+  }
+
+  /// Create a copy of EditorState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart {
     if (_value.mapStrokeStart == null) {
       return null;
@@ -1107,6 +1131,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? selectedWarpId,
       String? selectedTriggerId,
       String? selectedGameplayZoneId,
+      MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
       PaletteCategory? paletteCategoryFilter,
@@ -1131,6 +1156,8 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   $GridPosCopyWith<$Res>? get hoveredTile;
   @override
   $EditorBrushCopyWith<$Res> get activeBrush;
+  @override
+  $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
   @override
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
   @override
@@ -1170,6 +1197,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
     Object? selectedGameplayZoneId = freezed,
+    Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -1267,6 +1295,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedGameplayZoneId
           : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
               as String?,
+      gameplayZoneDraftArea: freezed == gameplayZoneDraftArea
+          ? _value.gameplayZoneDraftArea
+          : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
+              as MapRect?,
       selectedTilesetEditorId: freezed == selectedTilesetEditorId
           ? _value.selectedTilesetEditorId
           : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
@@ -1355,6 +1387,7 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedWarpId,
       this.selectedTriggerId,
       this.selectedGameplayZoneId,
+      this.gameplayZoneDraftArea,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
       this.paletteCategoryFilter,
@@ -1432,6 +1465,10 @@ class _$EditorStateImpl implements _EditorState {
   final String? selectedTriggerId;
   @override
   final String? selectedGameplayZoneId;
+
+  /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
+  @override
+  final MapRect? gameplayZoneDraftArea;
   @override
   final String? selectedTilesetEditorId;
   @override
@@ -1488,7 +1525,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1536,6 +1573,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedTriggerId == selectedTriggerId) &&
             (identical(other.selectedGameplayZoneId, selectedGameplayZoneId) ||
                 other.selectedGameplayZoneId == selectedGameplayZoneId) &&
+            (identical(other.gameplayZoneDraftArea, gameplayZoneDraftArea) ||
+                other.gameplayZoneDraftArea == gameplayZoneDraftArea) &&
             (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) ||
                 other.selectedTilesetEditorId == selectedTilesetEditorId) &&
             (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
@@ -1563,8 +1602,7 @@ class _$EditorStateImpl implements _EditorState {
                 other.isSaving == isSaving) &&
             (identical(other.statusMessage, statusMessage) ||
                 other.statusMessage == statusMessage) &&
-            (identical(other.errorMessage, errorMessage) ||
-                other.errorMessage == errorMessage));
+            (identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
   }
 
   @override
@@ -1590,6 +1628,7 @@ class _$EditorStateImpl implements _EditorState {
         selectedWarpId,
         selectedTriggerId,
         selectedGameplayZoneId,
+        gameplayZoneDraftArea,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
         paletteCategoryFilter,
@@ -1638,6 +1677,7 @@ abstract class _EditorState implements EditorState {
       final String? selectedWarpId,
       final String? selectedTriggerId,
       final String? selectedGameplayZoneId,
+      final MapRect? gameplayZoneDraftArea,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
       final PaletteCategory? paletteCategoryFilter,
@@ -1695,6 +1735,10 @@ abstract class _EditorState implements EditorState {
   String? get selectedTriggerId;
   @override
   String? get selectedGameplayZoneId;
+
+  /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
+  @override
+  MapRect? get gameplayZoneDraftArea;
   @override
   String? get selectedTilesetEditorId;
   @override

@@ -5,6 +5,7 @@ export 'src/models/geometry.dart';
 export 'src/models/tileset.dart';
 export 'src/models/map_data.dart';
 export 'src/models/map_entity_payloads.dart';
+export 'src/models/map_gameplay_zone_payloads.dart';
 export 'src/models/map_layer.dart';
 export 'src/models/project_manifest.dart';
 export 'src/models/visual_frame_json.dart';

@@ -30,6 +30,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   int? _rightPanPointerId;
   int? _middlePanPointerId;
 
+  /// Cellule de départ pour le tracé d'une zone par clic+glisser.
+  GridPos? _zoneDragStart;
+
   void _updateTilesetImagesFuture(Map<String, String> nextTilesetPathsById) {
     if (_tilesetImagesFuture != null &&
         mapEquals(_lastTilesetPathsById, nextTilesetPathsById)) {
@@ -162,6 +165,25 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             }
           },
           onPanStart: (details) {
+            if (state.activeTool == EditorToolType.gameplayZonePlacement) {
+              final gridPos = _screenToGrid(
+                details.localPosition,
+                state.panOffset,
+                state.zoom,
+                activeMap.size,
+                tileWidth,
+                tileHeight,
+              );
+              if (gridPos == null) return;
+              setState(() => _zoneDragStart = gridPos);
+              notifier.setGameplayZoneDraftArea(
+                MapRect(
+                  pos: gridPos,
+                  size: const GridSize(width: 1, height: 1),
+                ),
+              );
+              return;
+            }
             if (!isStrokeEditingTool) return;
             final gridPos = _screenToGrid(
               details.localPosition,
@@ -176,6 +198,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             applyToolAt(gridPos);
           },
           onPanUpdate: (details) {
+            if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+                _zoneDragStart != null) {
+              final gridPos = _screenToGrid(
+                details.localPosition,
+                state.panOffset,
+                state.zoom,
+                activeMap.size,
+                tileWidth,
+                tileHeight,
+              );
+              if (gridPos != null) {
+                notifier.setGameplayZoneDraftArea(
+                  _rectFromCorners(_zoneDragStart!, gridPos),
+                );
+              }
+              return;
+            }
             if (!isStrokeEditingTool) return;
             final gridPos = _screenToGrid(
               details.localPosition,
@@ -190,11 +229,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             }
           },
           onPanEnd: (_) {
+            if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+                _zoneDragStart != null) {
+              setState(() => _zoneDragStart = null);
+              notifier.commitGameplayZoneDraft();
+              return;
+            }
             if (isStrokeEditingTool) {
               notifier.endMapStroke();
             }
           },
           onPanCancel: () {
+            if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+                _zoneDragStart != null) {
+              setState(() => _zoneDragStart = null);
+              notifier.cancelGameplayZoneDraft();
+              return;
+            }
             if (isStrokeEditingTool) {
               notifier.endMapStroke();
             }
@@ -225,6 +276,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     toolPreview: toolPreview,
                     warps: activeMap.warps,
                     gameplayZones: activeMap.gameplayZones,
+                    gameplayZoneDraftArea: state.gameplayZoneDraftArea,
                     selectedEntityId: state.selectedEntityId,
                     selectedWarpId: state.selectedWarpId,
                     selectedTriggerId: state.selectedTriggerId,
@@ -387,6 +439,18 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     return result;
   }
 
+  /// Construit un [MapRect] à partir de deux coins opposés (inclusif des deux).
+  MapRect _rectFromCorners(GridPos a, GridPos b) {
+    final x = math.min(a.x, b.x);
+    final y = math.min(a.y, b.y);
+    final w = (a.x - b.x).abs() + 1;
+    final h = (a.y - b.y).abs() + 1;
+    return MapRect(
+      pos: GridPos(x: x, y: y),
+      size: GridSize(width: w, height: h),
+    );
+  }
+
   GridPos? _screenToGrid(
     Offset screenPos,
     Offset pan,
@@ -423,6 +487,7 @@ class MapGridPainter extends CustomPainter {
   final MapToolPreview? toolPreview;
   final List<MapWarp> warps;
   final List<MapGameplayZone> gameplayZones;
+  final MapRect? gameplayZoneDraftArea;
   final String? selectedEntityId;
   final String? selectedWarpId;
   final String? selectedTriggerId;
@@ -447,6 +512,7 @@ class MapGridPainter extends CustomPainter {
     this.toolPreview,
     required this.warps,
     required this.gameplayZones,
+    this.gameplayZoneDraftArea,
     this.selectedEntityId,
     this.selectedWarpId,
     this.selectedTriggerId,
@@ -1699,6 +1765,31 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintGameplayZones(Canvas canvas) {
+    // Fantôme de tracé en cours
+    final draft = gameplayZoneDraftArea;
+    if (draft != null) {
+      final draftRect = Rect.fromLTWH(
+        draft.pos.x * tileWidth,
+        draft.pos.y * tileHeight,
+        draft.size.width * tileWidth,
+        draft.size.height * tileHeight,
+      );
+      canvas.drawRect(
+        draftRect,
+        Paint()
+          ..color = const Color(0xFF66FF99).withValues(alpha: 0.18)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        draftRect,
+        Paint()
+          ..color = const Color(0xFF66FF99).withValues(alpha: 0.85)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0 / zoom
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
     if (gameplayZones.isEmpty) return;
     for (final zone in gameplayZones) {
       final isSelected = zone.id == selectedGameplayZoneId;
@@ -1760,7 +1851,6 @@ class MapGridPainter extends CustomPainter {
       GameplayZoneKind.encounter => const Color(0xFF66FF99),
       GameplayZoneKind.movement => const Color(0xFF66AAFF),
       GameplayZoneKind.hazard => const Color(0xFFFF6666),
-      GameplayZoneKind.transition => const Color(0xFFFFCC66),
       GameplayZoneKind.special => const Color(0xFFCC66FF),
       GameplayZoneKind.custom => const Color(0xFF66FFFF),
     };
@@ -1812,6 +1902,7 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.selectedWarpId != selectedWarpId ||
         oldDelegate.selectedTriggerId != selectedTriggerId ||
         oldDelegate.selectedGameplayZoneId != selectedGameplayZoneId ||
+        oldDelegate.gameplayZoneDraftArea != gameplayZoneDraftArea ||
         !listEquals(oldDelegate.warps, warps) ||
         !listEquals(oldDelegate.gameplayZones, gameplayZones) ||
         !_samePathAutotileSet(

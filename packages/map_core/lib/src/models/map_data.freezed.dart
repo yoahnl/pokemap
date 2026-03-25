@@ -495,15 +495,20 @@ mixin _$MapGameplayZone {
   GameplayZoneKind get kind => throw _privateConstructorUsedError;
   MapRect get area => throw _privateConstructorUsedError;
 
-  /// ID d'une [ProjectEncounterTable] du projet (optionnel).
-  String? get encounterTableId => throw _privateConstructorUsedError;
-
-  /// Mode de déplacement requis / appliqué dans la zone (optionnel).
-  MovementMode? get movementMode => throw _privateConstructorUsedError;
-
   /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
   int get priority => throw _privateConstructorUsedError;
-  Map<String, String> get properties => throw _privateConstructorUsedError;
+
+  /// Payload pour [GameplayZoneKind.encounter].
+  EncounterZonePayload? get encounter => throw _privateConstructorUsedError;
+
+  /// Payload pour [GameplayZoneKind.movement].
+  MovementZonePayload? get movement => throw _privateConstructorUsedError;
+
+  /// Payload pour [GameplayZoneKind.hazard].
+  HazardZonePayload? get hazard => throw _privateConstructorUsedError;
+
+  /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
+  SpecialZonePayload? get special => throw _privateConstructorUsedError;
 
   /// Serializes this MapGameplayZone to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -526,12 +531,17 @@ abstract class $MapGameplayZoneCopyWith<$Res> {
       String name,
       GameplayZoneKind kind,
       MapRect area,
-      String? encounterTableId,
-      MovementMode? movementMode,
       int priority,
-      Map<String, String> properties});
+      EncounterZonePayload? encounter,
+      MovementZonePayload? movement,
+      HazardZonePayload? hazard,
+      SpecialZonePayload? special});
 
   $MapRectCopyWith<$Res> get area;
+  $EncounterZonePayloadCopyWith<$Res>? get encounter;
+  $MovementZonePayloadCopyWith<$Res>? get movement;
+  $HazardZonePayloadCopyWith<$Res>? get hazard;
+  $SpecialZonePayloadCopyWith<$Res>? get special;
 }
 
 /// @nodoc
@@ -553,10 +563,11 @@ class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
     Object? name = null,
     Object? kind = null,
     Object? area = null,
-    Object? encounterTableId = freezed,
-    Object? movementMode = freezed,
     Object? priority = null,
-    Object? properties = null,
+    Object? encounter = freezed,
+    Object? movement = freezed,
+    Object? hazard = freezed,
+    Object? special = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -575,22 +586,26 @@ class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
           ? _value.area
           : area // ignore: cast_nullable_to_non_nullable
               as MapRect,
-      encounterTableId: freezed == encounterTableId
-          ? _value.encounterTableId
-          : encounterTableId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      movementMode: freezed == movementMode
-          ? _value.movementMode
-          : movementMode // ignore: cast_nullable_to_non_nullable
-              as MovementMode?,
       priority: null == priority
           ? _value.priority
           : priority // ignore: cast_nullable_to_non_nullable
               as int,
-      properties: null == properties
-          ? _value.properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
+      encounter: freezed == encounter
+          ? _value.encounter
+          : encounter // ignore: cast_nullable_to_non_nullable
+              as EncounterZonePayload?,
+      movement: freezed == movement
+          ? _value.movement
+          : movement // ignore: cast_nullable_to_non_nullable
+              as MovementZonePayload?,
+      hazard: freezed == hazard
+          ? _value.hazard
+          : hazard // ignore: cast_nullable_to_non_nullable
+              as HazardZonePayload?,
+      special: freezed == special
+          ? _value.special
+          : special // ignore: cast_nullable_to_non_nullable
+              as SpecialZonePayload?,
     ) as $Val);
   }
 
@@ -601,6 +616,62 @@ class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
   $MapRectCopyWith<$Res> get area {
     return $MapRectCopyWith<$Res>(_value.area, (value) {
       return _then(_value.copyWith(area: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $EncounterZonePayloadCopyWith<$Res>? get encounter {
+    if (_value.encounter == null) {
+      return null;
+    }
+
+    return $EncounterZonePayloadCopyWith<$Res>(_value.encounter!, (value) {
+      return _then(_value.copyWith(encounter: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MovementZonePayloadCopyWith<$Res>? get movement {
+    if (_value.movement == null) {
+      return null;
+    }
+
+    return $MovementZonePayloadCopyWith<$Res>(_value.movement!, (value) {
+      return _then(_value.copyWith(movement: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $HazardZonePayloadCopyWith<$Res>? get hazard {
+    if (_value.hazard == null) {
+      return null;
+    }
+
+    return $HazardZonePayloadCopyWith<$Res>(_value.hazard!, (value) {
+      return _then(_value.copyWith(hazard: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SpecialZonePayloadCopyWith<$Res>? get special {
+    if (_value.special == null) {
+      return null;
+    }
+
+    return $SpecialZonePayloadCopyWith<$Res>(_value.special!, (value) {
+      return _then(_value.copyWith(special: value) as $Val);
     });
   }
 }
@@ -618,13 +689,22 @@ abstract class _$$MapGameplayZoneImplCopyWith<$Res>
       String name,
       GameplayZoneKind kind,
       MapRect area,
-      String? encounterTableId,
-      MovementMode? movementMode,
       int priority,
-      Map<String, String> properties});
+      EncounterZonePayload? encounter,
+      MovementZonePayload? movement,
+      HazardZonePayload? hazard,
+      SpecialZonePayload? special});
 
   @override
   $MapRectCopyWith<$Res> get area;
+  @override
+  $EncounterZonePayloadCopyWith<$Res>? get encounter;
+  @override
+  $MovementZonePayloadCopyWith<$Res>? get movement;
+  @override
+  $HazardZonePayloadCopyWith<$Res>? get hazard;
+  @override
+  $SpecialZonePayloadCopyWith<$Res>? get special;
 }
 
 /// @nodoc
@@ -644,10 +724,11 @@ class __$$MapGameplayZoneImplCopyWithImpl<$Res>
     Object? name = null,
     Object? kind = null,
     Object? area = null,
-    Object? encounterTableId = freezed,
-    Object? movementMode = freezed,
     Object? priority = null,
-    Object? properties = null,
+    Object? encounter = freezed,
+    Object? movement = freezed,
+    Object? hazard = freezed,
+    Object? special = freezed,
   }) {
     return _then(_$MapGameplayZoneImpl(
       id: null == id
@@ -666,22 +747,26 @@ class __$$MapGameplayZoneImplCopyWithImpl<$Res>
           ? _value.area
           : area // ignore: cast_nullable_to_non_nullable
               as MapRect,
-      encounterTableId: freezed == encounterTableId
-          ? _value.encounterTableId
-          : encounterTableId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      movementMode: freezed == movementMode
-          ? _value.movementMode
-          : movementMode // ignore: cast_nullable_to_non_nullable
-              as MovementMode?,
       priority: null == priority
           ? _value.priority
           : priority // ignore: cast_nullable_to_non_nullable
               as int,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
+      encounter: freezed == encounter
+          ? _value.encounter
+          : encounter // ignore: cast_nullable_to_non_nullable
+              as EncounterZonePayload?,
+      movement: freezed == movement
+          ? _value.movement
+          : movement // ignore: cast_nullable_to_non_nullable
+              as MovementZonePayload?,
+      hazard: freezed == hazard
+          ? _value.hazard
+          : hazard // ignore: cast_nullable_to_non_nullable
+              as HazardZonePayload?,
+      special: freezed == special
+          ? _value.special
+          : special // ignore: cast_nullable_to_non_nullable
+              as SpecialZonePayload?,
     ));
   }
 }
@@ -695,11 +780,11 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
       this.name = '',
       required this.kind,
       required this.area,
-      this.encounterTableId,
-      this.movementMode,
       this.priority = 0,
-      final Map<String, String> properties = const {}})
-      : _properties = properties;
+      this.encounter,
+      this.movement,
+      this.hazard,
+      this.special});
 
   factory _$MapGameplayZoneImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapGameplayZoneImplFromJson(json);
@@ -714,30 +799,30 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
   @override
   final MapRect area;
 
-  /// ID d'une [ProjectEncounterTable] du projet (optionnel).
-  @override
-  final String? encounterTableId;
-
-  /// Mode de déplacement requis / appliqué dans la zone (optionnel).
-  @override
-  final MovementMode? movementMode;
-
   /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
   @override
   @JsonKey()
   final int priority;
-  final Map<String, String> _properties;
+
+  /// Payload pour [GameplayZoneKind.encounter].
   @override
-  @JsonKey()
-  Map<String, String> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
+  final EncounterZonePayload? encounter;
+
+  /// Payload pour [GameplayZoneKind.movement].
+  @override
+  final MovementZonePayload? movement;
+
+  /// Payload pour [GameplayZoneKind.hazard].
+  @override
+  final HazardZonePayload? hazard;
+
+  /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
+  @override
+  final SpecialZonePayload? special;
 
   @override
   String toString() {
-    return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, encounterTableId: $encounterTableId, movementMode: $movementMode, priority: $priority, properties: $properties)';
+    return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, hazard: $hazard, special: $special)';
   }
 
   @override
@@ -749,28 +834,20 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.kind, kind) || other.kind == kind) &&
             (identical(other.area, area) || other.area == area) &&
-            (identical(other.encounterTableId, encounterTableId) ||
-                other.encounterTableId == encounterTableId) &&
-            (identical(other.movementMode, movementMode) ||
-                other.movementMode == movementMode) &&
             (identical(other.priority, priority) ||
                 other.priority == priority) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
+            (identical(other.encounter, encounter) ||
+                other.encounter == encounter) &&
+            (identical(other.movement, movement) ||
+                other.movement == movement) &&
+            (identical(other.hazard, hazard) || other.hazard == hazard) &&
+            (identical(other.special, special) || other.special == special));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      kind,
-      area,
-      encounterTableId,
-      movementMode,
-      priority,
-      const DeepCollectionEquality().hash(_properties));
+  int get hashCode => Object.hash(runtimeType, id, name, kind, area, priority,
+      encounter, movement, hazard, special);
 
   /// Create a copy of MapGameplayZone
   /// with the given fields replaced by the non-null parameter values.
@@ -795,10 +872,11 @@ abstract class _MapGameplayZone implements MapGameplayZone {
       final String name,
       required final GameplayZoneKind kind,
       required final MapRect area,
-      final String? encounterTableId,
-      final MovementMode? movementMode,
       final int priority,
-      final Map<String, String> properties}) = _$MapGameplayZoneImpl;
+      final EncounterZonePayload? encounter,
+      final MovementZonePayload? movement,
+      final HazardZonePayload? hazard,
+      final SpecialZonePayload? special}) = _$MapGameplayZoneImpl;
 
   factory _MapGameplayZone.fromJson(Map<String, dynamic> json) =
       _$MapGameplayZoneImpl.fromJson;
@@ -812,19 +890,25 @@ abstract class _MapGameplayZone implements MapGameplayZone {
   @override
   MapRect get area;
 
-  /// ID d'une [ProjectEncounterTable] du projet (optionnel).
-  @override
-  String? get encounterTableId;
-
-  /// Mode de déplacement requis / appliqué dans la zone (optionnel).
-  @override
-  MovementMode? get movementMode;
-
   /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
   @override
   int get priority;
+
+  /// Payload pour [GameplayZoneKind.encounter].
   @override
-  Map<String, String> get properties;
+  EncounterZonePayload? get encounter;
+
+  /// Payload pour [GameplayZoneKind.movement].
+  @override
+  MovementZonePayload? get movement;
+
+  /// Payload pour [GameplayZoneKind.hazard].
+  @override
+  HazardZonePayload? get hazard;
+
+  /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
+  @override
+  SpecialZonePayload? get special;
 
   /// Create a copy of MapGameplayZone
   /// with the given fields replaced by the non-null parameter values.

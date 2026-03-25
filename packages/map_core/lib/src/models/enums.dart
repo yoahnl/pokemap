@@ -232,19 +232,38 @@ enum PathSurfaceKind {
 
 /// Kind de zone gameplay posée sur une map.
 /// Sépare explicitement le visuel (PathSurfaceKind / TerrainType) du comportement.
+///
+/// Chaque kind correspond à un payload typé ([EncounterZonePayload],
+/// [MovementZonePayload], [HazardZonePayload], [SpecialZonePayload]).
+/// `custom` est réservé aux extensions futures — ne pas l'utiliser dans du
+/// nouveau code ; préférer un kind typé.
 enum GameplayZoneKind {
   @JsonValue('encounter')
-  encounter,    // Zone de rencontre aléatoire (herbes, grotte, surf, etc.)
+  encounter,  // Zone de rencontre aléatoire (herbes, grotte, surf, etc.)
   @JsonValue('movement')
-  movement,     // Zone à contrainte de déplacement (surf requis, glace, etc.)
+  movement,   // Zone à contrainte de déplacement (surf requis, glace, etc.)
   @JsonValue('hazard')
-  hazard,       // Danger environnemental (lave, marais, etc.)
-  @JsonValue('transition')
-  transition,   // Transition de scène / d'ambiance (intérieur, bord de zone)
+  hazard,     // Danger environnemental (lave, marais, etc.)
   @JsonValue('special')
-  special,      // Comportement scripté ou spécial
+  special,    // Comportement scripté ou spécial
+  /// Fallback non-typé pour les extensions futures.
+  /// Ne pas utiliser dans du nouveau code.
   @JsonValue('custom')
   custom,
+}
+
+/// Sous-type de danger environnemental pour [GameplayZoneKind.hazard].
+enum HazardKind {
+  @JsonValue('lava')
+  lava,      // Contact : dommage direct
+  @JsonValue('poison')
+  poison,    // Empoisonnement au passage
+  @JsonValue('swamp')
+  swamp,     // Ralentissement / enlisement
+  @JsonValue('pitfall')
+  pitfall,   // Chute dans un trou
+  @JsonValue('other')
+  other,
 }
 
 /// Mode de déplacement requis ou appliqué dans une zone gameplay.

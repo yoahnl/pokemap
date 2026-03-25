@@ -2487,10 +2487,11 @@ class EditorNotifier extends _$EditorNotifier {
     String? name,
     GameplayZoneKind? kind,
     MapRect? area,
-    Object? encounterTableId,
-    Object? movementMode,
     int? priority,
-    Map<String, String>? properties,
+    Object? encounter,
+    Object? movement,
+    Object? hazard,
+    Object? special,
   }) {
     final selectedZoneId = state.selectedGameplayZoneId;
     if (selectedZoneId == null) return;
@@ -2500,10 +2501,11 @@ class EditorNotifier extends _$EditorNotifier {
       name: name,
       kind: kind,
       area: area,
-      encounterTableId: encounterTableId,
-      movementMode: movementMode,
       priority: priority,
-      properties: properties,
+      encounter: encounter,
+      movement: movement,
+      hazard: hazard,
+      special: special,
     );
   }
 
@@ -2513,10 +2515,11 @@ class EditorNotifier extends _$EditorNotifier {
     String? name,
     GameplayZoneKind? kind,
     MapRect? area,
-    Object? encounterTableId,
-    Object? movementMode,
     int? priority,
-    Map<String, String>? properties,
+    Object? encounter,
+    Object? movement,
+    Object? hazard,
+    Object? special,
   }) {
     final map = state.activeMap;
     if (map == null) return;
@@ -2528,10 +2531,11 @@ class EditorNotifier extends _$EditorNotifier {
         name: name,
         kind: kind,
         area: area,
-        encounterTableId: encounterTableId,
-        movementMode: movementMode,
         priority: priority,
-        properties: properties,
+        encounter: encounter,
+        movement: movement,
+        hazard: hazard,
+        special: special,
       );
       _applyMapMutation(
         previousMap: map,
@@ -2569,6 +2573,52 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete zone: $e');
     }
+  }
+
+  // Drag-to-draw ─────────────────────────────────────────────────────────────
+
+  /// Met à jour l'aire de tracé en cours (fantôme visible sur le canvas).
+  void setGameplayZoneDraftArea(MapRect area) {
+    state = state.copyWith(gameplayZoneDraftArea: area);
+  }
+
+  /// Valide le tracé et crée la zone persistée.
+  void commitGameplayZoneDraft() {
+    final draft = state.gameplayZoneDraftArea;
+    if (draft == null) return;
+    state = state.copyWith(gameplayZoneDraftArea: null);
+    final map = state.activeMap;
+    if (map == null) return;
+    // Clamp la zone dans les limites de la map
+    final clampedArea = _clampRectToMap(draft, map.size);
+    if (clampedArea == null) return;
+    try {
+      final result =
+          _gameplayZoneEditingService.addZoneInRect(map, clampedArea);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Zone "${result.createdZone.id}" créée',
+      );
+      state = state.copyWith(selectedGameplayZoneId: result.createdZone.id);
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create zone: $e');
+    }
+  }
+
+  /// Annule le tracé en cours sans créer de zone.
+  void cancelGameplayZoneDraft() {
+    state = state.copyWith(gameplayZoneDraftArea: null);
+  }
+
+  static MapRect? _clampRectToMap(MapRect rect, GridSize mapSize) {
+    final x = rect.pos.x.clamp(0, mapSize.width - 1);
+    final y = rect.pos.y.clamp(0, mapSize.height - 1);
+    final w = rect.size.width.clamp(1, mapSize.width - x);
+    final h = rect.size.height.clamp(1, mapSize.height - y);
+    if (w <= 0 || h <= 0) return null;
+    return MapRect(pos: GridPos(x: x, y: y), size: GridSize(width: w, height: h));
   }
 
   void placeOrSelectWarpAt(GridPos pos) {
