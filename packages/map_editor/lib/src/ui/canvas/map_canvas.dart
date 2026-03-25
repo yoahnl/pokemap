@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show kSecondaryButton, kTertiaryButton;
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Map<String, String> _lastTilesetPathsById = const {};
   Future<Map<String, ui.Image?>>? _tilesetImagesFuture;
   GridPos? _hoveredTile;
+
+  /// Clic droit + glisser (souris Apple / macOS) ou clic molette + glisser : panoramique.
+  int? _rightPanPointerId;
+  int? _middlePanPointerId;
 
   void _updateTilesetImagesFuture(Map<String, String> nextTilesetPathsById) {
     if (_tilesetImagesFuture != null &&
@@ -55,6 +60,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     _updateTilesetImagesFuture(tilesetPathsById);
 
     if (activeMap == null) {
+      _rightPanPointerId = null;
+      _middlePanPointerId = null;
       return const Center(child: Text('No Map Loaded'));
     }
 
@@ -122,7 +129,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           }
         }
 
-        return GestureDetector(
+        return Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: _onMapPointerDown,
+          onPointerMove: _onMapPointerMove,
+          onPointerUp: _onMapPointerUp,
+          onPointerCancel: _onMapPointerCancel,
+          onPointerHover: (event) => _onMapPointerHover(event.localPosition),
+          child: GestureDetector(
           onTapUp: (details) {
             if (!isTapEditingTool) return;
             final gridPos = _screenToGrid(
@@ -157,21 +171,18 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             applyToolAt(gridPos);
           },
           onPanUpdate: (details) {
-            if (isStrokeEditingTool) {
-              final gridPos = _screenToGrid(
-                details.localPosition,
-                state.panOffset,
-                state.zoom,
-                activeMap.size,
-                tileWidth,
-                tileHeight,
-              );
-              if (gridPos != null) {
-                applyToolAt(gridPos);
-              }
-              return;
+            if (!isStrokeEditingTool) return;
+            final gridPos = _screenToGrid(
+              details.localPosition,
+              state.panOffset,
+              state.zoom,
+              activeMap.size,
+              tileWidth,
+              tileHeight,
+            );
+            if (gridPos != null) {
+              applyToolAt(gridPos);
             }
-            notifier.pan(details.delta);
           },
           onPanEnd: (_) {
             if (isStrokeEditingTool) {
@@ -191,23 +202,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 });
               }
             },
-            child: Listener(
-              onPointerHover: (event) {
-                final gridPos = _screenToGrid(
-                  event.localPosition,
-                  state.panOffset,
-                  state.zoom,
-                  activeMap.size,
-                  tileWidth,
-                  tileHeight,
-                );
-                if (_hoveredTile != gridPos) {
-                  setState(() {
-                    _hoveredTile = gridPos;
-                  });
-                }
-              },
-              child: ClipRect(
+            child: ClipRect(
                 child: CustomPaint(
                   size: Size.infinite,
                   painter: MapGridPainter(
@@ -233,12 +228,79 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     terrainPresetsByType: terrainPresetsByType,
                   ),
                 ),
-              ),
             ),
           ),
+        ),
         );
       },
     );
+  }
+
+  void _onMapPointerDown(PointerDownEvent event) {
+    final kind = event.kind;
+    if (kind != ui.PointerDeviceKind.mouse &&
+        kind != ui.PointerDeviceKind.trackpad) {
+      return;
+    }
+    // Molette / bouton milieu (souris classique).
+    if ((event.buttons & kTertiaryButton) != 0) {
+      if (_middlePanPointerId != null) return;
+      _middlePanPointerId = event.pointer;
+      return;
+    }
+    // Clic droit + glisser : panoramique (comportement attendu macOS / souris Apple).
+    if ((event.buttons & kSecondaryButton) != 0) {
+      if (_rightPanPointerId != null) return;
+      _rightPanPointerId = event.pointer;
+    }
+  }
+
+  void _onMapPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _middlePanPointerId &&
+        event.pointer != _rightPanPointerId) {
+      return;
+    }
+    ref.read(editorNotifierProvider.notifier).pan(event.delta);
+  }
+
+  void _onMapPointerUp(PointerUpEvent event) {
+    if (event.pointer == _middlePanPointerId) {
+      _middlePanPointerId = null;
+    }
+    if (event.pointer == _rightPanPointerId) {
+      _rightPanPointerId = null;
+    }
+  }
+
+  void _onMapPointerCancel(PointerCancelEvent event) {
+    if (event.pointer == _middlePanPointerId) {
+      _middlePanPointerId = null;
+    }
+    if (event.pointer == _rightPanPointerId) {
+      _rightPanPointerId = null;
+    }
+  }
+
+  void _onMapPointerHover(Offset localPosition) {
+    final s = ref.read(editorNotifierProvider);
+    final map = s.activeMap;
+    final settings = s.project?.settings ?? const ProjectSettings();
+    if (map == null) return;
+    final tileW = settings.tileWidth * settings.displayScale;
+    final tileH = settings.tileHeight * settings.displayScale;
+    final gridPos = _screenToGrid(
+      localPosition,
+      s.panOffset,
+      s.zoom,
+      map.size,
+      tileW,
+      tileH,
+    );
+    if (_hoveredTile != gridPos) {
+      setState(() {
+        _hoveredTile = gridPos;
+      });
+    }
   }
 
   Map<String, String> _collectLayerTilesetPaths(
