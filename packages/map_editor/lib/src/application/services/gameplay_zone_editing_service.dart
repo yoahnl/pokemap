@@ -65,8 +65,20 @@ class GameplayZoneEditingService {
     return zone;
   }
 
+  /// Crée une zone 1×1 à [pos] (clic simple).
   GameplayZoneCreationResult addZoneAt(MapData map, GridPos pos) {
     final zone = _coordinator.createDefaultZone(map, pos);
+    final updated = _addUseCase.execute(map, zone: zone);
+    return GameplayZoneCreationResult(updatedMap: updated, createdZone: zone);
+  }
+
+  /// Crée une zone avec l'aire [rect] issue d'un clic+glisser.
+  GameplayZoneCreationResult addZoneInRect(
+    MapData map,
+    MapRect rect, {
+    GameplayZoneKind kind = GameplayZoneKind.encounter,
+  }) {
+    final zone = _coordinator.createZoneFromRect(map, rect, kind: kind);
     final updated = _addUseCase.execute(map, zone: zone);
     return GameplayZoneCreationResult(updatedMap: updated, createdZone: zone);
   }
@@ -78,10 +90,11 @@ class GameplayZoneEditingService {
     String? name,
     GameplayZoneKind? kind,
     MapRect? area,
-    Object? encounterTableId,
-    Object? movementMode,
     int? priority,
-    Map<String, String>? properties,
+    Object? encounter,
+    Object? movement,
+    Object? hazard,
+    Object? special,
   }) {
     final updated = _updateUseCase.execute(
       map,
@@ -90,13 +103,13 @@ class GameplayZoneEditingService {
       name: name,
       kind: kind,
       area: area,
-      encounterTableId: encounterTableId,
-      movementMode: movementMode,
       priority: priority,
-      properties: properties,
+      encounter: encounter,
+      movement: movement,
+      hazard: hazard,
+      special: special,
     );
-    final nextId =
-        id?.trim().isNotEmpty == true ? id!.trim() : zoneId;
+    final nextId = id?.trim().isNotEmpty == true ? id!.trim() : zoneId;
     return GameplayZoneUpdateResult(updatedMap: updated, selectedZoneId: nextId);
   }
 

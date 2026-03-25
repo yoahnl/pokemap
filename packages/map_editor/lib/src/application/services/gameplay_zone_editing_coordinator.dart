@@ -27,6 +27,7 @@ class GameplayZoneEditingCoordinator {
     return 'zone_$index';
   }
 
+  /// Crée une zone par défaut (1×1) à la position [pos].
   core.MapGameplayZone createDefaultZone(
     core.MapData map,
     core.GridPos pos,
@@ -40,6 +41,25 @@ class GameplayZoneEditingCoordinator {
         pos: pos,
         size: const core.GridSize(width: 1, height: 1),
       ),
+      encounter: const core.EncounterZonePayload(),
+    );
+  }
+
+  /// Crée une zone avec l'aire [rect] définie par clic+glisser.
+  core.MapGameplayZone createZoneFromRect(
+    core.MapData map,
+    core.MapRect rect, {
+    core.GameplayZoneKind kind = core.GameplayZoneKind.encounter,
+  }) {
+    final id = generateUniqueZoneId(map);
+    return core.MapGameplayZone(
+      id: id,
+      name: id,
+      kind: kind,
+      area: rect,
+      encounter: kind == core.GameplayZoneKind.encounter
+          ? const core.EncounterZonePayload()
+          : null,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'geometry.dart';
 import 'enums.dart';
 import 'map_entity_payloads.dart';
+import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 
 part 'map_data.freezed.dart';
@@ -40,8 +41,14 @@ class MapData with _$MapData {
 /// Sépare le **comportement gameplay** (rencontres, déplacement, danger)
 /// du **visuel** ([PathSurfaceKind] / [TerrainType]).
 ///
+/// Chaque [kind] dispose d'un payload typé :
+/// - [encounter] → [EncounterZonePayload]
+/// - [movement]  → [MovementZonePayload]
+/// - [hazard]    → [HazardZonePayload]
+/// - [special] / [custom] → [SpecialZonePayload]
+///
 /// Le runtime peut lire ces zones pour décider : tirer une rencontre,
-/// appliquer un effet de déplacement, etc.
+/// appliquer un effet de déplacement, déclencher un script, etc.
 @freezed
 class MapGameplayZone with _$MapGameplayZone {
   @JsonSerializable(explicitToJson: true)
@@ -50,17 +57,20 @@ class MapGameplayZone with _$MapGameplayZone {
     @Default('') String name,
     required GameplayZoneKind kind,
     required MapRect area,
-    /// ID d'une [ProjectEncounterTable] du projet (optionnel).
-    String? encounterTableId,
-    /// Mode de déplacement requis / appliqué dans la zone (optionnel).
-    MovementMode? movementMode,
     /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
     @Default(0) int priority,
-    @Default({}) Map<String, String> properties,
+    /// Payload pour [GameplayZoneKind.encounter].
+    EncounterZonePayload? encounter,
+    /// Payload pour [GameplayZoneKind.movement].
+    MovementZonePayload? movement,
+    /// Payload pour [GameplayZoneKind.hazard].
+    HazardZonePayload? hazard,
+    /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
+    SpecialZonePayload? special,
   }) = _MapGameplayZone;
 
   factory MapGameplayZone.fromJson(Map<String, dynamic> json) =>
-      _$MapGameplayZoneFromJson(json);
+      _$MapGameplayZoneFromJson(migrateMapGameplayZoneJson(json));
 }
 
 @freezed

@@ -23,27 +23,33 @@ class GameplayZonePropertiesPanel extends ConsumerStatefulWidget {
 
 class _GameplayZonePropertiesPanelState
     extends ConsumerState<GameplayZonePropertiesPanel> {
+  // ── Controllers ─────────────────────────────────────────────────────────────
   final _idController = TextEditingController();
   final _nameController = TextEditingController();
-  final _xController = TextEditingController();
-  final _yController = TextEditingController();
-  final _widthController = TextEditingController();
-  final _heightController = TextEditingController();
   final _priorityController = TextEditingController();
 
+  // ── Per-kind payload fields ──────────────────────────────────────────────────
   String? _boundFingerprint;
   GameplayZoneKind _selectedKind = GameplayZoneKind.encounter;
-  String? _selectedEncounterTableId;
-  MovementMode? _selectedMovementMode;
+
+  // encounter
+  String? _encounterTableId;
+  EncounterKind _encounterKind = EncounterKind.walk;
+
+  // movement
+  MovementMode _movementMode = MovementMode.walk;
+
+  // hazard
+  HazardKind _hazardKind = HazardKind.other;
+  int _hazardDamagePerStep = 0;
+
+  // special / custom
+  String _scriptKey = '';
 
   @override
   void dispose() {
     _idController.dispose();
     _nameController.dispose();
-    _xController.dispose();
-    _yController.dispose();
-    _widthController.dispose();
-    _heightController.dispose();
     _priorityController.dispose();
     super.dispose();
   }
@@ -82,7 +88,7 @@ class _GameplayZonePropertiesPanelState
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
-                    'No gameplay zones on this map.\nSelect the Zone tool and click on the map to add one.',
+                    'No gameplay zones on this map.\nSelect the Zone tool and draw a rectangle to add one.',
                     style: TextStyle(
                       color:
                           CupertinoColors.placeholderText.resolveFrom(context),
@@ -246,6 +252,7 @@ class _GameplayZonePropertiesPanelState
         const SizedBox(height: 8),
         _labeledField(context, label: 'Name', controller: _nameController),
         const SizedBox(height: 8),
+        // Kind
         if (widget.embedded)
           InspectorEmbeddedDropdown(
             accent: coral,
@@ -281,173 +288,77 @@ class _GameplayZonePropertiesPanelState
             child: Text('Kind: ${_kindLabel(_selectedKind)}'),
           ),
         const SizedBox(height: 8),
-        if (encounterTableOptions.isNotEmpty) ...[
-          if (widget.embedded)
-            InspectorEmbeddedDropdown(
-              accent: coral,
-              fieldLabel: 'Encounter Table',
-              valueLabel: _selectedEncounterTableId == null
-                  ? '—'
-                  : (encounterTableOptions
-                          .firstWhere(
-                            (t) => t.id == _selectedEncounterTableId,
-                            orElse: () => encounterTableOptions.first,
-                          )
-                          .name),
-              orderedIds: [
-                '',
-                ...encounterTableOptions.map((t) => t.id),
-              ],
-              selectedMenuValue: _selectedEncounterTableId ?? '',
-              selectedIdForCheck: _selectedEncounterTableId ?? '',
-              idToLabel: (id) => id.isEmpty
-                  ? '— None —'
-                  : (encounterTableOptions
-                      .firstWhere((t) => t.id == id,
-                          orElse: () => encounterTableOptions.first)
-                      .name),
-              onSelected: (id) {
-                setState(() {
-                  _selectedEncounterTableId = id.isEmpty ? null : id;
-                });
-              },
-              tooltip: 'Encounter table',
-            )
-          else
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              alignment: Alignment.centerLeft,
-              onPressed: () async {
-                final options = [null, ...encounterTableOptions];
-                final picked =
-                    await showCupertinoListPicker<ProjectEncounterTable?>(
-                  context: context,
-                  title: 'Encounter Table',
-                  items: options,
-                  labelOf: (t) => t == null ? '— None —' : t.name,
-                );
-                if (picked != null || _selectedEncounterTableId != null) {
-                  setState(() {
-                    _selectedEncounterTableId = picked?.id;
-                  });
-                }
-              },
-              child: Text(
-                  'Encounter Table: ${_selectedEncounterTableId == null ? '—' : encounterTableOptions.firstWhere((t) => t.id == _selectedEncounterTableId!, orElse: () => encounterTableOptions.first).name}'),
+
+        // ── Payload fields per kind ────────────────────────────────────────────
+        if (_selectedKind == GameplayZoneKind.encounter) ...[
+          const _SectionDivider('Encounter'),
+          const SizedBox(height: 8),
+          if (encounterTableOptions.isNotEmpty)
+            _buildEncounterTableDropdown(
+              context,
+              coral,
+              encounterTableOptions,
             ),
           const SizedBox(height: 8),
+          _buildEncounterKindDropdown(context, coral),
+          const SizedBox(height: 8),
         ],
-        if (widget.embedded)
-          InspectorEmbeddedDropdown(
-            accent: coral,
-            fieldLabel: 'Movement Mode',
-            valueLabel: _selectedMovementMode == null
-                ? '— None —'
-                : _movementModeLabel(_selectedMovementMode!),
-            orderedIds: [
-              '',
-              ...MovementMode.values.map((m) => m.name),
-            ],
-            selectedMenuValue: _selectedMovementMode?.name ?? '',
-            selectedIdForCheck: _selectedMovementMode?.name ?? '',
-            idToLabel: (id) => id.isEmpty
-                ? '— None —'
-                : _movementModeLabel(
-                    MovementMode.values.firstWhere((m) => m.name == id),
-                  ),
-            onSelected: (id) {
-              setState(() {
-                _selectedMovementMode = id.isEmpty
-                    ? null
-                    : MovementMode.values.firstWhere((m) => m.name == id);
-              });
+
+        if (_selectedKind == GameplayZoneKind.movement) ...[
+          const _SectionDivider('Movement'),
+          const SizedBox(height: 8),
+          _buildMovementModeDropdown(context, coral),
+          const SizedBox(height: 8),
+        ],
+
+        if (_selectedKind == GameplayZoneKind.hazard) ...[
+          const _SectionDivider('Hazard'),
+          const SizedBox(height: 8),
+          _buildHazardKindDropdown(context, coral),
+          const SizedBox(height: 8),
+          _labeledField(
+            context,
+            label: 'Damage / step',
+            controller: TextEditingController(
+                text: _hazardDamagePerStep.toString())
+              ..selection = TextSelection.collapsed(
+                  offset: _hazardDamagePerStep.toString().length),
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (v) {
+              final parsed = int.tryParse(v);
+              if (parsed != null) setState(() => _hazardDamagePerStep = parsed);
             },
-            tooltip: 'Movement mode',
-          )
-        else
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            alignment: Alignment.centerLeft,
-            onPressed: () async {
-              final picked = await showCupertinoListPicker<MovementMode?>(
-                context: context,
-                title: 'Movement Mode',
-                items: [null, ...MovementMode.values],
-                labelOf: (m) =>
-                    m == null ? '— None —' : _movementModeLabel(m),
-              );
-              if (picked != null || _selectedMovementMode != null) {
-                setState(() => _selectedMovementMode = picked);
-              }
-            },
-            child: Text(
-                'Movement: ${_selectedMovementMode == null ? '—' : _movementModeLabel(_selectedMovementMode!)}'),
           ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _labeledField(
-                context,
-                label: 'X',
-                controller: _xController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(signed: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _labeledField(
-                context,
-                label: 'Y',
-                controller: _yController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(signed: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _labeledField(
-                context,
-                label: 'Width',
-                controller: _widthController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _labeledField(
-                context,
-                label: 'Height',
-                controller: _heightController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _labeledField(
-                context,
-                label: 'Priority',
-                controller: _priorityController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-            ),
-          ],
+          const SizedBox(height: 8),
+        ],
+
+        if (_selectedKind == GameplayZoneKind.special ||
+            _selectedKind == GameplayZoneKind.custom) ...[
+          const _SectionDivider('Special'),
+          const SizedBox(height: 8),
+          _labeledField(
+            context,
+            label: 'Script Key',
+            controller:
+                TextEditingController(text: _scriptKey)
+                  ..selection = TextSelection.collapsed(offset: _scriptKey.length),
+            onChanged: (v) => setState(() => _scriptKey = v),
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // ── Priority ──────────────────────────────────────────────────────────
+        _labeledField(
+          context,
+          label: 'Priority',
+          controller: _priorityController,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
         const SizedBox(height: 12),
+
+        // ── Actions ───────────────────────────────────────────────────────────
         if (widget.embedded)
           Row(
             children: [
@@ -494,12 +405,172 @@ class _GameplayZonePropertiesPanelState
     );
   }
 
+  // ── Payload dropdowns ──────────────────────────────────────────────────────
+
+  Widget _buildEncounterTableDropdown(
+    BuildContext context,
+    Color accent,
+    List<ProjectEncounterTable> options,
+  ) {
+    if (widget.embedded) {
+      return InspectorEmbeddedDropdown(
+        accent: accent,
+        fieldLabel: 'Encounter Table',
+        valueLabel: _encounterTableId == null
+            ? '—'
+            : (options
+                .firstWhere(
+                  (t) => t.id == _encounterTableId,
+                  orElse: () => options.first,
+                )
+                .name),
+        orderedIds: ['', ...options.map((t) => t.id)],
+        selectedMenuValue: _encounterTableId ?? '',
+        selectedIdForCheck: _encounterTableId ?? '',
+        idToLabel: (id) => id.isEmpty
+            ? '— None —'
+            : (options
+                .firstWhere((t) => t.id == id, orElse: () => options.first)
+                .name),
+        onSelected: (id) => setState(
+          () => _encounterTableId = id.isEmpty ? null : id,
+        ),
+        tooltip: 'Encounter table',
+      );
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      alignment: Alignment.centerLeft,
+      onPressed: () async {
+        final picked = await showCupertinoListPicker<ProjectEncounterTable?>(
+          context: context,
+          title: 'Encounter Table',
+          items: [null, ...options],
+          labelOf: (t) => t == null ? '— None —' : t.name,
+        );
+        if (picked != null || _encounterTableId != null) {
+          setState(() => _encounterTableId = picked?.id);
+        }
+      },
+      child: Text(
+        'Encounter Table: ${_encounterTableId == null ? '—' : options.firstWhere((t) => t.id == _encounterTableId!, orElse: () => options.first).name}',
+      ),
+    );
+  }
+
+  Widget _buildEncounterKindDropdown(BuildContext context, Color accent) {
+    if (widget.embedded) {
+      return InspectorEmbeddedDropdown(
+        accent: accent,
+        fieldLabel: 'Encounter Kind',
+        valueLabel: _encounterKindLabel(_encounterKind),
+        orderedIds: EncounterKind.values.map((k) => k.name).toList(),
+        selectedMenuValue: _encounterKind.name,
+        selectedIdForCheck: _encounterKind.name,
+        idToLabel: (id) => _encounterKindLabel(
+          EncounterKind.values.firstWhere((k) => k.name == id),
+        ),
+        onSelected: (id) => setState(() {
+          _encounterKind =
+              EncounterKind.values.firstWhere((k) => k.name == id);
+        }),
+        tooltip: 'Encounter trigger kind',
+      );
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      alignment: Alignment.centerLeft,
+      onPressed: () async {
+        final picked = await showCupertinoListPicker<EncounterKind>(
+          context: context,
+          title: 'Encounter Kind',
+          items: EncounterKind.values,
+          labelOf: _encounterKindLabel,
+        );
+        if (picked != null) setState(() => _encounterKind = picked);
+      },
+      child: Text('Encounter Kind: ${_encounterKindLabel(_encounterKind)}'),
+    );
+  }
+
+  Widget _buildMovementModeDropdown(BuildContext context, Color accent) {
+    if (widget.embedded) {
+      return InspectorEmbeddedDropdown(
+        accent: accent,
+        fieldLabel: 'Required Mode',
+        valueLabel: _movementModeLabel(_movementMode),
+        orderedIds: MovementMode.values.map((m) => m.name).toList(),
+        selectedMenuValue: _movementMode.name,
+        selectedIdForCheck: _movementMode.name,
+        idToLabel: (id) => _movementModeLabel(
+          MovementMode.values.firstWhere((m) => m.name == id),
+        ),
+        onSelected: (id) => setState(() {
+          _movementMode =
+              MovementMode.values.firstWhere((m) => m.name == id);
+        }),
+        tooltip: 'Required movement mode',
+      );
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      alignment: Alignment.centerLeft,
+      onPressed: () async {
+        final picked = await showCupertinoListPicker<MovementMode>(
+          context: context,
+          title: 'Required Mode',
+          items: MovementMode.values,
+          labelOf: _movementModeLabel,
+        );
+        if (picked != null) setState(() => _movementMode = picked);
+      },
+      child: Text('Required Mode: ${_movementModeLabel(_movementMode)}'),
+    );
+  }
+
+  Widget _buildHazardKindDropdown(BuildContext context, Color accent) {
+    if (widget.embedded) {
+      return InspectorEmbeddedDropdown(
+        accent: accent,
+        fieldLabel: 'Hazard Kind',
+        valueLabel: _hazardKindLabel(_hazardKind),
+        orderedIds: HazardKind.values.map((k) => k.name).toList(),
+        selectedMenuValue: _hazardKind.name,
+        selectedIdForCheck: _hazardKind.name,
+        idToLabel: (id) => _hazardKindLabel(
+          HazardKind.values.firstWhere((k) => k.name == id),
+        ),
+        onSelected: (id) => setState(() {
+          _hazardKind = HazardKind.values.firstWhere((k) => k.name == id);
+        }),
+        tooltip: 'Type of environmental hazard',
+      );
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      alignment: Alignment.centerLeft,
+      onPressed: () async {
+        final picked = await showCupertinoListPicker<HazardKind>(
+          context: context,
+          title: 'Hazard Kind',
+          items: HazardKind.values,
+          labelOf: _hazardKindLabel,
+        );
+        if (picked != null) setState(() => _hazardKind = picked);
+      },
+      child: Text('Hazard: ${_hazardKindLabel(_hazardKind)}'),
+    );
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
   Widget _labeledField(
     BuildContext context, {
     required String label,
     required TextEditingController controller,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    ValueChanged<String>? onChanged,
   }) {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
@@ -518,6 +589,7 @@ class _GameplayZonePropertiesPanelState
           controller: controller,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
+          onChanged: onChanged,
         ),
       ],
     );
@@ -526,56 +598,74 @@ class _GameplayZonePropertiesPanelState
   void _syncControllers(MapGameplayZone? zone) {
     final fingerprint = zone == null
         ? 'none'
-        : '${zone.id}|${zone.name}|${zone.kind.name}|${zone.area.pos.x}|${zone.area.pos.y}|${zone.area.size.width}|${zone.area.size.height}|${zone.priority}|${zone.encounterTableId}|${zone.movementMode?.name}';
+        : '${zone.id}|${zone.name}|${zone.kind.name}'
+            '|${zone.area.pos.x}|${zone.area.pos.y}'
+            '|${zone.area.size.width}|${zone.area.size.height}'
+            '|${zone.priority}'
+            '|${zone.encounter?.encounterTableId}|${zone.encounter?.encounterKind.name}'
+            '|${zone.movement?.requiredMode.name}'
+            '|${zone.hazard?.hazardKind.name}|${zone.hazard?.damagePerStep}'
+            '|${zone.special?.scriptKey}';
     if (_boundFingerprint == fingerprint) return;
     _boundFingerprint = fingerprint;
 
     _idController.text = zone?.id ?? '';
     _nameController.text = zone?.name ?? '';
-    _xController.text = zone?.area.pos.x.toString() ?? '';
-    _yController.text = zone?.area.pos.y.toString() ?? '';
-    _widthController.text = zone?.area.size.width.toString() ?? '';
-    _heightController.text = zone?.area.size.height.toString() ?? '';
     _priorityController.text = zone?.priority.toString() ?? '0';
     _selectedKind = zone?.kind ?? GameplayZoneKind.encounter;
-    _selectedEncounterTableId = zone?.encounterTableId;
-    _selectedMovementMode = zone?.movementMode;
+
+    // encounter
+    _encounterTableId = zone?.encounter?.encounterTableId;
+    _encounterKind = zone?.encounter?.encounterKind ?? EncounterKind.walk;
+
+    // movement
+    _movementMode = zone?.movement?.requiredMode ?? MovementMode.walk;
+
+    // hazard
+    _hazardKind = zone?.hazard?.hazardKind ?? HazardKind.other;
+    _hazardDamagePerStep = zone?.hazard?.damagePerStep ?? 0;
+
+    // special
+    _scriptKey = zone?.special?.scriptKey ?? '';
   }
 
   Future<void> _save(BuildContext context, EditorNotifier notifier) async {
-    final x = int.tryParse(_xController.text.trim());
-    final y = int.tryParse(_yController.text.trim());
-    final width = int.tryParse(_widthController.text.trim());
-    final height = int.tryParse(_heightController.text.trim());
     final priority = int.tryParse(_priorityController.text.trim()) ?? 0;
 
-    if (x == null || y == null || width == null || height == null) {
-      await showCupertinoEditorAlert(
-        context,
-        message: 'Zone coordinates and size must be valid integers',
-      );
-      return;
-    }
-    if (width <= 0 || height <= 0) {
-      await showCupertinoEditorAlert(
-        context,
-        message: 'Zone width and height must be greater than zero',
-      );
-      return;
+    EncounterZonePayload? encounter;
+    MovementZonePayload? movement;
+    HazardZonePayload? hazard;
+    SpecialZonePayload? special;
+
+    switch (_selectedKind) {
+      case GameplayZoneKind.encounter:
+        encounter = EncounterZonePayload(
+          encounterTableId: _encounterTableId,
+          encounterKind: _encounterKind,
+        );
+      case GameplayZoneKind.movement:
+        movement = MovementZonePayload(requiredMode: _movementMode);
+      case GameplayZoneKind.hazard:
+        hazard = HazardZonePayload(
+          hazardKind: _hazardKind,
+          damagePerStep: _hazardDamagePerStep,
+        );
+      case GameplayZoneKind.special:
+      case GameplayZoneKind.custom:
+        special = SpecialZonePayload(
+          scriptKey: _scriptKey.trim().isEmpty ? null : _scriptKey.trim(),
+        );
     }
 
     notifier.updateSelectedGameplayZone(
       id: _idController.text.trim(),
       name: _nameController.text.trim(),
       kind: _selectedKind,
-      area: MapRect(
-        pos: GridPos(x: x, y: y),
-        size: GridSize(width: width, height: height),
-      ),
-      encounterTableId:
-          _selectedEncounterTableId, // null = clear, value = set
-      movementMode: _selectedMovementMode,
       priority: priority,
+      encounter: encounter,
+      movement: movement,
+      hazard: hazard,
+      special: special,
     );
   }
 
@@ -584,7 +674,6 @@ class _GameplayZonePropertiesPanelState
       GameplayZoneKind.encounter => CupertinoIcons.leaf_arrow_circlepath,
       GameplayZoneKind.movement => CupertinoIcons.arrow_right_arrow_left,
       GameplayZoneKind.hazard => CupertinoIcons.exclamationmark_triangle,
-      GameplayZoneKind.transition => CupertinoIcons.arrow_uturn_right,
       GameplayZoneKind.special => CupertinoIcons.star,
       GameplayZoneKind.custom => CupertinoIcons.square_stack_3d_up,
     };
@@ -595,7 +684,6 @@ class _GameplayZonePropertiesPanelState
       GameplayZoneKind.encounter => 'Encounter',
       GameplayZoneKind.movement => 'Movement',
       GameplayZoneKind.hazard => 'Hazard',
-      GameplayZoneKind.transition => 'Transition',
       GameplayZoneKind.special => 'Special',
       GameplayZoneKind.custom => 'Custom',
     };
@@ -610,5 +698,54 @@ class _GameplayZonePropertiesPanelState
       MovementMode.strength => 'Strength',
       MovementMode.rockSmash => 'Rock Smash',
     };
+  }
+
+  static String _encounterKindLabel(EncounterKind kind) {
+    return switch (kind) {
+      EncounterKind.walk => 'Walk (tall grass)',
+      EncounterKind.surf => 'Surf',
+      EncounterKind.headbutt => 'Headbutt',
+      EncounterKind.oldRod => 'Old Rod',
+      EncounterKind.goodRod => 'Good Rod',
+      EncounterKind.superRod => 'Super Rod',
+      EncounterKind.gift => 'Gift',
+      EncounterKind.special => 'Special',
+    };
+  }
+
+  static String _hazardKindLabel(HazardKind kind) {
+    return switch (kind) {
+      HazardKind.lava => 'Lava',
+      HazardKind.poison => 'Poison',
+      HazardKind.swamp => 'Swamp',
+      HazardKind.pitfall => 'Pitfall',
+      HazardKind.other => 'Other',
+    };
+  }
+}
+
+/// Petit séparateur de section avec label.
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = CupertinoColors.tertiaryLabel.resolveFrom(context);
+    return Row(
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Container(height: 1, color: color.withValues(alpha: 0.3))),
+      ],
+    );
   }
 }

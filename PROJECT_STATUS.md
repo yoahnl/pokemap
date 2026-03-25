@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-25 (renforcement recadrage : tableau de bord phases, lot labels, checklist complete)
+Last updated: 2026-03-25 (refactoring gameplay zones : payloads typés, drag-to-draw canvas)
 
 ## Vision produit
 
@@ -53,6 +53,51 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 ---
 
 > **Derniers lots documentés** — detail technique des deux lots les plus recents (historique complet dans **## 7**).
+
+## Lot: Refactoring zones gameplay — payloads typés + drag-to-draw (2026-03-25)
+
+Objectif: rendre `GameplayZone` un vrai concept métier avec séparation nette des payloads par kind, suppression du kind `transition`, et **dessin direct des zones par clic+glisser** sur le canvas.
+
+### Modèle (`map_core`)
+
+- **`HazardKind`** (nouveau enum): `lava`, `poison`, `swamp`, `pitfall`, `other`.
+- **`GameplayZoneKind`** simplifié: suppression de `transition` (migré → `special`); `custom` conservé comme fallback documenté.
+- **Payloads typés** (nouveau fichier `map_gameplay_zone_payloads.dart`, Freezed + JSON):
+  - `EncounterZonePayload`: `encounterTableId?`, `encounterKind`.
+  - `MovementZonePayload`: `requiredMode`, `allowedModes`.
+  - `HazardZonePayload`: `hazardKind`, `damagePerStep`.
+  - `SpecialZonePayload`: `scriptKey?`, `properties`.
+- **`MapGameplayZone`** refactorisé: `encounterTableId`/`movementMode`/`properties` plats remplacés par `encounter?`, `movement?`, `hazard?`, `special?`.
+- **`migrateMapGameplayZoneJson`**: migration transparente du JSON legacy (champs plats → payloads; `transition` → `special`).
+- **`updateGameplayZoneOnMap`**: sentinelles `_kUnset` par payload (`encounter`, `movement`, `hazard`, `special`).
+- **`validators.dart`**: validation `special.properties` (clés non vides).
+- Export dans `map_core.dart`.
+
+### Editor (`map_editor`)
+
+- **Use cases** mis à jour pour les nouveaux paramètres payload.
+- **`GameplayZoneEditingCoordinator`**: `createDefaultZone` initialise `EncounterZonePayload`; nouvelle méthode `createZoneFromRect(map, rect, {kind})`.
+- **`GameplayZoneEditingService`**: nouvelle méthode `addZoneInRect(map, rect, {kind})` pour le drag-to-draw.
+- **`EditorState`**: nouveau champ `gameplayZoneDraftArea: MapRect?` (fantôme en cours de tracé).
+- **`EditorNotifier`**: mise à jour des méthodes update pour les payloads typés; nouvelles méthodes `setGameplayZoneDraftArea`, `commitGameplayZoneDraft`, `cancelGameplayZoneDraft`.
+- **`MapCanvas`** (drag-to-draw):
+  - `_zoneDragStart: GridPos?` dans le state du widget.
+  - `onPanStart/Update/End` gèrent le tracé de zone par clic+glisser.
+  - `_rectFromCorners`: normalise les deux coins en `MapRect` (inclusif).
+  - `MapGridPainter`: `gameplayZoneDraftArea?` avec rendu fantôme (remplissage + bordure pointillée).
+  - `_gameplayZoneColor`: case `transition` supprimé.
+- **`GameplayZonePropertiesPanel`** entièrement réécrit:
+  - Formulaires contextuels par kind (encounter / movement / hazard / special-custom).
+  - Suppression des dropdowns `encounterTableId`/`movementMode` plats → payloads structurés.
+  - `_SectionDivider` pour séparation visuelle des sections.
+  - Message "draw a rectangle" dans le placeholder vide.
+
+### Fichiers touchés dans ce lot
+
+- `map_core`: `enums.dart`, `map_gameplay_zone_payloads.dart` (nouveau), `map_data.dart`, `map_gameplay_zones.dart`, `validators.dart`, `map_core.dart`.
+- `map_editor`: `gameplay_zone_use_cases.dart`, `gameplay_zone_editing_coordinator.dart`, `gameplay_zone_editing_service.dart`, `editor_state.dart`, `editor_notifier.dart`, `map_canvas.dart`, `gameplay_zone_properties_panel.dart`.
+
+---
 
 ## Lot: Zones gameplay + Tables de rencontres (domaine + editor complet)
 

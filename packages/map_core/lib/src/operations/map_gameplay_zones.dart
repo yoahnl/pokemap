@@ -1,7 +1,7 @@
 import '../exceptions/map_exceptions.dart';
-import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_gameplay_zone_payloads.dart';
 
 // ---------------------------------------------------------------------------
 // Lookup
@@ -67,10 +67,12 @@ MapData updateGameplayZoneOnMap(
   String? name,
   GameplayZoneKind? kind,
   MapRect? area,
-  Object? encounterTableId = _kUnset, // null = effacer, _kUnset = conserver
-  Object? movementMode = _kUnset,
   int? priority,
-  Map<String, String>? properties,
+  /// Passer `null` pour effacer le payload, `_kUnset` (défaut) pour conserver.
+  Object? encounter = _kUnset,
+  Object? movement = _kUnset,
+  Object? hazard = _kUnset,
+  Object? special = _kUnset,
 }) {
   final index = map.gameplayZones.indexWhere((z) => z.id == zoneId);
   if (index < 0) throw ValidationException('Gameplay zone not found: $zoneId');
@@ -82,15 +84,18 @@ MapData updateGameplayZoneOnMap(
     kind: kind ?? current.kind,
     area: area ?? current.area,
     priority: priority ?? current.priority,
-    properties: properties == null
-        ? current.properties
-        : _normalizeProperties(properties),
   );
-  if (!identical(encounterTableId, _kUnset)) {
-    draft = draft.copyWith(encounterTableId: encounterTableId as String?);
+  if (!identical(encounter, _kUnset)) {
+    draft = draft.copyWith(encounter: encounter as EncounterZonePayload?);
   }
-  if (!identical(movementMode, _kUnset)) {
-    draft = draft.copyWith(movementMode: movementMode as MovementMode?);
+  if (!identical(movement, _kUnset)) {
+    draft = draft.copyWith(movement: movement as MovementZonePayload?);
+  }
+  if (!identical(hazard, _kUnset)) {
+    draft = draft.copyWith(hazard: hazard as HazardZonePayload?);
+  }
+  if (!identical(special, _kUnset)) {
+    draft = draft.copyWith(special: special as SpecialZonePayload?);
   }
 
   final next = _normalizeZone(draft);
@@ -155,17 +160,7 @@ MapGameplayZone _normalizeZone(MapGameplayZone zone) {
   return zone.copyWith(
     id: zone.id.trim(),
     name: zone.name.trim(),
-    encounterTableId: zone.encounterTableId?.trim().isEmpty == true
-        ? null
-        : zone.encounterTableId?.trim(),
-    properties: _normalizeProperties(zone.properties),
   );
-}
-
-Map<String, String> _normalizeProperties(Map<String, String> props) {
-  return Map<String, String>.unmodifiable({
-    for (final e in props.entries) e.key.trim(): e.value.trim(),
-  });
 }
 
 void _validateZone(
@@ -198,9 +193,12 @@ void _validateZone(
       'with size (${area.size.width}x${area.size.height})',
     );
   }
-  for (final key in zone.properties.keys) {
-    if (key.trim().isEmpty) {
-      throw ValidationException('Gameplay zone $id has an empty property key');
+  final specialProps = zone.special?.properties;
+  if (specialProps != null) {
+    for (final key in specialProps.keys) {
+      if (key.trim().isEmpty) {
+        throw ValidationException('Gameplay zone $id has an empty special property key');
+      }
     }
   }
 }

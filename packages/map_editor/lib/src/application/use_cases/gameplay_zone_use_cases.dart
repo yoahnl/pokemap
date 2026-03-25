@@ -16,10 +16,12 @@ class UpdateGameplayZoneOnMapUseCase {
     String? name,
     GameplayZoneKind? kind,
     MapRect? area,
-    Object? encounterTableId,
-    Object? movementMode,
     int? priority,
-    Map<String, String>? properties,
+    /// Passer `null` pour effacer le payload, sentinel pour conserver.
+    Object? encounter,
+    Object? movement,
+    Object? hazard,
+    Object? special,
   }) {
     final updated = updateGameplayZoneOnMap(
       map,
@@ -28,10 +30,11 @@ class UpdateGameplayZoneOnMapUseCase {
       name: name,
       kind: kind,
       area: area,
-      encounterTableId: encounterTableId,
-      movementMode: movementMode,
       priority: priority,
-      properties: properties,
+      encounter: encounter,
+      movement: movement,
+      hazard: hazard,
+      special: special,
     );
     MapValidator.validate(updated);
     return updated;
