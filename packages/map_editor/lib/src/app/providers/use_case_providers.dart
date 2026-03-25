@@ -615,6 +615,11 @@ MoveMapLayerUseCase moveMapLayerUseCase(MoveMapLayerUseCaseRef ref) {
 }
 
 @riverpod
+ReorderMapLayersUseCase reorderMapLayersUseCase(ReorderMapLayersUseCaseRef ref) {
+  return ReorderMapLayersUseCase();
+}
+
+@riverpod
 SetMapLayerVisibilityUseCase setMapLayerVisibilityUseCase(
     SetMapLayerVisibilityUseCaseRef ref) {
   return SetMapLayerVisibilityUseCase();

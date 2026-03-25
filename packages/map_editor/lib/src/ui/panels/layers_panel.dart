@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show ReorderableListView;
 import 'package:macos_ui/macos_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -266,9 +267,11 @@ class _LayerList extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
+    return ReorderableListView.builder(
+      buildDefaultDragHandles: false,
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       itemCount: map.layers.length,
+      onReorder: notifier.reorderMapLayers,
       itemBuilder: (context, index) {
         final layer = map.layers[index];
         final isActive = layer.id == activeLayerId;
@@ -289,137 +292,168 @@ class _LayerList extends StatelessWidget {
             Color.lerp(secondary, layerAccent, isActive ? 0.28 : 0.22)!;
 
         return Padding(
+          key: ValueKey(layer.id),
           padding: const EdgeInsets.only(bottom: 8),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: isActive
-                  ? Color.lerp(
-                      EditorChrome.islandFillElevated(context),
-                      layerAccent,
-                      0.36,
-                    )!
-                  : inactiveFill,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isActive
-                    ? layerAccent.withValues(alpha: 0.82)
-                    : inactiveBorder,
-                width: 1,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ReorderableDelayedDragStartListener(
+                index: index,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 10, 6, 0),
+                  child: MacosTooltip(
+                    message: 'Glisser pour réordonner',
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.grab,
+                      child: MacosIcon(
+                        CupertinoIcons.line_horizontal_3,
+                        size: 16,
+                        color: metaColor,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              boxShadow: EditorChrome.inspectorTileHardShadows(context),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-              child: Column(
-                children: [
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    onPressed: () => notifier.setActiveLayer(layer.id),
-                    child: Row(
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? Color.lerp(
+                            EditorChrome.islandFillElevated(context),
+                            layerAccent,
+                            0.36,
+                          )!
+                        : inactiveFill,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isActive
+                          ? layerAccent.withValues(alpha: 0.82)
+                          : inactiveBorder,
+                      width: 1,
+                    ),
+                    boxShadow: EditorChrome.inspectorTileHardShadows(context),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                    child: Column(
                       children: [
-                        MacosIcon(
-                          _iconForLayer(layer),
-                          size: 16,
-                          color: isActive
-                              ? layerAccent
-                              : Color.lerp(secondary, layerAccent, 0.55)!,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          onPressed: () => notifier.setActiveLayer(layer.id),
+                          child: Row(
                             children: [
-                              Text(
-                                layer.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: isActive
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                  color: isActive
-                                      ? layerAccent
-                                      : Color.lerp(label, layerAccent, 0.12)!,
+                              MacosIcon(
+                                _iconForLayer(layer),
+                                size: 16,
+                                color: isActive
+                                    ? layerAccent
+                                    : Color.lerp(secondary, layerAccent, 0.55)!,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      layer.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isActive
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: isActive
+                                            ? layerAccent
+                                            : Color.lerp(
+                                                label,
+                                                layerAccent,
+                                                0.12,
+                                              )!,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${_labelForLayer(layer)} • ${layer.id}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: metaColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${_labelForLayer(layer)} • ${layer.id}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: metaColor,
+                              const SizedBox(width: 6),
+                              _LayersAccentIconButton(
+                                accent: layerAccent,
+                                onPressed: () => notifier.setMapLayerVisibility(
+                                  layer.id,
+                                  !layer.isVisible,
                                 ),
+                                icon: layer.isVisible
+                                    ? CupertinoIcons.eye
+                                    : CupertinoIcons.eye_slash,
+                                tooltip: layer.isVisible
+                                    ? 'Hide layer'
+                                    : 'Show layer',
+                                iconSize: 15,
+                              ),
+                              const SizedBox(width: 4),
+                              _LayersAccentIconButton(
+                                accent: layerAccent,
+                                onPressed: canMoveUp
+                                    ? () => notifier.moveMapLayerUp(layer.id)
+                                    : null,
+                                icon: CupertinoIcons.arrow_up,
+                                tooltip: 'Move up',
+                                iconSize: 15,
+                              ),
+                              const SizedBox(width: 4),
+                              _LayersAccentIconButton(
+                                accent: layerAccent,
+                                onPressed: canMoveDown
+                                    ? () => notifier.moveMapLayerDown(layer.id)
+                                    : null,
+                                icon: CupertinoIcons.arrow_down,
+                                tooltip: 'Move down',
+                                iconSize: 15,
+                              ),
+                              const SizedBox(width: 4),
+                              _LayersAccentIconButton(
+                                accent: layerAccent,
+                                onPressed: () => _showRenameLayerDialog(
+                                  context,
+                                  notifier,
+                                  layer,
+                                ),
+                                icon: CupertinoIcons.pencil,
+                                tooltip: 'Rename layer',
+                                iconSize: 15,
+                              ),
+                              const SizedBox(width: 4),
+                              _LayersAccentIconButton(
+                                accent: layerAccent,
+                                onPressed: () => _showDeleteLayerDialog(
+                                  context,
+                                  notifier,
+                                  layer,
+                                ),
+                                icon: CupertinoIcons.trash,
+                                tooltip: 'Delete layer',
+                                iconSize: 15,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        _LayersAccentIconButton(
-                          accent: layerAccent,
-                          onPressed: () => notifier.setMapLayerVisibility(
-                            layer.id,
-                            !layer.isVisible,
-                          ),
-                          icon: layer.isVisible
-                              ? CupertinoIcons.eye
-                              : CupertinoIcons.eye_slash,
-                          tooltip: layer.isVisible ? 'Hide layer' : 'Show layer',
-                          iconSize: 15,
-                        ),
-                        const SizedBox(width: 4),
-                        _LayersAccentIconButton(
-                          accent: layerAccent,
-                          onPressed: canMoveUp
-                              ? () => notifier.moveMapLayerUp(layer.id)
-                              : null,
-                          icon: CupertinoIcons.arrow_up,
-                          tooltip: 'Move up',
-                          iconSize: 15,
-                        ),
-                        const SizedBox(width: 4),
-                        _LayersAccentIconButton(
-                          accent: layerAccent,
-                          onPressed: canMoveDown
-                              ? () => notifier.moveMapLayerDown(layer.id)
-                              : null,
-                          icon: CupertinoIcons.arrow_down,
-                          tooltip: 'Move down',
-                          iconSize: 15,
-                        ),
-                        const SizedBox(width: 4),
-                        _LayersAccentIconButton(
-                          accent: layerAccent,
-                          onPressed: () => _showRenameLayerDialog(
-                            context,
-                            notifier,
-                            layer,
-                          ),
-                          icon: CupertinoIcons.pencil,
-                          tooltip: 'Rename layer',
-                          iconSize: 15,
-                        ),
-                        const SizedBox(width: 4),
-                        _LayersAccentIconButton(
-                          accent: layerAccent,
-                          onPressed: () => _showDeleteLayerDialog(
-                            context,
-                            notifier,
-                            layer,
-                          ),
-                          icon: CupertinoIcons.trash,
-                          tooltip: 'Delete layer',
-                          iconSize: 15,
-                        ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         );
       },

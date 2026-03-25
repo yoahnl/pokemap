@@ -125,6 +125,22 @@ class MoveMapLayerUseCase {
   }
 }
 
+class ReorderMapLayersUseCase {
+  MapData execute(
+    MapData map, {
+    required int oldIndex,
+    required int newIndex,
+  }) {
+    final updated = reorderMapLayers(
+      map,
+      oldIndex: oldIndex,
+      newIndex: newIndex,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
 class SetMapLayerVisibilityUseCase {
   MapData execute(
     MapData map, {

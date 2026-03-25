@@ -141,6 +141,34 @@ MapData moveMapLayer(
   return map.copyWith(layers: updatedLayers);
 }
 
+/// Réordonne comme [ReorderableListView.onReorder] : décrémenter [newIndex]
+/// si [oldIndex] &lt; [newIndex], puis retirer à [oldIndex] et insérer à [newIndex].
+MapData reorderMapLayers(
+  MapData map, {
+  required int oldIndex,
+  required int newIndex,
+}) {
+  if (oldIndex < 0 || oldIndex >= map.layers.length) {
+    throw ValidationException('Invalid layer oldIndex: $oldIndex');
+  }
+  if (newIndex < 0 || newIndex > map.layers.length) {
+    throw ValidationException('Invalid layer newIndex: $newIndex');
+  }
+
+  var insertIndex = newIndex;
+  if (insertIndex > oldIndex) {
+    insertIndex -= 1;
+  }
+  if (oldIndex == insertIndex) {
+    return map;
+  }
+
+  final updatedLayers = List<MapLayer>.from(map.layers, growable: true);
+  final layer = updatedLayers.removeAt(oldIndex);
+  updatedLayers.insert(insertIndex, layer);
+  return map.copyWith(layers: updatedLayers);
+}
+
 MapData setMapLayerVisibility(
   MapData map, {
   required String layerId,

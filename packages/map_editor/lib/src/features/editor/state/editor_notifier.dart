@@ -3615,11 +3615,20 @@ class EditorNotifier extends _$EditorNotifier {
     if (map == null) return;
     try {
       final useCase = ref.read(addMapLayerUseCaseProvider);
+      int? insertIndex;
+      final activeId = state.activeLayerId;
+      if (activeId != null) {
+        final idx = map.layers.indexWhere((layer) => layer.id == activeId);
+        if (idx >= 0) {
+          insertIndex = idx;
+        }
+      }
       final result = useCase.execute(
         map,
         kind: kind,
         name: name,
         tileTilesetId: tileTilesetId,
+        insertIndex: insertIndex,
       );
       _applyMapMutation(
         previousMap: map,
@@ -3724,6 +3733,31 @@ class EditorNotifier extends _$EditorNotifier {
         map,
         layerId: layerId,
         direction: direction,
+      );
+      if (updated != map) {
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: updated,
+          preferredActiveLayerId: state.activeLayerId,
+          statusMessage: 'Layer reordered',
+        );
+      } else {
+        state = state.copyWith(errorMessage: null);
+      }
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to reorder layer: $e');
+    }
+  }
+
+  void reorderMapLayers(int oldIndex, int newIndex) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(reorderMapLayersUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        oldIndex: oldIndex,
+        newIndex: newIndex,
       );
       if (updated != map) {
         _applyMapMutation(

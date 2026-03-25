@@ -1778,6 +1778,26 @@ final moveMapLayerUseCaseProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MoveMapLayerUseCaseRef = AutoDisposeProviderRef<MoveMapLayerUseCase>;
+String _$reorderMapLayersUseCaseHash() =>
+    r'3544e83b54adee9c385efcd94d5c79da9dec3628';
+
+/// See also [reorderMapLayersUseCase].
+@ProviderFor(reorderMapLayersUseCase)
+final reorderMapLayersUseCaseProvider =
+    AutoDisposeProvider<ReorderMapLayersUseCase>.internal(
+  reorderMapLayersUseCase,
+  name: r'reorderMapLayersUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$reorderMapLayersUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ReorderMapLayersUseCaseRef
+    = AutoDisposeProviderRef<ReorderMapLayersUseCase>;
 String _$setMapLayerVisibilityUseCaseHash() =>
     r'4b39a926e0deb57a91f94fe32e2ca6f62e26d5ac';
 
