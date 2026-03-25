@@ -298,6 +298,7 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Map "$id" created successfully',
         errorMessage: null,
       );
+      _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
       debugPrint('EditorNotifier: Error creating map: $e');
       state = state.copyWith(errorMessage: 'Failed to create map: $e');
@@ -360,6 +361,7 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Map "${map.id}" loaded',
         errorMessage: null,
       );
+      _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
       debugPrint('EditorNotifier: Error loading map: $e');
       state = state.copyWith(errorMessage: 'Failed to load map: $e');
@@ -2688,6 +2690,7 @@ class EditorNotifier extends _$EditorNotifier {
       statusMessage: 'Undo',
       errorMessage: null,
     );
+    _coerceActiveToolIfIncompatibleWithLayer();
   }
 
   void redoMap() {
@@ -2722,6 +2725,7 @@ class EditorNotifier extends _$EditorNotifier {
       statusMessage: 'Redo',
       errorMessage: null,
     );
+    _coerceActiveToolIfIncompatibleWithLayer();
   }
 
   EditorBrush _clearBrushIfTilesetRemoved(EditorBrush brush, String tilesetId) {
@@ -3613,7 +3617,23 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void selectTool(EditorToolType tool) {
-    state = state.copyWith(activeTool: tool);
+    var terrainMode = state.terrainSelectionMode;
+    if (tool == EditorToolType.terrainPaint) {
+      final map = state.activeMap;
+      final id = state.activeLayerId;
+      if (map != null && id != null) {
+        final layer = _findLayerById(map, id);
+        if (layer is TerrainLayer) {
+          terrainMode = TerrainSelectionMode.terrain;
+        } else if (layer is PathLayer) {
+          terrainMode = TerrainSelectionMode.path;
+        }
+      }
+    }
+    state = state.copyWith(
+      activeTool: tool,
+      terrainSelectionMode: terrainMode,
+    );
   }
 
   void selectTerrainType(TerrainType terrain) {
@@ -4074,6 +4094,7 @@ class EditorNotifier extends _$EditorNotifier {
           statusMessage: 'Layer "${layer.name}" selected',
           errorMessage: null,
         );
+        _coerceActiveToolIfIncompatibleWithLayer();
         return;
       }
     }
@@ -4101,6 +4122,7 @@ class EditorNotifier extends _$EditorNotifier {
           statusMessage: 'Layer "${layer.name}" selected',
           errorMessage: null,
         );
+        _coerceActiveToolIfIncompatibleWithLayer();
         return;
       }
     }
@@ -4147,6 +4169,45 @@ class EditorNotifier extends _$EditorNotifier {
       activeLayerId: layerId,
       errorMessage: null,
     );
+    _coerceActiveToolIfIncompatibleWithLayer();
+  }
+
+  /// Bascule vers la sélection si l’outil courant ne peut pas agir sur le calque actif.
+  void _coerceActiveToolIfIncompatibleWithLayer() {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    MapLayer? layer;
+    if (map != null && layerId != null) {
+      layer = _findLayerById(map, layerId);
+    }
+    if (_isToolCompatibleWithActiveLayer(state.activeTool, layer)) {
+      return;
+    }
+    state = state.copyWith(activeTool: EditorToolType.selection);
+  }
+
+  bool _isToolCompatibleWithActiveLayer(
+    EditorToolType tool,
+    MapLayer? layer,
+  ) {
+    switch (tool) {
+      case EditorToolType.selection:
+      case EditorToolType.entityPlacement:
+      case EditorToolType.triggerPlacement:
+      case EditorToolType.warpPlacement:
+        return true;
+      case EditorToolType.tilePaint:
+        return layer is TileLayer;
+      case EditorToolType.collisionPaint:
+        return layer is CollisionLayer;
+      case EditorToolType.terrainPaint:
+        return layer is TerrainLayer || layer is PathLayer;
+      case EditorToolType.eraser:
+        return layer is TileLayer ||
+            layer is CollisionLayer ||
+            layer is TerrainLayer ||
+            layer is PathLayer;
+    }
   }
 
   void updateHoveredTile(GridPos? pos) {
@@ -4222,6 +4283,7 @@ class EditorNotifier extends _$EditorNotifier {
       statusMessage: statusMessage ?? state.statusMessage,
       errorMessage: null,
     );
+    _coerceActiveToolIfIncompatibleWithLayer();
   }
 
   int _findLayerIndexById(MapData map, String layerId) {

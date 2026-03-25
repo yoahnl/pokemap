@@ -62,24 +62,32 @@ class TopToolbar extends ConsumerWidget {
     final isMapWorkspace = state.workspaceMode == EditorWorkspaceMode.map;
     final hasMapCanvas = map != null;
     final showWorldTools = isMapWorkspace && hasMapCanvas;
-    final hasTileLayers =
-        hasMapCanvas && map.layers.any((layer) => layer is TileLayer);
-    final hasTerrainLayers =
-        hasMapCanvas && map.layers.any((layer) => layer is TerrainLayer);
-    final hasPathLayers =
-        hasMapCanvas && map.layers.any((layer) => layer is PathLayer);
-    final hasCollisionLayers =
-        hasMapCanvas && map.layers.any((layer) => layer is CollisionLayer);
+
+    MapLayer? activeLayer;
+    if (map != null && state.activeLayerId != null) {
+      for (final layer in map.layers) {
+        if (layer.id == state.activeLayerId) {
+          activeLayer = layer;
+          break;
+        }
+      }
+    }
+
+    final canEraseOnActiveLayer = activeLayer is TileLayer ||
+        activeLayer is CollisionLayer ||
+        activeLayer is TerrainLayer ||
+        activeLayer is PathLayer;
 
     final showTerrainTypePulldown =
-        state.activeTool == EditorToolType.terrainPaint &&
+        activeLayer is TerrainLayer &&
+            state.activeTool == EditorToolType.terrainPaint &&
             state.terrainSelectionMode == TerrainSelectionMode.terrain;
     final showEntityKindPulldown =
         state.activeTool == EditorToolType.entityPlacement;
     final showContextStrip =
         showWorldTools && (showTerrainTypePulldown || showEntityKindPulldown);
 
-    final showCollisionBrushSize = showWorldTools &&
+    final showCollisionBrushSize = activeLayer is CollisionLayer &&
         (state.activeTool == EditorToolType.collisionPaint ||
             state.activeTool == EditorToolType.eraser);
 
@@ -189,61 +197,65 @@ class TopToolbar extends ConsumerWidget {
               selected: state.activeTool == EditorToolType.selection,
               onPressed: () => notifier.selectTool(EditorToolType.selection),
             ),
-            _ToolbarCapsuleButton(
-              icon: CupertinoIcons.paintbrush,
-              tooltip: 'Tile Paint Tool',
-              selected: state.activeTool == EditorToolType.tilePaint,
-              onPressed: hasTileLayers
-                  ? () => notifier.selectTool(EditorToolType.tilePaint)
-                  : null,
-            ),
-            _ToolbarCapsuleButton(
-              icon: CupertinoIcons.tree,
-              tooltip: 'Terrain Paint Tool',
-              selected: state.activeTool == EditorToolType.terrainPaint &&
-                  state.terrainSelectionMode == TerrainSelectionMode.terrain,
-              onPressed: hasTerrainLayers
-                  ? () => notifier.selectTool(EditorToolType.terrainPaint)
-                  : null,
-            ),
-            _ToolbarCapsuleButton(
-              icon: CupertinoIcons.map,
-              tooltip: 'Path Paint Tool',
-              selected: state.activeTool == EditorToolType.terrainPaint &&
-                  state.terrainSelectionMode == TerrainSelectionMode.path,
-              onPressed:
-                  hasPathLayers ? notifier.selectPathPaintMode : null,
-            ),
-            _ToolbarCapsuleButton(
-              icon: CupertinoIcons.square_grid_2x2,
-              tooltip: 'Collision Paint Tool',
-              selected: state.activeTool == EditorToolType.collisionPaint,
-              onPressed: hasCollisionLayers
-                  ? () => notifier.selectTool(
-                        EditorToolType.collisionPaint,
-                      )
-                  : null,
-            ),
-            if (showCollisionBrushSize)
+            if (activeLayer is TileLayer)
               _ToolbarCapsuleButton(
-                icon: state.collisionBrushSizeMode ==
-                        CollisionBrushSizeMode.singleTile
-                    ? CupertinoIcons.number
-                    : CupertinoIcons.square_grid_3x2,
-                tooltip: state.collisionBrushSizeMode ==
-                        CollisionBrushSizeMode.singleTile
-                    ? 'Collision Brush Size: 1x1'
-                    : 'Collision Brush Size: Brush Footprint',
-                selected: state.activeTool == EditorToolType.collisionPaint ||
-                    state.activeTool == EditorToolType.eraser,
-                onPressed: notifier.toggleCollisionBrushSizeMode,
+                icon: CupertinoIcons.paintbrush,
+                tooltip: 'Tile Paint Tool',
+                selected: state.activeTool == EditorToolType.tilePaint,
+                onPressed: () =>
+                    notifier.selectTool(EditorToolType.tilePaint),
               ),
-            _ToolbarCapsuleButton(
-              icon: CupertinoIcons.delete,
-              tooltip: 'Eraser Tool',
-              selected: state.activeTool == EditorToolType.eraser,
-              onPressed: () => notifier.selectTool(EditorToolType.eraser),
-            ),
+            if (activeLayer is TerrainLayer)
+              _ToolbarCapsuleButton(
+                icon: CupertinoIcons.tree,
+                tooltip: 'Terrain Paint Tool',
+                selected: state.activeTool == EditorToolType.terrainPaint &&
+                    state.terrainSelectionMode ==
+                        TerrainSelectionMode.terrain,
+                onPressed: () =>
+                    notifier.selectTool(EditorToolType.terrainPaint),
+              ),
+            if (activeLayer is PathLayer)
+              _ToolbarCapsuleButton(
+                icon: CupertinoIcons.map,
+                tooltip: 'Path Paint Tool',
+                selected: state.activeTool == EditorToolType.terrainPaint &&
+                    state.terrainSelectionMode == TerrainSelectionMode.path,
+                onPressed: notifier.selectPathPaintMode,
+              ),
+            if (activeLayer is CollisionLayer) ...[
+              _ToolbarCapsuleButton(
+                icon: CupertinoIcons.square_grid_2x2,
+                tooltip: 'Collision Paint Tool',
+                selected: state.activeTool == EditorToolType.collisionPaint,
+                onPressed: () => notifier.selectTool(
+                      EditorToolType.collisionPaint,
+                    ),
+              ),
+              if (showCollisionBrushSize)
+                _ToolbarCapsuleButton(
+                  icon: state.collisionBrushSizeMode ==
+                          CollisionBrushSizeMode.singleTile
+                      ? CupertinoIcons.number
+                      : CupertinoIcons.square_grid_3x2,
+                  tooltip: state.collisionBrushSizeMode ==
+                          CollisionBrushSizeMode.singleTile
+                      ? 'Collision Brush Size: 1x1'
+                      : 'Collision Brush Size: Brush Footprint',
+                  selected:
+                      state.activeTool == EditorToolType.collisionPaint ||
+                          state.activeTool == EditorToolType.eraser,
+                  onPressed: notifier.toggleCollisionBrushSizeMode,
+                ),
+            ],
+            if (canEraseOnActiveLayer)
+              _ToolbarCapsuleButton(
+                icon: CupertinoIcons.delete,
+                tooltip: 'Eraser Tool',
+                selected: state.activeTool == EditorToolType.eraser,
+                onPressed: () =>
+                    notifier.selectTool(EditorToolType.eraser),
+              ),
           ],
         ),
       if (showWorldTools)
