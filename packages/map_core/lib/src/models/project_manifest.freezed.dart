@@ -3733,7 +3733,7 @@ mixin _$ProjectElementEntry {
   String get categoryId => throw _privateConstructorUsedError;
   String? get tilesetGroupId => throw _privateConstructorUsedError;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
   List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
   String? get groupId => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
@@ -3962,10 +3962,10 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
   @override
   final String? tilesetGroupId;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
   final List<TilesetVisualFrame> _frames;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
   @override
   List<TilesetVisualFrame> get frames {
     if (_frames is EqualUnmodifiableListView) return _frames;
@@ -4076,7 +4076,7 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
   @override
   String? get tilesetGroupId;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
   @override
   List<TilesetVisualFrame> get frames;
   @override

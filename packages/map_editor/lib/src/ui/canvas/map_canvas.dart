@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -34,6 +35,41 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   /// Cellule de départ pour le tracé d'une zone par clic+glisser.
   GridPos? _zoneDragStart;
 
+  Timer? _entityEditorAnimTimer;
+  bool _entityEditorAnimTimerRunning = false;
+  int _editorEntityAnimationMs = 0;
+
+  void _syncEditorEntityAnimationTimer(bool needsAnimation) {
+    if (needsAnimation == _entityEditorAnimTimerRunning) {
+      return;
+    }
+    _entityEditorAnimTimerRunning = needsAnimation;
+    if (needsAnimation) {
+      _entityEditorAnimTimer?.cancel();
+      _entityEditorAnimTimer =
+          Timer.periodic(const Duration(milliseconds: 110), (_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _editorEntityAnimationMs += 110;
+          if (_editorEntityAnimationMs > 2000000000) {
+            _editorEntityAnimationMs = 0;
+          }
+        });
+      });
+    } else {
+      _entityEditorAnimTimer?.cancel();
+      _entityEditorAnimTimer = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _entityEditorAnimTimer?.cancel();
+    super.dispose();
+  }
+
   void _updateTilesetImagesFuture(Map<String, String> nextTilesetPathsById) {
     if (_tilesetImagesFuture != null &&
         mapEquals(_lastTilesetPathsById, nextTilesetPathsById)) {
@@ -67,6 +103,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     if (activeMap == null) {
       _rightPanPointerId = null;
       _middlePanPointerId = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _syncEditorEntityAnimationTimer(false);
+        }
+      });
       return const Center(child: Text('No Map Loaded'));
     }
 
@@ -87,6 +128,17 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             }
           });
         }
+        final needsEntityAnim = mapEntitiesNeedEditorFrameAnimation(
+          activeMap,
+          state.project,
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+          _syncEditorEntityAnimationTimer(needsEntityAnim);
+        });
+
         final toolPreview = notifier.resolveMapToolPreview(
           hoveredTile: _hoveredTile,
           tilesetColumnsById: tilesPerRowById,
@@ -288,6 +340,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
                     terrainPresetsByType: terrainPresetsByType,
                     project: state.project,
+                    editorEntityAnimationMs: _editorEntityAnimationMs,
                   ),
                 ),
             ),
@@ -514,6 +567,7 @@ class MapGridPainter extends CustomPainter {
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
   final Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType;
   final ProjectManifest? project;
+  final int editorEntityAnimationMs;
 
   MapGridPainter({
     required this.map,
@@ -540,6 +594,7 @@ class MapGridPainter extends CustomPainter {
     required this.pathAutotileSetsByPresetId,
     required this.terrainPresetsByType,
     this.project,
+    this.editorEntityAnimationMs = 0,
   });
 
   @override
@@ -701,12 +756,13 @@ class MapGridPainter extends CustomPainter {
         entity.size.width * tileWidth,
         entity.size.height * tileHeight,
       );
-      final resolved = resolveEntityPrimaryFrameVisual(
+      final resolved = resolveEntityElementVisualForEditor(
         entity: entity,
         project: project,
         tilesetImagesById: tilesetImagesById,
         sourceTileWidth: sourceTileWidth,
         sourceTileHeight: sourceTileHeight,
+        editorAnimationTimeMs: editorEntityAnimationMs,
       );
       if (resolved != null) {
         final shade = RRect.fromRectAndRadius(
@@ -719,7 +775,7 @@ class MapGridPainter extends CustomPainter {
             ..color = Colors.black.withValues(alpha: isSelected ? 0.28 : 0.2)
             ..style = PaintingStyle.fill,
         );
-        _paintEntityProjectElementFirstFrame(
+        _paintEntityProjectElementFrame(
           canvas,
           resolved.image,
           resolved.srcRect,
@@ -732,7 +788,7 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintEntityProjectElementFirstFrame(
+  void _paintEntityProjectElementFrame(
     Canvas canvas,
     ui.Image image,
     Rect src,
@@ -2067,7 +2123,8 @@ class MapGridPainter extends CustomPainter {
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||
-        !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById);
+        !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
+        oldDelegate.editorEntityAnimationMs != editorEntityAnimationMs;
   }
 
   bool _sameToolPreview(MapToolPreview? previous, MapToolPreview? next) {

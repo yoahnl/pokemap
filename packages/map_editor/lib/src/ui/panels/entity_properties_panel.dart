@@ -859,7 +859,7 @@ class _EntityPropertiesPanelState
             idToLabel: (id) => _elementVisualMenuLabel(sorted, id),
             onSelected: (id) => setState(() => _editorVisualMenuId = id),
             tooltip: _l(
-              'Même bibliothèque pour PNJ, panneaux, objets, etc. L’éditeur n’affiche que la première frame ; l’animation repose sur les frames de l’élément.',
+              'Même bibliothèque pour PNJ, panneaux, objets, etc. Sur la carte, le canvas alterne les frames de l’élément (durées par frame ou valeur par défaut) ; pas de données d’animation dupliquées sur l’entité.',
               'Same library for NPCs, signs, items, etc. The editor shows the first frame only; animation lives on the element’s frames.',
             ),
           ),
