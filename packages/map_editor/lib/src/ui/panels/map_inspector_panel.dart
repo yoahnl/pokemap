@@ -107,7 +107,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                       : 'Active: ${_layerLabel(activeLayer)}',
                   icon: CupertinoIcons.layers,
                   badgeText: '${activeMap.layers.length}',
-                  accentColor: EditorChrome.accentCyan,
+                  accentColor: EditorChrome.accentPrimary,
                   expanded: _isExpanded(_InspectorSectionId.layers, true),
                   onToggle: () => _toggleSection(
                     _InspectorSectionId.layers,
@@ -122,7 +122,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle:
                         'Tileset palette and element placement for tile layers.',
                     icon: CupertinoIcons.square_grid_2x2,
-                    accentColor: EditorChrome.accentPrimary,
+                    accentColor: EditorChrome.accentLilac,
                     expanded: _isExpanded(
                       _InspectorSectionId.tiles,
                       activeLayer is TileLayer ||
@@ -206,7 +206,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle: 'Link the current map to adjacent world maps.',
                     icon: CupertinoIcons.arrow_branch,
                     badgeText: '${activeMap.connections.length}',
-                    accentColor: EditorChrome.accentPrimary,
+                    accentColor: EditorChrome.accentPrune,
                     expanded:
                         _isExpanded(_InspectorSectionId.connections, false),
                     onToggle: () => _toggleSection(
@@ -224,7 +224,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Gameplay zones and editable trigger areas.',
                     icon: CupertinoIcons.square,
                     badgeText: '${activeMap.triggers.length}',
-                    accentColor: EditorChrome.accentWarm,
+                    accentColor: EditorChrome.accentCoral,
                     expanded: _isExpanded(
                       _InspectorSectionId.triggers,
                       state.activeTool == EditorToolType.triggerPlacement ||
@@ -247,7 +247,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Map transitions such as doors, stairs and exits.',
                     icon: CupertinoIcons.arrow_down_circle,
                     badgeText: '${activeMap.warps.length}',
-                    accentColor: EditorChrome.accentCyan,
+                    accentColor: EditorChrome.accentMagentaDeep,
                     expanded: _isExpanded(
                       _InspectorSectionId.warps,
                       state.activeTool == EditorToolType.warpPlacement ||
@@ -319,7 +319,8 @@ class _InspectorOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    const accent = EditorChrome.accentCyan;
+    const accentA = EditorChrome.accentPrimary;
+    const accentB = EditorChrome.accentLilac;
     final activeLayerText = activeLayer == null
         ? 'No active layer'
         : switch (activeLayer!) {
@@ -330,22 +331,22 @@ class _InspectorOverviewCard extends StatelessWidget {
             ObjectLayer _ => 'Object layer active',
           };
 
+    final hi = EditorChrome.islandFillElevated(context);
+    final lo = EditorChrome.islandFill(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(10, 2, 10, 12),
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(
-          accent.withValues(alpha: 0.08),
-          EditorChrome.islandFillElevated(context),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(hi, accentA, 0.12)!,
+            Color.lerp(lo, accentB, 0.08)!,
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x16000000),
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
+        boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: Row(
         children: [
@@ -353,13 +354,20 @@ class _InspectorOverviewCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(hi, accentA, 0.38)!,
+                  Color.lerp(lo, accentB, 0.22)!,
+                ],
+              ),
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
-            child: MacosIcon(
+            child: const MacosIcon(
               CupertinoIcons.slider_horizontal_3,
-              color: accent,
+              color: accentA,
               size: 20,
             ),
           ),

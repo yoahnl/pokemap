@@ -33,14 +33,10 @@ class InspectorSectionCard extends StatelessWidget {
     final hasBadge = badgeText != null && badgeText.isNotEmpty;
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    final fillTop = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.055),
-      EditorChrome.islandFillElevated(context),
-    );
-    final fillBottom = Color.alphaBlend(
-      accentColor.withValues(alpha: 0.022),
-      EditorChrome.islandFill(context),
-    );
+    final baseHi = EditorChrome.islandFillElevated(context);
+    final baseLo = EditorChrome.islandFill(context);
+    final fillTop = Color.lerp(baseHi, accentColor, 0.14)!;
+    final fillBottom = Color.lerp(baseLo, accentColor, 0.055)!;
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 180),
@@ -57,7 +53,7 @@ class InspectorSectionCard extends StatelessWidget {
             ],
           ),
           borderRadius: BorderRadius.circular(22),
-          boxShadow: EditorChrome.panelShadows(context),
+          boxShadow: EditorChrome.sectionCardShadows(context),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -69,19 +65,28 @@ class InspectorSectionCard extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                         colors: [
-                          accentColor.withValues(alpha: 0.22),
-                          accentColor.withValues(alpha: 0.08),
+                          Color.lerp(baseHi, accentColor, 0.34)!,
+                          Color.lerp(baseLo, accentColor, 0.16)!,
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(11),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withValues(alpha: 0.18),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     alignment: Alignment.center,
-                    child: MacosIcon(icon, size: 17, color: accentColor),
+                    child: MacosIcon(icon, size: 18, color: accentColor),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -121,7 +126,7 @@ class InspectorSectionCard extends StatelessWidget {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.08),
+                        color: Color.lerp(baseHi, accentColor, 0.2)!,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -129,7 +134,7 @@ class InspectorSectionCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: accentColor.withValues(alpha: 0.92),
+                          color: accentColor,
                         ),
                       ),
                     ),

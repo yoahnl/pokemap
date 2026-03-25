@@ -34,14 +34,59 @@ abstract final class EditorChrome {
   static Color appBackground(BuildContext context) =>
       EditorVisualTokens.appBackground(context);
 
-  static LinearGradient appBackgroundGradient(BuildContext context) =>
-      EditorVisualTokens.appBackgroundGradient(context);
+  /// Fond racine (fenêtre) : dégradé en clair, **couleur unie** en sombre.
+  static BoxDecoration appRootDecoration(BuildContext context) {
+    final g = EditorVisualTokens.appBackgroundGradient(context);
+    if (g != null) {
+      return BoxDecoration(gradient: g);
+    }
+    return BoxDecoration(color: appBackground(context));
+  }
+
+  @Deprecated('Use appRootDecoration; dark theme is solid.')
+  static LinearGradient appBackgroundGradient(BuildContext context) {
+    final g = EditorVisualTokens.appBackgroundGradient(context);
+    if (g != null) return g;
+    return LinearGradient(colors: [appBackground(context), appBackground(context)]);
+  }
 
   static Color islandFill(BuildContext context) =>
       EditorVisualTokens.islandFill(context);
 
   static Color islandFillElevated(BuildContext context) =>
       EditorVisualTokens.islandFillElevated(context);
+
+  /// Grands îlots : surface **unie**, légèrement teintée si besoin.
+  static Color largeIslandSurfaceColor(
+    BuildContext context, {
+    Color? tint,
+  }) =>
+      EditorVisualTokens.mainIslandSurface(context, tint: tint);
+
+  static Color toolbarBarFill(BuildContext context) =>
+      EditorVisualTokens.toolbarBarColor(context);
+
+  static Color toolbarCapsuleFill(BuildContext context) =>
+      EditorVisualTokens.toolbarCapsuleColor(context);
+
+  /// Piste des pulldowns dans la toolbar (lisible, stable).
+  static Color toolbarPulldownTrackFill(BuildContext context) =>
+      _isDark(context)
+          ? Color.lerp(
+              EditorVisualTokens.toolbarCapsuleDark,
+              accentPrimary,
+              0.08,
+            )!
+          : const Color(0xFFE8ECF2);
+
+  /// Survol discret dans les capsules toolbar.
+  static Color toolbarMutedHoverFill(BuildContext context) => _isDark(context)
+      ? Color.lerp(
+          EditorVisualTokens.toolbarCapsuleDark,
+          accentPrimary,
+          0.1,
+        )!
+      : const Color(0x14000000);
 
   /// Compat : base d’îlot.
   static Color panelBackground(BuildContext context) => islandFill(context);
@@ -57,7 +102,7 @@ abstract final class EditorChrome {
   static Color mapCanvasViewportBackground(BuildContext context) =>
       CupertinoColors.transparent;
 
-  /// Compat : même dégradé que [appBackgroundGradient].
+  /// Compat : pas de vrai dégradé en thème sombre.
   static LinearGradient windowBackdropGradient(BuildContext context) =>
       appBackgroundGradient(context);
 
@@ -90,7 +135,7 @@ abstract final class EditorChrome {
       ? Color.lerp(
           islandFillElevated(context),
           accentPrimary,
-          0.1,
+          0.11,
         )!
       : CupertinoColors.black.withValues(alpha: 0.045);
 
@@ -112,41 +157,8 @@ abstract final class EditorChrome {
   static Color panelBorder(BuildContext context) =>
       _isDark(context) ? const Color(0x04000000) : const Color(0x14000000);
 
-  static LinearGradient panelGradient(
-    BuildContext context, {
-    Color? tint,
-  }) {
-    if (_isDark(context)) {
-      final t = tint ?? accentPrimary;
-      final mid = Color.lerp(
-            Color.lerp(t, accentLilac, 0.22)!,
-            accentRose,
-            0.18,
-          ) ??
-          t;
-      final top = Color.alphaBlend(
-        Color.lerp(t, accentCyan, 0.18)!.withValues(alpha: 0.17),
-        islandFill(context),
-      );
-      final center = Color.alphaBlend(
-        mid.withValues(alpha: 0.11),
-        islandFill(context),
-      );
-      final bottom = Color.alphaBlend(
-        Color.lerp(accentWarm, accentCoral, 0.4)!.withValues(alpha: 0.12),
-        islandFillElevated(context),
-      );
-      return LinearGradient(
-        begin: const Alignment(-0.9, -1.0),
-        end: const Alignment(1.0, 1.1),
-        colors: [
-          top,
-          center,
-          bottom,
-        ],
-        stops: const [0.0, 0.52, 1.0],
-      );
-    }
+  /// Petit module en thème clair uniquement (cartes légères).
+  static LinearGradient panelGradientLight(BuildContext context) {
     return const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -157,34 +169,19 @@ abstract final class EditorChrome {
     );
   }
 
-  static LinearGradient toolbarGroupGradient(BuildContext context) =>
-      EditorVisualTokens.toolbarCapsuleGradient(context);
-
-  static LinearGradient toolbarShellGradient(BuildContext context) =>
-      EditorVisualTokens.toolbarSurfaceGradient(context);
-
+  /// Ombres des **grands îlots** : profondeur sobre, peu de halos colorés.
   static List<BoxShadow> panelShadows(BuildContext context) {
     if (_isDark(context)) {
-      return [
+      return const [
         BoxShadow(
-          color: accentCyan.withValues(alpha: 0.045),
-          blurRadius: 32,
-          offset: const Offset(0, 16),
+          color: Color(0x48000000),
+          blurRadius: 28,
+          offset: Offset(0, 14),
         ),
         BoxShadow(
-          color: accentPrune.withValues(alpha: 0.08),
-          blurRadius: 36,
-          offset: const Offset(0, 18),
-        ),
-        const BoxShadow(
-          color: Color(0x3A000000),
-          blurRadius: 36,
-          offset: Offset(0, 18),
-        ),
-        const BoxShadow(
-          color: Color(0x10000000),
-          blurRadius: 12,
-          offset: Offset(0, 4),
+          color: Color(0x0E000000),
+          blurRadius: 10,
+          offset: Offset(0, 3),
         ),
       ];
     }
@@ -197,26 +194,46 @@ abstract final class EditorChrome {
     ];
   }
 
+  /// Cartes / sections inspecteur : relief discret (évite l’effet « double îlot »).
+  static List<BoxShadow> sectionCardShadows(BuildContext context) {
+    if (_isDark(context)) {
+      return const [
+        BoxShadow(
+          color: Color(0x38000000),
+          blurRadius: 14,
+          offset: Offset(0, 6),
+        ),
+        BoxShadow(
+          color: Color(0x0A000000),
+          blurRadius: 6,
+          offset: Offset(0, 2),
+        ),
+      ];
+    }
+    return const [
+      BoxShadow(
+        color: Color(0x0C000000),
+        blurRadius: 12,
+        offset: Offset(0, 5),
+      ),
+    ];
+  }
+
   static List<BoxShadow> toolbarCapsuleShadows(BuildContext context) {
     if (_isDark(context)) {
-      return [
+      return const [
         BoxShadow(
-          color: accentLilac.withValues(alpha: 0.04),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
-        ),
-        const BoxShadow(
-          color: Color(0x32000000),
-          blurRadius: 16,
-          offset: Offset(0, 8),
+          color: Color(0x2E000000),
+          blurRadius: 10,
+          offset: Offset(0, 5),
         ),
       ];
     }
     return const [
       BoxShadow(
         color: Color(0x10000000),
-        blurRadius: 12,
-        offset: Offset(0, 6),
+        blurRadius: 10,
+        offset: Offset(0, 4),
       ),
     ];
   }
@@ -254,7 +271,12 @@ class EditorPaneSurface extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: EditorChrome.panelGradient(context, tint: tint),
+            color: MacosTheme.brightnessOf(context) == Brightness.dark
+                ? EditorChrome.largeIslandSurfaceColor(context, tint: tint)
+                : null,
+            gradient: MacosTheme.brightnessOf(context) == Brightness.dark
+                ? null
+                : EditorChrome.panelGradientLight(context),
             borderRadius: BorderRadius.circular(radius),
             border: showBorder
                 ? Border.all(color: EditorChrome.panelBorder(context))

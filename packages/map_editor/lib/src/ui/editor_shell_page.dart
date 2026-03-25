@@ -126,9 +126,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             clipBehavior: Clip.none,
             children: [
               DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: EditorChrome.appBackgroundGradient(context),
-                ),
+                decoration: EditorChrome.appRootDecoration(context),
                 child: Stack(
                   children: [
                     const Positioned(
@@ -265,7 +263,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                   const EdgeInsets.fromLTRB(12, 18, 16, 18),
                               child: EditorIsland(
                                 radius: 32,
-                                tint: EditorChrome.islandNeutralTint,
+                                tint: workspaceMode == EditorWorkspaceMode.map
+                                    ? EditorChrome.islandNeutralTint
+                                    : EditorChrome.islandWarmTint,
                                 child: workspaceMode == EditorWorkspaceMode.map
                                     ? const MapInspectorPanel()
                                     : const TilesetPalettePanel(),

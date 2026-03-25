@@ -243,7 +243,7 @@ class _LayerList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
-    final accent = EditorChrome.activeAccent(context);
+    const layerAccent = EditorChrome.accentPrimary;
     final label = CupertinoColors.label.resolveFrom(context);
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
 
@@ -270,11 +270,21 @@ class _LayerList extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: isActive
-                  ? accent.withValues(alpha: 0.12)
+                  ? Color.lerp(
+                      EditorChrome.islandFillElevated(context),
+                      layerAccent,
+                      0.22,
+                    )!
                   : EditorChrome.islandFillElevated(context),
               borderRadius: BorderRadius.circular(12),
               boxShadow: isActive
-                  ? null
+                  ? [
+                      BoxShadow(
+                        color: layerAccent.withValues(alpha: 0.12),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
                   : const [
                       BoxShadow(
                         color: Color(0x28000000),
@@ -296,7 +306,7 @@ class _LayerList extends StatelessWidget {
                         MacosIcon(
                           _iconForLayer(layer),
                           size: 16,
-                          color: isActive ? accent : secondary,
+                          color: isActive ? layerAccent : secondary,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -312,7 +322,7 @@ class _LayerList extends StatelessWidget {
                                   fontWeight: isActive
                                       ? FontWeight.w600
                                       : FontWeight.w500,
-                                  color: isActive ? accent : label,
+                                  color: isActive ? layerAccent : label,
                                 ),
                               ),
                               const SizedBox(height: 2),
