@@ -54,7 +54,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
   ) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    const explorerAccent = Color(0xFF7FB6C3);
+    const explorerAccent = EditorChrome.accentCyan;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       child: Row(
@@ -68,7 +68,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   explorerAccent.withValues(alpha: 0.22),
-                  const Color(0xFF5A406B).withValues(alpha: 0.14),
+                  EditorChrome.accentPrune.withValues(alpha: 0.14),
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
@@ -188,7 +188,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
       children: [
         Expanded(
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF35506A),
+            tint: EditorChrome.islandCoolTint,
             child: _buildTilesetsIsland(context, project, state, notifier),
           ),
         ),
@@ -206,7 +206,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF324A61),
+            tint: EditorChrome.islandNeutralTint,
             child: _buildWorldIsland(context, worldChildren),
           ),
         ),
@@ -224,7 +224,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF425042),
+            tint: EditorChrome.islandWarmTint,
             child: const TerrainEditorPanel(),
           ),
         ),
@@ -252,7 +252,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
     BuildContext context,
     List<Widget> worldChildren,
   ) {
-    const worldAccent = Color(0xFF82AAB6);
+    const worldAccent = EditorChrome.accentCyan;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

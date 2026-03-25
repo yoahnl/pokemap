@@ -107,7 +107,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                       : 'Active: ${_layerLabel(activeLayer)}',
                   icon: CupertinoIcons.layers,
                   badgeText: '${activeMap.layers.length}',
-                  accentColor: const Color(0xFF8DA5BA),
+                  accentColor: EditorChrome.accentCyan,
                   expanded: _isExpanded(_InspectorSectionId.layers, true),
                   onToggle: () => _toggleSection(
                     _InspectorSectionId.layers,
@@ -122,7 +122,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle:
                         'Tileset palette and element placement for tile layers.',
                     icon: CupertinoIcons.square_grid_2x2,
-                    accentColor: const Color(0xFF7E97D8),
+                    accentColor: EditorChrome.accentPrimary,
                     expanded: _isExpanded(
                       _InspectorSectionId.tiles,
                       activeLayer is TileLayer ||
@@ -141,7 +141,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     title: 'Base Ground',
                     subtitle: 'Terrain-only editing for the map background.',
                     icon: CupertinoIcons.tree,
-                    accentColor: const Color(0xFF3E8D67),
+                    accentColor: EditorChrome.accentJade,
                     expanded: _isExpanded(
                       _InspectorSectionId.ground,
                       true,
@@ -162,7 +162,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle:
                         'Edit the active path layer for roads and specialized surfaces.',
                     icon: CupertinoIcons.map,
-                    accentColor: const Color(0xFF9B6230),
+                    accentColor: EditorChrome.accentWarm,
                     expanded: _isExpanded(
                       _InspectorSectionId.surfaces,
                       true,
@@ -185,7 +185,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Visible world content such as NPCs, signs, items and spawn points.',
                     icon: CupertinoIcons.sparkles,
                     badgeText: '${activeMap.entities.length}',
-                    accentColor: const Color(0xFF63C2C6),
+                    accentColor: EditorChrome.accentCyan,
                     expanded: _isExpanded(
                       _InspectorSectionId.entities,
                       state.activeTool == EditorToolType.entityPlacement ||
@@ -206,7 +206,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle: 'Link the current map to adjacent world maps.',
                     icon: CupertinoIcons.arrow_branch,
                     badgeText: '${activeMap.connections.length}',
-                    accentColor: const Color(0xFF8B98C4),
+                    accentColor: EditorChrome.accentPrimary,
                     expanded:
                         _isExpanded(_InspectorSectionId.connections, false),
                     onToggle: () => _toggleSection(
@@ -224,7 +224,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Gameplay zones and editable trigger areas.',
                     icon: CupertinoIcons.square,
                     badgeText: '${activeMap.triggers.length}',
-                    accentColor: const Color(0xFFE59A2E),
+                    accentColor: EditorChrome.accentWarm,
                     expanded: _isExpanded(
                       _InspectorSectionId.triggers,
                       state.activeTool == EditorToolType.triggerPlacement ||
@@ -247,7 +247,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Map transitions such as doors, stairs and exits.',
                     icon: CupertinoIcons.arrow_down_circle,
                     badgeText: '${activeMap.warps.length}',
-                    accentColor: const Color(0xFF31C3D9),
+                    accentColor: EditorChrome.accentCyan,
                     expanded: _isExpanded(
                       _InspectorSectionId.warps,
                       state.activeTool == EditorToolType.warpPlacement ||
@@ -319,7 +319,7 @@ class _InspectorOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    const accent = Color(0xFF8CB4B1);
+    const accent = EditorChrome.accentCyan;
     final activeLayerText = activeLayer == null
         ? 'No active layer'
         : switch (activeLayer!) {

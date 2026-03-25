@@ -11,6 +11,16 @@ abstract final class EditorChrome {
   static bool _isDark(BuildContext context) =>
       MacosTheme.brightnessOf(context) == Brightness.dark;
 
+  static const Color accentPrimary = Color(0xFF4C8DFF);
+  static const Color accentCyan = Color(0xFF67D4FF);
+  static const Color accentJade = Color(0xFF58C7A5);
+  static const Color accentWarm = Color(0xFFE0A65D);
+  static const Color accentCoral = Color(0xFFD97A68);
+  static const Color accentPrune = Color(0xFF5A406B);
+  static const Color islandCoolTint = Color(0xFF35506A);
+  static const Color islandNeutralTint = Color(0xFF324A61);
+  static const Color islandWarmTint = Color(0xFF425042);
+
   static Color windowBackground(BuildContext context) =>
       _isDark(context) ? const Color(0xFF0E0D12) : const Color(0xFFF2F4F8);
 
@@ -33,7 +43,7 @@ abstract final class EditorChrome {
 
   static Color mapCanvasViewportBackground(BuildContext context) {
     if (_isDark(context)) {
-      return const Color(0xFF151B25);
+      return CupertinoColors.transparent;
     }
     return CupertinoColors.systemGroupedBackground.resolveFrom(context);
   }
@@ -53,6 +63,18 @@ abstract final class EditorChrome {
 
   static Color activeAccent(BuildContext context) =>
       CupertinoTheme.of(context).primaryColor;
+
+  static Color statusTint(BuildContext context) => _isDark(context)
+      ? const Color(0xFF2E4760)
+      : const Color(0xFFE8EEF8);
+
+  static Color errorTint(BuildContext context) => _isDark(context)
+      ? const Color(0xFF32242A)
+      : const Color(0xFFF8E8EA);
+
+  static Color chipFill(BuildContext context) => _isDark(context)
+      ? CupertinoColors.white.withValues(alpha: 0.07)
+      : CupertinoColors.black.withValues(alpha: 0.04);
 
   static Color sidebarHoverFill(BuildContext context) =>
       _isDark(context) ? const Color(0x1FFFFFFF) : const Color(0x10000000);
@@ -147,6 +169,27 @@ abstract final class EditorChrome {
       colors: [
         Color(0xFFFFFFFF),
         Color(0xFFF4F6FA),
+      ],
+    );
+  }
+
+  static LinearGradient toolbarShellGradient(BuildContext context) {
+    if (_isDark(context)) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color.fromRGBO(36, 44, 62, 0.46),
+          Color.fromRGBO(18, 24, 34, 0.16),
+        ],
+      );
+    }
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFFFFFFFF),
+        Color(0xFFF3F5F8),
       ],
     );
   }

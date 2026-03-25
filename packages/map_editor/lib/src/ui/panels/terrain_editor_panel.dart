@@ -40,8 +40,8 @@ class TerrainEditorPanel extends ConsumerWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFFB67B44).withValues(alpha: 0.22),
-                      const Color(0xFF5FC7A1).withValues(alpha: 0.12),
+                      EditorChrome.accentWarm.withValues(alpha: 0.22),
+                      EditorChrome.accentJade.withValues(alpha: 0.12),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -50,7 +50,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                 child: const MacosIcon(
                   CupertinoIcons.square_stack_3d_down_right_fill,
                   size: 18,
-                  color: Color(0xFFE2B67C),
+                  color: EditorChrome.accentWarm,
                 ),
               ),
               const SizedBox(width: 10),
@@ -85,7 +85,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.white.withValues(alpha: 0.06),
+                  color: EditorChrome.chipFill(context),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -119,7 +119,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                         title: 'Terrains',
                         subtitle: 'Base ground presets only',
                         kind: PresetLibraryKind.terrain,
-                        color: const Color(0xFF4E7559),
+                        color: EditorChrome.accentJade,
                         icon: CupertinoIcons.map,
                         settings: settings,
                         tilesets: tilesets,
@@ -131,7 +131,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                         subtitle:
                             'Surface overlays: roads, water, tall grass, ice, lava, rails...',
                         kind: PresetLibraryKind.path,
-                        color: const Color(0xFF9B6B40),
+                        color: EditorChrome.accentWarm,
                         icon: CupertinoIcons.arrow_branch,
                         settings: settings,
                         tilesets: tilesets,

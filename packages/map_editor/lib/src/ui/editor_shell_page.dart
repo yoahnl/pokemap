@@ -136,7 +136,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                       top: -120,
                       child: _AmbientGlow(
                         size: 460,
-                        color: Color(0xFF4C8DFF),
+                        color: EditorChrome.accentPrimary,
                         opacity: 0.18,
                       ),
                     ),
@@ -145,7 +145,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                       top: 70,
                       child: _AmbientGlow(
                         size: 420,
-                        color: Color(0xFFE0A65D),
+                        color: EditorChrome.accentWarm,
                         opacity: 0.18,
                       ),
                     ),
@@ -154,7 +154,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                       bottom: -160,
                       child: _AmbientGlow(
                         size: 520,
-                        color: Color(0xFF5FC7A1),
+                        color: EditorChrome.accentJade,
                         opacity: 0.14,
                       ),
                     ),
@@ -163,7 +163,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                       bottom: -140,
                       child: _AmbientGlow(
                         size: 420,
-                        color: Color(0xFFD97A68),
+                        color: EditorChrome.accentCoral,
                         opacity: 0.12,
                       ),
                     ),
@@ -205,7 +205,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                         ),
                                         child: EditorPaneSurface(
                                           radius: 34,
-                                          tint: const Color(0xFF35506D),
+                                          tint: EditorChrome.islandCoolTint,
                                           child: Padding(
                                             padding: const EdgeInsets.fromLTRB(
                                               18,
@@ -293,7 +293,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                   const EdgeInsets.fromLTRB(12, 18, 16, 18),
                               child: EditorPaneSurface(
                                 radius: 30,
-                                tint: const Color(0xFF30495D),
+                                tint: EditorChrome.islandNeutralTint,
                                 child: workspaceMode == EditorWorkspaceMode.map
                                     ? const MapInspectorPanel()
                                     : const TilesetPalettePanel(),
@@ -334,8 +334,11 @@ class _EditorToastBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tint = isError ? const Color(0xFF2A1D23) : const Color(0xFF1B2432);
-    final accent = isError ? const Color(0xFFE7A7AF) : const Color(0xFF8EBEFF);
+    final tint = isError
+        ? EditorChrome.errorTint(context)
+        : EditorChrome.statusTint(context);
+    final accent =
+        isError ? const Color(0xFFE7A7AF) : EditorChrome.accentPrimary;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 380),
       child: EditorPaneSurface(
@@ -397,10 +400,10 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     final accent = EditorChrome.activeAccent(context);
-    final chipFill = CupertinoColors.white.withValues(alpha: 0.06);
+    final chipFill = EditorChrome.chipFill(context);
     final chipAccent = workspaceMode == EditorWorkspaceMode.map
-        ? const Color(0xFFE0A65D)
-        : const Color(0xFF67D4FF);
+        ? EditorChrome.accentWarm
+        : EditorChrome.accentCyan;
 
     return Row(
       children: [
