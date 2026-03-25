@@ -57,6 +57,32 @@ class TopToolbar extends ConsumerWidget {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final settings = state.project?.settings ?? const ProjectSettings();
     final subtle = EditorChrome.subtleLabel(context);
+
+    final map = state.activeMap;
+    final isMapWorkspace = state.workspaceMode == EditorWorkspaceMode.map;
+    final hasMapCanvas = map != null;
+    final showWorldTools = isMapWorkspace && hasMapCanvas;
+    final hasTileLayers =
+        hasMapCanvas && map.layers.any((layer) => layer is TileLayer);
+    final hasTerrainLayers =
+        hasMapCanvas && map.layers.any((layer) => layer is TerrainLayer);
+    final hasPathLayers =
+        hasMapCanvas && map.layers.any((layer) => layer is PathLayer);
+    final hasCollisionLayers =
+        hasMapCanvas && map.layers.any((layer) => layer is CollisionLayer);
+
+    final showTerrainTypePulldown =
+        state.activeTool == EditorToolType.terrainPaint &&
+            state.terrainSelectionMode == TerrainSelectionMode.terrain;
+    final showEntityKindPulldown =
+        state.activeTool == EditorToolType.entityPlacement;
+    final showContextStrip =
+        showWorldTools && (showTerrainTypePulldown || showEntityKindPulldown);
+
+    final showCollisionBrushSize = showWorldTools &&
+        (state.activeTool == EditorToolType.collisionPaint ||
+            state.activeTool == EditorToolType.eraser);
+
     final actions = <ToolbarItem>[
       _groupItem(
         context,
@@ -105,6 +131,18 @@ class TopToolbar extends ConsumerWidget {
                     )
                 : null,
           ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.rectangle_arrow_up_right_arrow_down_left,
+            tooltip: 'Resize Map',
+            onPressed: isMapWorkspace && state.activeMap != null
+                ? () => TopToolbar._showResizeMapDialog(
+                      context,
+                      notifier,
+                      currentWidth: state.activeMap!.size.width,
+                      currentHeight: state.activeMap!.size.height,
+                    )
+                : null,
+          ),
         ],
       ),
       _groupItem(
@@ -138,121 +176,118 @@ class TopToolbar extends ConsumerWidget {
             tooltip: 'Redo',
             onPressed: state.canRedoMap ? notifier.redoMap : null,
           ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.rectangle_arrow_up_right_arrow_down_left,
-            tooltip: 'Resize Map',
-            onPressed: state.activeMap != null
-                ? () => TopToolbar._showResizeMapDialog(
-                      context,
-                      notifier,
-                      currentWidth: state.activeMap!.size.width,
-                      currentHeight: state.activeMap!.size.height,
-                    )
-                : null,
-          ),
         ],
       ),
-      _groupItem(
-        context,
-        overflowLabel: 'Painting Tools',
-        children: [
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.selection_pin_in_out,
-            tooltip: 'Selection Tool',
-            selected: state.activeTool == EditorToolType.selection,
-            onPressed: () => notifier.selectTool(EditorToolType.selection),
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.paintbrush,
-            tooltip: 'Tile Paint Tool',
-            selected: state.activeTool == EditorToolType.tilePaint,
-            onPressed: () => notifier.selectTool(EditorToolType.tilePaint),
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.tree,
-            tooltip: 'Terrain Paint Tool',
-            selected: state.activeTool == EditorToolType.terrainPaint &&
-                state.terrainSelectionMode == TerrainSelectionMode.terrain,
-            onPressed: () => notifier.selectTool(EditorToolType.terrainPaint),
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.map,
-            tooltip: 'Path Paint Tool',
-            selected: state.activeTool == EditorToolType.terrainPaint &&
-                state.terrainSelectionMode == TerrainSelectionMode.path,
-            onPressed: notifier.selectPathPaintMode,
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.square_grid_2x2,
-            tooltip: 'Collision Paint Tool',
-            selected: state.activeTool == EditorToolType.collisionPaint,
-            onPressed: () => notifier.selectTool(
-              EditorToolType.collisionPaint,
+      if (showWorldTools)
+        _groupItem(
+          context,
+          overflowLabel: 'Painting Tools',
+          children: [
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.selection_pin_in_out,
+              tooltip: 'Selection Tool',
+              selected: state.activeTool == EditorToolType.selection,
+              onPressed: () => notifier.selectTool(EditorToolType.selection),
             ),
-          ),
-          _ToolbarCapsuleButton(
-            icon: state.collisionBrushSizeMode ==
-                    CollisionBrushSizeMode.singleTile
-                ? CupertinoIcons.number
-                : CupertinoIcons.square_grid_3x2,
-            tooltip: state.collisionBrushSizeMode ==
-                    CollisionBrushSizeMode.singleTile
-                ? 'Collision Brush Size: 1x1'
-                : 'Collision Brush Size: Brush Footprint',
-            selected: state.activeTool == EditorToolType.collisionPaint ||
-                state.activeTool == EditorToolType.eraser,
-            onPressed: notifier.toggleCollisionBrushSizeMode,
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.delete,
-            tooltip: 'Eraser Tool',
-            selected: state.activeTool == EditorToolType.eraser,
-            onPressed: () => notifier.selectTool(EditorToolType.eraser),
-          ),
-        ],
-      ),
-      _groupItem(
-        context,
-        overflowLabel: 'Gameplay Tools',
-        children: [
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.sparkles,
-            tooltip: 'Entity Tool',
-            selected: state.activeTool == EditorToolType.entityPlacement,
-            onPressed: () => notifier.selectTool(
-              EditorToolType.entityPlacement,
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.paintbrush,
+              tooltip: 'Tile Paint Tool',
+              selected: state.activeTool == EditorToolType.tilePaint,
+              onPressed: hasTileLayers
+                  ? () => notifier.selectTool(EditorToolType.tilePaint)
+                  : null,
             ),
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.square,
-            tooltip: 'Trigger Tool',
-            selected: state.activeTool == EditorToolType.triggerPlacement,
-            onPressed: () => notifier.selectTool(
-              EditorToolType.triggerPlacement,
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.tree,
+              tooltip: 'Terrain Paint Tool',
+              selected: state.activeTool == EditorToolType.terrainPaint &&
+                  state.terrainSelectionMode == TerrainSelectionMode.terrain,
+              onPressed: hasTerrainLayers
+                  ? () => notifier.selectTool(EditorToolType.terrainPaint)
+                  : null,
             ),
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.arrow_branch,
-            tooltip: 'Warp Tool',
-            selected: state.activeTool == EditorToolType.warpPlacement,
-            onPressed: () => notifier.selectTool(
-              EditorToolType.warpPlacement,
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.map,
+              tooltip: 'Path Paint Tool',
+              selected: state.activeTool == EditorToolType.terrainPaint &&
+                  state.terrainSelectionMode == TerrainSelectionMode.path,
+              onPressed:
+                  hasPathLayers ? notifier.selectPathPaintMode : null,
             ),
-          ),
-        ],
-      ),
-      if (state.activeTool == EditorToolType.terrainPaint ||
-          state.activeTool == EditorToolType.entityPlacement)
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.square_grid_2x2,
+              tooltip: 'Collision Paint Tool',
+              selected: state.activeTool == EditorToolType.collisionPaint,
+              onPressed: hasCollisionLayers
+                  ? () => notifier.selectTool(
+                        EditorToolType.collisionPaint,
+                      )
+                  : null,
+            ),
+            if (showCollisionBrushSize)
+              _ToolbarCapsuleButton(
+                icon: state.collisionBrushSizeMode ==
+                        CollisionBrushSizeMode.singleTile
+                    ? CupertinoIcons.number
+                    : CupertinoIcons.square_grid_3x2,
+                tooltip: state.collisionBrushSizeMode ==
+                        CollisionBrushSizeMode.singleTile
+                    ? 'Collision Brush Size: 1x1'
+                    : 'Collision Brush Size: Brush Footprint',
+                selected: state.activeTool == EditorToolType.collisionPaint ||
+                    state.activeTool == EditorToolType.eraser,
+                onPressed: notifier.toggleCollisionBrushSizeMode,
+              ),
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.delete,
+              tooltip: 'Eraser Tool',
+              selected: state.activeTool == EditorToolType.eraser,
+              onPressed: () => notifier.selectTool(EditorToolType.eraser),
+            ),
+          ],
+        ),
+      if (showWorldTools)
+        _groupItem(
+          context,
+          overflowLabel: 'Gameplay Tools',
+          children: [
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.sparkles,
+              tooltip: 'Entity Tool',
+              selected: state.activeTool == EditorToolType.entityPlacement,
+              onPressed: () => notifier.selectTool(
+                EditorToolType.entityPlacement,
+              ),
+            ),
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.square,
+              tooltip: 'Trigger Tool',
+              selected: state.activeTool == EditorToolType.triggerPlacement,
+              onPressed: () => notifier.selectTool(
+                EditorToolType.triggerPlacement,
+              ),
+            ),
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.arrow_branch,
+              tooltip: 'Warp Tool',
+              selected: state.activeTool == EditorToolType.warpPlacement,
+              onPressed: () => notifier.selectTool(
+                EditorToolType.warpPlacement,
+              ),
+            ),
+          ],
+        ),
+      if (showContextStrip)
         _groupItem(
           context,
           overflowLabel: 'Context',
           children: [
-            if (state.activeTool == EditorToolType.terrainPaint)
+            if (showTerrainTypePulldown)
               _ToolbarCapsulePulldown(
                 label: _terrainTypeLabel(state.selectedTerrainType),
                 items: _terrainPulldownItems(notifier),
               ),
-            if (state.activeTool == EditorToolType.entityPlacement)
+            if (showEntityKindPulldown)
               _ToolbarCapsulePulldown(
                 label: _entityKindLabel(state.selectedEntityKind),
                 items: _entityKindPulldownItems(notifier),
