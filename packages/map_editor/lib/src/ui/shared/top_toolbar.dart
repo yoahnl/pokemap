@@ -309,18 +309,18 @@ class TopToolbar extends ConsumerWidget {
             ? 'World Editor'
             : 'Tileset Studio',
       ),
-      titleWidth: 236,
+      titleWidth: 228,
       automaticallyImplyLeading: false,
       centerTitle: false,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       dividerColor: MacosColors.transparent,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            EditorChrome.panelBackground(context).withValues(alpha: 0.42),
-            EditorChrome.scaffoldBackground(context).withValues(alpha: 0.12),
+            const Color.fromRGBO(34, 40, 56, 0.34),
+            const Color.fromRGBO(18, 24, 34, 0.12),
           ],
         ),
       ),
@@ -734,8 +734,8 @@ class _ToolbarBrand extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 36,
-          height: 36,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -771,7 +771,7 @@ class _ToolbarBrand extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: label,
-                  fontSize: 14.5,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.15,
                 ),
@@ -806,29 +806,32 @@ class _ToolbarCapsuleGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleChildren = children.whereType<Widget>().toList(growable: false);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: EditorChrome.toolbarGroupGradient(context),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: CupertinoColors.black.withValues(alpha: 0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var index = 0; index < visibleChildren.length; index++) ...[
-              visibleChildren[index],
-              if (index < visibleChildren.length - 1)
-                const SizedBox(width: 3),
-            ],
+    return SizedBox(
+      height: 42,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: EditorChrome.toolbarGroupGradient(context),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: CupertinoColors.black.withValues(alpha: 0.16),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < visibleChildren.length; index++) ...[
+                visibleChildren[index],
+                if (index < visibleChildren.length - 1)
+                  const SizedBox(width: 3),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -868,8 +871,8 @@ class _ToolbarCapsuleButtonState extends State<_ToolbarCapsuleButton> {
     final content = AnimatedContainer(
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOutCubic,
-      width: 40,
-      height: 36,
+      width: 36,
+      height: 32,
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(12),
@@ -912,20 +915,23 @@ class _ToolbarCapsulePulldown extends StatelessWidget {
     final labelColor = EditorChrome.primaryLabel(context);
     return Container(
       constraints: const BoxConstraints(minWidth: 120),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: CupertinoColors.white.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: MacosPulldownButton(
-        items: items,
-        title: label,
-        style: TextStyle(
-          color: labelColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+      child: SizedBox(
+        height: 32,
+        child: MacosPulldownButton(
+          items: items,
+          title: label,
+          style: TextStyle(
+            color: labelColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          onTap: () {},
         ),
-        onTap: () {},
       ),
     );
   }

@@ -132,30 +132,39 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                 child: Stack(
                   children: [
                     const Positioned(
-                      left: -140,
-                      top: -110,
+                      left: -120,
+                      top: -120,
                       child: _AmbientGlow(
-                        size: 420,
-                        color: Color(0xFF5A406B),
-                        opacity: 0.24,
+                        size: 460,
+                        color: Color(0xFF4C8DFF),
+                        opacity: 0.18,
                       ),
                     ),
                     const Positioned(
-                      right: -90,
-                      top: 120,
+                      right: -120,
+                      top: 70,
                       child: _AmbientGlow(
-                        size: 360,
+                        size: 420,
                         color: Color(0xFFE0A65D),
+                        opacity: 0.18,
+                      ),
+                    ),
+                    const Positioned(
+                      left: 140,
+                      bottom: -160,
+                      child: _AmbientGlow(
+                        size: 520,
+                        color: Color(0xFF5FC7A1),
                         opacity: 0.14,
                       ),
                     ),
                     const Positioned(
-                      left: 260,
-                      bottom: -120,
+                      right: 220,
+                      bottom: -140,
                       child: _AmbientGlow(
-                        size: 480,
-                        color: Color(0xFF5FC7A1),
-                        opacity: 0.1,
+                        size: 420,
+                        color: Color(0xFFD97A68),
+                        opacity: 0.12,
                       ),
                     ),
                     MacosWindow(
@@ -196,7 +205,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                         ),
                                         child: EditorPaneSurface(
                                           radius: 34,
-                                          tint: const Color(0xFF2B3345),
+                                          tint: const Color(0xFF35506D),
                                           child: Padding(
                                             padding: const EdgeInsets.fromLTRB(
                                               18,
@@ -284,7 +293,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                   const EdgeInsets.fromLTRB(12, 18, 16, 18),
                               child: EditorPaneSurface(
                                 radius: 30,
-                                tint: const Color(0xFF293342),
+                                tint: const Color(0xFF30495D),
                                 child: workspaceMode == EditorWorkspaceMode.map
                                     ? const MapInspectorPanel()
                                     : const TilesetPalettePanel(),

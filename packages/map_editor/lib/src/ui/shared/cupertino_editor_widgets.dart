@@ -69,12 +69,12 @@ abstract final class EditorChrome {
   }) {
     if (_isDark(context)) {
       final top = Color.alphaBlend(
-        (tint ?? const Color(0xFF5A406B)).withValues(alpha: 0.08),
-        const Color.fromRGBO(28, 34, 48, 0.72),
+        (tint ?? const Color(0xFF4C8DFF)).withValues(alpha: 0.12),
+        const Color.fromRGBO(30, 36, 50, 0.78),
       );
       final bottom = Color.alphaBlend(
-        (tint ?? const Color(0xFFE0A65D)).withValues(alpha: 0.035),
-        const Color.fromRGBO(34, 40, 56, 0.72),
+        (tint ?? const Color(0xFFE0A65D)).withValues(alpha: 0.08),
+        const Color.fromRGBO(34, 40, 56, 0.74),
       );
       return LinearGradient(
         begin: Alignment.topLeft,
@@ -97,15 +97,7 @@ abstract final class EditorChrome {
 
   static LinearGradient workspaceGradient(BuildContext context) {
     if (_isDark(context)) {
-      return const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF13151D),
-          Color(0xFF11131A),
-          Color(0xFF0F1117),
-        ],
-      );
+      return windowBackdropGradient(context);
     }
     return const LinearGradient(
       begin: Alignment.topCenter,
@@ -144,8 +136,8 @@ abstract final class EditorChrome {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color.fromRGBO(34, 40, 56, 0.76),
-          Color.fromRGBO(30, 36, 50, 0.72),
+          Color.fromRGBO(38, 46, 64, 0.84),
+          Color.fromRGBO(32, 40, 56, 0.8),
         ],
       );
     }
@@ -191,9 +183,9 @@ abstract final class EditorChrome {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          Color(0xFF13151D),
-          Color(0xFF11131A),
-          Color(0xFF0F1117),
+          Color(0xFF141824),
+          Color(0xFF111722),
+          Color(0xFF10151D),
         ],
       );
     }

@@ -18,7 +18,7 @@ class StatusBar extends ConsumerWidget {
         : EditorChrome.subtleLabel(context);
     final tint = hasError
         ? const Color(0xFF271B1F)
-        : const Color(0xFF202636);
+        : const Color(0xFF284255);
     final leadingTint = hasError
         ? const Color(0xFFE2A3AD)
         : const Color(0xFF8FC7BC);

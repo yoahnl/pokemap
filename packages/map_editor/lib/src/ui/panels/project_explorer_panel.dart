@@ -188,7 +188,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
       children: [
         Expanded(
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF273142),
+            tint: const Color(0xFF35506A),
             child: _buildTilesetsIsland(context, project, state, notifier),
           ),
         ),
@@ -206,7 +206,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF25303F),
+            tint: const Color(0xFF324A61),
             child: _buildWorldIsland(context, worldChildren),
           ),
         ),
@@ -224,7 +224,7 @@ class ProjectExplorerPanel extends ConsumerWidget {
             ),
           ),
           child: _ExplorerIslandSurface(
-            tint: const Color(0xFF293240),
+            tint: const Color(0xFF425042),
             child: const TerrainEditorPanel(),
           ),
         ),
