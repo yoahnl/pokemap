@@ -66,68 +66,118 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     super.dispose();
   }
 
-  Widget _inspectorPickerPill({
+  /// Sélecteur type « menu déroulant » (ancré sous le contrôle), même look que les pilules inspecteur.
+  Widget _inspectorPickerDropdown({
     required BuildContext context,
     required Color accent,
     required String fieldLabel,
     required String valueLabel,
-    required VoidCallback onTap,
+    required List<String> orderedIds,
+    required String selectedId,
+    required String Function(String id) idToLabel,
+    required ValueChanged<String> onSelected,
+    String? tooltip,
   }) {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final labelColor = EditorChrome.primaryLabel(context);
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
-      onPressed: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: EditorChrome.largeIslandSurfaceColor(
-            context,
-            tint: accent.withValues(alpha: 0.09),
-          ),
+    return Material(
+      color: Colors.transparent,
+      child: PopupMenuButton<String>(
+        tooltip: tooltip ?? fieldLabel,
+        padding: EdgeInsets.zero,
+        splashRadius: 20,
+        offset: const Offset(0, 6),
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: accent.withValues(alpha: 0.45)),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withValues(alpha: 0.14),
-              blurRadius: 0,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          side: BorderSide(color: accent.withValues(alpha: 0.35)),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+        color: EditorChrome.islandFillElevated(context),
+        elevation: 3,
+        initialValue: selectedId,
+        onSelected: onSelected,
+        itemBuilder: (menuCtx) => [
+          for (final id in orderedIds)
+            PopupMenuItem<String>(
+              value: id,
+              child: Row(
                 children: [
-                  Text(
-                    fieldLabel,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: secondary,
-                    ),
+                  SizedBox(
+                    width: 22,
+                    child: id == selectedId
+                        ? Icon(
+                            CupertinoIcons.checkmark,
+                            size: 14,
+                            color: accent,
+                          )
+                        : null,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    valueLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: labelColor,
+                  Expanded(
+                    child: Text(
+                      idToLabel(id),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: id == selectedId
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: labelColor,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(CupertinoIcons.chevron_down, size: 14, color: accent),
-          ],
+        ],
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: accent.withValues(alpha: 0.09),
+            ),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: accent.withValues(alpha: 0.45)),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: 0.14),
+                blurRadius: 0,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      fieldLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: secondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      valueLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: labelColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(CupertinoIcons.chevron_down, size: 14, color: accent),
+            ],
+          ),
         ),
       ),
     );
@@ -357,25 +407,19 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       ),
                     ),
                   if (!widget.embedded) const SizedBox(height: 6),
-                  _inspectorPickerPill(
+                  _inspectorPickerDropdown(
                     context: context,
                     accent: pickerAccent,
                     fieldLabel: 'Tileset',
                     valueLabel: selectedTileset.name,
-                    onTap: () async {
-                      final picked = await showCupertinoListPicker<String>(
-                        context: context,
-                        title: 'Tileset',
-                        items:
-                            sortedTilesets.map((tileset) => tileset.id).toList(),
-                        labelOf: (id) => sortedTilesets
-                            .firstWhere((t) => t.id == id)
-                            .name,
-                      );
-                      if (picked != null) {
-                        notifier.selectTilesetEditorContext(picked);
-                      }
-                    },
+                    tooltip: 'Choisir un tileset',
+                    orderedIds:
+                        sortedTilesets.map((tileset) => tileset.id).toList(),
+                    selectedId: selectedTileset.id,
+                    idToLabel: (id) => sortedTilesets
+                        .firstWhere((t) => t.id == id)
+                        .name,
+                    onSelected: notifier.selectTilesetEditorContext,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -393,38 +437,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 ],
               ),
             ),
-            if (tileLayers.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                child: Builder(
-                  builder: (ctx) {
-                    final effectiveLayerId =
-                        tileLayers.any((l) => l.id == state.activeLayerId)
-                            ? state.activeLayerId!
-                            : tileLayers.first.id;
-                    return _inspectorPickerPill(
-                      context: ctx,
-                      accent: pickerAccent,
-                      fieldLabel: 'Calque cible',
-                      valueLabel: tileLayers
-                          .firstWhere((l) => l.id == effectiveLayerId)
-                          .name,
-                      onTap: () async {
-                        final picked = await showCupertinoListPicker<String>(
-                          context: ctx,
-                          title: 'Calque cible',
-                          items: tileLayers.map((l) => l.id).toList(),
-                          labelOf: (id) =>
-                              tileLayers.firstWhere((l) => l.id == id).name,
-                        );
-                        if (picked != null) {
-                          notifier.setActiveLayer(picked);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
             const SizedBox(height: 4),
             Expanded(
               child: _buildElementsTab(

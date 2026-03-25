@@ -1,4 +1,13 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart'
+    show
+        BorderSide,
+        BoxShadow,
+        Colors,
+        Material,
+        PopupMenuButton,
+        PopupMenuItem,
+        RoundedRectangleBorder;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
@@ -171,107 +180,124 @@ class TerrainMapPanel extends ConsumerWidget {
     }
 
     if (showPaths) {
+      final usePathsInspectorChrome =
+          embedded && mode == TerrainMapPanelMode.surfaceOnly;
+      const pathsAccent = EditorChrome.inspectorJoyAmber;
+
       final pathContent = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _LayerSelector<PathLayer>(
-            label: 'Active Path Layer',
-            layers: pathLayers,
-            activeLayerId: activePathLayer?.id,
-            emptyLabel: 'No path layer yet',
-            onSelected: notifier.setActiveLayer,
-            onCreate: () => notifier.activateFirstPathLayer(
-              createIfMissing: true,
+          if (usePathsInspectorChrome)
+            ..._pathInspectorEmbeddedChildren(
+              context: context,
+              notifier: notifier,
+              pathLayers: pathLayers,
+              activePathLayer: activePathLayer,
+              pathPresets: pathPresets,
+              selectedPathPreset: selectedPathPreset,
+              accent: pathsAccent,
+            )
+          else ...[
+            _LayerSelector<PathLayer>(
+              label: 'Active Path Layer',
+              layers: pathLayers,
+              activeLayerId: activePathLayer?.id,
+              emptyLabel: 'No path layer yet',
+              onSelected: notifier.setActiveLayer,
+              onCreate: () => notifier.activateFirstPathLayer(
+                createIfMissing: true,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          _PresetPickerRow(
-            label: 'Assigned Path Preset',
-            hint: 'No path preset',
-            enabled: pathPresets.isNotEmpty,
-            currentLabel: _pathPresetLabel(
-              activePathLayer,
-              pathPresets,
-              selectedPathPreset,
-            ),
-            onPick: () async {
-              final picked = await showCupertinoListPicker<ProjectPathPreset>(
-                context: context,
-                title: 'Path preset',
-                items: pathPresets,
-                labelOf: (p) => '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}',
-              );
-              if (picked != null) {
-                if (activePathLayer != null) {
-                  notifier.selectPathPresetForActivePathLayer(picked.id);
-                } else {
-                  notifier.selectPathPreset(picked.id);
+            const SizedBox(height: 10),
+            _PresetPickerRow(
+              label: 'Assigned Path Preset',
+              hint: 'No path preset',
+              enabled: pathPresets.isNotEmpty,
+              currentLabel: _pathPresetLabel(
+                activePathLayer,
+                pathPresets,
+                selectedPathPreset,
+              ),
+              onPick: () async {
+                final picked = await showCupertinoListPicker<ProjectPathPreset>(
+                  context: context,
+                  title: 'Path preset',
+                  items: pathPresets,
+                  labelOf: (p) =>
+                      '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}',
+                );
+                if (picked != null) {
+                  if (activePathLayer != null) {
+                    notifier.selectPathPresetForActivePathLayer(picked.id);
+                  } else {
+                    notifier.selectPathPreset(picked.id);
+                  }
                 }
-              }
-            },
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              CupertinoButton.filled(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                onPressed: activePathLayer == null
-                    ? null
-                    : notifier.selectPathPaintMode,
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.map, size: 16),
-                    SizedBox(width: 6),
-                    Text('Paint Path'),
-                  ],
+              },
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                CupertinoButton.filled(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  onPressed: activePathLayer == null
+                      ? null
+                      : notifier.selectPathPaintMode,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.map, size: 16),
+                      SizedBox(width: 6),
+                      Text('Paint Path'),
+                    ],
+                  ),
                 ),
-              ),
-              CupertinoButton(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                onPressed: activePathLayer == null
-                    ? null
-                    : () => notifier.selectTool(EditorToolType.eraser),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.delete_left, size: 16),
-                    SizedBox(width: 6),
-                    Text('Erase Path'),
-                  ],
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  onPressed: activePathLayer == null
+                      ? null
+                      : () => notifier.selectTool(EditorToolType.eraser),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.delete_left, size: 16),
+                      SizedBox(width: 6),
+                      Text('Erase Path'),
+                    ],
+                  ),
                 ),
-              ),
-              CupertinoButton(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                onPressed: () => notifier.activateFirstPathLayer(
-                  createIfMissing: true,
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  onPressed: () => notifier.activateFirstPathLayer(
+                    createIfMissing: true,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.add_circled, size: 16),
+                      SizedBox(width: 6),
+                      Text('New Path Layer'),
+                    ],
+                  ),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.add_circled, size: 16),
-                    SizedBox(width: 6),
-                    Text('New Path Layer'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _PathLayerPropertiesBlock(layer: activePathLayer),
-          const SizedBox(height: 10),
-          _InfoStrip(
-            text: activePathLayer == null
-                ? 'Create a path layer for roads, water, tall grass and other path surfaces.'
-                : activePathLayer.presetId.trim().isEmpty
-                    ? 'Assign a path preset to ${activePathLayer.name} before painting.'
-                    : 'Active path layer: ${activePathLayer.name}',
-          ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _PathLayerPropertiesBlock(layer: activePathLayer),
+            const SizedBox(height: 10),
+            _InfoStrip(
+              text: activePathLayer == null
+                  ? 'Create a path layer for roads, water, tall grass and other path surfaces.'
+                  : activePathLayer.presetId.trim().isEmpty
+                      ? 'Assign a path preset to ${activePathLayer.name} before painting.'
+                      : 'Active path layer: ${activePathLayer.name}',
+            ),
+          ],
         ],
       );
 
@@ -356,6 +382,519 @@ class TerrainMapPanel extends ConsumerWidget {
       }
     }
     return null;
+  }
+}
+
+String? _pathAssignedPresetId(
+  PathLayer? activePathLayer,
+  List<ProjectPathPreset> pathPresets,
+  ProjectPathPreset? selectedPathPreset,
+) {
+  if (activePathLayer != null &&
+      activePathLayer.presetId.trim().isNotEmpty &&
+      pathPresets.any((p) => p.id == activePathLayer.presetId)) {
+    return activePathLayer.presetId;
+  }
+  if (selectedPathPreset != null &&
+      pathPresets.any((p) => p.id == selectedPathPreset.id)) {
+    return selectedPathPreset.id;
+  }
+  return null;
+}
+
+String _pathPresetMenuValueId(
+  PathLayer? activePathLayer,
+  List<ProjectPathPreset> pathPresets,
+  ProjectPathPreset? selectedPathPreset,
+) {
+  final assigned = _pathAssignedPresetId(
+    activePathLayer,
+    pathPresets,
+    selectedPathPreset,
+  );
+  if (assigned != null) return assigned;
+  return pathPresets.first.id;
+}
+
+List<Widget> _pathInspectorEmbeddedChildren({
+  required BuildContext context,
+  required EditorNotifier notifier,
+  required List<PathLayer> pathLayers,
+  required PathLayer? activePathLayer,
+  required List<ProjectPathPreset> pathPresets,
+  required ProjectPathPreset? selectedPathPreset,
+  required Color accent,
+}) {
+  final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+  final subtle = EditorChrome.subtleLabel(context);
+  void onCreatePath() =>
+      notifier.activateFirstPathLayer(createIfMissing: true);
+
+  return [
+    if (pathLayers.isEmpty)
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Aucun calque de path',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: secondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Créez un calque pour peindre des paths.',
+            style: TextStyle(fontSize: 12, color: subtle),
+          ),
+          const SizedBox(height: 8),
+          _PathInspectorCapsuleButton(
+            accent: accent,
+            icon: CupertinoIcons.add_circled,
+            label: 'Créer un calque',
+            onPressed: onCreatePath,
+            prominent: true,
+          ),
+        ],
+      )
+    else if (activePathLayer == null)
+      Text(
+        'Le calque sélectionné n’est pas un path. Choisissez un calque de path dans le panneau Calques.',
+        style: TextStyle(fontSize: 12, color: subtle, height: 1.25),
+      )
+    else
+      Text(
+        '« ${activePathLayer.name} » — calque actif (Calques)',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: EditorChrome.primaryLabel(context),
+        ),
+      ),
+    const SizedBox(height: 10),
+    Text(
+      'Preset de path',
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: secondary,
+      ),
+    ),
+    const SizedBox(height: 4),
+    if (pathPresets.isEmpty)
+      Text(
+        'Aucun preset : créez-en un dans la bibliothèque.',
+        style: TextStyle(fontSize: 12, color: subtle),
+      )
+    else
+      _TerrainInspectorDropdown(
+        accent: accent,
+        fieldLabel: 'Preset',
+        valueLabel: _pathPresetLabel(
+              activePathLayer,
+              pathPresets,
+              selectedPathPreset,
+            ) ??
+            'Choisir un preset…',
+        orderedIds: pathPresets.map((p) => p.id).toList(),
+        selectedIdForCheck: _pathAssignedPresetId(
+          activePathLayer,
+          pathPresets,
+          selectedPathPreset,
+        ),
+        selectedMenuValue: _pathPresetMenuValueId(
+          activePathLayer,
+          pathPresets,
+          selectedPathPreset,
+        ),
+        idToLabel: (id) {
+          final p = pathPresets.firstWhere((e) => e.id == id);
+          return '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}';
+        },
+        onSelected: (id) {
+          if (activePathLayer != null) {
+            notifier.selectPathPresetForActivePathLayer(id);
+          } else {
+            notifier.selectPathPreset(id);
+          }
+        },
+        tooltip: 'Choisir un preset de path',
+      ),
+    const SizedBox(height: 10),
+    _PathInspectorToolBar(
+      accent: accent,
+      activePathLayer: activePathLayer,
+      onPaint: notifier.selectPathPaintMode,
+      onErase: () => notifier.selectTool(EditorToolType.eraser),
+      onNewLayer: onCreatePath,
+    ),
+    const SizedBox(height: 10),
+    _PathLayerPropertiesBlock(
+      layer: activePathLayer,
+      inspectorEmbedded: true,
+      accent: accent,
+    ),
+    const SizedBox(height: 8),
+    _InfoStrip(
+      text: activePathLayer == null
+          ? 'Créez un calque, assignez un preset, puis peignez sur la carte.'
+          : activePathLayer.presetId.trim().isEmpty
+              ? 'Assignez un preset à « ${activePathLayer.name} » avant de peindre.'
+              : 'Calque actif : ${activePathLayer.name}',
+      inspectorEmbedded: true,
+      accent: accent,
+    ),
+  ];
+}
+
+class _TerrainInspectorDropdown extends StatelessWidget {
+  const _TerrainInspectorDropdown({
+    required this.accent,
+    required this.fieldLabel,
+    required this.valueLabel,
+    required this.orderedIds,
+    required this.selectedMenuValue,
+    required this.idToLabel,
+    required this.onSelected,
+    this.selectedIdForCheck,
+    this.tooltip,
+  });
+
+  final Color accent;
+  final String fieldLabel;
+  final String valueLabel;
+  final List<String> orderedIds;
+  final String selectedMenuValue;
+  final String? selectedIdForCheck;
+  final String Function(String id) idToLabel;
+  final ValueChanged<String> onSelected;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final labelColor = EditorChrome.primaryLabel(context);
+    final canOpen = orderedIds.isNotEmpty;
+    final child = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: accent.withValues(alpha: 0.1),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: canOpen
+              ? accent.withValues(alpha: 0.5)
+              : CupertinoColors.systemGrey.resolveFrom(context),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.12),
+            blurRadius: 0,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  fieldLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: secondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  valueLabel,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            CupertinoIcons.chevron_down,
+            size: 14,
+            color: canOpen ? accent : secondary,
+          ),
+        ],
+      ),
+    );
+
+    if (!canOpen) {
+      return Opacity(opacity: 0.55, child: child);
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: PopupMenuButton<String>(
+        tooltip: tooltip ?? fieldLabel,
+        padding: EdgeInsets.zero,
+        splashRadius: 20,
+        offset: const Offset(0, 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: accent.withValues(alpha: 0.35)),
+        ),
+        color: EditorChrome.islandFillElevated(context),
+        elevation: 3,
+        initialValue: orderedIds.contains(selectedMenuValue)
+            ? selectedMenuValue
+            : orderedIds.first,
+        onSelected: onSelected,
+        itemBuilder: (menuCtx) => [
+          for (final id in orderedIds)
+            PopupMenuItem<String>(
+              value: id,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 22,
+                    child: selectedIdForCheck != null && id == selectedIdForCheck
+                        ? Icon(
+                            CupertinoIcons.checkmark,
+                            size: 14,
+                            color: accent,
+                          )
+                        : null,
+                  ),
+                  Expanded(
+                    child: Text(
+                      idToLabel(id),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight:
+                            selectedIdForCheck != null && id == selectedIdForCheck
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                        color: labelColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        child: child,
+      ),
+    );
+  }
+}
+
+class _PathInspectorCapsuleButton extends StatelessWidget {
+  const _PathInspectorCapsuleButton({
+    required this.accent,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.prominent = false,
+    this.enabled = true,
+  });
+
+  final Color accent;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool prominent;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = EditorChrome.primaryLabel(context);
+    final muted = CupertinoColors.placeholderText.resolveFrom(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: enabled ? onPressed : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: !enabled
+              ? EditorChrome.largeIslandSurfaceColor(context)
+              : prominent
+                  ? Color.lerp(
+                      EditorChrome.largeIslandSurfaceColor(
+                        context,
+                        tint: accent.withValues(alpha: 0.22),
+                      ),
+                      accent.withValues(alpha: 0.15),
+                      0.35,
+                    )
+                  : EditorChrome.largeIslandSurfaceColor(
+                      context,
+                      tint: accent.withValues(alpha: 0.08),
+                    ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: accent.withValues(alpha: enabled ? 0.5 : 0.22),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.1),
+              blurRadius: 0,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: enabled ? (prominent ? accent : fg) : muted,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: enabled ? fg : muted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PathInspectorToolBar extends StatelessWidget {
+  const _PathInspectorToolBar({
+    required this.accent,
+    required this.activePathLayer,
+    required this.onPaint,
+    required this.onErase,
+    required this.onNewLayer,
+  });
+
+  final Color accent;
+  final PathLayer? activePathLayer;
+  final VoidCallback onPaint;
+  final VoidCallback onErase;
+  final VoidCallback onNewLayer;
+
+  @override
+  Widget build(BuildContext context) {
+    final canPaint = activePathLayer != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: _PathInspectorCapsuleButton(
+                accent: accent,
+                icon: CupertinoIcons.map,
+                label: 'Peindre le path',
+                prominent: true,
+                enabled: canPaint,
+                onPressed: onPaint,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _PathInspectorSmallCapsule(
+                accent: accent,
+                icon: CupertinoIcons.delete_left,
+                label: 'Gommer',
+                enabled: canPaint,
+                onPressed: onErase,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _PathInspectorSmallCapsule(
+          accent: accent,
+          icon: CupertinoIcons.add_circled,
+          label: 'Nouveau calque de path',
+          enabled: true,
+          onPressed: onNewLayer,
+        ),
+      ],
+    );
+  }
+}
+
+class _PathInspectorSmallCapsule extends StatelessWidget {
+  const _PathInspectorSmallCapsule({
+    required this.accent,
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final Color accent;
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = EditorChrome.primaryLabel(context);
+    final muted = CupertinoColors.placeholderText.resolveFrom(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: enabled ? onPressed : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: accent.withValues(alpha: enabled ? 0.07 : 0.03),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: accent.withValues(alpha: enabled ? 0.42 : 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 15, color: enabled ? accent : muted),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: enabled ? fg : muted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -586,24 +1125,51 @@ class _LayerSelector<T extends MapLayer> extends StatelessWidget {
 }
 
 class _PathLayerPropertiesBlock extends StatelessWidget {
-  const _PathLayerPropertiesBlock({required this.layer});
+  const _PathLayerPropertiesBlock({
+    required this.layer,
+    this.inspectorEmbedded = false,
+    this.accent,
+  });
 
   final PathLayer? layer;
+  final bool inspectorEmbedded;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
+    final titleColor = inspectorEmbedded
+        ? EditorChrome.primaryLabel(context)
+        : EditorPaintColors.white;
+    final bodySecondary = inspectorEmbedded
+        ? CupertinoColors.secondaryLabel.resolveFrom(context)
+        : CupertinoColors.secondaryLabel.resolveFrom(context);
+    final propColor = inspectorEmbedded
+        ? EditorChrome.subtleLabel(context)
+        : EditorPaintColors.white70;
+    final boxDecoration = BoxDecoration(
+      color: inspectorEmbedded
+          ? EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: accent?.withValues(alpha: 0.06),
+            )
+          : EditorPaintColors.white10,
+      borderRadius: BorderRadius.circular(10),
+      border: inspectorEmbedded
+          ? Border.all(color: EditorChrome.editorIslandRim(context))
+          : null,
+    );
+
     if (layer == null) {
       return Container(
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: EditorPaintColors.white10,
-          borderRadius: BorderRadius.circular(10),
-        ),
+        decoration: boxDecoration,
         child: Text(
-          'Layer properties become available once a path layer is active.',
+          inspectorEmbedded
+              ? 'Les propriétés apparaissent quand un calque de path est actif.'
+              : 'Layer properties become available once a path layer is active.',
           style: TextStyle(
             fontSize: 11,
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            color: bodySecondary,
           ),
         ),
       );
@@ -613,28 +1179,29 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
       ..sort((a, b) => a.key.compareTo(b.key));
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: EditorPaintColors.white10,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: boxDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Path Layer Properties',
+          Text(
+            inspectorEmbedded
+                ? 'Propriétés du calque'
+                : 'Path Layer Properties',
             style: TextStyle(
               fontSize: 11,
-              color: EditorPaintColors.white,
+              color: titleColor,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
           if (properties.isEmpty)
             Text(
-              'No custom properties on this path layer.',
+              inspectorEmbedded
+                  ? 'Aucune propriété personnalisée sur ce calque.'
+                  : 'No custom properties on this path layer.',
               style: TextStyle(
                 fontSize: 11,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                color: bodySecondary,
               ),
             )
           else
@@ -643,9 +1210,9 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
                   '${entry.key}: ${entry.value}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: EditorPaintColors.white70,
+                    color: propColor,
                   ),
                 ),
               ),
@@ -657,23 +1224,42 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
 }
 
 class _InfoStrip extends StatelessWidget {
-  const _InfoStrip({required this.text});
+  const _InfoStrip({
+    required this.text,
+    this.inspectorEmbedded = false,
+    this.accent,
+  });
 
   final String text;
+  final bool inspectorEmbedded;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: EditorPaintColors.white10,
+        color: inspectorEmbedded
+            ? EditorChrome.largeIslandSurfaceColor(
+                context,
+                tint: accent?.withValues(alpha: 0.05),
+              )
+            : EditorPaintColors.white10,
         borderRadius: BorderRadius.circular(10),
+        border: inspectorEmbedded
+            ? Border.all(
+                color: accent?.withValues(alpha: 0.35) ??
+                    EditorChrome.editorIslandRim(context),
+              )
+            : null,
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
-          color: EditorPaintColors.white70,
+          color: inspectorEmbedded
+              ? CupertinoColors.secondaryLabel.resolveFrom(context)
+              : EditorPaintColors.white70,
         ),
       ),
     );
