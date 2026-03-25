@@ -27,6 +27,10 @@ class InspectorSectionCard extends StatelessWidget {
   final String? badgeText;
   final Color accentColor;
 
+  /// Blanc cassé chaud pour les pastilles d’icônes.
+  static const Color _iconWellHi = Color(0xFFFFF4EB);
+  static const Color _warmLift = Color(0xFFFFE8CC);
+
   @override
   Widget build(BuildContext context) {
     final badgeText = this.badgeText?.trim();
@@ -35,8 +39,21 @@ class InspectorSectionCard extends StatelessWidget {
     final label = EditorChrome.primaryLabel(context);
     final baseHi = EditorChrome.islandFillElevated(context);
     final baseLo = EditorChrome.islandFill(context);
-    final fillTop = Color.lerp(baseHi, accentColor, 0.14)!;
-    final fillBottom = Color.lerp(baseLo, accentColor, 0.055)!;
+
+    final fillTop = Color.lerp(baseHi, accentColor, 0.34)!;
+    final fillMid = Color.lerp(
+      Color.lerp(baseHi, accentColor, 0.24)!,
+      _warmLift,
+      0.14,
+    )!;
+    final fillBottom = Color.lerp(baseLo, accentColor, 0.15)!;
+
+    final iconWellTop = Color.lerp(_iconWellHi, accentColor, 0.78)!;
+    final iconWellBottom =
+        Color.lerp(accentColor, const Color(0xFF4A2820), 0.38)!;
+
+    final subtitleTinted =
+        Color.lerp(subtle, accentColor, 0.32)!.withValues(alpha: 0.96);
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 180),
@@ -49,11 +66,25 @@ class InspectorSectionCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               fillTop,
+              fillMid,
               fillBottom,
             ],
+            stops: const [0.0, 0.48, 1.0],
           ),
           borderRadius: BorderRadius.circular(22),
-          boxShadow: EditorChrome.sectionCardShadows(context),
+          boxShadow: [
+            ...EditorChrome.sectionCardShadows(context),
+            BoxShadow(
+              color: EditorChrome.inspectorJoyApricot.withValues(alpha: 0.12),
+              blurRadius: 22,
+              offset: const Offset(0, 5),
+            ),
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.2),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -65,28 +96,32 @@ class InspectorSectionCard extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color.lerp(baseHi, accentColor, 0.34)!,
-                          Color.lerp(baseLo, accentColor, 0.16)!,
+                          iconWellTop,
+                          iconWellBottom,
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: accentColor.withValues(alpha: 0.18),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: accentColor.withValues(alpha: 0.45),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
                     alignment: Alignment.center,
-                    child: MacosIcon(icon, size: 18, color: accentColor),
+                    child: MacosIcon(
+                      icon,
+                      size: 19,
+                      color: CupertinoColors.white,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -111,8 +146,8 @@ class InspectorSectionCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 11.5,
-                              color: subtle,
-                              fontWeight: FontWeight.w500,
+                              color: subtitleTinted,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -122,19 +157,38 @@ class InspectorSectionCard extends StatelessWidget {
                   if (hasBadge) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 5,
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Color.lerp(baseHi, accentColor, 0.2)!,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color.lerp(accentColor, CupertinoColors.white, 0.5)!,
+                            Color.lerp(
+                              accentColor,
+                              const Color(0xFF5A3028),
+                              0.18,
+                            )!,
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.35),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Text(
                         badgeText,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: accentColor,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: CupertinoColors.white,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ),
@@ -145,7 +199,7 @@ class InspectorSectionCard extends StatelessWidget {
                         ? CupertinoIcons.chevron_up
                         : CupertinoIcons.chevron_down,
                     size: 18,
-                    color: subtle,
+                    color: Color.lerp(subtle, accentColor, 0.35)!,
                   ),
                 ],
               ),

@@ -30,6 +30,18 @@ abstract final class EditorChrome {
   /// Surface Library — ambre / terre chaude.
   static const Color islandWarmTint = Color(0xFF6B5438);
 
+  // --- Accents inspecteur : **chauds & joyeux** (miel, pêche, soleil — pas froid) ---
+  static const Color inspectorJoyHoney = Color(0xFFFFD28A);
+  static const Color inspectorJoyApricot = Color(0xFFFFAC7A);
+  static const Color inspectorJoyBlue = Color(0xFF9EC8FF);
+  static const Color inspectorJoyLilac = Color(0xFFE8C4F8);
+  static const Color inspectorJoyMint = Color(0xFF94F0C0);
+  static const Color inspectorJoyAmber = Color(0xFFFFD078);
+  static const Color inspectorJoyCyan = Color(0xFF6AE8DC);
+  static const Color inspectorJoyPlum = Color(0xFFDDB0F5);
+  static const Color inspectorJoyCoral = Color(0xFFFFB09A);
+  static const Color inspectorJoyOrchid = Color(0xFFFFB8E0);
+
   // --- Tokens de structure (seuls fonds d’architecture) ---
   static Color appBackground(BuildContext context) =>
       EditorVisualTokens.appBackground(context);

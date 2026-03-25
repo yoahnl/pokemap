@@ -107,7 +107,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                       : 'Active: ${_layerLabel(activeLayer)}',
                   icon: CupertinoIcons.layers,
                   badgeText: '${activeMap.layers.length}',
-                  accentColor: EditorChrome.accentPrimary,
+                  accentColor: EditorChrome.inspectorJoyBlue,
                   expanded: _isExpanded(_InspectorSectionId.layers, true),
                   onToggle: () => _toggleSection(
                     _InspectorSectionId.layers,
@@ -122,7 +122,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle:
                         'Tileset palette and element placement for tile layers.',
                     icon: CupertinoIcons.square_grid_2x2,
-                    accentColor: EditorChrome.accentLilac,
+                    accentColor: EditorChrome.inspectorJoyLilac,
                     expanded: _isExpanded(
                       _InspectorSectionId.tiles,
                       activeLayer is TileLayer ||
@@ -141,7 +141,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     title: 'Base Ground',
                     subtitle: 'Terrain-only editing for the map background.',
                     icon: CupertinoIcons.tree,
-                    accentColor: EditorChrome.accentJade,
+                    accentColor: EditorChrome.inspectorJoyMint,
                     expanded: _isExpanded(
                       _InspectorSectionId.ground,
                       true,
@@ -162,7 +162,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle:
                         'Edit the active path layer for roads and specialized surfaces.',
                     icon: CupertinoIcons.map,
-                    accentColor: EditorChrome.accentWarm,
+                    accentColor: EditorChrome.inspectorJoyAmber,
                     expanded: _isExpanded(
                       _InspectorSectionId.surfaces,
                       true,
@@ -185,7 +185,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Visible world content such as NPCs, signs, items and spawn points.',
                     icon: CupertinoIcons.sparkles,
                     badgeText: '${activeMap.entities.length}',
-                    accentColor: EditorChrome.accentCyan,
+                    accentColor: EditorChrome.inspectorJoyCyan,
                     expanded: _isExpanded(
                       _InspectorSectionId.entities,
                       state.activeTool == EditorToolType.entityPlacement ||
@@ -206,7 +206,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     subtitle: 'Link the current map to adjacent world maps.',
                     icon: CupertinoIcons.arrow_branch,
                     badgeText: '${activeMap.connections.length}',
-                    accentColor: EditorChrome.accentPrune,
+                    accentColor: EditorChrome.inspectorJoyPlum,
                     expanded:
                         _isExpanded(_InspectorSectionId.connections, false),
                     onToggle: () => _toggleSection(
@@ -224,7 +224,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Gameplay zones and editable trigger areas.',
                     icon: CupertinoIcons.square,
                     badgeText: '${activeMap.triggers.length}',
-                    accentColor: EditorChrome.accentCoral,
+                    accentColor: EditorChrome.inspectorJoyCoral,
                     expanded: _isExpanded(
                       _InspectorSectionId.triggers,
                       state.activeTool == EditorToolType.triggerPlacement ||
@@ -247,7 +247,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : 'Map transitions such as doors, stairs and exits.',
                     icon: CupertinoIcons.arrow_down_circle,
                     badgeText: '${activeMap.warps.length}',
-                    accentColor: EditorChrome.accentMagentaDeep,
+                    accentColor: EditorChrome.inspectorJoyOrchid,
                     expanded: _isExpanded(
                       _InspectorSectionId.warps,
                       state.activeTool == EditorToolType.warpPlacement ||
@@ -319,8 +319,8 @@ class _InspectorOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
-    const accentA = EditorChrome.accentPrimary;
-    const accentB = EditorChrome.accentLilac;
+    const accentA = EditorChrome.inspectorJoyHoney;
+    const accentB = EditorChrome.inspectorJoyApricot;
     final activeLayerText = activeLayer == null
         ? 'No active layer'
         : switch (activeLayer!) {
@@ -341,12 +341,21 @@ class _InspectorOverviewCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color.lerp(hi, accentA, 0.12)!,
-            Color.lerp(lo, accentB, 0.08)!,
+            Color.lerp(hi, accentA, 0.32)!,
+            Color.lerp(hi, accentB, 0.22)!,
+            Color.lerp(lo, accentB, 0.2)!,
           ],
+          stops: const [0.0, 0.42, 1.0],
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: EditorChrome.sectionCardShadows(context),
+        boxShadow: [
+          ...EditorChrome.sectionCardShadows(context),
+          BoxShadow(
+            color: EditorChrome.inspectorJoyApricot.withValues(alpha: 0.14),
+            blurRadius: 20,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -358,16 +367,28 @@ class _InspectorOverviewCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color.lerp(hi, accentA, 0.38)!,
-                  Color.lerp(lo, accentB, 0.22)!,
+                  Color.lerp(const Color(0xFFFFF8F0), accentA, 0.62)!,
+                  Color.lerp(accentB, const Color(0xFF6A3828), 0.22)!,
                 ],
               ),
               borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: accentA.withValues(alpha: 0.45),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
+                ),
+                BoxShadow(
+                  color: accentB.withValues(alpha: 0.25),
+                  blurRadius: 18,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             alignment: Alignment.center,
             child: const MacosIcon(
               CupertinoIcons.slider_horizontal_3,
-              color: accentA,
+              color: CupertinoColors.white,
               size: 20,
             ),
           ),
