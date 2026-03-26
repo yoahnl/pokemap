@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-26 (`map_runtime` Runtime 3 : API publique propre + package pub.dev-ready ; Runtime 2 : entités in-game ; dresseurs éditeur — voir lots ci-dessous)
+Last updated: 2026-03-26 (`map_gameplay` : socle exploration jouable (déplacement, collision, warp) ; `map_runtime` Runtime 3 ; dresseurs éditeur — voir lots ci-dessous)
 
 ## Vision produit
 
@@ -19,12 +19,12 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 | Phase | Contenu | Etat |
 |-------|---------|------|
 | **1 — Editeur de contenu riche** | Maps, connexions, terrains, collisions, warps, triggers, entites (NPC/signe/objet/spawn), dialogues, rencontres, dresseurs, proprietes de map | **En cours — priorite actuelle** |
-| **2 — Runtime standard** (`map_runtime`) | Lecteur projet + scene + deplacement/collisions/warps + interactions + dialogues + comportements standards | **Amorcé** : Runtime 1 (chargement + rendu layers) **livré** ; **boucle jouable** et systèmes gameplay **à construire** |
+| **2 — Runtime standard** (`map_runtime` + `map_gameplay`) | Lecteur projet + scène + déplacement/collisions/warps + interactions + dialogues + comportements standards | **Amorcé** : `map_runtime` Runtime 1-3 (chargement + rendu layers + entités) **livré** ; `map_gameplay` socle exploration **livré** ; interactions/dialogues/rencontres **à construire** |
 | **3 — Couches haut niveau** | No-code, framework abstrait, simplification maximale creation jeu | **Volontairement plus tard** |
 
 *Phase 1 avancée : maps/layers/tilesets/terrains/collisions/warps/triggers/entités avec visuel éditeur (`editorVisual` → `ProjectElementEntry`, animation canvas multi-frames), **propriétés de map** (`MapMetadata` : nom, type, musique, météo, indoor, escape rope, spawn par défaut, tags — UI panel + use case livrés), **zones gameplay** (`MapGameplayZone` avec payloads typés : encounter/movement/hazard/special) + **tables de rencontres** (`ProjectEncounterTable` + entrées espèces/niveaux/poids — modèle + UI éditeur complet), **dialogues** (registre `ProjectDialogueEntry`, dossiers, UI bibliothèque, assignation depuis NPC/signe), **dresseurs** (`ProjectTrainerEntry` + équipe `ProjectTrainerPokemonEntry` — modèle `map_core`, Trainer Library dans l'explorateur, champs combat dans l'inspecteur NPC : trainerId, lineOfSightRange, defeatDialogueRef) — solide et avancé. Manque encore côté éditeur : propriétés de map avancées (hooks gameplay, flags progression, restrictions). Côté runtime : boucle jouable, entités in-game, dialogues Yarn, rencontres actives.*
 
-*Phase 2 amorcée : `map_runtime` est un **visualiseur read-only** — lit le même JSON que l’éditeur, charge les tilesets, affiche layers + entités (sprites animés via `ProjectElementEntry.frames`) dans une scène Flame (`packages/map_runtime/example`). Pas encore : déplacement, warps actifs, dialogues, gameplay.*
+*Phase 2 bien amorcée : `map_runtime` est un **visualiseur read-only** — lit le même JSON que l’éditeur, charge les tilesets, affiche layers + entités animés via `ProjectElementEntry.frames` dans une scène Flame. `map_gameplay` porte la logique d’exploration (déplacement grille, collisions, warps) en pur Dart sans rendu. Pas encore : interactions NPC/signe, dialogues runtime, rencontres actives.*
 
 ### Repartition des roles
 
@@ -36,7 +36,8 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 - Toute **nouvelle donnee metier** doit etre pensee **a la fois** pour l edition (`map_editor`) et pour une **execution future** par `map_runtime` (semantique claire, validation dans `map_core`, serialisation stable).
 - `map_core` = **schema metier + invariants + operations pures** (pas de Flutter, pas de Yarn, pas de Flame) ; **compat JSON legacy** éditeur (`migrateProjectManifestJson` / `migrateMapDataJson` dans `src/io/legacy_editor_json_compat.dart`, export barrel) pour qu’éditeur et runtime lisent les mêmes migrations.
 - `map_editor` = **production** de ces donnees (UI, use cases, fichiers).
-- `map_runtime` = **interpretation standard** progressive des memes schemas (lecture projet, scenes, gameplay de base) ; **Runtime 1** = pipeline chargement + rendu Flame minimal documenté dans le lot dédié.
+- `map_runtime` = **visualiseur read-only** (lecture projet, rendu layers + entités, scène Flame) ; **Runtime 1-3** livrés.
+- `map_gameplay` = **logique de jeu d'exploration**, pur Dart, sans rendu ; consomme `MapData` de `map_core` ; boucle : `stepGameplayWorld(world, intent) → GameplayStepResult`.
 
 ### Integrations externes (ex. Yarn Spinner)
 
@@ -783,12 +784,22 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 - API finale : `final bundle = await loadRuntimeMapBundle(projectFilePath: ‘...’, mapId: ‘...’); final game = RuntimeMapGame(bundle: bundle);`
 - Limite pub.dev : `map_core` est une dépendance locale (`path:`), à publier séparément avant publication sur pub.dev.
 
+**map_gameplay — Socle exploration** (2026-03-26): lot livré — package pur Dart `packages/map_gameplay` :
+- `Direction` (enum N/S/E/O) + extension `dx/dy/asFacing`
+- `GameplayPlayerState` (pos `GridPos` + facing `Direction`)
+- `GameplayWorldState` : cache collision (union toutes `CollisionLayer`) + lookup warp par position ; factories `initial` ; `isBlocked(x,y)`, `warpAt(x,y)`, `withPlayer`
+- `GameplayIntent` (sealed) : `MoveIntent(Direction)`
+- `GameplayStepResult` (sealed) : `Moved`, `Blocked`, `WarpTriggered(TriggeredWarp)`
+- `TriggeredWarp` : `warpId`, `targetMapId`, `targetPos`
+- `stepGameplayWorld(world, intent) → GameplayStepResult` : résout déplacement + facing + collision + borne + warp
+- Aucune dépendance Flame ni Flutter — pur Dart + `map_core`
+
 **Prochaines priorités immédiates:**
 
-- **Runtime** : déplacement ; collisions gameplay actives ; warps / interactions (itérations suivantes, futur package `map_gameplay`).
-- **Entités (éditeur)** : catalogues objets ; affinage gameplay NPC/item/spawn ; pas de nouveau pipeline visuel parallèle.
-- **Dialogues**: poursuite integration projet fichiers Yarn (résolution `DialogueRef`, UI, validation runtime) — partie registre + assignation NPC/signe deja en place.
-- **Dresseurs / équipes**: à concevoir côté runtime (données déjà modélisées + UI éditeur livrées).
+- **`map_gameplay`** : intégration Flame (component joueur, game loop) ; interactions NPC/signe (`InteractIntent`) ; connexions entre maps.
+- **Entités (éditeur)** : catalogues objets ; affinage gameplay NPC/item/spawn.
+- **Dialogues**: poursuite intégration Yarn — résolution `DialogueRef` côté runtime.
+- **Dresseurs / équipes**: à brancher côté runtime `map_gameplay`.
 
 ### Référence historique (lots déjà livrés)
 
@@ -2107,8 +2118,9 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 | Scene de jeu (grille + camera + layers tile/terrain/path/collision) | **fait** (Flame : `RuntimeMapGame(bundle:)` + `MapLayersComponent`, ordre rendu aligné éditeur, caméra vue carte) |
 | Entités à l'écran (sprites in-game) | **fait** (Runtime 2 : `_paintEntities` via `ProjectElementEntry.frames`, animation `_animElapsed`, aspect-ratio preserving) |
 | API publique propre / package importable | **fait** (Runtime 3 : barrel `show` 3 noms, chargement images interne, `pubspec.yaml` pub.dev-ready, `README.md` complet, zéro doc-comment dans sources) |
-| Deplacement / collisions actives / warps | pas fait |
-| Interactions entites | pas fait |
+| Déplacement / collisions / warps (`map_gameplay`) | **fait** (socle exploration : `stepGameplayWorld`, `GameplayWorldState`, `GameplayIntent.move`, `Moved`/`Blocked`/`WarpTriggered`) |
+| Intégration Flame (component joueur, game loop) | pas fait |
+| Interactions entités (NPC, signe) | pas fait |
 | Dialogues (resolution DialogueRef) | pas fait |
 | Rencontres sauvages actives (déclenchement runtime) | pas fait |
 | Comportements standard Pokemon-like jouable | pas fait |

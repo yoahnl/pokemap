@@ -1,0 +1,58 @@
+{
+  "roots": [
+    "map_gameplay"
+  ],
+  "packages": [
+    {
+      "name": "map_gameplay",
+      "version": "0.1.0",
+      "dependencies": [
+        "map_core"
+      ],
+      "devDependencies": [
+        "lints"
+      ]
+    },
+    {
+      "name": "lints",
+      "version": "3.0.0",
+      "dependencies": []
+    },
+    {
+      "name": "map_core",
+      "version": "0.1.0",
+      "dependencies": [
+        "freezed_annotation",
+        "json_annotation",
+        "meta"
+      ]
+    },
+    {
+      "name": "meta",
+      "version": "1.18.2",
+      "dependencies": []
+    },
+    {
+      "name": "json_annotation",
+      "version": "4.11.0",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
+      "name": "freezed_annotation",
+      "version": "2.4.4",
+      "dependencies": [
+        "collection",
+        "json_annotation",
+        "meta"
+      ]
+    },
+    {
+      "name": "collection",
+      "version": "1.19.1",
+      "dependencies": []
+    }
+  ],
+  "configVersion": 1
+}

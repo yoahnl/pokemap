@@ -1,0 +1,23 @@
+name: map_gameplay
+description: >-
+  Exploration gameplay logic for maps in the RPG Map Editor format.
+  Player movement, collision resolution, and warp detection.
+  Pure Dart — no rendering, no Flame dependency.
+version: 0.1.0
+
+repository: https://git.yoahn.me/yoahn/pokemonProject
+
+topics:
+  - game
+  - map
+  - rpg
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  map_core:
+    path: ../map_core
+
+dev_dependencies:
+  lints: ^3.0.0
