@@ -19,6 +19,7 @@ import '../../application/services/warp_editing_coordinator.dart';
 import '../../application/services/warp_editing_service.dart';
 import '../../application/use_cases/collision_use_cases.dart';
 import '../../application/use_cases/encounter_table_use_cases.dart';
+import '../../application/use_cases/trainer_use_cases.dart';
 import '../../application/use_cases/entity_use_cases.dart';
 import '../../application/use_cases/gameplay_zone_use_cases.dart';
 import '../../application/use_cases/layer_use_cases.dart';
@@ -869,4 +870,38 @@ UpdateEncounterEntryUseCase updateEncounterEntryUseCase(
 DeleteEncounterEntryUseCase deleteEncounterEntryUseCase(
     DeleteEncounterEntryUseCaseRef ref) {
   return DeleteEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
+}
+
+// ---------------------------------------------------------------------------
+// Trainers
+// ---------------------------------------------------------------------------
+
+@riverpod
+CreateTrainerUseCase createTrainerUseCase(CreateTrainerUseCaseRef ref) {
+  return CreateTrainerUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateTrainerUseCase updateTrainerUseCase(UpdateTrainerUseCaseRef ref) {
+  return UpdateTrainerUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteTrainerUseCase deleteTrainerUseCase(DeleteTrainerUseCaseRef ref) {
+  return DeleteTrainerUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+AddTrainerPokemonUseCase addTrainerPokemonUseCase(AddTrainerPokemonUseCaseRef ref) {
+  return AddTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateTrainerPokemonUseCase updateTrainerPokemonUseCase(UpdateTrainerPokemonUseCaseRef ref) {
+  return UpdateTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteTrainerPokemonUseCase deleteTrainerPokemonUseCase(DeleteTrainerPokemonUseCaseRef ref) {
+  return DeleteTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
 }

@@ -318,6 +318,24 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
           contextLabel: 'Entity ${entity.id} (NPC dialogue)',
         );
       }
+      if (n.lineOfSightRange < 0) {
+        throw ValidationException(
+          'Entity ${entity.id} lineOfSightRange must be >= 0',
+        );
+      }
+      final dd = n.defeatDialogueRef;
+      if (dd != null && dd.dialogueId.trim().isEmpty) {
+        throw ValidationException(
+          'Entity ${entity.id} has a defeatDialogueRef without dialogueId',
+        );
+      }
+      if (dd != null) {
+        _assertDialogueScriptPath(dd.scriptPathRelative, entity.id);
+        assertValidDialogueStartNode(
+          dd.startNode,
+          contextLabel: 'Entity ${entity.id} (defeat dialogue)',
+        );
+      }
       break;
     case MapEntityKind.sign:
       final s = entity.sign ?? const MapEntitySignData();
@@ -377,6 +395,11 @@ void assertEntityDialogueRefsAgainstProject(
         entity.id,
         manifest,
       );
+      _assertDialogueRefAgainstRegistry(
+        entity.npc?.defeatDialogueRef,
+        entity.id,
+        manifest,
+      );
       break;
     case MapEntityKind.sign:
       _assertDialogueRefAgainstRegistry(
@@ -406,6 +429,22 @@ void _assertDialogueRefAgainstRegistry(
   if (!exists) {
     throw ValidationException(
       'Entity $entityId references unknown dialogue id "$id" (add it to Project dialogues or set a script path)',
+    );
+  }
+}
+
+/// Vérifie que [MapEntityNpcData.trainerId] référence un dresseur connu dans [manifest].
+void assertEntityTrainerRefsAgainstProject(
+  MapEntity entity,
+  ProjectManifest manifest,
+) {
+  if (entity.kind != MapEntityKind.npc) return;
+  final tid = entity.npc?.trainerId?.trim();
+  if (tid == null || tid.isEmpty) return;
+  final exists = manifest.trainers.any((t) => t.id == tid);
+  if (!exists) {
+    throw ValidationException(
+      'Entity ${entity.id} references unknown trainer id "$tid" (add it to Project trainers)',
     );
   }
 }

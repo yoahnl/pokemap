@@ -28,6 +28,9 @@ import 'editor_state.dart';
 
 part 'editor_notifier.g.dart';
 
+/// Valeur sentinelle pour les paramètres optionnels nullable dans [EditorNotifier].
+const Object _trainerUnset = Object();
+
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
   TerrainPresetResolver get _terrainPresetResolver =>
@@ -5206,6 +5209,185 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Trainers (bibliothèque dresseurs)
+  // ---------------------------------------------------------------------------
+
+  void selectTrainer(String? trainerId) {
+    state = state.copyWith(selectedTrainerId: trainerId);
+  }
+
+  Future<void> createTrainer({
+    required String name,
+    required String trainerClass,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createTrainerUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        trainerClass: trainerClass,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedTrainerId:
+            updated.trainers.isNotEmpty ? updated.trainers.last.id : null,
+        statusMessage: 'Trainer created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create trainer: $e');
+    }
+  }
+
+  Future<void> updateTrainer({
+    required String trainerId,
+    String? name,
+    String? trainerClass,
+    Object? portraitElementId = _trainerUnset,
+    Object? battleThemeId = _trainerUnset,
+    Object? victoryThemeId = _trainerUnset,
+    List<String>? tags,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateTrainerUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        trainerId: trainerId,
+        name: name,
+        trainerClass: trainerClass,
+        portraitElementId: portraitElementId,
+        battleThemeId: battleThemeId,
+        victoryThemeId: victoryThemeId,
+        tags: tags,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Trainer updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update trainer: $e');
+    }
+  }
+
+  Future<void> deleteTrainer(String trainerId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteTrainerUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        trainerId: trainerId,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedTrainerId: state.selectedTrainerId == trainerId
+            ? null
+            : state.selectedTrainerId,
+        statusMessage: 'Trainer deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete trainer: $e');
+    }
+  }
+
+  Future<void> addTrainerPokemon({
+    required String trainerId,
+    required String speciesId,
+    required int level,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(addTrainerPokemonUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        trainerId: trainerId,
+        speciesId: speciesId,
+        level: level,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Pokémon added',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to add Pokémon: $e');
+    }
+  }
+
+  Future<void> updateTrainerPokemon({
+    required String trainerId,
+    required int pokemonIndex,
+    String? speciesId,
+    int? level,
+    List<String>? moves,
+    bool? shiny,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateTrainerPokemonUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        trainerId: trainerId,
+        pokemonIndex: pokemonIndex,
+        speciesId: speciesId,
+        level: level,
+        moves: moves,
+        shiny: shiny,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Pokémon updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update Pokémon: $e');
+    }
+  }
+
+  Future<void> deleteTrainerPokemon({
+    required String trainerId,
+    required int pokemonIndex,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteTrainerPokemonUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        trainerId: trainerId,
+        pokemonIndex: pokemonIndex,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Pokémon removed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to remove Pokémon: $e');
+    }
   }
 }
 

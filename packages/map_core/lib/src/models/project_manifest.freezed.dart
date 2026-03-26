@@ -49,6 +49,9 @@ mixin _$ProjectManifest {
   /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   List<ProjectDialogueEntry> get dialogues =>
       throw _privateConstructorUsedError;
+
+  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
+  List<ProjectTrainerEntry> get trainers => throw _privateConstructorUsedError;
   ProjectSettings get settings => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
@@ -85,6 +88,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
+      List<ProjectTrainerEntry> trainers,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -121,6 +125,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? encounterTables = null,
     Object? dialogueFolders = null,
     Object? dialogues = null,
+    Object? trainers = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -185,6 +190,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.dialogues
           : dialogues // ignore: cast_nullable_to_non_nullable
               as List<ProjectDialogueEntry>,
+      trainers: null == trainers
+          ? _value.trainers
+          : trainers // ignore: cast_nullable_to_non_nullable
+              as List<ProjectTrainerEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -231,6 +240,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
+      List<ProjectTrainerEntry> trainers,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -266,6 +276,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? encounterTables = null,
     Object? dialogueFolders = null,
     Object? dialogues = null,
+    Object? trainers = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -330,6 +341,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._dialogues
           : dialogues // ignore: cast_nullable_to_non_nullable
               as List<ProjectDialogueEntry>,
+      trainers: null == trainers
+          ? _value._trainers
+          : trainers // ignore: cast_nullable_to_non_nullable
+              as List<ProjectTrainerEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -362,6 +377,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectEncounterTable> encounterTables = const [],
       final List<ProjectDialogueFolder> dialogueFolders = const [],
       final List<ProjectDialogueEntry> dialogues = const [],
+      final List<ProjectTrainerEntry> trainers = const [],
       this.settings = const ProjectSettings(),
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
@@ -377,6 +393,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _encounterTables = encounterTables,
         _dialogueFolders = dialogueFolders,
         _dialogues = dialogues,
+        _trainers = trainers,
         _globalProperties = globalProperties;
 
   factory _$ProjectManifestImpl.fromJson(Map<String, dynamic> json) =>
@@ -513,6 +530,18 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_dialogues);
   }
 
+  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
+  final List<ProjectTrainerEntry> _trainers;
+
+  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
+  @override
+  @JsonKey()
+  List<ProjectTrainerEntry> get trainers {
+    if (_trainers is EqualUnmodifiableListView) return _trainers;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_trainers);
+  }
+
   @override
   @JsonKey()
   final ProjectSettings settings;
@@ -527,7 +556,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, trainers: $trainers, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -559,6 +588,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._dialogueFolders, _dialogueFolders) &&
             const DeepCollectionEquality()
                 .equals(other._dialogues, _dialogues) &&
+            const DeepCollectionEquality().equals(other._trainers, _trainers) &&
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
             const DeepCollectionEquality()
@@ -584,6 +614,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       const DeepCollectionEquality().hash(_encounterTables),
       const DeepCollectionEquality().hash(_dialogueFolders),
       const DeepCollectionEquality().hash(_dialogues),
+      const DeepCollectionEquality().hash(_trainers),
       settings,
       const DeepCollectionEquality().hash(_globalProperties));
 
@@ -621,6 +652,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectEncounterTable> encounterTables,
       final List<ProjectDialogueFolder> dialogueFolders,
       final List<ProjectDialogueEntry> dialogues,
+      final List<ProjectTrainerEntry> trainers,
       final ProjectSettings settings,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
 
@@ -663,6 +695,10 @@ abstract class _ProjectManifest implements ProjectManifest {
   /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   @override
   List<ProjectDialogueEntry> get dialogues;
+
+  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
+  @override
+  List<ProjectTrainerEntry> get trainers;
   @override
   ProjectSettings get settings;
   @override

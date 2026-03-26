@@ -16,6 +16,7 @@ enum _DialogueRefSource { none, manifest, legacy }
 
 const _kDialogueNoneMenuId = '__dialogue_none__';
 const _kElementNoneMenuId = '__entity_element_none__';
+const _kTrainerNoneMenuId = '__entity_trainer_none__';
 
 String _normalizeDialogueRelPath(String raw) {
   return raw.trim().replaceAll(r'\', '/');
@@ -64,6 +65,11 @@ class _EntityPropertiesPanelState
   final _npcScriptPath = TextEditingController();
   final _npcStartNode = TextEditingController();
   EntityFacing _npcFacing = EntityFacing.south;
+  String _npcTrainerMenuId = _kTrainerNoneMenuId;
+  final _npcLineOfSight = TextEditingController();
+  final _npcDefeatDialogueId = TextEditingController();
+  final _npcDefeatStartNode = TextEditingController();
+  _DialogueRefSource _npcDefeatDialogueSource = _DialogueRefSource.none;
 
   final _signTitle = TextEditingController();
   final _signDialogueId = TextEditingController();
@@ -98,6 +104,9 @@ class _EntityPropertiesPanelState
     _npcDialogueId.dispose();
     _npcScriptPath.dispose();
     _npcStartNode.dispose();
+    _npcLineOfSight.dispose();
+    _npcDefeatDialogueId.dispose();
+    _npcDefeatStartNode.dispose();
     _signTitle.dispose();
     _signDialogueId.dispose();
     _signScriptPath.dispose();
@@ -677,6 +686,101 @@ class _EntityPropertiesPanelState
     ];
   }
 
+  List<Widget> _npcTrainerBattleFields(
+    BuildContext context,
+    ProjectManifest? project,
+  ) {
+    const battleAccent = EditorChrome.accentCoral;
+    final trainers = project?.trainers ?? const <ProjectTrainerEntry>[];
+
+    // Trainer IDs: none sentinel + actual IDs
+    final trainerMenuIds = [
+      _kTrainerNoneMenuId,
+      ...trainers.map((t) => t.id),
+    ];
+    String trainerMenuLabel(String id) {
+      if (id == _kTrainerNoneMenuId) return _l('Aucun', 'None');
+      final match = trainers.where((t) => t.id == id);
+      if (match.isEmpty) return id;
+      final t = match.first;
+      return '${t.name} (${t.trainerClass})';
+    }
+
+    final selectedTrainer =
+        trainerMenuIds.contains(_npcTrainerMenuId)
+            ? _npcTrainerMenuId
+            : _kTrainerNoneMenuId;
+
+    return [
+      InspectorEmbeddedSectionLabel(
+        _l('COMBAT DE DRESSEUR', 'TRAINER BATTLE'),
+      ),
+      const SizedBox(height: 6),
+      if (widget.embedded)
+        InspectorEmbeddedDropdown(
+          accent: battleAccent,
+          fieldLabel: _l('Dresseur', 'Trainer'),
+          valueLabel: trainerMenuLabel(selectedTrainer),
+          orderedIds: trainerMenuIds,
+          selectedMenuValue: selectedTrainer,
+          selectedIdForCheck: selectedTrainer,
+          idToLabel: trainerMenuLabel,
+          onSelected: (id) => setState(() => _npcTrainerMenuId = id),
+          tooltip: _l(
+            'Lier à une fiche dresseur du projet. Vide = PNJ non combattant.',
+            'Link to a project trainer entry. Empty = non-combat NPC.',
+          ),
+        )
+      else ...[
+        Text(
+          _l('Dresseur', 'Trainer'),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: () async {
+            final picked = await showCupertinoListPicker<String>(
+              context: context,
+              title: _l('Dresseur', 'Trainer'),
+              items: trainerMenuIds,
+              labelOf: trainerMenuLabel,
+            );
+            if (picked != null && context.mounted) {
+              setState(() => _npcTrainerMenuId = picked);
+            }
+          },
+          child: Text(trainerMenuLabel(selectedTrainer)),
+        ),
+      ],
+      const SizedBox(height: 6),
+      _labeledField(
+        context,
+        label: _l('Portée détection (cases)', 'Line of sight (tiles)'),
+        controller: _npcLineOfSight,
+        keyboardType: TextInputType.number,
+      ),
+      if (selectedTrainer != _kTrainerNoneMenuId) ...[
+        const SizedBox(height: 8),
+        InspectorEmbeddedSectionLabel(
+          _l('DIALOGUE APRÈS DÉFAITE', 'DEFEAT DIALOGUE'),
+        ),
+        const SizedBox(height: 4),
+        _labeledField(
+          context,
+          label: _l('ID dialogue défaite', 'Defeat dialogue ID'),
+          controller: _npcDefeatDialogueId,
+        ),
+        const SizedBox(height: 4),
+        _labeledField(
+          context,
+          label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+          controller: _npcDefeatStartNode,
+        ),
+      ],
+    ];
+  }
+
   List<Widget> _signDialogueFields(
     BuildContext context,
     ProjectManifest? project,
@@ -987,6 +1091,8 @@ class _EntityPropertiesPanelState
                   '${_l('Orientation', 'Facing')}: ${_facingLabel(_npcFacing)}',
                 ),
               ),
+            const SizedBox(height: 8),
+            ..._npcTrainerBattleFields(context, project),
           ],
         );
       case MapEntityKind.sign:
@@ -1466,6 +1572,20 @@ class _EntityPropertiesPanelState
     }
     _npcStartNode.text = n.dialogue?.startNode ?? '';
     _npcFacing = n.facing;
+    final tid = n.trainerId?.trim();
+    _npcTrainerMenuId =
+        (tid == null || tid.isEmpty) ? _kTrainerNoneMenuId : tid;
+    _npcLineOfSight.text = n.lineOfSightRange.toString();
+    final dd = n.defeatDialogueRef;
+    if (dd == null) {
+      _npcDefeatDialogueSource = _DialogueRefSource.none;
+      _npcDefeatDialogueId.text = '';
+      _npcDefeatStartNode.text = '';
+    } else {
+      _npcDefeatDialogueSource = _DialogueRefSource.manifest;
+      _npcDefeatDialogueId.text = dd.dialogueId;
+      _npcDefeatStartNode.text = dd.startNode ?? '';
+    }
 
     final resolvedEv = entity?.resolvedProjectElementIdForEditor;
     _editorVisualMenuId = (resolvedEv == null || resolvedEv.isEmpty)
@@ -1625,11 +1745,31 @@ class _EntityPropertiesPanelState
           }
           npcDlg = r.ref;
         }
+        final trainerIdRaw = _npcTrainerMenuId.trim();
+        final trainerId = (trainerIdRaw.isEmpty ||
+                trainerIdRaw == _kTrainerNoneMenuId)
+            ? null
+            : trainerIdRaw;
+        final losRange =
+            int.tryParse(_npcLineOfSight.text.trim()) ?? 0;
+        DialogueRef? defeatDlgRef;
+        if (_npcDefeatDialogueSource != _DialogueRefSource.none &&
+            _npcDefeatDialogueId.text.trim().isNotEmpty) {
+          defeatDlgRef = DialogueRef(
+            dialogueId: _npcDefeatDialogueId.text.trim(),
+            startNode: _npcDefeatStartNode.text.trim().isEmpty
+                ? null
+                : _npcDefeatStartNode.text.trim(),
+          );
+        }
         npcPayload = MapEntityNpcData(
           displayName: _nameController.text.trim(),
           dialogue: npcDlg,
           facing: _npcFacing,
           visualElementId: '',
+          trainerId: trainerId,
+          lineOfSightRange: losRange.clamp(0, 999),
+          defeatDialogueRef: defeatDlgRef,
         );
         break;
       case MapEntityKind.sign:

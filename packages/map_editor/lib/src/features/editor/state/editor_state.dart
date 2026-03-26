@@ -74,6 +74,8 @@ class EditorState with _$EditorState {
     String? selectedTilesetElementGroupId,
     /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
     String? selectedProjectDialogueId,
+    /// Dresseur sélectionné dans la bibliothèque dresseurs.
+    String? selectedTrainerId,
     PaletteCategory? paletteCategoryFilter,
 
     // Viewport

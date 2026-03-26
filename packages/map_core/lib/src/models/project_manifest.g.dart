@@ -72,6 +72,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectDialogueEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      trainers: (json['trainers'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -101,6 +106,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'dialogueFolders':
           instance.dialogueFolders.map((e) => e.toJson()).toList(),
       'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
+      'trainers': instance.trainers.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
     };

@@ -8,6 +8,8 @@ import '../../application/runtime_manifest_tilesets.dart';
 import '../../application/runtime_map_bundle.dart';
 import 'runtime_path_autotile.dart';
 
+const int _kEntityFrameDurationFallbackMs = 200;
+
 class MapLayersComponent extends PositionComponent {
   MapLayersComponent({
     required this.bundle,
@@ -31,6 +33,18 @@ class MapLayersComponent extends PositionComponent {
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
 
+  late final Map<String, ProjectElementEntry> _elementById = {
+    for (final e in bundle.manifest.elements) e.id: e,
+  };
+
+  double _animElapsed = 0.0;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _animElapsed += dt;
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -53,12 +67,101 @@ class MapLayersComponent extends PositionComponent {
             _paintTileLayer(canvas, tilesetId, tiles, o),
       );
     }
+    _paintEntities(canvas);
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
         collision: (id, name, v, o, collisions) =>
             _paintCollisionLayer(canvas, collisions, o),
       );
     }
+  }
+
+  void _paintEntities(Canvas canvas) {
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    final tw = bundle.manifest.settings.tileWidth;
+    final th = bundle.manifest.settings.tileHeight;
+    final elapsedMs = (_animElapsed * 1000).toInt();
+    for (final entity in bundle.map.entities) {
+      final elementId = entity.resolvedProjectElementIdForEditor?.trim();
+      if (elementId == null || elementId.isEmpty) continue;
+      final entry = _elementById[elementId];
+      if (entry == null || entry.frames.isEmpty) continue;
+      final frame = _pickEntityFrame(entry.frames, elapsedMs);
+      final tilesetId = frame.tilesetId.trim().isNotEmpty
+          ? frame.tilesetId.trim()
+          : entry.tilesetId.trim();
+      if (tilesetId.isEmpty) continue;
+      final image = tileImagesByTilesetId[tilesetId];
+      if (image == null) continue;
+      final src = frame.source;
+      final srcW = (src.width <= 0 ? 1 : src.width) * tw;
+      final srcH = (src.height <= 0 ? 1 : src.height) * th;
+      final srcRect = Rect.fromLTWH(
+        (src.x * tw).toDouble(),
+        (src.y * th).toDouble(),
+        srcW.toDouble(),
+        srcH.toDouble(),
+      );
+      if (srcRect.right > image.width || srcRect.bottom > image.height) {
+        continue;
+      }
+      final bounds = Rect.fromLTWH(
+        entity.pos.x * cw,
+        entity.pos.y * ch,
+        entity.size.width * cw,
+        entity.size.height * ch,
+      );
+      _paintEntityFrame(canvas, image, srcRect, bounds);
+    }
+  }
+
+  void _paintEntityFrame(
+    Canvas canvas,
+    ui.Image image,
+    Rect src,
+    Rect bounds,
+  ) {
+    if (src.width <= 0 || src.height <= 0) return;
+    final srcAr = src.width / src.height;
+    final bAr = bounds.width / bounds.height;
+    final Rect dst;
+    if (srcAr > bAr) {
+      final w = bounds.width;
+      final h = w / srcAr;
+      dst = Rect.fromCenter(center: bounds.center, width: w, height: h);
+    } else {
+      final h = bounds.height;
+      final w = h * srcAr;
+      dst = Rect.fromCenter(center: bounds.center, width: w, height: h);
+    }
+    canvas.drawImageRect(
+      image,
+      src,
+      dst,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
+  }
+
+  TilesetVisualFrame _pickEntityFrame(
+    List<TilesetVisualFrame> frames,
+    int elapsedMs,
+  ) {
+    if (frames.length == 1) return frames.first;
+    var total = 0;
+    for (final f in frames) {
+      final d = f.durationMs;
+      total += (d == null || d <= 0) ? _kEntityFrameDurationFallbackMs : d;
+    }
+    if (total <= 0) return frames.first;
+    var t = elapsedMs % total;
+    for (final f in frames) {
+      final d = f.durationMs;
+      final dur = (d == null || d <= 0) ? _kEntityFrameDurationFallbackMs : d;
+      if (t < dur) return f;
+      t -= dur;
+    }
+    return frames.last;
   }
 
   void _paintTileLayer(

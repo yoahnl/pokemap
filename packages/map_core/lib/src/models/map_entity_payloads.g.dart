@@ -30,6 +30,12 @@ _$MapEntityNpcDataImpl _$$MapEntityNpcDataImplFromJson(
       facing: $enumDecodeNullable(_$EntityFacingEnumMap, json['facing']) ??
           EntityFacing.south,
       visualElementId: json['visualElementId'] as String? ?? '',
+      trainerId: json['trainerId'] as String?,
+      lineOfSightRange: (json['lineOfSightRange'] as num?)?.toInt() ?? 0,
+      defeatDialogueRef: json['defeatDialogueRef'] == null
+          ? null
+          : DialogueRef.fromJson(
+              json['defeatDialogueRef'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
@@ -39,6 +45,9 @@ Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
       'dialogue': instance.dialogue?.toJson(),
       'facing': _$EntityFacingEnumMap[instance.facing]!,
       'visualElementId': instance.visualElementId,
+      'trainerId': instance.trainerId,
+      'lineOfSightRange': instance.lineOfSightRange,
+      'defeatDialogueRef': instance.defeatDialogueRef?.toJson(),
     };
 
 const _$EntityFacingEnumMap = {

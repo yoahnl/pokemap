@@ -1,25 +1,21 @@
-import 'dart:ui' as ui;
-
 import 'package:flame/game.dart';
 
 import '../../application/runtime_map_bundle.dart';
+import '../../infrastructure/tile_image_loader.dart';
 import 'map_layers_component.dart';
 
 class RuntimeMapGame extends FlameGame {
-  RuntimeMapGame({
-    required this.bundle,
-    required this.tileImagesByTilesetId,
-  });
+  RuntimeMapGame({required this.bundle});
 
   final RuntimeMapBundle bundle;
-  final Map<String, ui.Image> tileImagesByTilesetId;
 
   @override
   Future<void> onLoad() async {
+    final images = await loadTilesetImagesById(bundle.tilesetAbsolutePathsById);
     await world.add(
       MapLayersComponent(
         bundle: bundle,
-        tileImagesByTilesetId: tileImagesByTilesetId,
+        tileImagesByTilesetId: images,
       ),
     );
     _applyView();

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
 import 'terrain_editor_panel.dart';
+import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_section_card.dart';
@@ -825,6 +826,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandScriptLib = true;
   bool _expandWorld = true;
   bool _expandSurface = true;
+  bool _expandTrainers = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1009,6 +1011,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hScript = (screenH * 0.28).clamp(220.0, 380.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hSurface = (screenH * 0.36).clamp(280.0, 500.0);
+    final hTrainers = (screenH * 0.35).clamp(260.0, 480.0);
     const explorerTileRadius = 28.0;
     final actionIcon = CupertinoColors.white.withValues(alpha: 0.92);
     final actionHover = CupertinoColors.white.withValues(alpha: 0.16);
@@ -1134,6 +1137,19 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           onToggle: () => setState(() => _expandSurface = !_expandSurface),
           expandedHeight: hSurface,
           child: const TerrainEditorPanel(omitOuterHeader: true),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Trainer Library',
+          subtitle: 'Trainer rosters referenced by NPC entities',
+          icon: CupertinoIcons.person_2_fill,
+          accentColor: EditorChrome.accentCoral,
+          badgeText: '${project.trainers.length}',
+          expanded: _expandTrainers,
+          onToggle: () =>
+              setState(() => _expandTrainers = !_expandTrainers),
+          expandedHeight: hTrainers,
+          child: const TrainerLibraryPanel(embedded: true),
         ),
       ],
     );

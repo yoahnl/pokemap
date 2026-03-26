@@ -231,6 +231,15 @@ mixin _$MapEntityNpcData {
   EntityFacing get facing => throw _privateConstructorUsedError;
   String get visualElementId => throw _privateConstructorUsedError;
 
+  /// Référence à un [ProjectTrainerEntry.id]. Vide/null = PNJ non dresseur.
+  String? get trainerId => throw _privateConstructorUsedError;
+
+  /// Portée de détection visuelle en cases (0 = pas de détection active).
+  int get lineOfSightRange => throw _privateConstructorUsedError;
+
+  /// Dialogue déclenché après la défaite du dresseur par le joueur.
+  DialogueRef? get defeatDialogueRef => throw _privateConstructorUsedError;
+
   /// Serializes this MapEntityNpcData to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -251,9 +260,13 @@ abstract class $MapEntityNpcDataCopyWith<$Res> {
       {String displayName,
       DialogueRef? dialogue,
       EntityFacing facing,
-      String visualElementId});
+      String visualElementId,
+      String? trainerId,
+      int lineOfSightRange,
+      DialogueRef? defeatDialogueRef});
 
   $DialogueRefCopyWith<$Res>? get dialogue;
+  $DialogueRefCopyWith<$Res>? get defeatDialogueRef;
 }
 
 /// @nodoc
@@ -275,6 +288,9 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
     Object? dialogue = freezed,
     Object? facing = null,
     Object? visualElementId = null,
+    Object? trainerId = freezed,
+    Object? lineOfSightRange = null,
+    Object? defeatDialogueRef = freezed,
   }) {
     return _then(_value.copyWith(
       displayName: null == displayName
@@ -293,6 +309,18 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
           ? _value.visualElementId
           : visualElementId // ignore: cast_nullable_to_non_nullable
               as String,
+      trainerId: freezed == trainerId
+          ? _value.trainerId
+          : trainerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      lineOfSightRange: null == lineOfSightRange
+          ? _value.lineOfSightRange
+          : lineOfSightRange // ignore: cast_nullable_to_non_nullable
+              as int,
+      defeatDialogueRef: freezed == defeatDialogueRef
+          ? _value.defeatDialogueRef
+          : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
+              as DialogueRef?,
     ) as $Val);
   }
 
@@ -309,6 +337,20 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
       return _then(_value.copyWith(dialogue: value) as $Val);
     });
   }
+
+  /// Create a copy of MapEntityNpcData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $DialogueRefCopyWith<$Res>? get defeatDialogueRef {
+    if (_value.defeatDialogueRef == null) {
+      return null;
+    }
+
+    return $DialogueRefCopyWith<$Res>(_value.defeatDialogueRef!, (value) {
+      return _then(_value.copyWith(defeatDialogueRef: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -323,10 +365,15 @@ abstract class _$$MapEntityNpcDataImplCopyWith<$Res>
       {String displayName,
       DialogueRef? dialogue,
       EntityFacing facing,
-      String visualElementId});
+      String visualElementId,
+      String? trainerId,
+      int lineOfSightRange,
+      DialogueRef? defeatDialogueRef});
 
   @override
   $DialogueRefCopyWith<$Res>? get dialogue;
+  @override
+  $DialogueRefCopyWith<$Res>? get defeatDialogueRef;
 }
 
 /// @nodoc
@@ -346,6 +393,9 @@ class __$$MapEntityNpcDataImplCopyWithImpl<$Res>
     Object? dialogue = freezed,
     Object? facing = null,
     Object? visualElementId = null,
+    Object? trainerId = freezed,
+    Object? lineOfSightRange = null,
+    Object? defeatDialogueRef = freezed,
   }) {
     return _then(_$MapEntityNpcDataImpl(
       displayName: null == displayName
@@ -364,6 +414,18 @@ class __$$MapEntityNpcDataImplCopyWithImpl<$Res>
           ? _value.visualElementId
           : visualElementId // ignore: cast_nullable_to_non_nullable
               as String,
+      trainerId: freezed == trainerId
+          ? _value.trainerId
+          : trainerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      lineOfSightRange: null == lineOfSightRange
+          ? _value.lineOfSightRange
+          : lineOfSightRange // ignore: cast_nullable_to_non_nullable
+              as int,
+      defeatDialogueRef: freezed == defeatDialogueRef
+          ? _value.defeatDialogueRef
+          : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
+              as DialogueRef?,
     ));
   }
 }
@@ -376,7 +438,10 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
       {this.displayName = '',
       this.dialogue,
       this.facing = EntityFacing.south,
-      this.visualElementId = ''});
+      this.visualElementId = '',
+      this.trainerId,
+      this.lineOfSightRange = 0,
+      this.defeatDialogueRef});
 
   factory _$MapEntityNpcDataImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapEntityNpcDataImplFromJson(json);
@@ -393,9 +458,22 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
   @JsonKey()
   final String visualElementId;
 
+  /// Référence à un [ProjectTrainerEntry.id]. Vide/null = PNJ non dresseur.
+  @override
+  final String? trainerId;
+
+  /// Portée de détection visuelle en cases (0 = pas de détection active).
+  @override
+  @JsonKey()
+  final int lineOfSightRange;
+
+  /// Dialogue déclenché après la défaite du dresseur par le joueur.
+  @override
+  final DialogueRef? defeatDialogueRef;
+
   @override
   String toString() {
-    return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId)';
+    return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, defeatDialogueRef: $defeatDialogueRef)';
   }
 
   @override
@@ -409,13 +487,19 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
                 other.dialogue == dialogue) &&
             (identical(other.facing, facing) || other.facing == facing) &&
             (identical(other.visualElementId, visualElementId) ||
-                other.visualElementId == visualElementId));
+                other.visualElementId == visualElementId) &&
+            (identical(other.trainerId, trainerId) ||
+                other.trainerId == trainerId) &&
+            (identical(other.lineOfSightRange, lineOfSightRange) ||
+                other.lineOfSightRange == lineOfSightRange) &&
+            (identical(other.defeatDialogueRef, defeatDialogueRef) ||
+                other.defeatDialogueRef == defeatDialogueRef));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, displayName, dialogue, facing, visualElementId);
+  int get hashCode => Object.hash(runtimeType, displayName, dialogue, facing,
+      visualElementId, trainerId, lineOfSightRange, defeatDialogueRef);
 
   /// Create a copy of MapEntityNpcData
   /// with the given fields replaced by the non-null parameter values.
@@ -439,7 +523,10 @@ abstract class _MapEntityNpcData implements MapEntityNpcData {
       {final String displayName,
       final DialogueRef? dialogue,
       final EntityFacing facing,
-      final String visualElementId}) = _$MapEntityNpcDataImpl;
+      final String visualElementId,
+      final String? trainerId,
+      final int lineOfSightRange,
+      final DialogueRef? defeatDialogueRef}) = _$MapEntityNpcDataImpl;
 
   factory _MapEntityNpcData.fromJson(Map<String, dynamic> json) =
       _$MapEntityNpcDataImpl.fromJson;
@@ -452,6 +539,18 @@ abstract class _MapEntityNpcData implements MapEntityNpcData {
   EntityFacing get facing;
   @override
   String get visualElementId;
+
+  /// Référence à un [ProjectTrainerEntry.id]. Vide/null = PNJ non dresseur.
+  @override
+  String? get trainerId;
+
+  /// Portée de détection visuelle en cases (0 = pas de détection active).
+  @override
+  int get lineOfSightRange;
+
+  /// Dialogue déclenché après la défaite du dresseur par le joueur.
+  @override
+  DialogueRef? get defeatDialogueRef;
 
   /// Create a copy of MapEntityNpcData
   /// with the given fields replaced by the non-null parameter values.

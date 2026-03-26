@@ -55,19 +55,14 @@ class _LoaderPageState extends State<LoaderPage> {
     });
     try {
       final bundle = await loadRuntimeMapBundle(
-        manifestPath: _manifestPath,
+        projectFilePath: _manifestPath,
         mapId: _mapId.text.trim(),
       );
-      final images =
-          await loadTilesetImagesById(bundle.tilesetAbsolutePathsById);
       if (!mounted) {
         return;
       }
       setState(() {
-        _game = RuntimeMapGame(
-          bundle: bundle,
-          tileImagesByTilesetId: images,
-        );
+        _game = RuntimeMapGame(bundle: bundle);
       });
     } catch (e) {
       if (!mounted) {

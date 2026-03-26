@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'enums.dart';
+import 'project_trainer.dart';
 import 'visual_frame_json.dart';
 
 part 'project_manifest.freezed.dart';
@@ -27,6 +28,8 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectDialogueFolder> dialogueFolders,
     /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
     @Default([]) List<ProjectDialogueEntry> dialogues,
+    /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
+    @Default([]) List<ProjectTrainerEntry> trainers,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;

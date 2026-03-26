@@ -1,7 +1,17 @@
 name: map_runtime
-description: Runtime map reader for RPG Map Editor format.
+description: >-
+  Read-only Flame viewer for maps created with the RPG Map Editor format.
+  Loads a project.json, resolves tileset assets, and renders
+  tile, terrain, path, entity and collision layers in a Flame scene.
 version: 0.1.0
-publish_to: none
+
+repository: https://git.yoahn.me/yoahn/pokemonProject.git
+
+topics:
+  - game
+  - map
+  - flame
+  - rpg
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -19,6 +29,3 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
-
-flutter:
-  uses-material-design: true

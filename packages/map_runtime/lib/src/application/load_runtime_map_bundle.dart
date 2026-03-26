@@ -76,15 +76,15 @@ ProjectMapEntry? projectMapEntryForId(ProjectManifest manifest, String mapId) {
 }
 
 Future<RuntimeMapBundle> loadRuntimeMapBundle({
-  required String manifestPath,
+  required String projectFilePath,
   required String mapId,
 }) async {
-  final manifest = await loadProjectManifestFromFile(manifestPath);
+  final manifest = await loadProjectManifestFromFile(projectFilePath);
   final entry = projectMapEntryForId(manifest, mapId);
   if (entry == null) {
     throw MapLoadException('Map id not in project manifest: $mapId');
   }
-  final projectRoot = p.normalize(p.dirname(manifestPath));
+  final projectRoot = p.normalize(p.dirname(projectFilePath));
   final rel = entry.relativePath.trim();
   if (rel.isEmpty) {
     throw const MapLoadException('Map entry has empty relativePath');

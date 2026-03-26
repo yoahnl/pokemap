@@ -62,6 +62,7 @@ class ProjectValidator {
     _validateHierarchy(manifest);
     _validateEncounterTables(manifest.encounterTables);
     _validateProjectDialogues(manifest);
+    _validateTrainers(manifest);
     _validateSettings(manifest.settings);
   }
 
@@ -130,6 +131,11 @@ class ProjectValidator {
       manifest.dialogues,
       (d) => d.id,
       duplicateMessagePrefix: 'Duplicate dialogue ID',
+    );
+    _validateUniqueIds(
+      manifest.trainers,
+      (t) => t.id,
+      duplicateMessagePrefix: 'Duplicate trainer ID',
     );
   }
 
@@ -703,6 +709,43 @@ class ProjectValidator {
     }
   }
 
+  static void _validateTrainers(ProjectManifest manifest) {
+    final elementIds = manifest.elements.map((e) => e.id).toSet();
+    for (final trainer in manifest.trainers) {
+      final id = trainer.id.trim();
+      if (id.isEmpty) {
+        throw const ValidationException('Trainer ID cannot be empty');
+      }
+      if (trainer.name.trim().isEmpty) {
+        throw ValidationException('Trainer $id has an empty name');
+      }
+      if (trainer.trainerClass.trim().isEmpty) {
+        throw ValidationException('Trainer $id has an empty trainerClass');
+      }
+      final portraitId = trainer.portraitElementId?.trim();
+      if (portraitId != null &&
+          portraitId.isNotEmpty &&
+          !elementIds.contains(portraitId)) {
+        throw ValidationException(
+          'Trainer $id portraitElementId "$portraitId" does not exist in project elements',
+        );
+      }
+      for (var i = 0; i < trainer.team.length; i++) {
+        final pokemon = trainer.team[i];
+        if (pokemon.speciesId.trim().isEmpty) {
+          throw ValidationException(
+            'Trainer $id team[$i] has empty speciesId',
+          );
+        }
+        if (pokemon.level <= 0) {
+          throw ValidationException(
+            'Trainer $id team[$i] level must be positive (got ${pokemon.level})',
+          );
+        }
+      }
+    }
+  }
+
   static void _validateSettings(ProjectSettings settings) {
     if (settings.tileWidth <= 0 || settings.tileHeight <= 0) {
       throw const ValidationException('Tile size must be positive');
@@ -791,6 +834,7 @@ class MapValidator {
       assertValidMapEntityTypedPayloads(entity);
       if (projectDialogueContext != null) {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
+        assertEntityTrainerRefsAgainstProject(entity, projectDialogueContext);
         assertEntityEditorVisualAgainstProject(entity, projectDialogueContext);
       }
     }

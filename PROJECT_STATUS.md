@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-26 (`map_runtime` Runtime 1 + parité rendu layers ; `map_core` JSON legacy partagé ; animation canvas entités — voir lots ci-dessous)
+Last updated: 2026-03-26 (`map_runtime` Runtime 3 : API publique propre + package pub.dev-ready ; Runtime 2 : entités in-game ; dresseurs éditeur — voir lots ci-dessous)
 
 ## Vision produit
 
@@ -22,9 +22,9 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 | **2 — Runtime standard** (`map_runtime`) | Lecteur projet + scene + deplacement/collisions/warps + interactions + dialogues + comportements standards | **Amorcé** : Runtime 1 (chargement + rendu layers) **livré** ; **boucle jouable** et systèmes gameplay **à construire** |
 | **3 — Couches haut niveau** | No-code, framework abstrait, simplification maximale creation jeu | **Volontairement plus tard** |
 
-*Phase 1 avancée : maps/layers/tilesets/terrains/collisions/warps/triggers/entités avec visuel éditeur (`editorVisual` → `ProjectElementEntry`, animation canvas multi-frames), **propriétés de map** (`MapMetadata` : nom, type, musique, météo, indoor, escape rope, spawn par défaut, tags — UI panel + use case livrés), **zones gameplay** (`MapGameplayZone` avec payloads typés : encounter/movement/hazard/special) + **tables de rencontres** (`ProjectEncounterTable` + entrées espèces/niveaux/poids — modèle + UI éditeur complet), **dialogues** (registre `ProjectDialogueEntry`, dossiers, UI bibliothèque, assignation depuis NPC/signe) — solide et avancé. Manque encore côté éditeur : dresseurs/équipes, propriétés de map avancées (hooks gameplay, flags progression, restrictions). Côté runtime : boucle jouable, entités in-game, dialogues Yarn, rencontres actives.*
+*Phase 1 avancée : maps/layers/tilesets/terrains/collisions/warps/triggers/entités avec visuel éditeur (`editorVisual` → `ProjectElementEntry`, animation canvas multi-frames), **propriétés de map** (`MapMetadata` : nom, type, musique, météo, indoor, escape rope, spawn par défaut, tags — UI panel + use case livrés), **zones gameplay** (`MapGameplayZone` avec payloads typés : encounter/movement/hazard/special) + **tables de rencontres** (`ProjectEncounterTable` + entrées espèces/niveaux/poids — modèle + UI éditeur complet), **dialogues** (registre `ProjectDialogueEntry`, dossiers, UI bibliothèque, assignation depuis NPC/signe), **dresseurs** (`ProjectTrainerEntry` + équipe `ProjectTrainerPokemonEntry` — modèle `map_core`, Trainer Library dans l'explorateur, champs combat dans l'inspecteur NPC : trainerId, lineOfSightRange, defeatDialogueRef) — solide et avancé. Manque encore côté éditeur : propriétés de map avancées (hooks gameplay, flags progression, restrictions). Côté runtime : boucle jouable, entités in-game, dialogues Yarn, rencontres actives.*
 
-*Phase 2 amorcée : `map_runtime` lit le même JSON que l’éditeur, charge les tilesets nécessaires (layers + presets terrain/path) et affiche une map dans l’app exemple Flame (`packages/map_runtime/example`). Pas encore : entités à l’écran in-game, déplacement, warps actifs, dialogues.*
+*Phase 2 amorcée : `map_runtime` est un **visualiseur read-only** — lit le même JSON que l’éditeur, charge les tilesets, affiche layers + entités (sprites animés via `ProjectElementEntry.frames`) dans une scène Flame (`packages/map_runtime/example`). Pas encore : déplacement, warps actifs, dialogues, gameplay.*
 
 ### Repartition des roles
 
@@ -725,6 +725,7 @@ Separations metier explicites:
 - Entites de map: payloads typés + inspector par type + `DialogueRef` + **visuel canvas** via `editorVisual` → `ProjectElementEntry` (animation multi-frames) ; **pas encore** de rendu de ces sprites dans `map_runtime` ni adaptation auto au resize map côté gameplay.
 - Zones gameplay + tables de rencontres : **modèle + UI éditeur complets** (zones avec payloads typés, tables espèces/niveaux/poids, drag-to-draw, panels dédiés) ; **runtime rencontre** (déclenchement, logique combat, taux d’apparition actifs) non livré.
 - Dialogues : **registre projet + dossiers + UI bibliothèque + assignation NPC/signe** livrés ; **exécution runtime** (résolution `DialogueRef`, chargement Yarn, VM dialogue) non livrée ; pas d’éditeur narratif graphique intégré.
+- Dresseurs : **modèle + UI éditeur livrés** (`ProjectTrainerEntry` + `ProjectTrainerPokemonEntry` dans `map_core`, Trainer Library panel, champs battle dans l’inspecteur NPC : `trainerId`, `lineOfSightRange`, `defeatDialogueRef`) ; **runtime non livré** (déclenchement combat, IA, défaite).
 - Propriétés de map : **base livrée** (`MapMetadata` : nom, type, musique, météo, indoor, escape rope, spawn, tags — modèle + UI panel) ; **avancées non livrées** : hooks gameplay, flags de progression, restrictions d’accès, logique conditionnelle runtime sur ces flags.
 - Inspector map de droite: base bien plus lisible (accordeons + filtrage contextuel), mais pas encore d inspector specialise pour collisions/objets ni de personnalisation de layout par utilisateur.
 - Elements contextuels monde: resolution de base ok, pas encore de modes avances configurables.
@@ -770,13 +771,24 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 
 **map_runtime Runtime 1** (2026-03-26): lot livré — lecture `project.json` + map, résolution tilesets (layers + presets terrain/path), scène Flame + exemple desktop ; parité d’empilement des couches avec `MapGridPainter`.
 
+**map_runtime Runtime 2 — visualiseur entités** (2026-03-26): lot livré — rendu sprites entités (`_paintEntities`) via `ProjectElementEntry.frames` (même source que l’éditeur) ; animation frame `_animElapsed` ; aspect-ratio preserving centré ; collecte tilesets entités (`addEntityVisualTilesetIds`) ; recadrage `map_runtime` comme **visualiseur read-only**. (Les doc-comments ajoutés dans ce lot ont été supprimés dans Runtime 3.)
+
+**map_runtime Runtime 3 — API publique propre + README** (2026-03-26): lot livré — package-maintainer pass complet :
+- Barrel réduit à **3 noms publics** via `show` : `loadRuntimeMapBundle`, `RuntimeMapBundle`, `RuntimeMapGame` ; 7 fonctions internes retirées de l’API publique.
+- `RuntimeMapGame` : suppression du paramètre `tileImagesByTilesetId` — chargement images internalisé dans `onLoad()`.
+- `loadRuntimeMapBundle` : renommage `manifestPath` → `projectFilePath`.
+- `pubspec.yaml` : suppression `publish_to: none`, suppression `uses-material-design: true`, description précise, `topics`, `repository`.
+- Tous les `///` doc-comments supprimés des sources (barrel, `RuntimeMapGame`, `RuntimeMapBundle`, `MapLayersComponent`, `runtime_manifest_tilesets`).
+- `README.md` réécrit : positionnement, ce que fait / ne fait pas le package, usage minimal, API publique tabulée, exceptions, limites, note `map_core` path-dep.
+- API finale : `final bundle = await loadRuntimeMapBundle(projectFilePath: ‘...’, mapId: ‘...’); final game = RuntimeMapGame(bundle: bundle);`
+- Limite pub.dev : `map_core` est une dépendance locale (`path:`), à publier séparément avant publication sur pub.dev.
+
 **Prochaines priorités immédiates:**
 
-- **Runtime** : entités à l’écran (même source `ProjectElementEntry` que l’éditeur) ; déplacement ; collisions gameplay ; warps / interactions (itérations suivantes).
+- **Runtime** : déplacement ; collisions gameplay actives ; warps / interactions (itérations suivantes, futur package `map_gameplay`).
 - **Entités (éditeur)** : catalogues objets ; affinage gameplay NPC/item/spawn ; pas de nouveau pipeline visuel parallèle.
 - **Dialogues**: poursuite integration projet fichiers Yarn (résolution `DialogueRef`, UI, validation runtime) — partie registre + assignation NPC/signe deja en place.
-- **Dresseurs / équipes**: à concevoir (données + UI + validation).
-- **Préparation du runtime standard**: chaque nouveau bloc métier doit préciser comment `map_runtime` le lira et l'exécutera (le **socle de lecture** existe désormais — voir lot Runtime 1).
+- **Dresseurs / équipes**: à concevoir côté runtime (données déjà modélisées + UI éditeur livrées).
 
 ### Référence historique (lots déjà livrés)
 
@@ -1994,7 +2006,7 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 - Définir des zones de rencontres sauvages (areas, kind, payload encounter/movement/hazard/special) dans l'éditeur: fait (MVP + drag-to-draw + payloads typés)
 - Configurer les tables de rencontres (espèces, niveaux, poids) dans l'éditeur: fait (tables projet réutilisables + entrées + EncounterTablesPanel)
 - Déclencher des rencontres sauvages activement dans le runtime: pas fait
-- Creer et editer des dresseurs / equipes PNJ: pas fait
+- Creer et editer des dresseurs / equipes PNJ dans l'éditeur: fait (ProjectTrainerEntry + équipe Pokémon, Trainer Library panel, champs battle NPC — runtime non fait)
 - Editer les propriétés de map de base (nom affiché, type, musique, météo, indoor, escape rope, spawn par défaut, tags): fait (MapMetadata + MapPropertiesPanel + UpdateMapMetadataUseCase)
 - Editer les propriétés de map avancées (hooks gameplay, flags progression, restrictions accès): pas fait
 - Editer les proprietes globales du projet: partiellement fait
@@ -2084,16 +2096,17 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 | Entites (NPC / signe / objet / spawn) | partiellement fait (payloads types + DialogueRef + **preview canvas** via `editorVisual` → `ProjectElementEntry.frames` avec **animation legere canvas** ; runtime / facing / gameplay non faits) |
 | Dialogues / scripts | partiellement fait (registre projet + UI bibliotheque + assignation NPC/signe ; runtime Yarn non fait) |
 | Rencontres sauvages | partiellement fait (zones gameplay + tables de rencontres : **modèle + UI éditeur complets** ; runtime rencontre actif : pas fait) |
-| Dresseurs / equipes | pas fait |
+| Dresseurs / equipes | partiellement fait (**éditeur livré** : `ProjectTrainerEntry` + équipe `ProjectTrainerPokemonEntry`, Trainer Library panel, champs battle NPC (`trainerId`, `lineOfSightRange`, `defeatDialogueRef`) ; runtime non fait) |
 | Proprietes de map | partiellement fait (**base livrée** : `MapMetadata` nom/type/musique/météo/indoor/escape rope/spawn/tags + UI panel ; avancées non faites : hooks, flags progression, restrictions) |
 
 ### Phase 2 — Runtime standard (prochaine grande etape)
 
 | Chantier | Etat |
 |----------|------|
-| Lecteur de projet (manifest + maps + assets) | **fait** (Runtime 1 : `loadRuntimeMapBundle`, migrations JSON `map_core`, tilesets, images PNG, app exemple) |
-| Scene de jeu (grille + camera + layers tile/terrain/path/collision) | **fait** (Flame : `RuntimeMapGame` + `MapLayersComponent`, ordre rendu aligné éditeur, caméra vue carte) |
-| Entités à l'écran (sprites in-game) | pas fait |
+| Lecteur de projet (manifest + maps + assets) | **fait** (Runtime 1 : `loadRuntimeMapBundle(projectFilePath:, mapId:)`, migrations JSON `map_core`, tilesets, images PNG, app exemple) |
+| Scene de jeu (grille + camera + layers tile/terrain/path/collision) | **fait** (Flame : `RuntimeMapGame(bundle:)` + `MapLayersComponent`, ordre rendu aligné éditeur, caméra vue carte) |
+| Entités à l'écran (sprites in-game) | **fait** (Runtime 2 : `_paintEntities` via `ProjectElementEntry.frames`, animation `_animElapsed`, aspect-ratio preserving) |
+| API publique propre / package importable | **fait** (Runtime 3 : barrel `show` 3 noms, chargement images interne, `pubspec.yaml` pub.dev-ready, `README.md` complet, zéro doc-comment dans sources) |
 | Deplacement / collisions actives / warps | pas fait |
 | Interactions entites | pas fait |
 | Dialogues (resolution DialogueRef) | pas fait |

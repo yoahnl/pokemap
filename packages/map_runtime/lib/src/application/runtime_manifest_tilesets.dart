@@ -82,8 +82,29 @@ void addTerrainAndPathPresetTilesetIds(
   }
 }
 
+void addEntityVisualTilesetIds(
+  Set<String> ids,
+  MapData map,
+  ProjectManifest manifest,
+) {
+  final elementById = {for (final e in manifest.elements) e.id: e};
+  for (final entity in map.entities) {
+    final elementId = entity.resolvedProjectElementIdForEditor?.trim();
+    if (elementId == null || elementId.isEmpty) continue;
+    final entry = elementById[elementId];
+    if (entry == null || entry.frames.isEmpty) continue;
+    for (final frame in entry.frames) {
+      final tid = frame.tilesetId.trim().isNotEmpty
+          ? frame.tilesetId.trim()
+          : entry.tilesetId.trim();
+      if (tid.isNotEmpty) ids.add(tid);
+    }
+  }
+}
+
 Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   final ids = collectTilesetIdsReferencedOnMap(map);
   addTerrainAndPathPresetTilesetIds(ids, map, manifest);
+  addEntityVisualTilesetIds(ids, map, manifest);
   return ids;
 }
