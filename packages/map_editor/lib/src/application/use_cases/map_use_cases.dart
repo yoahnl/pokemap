@@ -125,6 +125,20 @@ class ResizeMapUseCase {
   }
 }
 
+class UpdateMapMetadataUseCase {
+  MapData execute(
+    MapData map,
+    MapMetadata metadata, {
+    ProjectManifest? projectDialogueContext,
+  }) {
+    return updateMapMetadataOnMap(
+      map,
+      metadata,
+      projectDialogueContext: projectDialogueContext,
+    );
+  }
+}
+
 class RenameMapUseCase {
   final MapRepository _mapRepo;
   final ProjectRepository _projectRepo;

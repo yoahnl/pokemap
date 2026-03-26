@@ -38,6 +38,9 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => MapGameplayZone.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      mapMetadata: json['mapMetadata'] == null
+          ? const MapMetadata()
+          : MapMetadata.fromJson(json['mapMetadata'] as Map<String, dynamic>),
       properties: json['properties'] as Map<String, dynamic>? ?? const {},
     );
 
@@ -54,6 +57,7 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'warps': instance.warps.map((e) => e.toJson()).toList(),
       'triggers': instance.triggers.map((e) => e.toJson()).toList(),
       'gameplayZones': instance.gameplayZones.map((e) => e.toJson()).toList(),
+      'mapMetadata': instance.mapMetadata.toJson(),
       'properties': instance.properties,
     };
 

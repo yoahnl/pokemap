@@ -661,6 +661,12 @@ ResizeMapUseCase resizeMapUseCase(ResizeMapUseCaseRef ref) {
 }
 
 @riverpod
+UpdateMapMetadataUseCase updateMapMetadataUseCase(
+    UpdateMapMetadataUseCaseRef ref) {
+  return UpdateMapMetadataUseCase();
+}
+
+@riverpod
 RenameMapUseCase renameMapUseCase(RenameMapUseCaseRef ref) {
   return RenameMapUseCase(
     ref.watch(mapRepositoryProvider),

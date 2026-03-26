@@ -415,6 +415,33 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void updateMapMetadata(MapMetadata metadata) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(updateMapMetadataUseCaseProvider);
+      final updated = useCase.execute(
+        map,
+        metadata,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedEntityId: state.selectedEntityId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: state.selectedTriggerId,
+        statusMessage: 'Carte : propriétés enregistrées',
+      );
+    } catch (e) {
+      debugPrint('EditorNotifier: updateMapMetadata failed: $e');
+      state = state.copyWith(
+        errorMessage: 'Échec des propriétés de carte : $e',
+      );
+    }
+  }
+
   Future<void> renameMap(String oldId, String newId) async {
     debugPrint('EditorNotifier: renameMap($oldId -> $newId)');
     final fs = _projectWorkspace;

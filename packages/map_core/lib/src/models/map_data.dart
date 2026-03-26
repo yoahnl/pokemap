@@ -5,6 +5,7 @@ import 'map_entity_payloads.dart';
 import 'map_entity_editor_visual.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
+import 'map_metadata.dart';
 
 part 'map_data.freezed.dart';
 part 'map_data.g.dart';
@@ -26,6 +27,7 @@ class MapData with _$MapData {
     /// Zones gameplay (rencontres, déplacement, dangers, etc.).
     /// Séparées des triggers (logiques scriptées) et des layers visuelles.
     @Default([]) List<MapGameplayZone> gameplayZones,
+    @Default(MapMetadata()) MapMetadata mapMetadata,
     @Default({}) Map<String, dynamic> properties,
   }) = _MapData;
 

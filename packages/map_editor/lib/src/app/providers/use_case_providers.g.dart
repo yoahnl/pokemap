@@ -1906,6 +1906,26 @@ final resizeMapUseCaseProvider = AutoDisposeProvider<ResizeMapUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ResizeMapUseCaseRef = AutoDisposeProviderRef<ResizeMapUseCase>;
+String _$updateMapMetadataUseCaseHash() =>
+    r'433807f2e4e28548a9fcf0e9f98c8330d7f39b3b';
+
+/// See also [updateMapMetadataUseCase].
+@ProviderFor(updateMapMetadataUseCase)
+final updateMapMetadataUseCaseProvider =
+    AutoDisposeProvider<UpdateMapMetadataUseCase>.internal(
+  updateMapMetadataUseCase,
+  name: r'updateMapMetadataUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateMapMetadataUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateMapMetadataUseCaseRef
+    = AutoDisposeProviderRef<UpdateMapMetadataUseCase>;
 String _$renameMapUseCaseHash() => r'dda46cb2e92d7f3b01bd6824f57ebccaa1a3b6b8';
 
 /// See also [renameMapUseCase].

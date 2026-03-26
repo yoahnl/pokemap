@@ -13,12 +13,14 @@ import 'entity_properties_panel.dart';
 import 'gameplay_zone_properties_panel.dart';
 import 'layers_panel.dart';
 import 'map_connections_panel.dart';
+import 'map_properties_panel.dart';
 import 'terrain_map_panel.dart';
 import 'tileset_palette_panel.dart';
 import 'trigger_properties_panel.dart';
 import 'warp_properties_panel.dart';
 
 enum _InspectorSectionId {
+  mapProperties,
   layers,
   tiles,
   ground,
@@ -110,6 +112,23 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
               _InspectorOverviewCard(
                 map: activeMap,
                 activeLayer: activeLayer,
+              ),
+              InspectorSectionCard(
+                title: 'Propriétés de carte',
+                subtitle:
+                    'Gameplay et présentation (météo, musique, spawn par défaut…)',
+                icon: CupertinoIcons.slider_horizontal_3,
+                accentColor: EditorChrome.inspectorJoyPlum,
+                expanded: _isExpanded(
+                  _InspectorSectionId.mapProperties,
+                  false,
+                ),
+                onToggle: () => _toggleSection(
+                  _InspectorSectionId.mapProperties,
+                  defaultExpanded: false,
+                ),
+                expandedHeight: 460,
+                child: const MapPropertiesPanel(embedded: true),
               ),
               InspectorSectionCard(
                   title: 'Layers',

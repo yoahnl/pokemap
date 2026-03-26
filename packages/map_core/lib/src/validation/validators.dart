@@ -911,6 +911,58 @@ class MapValidator {
       (zone) => zone.id,
       duplicateMessagePrefix: 'Duplicate gameplay zone ID',
     );
+
+    _validateMapMetadata(map);
+  }
+
+  static void _validateMapMetadata(MapData map) {
+    final md = map.mapMetadata;
+    if (md.musicId != null && md.musicId!.trim().isEmpty) {
+      throw ValidationException(
+        'Map metadata musicId must be null or a non-blank string',
+      );
+    }
+    if (md.defaultSpawnId != null && md.defaultSpawnId!.trim().isEmpty) {
+      throw ValidationException(
+        'Map metadata defaultSpawnId must be null or a non-blank string',
+      );
+    }
+    final seenTags = <String>{};
+    for (final tag in md.tags) {
+      final t = tag.trim();
+      if (t.isEmpty) {
+        throw ValidationException(
+          'Map metadata tags must not contain empty or whitespace-only entries',
+        );
+      }
+      if (tag != t) {
+        throw ValidationException(
+          'Map metadata tags must be stored without leading or trailing whitespace',
+        );
+      }
+      if (!seenTags.add(t)) {
+        throw ValidationException(
+          'Map metadata tags must be unique (duplicate: "$t")',
+        );
+      }
+    }
+    final spawnId = md.defaultSpawnId?.trim();
+    if (spawnId != null && spawnId.isNotEmpty) {
+      final keys = <String>{};
+      final entityIds = <String>{};
+      for (final e in map.entities) {
+        if (e.kind == MapEntityKind.spawn) {
+          entityIds.add(e.id);
+          final k = e.spawn?.spawnKey.trim() ?? '';
+          if (k.isNotEmpty) keys.add(k);
+        }
+      }
+      if (!keys.contains(spawnId) && !entityIds.contains(spawnId)) {
+        throw ValidationException(
+          'Map metadata defaultSpawnId "$spawnId" does not match any spawn key or spawn entity id on this map',
+        );
+      }
+    }
   }
 
   static void _validateLayer(MapLayer layer, int expectedCellCount) {

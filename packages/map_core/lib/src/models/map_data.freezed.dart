@@ -34,6 +34,7 @@ mixin _$MapData {
   /// Zones gameplay (rencontres, déplacement, dangers, etc.).
   /// Séparées des triggers (logiques scriptées) et des layers visuelles.
   List<MapGameplayZone> get gameplayZones => throw _privateConstructorUsedError;
+  MapMetadata get mapMetadata => throw _privateConstructorUsedError;
   Map<String, dynamic> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapData to a JSON map.
@@ -62,9 +63,11 @@ abstract class $MapDataCopyWith<$Res> {
       List<MapWarp> warps,
       List<MapTrigger> triggers,
       List<MapGameplayZone> gameplayZones,
+      MapMetadata mapMetadata,
       Map<String, dynamic> properties});
 
   $GridSizeCopyWith<$Res> get size;
+  $MapMetadataCopyWith<$Res> get mapMetadata;
 }
 
 /// @nodoc
@@ -93,6 +96,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
     Object? warps = null,
     Object? triggers = null,
     Object? gameplayZones = null,
+    Object? mapMetadata = null,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -140,6 +144,10 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
           ? _value.gameplayZones
           : gameplayZones // ignore: cast_nullable_to_non_nullable
               as List<MapGameplayZone>,
+      mapMetadata: null == mapMetadata
+          ? _value.mapMetadata
+          : mapMetadata // ignore: cast_nullable_to_non_nullable
+              as MapMetadata,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -154,6 +162,16 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
   $GridSizeCopyWith<$Res> get size {
     return $GridSizeCopyWith<$Res>(_value.size, (value) {
       return _then(_value.copyWith(size: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapMetadataCopyWith<$Res> get mapMetadata {
+    return $MapMetadataCopyWith<$Res>(_value.mapMetadata, (value) {
+      return _then(_value.copyWith(mapMetadata: value) as $Val);
     });
   }
 }
@@ -177,10 +195,13 @@ abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
       List<MapWarp> warps,
       List<MapTrigger> triggers,
       List<MapGameplayZone> gameplayZones,
+      MapMetadata mapMetadata,
       Map<String, dynamic> properties});
 
   @override
   $GridSizeCopyWith<$Res> get size;
+  @override
+  $MapMetadataCopyWith<$Res> get mapMetadata;
 }
 
 /// @nodoc
@@ -207,6 +228,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
     Object? warps = null,
     Object? triggers = null,
     Object? gameplayZones = null,
+    Object? mapMetadata = null,
     Object? properties = null,
   }) {
     return _then(_$MapDataImpl(
@@ -254,6 +276,10 @@ class __$$MapDataImplCopyWithImpl<$Res>
           ? _value._gameplayZones
           : gameplayZones // ignore: cast_nullable_to_non_nullable
               as List<MapGameplayZone>,
+      mapMetadata: null == mapMetadata
+          ? _value.mapMetadata
+          : mapMetadata // ignore: cast_nullable_to_non_nullable
+              as MapMetadata,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -278,6 +304,7 @@ class _$MapDataImpl implements _MapData {
       final List<MapWarp> warps = const [],
       final List<MapTrigger> triggers = const [],
       final List<MapGameplayZone> gameplayZones = const [],
+      this.mapMetadata = const MapMetadata(),
       final Map<String, dynamic> properties = const {}})
       : _layers = layers,
         _entities = entities,
@@ -361,6 +388,9 @@ class _$MapDataImpl implements _MapData {
     return EqualUnmodifiableListView(_gameplayZones);
   }
 
+  @override
+  @JsonKey()
+  final MapMetadata mapMetadata;
   final Map<String, dynamic> _properties;
   @override
   @JsonKey()
@@ -372,7 +402,7 @@ class _$MapDataImpl implements _MapData {
 
   @override
   String toString() {
-    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, properties: $properties)';
+    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties)';
   }
 
   @override
@@ -394,6 +424,8 @@ class _$MapDataImpl implements _MapData {
             const DeepCollectionEquality().equals(other._triggers, _triggers) &&
             const DeepCollectionEquality()
                 .equals(other._gameplayZones, _gameplayZones) &&
+            (identical(other.mapMetadata, mapMetadata) ||
+                other.mapMetadata == mapMetadata) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
@@ -413,6 +445,7 @@ class _$MapDataImpl implements _MapData {
       const DeepCollectionEquality().hash(_warps),
       const DeepCollectionEquality().hash(_triggers),
       const DeepCollectionEquality().hash(_gameplayZones),
+      mapMetadata,
       const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapData
@@ -444,6 +477,7 @@ abstract class _MapData implements MapData {
       final List<MapWarp> warps,
       final List<MapTrigger> triggers,
       final List<MapGameplayZone> gameplayZones,
+      final MapMetadata mapMetadata,
       final Map<String, dynamic> properties}) = _$MapDataImpl;
 
   factory _MapData.fromJson(Map<String, dynamic> json) = _$MapDataImpl.fromJson;
@@ -473,6 +507,8 @@ abstract class _MapData implements MapData {
   /// Séparées des triggers (logiques scriptées) et des layers visuelles.
   @override
   List<MapGameplayZone> get gameplayZones;
+  @override
+  MapMetadata get mapMetadata;
   @override
   Map<String, dynamic> get properties;
 

@@ -28,6 +28,7 @@ should_exclude() {
     [[ "$path" == *"/assets/"* ]] && return 0
     [[ "$path" == *"/public/"* ]] && return 0
     [[ "$path" == *"/style/"* ]] && return 0
+    [[ "$path" == *"/packages/map_runtime/"* ]] && return 0 # ignore example directory
 
     [[ "$base" == ".DS_Store" ]] && return 0
     [[ "$base" == "pubspec.lock" ]] && return 0
