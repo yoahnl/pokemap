@@ -44,6 +44,9 @@
       <excludeFolder url="file://$MODULE_DIR$/packages/map_runtime/example/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/packages/map_runtime/example/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/packages/map_runtime/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/examples/playable_runtime_host/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/examples/playable_runtime_host/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/examples/playable_runtime_host/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
