@@ -18,7 +18,7 @@ class _LoaderPageState extends State<LoaderPage> {
   final TextEditingController _mapId = TextEditingController();
   String _manifestPath = '';
   String? _error;
-  RuntimeMapGame? _game;
+  PlayableMapGame? _game;
   bool _busy = false;
 
   Future<void> _pickProjectJson() async {
@@ -62,7 +62,10 @@ class _LoaderPageState extends State<LoaderPage> {
         return;
       }
       setState(() {
-        _game = RuntimeMapGame(bundle: bundle);
+        _game = PlayableMapGame(
+          bundle: bundle,
+          projectFilePath: _manifestPath,
+        );
       });
     } catch (e) {
       if (!mounted) {

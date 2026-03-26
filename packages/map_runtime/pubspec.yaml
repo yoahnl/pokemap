@@ -24,6 +24,8 @@ dependencies:
   path: ^1.8.3
   map_core:
     path: ../map_core
+  map_gameplay:
+    path: ../map_gameplay
 
 dev_dependencies:
   flutter_test:

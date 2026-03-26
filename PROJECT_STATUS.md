@@ -1,6 +1,6 @@
 # Project Status (pokemonProject)
 
-Last updated: 2026-03-26 (`map_gameplay` : socle exploration jouable (déplacement, collision, warp) ; `map_runtime` Runtime 3 ; dresseurs éditeur — voir lots ci-dessous)
+Last updated: 2026-03-26 (`map_runtime` Runtime 4 : boucle jouable `PlayableMapGame` + `PlayerComponent` + warps ; `map_gameplay` spawn joueur + `fromMap` ; socle exploration ; Runtime 3 ; dresseurs éditeur — voir lots ci-dessous)
 
 ## Vision produit
 
@@ -19,7 +19,7 @@ Le monorepo **n est plus defini** comme un simple « editeur de maps Pokemon-lik
 | Phase | Contenu | Etat |
 |-------|---------|------|
 | **1 — Editeur de contenu riche** | Maps, connexions, terrains, collisions, warps, triggers, entites (NPC/signe/objet/spawn), dialogues, rencontres, dresseurs, proprietes de map | **En cours — priorite actuelle** |
-| **2 — Runtime standard** (`map_runtime` + `map_gameplay`) | Lecteur projet + scène + déplacement/collisions/warps + interactions + dialogues + comportements standards | **Amorcé** : `map_runtime` Runtime 1-3 (chargement + rendu layers + entités) **livré** ; `map_gameplay` socle exploration **livré** ; interactions/dialogues/rencontres **à construire** |
+| **2 — Runtime standard** (`map_runtime` + `map_gameplay`) | Lecteur projet + scène + déplacement/collisions/warps + interactions + dialogues + comportements standards | **Amorcé** : `map_runtime` Runtime 1-4 (chargement + rendu layers + entités + **boucle jouable** avec `PlayableMapGame` / `PlayerComponent` / warps) **livré** ; `map_gameplay` socle exploration **livré** ; interactions/dialogues/rencontres **à construire** |
 | **3 — Couches haut niveau** | No-code, framework abstrait, simplification maximale creation jeu | **Volontairement plus tard** |
 
 *Phase 1 avancée : maps/layers/tilesets/terrains/collisions/warps/triggers/entités avec visuel éditeur (`editorVisual` → `ProjectElementEntry`, animation canvas multi-frames), **propriétés de map** (`MapMetadata` : nom, type, musique, météo, indoor, escape rope, spawn par défaut, tags — UI panel + use case livrés), **zones gameplay** (`MapGameplayZone` avec payloads typés : encounter/movement/hazard/special) + **tables de rencontres** (`ProjectEncounterTable` + entrées espèces/niveaux/poids — modèle + UI éditeur complet), **dialogues** (registre `ProjectDialogueEntry`, dossiers, UI bibliothèque, assignation depuis NPC/signe), **dresseurs** (`ProjectTrainerEntry` + équipe `ProjectTrainerPokemonEntry` — modèle `map_core`, Trainer Library dans l'explorateur, champs combat dans l'inspecteur NPC : trainerId, lineOfSightRange, defeatDialogueRef) — solide et avancé. Manque encore côté éditeur : propriétés de map avancées (hooks gameplay, flags progression, restrictions). Côté runtime : boucle jouable, entités in-game, dialogues Yarn, rencontres actives.*
@@ -124,6 +124,79 @@ Objectif: prouver que le **format produit par l’éditeur** est **lisible et af
 ### Suite probable (Runtime 2+)
 
 - Dessin des entités avec la même règle que l’éditeur (`editorVisual` → `ProjectElementEntry.frames`, tilesets projet) ; caméra / monde ; input ; collisions ; warps ; etc.
+
+---
+
+## Lot: map_runtime — Runtime 2 (entités animées) + Runtime 3 (API cleanup) + map_gameplay socle + Spawn joueur (2026-03-26)
+
+*(Regroupement des lots précédents livrés dans la même session, documentés rétrospectivement.)*
+
+### Runtime 2 — Rendu des entités dans `MapLayersComponent`
+
+- `_paintEntities` : parcours `map.entities`, résolution `resolvedProjectElementIdForEditor` → `ProjectElementEntry` → frame courante → `tileImagesByTilesetId[tilesetId]` → `drawImageRect` en **contain** dans la hitbox.
+- `_pickEntityFrame` : cycle modulo sur la somme des `durationMs` (fallback 200 ms par frame).
+- `_paintEntityFrame` : ratio source préservé (contain, centré).
+- `update(dt)` : accumulation `_animElapsed` pour l’animation.
+
+### Runtime 3 — Stabilisation API `map_runtime`
+
+- `loadRuntimeMapBundle` : paramètre renommé `manifestPath` → `projectFilePath`.
+- `RuntimeMapGame` : images chargées **en interne** dans `onLoad()` (plus de `tileImagesByTilesetId` en constructeur).
+- Barrel `map_runtime.dart` : resserré à 3 exports avec `show` (`loadRuntimeMapBundle`, `RuntimeMapBundle`, `RuntimeMapGame`).
+- `pubspec.yaml` : nettoyé pour pub.dev (`publish_to` supprimé, `repository`, `topics`).
+- Exemple : mis à jour avec `projectFilePath:` et sans `tileImagesByTilesetId`.
+- `README.md` : rédigé (positionnement, API publique, exceptions, limitations).
+
+### map_gameplay — Socle exploration
+
+- Package pur Dart `packages/map_gameplay` (sans Flutter/Flame).
+- `Direction`, `DirectionX` (dx/dy/asFacing), `EntityFacingX.asDirection`.
+- `GameplayPlayerState` (pos, facing, copyWith).
+- `GameplayWorldState` (collision cache, warp lookup, `initial`/`fromMap` factories, `withPlayer`, `isBlocked`, `warpAt`).
+- `GameplayIntent` / `MoveIntent`.
+- `GameplayStepResult` / `Moved` / `Blocked` / `WarpTriggered` / `TriggeredWarp`.
+- `stepGameplayWorld(world, intent) → GameplayStepResult` (turn-face, collision check, warp check).
+
+### map_gameplay — Spawn joueur
+
+- `GameplaySpawnResolutionException`.
+- `resolveInitialPlayerSpawn(MapData)` : priorité `defaultSpawnId` → role `playerStart` (tri par id, premier) → exception.
+- `GameplayWorldState.fromMap(MapData)` : spawn résolu + vérification cellule bloquée.
+
+### Fichiers principaux
+
+- `map_runtime` : `map_layers_component.dart` (entités), `runtime_map_game.dart` (images internes), `load_runtime_map_bundle.dart` (renommage), `map_runtime.dart` (barrel), `pubspec.yaml`, `README.md`, `example/lib/main.dart`.
+- `map_gameplay` : `pubspec.yaml`, `map_gameplay.dart`, `direction.dart`, `gameplay_player_state.dart`, `gameplay_world_state.dart`, `gameplay_intent.dart`, `gameplay_step_result.dart`, `gameplay_step.dart`, `gameplay_exceptions.dart`, `player_spawn_resolver.dart`.
+
+---
+
+## Lot: map_runtime — Runtime 4 (boucle jouable : PlayableMapGame + PlayerComponent + warps) (2026-03-26)
+
+Objectif: premier chemin d’exécution **jouable** au-dessus du visualiseur existant — déplacement au clavier, collisions actives, transitions de map via warp.
+
+### Livré dans ce lot
+
+- **`PlayerComponent`** (Flame `PositionComponent`) : marqueur visuel (disque bleu + point blanc direction) à la position grille du joueur. `updateState(GameplayPlayerState)` déplace le composant.
+- **`PlayableMapGame`** (FlameGame + `KeyboardEvents`) :
+  - Construit `GameplayWorldState.fromMap(bundle.map)` à l’initialisation.
+  - Gère les touches flèches / WASD → `MoveIntent(Direction)` → `stepGameplayWorld`.
+  - Sur `WarpTriggered` : charge async le nouveau `RuntimeMapBundle` via `loadRuntimeMapBundle`, recrée `MapLayersComponent` + `PlayerComponent`, rebascule la caméra.
+  - Caméra centrée sur le joueur avec viewport de ~15×11 tuiles (adapté si la map est plus petite).
+  - `KeyDownEvent` + `KeyRepeatEvent` acceptés ; `_transitioning` flag pour bloquer l’input pendant le chargement de warp.
+- **Barrel** `map_runtime.dart` : ajout `PlayableMapGame`.
+- **Exemple** `packages/map_runtime/example` : remplace `RuntimeMapGame` par `PlayableMapGame(bundle: bundle, projectFilePath: _manifestPath)`.
+
+### Hors scope (volontaire)
+
+- Interactions NPC/signe, dialogues, rencontres actives, animations joueur orienté, son.
+
+### Fichiers principaux
+
+- `map_runtime/lib/src/presentation/flame/player_component.dart` (nouveau)
+- `map_runtime/lib/src/presentation/flame/playable_map_game.dart` (nouveau)
+- `map_runtime/lib/map_runtime.dart` (ajout export `PlayableMapGame`)
+- `map_runtime/pubspec.yaml` (ajout dépendance `map_gameplay`)
+- `map_runtime/example/lib/main.dart` (utilise `PlayableMapGame`)
 
 ---
 
@@ -785,18 +858,26 @@ Ces themes sont **structurants** pour la vision « contenu riche + runtime stand
 - Limite pub.dev : `map_core` est une dépendance locale (`path:`), à publier séparément avant publication sur pub.dev.
 
 **map_gameplay — Socle exploration** (2026-03-26): lot livré — package pur Dart `packages/map_gameplay` :
-- `Direction` (enum N/S/E/O) + extension `dx/dy/asFacing`
+- `Direction` (enum N/S/E/O) + extensions `dx/dy/asFacing` et `EntityFacingX.asDirection`
 - `GameplayPlayerState` (pos `GridPos` + facing `Direction`)
-- `GameplayWorldState` : cache collision (union toutes `CollisionLayer`) + lookup warp par position ; factories `initial` ; `isBlocked(x,y)`, `warpAt(x,y)`, `withPlayer`
+- `GameplayWorldState` : cache collision + lookup warp ; factories `initial` et `fromMap` ; `isBlocked`, `warpAt`, `withPlayer`
 - `GameplayIntent` (sealed) : `MoveIntent(Direction)`
 - `GameplayStepResult` (sealed) : `Moved`, `Blocked`, `WarpTriggered(TriggeredWarp)`
-- `TriggeredWarp` : `warpId`, `targetMapId`, `targetPos`
-- `stepGameplayWorld(world, intent) → GameplayStepResult` : résout déplacement + facing + collision + borne + warp
+- `stepGameplayWorld(world, intent) → GameplayStepResult`
 - Aucune dépendance Flame ni Flutter — pur Dart + `map_core`
+
+**map_gameplay — Spawn joueur** (2026-03-26): lot livré :
+- `GameplaySpawnResolutionException` : erreur métier dédiée à la résolution du spawn
+- `resolveInitialPlayerSpawn(MapData) → GameplayPlayerState` : résolution en 3 cas par priorité stricte :
+  1. `map.mapMetadata.defaultSpawnId` → cherche l'entité par id, vérifie kind=spawn, convertit `EntityFacing → Direction`
+  2. Fallback : entités `kind=spawn` + `role=playerStart`, triées par id (déterministe), première retenue
+  3. Aucun spawn valide → `GameplaySpawnResolutionException`
+- `GameplayWorldState.fromMap(MapData)` : appelle `resolveInitialPlayerSpawn`, construit le monde, vérifie que la case spawn n'est pas bloquée (sinon exception)
+- Facing : utilise le facing de l'entité spawn s'il est disponible ; fallback `Direction.south`
 
 **Prochaines priorités immédiates:**
 
-- **`map_gameplay`** : intégration Flame (component joueur, game loop) ; interactions NPC/signe (`InteractIntent`) ; connexions entre maps.
+- **`map_gameplay`** : intégration Flame (component joueur, game loop) ; `InteractIntent` (NPC/signe) ; connexions entre maps.
 - **Entités (éditeur)** : catalogues objets ; affinage gameplay NPC/item/spawn.
 - **Dialogues**: poursuite intégration Yarn — résolution `DialogueRef` côté runtime.
 - **Dresseurs / équipes**: à brancher côté runtime `map_gameplay`.
@@ -2118,7 +2199,7 @@ Decoupage aligne sur la **Vision produit**: d abord **richir l editeur de conten
 | Scene de jeu (grille + camera + layers tile/terrain/path/collision) | **fait** (Flame : `RuntimeMapGame(bundle:)` + `MapLayersComponent`, ordre rendu aligné éditeur, caméra vue carte) |
 | Entités à l'écran (sprites in-game) | **fait** (Runtime 2 : `_paintEntities` via `ProjectElementEntry.frames`, animation `_animElapsed`, aspect-ratio preserving) |
 | API publique propre / package importable | **fait** (Runtime 3 : barrel `show` 3 noms, chargement images interne, `pubspec.yaml` pub.dev-ready, `README.md` complet, zéro doc-comment dans sources) |
-| Déplacement / collisions / warps (`map_gameplay`) | **fait** (socle exploration : `stepGameplayWorld`, `GameplayWorldState`, `GameplayIntent.move`, `Moved`/`Blocked`/`WarpTriggered`) |
+| Déplacement / collisions / warps (`map_gameplay`) | **fait** (socle exploration : `stepGameplayWorld`, `GameplayWorldState.fromMap`, `GameplayIntent.move`, `Moved`/`Blocked`/`WarpTriggered` ; spawn joueur résolu depuis métadonnées map) |
 | Intégration Flame (component joueur, game loop) | pas fait |
 | Interactions entités (NPC, signe) | pas fait |
 | Dialogues (resolution DialogueRef) | pas fait |
