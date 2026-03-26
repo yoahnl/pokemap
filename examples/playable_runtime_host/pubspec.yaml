@@ -1,0 +1,24 @@
+name: playable_runtime_host
+description: Standalone consumer example for map_runtime — loads a project.json and runs a playable Flame map.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.36.0
+  file_picker: ^8.0.0
+  map_runtime:
+    path: ../../packages/map_runtime
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
