@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue)
+> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -135,8 +135,12 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Caméra follow-player (~15×11 tuiles viewport) | **Fait** | |
 | Fallback spawn (0,0) si pas de spawn configuré | **Fait** | PlayableMapGame.onLoad catch GameplaySpawnResolutionException |
 | Barrel public : 4 exports uniquement | **Fait** | loadRuntimeMapBundle, RuntimeMapBundle, RuntimeMapGame, PlayableMapGame |
-| Résolution dialogue (`resolveDialogue`) | **Fait** | Résout fichier .yarn + startNode, logs [dialogue], non exécuté |
-| Exécution Yarn (moteur + UI dialogue runtime) | **Non fait** | Prochaine milestone |
+| Résolution dialogue (`resolveDialogue`) | **Fait** | Résout fichier .yarn + startNode, logs [dialogue] |
+| Parser Yarn MVP (`parseYarnFile`, `YarnNode`, `DialogueSession`) | **Fait** | Un seul nœud linéaire, filtre commandes `<<...>>` et blancs |
+| Chargement dialogue (`loadDialogueContent`) | **Fait** | Lecture .yarn → parse → DialogueSession, fallback premier nœud |
+| UI dialogue runtime (`DialogueOverlayComponent`) | **Fait** | Panneau bas-écran, texte ligne par ligne, hint E · Suite/Fermer |
+| Blocage gameplay pendant dialogue | **Fait** | `_dialogueActive` bloque mouvement + re-interaction ; E/Space advance/close |
+| Dialogues Yarn avec branches (options/sauts) | **Non fait** | `<<jump>>` et `->` non supportés — MVN linéaire uniquement |
 | Rencontres aléatoires actives | **Non fait** | |
 | Comportements NPC (patrouille, LoS) | **Non fait** | |
 | Sauvegarde/chargement état jeu | **Non fait** | |
@@ -267,13 +271,13 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Recommandation : exécution Yarn runtime.**
+**Prochaine recommandation : Yarn avec branches.**
 
 Justification :
-1. Le modèle de données est complet (`DialogueRef`, `ProjectDialogueEntry`, `MapEntityNpcData` avec dialogue, `lineOfSightRange`, `defeatDialogueRef`).
-2. La résolution est faite : `resolveDialogue()` donne le `absoluteFilePath` et le `startNode` avec les logs structurés.
-3. Il manque uniquement l'intégration d'un moteur Yarn (adapter, runner, UI) pour exécuter le fichier depuis `ResolvedDialogue`.
-4. Sans exécution Yarn, le résultat d'interaction n'est qu'un `inspectorHeadline` (nom de l'entité), pas un vrai retour narratif.
+1. Le MVP dialogue (lecture .yarn + affichage ligne par ligne) est livré et fonctionnel.
+2. Les dialogues linéaires (une seule chaîne de lignes dans un nœud) fonctionnent complètement.
+3. Il manque les sauts (`<<jump NodeName>>`) et les options (`-> Choix`) pour les dialogues avec branches.
+4. Un vrai moteur Yarn (ex. adapter autour d'un parser AST) permettrait de couvrir tous les cas Yarn Spinner.
 
 **Ne pas faire maintenant** :
 - Couches haut niveau (no-code, framework abstrait) — trop tôt.
@@ -284,6 +288,7 @@ Justification :
 - Warp failure : `catch (e, st)` avec log + notification visible.
 - README `map_runtime` : corrigé, `PlayableMapGame` décrit correctement.
 - Interactions entités : `InteractIntent`, 5 résultats typés, E/Space, overlay 2s, logs structurés.
+- Dialogue Yarn MVP : parse .yarn, `DialogueSession`, `DialogueOverlayComponent`, blocage gameplay.
 
 ---
 
@@ -309,3 +314,4 @@ Justification :
 | map_gameplay — Interactions + entity cache | 2026-03-27 | InteractIntent, entityAt(), _buildEntityByPos(), 5 résultats typés (NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted, NothingToInteract) |
 | map_runtime — Logs structurés + interactions + HUD | 2026-03-27 | E/Space → InteractIntent, overlay 2s via TextComponent HUD, logs [runtime]/[move]/[warp]/[interact], fix warp silence → catch (e, st) |
 | map_runtime + map_editor — Clarification dialogue | 2026-03-27 | resolve_dialogue.dart (règle canonique + logs [dialogue]), defeat dialogue dropdown, labels UI "Dialogue (bibliothèque)"/"Nœud Yarn", fix chargement scriptPathRelative défaite |
+| map_runtime — Dialogue Yarn MVP | 2026-03-27 | dialogue_runtime_models.dart (YarnNode, DialogueSession), parse_yarn_dialogue.dart, load_dialogue_content.dart, dialogue_overlay_component.dart (HUD ligne par ligne), PlayableMapGame branché (blocage gameplay, E/Space avance/ferme) |

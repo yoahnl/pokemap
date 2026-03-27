@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime).
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps et interactions entités (feedback 2s + logs structurés). Pas encore : dialogues exécutables, rencontres, NPC actifs.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités et dialogues Yarn MVP (lecture .yarn, affichage ligne par ligne, blocage gameplay). Pas encore : moteur Yarn complet (choix, sauts), rencontres, NPC actifs.
 
 ---
 
@@ -283,13 +283,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String projectFilePath,  // pour charger les maps de warp
   });
   // Gère flèches + WASD → MoveIntent → stepGameplayWorld
-  // E / Space (KeyDownEvent uniquement, pas KeyRepeat) → InteractIntent → stepGameplayWorld
-  // NpcInteracted/SignInteracted → resolveDialogue() → logs [dialogue]
+  // E / Space → InteractIntent → si dialogue résolu → loadDialogueContent() → ouvre DialogueOverlayComponent
+  // Si dialogue actif : E / Space → advance() (ligne suivante ou fermeture) ; mouvement bloqué
+  // NpcInteracted/SignInteracted → _tryOpenDialogue() → resolveDialogue() + loadDialogueContent()
   // Collisions depuis GameplayWorldState
   // WarpTriggered → charge async nouvelle map (images avant swap, erreur loggée)
   // Fallback spawn (0,0) si GameplaySpawnResolutionException
   // Logs structurés : [runtime] | [move] | [warp] | [interact] | [dialogue]
-  // HUD notification 2s via TextComponent sur camera.viewport
+  // HUD notification 2s via TextComponent sur camera.viewport (fallback si pas de dialogue)
 }
 
 // Résolution dialogue (interne map_runtime, non exporté)
@@ -297,7 +298,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 class ResolvedDialogue {
   final String absoluteFilePath;  // chemin absolu vers le .yarn
   final String dialogueId;
-  final String? startNode;        // null = moteur Yarn décide du nœud d'entrée
+  final String? startNode;        // null = utiliser premier nœud du fichier
 }
 
 ResolvedDialogue? resolveDialogue({
@@ -314,11 +315,46 @@ ResolvedDialogue? resolveDialogue({
 // 4. startNode :
 //    a. ref.startNode non null/vide → utiliser [priorité entité]
 //    b. sinon entry.defaultStartNode non null/vide → utiliser [fallback bibliothèque]
-//    c. sinon → null + log [dialogue] no startNode [moteur Yarn décide]
+//    c. sinon → null + log [dialogue] no startNode
 //
 // startNode = title: d'un nœud Yarn (ex. "Intro", "fresh_start_house_01_mail_box")
 // Logs produits : [dialogue] interaction, resolved dialogueId, resolved file,
 //                 requested startNode | fallback defaultStartNode | no startNode | error
+
+// Pipeline Yarn MVP (interne map_runtime)
+// packages/map_runtime/lib/src/application/dialogue_runtime_models.dart
+class YarnNode {
+  final String title;
+  final List<String> bodyLines;  // lignes filtrées (sans blancs ni commandes <<...>>)
+}
+class DialogueSession {
+  final List<YarnNode> nodes;
+  final int currentNodeIndex;
+  final int currentLineIndex;
+  YarnNode get currentNode;
+  String get currentLine;
+  bool get isLastLine;
+  DialogueSession? advance();   // null = session terminée
+  static DialogueSession? start(List<YarnNode> nodes, String? startNodeTitle);
+}
+
+// packages/map_runtime/lib/src/application/parse_yarn_dialogue.dart
+List<YarnNode> parseYarnFile(String content);   // parse sections title:/---/===
+YarnNode? findYarnNode(List<YarnNode> nodes, String title);
+
+// packages/map_runtime/lib/src/application/load_dialogue_content.dart
+Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved);
+// Lit fichier .yarn, parse, start(nodes, startNode)
+// Si startNode absent → premier nœud du fichier (log explicite)
+// Si startNode demandé mais absent → log + fallback premier nœud
+
+// packages/map_runtime/lib/src/presentation/flame/dialogue_overlay_component.dart
+class DialogueOverlayComponent extends PositionComponent {
+  // priority: 100, taille = viewport
+  // Panneau en bas de l'écran (28% hauteur), fond noir semi-transparent, bordure blanche
+  // Texte courant + hint "E · Suite" / "E · Fermer"
+  // bool advance() → true si encore ouvert, false si terminé (se retire + appelle onFinished)
+}
 ```
 
 ### Rendu (MapLayersComponent)
@@ -424,7 +460,8 @@ Offset panOffset
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
 - Boucle jouable : déplacement clavier, collisions bloquantes, transitions de map via warps.
 - Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
-- Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`. Le fichier n'est pas encore exécuté.
+- Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`.
+- **Dialogue Yarn MVP** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche les lignes une par une avec hint clavier. E/Space avance ou ferme. Le mouvement est bloqué pendant le dialogue.
 - Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]`, `[dialogue]` via `debugPrint`.
 - Warp failure visible : `catch (e, st)` avec log + notification "Warp failed".
 - Résolution automatique du spawn joueur.
@@ -432,7 +469,7 @@ Offset panOffset
 
 ### Ne marche pas encore
 
-- Dialogues runtime exécutables : la résolution est faite (fichier .yarn + startNode dans les logs), mais le moteur Yarn n'est pas intégré — pas d'exécution du script, pas de fenêtre de dialogue.
+- Dialogues Yarn complets : la lecture/affichage ligne par ligne est faite, mais les nœuds multiples avec sauts (`-> option` / `<<jump>>`) ne sont pas supportés — un seul nœud est exécuté par interaction.
 - Rencontres aléatoires actives (zones définies mais pas de déclenchement).
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
@@ -444,7 +481,7 @@ Offset panOffset
 
 1. **Spawn requis en données** : `GameplayWorldState.fromMap` lève une exception si la map n'a pas de spawn configuré. `PlayableMapGame` l'attrape et démarre à `(0,0)` — fallback dev uniquement.
 
-2. **Dialogue sans Yarn exécuté** : `resolveDialogue()` résout le fichier et le startNode et le logue, mais ne charge ni n'exécute le fichier `.yarn`. Le HUD affiche seulement `inspectorHeadline`. Le branchement futur se fait en consommant `ResolvedDialogue.absoluteFilePath` + `ResolvedDialogue.startNode` dans un moteur Yarn.
+2. **Dialogue Yarn MVP (pas de sauts)** : `DialogueSession` n'exécute qu'un seul nœud Yarn — `<<jump>>` et options (`->`) ne sont pas parsés ni traités. Le MVN couvre le cas le plus courant (dialogues linéaires). Pour les dialogues avec branches, il faudra un vrai moteur Yarn.
 
 3. **DialogueRef.scriptPathRelative non vide = legacy** : si une entité a un chemin de script direct (migré depuis une ancienne version), `resolveDialogue()` utilise ce chemin directement sans passer par le registre. Pas d'erreur si le fichier n'existe pas à ce stade — validation runtime uniquement à l'exécution.
 
@@ -485,7 +522,6 @@ Offset panOffset
 
 ## Prochaines priorités
 
-1. **Exécution Yarn** : `resolveDialogue()` fournit `absoluteFilePath` + `startNode`. Il manque un adaptateur Yarn (ex. `yarn_spinner` Dart) qui charge le fichier, démarre au `startNode`, et expose les lignes de dialogue. Le branchement dans `PlayableMapGame` se fait en consommant `ResolvedDialogue`.
-2. **UI dialogue runtime** : aucune fenêtre de dialogue dans le jeu — il faudra un composant Flame/Flutter (texte + portrait + choix) pour présenter les lignes Yarn.
-3. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe.
-4. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
+1. **Yarn avec sauts/options** : `DialogueSession` ne supporte qu'un nœud linéaire. Ajouter un vrai moteur Yarn (sauts `<<jump>>`, options `->`) pour les dialogues avec branches.
+2. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe.
+3. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
