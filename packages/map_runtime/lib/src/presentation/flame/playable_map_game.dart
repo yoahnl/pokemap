@@ -43,6 +43,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   DialogueOverlayComponent? _dialogueOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
+  final Map<String, OverworldActorComponent> _npcActorByEntityId = {};
 
   @override
   Future<void> onLoad() async {
@@ -261,6 +262,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification('...');
       case NpcInteracted(:final entity):
         debugPrint('[interact] NPC: ${entity.id}');
+        _faceNpcTowardPlayer(entity.id);
         _tryOpenDialogue(
             entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
       case SignInteracted(:final entity):
@@ -439,6 +441,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         world.remove(actor);
       }
       _npcActors.clear();
+      _npcActorByEntityId.clear();
 
       _bundle = newBundle;
       _world = newWorld;
@@ -498,8 +501,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         topY * ch,
       );
       _npcActors.add(actor);
+      _npcActorByEntityId[entity.id] = actor;
       await world.add(actor);
     }
+  }
+
+  void _faceNpcTowardPlayer(String entityId) {
+    final actor = _npcActorByEntityId[entityId];
+    if (actor == null) {
+      return;
+    }
+    final playerFacing = _world.player.facing;
+    final npcFacing = switch (playerFacing) {
+      Direction.north => EntityFacing.south,
+      Direction.south => EntityFacing.north,
+      Direction.east => EntityFacing.west,
+      Direction.west => EntityFacing.east,
+    };
+    actor.setMotion(npcFacing, CharacterAnimationState.idle);
   }
 
   void _configureCameraViewport() {

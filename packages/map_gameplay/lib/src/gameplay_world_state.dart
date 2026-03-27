@@ -106,10 +106,14 @@ Map<int, MapEntity> _buildEntityByPos(MapData map) {
   final result = <int, MapEntity>{};
   for (final entity in map.entities) {
     if (entity.kind == MapEntityKind.spawn) continue;
-    for (var dy = 0; dy < entity.size.height; dy++) {
-      for (var dx = 0; dx < entity.size.width; dx++) {
-        result[(entity.pos.y + dy) * w + (entity.pos.x + dx)] = entity;
+    for (final cell in resolveEntityCollisionCells(entity)) {
+      if (cell.x < 0 ||
+          cell.y < 0 ||
+          cell.x >= map.size.width ||
+          cell.y >= map.size.height) {
+        continue;
       }
+      result[cell.y * w + cell.x] = entity;
     }
   }
   return result;
