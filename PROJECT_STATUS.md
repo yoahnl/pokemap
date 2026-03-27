@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-26 (audit complet depuis le code réel)
+> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -53,7 +53,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Package | Version | Type | Rôle réel |
 |---------|---------|------|-----------|
 | `map_core` | 0.1.0 | Dart pur | Schéma métier, validation, sérialisation JSON, migrations legacy, opérations pures sur les données |
-| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, résolution spawn |
+| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, interactions entités, résolution spawn |
 | `map_runtime` | 0.1.0 | Flutter + Flame | Chargement projet depuis disque, rendu Flame (layers + entités animées), boucle jouable au clavier |
 | `map_editor` | 0.2.0 | Flutter desktop (macOS) | Éditeur GUI complet : maps, layers, entités, tilesets, terrains, paths, warps, triggers, zones, dialogues, dresseurs, rencontres |
 
@@ -97,12 +97,14 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Direction (enum + extensions dx/dy/asFacing) | **Fait** | |
 | EntityFacingX.asDirection (bridge map_core ↔ gameplay) | **Fait** | |
 | GameplayPlayerState (pos, facing, copyWith) | **Fait** | Plain class immuable, pas Freezed |
-| GameplayWorldState (collision cache, warp cache) | **Fait** | Cache plat List<bool> row-major |
+| GameplayWorldState (collision cache, warp cache, entity cache) | **Fait** | Cache plat List<bool> + Map<int, MapEntity> row-major, spawns exclus |
 | GameplayWorldState.initial (pos + facing explicites) | **Fait** | Ne valide pas la cellule |
 | GameplayWorldState.fromMap (spawn automatique) | **Fait** | Lance exception si spawn bloqué |
 | Résolution spawn : defaultSpawnId → playerStart (tri par id) → exception | **Fait** | |
 | stepGameplayWorld (move intent → result) | **Fait** | Turn-face + collision + warp check |
+| stepGameplayWorld (interact intent → result) | **Fait** | Cellule devant joueur → NPC/sign/item/entity/nothing |
 | Résultats scellés (Moved, Blocked, WarpTriggered, TriggeredWarp) | **Fait** | |
+| Résultats interaction (NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted) | **Fait** | |
 | GameplaySpawnResolutionException | **Fait** | |
 | Logique de dialogue, rencontres, NPC AI | **Non fait** | Hors périmètre actuel |
 | Persistance de l'état de jeu (sauvegarde) | **Non fait** | |
@@ -123,15 +125,17 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Rendu CollisionLayer (overlay semi-transparent) | **Fait** | Visible si couche visible dans les données |
 | Ordre de rendu : terrain → path → tile → entités → collision | **Fait** | Identique à l'éditeur |
 | RuntimeMapGame (viewer statique) | **Fait** | Caméra = map entière visible |
-| PlayableMapGame (jouable au clavier) | **Fait** | KeyboardEvents : flèches + WASD |
+| PlayableMapGame (jouable au clavier) | **Fait** | KeyboardEvents : flèches + WASD + E/Space |
 | PlayerComponent (disque + indicateur direction) | **Fait** | Simple marqueur visuel bleu |
 | Collisions au clavier via map_gameplay | **Fait** | |
-| Warps : détection + chargement async nouvelle map | **Fait** | _handleWarp, erreur silencieuse si échec |
+| Warps : détection + chargement async nouvelle map | **Fait** | _handleWarp, erreur loggée + notification "Warp failed" |
+| Interactions entités (E/Space) | **Fait** | Résultat typé → overlay 2s (`entity.inspectorHeadline`) + log `[interact]` |
+| Logs structurés runtime | **Fait** | Préfixes `[runtime]` `[move]` `[warp]` `[interact]` via debugPrint |
+| HUD notification 2s | **Fait** | TextComponent sur camera.viewport |
 | Caméra follow-player (~15×11 tuiles viewport) | **Fait** | |
 | Fallback spawn (0,0) si pas de spawn configuré | **Fait** | PlayableMapGame.onLoad catch GameplaySpawnResolutionException |
 | Barrel public : 4 exports uniquement | **Fait** | loadRuntimeMapBundle, RuntimeMapBundle, RuntimeMapGame, PlayableMapGame |
-| Interactions NPC/signe | **Non fait** | |
-| Dialogues (Yarn ou autre) | **Non fait** | |
+| Dialogues exécutables (Yarn ou autre) | **Non fait** | |
 | Rencontres aléatoires actives | **Non fait** | |
 | Comportements NPC (patrouille, LoS) | **Non fait** | |
 | Sauvegarde/chargement état jeu | **Non fait** | |
@@ -193,10 +197,11 @@ Tout est exporté sans restriction `show`. Les exports couvrent :
 Direction, DirectionX, EntityFacingX
 GameplaySpawnResolutionException
 resolveInitialPlayerSpawn
-GameplayIntent, MoveIntent
+GameplayIntent, MoveIntent, InteractIntent
 GameplayPlayerState
 stepGameplayWorld
-GameplayStepResult, Moved, Blocked, WarpTriggered, TriggeredWarp
+GameplayStepResult, Moved, Blocked, WarpTriggered, TriggeredWarp,
+  NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted
 GameplayWorldState
 ```
 
@@ -236,8 +241,7 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ### Dette dangereuse
 
-- **Erreur silencieuse sur warp** : `_handleWarp` fait `catch (_) {}`. Un warp vers une map invalide bloque le joueur sans aucun feedback. À corriger : propager ou logger.
-- **README map_runtime mensonger** : dit "It is not a gameplay engine" alors que `PlayableMapGame` implémente clavier + collisions + warps. À corriger.
+*(Aucune dette dangereuse active.)*
 
 ### Dette tolérable
 
@@ -262,22 +266,22 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Recommandation : interactions NPC et dialogues runtime.**
+**Recommandation : dialogues runtime exécutables.**
 
 Justification :
-1. Le modèle de données est complet (DialogueRef, ProjectDialogueEntry, MapEntityNpcData avec dialogue, lineOfSightRange, defeatDialogueRef).
-2. map_gameplay n'a pas encore d'`InteractIntent` ni de gestion NPC.
-3. map_runtime n'a pas de couche dialogue (Yarn ou autre).
-4. Sans interactions, la boucle jouable est un coquille vide pour l'utilisateur final.
+1. Le modèle de données est complet (`DialogueRef`, `ProjectDialogueEntry`, `MapEntityNpcData` avec dialogue, `lineOfSightRange`, `defeatDialogueRef`).
+2. L'interaction est maintenant détectée et loggée côté runtime — il manque l'exécution du dialogue.
+3. Sans dialogue, le résultat d'interaction n'est qu'un `inspectorHeadline` (nom de l'entité), pas un vrai retour narratif.
 
 **Ne pas faire maintenant** :
 - Couches haut niveau (no-code, framework abstrait) — trop tôt.
 - Publication pub.dev — les packages sont encore en `path:` local.
-- Persistance sauvegarde — dépend de l'existence d'une boucle de jeu plus complète.
+- Persistance sauvegarde — dépend d'une boucle de jeu plus complète.
 
-**À stabiliser avant d'ajouter** :
-- Corriger l'erreur silencieuse sur warp (`catch (_) {}`).
-- Aligner le README de `map_runtime` avec la réalité.
+**Déjà stabilisé (cette session)** :
+- Warp failure : `catch (e, st)` avec log + notification visible.
+- README `map_runtime` : corrigé, `PlayableMapGame` décrit correctement.
+- Interactions entités : `InteractIntent`, 5 résultats typés, E/Space, overlay 2s, logs structurés.
 
 ---
 
@@ -300,3 +304,5 @@ Justification :
 | map_gameplay — Spawn joueur | 2026-03-26 | resolveInitialPlayerSpawn, GameplayWorldState.fromMap, GameplaySpawnResolutionException |
 | map_runtime — Runtime 4 (boucle jouable) | 2026-03-26 | PlayableMapGame, PlayerComponent, KeyboardEvents, warps, caméra follow-player |
 | examples/playable_runtime_host | 2026-03-26 | App Flutter externe consommatrice de map_runtime, entitlements macOS sans sandbox |
+| map_gameplay — Interactions + entity cache | 2026-03-27 | InteractIntent, entityAt(), _buildEntityByPos(), 5 résultats typés (NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted, NothingToInteract) |
+| map_runtime — Logs structurés + interactions + HUD | 2026-03-27 | E/Space → InteractIntent, overlay 2s via TextComponent HUD, logs [runtime]/[move]/[warp]/[interact], fix warp silence → catch (e, st) |

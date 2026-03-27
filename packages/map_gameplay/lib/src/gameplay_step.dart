@@ -11,6 +11,7 @@ GameplayStepResult stepGameplayWorld(
 ) {
   return switch (intent) {
     MoveIntent(:final direction) => _resolveMove(world, direction),
+    InteractIntent() => _resolveInteract(world),
   };
 }
 
@@ -43,4 +44,20 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
   }
 
   return Moved(movedWorld);
+}
+
+GameplayStepResult _resolveInteract(GameplayWorldState world) {
+  final facing = world.player.facing;
+  final tx = world.player.pos.x + facing.dx;
+  final ty = world.player.pos.y + facing.dy;
+  final entity = world.entityAt(tx, ty);
+
+  if (entity == null) return NothingToInteract(world);
+
+  return switch (entity.kind) {
+    MapEntityKind.npc => NpcInteracted(world, entity),
+    MapEntityKind.sign => SignInteracted(world, entity),
+    MapEntityKind.item => ItemInteracted(world, entity),
+    _ => EntityInteracted(world, entity),
+  };
 }

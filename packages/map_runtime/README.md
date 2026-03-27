@@ -1,10 +1,8 @@
 # map_runtime
 
-A read-only Flame viewer for maps produced with the RPG Map Editor format.
+A Flame-based runtime for maps produced with the RPG Map Editor format.
 
-This package loads a `project.json` file, resolves tileset assets, and renders the map — tile layers, terrain layers, path layers, entity sprites and collision overlays — inside a Flame scene.
-
-**It is not a gameplay engine.** There is no player movement, no active collisions, no warps, no interactions, no dialogues, no encounters, no save system. Those responsibilities belong to a separate future package.
+This package loads a `project.json` file, resolves tileset assets, and renders the map — tile layers, terrain layers, path layers, entity sprites and collision overlays — inside a Flame scene. It also provides `PlayableMapGame`, a playable game loop with keyboard-driven player movement, collision detection, warp transitions, and entity interaction.
 
 ---
 
@@ -19,10 +17,7 @@ This package loads a `project.json` file, resolves tileset assets, and renders t
 
 ## What it does NOT do
 
-- Player or NPC movement
-- Gameplay collisions
-- Warp or trigger activation
-- Dialogue execution
+- Dialogue execution (text is shown as a 2-second overlay, not a full dialogue system)
 - Wild encounter triggering
 - Inventory, progression, combat, saves
 
@@ -48,16 +43,30 @@ void main() async {
     mapId: 'my_map',
   );
 
+  // Read-only viewer
   runApp(MaterialApp(
     home: Scaffold(
       body: GameWidget(game: RuntimeMapGame(bundle: bundle)),
+    ),
+  ));
+
+  // Or: playable game (arrows/WASD to move, E/Space to interact)
+  runApp(MaterialApp(
+    home: Scaffold(
+      body: GameWidget(
+        game: PlayableMapGame(
+          bundle: bundle,
+          projectFilePath: '/path/to/project.json',
+        ),
+      ),
     ),
   ));
 }
 ```
 
 `loadRuntimeMapBundle` validates the project and map and resolves all required tileset paths.
-`RuntimeMapGame` loads the tileset images and renders the map. Pass it to a `GameWidget`.
+`RuntimeMapGame` loads the tileset images and renders the map as a read-only viewer.
+`PlayableMapGame` adds keyboard movement, collision, warps, and entity interaction.
 
 ## Public API
 
@@ -65,7 +74,8 @@ void main() async {
 |---|---|
 | `loadRuntimeMapBundle({projectFilePath, mapId})` | Loads and validates a project + map from disk. Returns a `RuntimeMapBundle`. |
 | `RuntimeMapBundle` | Holds the resolved `ProjectManifest`, `MapData`, and tileset paths. |
-| `RuntimeMapGame` | A `FlameGame` that renders the map. Loads images internally in `onLoad()`. |
+| `RuntimeMapGame` | A `FlameGame` that renders the map (read-only). |
+| `PlayableMapGame` | A `FlameGame` with player movement (arrows/WASD), collision, warp transitions, and entity interaction (E/Space). |
 
 All other types and functions in this package are internal.
 
@@ -82,7 +92,7 @@ Thrown by `loadRuntimeMapBundle`, from `map_core`:
 
 ## Limitations
 
-- **Read-only.** No gameplay logic of any kind.
+- **`PlayableMapGame` is keyboard-only.** No gamepad, touch, or on-screen controls.
 - **Local filesystem only.** Uses `dart:io`; Flutter Web is not supported.
 - **`map_core` is a local path dependency.** Before this package can be published to pub.dev, `map_core` must be published independently, and the `path:` dependency replaced with a version constraint.
 - The camera fits the entire map in the available viewport. Camera controls (pan, zoom) are not provided.
@@ -102,6 +112,8 @@ packages/map_runtime/
         tile_image_loader.dart
       presentation/flame/
         runtime_map_game.dart
+        playable_map_game.dart
+        player_component.dart
         map_layers_component.dart
         runtime_path_autotile.dart
   example/                    ← desktop preview app

@@ -1,9 +1,12 @@
 import 'dart:math' as math;
 
+import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
+import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/load_runtime_map_bundle.dart';
@@ -27,10 +30,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late MapLayersComponent _layers;
   late PlayerComponent _player;
   bool _transitioning = false;
+  TextComponent? _notification;
 
   @override
   Future<void> onLoad() async {
-    _world = GameplayWorldState.fromMap(_bundle.map);
+    try {
+      _world = GameplayWorldState.fromMap(_bundle.map);
+      debugPrint(
+        '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
+      );
+    } on GameplaySpawnResolutionException catch (e) {
+      debugPrint('[runtime] Spawn resolution failed ($e), falling back to (0,0)');
+      _world = GameplayWorldState.initial(
+        map: _bundle.map,
+        playerPos: const GridPos(x: 0, y: 0),
+      );
+    }
     final images =
         await loadTilesetImagesById(_bundle.tilesetAbsolutePathsById);
     _layers =
@@ -51,6 +66,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
+
+    if (event is KeyDownEvent &&
+        (event.logicalKey == LogicalKeyboardKey.keyE ||
+            event.logicalKey == LogicalKeyboardKey.space)) {
+      _handleInteract();
+      return KeyEventResult.handled;
+    }
+
     final intent = _intentFromKey(event.logicalKey);
     if (intent == null) return KeyEventResult.ignored;
 
@@ -59,7 +82,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _player.updateState(_world.player);
     _applyCamera();
 
+    if (result is Blocked) {
+      debugPrint('[move] Blocked at (${_world.player.pos.x}, ${_world.player.pos.y})');
+    }
+
     if (result is WarpTriggered) {
+      debugPrint(
+        '[warp] Triggered warp ${result.warp.warpId} → map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
+      );
       _handleWarp(result.warp);
     }
 
@@ -83,6 +113,59 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return null;
   }
 
+  void _handleInteract() {
+    final result = stepGameplayWorld(_world, const InteractIntent());
+    _world = result.world;
+
+    switch (result) {
+      case NothingToInteract():
+        debugPrint('[interact] Nothing to interact with');
+        _showNotification('...');
+      case NpcInteracted(:final entity):
+        debugPrint('[interact] NPC: ${entity.id}');
+        _showNotification(entity.inspectorHeadline);
+      case SignInteracted(:final entity):
+        debugPrint('[interact] Sign: ${entity.id}');
+        _showNotification(entity.inspectorHeadline);
+      case ItemInteracted(:final entity):
+        debugPrint('[interact] Item: ${entity.id}');
+        _showNotification(entity.inspectorHeadline);
+      case EntityInteracted(:final entity):
+        debugPrint('[interact] Entity: ${entity.id}');
+        _showNotification(entity.inspectorHeadline);
+      default:
+        break;
+    }
+  }
+
+  void _showNotification(String text) {
+    _notification?.removeFromParent();
+    final paint = TextPaint(
+      style: const TextStyle(
+        fontSize: 16,
+        color: Colors.white,
+        backgroundColor: Color(0xAA000000),
+      ),
+    );
+    final component = TextComponent(
+      text: text,
+      textRenderer: paint,
+      anchor: Anchor.topCenter,
+    );
+    component.position = Vector2(
+      camera.viewport.size.x / 2,
+      camera.viewport.size.y - 48,
+    );
+    camera.viewport.add(component);
+    _notification = component;
+    Future.delayed(const Duration(seconds: 2), () {
+      if (_notification == component) {
+        component.removeFromParent();
+        _notification = null;
+      }
+    });
+  }
+
   Future<void> _handleWarp(TriggeredWarp warp) async {
     _transitioning = true;
     try {
@@ -90,13 +173,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         projectFilePath: projectFilePath,
         mapId: warp.targetMapId,
       );
+      final newImages =
+          await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
       final newWorld = GameplayWorldState.initial(
         map: newBundle.map,
         playerPos: warp.targetPos,
         playerFacing: _world.player.facing,
       );
-      final images =
-          await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
 
       world.remove(_layers);
       world.remove(_player);
@@ -104,13 +187,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _bundle = newBundle;
       _world = newWorld;
       _layers =
-          MapLayersComponent(bundle: newBundle, tileImagesByTilesetId: images);
+          MapLayersComponent(bundle: newBundle, tileImagesByTilesetId: newImages);
       _player = PlayerComponent(bundle: newBundle, state: _world.player);
 
       await world.add(_layers);
       await world.add(_player);
       _applyCamera();
-    } catch (_) {
+      debugPrint('[warp] Transition complete → map=${newBundle.map.id}');
+    } catch (e, st) {
+      debugPrint('[warp] Transition failed: $e\n$st');
+      _showNotification('Warp failed');
     } finally {
       _transitioning = false;
     }

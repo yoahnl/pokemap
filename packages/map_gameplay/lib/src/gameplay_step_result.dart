@@ -31,3 +31,27 @@ final class WarpTriggered extends GameplayStepResult {
   const WarpTriggered(super.world, this.warp);
   final TriggeredWarp warp;
 }
+
+final class NothingToInteract extends GameplayStepResult {
+  const NothingToInteract(super.world);
+}
+
+final class NpcInteracted extends GameplayStepResult {
+  const NpcInteracted(super.world, this.entity);
+  final MapEntity entity;
+}
+
+final class SignInteracted extends GameplayStepResult {
+  const SignInteracted(super.world, this.entity);
+  final MapEntity entity;
+}
+
+final class ItemInteracted extends GameplayStepResult {
+  const ItemInteracted(super.world, this.entity);
+  final MapEntity entity;
+}
+
+final class EntityInteracted extends GameplayStepResult {
+  const EntityInteracted(super.world, this.entity);
+  final MapEntity entity;
+}

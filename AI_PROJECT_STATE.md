@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26). À regénérer si l'architecture évolue.
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime).
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions et warps. Pas encore : dialogues, rencontres, NPC actifs.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps et interactions entités (feedback 2s + logs structurés). Pas encore : dialogues exécutables, rencontres, NPC actifs.
 
 ---
 
@@ -72,6 +72,7 @@ MapEntity(
   properties,
 )
 // Extensions: resolvedProjectElementIdForEditor (editorVisual.elementId ?? npc.visualElementId)
+//             inspectorHeadline → string d'affichage (name ou id selon kind)
 
 MapEntitySpawnData(spawnKey, role: EntitySpawnRole, facing: EntityFacing, categoryTag)
 // EntitySpawnRole.playerStart = spawn joueur initial
@@ -168,6 +169,7 @@ class GameplayWorldState {
   final GameplayPlayerState player;
   bool isBlocked(int x, int y);
   MapWarp? warpAt(int x, int y);
+  MapEntity? entityAt(int x, int y);  // cache Map<int, MapEntity> y*w+x, spawns exclus
   GameplayWorldState withPlayer(GameplayPlayerState player);
 }
 
@@ -176,6 +178,7 @@ sealed class GameplayIntent {}
 final class MoveIntent extends GameplayIntent {
   final Direction direction;
 }
+final class InteractIntent extends GameplayIntent {}  // E / Space
 
 // Résultats
 sealed class GameplayStepResult {
@@ -186,6 +189,11 @@ final class Blocked extends GameplayStepResult {}
 final class WarpTriggered extends GameplayStepResult {
   final TriggeredWarp warp;
 }
+final class NothingToInteract extends GameplayStepResult {}
+final class NpcInteracted extends GameplayStepResult { final MapEntity entity; }
+final class SignInteracted extends GameplayStepResult { final MapEntity entity; }
+final class ItemInteracted extends GameplayStepResult { final MapEntity entity; }
+final class EntityInteracted extends GameplayStepResult { final MapEntity entity; }
 
 class TriggeredWarp {
   final String warpId;
@@ -212,6 +220,11 @@ Pour `MoveIntent(direction)` :
 4. Sinon déplace le joueur à `(tx, ty)`
 5. Si `warpAt(tx, ty) != null` → retourne `WarpTriggered(movedWorld, warp)`
 6. Sinon → retourne `Moved(movedWorld)`
+
+Pour `InteractIntent()` :
+1. Calcule `(tx, ty) = pos + facing.delta` (cellule devant le joueur)
+2. Si `entityAt(tx, ty) == null` → retourne `NothingToInteract`
+3. Sinon switch sur `entity.kind` → `NpcInteracted` | `SignInteracted` | `ItemInteracted` | `EntityInteracted`
 
 ---
 
@@ -253,9 +266,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String projectFilePath,  // pour charger les maps de warp
   });
   // Gère flèches + WASD → MoveIntent → stepGameplayWorld
+  // E / Space (KeyDownEvent uniquement, pas KeyRepeat) → InteractIntent → stepGameplayWorld
   // Collisions depuis GameplayWorldState
-  // WarpTriggered → charge async nouvelle map
+  // WarpTriggered → charge async nouvelle map (images avant swap, erreur loggée)
   // Fallback spawn (0,0) si GameplaySpawnResolutionException
+  // Logs structurés : [runtime] | [move] | [warp] | [interact]
+  // HUD notification 2s via TextComponent sur camera.viewport
 }
 ```
 
@@ -285,6 +301,11 @@ switch (result) {
   case Moved(:final world): ...
   case Blocked(:final world): ...
   case WarpTriggered(:final world, :final warp): ...
+  case NpcInteracted(:final world, :final entity): ...
+  case SignInteracted(:final world, :final entity): ...
+  case ItemInteracted(:final world, :final entity): ...
+  case NothingToInteract(): ...
+  case EntityInteracted(): ...
 }
 ```
 
@@ -356,13 +377,15 @@ Offset panOffset
 - Undo/redo dans l'éditeur.
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
 - Boucle jouable : déplacement clavier, collisions bloquantes, transitions de map via warps.
+- Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
+- Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]` via `debugPrint`.
+- Warp failure visible : `catch (e, st)` avec log + notification "Warp failed".
 - Résolution automatique du spawn joueur.
 - Consommation externe de `map_runtime` depuis un projet Flutter séparé.
 
 ### Ne marche pas encore
 
-- Interactions NPC/signe au runtime (touche action).
-- Dialogues runtime (pas d'intégration Yarn ni autre).
+- Dialogues runtime exécutables (l'inspectorHeadline s'affiche mais pas de vrai système de dialogue Yarn ou autre).
 - Rencontres aléatoires actives (zones définies mais pas de déclenchement).
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
@@ -372,11 +395,7 @@ Offset panOffset
 
 ## Pièges / incohérences / legacy
 
-1. **Warp failure silencieuse** : `_handleWarp` dans `PlayableMapGame` fait `catch (_) {}`. Warp raté = joueur bloqué sans feedback. Fichier : `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`.
-
-2. **README map_runtime** : dit "not a gameplay engine". Faux — `PlayableMapGame` fait du gameplay (collision, mouvement, warp). Fichier : `packages/map_runtime/README.md`.
-
-3. **Spawn requis en données** : `GameplayWorldState.fromMap` lève une exception si la map n'a pas de spawn configuré. `PlayableMapGame` l'attrape et démarre à `(0,0)` — fallback dev uniquement.
+1. **Spawn requis en données** : `GameplayWorldState.fromMap` lève une exception si la map n'a pas de spawn configuré. `PlayableMapGame` l'attrape et démarre à `(0,0)` — fallback dev uniquement.
 
 4. **tileId=0 = vide** dans les layers tile. `tileId=1` → tile en position 0 dans l'image tileset.
 
@@ -413,8 +432,6 @@ Offset panOffset
 
 ## Prochaines priorités
 
-1. **Interactions runtime** : `InteractIntent` dans `map_gameplay`, détection NPC/signe adjacent, réponse dans `PlayableMapGame`.
-2. **Dialogues runtime** : intégration Yarn (ou autre) pour exécuter `ProjectDialogueEntry.relativePath` depuis `map_runtime`.
-3. **Corriger warp failure silencieuse** : au minimum, logger l'erreur.
-4. **Corriger README map_runtime** : le repositionner honnêtement.
-5. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
+1. **Dialogues runtime** : intégration Yarn (ou autre) pour exécuter `ProjectDialogueEntry.relativePath` depuis `map_runtime`. Le modèle de données est prêt (`ProjectDialogueEntry`, `DialogueRef` sur les entités NPC/signe). L'interaction est détectée — il manque l'exécution.
+2. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe, pas de sprite par direction.
+3. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
