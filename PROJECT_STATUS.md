@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés)
+> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -135,7 +135,8 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Caméra follow-player (~15×11 tuiles viewport) | **Fait** | |
 | Fallback spawn (0,0) si pas de spawn configuré | **Fait** | PlayableMapGame.onLoad catch GameplaySpawnResolutionException |
 | Barrel public : 4 exports uniquement | **Fait** | loadRuntimeMapBundle, RuntimeMapBundle, RuntimeMapGame, PlayableMapGame |
-| Dialogues exécutables (Yarn ou autre) | **Non fait** | |
+| Résolution dialogue (`resolveDialogue`) | **Fait** | Résout fichier .yarn + startNode, logs [dialogue], non exécuté |
+| Exécution Yarn (moteur + UI dialogue runtime) | **Non fait** | Prochaine milestone |
 | Rencontres aléatoires actives | **Non fait** | |
 | Comportements NPC (patrouille, LoS) | **Non fait** | |
 | Sauvegarde/chargement état jeu | **Non fait** | |
@@ -152,7 +153,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Animation entités multi-frames sur canvas | **Fait** | Timer.periodic ~110ms si nécessaire |
 | Layers panel (visibilité, ordre) | **Fait** | |
 | Tileset palette panel | **Fait** | |
-| Entity properties panel (NPC, signe, item, spawn, custom) | **Fait** | Inclut trainerId, lineOfSightRange, defeatDialogueRef |
+| Entity properties panel (NPC, signe, item, spawn, custom) | **Fait** | Dropdown manifest pour dialogue principal + défaite, label "Dialogue (bibliothèque)", "Nœud Yarn (optionnel)" |
 | Map properties panel (MapMetadata) | **Fait** | displayName, type, musique, météo, indoor, escapeRope, defaultSpawnId, tags |
 | Map connections panel | **Fait** | |
 | Warp properties panel | **Fait** | |
@@ -266,12 +267,13 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Recommandation : dialogues runtime exécutables.**
+**Recommandation : exécution Yarn runtime.**
 
 Justification :
 1. Le modèle de données est complet (`DialogueRef`, `ProjectDialogueEntry`, `MapEntityNpcData` avec dialogue, `lineOfSightRange`, `defeatDialogueRef`).
-2. L'interaction est maintenant détectée et loggée côté runtime — il manque l'exécution du dialogue.
-3. Sans dialogue, le résultat d'interaction n'est qu'un `inspectorHeadline` (nom de l'entité), pas un vrai retour narratif.
+2. La résolution est faite : `resolveDialogue()` donne le `absoluteFilePath` et le `startNode` avec les logs structurés.
+3. Il manque uniquement l'intégration d'un moteur Yarn (adapter, runner, UI) pour exécuter le fichier depuis `ResolvedDialogue`.
+4. Sans exécution Yarn, le résultat d'interaction n'est qu'un `inspectorHeadline` (nom de l'entité), pas un vrai retour narratif.
 
 **Ne pas faire maintenant** :
 - Couches haut niveau (no-code, framework abstrait) — trop tôt.
@@ -306,3 +308,4 @@ Justification :
 | examples/playable_runtime_host | 2026-03-26 | App Flutter externe consommatrice de map_runtime, entitlements macOS sans sandbox |
 | map_gameplay — Interactions + entity cache | 2026-03-27 | InteractIntent, entityAt(), _buildEntityByPos(), 5 résultats typés (NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted, NothingToInteract) |
 | map_runtime — Logs structurés + interactions + HUD | 2026-03-27 | E/Space → InteractIntent, overlay 2s via TextComponent HUD, logs [runtime]/[move]/[warp]/[interact], fix warp silence → catch (e, st) |
+| map_runtime + map_editor — Clarification dialogue | 2026-03-27 | resolve_dialogue.dart (règle canonique + logs [dialogue]), defeat dialogue dropdown, labels UI "Dialogue (bibliothèque)"/"Nœud Yarn", fix chargement scriptPathRelative défaite |

@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue).
 
 ---
 
@@ -103,6 +103,23 @@ ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2.0, defaultMapWidt
 ProjectElementEntry(id, name, tilesetId, frames: List<TilesetVisualFrame>, ...)
 TilesetVisualFrame(tilesetId: '', source: TilesetSourceRect, durationMs?: int)
 TilesetSourceRect(x, y, width: 1, height: 1)  // en coordonnées tuiles
+
+// Dialogue
+class DialogueRef {             // porte la référence d'une entité vers un dialogue
+  final String dialogueId;      // id dans ProjectManifest.dialogues — vide si legacy
+  final String scriptPathRelative;  // '' = résolution via registre ; non vide = chemin direct (legacy/override)
+  final String? startNode;     // titre du nœud Yarn à utiliser — null = appliquer le fallback
+}
+
+class ProjectDialogueEntry {   // dans ProjectManifest.dialogues
+  final String id;
+  final String name;
+  final String relativePath;   // chemin relatif à la racine projet, ex. 'dialogues/intro.yarn'
+  final String? defaultStartNode;  // nœud Yarn suggéré par défaut — surchargeable par DialogueRef.startNode
+  final String? folderId;
+  final List<String> tags;
+  final String description;
+}
 ```
 
 ### Validation
@@ -267,12 +284,41 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   });
   // Gère flèches + WASD → MoveIntent → stepGameplayWorld
   // E / Space (KeyDownEvent uniquement, pas KeyRepeat) → InteractIntent → stepGameplayWorld
+  // NpcInteracted/SignInteracted → resolveDialogue() → logs [dialogue]
   // Collisions depuis GameplayWorldState
   // WarpTriggered → charge async nouvelle map (images avant swap, erreur loggée)
   // Fallback spawn (0,0) si GameplaySpawnResolutionException
-  // Logs structurés : [runtime] | [move] | [warp] | [interact]
+  // Logs structurés : [runtime] | [move] | [warp] | [interact] | [dialogue]
   // HUD notification 2s via TextComponent sur camera.viewport
 }
+
+// Résolution dialogue (interne map_runtime, non exporté)
+// packages/map_runtime/lib/src/application/resolve_dialogue.dart
+class ResolvedDialogue {
+  final String absoluteFilePath;  // chemin absolu vers le .yarn
+  final String dialogueId;
+  final String? startNode;        // null = moteur Yarn décide du nœud d'entrée
+}
+
+ResolvedDialogue? resolveDialogue({
+  required String entityId,
+  required DialogueRef? ref,           // null → log + return null
+  required String projectRootDirectory,
+  required List<ProjectDialogueEntry> dialogues,
+})
+// Règle de résolution (canonique, stable, documentée) :
+// 1. Si ref == null → log [dialogue] no dialogue configured
+// 2. Si ref.scriptPathRelative non vide → absPath = join(projectRoot, scriptPathRelative) [legacy/override]
+// 3. Sinon → chercher ProjectDialogueEntry par ref.dialogueId dans dialogues
+//    → si absent → log [dialogue] error unknown dialogueId=xxx
+// 4. startNode :
+//    a. ref.startNode non null/vide → utiliser [priorité entité]
+//    b. sinon entry.defaultStartNode non null/vide → utiliser [fallback bibliothèque]
+//    c. sinon → null + log [dialogue] no startNode [moteur Yarn décide]
+//
+// startNode = title: d'un nœud Yarn (ex. "Intro", "fresh_start_house_01_mail_box")
+// Logs produits : [dialogue] interaction, resolved dialogueId, resolved file,
+//                 requested startNode | fallback defaultStartNode | no startNode | error
 ```
 
 ### Rendu (MapLayersComponent)
@@ -378,14 +424,15 @@ Offset panOffset
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
 - Boucle jouable : déplacement clavier, collisions bloquantes, transitions de map via warps.
 - Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
-- Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]` via `debugPrint`.
+- Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`. Le fichier n'est pas encore exécuté.
+- Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]`, `[dialogue]` via `debugPrint`.
 - Warp failure visible : `catch (e, st)` avec log + notification "Warp failed".
 - Résolution automatique du spawn joueur.
 - Consommation externe de `map_runtime` depuis un projet Flutter séparé.
 
 ### Ne marche pas encore
 
-- Dialogues runtime exécutables (l'inspectorHeadline s'affiche mais pas de vrai système de dialogue Yarn ou autre).
+- Dialogues runtime exécutables : la résolution est faite (fichier .yarn + startNode dans les logs), mais le moteur Yarn n'est pas intégré — pas d'exécution du script, pas de fenêtre de dialogue.
 - Rencontres aléatoires actives (zones définies mais pas de déclenchement).
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
@@ -396,6 +443,10 @@ Offset panOffset
 ## Pièges / incohérences / legacy
 
 1. **Spawn requis en données** : `GameplayWorldState.fromMap` lève une exception si la map n'a pas de spawn configuré. `PlayableMapGame` l'attrape et démarre à `(0,0)` — fallback dev uniquement.
+
+2. **Dialogue sans Yarn exécuté** : `resolveDialogue()` résout le fichier et le startNode et le logue, mais ne charge ni n'exécute le fichier `.yarn`. Le HUD affiche seulement `inspectorHeadline`. Le branchement futur se fait en consommant `ResolvedDialogue.absoluteFilePath` + `ResolvedDialogue.startNode` dans un moteur Yarn.
+
+3. **DialogueRef.scriptPathRelative non vide = legacy** : si une entité a un chemin de script direct (migré depuis une ancienne version), `resolveDialogue()` utilise ce chemin directement sans passer par le registre. Pas d'erreur si le fichier n'existe pas à ce stade — validation runtime uniquement à l'exécution.
 
 4. **tileId=0 = vide** dans les layers tile. `tileId=1` → tile en position 0 dans l'image tileset.
 
@@ -421,17 +472,20 @@ Offset panOffset
 | 6 | `packages/map_gameplay/lib/src/player_spawn_resolver.dart` | Logique spawn |
 | 7 | `packages/map_runtime/lib/map_runtime.dart` | 4 exports publics |
 | 8 | `packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart` | Pipeline de chargement |
-| 9 | `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | Boucle jouable |
-| 10 | `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart` | Rendu complet |
-| 11 | `packages/map_editor/lib/src/features/editor/state/editor_state.dart` | État éditeur complet |
-| 12 | `packages/map_editor/lib/src/application/services/map_history_coordinator.dart` | Undo/redo |
-| 13 | `packages/map_core/lib/src/io/legacy_editor_json_compat.dart` | Migrations JSON |
-| 14 | `packages/map_core/lib/src/validation/validators.dart` | Règles de validation |
+| 9 | `packages/map_runtime/lib/src/application/resolve_dialogue.dart` | Règle canonique de résolution dialogue |
+| 10 | `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | Boucle jouable |
+| 11 | `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart` | Rendu complet |
+| 12 | `packages/map_editor/lib/src/features/editor/state/editor_state.dart` | État éditeur complet |
+| 13 | `packages/map_editor/lib/src/application/services/map_history_coordinator.dart` | Undo/redo |
+| 14 | `packages/map_core/lib/src/io/legacy_editor_json_compat.dart` | Migrations JSON |
+| 15 | `packages/map_core/lib/src/validation/validators.dart` | Règles de validation |
+| 16 | `packages/map_core/lib/src/models/map_entity_payloads.dart` | DialogueRef, NpcData, SignData |
 
 ---
 
 ## Prochaines priorités
 
-1. **Dialogues runtime** : intégration Yarn (ou autre) pour exécuter `ProjectDialogueEntry.relativePath` depuis `map_runtime`. Le modèle de données est prêt (`ProjectDialogueEntry`, `DialogueRef` sur les entités NPC/signe). L'interaction est détectée — il manque l'exécution.
-2. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe, pas de sprite par direction.
-3. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
+1. **Exécution Yarn** : `resolveDialogue()` fournit `absoluteFilePath` + `startNode`. Il manque un adaptateur Yarn (ex. `yarn_spinner` Dart) qui charge le fichier, démarre au `startNode`, et expose les lignes de dialogue. Le branchement dans `PlayableMapGame` se fait en consommant `ResolvedDialogue`.
+2. **UI dialogue runtime** : aucune fenêtre de dialogue dans le jeu — il faudra un composant Flame/Flutter (texte + portrait + choix) pour présenter les lignes Yarn.
+3. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe.
+4. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.

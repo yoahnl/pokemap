@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/load_runtime_map_bundle.dart';
+import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'map_layers_component.dart';
@@ -123,9 +124,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification('...');
       case NpcInteracted(:final entity):
         debugPrint('[interact] NPC: ${entity.id}');
+        _resolveAndLogDialogue(entity.id, entity.npc?.dialogue);
         _showNotification(entity.inspectorHeadline);
       case SignInteracted(:final entity):
         debugPrint('[interact] Sign: ${entity.id}');
+        _resolveAndLogDialogue(entity.id, entity.sign?.dialogue);
         _showNotification(entity.inspectorHeadline);
       case ItemInteracted(:final entity):
         debugPrint('[interact] Item: ${entity.id}');
@@ -136,6 +139,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       default:
         break;
     }
+  }
+
+  void _resolveAndLogDialogue(String entityId, DialogueRef? ref) {
+    resolveDialogue(
+      entityId: entityId,
+      ref: ref,
+      projectRootDirectory: _bundle.projectRootDirectory,
+      dialogues: _bundle.manifest.dialogues,
+    );
   }
 
   void _showNotification(String text) {

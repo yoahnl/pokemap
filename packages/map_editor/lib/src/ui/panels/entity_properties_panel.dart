@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -15,11 +16,27 @@ import '../shared/inspector_embedded_widgets.dart';
 enum _DialogueRefSource { none, manifest, legacy }
 
 const _kDialogueNoneMenuId = '__dialogue_none__';
+const _kNodeNoneMenuId = '__yarn_node_none__';
 const _kElementNoneMenuId = '__entity_element_none__';
 const _kTrainerNoneMenuId = '__entity_trainer_none__';
 
 String _normalizeDialogueRelPath(String raw) {
   return raw.trim().replaceAll(r'\', '/');
+}
+
+Future<List<String>> _extractYarnNodeTitles(String absolutePath) async {
+  try {
+    final file = File(absolutePath);
+    if (!await file.exists()) return const [];
+    final lines = await file.readAsLines();
+    return [
+      for (final line in lines)
+        if (line.trim().startsWith('title:'))
+          line.trim().substring('title:'.length).trim(),
+    ].where((t) => t.isNotEmpty).toList();
+  } catch (_) {
+    return const [];
+  }
 }
 
 ProjectDialogueEntry? _dialogueEntryForLegacyPath(
@@ -92,6 +109,10 @@ class _EntityPropertiesPanelState
   _DialogueRefSource _npcDialogueSource = _DialogueRefSource.none;
   _DialogueRefSource _signDialogueSource = _DialogueRefSource.none;
   String _editorVisualMenuId = _kElementNoneMenuId;
+
+  List<String> _npcDialogueNodes = [];
+  List<String> _signDialogueNodes = [];
+  List<String> _npcDefeatDialogueNodes = [];
 
   @override
   void dispose() {
@@ -456,8 +477,8 @@ class _EntityPropertiesPanelState
       await showCupertinoEditorAlert(
         context,
         message: _l(
-          'Nœud de départ invalide (lettres, chiffres, espaces, - ou . ; max 256).',
-          'Invalid start node (letters, digits, spaces, - or .; max 256 chars).',
+          'Nœud Yarn invalide (lettres, chiffres, espaces, - ou . ; max 256).',
+          'Invalid Yarn node (letters, digits, spaces, - or .; max 256 chars).',
         ),
       );
       return (ref: null, invalid: true);
@@ -486,8 +507,8 @@ class _EntityPropertiesPanelState
       await showCupertinoEditorAlert(
         context,
         message: _l(
-          'Nœud de départ invalide (lettres, chiffres, espaces, - ou . ; max 256).',
-          'Invalid start node (letters, digits, spaces, - or .; max 256 chars).',
+          'Nœud Yarn invalide (lettres, chiffres, espaces, - ou . ; max 256).',
+          'Invalid Yarn node (letters, digits, spaces, - or .; max 256 chars).',
         ),
       );
       return (ref: null, invalid: true);
@@ -536,7 +557,7 @@ class _EntityPropertiesPanelState
     String menuId,
   ) {
     if (menuId == _kDialogueNoneMenuId) {
-      return _l('Aucun script', 'No script');
+      return _l('Aucun dialogue', 'No dialogue');
     }
     for (final e in sorted) {
       if (e.id == menuId) {
@@ -568,6 +589,97 @@ class _EntityPropertiesPanelState
     return id.isEmpty ? _kDialogueNoneMenuId : id;
   }
 
+  String _npcDefeatDialogueSelectedMenuId() {
+    if (_npcDefeatDialogueSource == _DialogueRefSource.none) {
+      return _kDialogueNoneMenuId;
+    }
+    if (_npcDefeatDialogueSource == _DialogueRefSource.legacy) {
+      return _kDialogueNoneMenuId;
+    }
+    final id = _npcDefeatDialogueId.text.trim();
+    return id.isEmpty ? _kDialogueNoneMenuId : id;
+  }
+
+  void _onDefeatDialogueMenuSelected(String menuId) {
+    setState(() {
+      if (menuId == _kDialogueNoneMenuId) {
+        _npcDefeatDialogueSource = _DialogueRefSource.none;
+        _npcDefeatDialogueId.text = '';
+        _npcDefeatDialogueNodes = [];
+      } else {
+        _npcDefeatDialogueSource = _DialogueRefSource.manifest;
+        _npcDefeatDialogueId.text = menuId;
+        _npcDefeatDialogueNodes = [];
+      }
+      _npcDefeatStartNode.text = '';
+    });
+    Future.microtask(_reloadYarnNodes);
+  }
+
+  String? _resolveDialogueFilePath(
+    String dialogueId,
+    ProjectManifest manifest,
+    String projectRoot,
+  ) {
+    if (dialogueId.isEmpty) return null;
+    final matches = manifest.dialogues.where((e) => e.id == dialogueId);
+    if (matches.isEmpty) return null;
+    final rel = matches.first.relativePath.trim().replaceAll(r'\', '/');
+    if (rel.isEmpty) return null;
+    return '$projectRoot/$rel';
+  }
+
+  Future<void> _reloadYarnNodes() async {
+    final state = ref.read(editorNotifierProvider);
+    final root = state.projectRootPath;
+    final manifest = state.project;
+    if (root == null || manifest == null) {
+      if (mounted) {
+        setState(() {
+          _npcDialogueNodes = [];
+          _signDialogueNodes = [];
+          _npcDefeatDialogueNodes = [];
+        });
+      }
+      return;
+    }
+
+    final npcPath = _resolveDialogueFilePath(
+      _npcDialogueId.text.trim(),
+      manifest,
+      root,
+    );
+    final signPath = _resolveDialogueFilePath(
+      _signDialogueId.text.trim(),
+      manifest,
+      root,
+    );
+    final defeatPath = _resolveDialogueFilePath(
+      _npcDefeatDialogueId.text.trim(),
+      manifest,
+      root,
+    );
+
+    final results = await Future.wait([
+      npcPath != null
+          ? _extractYarnNodeTitles(npcPath)
+          : Future.value(<String>[]),
+      signPath != null
+          ? _extractYarnNodeTitles(signPath)
+          : Future.value(<String>[]),
+      defeatPath != null
+          ? _extractYarnNodeTitles(defeatPath)
+          : Future.value(<String>[]),
+    ]);
+
+    if (!mounted) return;
+    setState(() {
+      _npcDialogueNodes = results[0];
+      _signDialogueNodes = results[1];
+      _npcDefeatDialogueNodes = results[2];
+    });
+  }
+
   void _onDialogueMenuSelected({
     required bool forNpc,
     required String menuId,
@@ -578,23 +690,66 @@ class _EntityPropertiesPanelState
           _npcDialogueSource = _DialogueRefSource.none;
           _npcDialogueId.text = '';
           _npcScriptPath.text = '';
+          _npcDialogueNodes = [];
         } else {
           _npcDialogueSource = _DialogueRefSource.manifest;
           _npcDialogueId.text = menuId;
           _npcScriptPath.text = '';
+          _npcDialogueNodes = [];
         }
+        _npcStartNode.text = '';
       } else {
         if (menuId == _kDialogueNoneMenuId) {
           _signDialogueSource = _DialogueRefSource.none;
           _signDialogueId.text = '';
           _signScriptPath.text = '';
+          _signDialogueNodes = [];
         } else {
           _signDialogueSource = _DialogueRefSource.manifest;
           _signDialogueId.text = menuId;
           _signScriptPath.text = '';
+          _signDialogueNodes = [];
         }
+        _signStartNode.text = '';
       }
     });
+    Future.microtask(_reloadYarnNodes);
+  }
+
+  Widget _yarnNodeField(
+    BuildContext context, {
+    required String label,
+    required TextEditingController controller,
+    required List<String> nodes,
+    required Color accent,
+  }) {
+    if (nodes.isEmpty) {
+      return _labeledField(context, label: label, controller: controller);
+    }
+    final currentVal = controller.text.trim();
+    final selected = nodes.contains(currentVal) ? currentVal : _kNodeNoneMenuId;
+    final menuIds = [_kNodeNoneMenuId, ...nodes];
+    return InspectorEmbeddedDropdown(
+      accent: accent,
+      fieldLabel: label,
+      valueLabel: selected == _kNodeNoneMenuId
+          ? _l('Nœud par défaut', 'Default node')
+          : selected,
+      orderedIds: menuIds,
+      selectedMenuValue: selected,
+      selectedIdForCheck: selected,
+      idToLabel: (id) =>
+          id == _kNodeNoneMenuId ? _l('Nœud par défaut', 'Default node') : id,
+      onSelected: (id) {
+        setState(() {
+          controller.text = id == _kNodeNoneMenuId ? '' : id;
+        });
+      },
+      tooltip: _l(
+        'Nœuds Yarn disponibles dans ce script',
+        'Yarn nodes available in this script',
+      ),
+    );
   }
 
   List<Widget> _npcDialogueFields(
@@ -628,7 +783,7 @@ class _EntityPropertiesPanelState
         const SizedBox(height: 8),
         _labeledField(
           context,
-          label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+          label: _l('Nœud Yarn (optionnel)', 'Yarn node (optional)'),
           controller: _npcStartNode,
         ),
       ];
@@ -640,11 +795,11 @@ class _EntityPropertiesPanelState
     return [
       if (widget.embedded)
         InspectorEmbeddedSectionLabel(
-          _l('Script (bibliothèque)', 'Script (library)'),
+          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
         )
       else
         Text(
-          _l('Script (bibliothèque)', 'Script (library)'),
+          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -678,10 +833,12 @@ class _EntityPropertiesPanelState
         ),
       ),
       const SizedBox(height: 8),
-      _labeledField(
+      _yarnNodeField(
         context,
-        label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+        label: _l('Nœud Yarn (optionnel)', 'Yarn node (optional)'),
         controller: _npcStartNode,
+        nodes: _npcDialogueNodes,
+        accent: scriptAccent,
       ),
     ];
   }
@@ -691,6 +848,8 @@ class _EntityPropertiesPanelState
     ProjectManifest? project,
   ) {
     const battleAccent = EditorChrome.accentCoral;
+    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final sorted = _sortedDialogueEntries(dialogueEntries);
     final trainers = project?.trainers ?? const <ProjectTrainerEntry>[];
 
     // Trainer IDs: none sentinel + actual IDs
@@ -766,17 +925,44 @@ class _EntityPropertiesPanelState
           _l('DIALOGUE APRÈS DÉFAITE', 'DEFEAT DIALOGUE'),
         ),
         const SizedBox(height: 4),
-        _labeledField(
-          context,
-          label: _l('ID dialogue défaite', 'Defeat dialogue ID'),
-          controller: _npcDefeatDialogueId,
-        ),
-        const SizedBox(height: 4),
-        _labeledField(
-          context,
-          label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
-          controller: _npcDefeatStartNode,
-        ),
+        if (dialogueEntries.isEmpty)
+          InspectorEmbeddedFootnote(
+            text: _l(
+              'Ajoutez des scripts dans la bibliothèque Dialogues pour en sélectionner un ici.',
+              'Add scripts to the Dialogues library to pick one here.',
+            ),
+            accent: battleAccent,
+          )
+        else ...[
+          InspectorEmbeddedDropdown(
+            accent: battleAccent,
+            fieldLabel: _l('Dialogue Yarn', 'Yarn dialogue'),
+            valueLabel: _dialogueDropdownValueLabel(
+              sorted,
+              _npcDefeatDialogueSelectedMenuId(),
+            ),
+            orderedIds: _dialogueDropdownIds(
+              sorted,
+              _npcDefeatDialogueId.text,
+            ),
+            selectedMenuValue: _npcDefeatDialogueSelectedMenuId(),
+            selectedIdForCheck: _npcDefeatDialogueSelectedMenuId(),
+            idToLabel: (id) => _dialogueDropdownValueLabel(sorted, id),
+            onSelected: _onDefeatDialogueMenuSelected,
+            tooltip: _l(
+              'Scripts enregistrés dans le manifeste projet',
+              'Scripts registered in the project manifest',
+            ),
+          ),
+          const SizedBox(height: 4),
+          _yarnNodeField(
+            context,
+            label: _l('Nœud Yarn (optionnel)', 'Yarn node (optional)'),
+            controller: _npcDefeatStartNode,
+            nodes: _npcDefeatDialogueNodes,
+            accent: battleAccent,
+          ),
+        ],
       ],
     ];
   }
@@ -810,10 +996,12 @@ class _EntityPropertiesPanelState
           ),
         ],
         const SizedBox(height: 8),
-        _labeledField(
+        _yarnNodeField(
           context,
-          label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+          label: _l('Nœud Yarn (optionnel)', 'Yarn node (optional)'),
           controller: _signStartNode,
+          nodes: _signDialogueNodes,
+          accent: scriptAccent,
         ),
       ];
     }
@@ -824,11 +1012,11 @@ class _EntityPropertiesPanelState
     return [
       if (widget.embedded)
         InspectorEmbeddedSectionLabel(
-          _l('Script (bibliothèque)', 'Script (library)'),
+          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
         )
       else
         Text(
-          _l('Script (bibliothèque)', 'Script (library)'),
+          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -862,10 +1050,12 @@ class _EntityPropertiesPanelState
         ),
       ),
       const SizedBox(height: 8),
-      _labeledField(
+      _yarnNodeField(
         context,
-        label: _l('Nœud de départ (optionnel)', 'Start node (optional)'),
+        label: _l('Nœud Yarn (optionnel)', 'Yarn node (optional)'),
         controller: _signStartNode,
+        nodes: _signDialogueNodes,
+        accent: scriptAccent,
       ),
     ];
   }
@@ -1530,6 +1720,7 @@ class _EntityPropertiesPanelState
       return;
     }
     _boundFingerprint = fingerprint;
+    Future.microtask(_reloadYarnNodes);
 
     final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
 
@@ -1581,6 +1772,17 @@ class _EntityPropertiesPanelState
       _npcDefeatDialogueSource = _DialogueRefSource.none;
       _npcDefeatDialogueId.text = '';
       _npcDefeatStartNode.text = '';
+    } else if (dd.scriptPathRelative.trim().isNotEmpty) {
+      final matched =
+          _dialogueEntryForLegacyPath(dialogueEntries, dd.scriptPathRelative);
+      if (matched != null) {
+        _npcDefeatDialogueSource = _DialogueRefSource.manifest;
+        _npcDefeatDialogueId.text = matched.id;
+      } else {
+        _npcDefeatDialogueSource = _DialogueRefSource.legacy;
+        _npcDefeatDialogueId.text = dd.dialogueId;
+      }
+      _npcDefeatStartNode.text = dd.startNode ?? '';
     } else {
       _npcDefeatDialogueSource = _DialogueRefSource.manifest;
       _npcDefeatDialogueId.text = dd.dialogueId;
