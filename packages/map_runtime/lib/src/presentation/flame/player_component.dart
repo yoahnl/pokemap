@@ -10,6 +10,8 @@ import '../../application/runtime_map_bundle.dart';
 import 'overworld_actor_component.dart';
 
 class PlayerComponent extends PositionComponent {
+  static const double kDefaultStepSeconds = 0.12;
+
   PlayerComponent({
     required this.bundle,
     required GameplayPlayerState state,
@@ -31,16 +33,29 @@ class PlayerComponent extends PositionComponent {
 
   GameplayPlayerState _state;
   OverworldActorComponent? _actor;
-  double _walkAnimRemaining = 0.0;
-  static const double _kStepInterpolationSeconds = 0.12;
   Vector2? _moveFrom;
   Vector2? _moveTo;
   double _moveRemaining = 0.0;
+  double _stepDurationSeconds = kDefaultStepSeconds;
+
+  bool get isStepping => _moveTo != null && _moveRemaining > 0;
+  Vector2 get focusPoint => Vector2(
+        position.x + bundle.cellWidth / 2,
+        position.y + bundle.cellHeight / 2,
+      );
+  Vector2 get footPoint => Vector2(
+        position.x + bundle.cellWidth / 2,
+        position.y + bundle.cellHeight,
+      );
 
   void _snapToStatePosition() {
-    position = Vector2(
+    final target = Vector2(
       _state.pos.x * bundle.cellWidth,
       _state.pos.y * bundle.cellHeight,
+    );
+    position = Vector2(
+      target.x.roundToDouble(),
+      target.y.roundToDouble(),
     );
   }
 
@@ -67,26 +82,24 @@ class PlayerComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    if (_moveRemaining > 0 && _moveFrom != null && _moveTo != null) {
-      _moveRemaining -= dt;
-      final progress = ((_kStepInterpolationSeconds - _moveRemaining) /
-              _kStepInterpolationSeconds)
-          .clamp(0.0, 1.0);
-      position = Vector2(
+    if (isStepping && _moveFrom != null && _moveTo != null) {
+      _moveRemaining = (_moveRemaining - dt).clamp(0.0, _stepDurationSeconds);
+      final progress =
+          ((_stepDurationSeconds - _moveRemaining) / _stepDurationSeconds)
+              .clamp(0.0, 1.0);
+      final next = Vector2(
         _moveFrom!.x + (_moveTo!.x - _moveFrom!.x) * progress,
         _moveFrom!.y + (_moveTo!.y - _moveFrom!.y) * progress,
+      );
+      position = Vector2(
+        next.x.roundToDouble(),
+        next.y.roundToDouble(),
       );
       if (_moveRemaining <= 0) {
         position = _moveTo!.clone();
         _moveFrom = null;
         _moveTo = null;
         _moveRemaining = 0.0;
-      }
-    }
-    if (_walkAnimRemaining > 0) {
-      _walkAnimRemaining -= dt;
-      if (_walkAnimRemaining <= 0) {
-        _walkAnimRemaining = 0;
         _actor?.setMotion(
           EntityFacing.values.byName(_state.facing.name),
           CharacterAnimationState.idle,
@@ -121,29 +134,39 @@ class PlayerComponent extends PositionComponent {
     );
   }
 
-  void updateState(GameplayPlayerState state) {
-    final moved = state.pos != _state.pos;
+  void syncState(GameplayPlayerState state, {bool snapToGrid = false}) {
     _state = state;
-    final target = Vector2(
-      state.pos.x * bundle.cellWidth,
-      state.pos.y * bundle.cellHeight,
-    );
-    if (moved) {
-      _moveFrom = position.clone();
-      _moveTo = target;
-      _moveRemaining = _kStepInterpolationSeconds;
-    } else {
+    if (snapToGrid || !isStepping) {
       _moveFrom = null;
       _moveTo = null;
       _moveRemaining = 0.0;
-      position = target;
+      _snapToStatePosition();
     }
-    final facing = EntityFacing.values.byName(state.facing.name);
-    if (moved) {
-      _walkAnimRemaining = _kStepInterpolationSeconds;
-      _actor?.setMotion(facing, CharacterAnimationState.walk);
-    } else {
-      _actor?.setMotion(facing, CharacterAnimationState.idle);
-    }
+    _actor?.setMotion(
+      EntityFacing.values.byName(state.facing.name),
+      CharacterAnimationState.idle,
+    );
+  }
+
+  void startStep(
+    GameplayPlayerState state, {
+    double durationSeconds = kDefaultStepSeconds,
+  }) {
+    _state = state;
+    _stepDurationSeconds = durationSeconds;
+    _moveFrom = position.clone();
+    _moveTo = Vector2(
+      state.pos.x * bundle.cellWidth,
+      state.pos.y * bundle.cellHeight,
+    );
+    _moveRemaining = durationSeconds;
+    _actor?.setMotion(
+      EntityFacing.values.byName(state.facing.name),
+      CharacterAnimationState.walk,
+    );
+  }
+
+  void updateState(GameplayPlayerState state) {
+    syncState(state, snapToGrid: true);
   }
 }

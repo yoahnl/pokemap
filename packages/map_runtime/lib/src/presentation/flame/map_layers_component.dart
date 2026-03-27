@@ -353,7 +353,10 @@ class MapLayersComponent extends PositionComponent {
       tilesetImage,
       srcRect,
       cell,
-      Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
+      Paint()
+        ..isAntiAlias = false
+        ..filterQuality = FilterQuality.none
+        ..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
     );
     return true;
   }
@@ -533,7 +536,10 @@ class MapLayersComponent extends PositionComponent {
       tilesetImage,
       srcRect,
       dstRect,
-      Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
+      Paint()
+        ..isAntiAlias = false
+        ..filterQuality = FilterQuality.none
+        ..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
     );
     return true;
   }

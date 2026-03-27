@@ -39,11 +39,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _transitioning = false;
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   LogicalKeyboardKey? _lastMoveKey;
-  double _moveStepRemaining = 0.0;
+  TriggeredWarp? _pendingWarp;
   DialogueOverlayComponent? _dialogueOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
-  static const double _kMoveStepSeconds = 0.12;
 
   @override
   Future<void> onLoad() async {
@@ -74,7 +73,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     await world.add(_layers);
     await world.add(_player);
     await _addNpcActors(_bundle, images);
-    _applyCamera();
+    _configureCameraViewport();
+    _syncCameraToPlayer();
     return super.onLoad();
   }
 
@@ -142,8 +142,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @override
   void update(double dt) {
-    _tickContinuousMovement(dt);
     super.update(dt);
+    _syncCameraToPlayer();
+
+    if (_transitioning) {
+      return;
+    }
+
+    final pendingWarp = _pendingWarp;
+    if (pendingWarp != null && !_player.isStepping) {
+      _pendingWarp = null;
+      _handleWarp(pendingWarp);
+      return;
+    }
+
+    if (_dialogueOverlay != null) {
+      return;
+    }
+
+    _driveMovement();
   }
 
   bool _isMovementKey(LogicalKeyboardKey key) {
@@ -194,37 +211,43 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return null;
   }
 
-  void _tickContinuousMovement(double dt) {
-    if (_transitioning || _dialogueOverlay != null) {
+  void _driveMovement() {
+    if (_player.isStepping) {
       return;
-    }
-    if (_moveStepRemaining > 0) {
-      _moveStepRemaining -= dt;
-      if (_moveStepRemaining > 0) {
-        return;
-      }
     }
 
     final intent = _intentFromPressedKeys();
     if (intent == null) {
+      _player.syncState(_world.player);
       return;
     }
 
     final result = stepGameplayWorld(_world, intent);
     _world = result.world;
-    _player.updateState(_world.player);
-    _applyCamera();
-    _moveStepRemaining = _kMoveStepSeconds;
 
     if (result is Blocked) {
-      debugPrint(
-          '[move] Blocked at (${_world.player.pos.x}, ${_world.player.pos.y})');
+      _player.syncState(_world.player);
+      return;
     }
+
+    if (result is Moved) {
+      _player.startStep(
+        _world.player,
+        durationSeconds: PlayerComponent.kDefaultStepSeconds,
+      );
+      return;
+    }
+
     if (result is WarpTriggered) {
+      _player.startStep(
+        _world.player,
+        durationSeconds: PlayerComponent.kDefaultStepSeconds,
+      );
+      _pendingWarp = result.warp;
       debugPrint(
         '[warp] Triggered warp ${result.warp.warpId} → map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
       );
-      _handleWarp(result.warp);
+      return;
     }
   }
 
@@ -432,7 +455,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       await world.add(_layers);
       await world.add(_player);
       await _addNpcActors(newBundle, newImages);
-      _applyCamera();
+      _configureCameraViewport();
+      _syncCameraToPlayer();
       debugPrint('[warp] Transition complete → map=${newBundle.map.id}');
     } catch (e, st) {
       debugPrint('[warp] Transition failed: $e\n$st');
@@ -478,7 +502,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _applyCamera() {
+  void _configureCameraViewport() {
     final cw = _bundle.cellWidth;
     final ch = _bundle.cellHeight;
     final mw = _bundle.map.size.width * cw;
@@ -486,9 +510,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final vw = math.min(_kViewportTilesX * cw, mw);
     final vh = math.min(_kViewportTilesY * ch, mh);
     camera.viewfinder.visibleGameSize = Vector2(vw, vh);
+  }
+
+  void _syncCameraToPlayer() {
+    if (!isLoaded) {
+      return;
+    }
+    final focus = _player.focusPoint;
     camera.viewfinder.position = Vector2(
-      (_world.player.pos.x + 0.5) * cw,
-      (_world.player.pos.y + 0.5) * ch,
+      focus.x.roundToDouble(),
+      focus.y.roundToDouble(),
     );
   }
 }
