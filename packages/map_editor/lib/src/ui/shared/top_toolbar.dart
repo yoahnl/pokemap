@@ -470,6 +470,7 @@ class TopToolbar extends ConsumerWidget {
     ProjectManifest project,
   ) {
     final settings = project.settings;
+    final characters = project.characters;
     final nameController = TextEditingController(text: project.name);
     final tileWidthController =
         TextEditingController(text: settings.tileWidth.toString());
@@ -481,6 +482,7 @@ class TopToolbar extends ConsumerWidget {
         TextEditingController(text: settings.defaultMapWidth.toString());
     final defaultMapHeightController =
         TextEditingController(text: settings.defaultMapHeight.toString());
+    String? defaultPlayerCharacterId = settings.defaultPlayerCharacterId;
 
     String? validatePositiveInt(String? v) {
       final text = (v ?? '').trim();
@@ -500,155 +502,178 @@ class TopToolbar extends ConsumerWidget {
 
     showMacosEditorTallSheet<void>(
       context: context,
-      builder: (ctx) => ListView(
-        shrinkWrap: true,
-        physics: const ClampingScrollPhysics(),
-        padding: EdgeInsets.zero,
-        children: [
-          Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => ListView(
+          shrinkWrap: true,
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.zero,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Project Settings',
-                      style: editorMacosSheetTitleStyle(ctx),
-                    ),
-                  ),
-                  MacosIconButton(
-                    icon: const MacosIcon(CupertinoIcons.xmark_circle_fill),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TopToolbar._settingsLabeledField(
-                    ctx,
-                    label: 'Project Name',
-                    controller: nameController,
-                  ),
-                  const SizedBox(height: 12),
-                  TopToolbar._settingsLabeledField(
-                    ctx,
-                    label: 'Tile Width',
-                    controller: tileWidthController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Project Settings',
+                          style: editorMacosSheetTitleStyle(ctx),
+                        ),
+                      ),
+                      MacosIconButton(
+                        icon: const MacosIcon(CupertinoIcons.xmark_circle_fill),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  TopToolbar._settingsLabeledField(
-                    ctx,
-                    label: 'Tile Height',
-                    controller: tileHeightController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TopToolbar._settingsLabeledField(
+                        ctx,
+                        label: 'Project Name',
+                        controller: nameController,
+                      ),
+                      const SizedBox(height: 12),
+                      TopToolbar._settingsLabeledField(
+                        ctx,
+                        label: 'Tile Width',
+                        controller: tileWidthController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TopToolbar._settingsLabeledField(
+                        ctx,
+                        label: 'Tile Height',
+                        controller: tileHeightController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TopToolbar._settingsLabeledField(
+                        ctx,
+                        label: 'Display Scale',
+                        controller: displayScaleController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TopToolbar._settingsLabeledField(
+                        ctx,
+                        label: 'Default Map Width',
+                        controller: defaultMapWidthController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TopToolbar._settingsLabeledField(
+                        ctx,
+                        label: 'Default Map Height',
+                        controller: defaultMapHeightController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TopToolbar._settingsCharacterField(
+                        ctx,
+                        characters: characters,
+                        selectedCharacterId: defaultPlayerCharacterId,
+                        onPressed: () async {
+                          final picked =
+                              await showCupertinoListPicker<ProjectCharacterEntry?>(
+                            context: ctx,
+                            title: 'Default Player Character',
+                            items: [null, ...characters],
+                            labelOf: (value) => value?.name ?? 'None',
+                          );
+                          setSheetState(
+                            () => defaultPlayerCharacterId = picked?.id,
+                          );
+                        },
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  TopToolbar._settingsLabeledField(
-                    ctx,
-                    label: 'Display Scale',
-                    controller: displayScaleController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'[0-9.]'))
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        secondary: true,
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 10),
+                      PushButton(
+                        controlSize: ControlSize.large,
+                        onPressed: () async {
+                          final name = nameController.text.trim();
+                          if (name.isEmpty) return;
+                          final e1 = validatePositiveInt(tileWidthController.text);
+                          final e2 =
+                              validatePositiveInt(tileHeightController.text);
+                          final e3 =
+                              validatePositiveDouble(displayScaleController.text);
+                          final e4 =
+                              validatePositiveInt(defaultMapWidthController.text);
+                          final e5 =
+                              validatePositiveInt(defaultMapHeightController.text);
+                          if (e1 != null ||
+                              e2 != null ||
+                              e3 != null ||
+                              e4 != null ||
+                              e5 != null) {
+                            return;
+                          }
+                          final updatedSettings = settings.copyWith(
+                            tileWidth: int.parse(tileWidthController.text.trim()),
+                            tileHeight:
+                                int.parse(tileHeightController.text.trim()),
+                            displayScale: double.parse(
+                              displayScaleController.text.trim(),
+                            ),
+                            defaultMapWidth: int.parse(
+                              defaultMapWidthController.text.trim(),
+                            ),
+                            defaultMapHeight: int.parse(
+                              defaultMapHeightController.text.trim(),
+                            ),
+                            defaultPlayerCharacterId: defaultPlayerCharacterId,
+                          );
+                          Navigator.pop(ctx);
+                          await notifier.updateProjectSettings(
+                            name: name,
+                            settings: updatedSettings,
+                          );
+                        },
+                        child: const Text('Save'),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  TopToolbar._settingsLabeledField(
-                    ctx,
-                    label: 'Default Map Width',
-                    controller: defaultMapWidthController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TopToolbar._settingsLabeledField(
-                    ctx,
-                    label: 'Default Map Height',
-                    controller: defaultMapHeightController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  PushButton(
-                    controlSize: ControlSize.large,
-                    secondary: true,
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 10),
-                  PushButton(
-                    controlSize: ControlSize.large,
-                    onPressed: () async {
-                      final name = nameController.text.trim();
-                      if (name.isEmpty) return;
-                      final e1 = validatePositiveInt(tileWidthController.text);
-                      final e2 = validatePositiveInt(tileHeightController.text);
-                      final e3 =
-                          validatePositiveDouble(displayScaleController.text);
-                      final e4 =
-                          validatePositiveInt(defaultMapWidthController.text);
-                      final e5 =
-                          validatePositiveInt(defaultMapHeightController.text);
-                      if (e1 != null ||
-                          e2 != null ||
-                          e3 != null ||
-                          e4 != null ||
-                          e5 != null) {
-                        return;
-                      }
-                      final updatedSettings = settings.copyWith(
-                        tileWidth:
-                            int.parse(tileWidthController.text.trim()),
-                        tileHeight:
-                            int.parse(tileHeightController.text.trim()),
-                        displayScale: double.parse(
-                            displayScaleController.text.trim()),
-                        defaultMapWidth: int.parse(
-                            defaultMapWidthController.text.trim()),
-                        defaultMapHeight: int.parse(
-                            defaultMapHeightController.text.trim()),
-                      );
-                      Navigator.pop(ctx);
-                      await notifier.updateProjectSettings(
-                        name: name,
-                        settings: updatedSettings,
-                      );
-                    },
-                    child: const Text('Save'),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
-        ],
       ),
     );
   }
@@ -762,6 +787,43 @@ class TopToolbar extends ConsumerWidget {
           controller: controller,
           keyboardType: keyboardType ?? TextInputType.text,
           inputFormatters: inputFormatters,
+        ),
+      ],
+    );
+  }
+
+  static Widget _settingsCharacterField(
+    BuildContext context, {
+    required List<ProjectCharacterEntry> characters,
+    required String? selectedCharacterId,
+    required Future<void> Function() onPressed,
+  }) {
+    String label = 'None';
+    for (final character in characters) {
+      if (character.id == selectedCharacterId) {
+        label = character.name;
+        break;
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Default Player Character', style: editorMacosFormLabelStyle(context)),
+        const SizedBox(height: 6),
+        PushButton(
+          controlSize: ControlSize.large,
+          secondary: true,
+          onPressed: () {
+            onPressed();
+          },
+          child: Text(label),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Initial overworld appearance used at game start. Runtime may change it later.',
+          style: MacosTheme.of(context).typography.caption1.copyWith(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
         ),
       ],
     );

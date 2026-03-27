@@ -191,6 +191,9 @@ MapEntityNpcData _normalizeNpc(MapEntityNpcData n) {
   return n.copyWith(
     displayName: n.displayName.trim(),
     visualElementId: n.visualElementId.trim(),
+    trainerId: n.trainerId?.trim().isEmpty == true ? null : n.trainerId?.trim(),
+    characterId:
+        n.characterId?.trim().isEmpty == true ? null : n.characterId?.trim(),
     dialogue: d == null
         ? null
         : DialogueRef(
@@ -447,6 +450,21 @@ void assertEntityTrainerRefsAgainstProject(
   if (!exists) {
     throw ValidationException(
       'Entity ${entity.id} references unknown trainer id "$tid" (add it to Project trainers)',
+    );
+  }
+}
+
+void assertEntityCharacterRefsAgainstProject(
+  MapEntity entity,
+  ProjectManifest manifest,
+) {
+  if (entity.kind != MapEntityKind.npc) return;
+  final cid = entity.npc?.characterId?.trim();
+  if (cid == null || cid.isEmpty) return;
+  final exists = manifest.characters.any((c) => c.id == cid);
+  if (!exists) {
+    throw ValidationException(
+      'Entity ${entity.id} references unknown character id "$cid" (add it to Project characters)',
     );
   }
 }

@@ -133,6 +133,15 @@ Map<String, dynamic> migrateMapEntityJson(Map<String, dynamic> json) {
           final f = _parseFacing(facing);
           if (f != null) npc['facing'] = f;
         }
+        final charId = takeProp([
+          'characterId',
+          'overworldCharacterId',
+          'characterRef',
+          'spriteCharacterId',
+        ]);
+        if (charId != null) npc['characterId'] = charId;
+        final trainerId = takeProp(['trainerId', 'trainerRef']);
+        if (trainerId != null) npc['trainerId'] = trainerId;
         final vid = takeProp(['visualElementId', 'elementRef', 'sprite', 'spriteRef']);
         if (vid != null) npc['visualElementId'] = vid;
         if (npc.isNotEmpty) {

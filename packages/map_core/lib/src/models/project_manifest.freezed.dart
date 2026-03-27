@@ -727,7 +727,10 @@ mixin _$ProjectSettings {
   double get displayScale => throw _privateConstructorUsedError;
   int get defaultMapWidth => throw _privateConstructorUsedError;
   int get defaultMapHeight => throw _privateConstructorUsedError;
-  String? get playerCharacterId => throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'defaultPlayerCharacterId',
+      readValue: _readDefaultPlayerCharacterId)
+  String? get defaultPlayerCharacterId => throw _privateConstructorUsedError;
 
   /// Serializes this ProjectSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -751,7 +754,10 @@ abstract class $ProjectSettingsCopyWith<$Res> {
       double displayScale,
       int defaultMapWidth,
       int defaultMapHeight,
-      String? playerCharacterId});
+      @JsonKey(
+          name: 'defaultPlayerCharacterId',
+          readValue: _readDefaultPlayerCharacterId)
+      String? defaultPlayerCharacterId});
 }
 
 /// @nodoc
@@ -774,7 +780,7 @@ class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
     Object? displayScale = null,
     Object? defaultMapWidth = null,
     Object? defaultMapHeight = null,
-    Object? playerCharacterId = freezed,
+    Object? defaultPlayerCharacterId = freezed,
   }) {
     return _then(_value.copyWith(
       tileWidth: null == tileWidth
@@ -797,9 +803,9 @@ class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
           ? _value.defaultMapHeight
           : defaultMapHeight // ignore: cast_nullable_to_non_nullable
               as int,
-      playerCharacterId: freezed == playerCharacterId
-          ? _value.playerCharacterId
-          : playerCharacterId // ignore: cast_nullable_to_non_nullable
+      defaultPlayerCharacterId: freezed == defaultPlayerCharacterId
+          ? _value.defaultPlayerCharacterId
+          : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
               as String?,
     ) as $Val);
   }
@@ -819,7 +825,10 @@ abstract class _$$ProjectSettingsImplCopyWith<$Res>
       double displayScale,
       int defaultMapWidth,
       int defaultMapHeight,
-      String? playerCharacterId});
+      @JsonKey(
+          name: 'defaultPlayerCharacterId',
+          readValue: _readDefaultPlayerCharacterId)
+      String? defaultPlayerCharacterId});
 }
 
 /// @nodoc
@@ -840,7 +849,7 @@ class __$$ProjectSettingsImplCopyWithImpl<$Res>
     Object? displayScale = null,
     Object? defaultMapWidth = null,
     Object? defaultMapHeight = null,
-    Object? playerCharacterId = freezed,
+    Object? defaultPlayerCharacterId = freezed,
   }) {
     return _then(_$ProjectSettingsImpl(
       tileWidth: null == tileWidth
@@ -863,9 +872,9 @@ class __$$ProjectSettingsImplCopyWithImpl<$Res>
           ? _value.defaultMapHeight
           : defaultMapHeight // ignore: cast_nullable_to_non_nullable
               as int,
-      playerCharacterId: freezed == playerCharacterId
-          ? _value.playerCharacterId
-          : playerCharacterId // ignore: cast_nullable_to_non_nullable
+      defaultPlayerCharacterId: freezed == defaultPlayerCharacterId
+          ? _value.defaultPlayerCharacterId
+          : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
   }
@@ -881,7 +890,10 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
       this.displayScale = 2.0,
       this.defaultMapWidth = 20,
       this.defaultMapHeight = 15,
-      this.playerCharacterId});
+      @JsonKey(
+          name: 'defaultPlayerCharacterId',
+          readValue: _readDefaultPlayerCharacterId)
+      this.defaultPlayerCharacterId});
 
   factory _$ProjectSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectSettingsImplFromJson(json);
@@ -902,11 +914,14 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
   @JsonKey()
   final int defaultMapHeight;
   @override
-  final String? playerCharacterId;
+  @JsonKey(
+      name: 'defaultPlayerCharacterId',
+      readValue: _readDefaultPlayerCharacterId)
+  final String? defaultPlayerCharacterId;
 
   @override
   String toString() {
-    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, playerCharacterId: $playerCharacterId)';
+    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId)';
   }
 
   @override
@@ -924,14 +939,21 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
                 other.defaultMapWidth == defaultMapWidth) &&
             (identical(other.defaultMapHeight, defaultMapHeight) ||
                 other.defaultMapHeight == defaultMapHeight) &&
-            (identical(other.playerCharacterId, playerCharacterId) ||
-                other.playerCharacterId == playerCharacterId));
+            (identical(
+                    other.defaultPlayerCharacterId, defaultPlayerCharacterId) ||
+                other.defaultPlayerCharacterId == defaultPlayerCharacterId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, tileWidth, tileHeight,
-      displayScale, defaultMapWidth, defaultMapHeight, playerCharacterId);
+  int get hashCode => Object.hash(
+      runtimeType,
+      tileWidth,
+      tileHeight,
+      displayScale,
+      defaultMapWidth,
+      defaultMapHeight,
+      defaultPlayerCharacterId);
 
   /// Create a copy of ProjectSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -957,7 +979,10 @@ abstract class _ProjectSettings implements ProjectSettings {
       final double displayScale,
       final int defaultMapWidth,
       final int defaultMapHeight,
-      final String? playerCharacterId}) = _$ProjectSettingsImpl;
+      @JsonKey(
+          name: 'defaultPlayerCharacterId',
+          readValue: _readDefaultPlayerCharacterId)
+      final String? defaultPlayerCharacterId}) = _$ProjectSettingsImpl;
 
   factory _ProjectSettings.fromJson(Map<String, dynamic> json) =
       _$ProjectSettingsImpl.fromJson;
@@ -973,7 +998,10 @@ abstract class _ProjectSettings implements ProjectSettings {
   @override
   int get defaultMapHeight;
   @override
-  String? get playerCharacterId;
+  @JsonKey(
+      name: 'defaultPlayerCharacterId',
+      readValue: _readDefaultPlayerCharacterId)
+  String? get defaultPlayerCharacterId;
 
   /// Create a copy of ProjectSettings
   /// with the given fields replaced by the non-null parameter values.

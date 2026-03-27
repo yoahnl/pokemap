@@ -12,6 +12,17 @@ Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
   if (!next.containsKey('characters')) {
     next['characters'] = <dynamic>[];
   }
+  final settings = raw['settings'];
+  if (settings is Map) {
+    final migratedSettings =
+        Map<String, dynamic>.from(settings.cast<String, dynamic>());
+    if (!migratedSettings.containsKey('defaultPlayerCharacterId') &&
+        migratedSettings['playerCharacterId'] != null) {
+      migratedSettings['defaultPlayerCharacterId'] =
+          migratedSettings['playerCharacterId'];
+    }
+    next['settings'] = migratedSettings;
+  }
   final legacyCategories = raw['terrainPresetCategories'];
   if (!next.containsKey('terrainCategories') && legacyCategories is List) {
     next['terrainCategories'] = legacyCategories
@@ -38,6 +49,24 @@ Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
 
   final pathPresets = raw['pathPresets'];
   if (pathPresets is! List) {
+    final trainers = raw['trainers'];
+    if (trainers is List) {
+      next['trainers'] = trainers.map((entry) {
+        if (entry is! Map) {
+          return entry;
+        }
+        final trainer = Map<String, dynamic>.from(entry.cast<String, dynamic>());
+        if (!trainer.containsKey('characterId')) {
+          final legacyCharacterId = trainer['overworldCharacterId'] ??
+              trainer['spriteCharacterId'] ??
+              trainer['characterRef'];
+          if (legacyCharacterId != null) {
+            trainer['characterId'] = legacyCharacterId;
+          }
+        }
+        return trainer;
+      }).toList(growable: false);
+    }
     return next;
   }
 
@@ -53,6 +82,25 @@ Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
     }
     return preset;
   }).toList(growable: false);
+
+  final trainers = raw['trainers'];
+  if (trainers is List) {
+    next['trainers'] = trainers.map((entry) {
+      if (entry is! Map) {
+        return entry;
+      }
+      final trainer = Map<String, dynamic>.from(entry.cast<String, dynamic>());
+      if (!trainer.containsKey('characterId')) {
+        final legacyCharacterId = trainer['overworldCharacterId'] ??
+            trainer['spriteCharacterId'] ??
+            trainer['characterRef'];
+        if (legacyCharacterId != null) {
+          trainer['characterId'] = legacyCharacterId;
+        }
+      }
+      return trainer;
+    }).toList(growable: false);
+  }
 
   return next;
 }

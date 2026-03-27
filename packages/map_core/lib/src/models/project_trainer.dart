@@ -35,7 +35,7 @@ class ProjectTrainerEntry with _$ProjectTrainerEntry {
     /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
     required String trainerClass,
 
-    /// Référence à un [ProjectElementEntry.id] pour le portrait (éditeur).
+    String? characterId,
     String? portraitElementId,
     String? battleThemeId,
     String? victoryThemeId,

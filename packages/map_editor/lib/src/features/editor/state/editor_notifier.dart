@@ -5374,6 +5374,7 @@ class EditorNotifier extends _$EditorNotifier {
   Future<void> createTrainer({
     required String name,
     required String trainerClass,
+    String? characterId,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -5385,6 +5386,7 @@ class EditorNotifier extends _$EditorNotifier {
         project,
         name: name,
         trainerClass: trainerClass,
+        characterId: characterId,
       );
       state = state.copyWith(
         project: updated,
@@ -5402,6 +5404,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String trainerId,
     String? name,
     String? trainerClass,
+    Object? characterId = _trainerUnset,
     Object? portraitElementId = _trainerUnset,
     Object? battleThemeId = _trainerUnset,
     Object? victoryThemeId = _trainerUnset,
@@ -5418,6 +5421,7 @@ class EditorNotifier extends _$EditorNotifier {
         trainerId: trainerId,
         name: name,
         trainerClass: trainerClass,
+        characterId: characterId,
         portraitElementId: portraitElementId,
         battleThemeId: battleThemeId,
         victoryThemeId: victoryThemeId,

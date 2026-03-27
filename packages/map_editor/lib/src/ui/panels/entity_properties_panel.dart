@@ -840,6 +840,21 @@ class _EntityPropertiesPanelState
     ];
   }
 
+  bool _npcUsesTrainerAppearance() {
+    final trainerId = _npcTrainerMenuId.trim();
+    return trainerId.isNotEmpty && trainerId != _kTrainerNoneMenuId;
+  }
+
+  void _setNpcTrainerSelection(String id) {
+    setState(() {
+      _npcTrainerMenuId = id;
+      if (_npcUsesTrainerAppearance()) {
+        _npcCharacterMenuId = _kCharacterNoneMenuId;
+        _editorVisualMenuId = _kElementNoneMenuId;
+      }
+    });
+  }
+
   List<Widget> _npcDialogueFields(
     BuildContext context,
     ProjectManifest? project,
@@ -972,7 +987,7 @@ class _EntityPropertiesPanelState
           selectedMenuValue: selectedTrainer,
           selectedIdForCheck: selectedTrainer,
           idToLabel: trainerMenuLabel,
-          onSelected: (id) => setState(() => _npcTrainerMenuId = id),
+          onSelected: _setNpcTrainerSelection,
           tooltip: _l(
             'Lier à une fiche dresseur du projet. Vide = PNJ non combattant.',
             'Link to a project trainer entry. Empty = non-combat NPC.',
@@ -994,7 +1009,7 @@ class _EntityPropertiesPanelState
               labelOf: trainerMenuLabel,
             );
             if (picked != null && context.mounted) {
-              setState(() => _npcTrainerMenuId = picked);
+              _setNpcTrainerSelection(picked);
             }
           },
           child: Text(trainerMenuLabel(selectedTrainer)),
@@ -1301,6 +1316,7 @@ class _EntityPropertiesPanelState
   ) {
     switch (_selectedKind) {
       case MapEntityKind.npc:
+        final usesTrainerAppearance = _npcUsesTrainerAppearance();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1329,8 +1345,6 @@ class _EntityPropertiesPanelState
             ),
             const SizedBox(height: 8),
             ..._npcDialogueFields(context, project),
-            const SizedBox(height: 8),
-            ..._npcCharacterFields(context, project),
             const SizedBox(height: 8),
             if (widget.embedded)
               InspectorEmbeddedDropdown(
@@ -1373,6 +1387,19 @@ class _EntityPropertiesPanelState
               ),
             const SizedBox(height: 8),
             ..._npcTrainerBattleFields(context, project),
+            if (usesTrainerAppearance) ...[
+              const SizedBox(height: 8),
+              InspectorEmbeddedFootnote(
+                text: _l(
+                  'L’apparence overworld vient du Character du dresseur lié. Les champs visuels locaux du PNJ sont désactivés.',
+                  'Overworld appearance comes from the linked trainer Character. Local NPC visual fields are disabled.',
+                ),
+                accent: EditorChrome.inspectorJoyCoral,
+              ),
+            ] else ...[
+              const SizedBox(height: 8),
+              ..._npcCharacterFields(context, project),
+            ],
           ],
         );
       case MapEntityKind.sign:
@@ -1626,7 +1653,19 @@ class _EntityPropertiesPanelState
             ),
             onSelected: (id) {
               final k = MapEntityKind.values.firstWhere((e) => e.name == id);
-              setState(() => _selectedKind = k);
+              setState(() {
+                _selectedKind = k;
+                if (k == MapEntityKind.npc) {
+                  final w = _widthController.text.trim();
+                  final h = _heightController.text.trim();
+                  if (w.isEmpty || w == '1') {
+                    _widthController.text = '2';
+                  }
+                  if (h.isEmpty || h == '1') {
+                    _heightController.text = '2';
+                  }
+                }
+              });
             },
             tooltip: _l('Type d’entité sur la carte', 'Map entity kind'),
           )
@@ -1642,7 +1681,19 @@ class _EntityPropertiesPanelState
                 labelOf: _entityKindLabel,
               );
               if (picked != null) {
-                setState(() => _selectedKind = picked);
+                setState(() {
+                  _selectedKind = picked;
+                  if (picked == MapEntityKind.npc) {
+                    final w = _widthController.text.trim();
+                    final h = _heightController.text.trim();
+                    if (w.isEmpty || w == '1') {
+                      _widthController.text = '2';
+                    }
+                    if (h.isEmpty || h == '1') {
+                      _heightController.text = '2';
+                    }
+                  }
+                });
               }
             },
             child: Text(
@@ -1710,8 +1761,10 @@ class _EntityPropertiesPanelState
             onChanged: (v) => setState(() => _blocksMovement = v),
           ),
         ],
-        const SizedBox(height: 12),
-        ..._editorVisualFields(context, project),
+        if (_selectedKind != MapEntityKind.npc) ...[
+          const SizedBox(height: 12),
+          ..._editorVisualFields(context, project),
+        ],
         const SizedBox(height: 12),
         _kindSpecificFields(context, project),
         const SizedBox(height: 12),
@@ -1896,6 +1949,10 @@ class _EntityPropertiesPanelState
     _editorVisualMenuId = (resolvedEv == null || resolvedEv.isEmpty)
         ? _kElementNoneMenuId
         : resolvedEv;
+    if (_npcUsesTrainerAppearance()) {
+      _npcCharacterMenuId = _kCharacterNoneMenuId;
+      _editorVisualMenuId = _kElementNoneMenuId;
+    }
 
     final s = entity?.sign ?? const MapEntitySignData();
     _signTitle.text = s.title;
@@ -2020,13 +2077,14 @@ class _EntityPropertiesPanelState
     MapEntitySpawnData? spawnPayload;
 
     final evMenu = _editorVisualMenuId.trim();
-    final MapEntityEditorVisual? editorVisualPayload =
+    MapEntityEditorVisual? editorVisualPayload =
         evMenu == _kElementNoneMenuId || evMenu.isEmpty
             ? null
             : MapEntityEditorVisual(elementId: evMenu);
 
     switch (_selectedKind) {
       case MapEntityKind.npc:
+        editorVisualPayload = null;
         final DialogueRef? npcDlg;
         final npcFileOverride = _npcScriptPath.text.trim().isNotEmpty;
         if (npcFileOverride) {
@@ -2069,10 +2127,16 @@ class _EntityPropertiesPanelState
           );
         }
         final charIdRaw = _npcCharacterMenuId.trim();
-        final charId = (charIdRaw.isEmpty ||
-                charIdRaw == _kCharacterNoneMenuId)
+        final usesTrainerAppearance =
+            trainerId != null && trainerId.trim().isNotEmpty;
+        final charId = usesTrainerAppearance ||
+                charIdRaw.isEmpty ||
+                charIdRaw == _kCharacterNoneMenuId
             ? null
             : charIdRaw;
+        if (usesTrainerAppearance) {
+          editorVisualPayload = null;
+        }
         npcPayload = MapEntityNpcData(
           displayName: _nameController.text.trim(),
           dialogue: npcDlg,

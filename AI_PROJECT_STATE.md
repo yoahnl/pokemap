@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld + éditeur d'animations visuel).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer).
 
 ---
 
@@ -75,6 +75,11 @@ MapEntity(
 // Extensions: resolvedProjectElementIdForEditor (editorVisual.elementId ?? npc.visualElementId)
 //             inspectorHeadline → string d'affichage (name ou id selon kind)
 
+MapEntityNpcData(displayName, dialogue?, facing, visualElementId, trainerId?, lineOfSightRange, defeatDialogueRef?, characterId?)
+// characterId = apparence overworld canonique du NPC
+// trainerId = lien optionnel vers une fiche ProjectTrainerEntry
+// visualElementId reste un fallback legacy d'éditeur, plus la vérité métier visuelle
+
 MapEntitySpawnData(spawnKey, role: EntitySpawnRole, facing: EntityFacing, categoryTag)
 // EntitySpawnRole.playerStart = spawn joueur initial
 
@@ -102,6 +107,7 @@ ProjectManifest(
 )
 
 ProjectCharacterEntry(id, name, tilesetId, frameWidth: int, frameHeight: int, animations: List<CharacterAnimation>)
+ProjectTrainerEntry(id, name, trainerClass, characterId?, portraitElementId?, battleThemeId?, victoryThemeId?, team, tags)
 CharacterAnimation(state: CharacterAnimationState, direction: EntityFacing, frames: List<CharacterAnimationFrame>)
 CharacterAnimationFrame(source: TilesetSourceRect, durationMs: int)
 // CharacterAnimationState: idle | walk | run
@@ -112,7 +118,7 @@ CharacterAnimationFrame(source: TilesetSourceRect, durationMs: int)
 //   Exemple : char 1×2, frame-grid (0,1) → TilesetSourceRect(x:0, y:2)
 //   → pixel (0, 32) avec tileHeight=16 → sprite complet 2 tuiles de haut ✓
 
-ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2.0, defaultMapWidth: 20, defaultMapHeight: 15, playerCharacterId: String?)
+ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2.0, defaultMapWidth: 20, defaultMapHeight: 15, defaultPlayerCharacterId: String?)
 ProjectElementEntry(id, name, tilesetId, frames: List<TilesetVisualFrame>, ...)
 TilesetVisualFrame(tilesetId: '', source: TilesetSourceRect, durationMs?: int)
 TilesetSourceRect(x, y, width: 1, height: 1)  // en coordonnées tuiles
@@ -134,6 +140,9 @@ class ProjectDialogueEntry {   // dans ProjectManifest.dialogues
   final String description;
 }
 ```
+
+`defaultPlayerCharacterId` est une valeur de départ projet uniquement.
+Le runtime l'utilise au boot pour choisir l'apparence initiale du joueur, mais le système est maintenant pensé pour permettre plus tard des changements dynamiques en cours de partie.
 
 ### Validation
 

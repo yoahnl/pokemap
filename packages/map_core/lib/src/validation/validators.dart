@@ -717,6 +717,7 @@ class ProjectValidator {
 
   static void _validateTrainers(ProjectManifest manifest) {
     final elementIds = manifest.elements.map((e) => e.id).toSet();
+    final characterIds = manifest.characters.map((c) => c.id).toSet();
     for (final trainer in manifest.trainers) {
       final id = trainer.id.trim();
       if (id.isEmpty) {
@@ -727,6 +728,14 @@ class ProjectValidator {
       }
       if (trainer.trainerClass.trim().isEmpty) {
         throw ValidationException('Trainer $id has an empty trainerClass');
+      }
+      final characterId = trainer.characterId?.trim();
+      if (characterId != null &&
+          characterId.isNotEmpty &&
+          !characterIds.contains(characterId)) {
+        throw ValidationException(
+          'Trainer $id characterId "$characterId" does not exist in project characters',
+        );
       }
       final portraitId = trainer.portraitElementId?.trim();
       if (portraitId != null &&
@@ -799,12 +808,12 @@ class ProjectValidator {
         }
       }
     }
-    final playerCharId = manifest.settings.playerCharacterId?.trim();
+    final playerCharId = manifest.settings.defaultPlayerCharacterId?.trim();
     if (playerCharId != null && playerCharId.isNotEmpty) {
       final charIds = manifest.characters.map((c) => c.id).toSet();
       if (!charIds.contains(playerCharId)) {
         throw ValidationException(
-          'Settings playerCharacterId "$playerCharId" references unknown character',
+          'Settings defaultPlayerCharacterId "$playerCharId" references unknown character',
         );
       }
     }
@@ -899,6 +908,7 @@ class MapValidator {
       if (projectDialogueContext != null) {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
         assertEntityTrainerRefsAgainstProject(entity, projectDialogueContext);
+        assertEntityCharacterRefsAgainstProject(entity, projectDialogueContext);
         assertEntityEditorVisualAgainstProject(entity, projectDialogueContext);
       }
     }

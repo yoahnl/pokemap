@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'runtime_character_refs.dart';
+
 Map<TerrainType, ProjectTerrainPreset> runtimeTerrainPresetsByType(
   ProjectManifest manifest,
 ) {
@@ -108,14 +110,14 @@ void addCharacterTilesetIds(
   ProjectManifest manifest,
 ) {
   final charById = {for (final c in manifest.characters) c.id: c};
-  final playerCharId = manifest.settings.playerCharacterId?.trim();
+  final playerCharId = manifest.settings.defaultPlayerCharacterId?.trim();
   if (playerCharId != null && playerCharId.isNotEmpty) {
     final tid = charById[playerCharId]?.tilesetId.trim() ?? '';
     if (tid.isNotEmpty) ids.add(tid);
   }
   for (final entity in map.entities) {
     if (entity.kind != MapEntityKind.npc) continue;
-    final charId = entity.npc?.characterId?.trim();
+    final charId = resolveNpcCharacterId(entity, manifest);
     if (charId == null || charId.isEmpty) continue;
     final tid = charById[charId]?.tilesetId.trim() ?? '';
     if (tid.isNotEmpty) ids.add(tid);

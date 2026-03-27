@@ -14,6 +14,7 @@ import '../../application/dialogue_runtime_models.dart';
 import '../../application/load_dialogue_content.dart';
 import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
+import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'dialogue_overlay_component.dart';
@@ -363,12 +364,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   ProjectCharacterEntry? _resolvePlayerCharacter(RuntimeMapBundle bundle) {
-    final charId = bundle.manifest.settings.playerCharacterId?.trim();
-    if (charId == null || charId.isEmpty) return null;
-    for (final c in bundle.manifest.characters) {
-      if (c.id == charId) return c;
-    }
-    return null;
+    return resolveDefaultPlayerCharacter(bundle.manifest);
   }
 
   Future<void> _addNpcActors(
@@ -380,7 +376,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final ch = bundle.cellHeight;
     for (final entity in bundle.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
-      final charId = entity.npc?.characterId?.trim();
+      final charId = resolveNpcCharacterId(entity, bundle.manifest);
       if (charId == null || charId.isEmpty) continue;
       final char = charById[charId];
       if (char == null) continue;

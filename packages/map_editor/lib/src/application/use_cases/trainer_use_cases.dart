@@ -40,6 +40,7 @@ class CreateTrainerUseCase {
     ProjectManifest project, {
     required String name,
     required String trainerClass,
+    String? characterId,
     String? portraitElementId,
     String? battleThemeId,
     String? victoryThemeId,
@@ -57,6 +58,7 @@ class CreateTrainerUseCase {
       id: _generateUniqueTrainerId(project, trimmedName),
       name: trimmedName,
       trainerClass: trimmedClass,
+      characterId: characterId?.trim().isEmpty == true ? null : characterId?.trim(),
       portraitElementId:
           portraitElementId?.trim().isEmpty == true ? null : portraitElementId?.trim(),
       battleThemeId:
@@ -85,6 +87,7 @@ class UpdateTrainerUseCase {
     required String trainerId,
     String? name,
     String? trainerClass,
+    Object? characterId = _unset,
     Object? portraitElementId = _unset,
     Object? battleThemeId = _unset,
     Object? victoryThemeId = _unset,
@@ -108,6 +111,12 @@ class UpdateTrainerUseCase {
       trainerClass: trimmedClass,
       tags: tags ?? current.tags,
     );
+    if (!identical(characterId, _unset)) {
+      final v = (characterId as String?)?.trim();
+      updated_trainer = updated_trainer.copyWith(
+        characterId: (v == null || v.isEmpty) ? null : v,
+      );
+    }
     if (!identical(portraitElementId, _unset)) {
       final v = (portraitElementId as String?)?.trim();
       updated_trainer = updated_trainer.copyWith(

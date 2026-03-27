@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_manifest_tilesets.dart';
 import '../../application/runtime_map_bundle.dart';
 import 'runtime_path_autotile.dart';
@@ -84,7 +85,7 @@ class MapLayersComponent extends PositionComponent {
     final elapsedMs = (_animElapsed * 1000).toInt();
     for (final entity in bundle.map.entities) {
       if (entity.kind == MapEntityKind.npc) {
-        final charId = entity.npc?.characterId?.trim();
+        final charId = resolveNpcCharacterId(entity, bundle.manifest);
         if (charId != null && charId.isNotEmpty) continue;
       }
       final elementId = entity.resolvedProjectElementIdForEditor?.trim();

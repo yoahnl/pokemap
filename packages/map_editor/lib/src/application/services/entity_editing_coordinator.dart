@@ -44,7 +44,10 @@ class EntityEditingCoordinator {
       name: id,
       kind: kind,
       pos: pos,
-      size: const core.GridSize(width: 1, height: 1),
+      size: switch (kind) {
+        core.MapEntityKind.npc => const core.GridSize(width: 2, height: 2),
+        _ => const core.GridSize(width: 1, height: 1),
+      },
       npc: switch (kind) {
         core.MapEntityKind.npc => const core.MapEntityNpcData(),
         _ => null,

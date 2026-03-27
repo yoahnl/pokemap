@@ -341,6 +341,9 @@ mixin _$ProjectTrainerEntry {
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   String get trainerClass => throw _privateConstructorUsedError;
 
+  /// Référence métier vers [ProjectCharacterEntry.id] pour l'apparence overworld.
+  String? get characterId => throw _privateConstructorUsedError;
+
   /// Référence à un [ProjectElementEntry.id] pour le portrait (éditeur).
   String? get portraitElementId => throw _privateConstructorUsedError;
   String? get battleThemeId => throw _privateConstructorUsedError;
@@ -369,6 +372,7 @@ abstract class $ProjectTrainerEntryCopyWith<$Res> {
       {String id,
       String name,
       String trainerClass,
+      String? characterId,
       String? portraitElementId,
       String? battleThemeId,
       String? victoryThemeId,
@@ -394,6 +398,7 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
     Object? id = null,
     Object? name = null,
     Object? trainerClass = null,
+    Object? characterId = freezed,
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
     Object? victoryThemeId = freezed,
@@ -413,6 +418,10 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
           ? _value.trainerClass
           : trainerClass // ignore: cast_nullable_to_non_nullable
               as String,
+      characterId: freezed == characterId
+          ? _value.characterId
+          : characterId // ignore: cast_nullable_to_non_nullable
+              as String?,
       portraitElementId: freezed == portraitElementId
           ? _value.portraitElementId
           : portraitElementId // ignore: cast_nullable_to_non_nullable
@@ -449,6 +458,7 @@ abstract class _$$ProjectTrainerEntryImplCopyWith<$Res>
       {String id,
       String name,
       String trainerClass,
+      String? characterId,
       String? portraitElementId,
       String? battleThemeId,
       String? victoryThemeId,
@@ -472,6 +482,7 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? trainerClass = null,
+    Object? characterId = freezed,
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
     Object? victoryThemeId = freezed,
@@ -491,6 +502,10 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
           ? _value.trainerClass
           : trainerClass // ignore: cast_nullable_to_non_nullable
               as String,
+      characterId: freezed == characterId
+          ? _value.characterId
+          : characterId // ignore: cast_nullable_to_non_nullable
+              as String?,
       portraitElementId: freezed == portraitElementId
           ? _value.portraitElementId
           : portraitElementId // ignore: cast_nullable_to_non_nullable
@@ -523,6 +538,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       {required this.id,
       required this.name,
       required this.trainerClass,
+      this.characterId,
       this.portraitElementId,
       this.battleThemeId,
       this.victoryThemeId,
@@ -542,6 +558,10 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   @override
   final String trainerClass;
+
+  /// Référence métier vers [ProjectCharacterEntry.id] pour l'apparence overworld.
+  @override
+  final String? characterId;
 
   /// Référence à un [ProjectElementEntry.id] pour le portrait (éditeur).
   @override
@@ -570,7 +590,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
 
   @override
   String toString() {
-    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, team: $team, tags: $tags)';
+    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, team: $team, tags: $tags)';
   }
 
   @override
@@ -582,6 +602,8 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.trainerClass, trainerClass) ||
                 other.trainerClass == trainerClass) &&
+            (identical(other.characterId, characterId) ||
+                other.characterId == characterId) &&
             (identical(other.portraitElementId, portraitElementId) ||
                 other.portraitElementId == portraitElementId) &&
             (identical(other.battleThemeId, battleThemeId) ||
@@ -599,6 +621,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       id,
       name,
       trainerClass,
+      characterId,
       portraitElementId,
       battleThemeId,
       victoryThemeId,
@@ -627,6 +650,7 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
       {required final String id,
       required final String name,
       required final String trainerClass,
+      final String? characterId,
       final String? portraitElementId,
       final String? battleThemeId,
       final String? victoryThemeId,
@@ -644,6 +668,10 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   @override
   String get trainerClass;
+
+  /// Référence métier vers [ProjectCharacterEntry.id] pour l'apparence overworld.
+  @override
+  String? get characterId;
 
   /// Référence à un [ProjectElementEntry.id] pour le portrait (éditeur).
   @override

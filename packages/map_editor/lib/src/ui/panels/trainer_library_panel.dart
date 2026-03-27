@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
@@ -24,12 +25,14 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   // Create trainer form
   final _newNameController = TextEditingController();
   final _newClassController = TextEditingController();
+  String? _newCharacterId;
   bool _showCreateForm = false;
 
   // Edit trainer fields
   String? _editingTrainerId;
   final _editNameController = TextEditingController();
   final _editClassController = TextEditingController();
+  String? _editCharacterId;
 
   // Add Pokémon form
   String? _addPokemonTrainerId;
@@ -57,6 +60,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     const accent = EditorChrome.accentCoral;
 
     final trainers = project?.trainers ?? const [];
+    final characters = project?.characters ?? const <ProjectCharacterEntry>[];
 
     final content = project == null
         ? Center(
@@ -91,21 +95,28 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
                 _CreateTrainerForm(
                   nameController: _newNameController,
                   classController: _newClassController,
+                  characters: characters,
+                  selectedCharacterId: _newCharacterId,
                   accent: accent,
                   onCancel: () => setState(() {
                     _showCreateForm = false;
                     _newNameController.clear();
                     _newClassController.clear();
+                    _newCharacterId = null;
                   }),
+                  onSelectCharacter: (characterId) =>
+                      setState(() => _newCharacterId = characterId),
                   onCreate: () {
                     notifier.createTrainer(
                       name: _newNameController.text,
                       trainerClass: _newClassController.text,
+                      characterId: _newCharacterId,
                     );
                     setState(() {
                       _showCreateForm = false;
                       _newNameController.clear();
                       _newClassController.clear();
+                      _newCharacterId = null;
                     });
                   },
                 ),
@@ -125,10 +136,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
                 _TrainerTile(
                   key: ValueKey(trainer.id),
                   trainer: trainer,
+                  characters: characters,
                   accent: accent,
                   isEditing: _editingTrainerId == trainer.id,
                   editNameController: _editNameController,
                   editClassController: _editClassController,
+                  selectedCharacterId: _editCharacterId,
                   isAddingPokemon: _addPokemonTrainerId == trainer.id,
                   pokemonSpeciesController: _pokemonSpeciesController,
                   pokemonLevelController: _pokemonLevelController,
@@ -140,6 +153,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
                         _editingTrainerId = trainer.id;
                         _editNameController.text = trainer.name;
                         _editClassController.text = trainer.trainerClass;
+                        _editCharacterId = trainer.characterId;
                         _addPokemonTrainerId = null;
                       }
                     });
@@ -149,15 +163,24 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
                       trainerId: trainer.id,
                       name: _editNameController.text,
                       trainerClass: _editClassController.text,
+                      characterId: _editCharacterId,
                     );
                     setState(() => _editingTrainerId = null);
                   },
                   onCancelEdit: () =>
-                      setState(() => _editingTrainerId = null),
+                      setState(() {
+                        _editingTrainerId = null;
+                        _editCharacterId = null;
+                      }),
+                  onSelectCharacter: (characterId) =>
+                      setState(() => _editCharacterId = characterId),
                   onDelete: () {
                     notifier.deleteTrainer(trainer.id);
                     if (_editingTrainerId == trainer.id) {
-                      setState(() => _editingTrainerId = null);
+                      setState(() {
+                        _editingTrainerId = null;
+                        _editCharacterId = null;
+                      });
                     }
                   },
                   onTapAddPokemon: () {
@@ -212,15 +235,21 @@ class _CreateTrainerForm extends StatelessWidget {
   const _CreateTrainerForm({
     required this.nameController,
     required this.classController,
+    required this.characters,
+    required this.selectedCharacterId,
     required this.accent,
     required this.onCancel,
+    required this.onSelectCharacter,
     required this.onCreate,
   });
 
   final TextEditingController nameController;
   final TextEditingController classController;
+  final List<ProjectCharacterEntry> characters;
+  final String? selectedCharacterId;
   final Color accent;
   final VoidCallback onCancel;
+  final ValueChanged<String?> onSelectCharacter;
   final VoidCallback onCreate;
 
   @override
@@ -249,6 +278,12 @@ class _CreateTrainerForm extends StatelessWidget {
           CupertinoTextField(
             controller: classController,
             placeholder: 'Class (e.g. Pokémon Trainer)',
+          ),
+          const SizedBox(height: 6),
+          _TrainerCharacterPicker(
+            characters: characters,
+            selectedCharacterId: selectedCharacterId,
+            onSelected: onSelectCharacter,
           ),
           const SizedBox(height: 8),
           Row(
@@ -281,16 +316,19 @@ class _TrainerTile extends StatelessWidget {
   const _TrainerTile({
     super.key,
     required this.trainer,
+    required this.characters,
     required this.accent,
     required this.isEditing,
     required this.editNameController,
     required this.editClassController,
+    required this.selectedCharacterId,
     required this.isAddingPokemon,
     required this.pokemonSpeciesController,
     required this.pokemonLevelController,
     required this.onTapEdit,
     required this.onSaveEdit,
     required this.onCancelEdit,
+    required this.onSelectCharacter,
     required this.onDelete,
     required this.onTapAddPokemon,
     required this.onAddPokemon,
@@ -299,16 +337,19 @@ class _TrainerTile extends StatelessWidget {
   });
 
   final ProjectTrainerEntry trainer;
+  final List<ProjectCharacterEntry> characters;
   final Color accent;
   final bool isEditing;
   final TextEditingController editNameController;
   final TextEditingController editClassController;
+  final String? selectedCharacterId;
   final bool isAddingPokemon;
   final TextEditingController pokemonSpeciesController;
   final TextEditingController pokemonLevelController;
   final VoidCallback onTapEdit;
   final VoidCallback onSaveEdit;
   final VoidCallback onCancelEdit;
+  final ValueChanged<String?> onSelectCharacter;
   final VoidCallback onDelete;
   final VoidCallback onTapAddPokemon;
   final VoidCallback onAddPokemon;
@@ -397,6 +438,12 @@ class _TrainerTile extends StatelessWidget {
                   CupertinoTextField(
                     controller: editClassController,
                     placeholder: 'Trainer class',
+                  ),
+                  const SizedBox(height: 6),
+                  _TrainerCharacterPicker(
+                    characters: characters,
+                    selectedCharacterId: selectedCharacterId,
+                    onSelected: onSelectCharacter,
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -517,6 +564,48 @@ class _TrainerTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TrainerCharacterPicker extends StatelessWidget {
+  const _TrainerCharacterPicker({
+    required this.characters,
+    required this.selectedCharacterId,
+    required this.onSelected,
+  });
+
+  final List<ProjectCharacterEntry> characters;
+  final String? selectedCharacterId;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    ProjectCharacterEntry? selected;
+    for (final character in characters) {
+      if (character.id == selectedCharacterId) {
+        selected = character;
+        break;
+      }
+    }
+    final label = selected?.name ?? 'None';
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PushButton(
+        controlSize: ControlSize.regular,
+        secondary: true,
+        onPressed: () async {
+          final picked = await showCupertinoListPicker<ProjectCharacterEntry?>(
+            context: context,
+            title: 'Trainer Character',
+            items: [null, ...characters],
+            labelOf: (value) => value?.name ?? 'None',
+          );
+          onSelected(picked?.id);
+        },
+        child: Text('Character: $label'),
       ),
     );
   }

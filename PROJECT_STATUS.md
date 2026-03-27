@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel)
+> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -78,11 +78,11 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Zones gameplay typées (MapGameplayZone) | **Fait** | payloads : encounter, movement, hazard, special |
 | Tables de rencontres (ProjectEncounterTable) | **Fait** | entries avec speciesId, niveaux, poids |
 | Dialogues projet (ProjectDialogueEntry) | **Fait** | relativePath, tags, startNode, folderId |
-| Dresseurs (ProjectTrainerEntry + équipe) | **Fait** | team[], moves[], held item, form, gender, shiny |
+| Dresseurs (ProjectTrainerEntry + équipe) | **Fait** | team[], moves[], held item, form, gender, shiny, `characterId?`, `portraitElementId?` |
 | Personnages overworld (ProjectCharacterEntry) | **Fait** | id, name, tilesetId, frameWidth, frameHeight, animations[]: CharacterAnimation(state, direction, frames[]: CharacterAnimationFrame(source, durationMs)) |
-| playerCharacterId dans ProjectSettings | **Fait** | Désigne le personnage sprite du joueur |
+| defaultPlayerCharacterId dans ProjectSettings | **Fait** | Définit seulement l'apparence initiale du joueur au lancement |
 | CharacterAnimationState (idle, walk, run) | **Fait** | Enum + JSON |
-| Validation personnages (validators.dart) | **Fait** | IDs uniques, tilesetId connu, dims positives, playerCharacterId référence existante |
+| Validation personnages (validators.dart) | **Fait** | IDs uniques, tilesetId connu, dims positives, `defaultPlayerCharacterId`, `trainer.characterId` et `npc.characterId` référencent des Characters connus |
 | Éléments visuels projet (ProjectElementEntry) | **Fait** | frames[], tilesetId, categoryId, groupId — multi-frames supporté |
 | Presets terrain (ProjectTerrainPreset) | **Fait** | variants avec poids, frames[] |
 | Presets path / autotile (ProjectPathPreset) | **Fait** | 20 variantes (corners, tees, cross, edges…) |
@@ -133,8 +133,8 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | PlayableMapGame (jouable au clavier) | **Fait** | KeyboardEvents : flèches + WASD + E/Space |
 | PlayerComponent (disque + indicateur direction) | **Fait** | Marqueur bleu si pas de personnage configuré ; sinon délègue à OverworldActorComponent |
 | OverworldActorComponent | **Fait** | Composant Flame : rendu sprite personnage depuis spritesheet, animation time-based, facing + state, fallback cercle vert |
-| Sprites personnages NPC dans PlayableMapGame | **Fait** | _addNpcActors, skip rendu entité dans MapLayersComponent si characterId défini |
-| Résolution tilesets personnages (runtime_manifest_tilesets) | **Fait** | Collecte tilesets joueur + NPCs pour préchargement |
+| Sprites personnages NPC dans PlayableMapGame | **Fait** | _addNpcActors, skip rendu entité dans MapLayersComponent si `npc.characterId` ou fallback `trainer.characterId` est défini |
+| Résolution tilesets personnages (runtime_manifest_tilesets) | **Fait** | Collecte tilesets joueur + NPCs pour préchargement via Character |
 | Collisions au clavier via map_gameplay | **Fait** | |
 | Warps : détection + chargement async nouvelle map | **Fait** | _handleWarp, erreur loggée + notification "Warp failed" |
 | Interactions entités (E/Space) | **Fait** | Résultat typé → overlay 2s (`entity.inspectorHeadline`) + log `[interact]` |
@@ -174,9 +174,10 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Terrain editor panel | **Fait** | |
 | Gameplay zone properties panel | **Fait** | |
 | Encounter tables panel | **Fait** | |
-| Trainer library panel | **Fait** | |
-| Character library panel | **Fait** | CRUD personnages, désignation joueur ; éditeur d'animations visuel : grille 3×4 (états × directions), sélecteur spritesheet par frame complète (clic sélectionne frameWidth×frameHeight tiles d'un coup), frame strip avec miniatures, preview animée en direct, contrôles durée / réordonnement / suppression ; supporte naturellement 3 frames par direction (walk cycle classique) |
+| Trainer library panel | **Fait** | CRUD dresseurs + sélection de `Character` overworld |
+| Character library panel | **Fait** | CRUD personnages, désignation du `Default Player Character` ; éditeur d'animations visuel : grille 3×4 (états × directions), sélecteur spritesheet par frame complète (clic sélectionne frameWidth×frameHeight tiles d'un coup), frame strip avec miniatures, preview animée en direct, contrôles durée / réordonnement / suppression ; supporte naturellement 3 frames par direction (walk cycle classique) |
 | Entity properties panel — NPC characterId | **Fait** | Dropdown pour assigner un personnage-sprite à chaque entité NPC |
+| Project Settings — Default Player Character | **Fait** | Sélecteur depuis la Character Library, explicité comme valeur initiale uniquement |
 | Project explorer panel | **Fait** | maps, groupes, tilesets, éléments, dialogues, dresseurs, personnages |
 | EditorBrush (tile, palette, element) | **Fait** | |
 | Édition visuels entités (editorVisual → ProjectElementEntry) | **Fait** | |
@@ -314,6 +315,7 @@ Justification :
 | map_editor — Propriétés de map + Visuel éditeur dropdown | 2026-03 | MapMetadata panel, defaultSpawnId, editorVisual dropdown |
 | map_editor — Refactoring zones gameplay (payloads typés + drag-to-draw) | 2026-03-25 | Réunification zones, drag sur canvas |
 | map_editor — Dresseurs | 2026-03 | `ProjectTrainerEntry`, Trainer Library, champs combat dans inspecteur NPC |
+| map_core + map_editor + map_runtime — Characters canonique overworld | 2026-03-27 | `defaultPlayerCharacterId`, `trainer.characterId`, NPC/Trainer UI via Character Library, runtime fallback trainer→character pour acteurs overworld |
 | map_runtime — Runtime 1 (chargement + rendu Flame) | 2026-03-26 | loadRuntimeMapBundle, MapLayersComponent, RuntimeMapGame, example macOS |
 | map_runtime — Runtime 2 (rendu entités animées) | 2026-03-26 | _paintEntities, _pickEntityFrame, _animElapsed |
 | map_runtime — Runtime 3 (API cleanup) | 2026-03-26 | Renommage `manifestPath` → `projectFilePath`, images internes, barrel resserré, README |

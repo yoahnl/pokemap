@@ -119,9 +119,9 @@ class DeleteCharacterUseCase {
     }
     final characters = List<ProjectCharacterEntry>.from(project.characters)
       ..removeAt(index);
-    final isPlayer = project.settings.playerCharacterId == characterId;
+    final isPlayer = project.settings.defaultPlayerCharacterId == characterId;
     final settings = isPlayer
-        ? project.settings.copyWith(playerCharacterId: null)
+        ? project.settings.copyWith(defaultPlayerCharacterId: null)
         : project.settings;
     final updated = project.copyWith(
       characters: characters,
@@ -194,7 +194,7 @@ class SetPlayerCharacterUseCase {
     }
     final updated = project.copyWith(
       settings: project.settings.copyWith(
-        playerCharacterId:
+        defaultPlayerCharacterId:
             (trimmedId == null || trimmedId.isEmpty) ? null : trimmedId,
       ),
     );

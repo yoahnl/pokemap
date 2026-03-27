@@ -982,7 +982,7 @@ class _CharacterLibraryPanelState
                     context,
                     notifier,
                     characters,
-                    project.settings.playerCharacterId,
+                    project.settings.defaultPlayerCharacterId,
                   ),
                 ),
                 const EditorHorizontalDivider(),
@@ -1068,7 +1068,7 @@ class _CharacterLibraryPanelState
     BuildContext context,
     EditorNotifier notifier,
     List<ProjectCharacterEntry> characters,
-    String? playerCharId,
+    String? defaultPlayerCharacterId,
   ) {
     final menuIds = [_kCharNoneMenuId, ...characters.map((c) => c.id)];
     String labelOf(String id) {
@@ -1076,17 +1076,18 @@ class _CharacterLibraryPanelState
       return characters.where((c) => c.id == id).firstOrNull?.name ?? id;
     }
 
-    final selected =
-        menuIds.contains(playerCharId) ? playerCharId! : _kCharNoneMenuId;
+    final selected = menuIds.contains(defaultPlayerCharacterId)
+        ? defaultPlayerCharacterId!
+        : _kCharNoneMenuId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InspectorEmbeddedSectionLabel('PLAYER CHARACTER'),
+        InspectorEmbeddedSectionLabel('DEFAULT PLAYER CHARACTER'),
         const SizedBox(height: 4),
         InspectorEmbeddedDropdown(
           accent: EditorChrome.inspectorJoyCyan,
-          fieldLabel: 'Player character',
+          fieldLabel: 'Default player character',
           valueLabel: labelOf(selected),
           orderedIds: menuIds,
           selectedMenuValue: selected,
@@ -1094,7 +1095,8 @@ class _CharacterLibraryPanelState
           idToLabel: labelOf,
           onSelected: (id) =>
               notifier.setPlayerCharacter(id == _kCharNoneMenuId ? null : id),
-          tooltip: 'The character sprite used for the player on the overworld',
+          tooltip:
+              'Initial overworld character used for the player at game start. Runtime can change it later.',
         ),
       ],
     );

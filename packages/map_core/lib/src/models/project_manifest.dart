@@ -6,6 +6,10 @@ import 'visual_frame_json.dart';
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
 
+Object? _readDefaultPlayerCharacterId(Map json, String _) {
+  return json['defaultPlayerCharacterId'] ?? json['playerCharacterId'];
+}
+
 @freezed
 class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
@@ -44,7 +48,11 @@ class ProjectSettings with _$ProjectSettings {
     @Default(2.0) double displayScale,
     @Default(20) int defaultMapWidth,
     @Default(15) int defaultMapHeight,
-    String? playerCharacterId,
+    @JsonKey(
+      name: 'defaultPlayerCharacterId',
+      readValue: _readDefaultPlayerCharacterId,
+    )
+    String? defaultPlayerCharacterId,
   }) = _ProjectSettings;
 
   factory ProjectSettings.fromJson(Map<String, dynamic> json) =>

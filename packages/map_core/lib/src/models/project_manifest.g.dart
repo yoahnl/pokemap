@@ -129,7 +129,9 @@ _$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
       displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
       defaultMapWidth: (json['defaultMapWidth'] as num?)?.toInt() ?? 20,
       defaultMapHeight: (json['defaultMapHeight'] as num?)?.toInt() ?? 15,
-      playerCharacterId: json['playerCharacterId'] as String?,
+      defaultPlayerCharacterId:
+          _readDefaultPlayerCharacterId(json, 'defaultPlayerCharacterId')
+              as String?,
     );
 
 Map<String, dynamic> _$$ProjectSettingsImplToJson(
@@ -140,7 +142,7 @@ Map<String, dynamic> _$$ProjectSettingsImplToJson(
       'displayScale': instance.displayScale,
       'defaultMapWidth': instance.defaultMapWidth,
       'defaultMapHeight': instance.defaultMapHeight,
-      'playerCharacterId': instance.playerCharacterId,
+      'defaultPlayerCharacterId': instance.defaultPlayerCharacterId,
     };
 
 _$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(
