@@ -32,9 +32,21 @@ class PlayerComponent extends PositionComponent {
   GameplayPlayerState _state;
   OverworldActorComponent? _actor;
   double _walkAnimRemaining = 0.0;
+  static const double _kStepInterpolationSeconds = 0.12;
+  Vector2? _moveFrom;
+  Vector2? _moveTo;
+  double _moveRemaining = 0.0;
+
+  void _snapToStatePosition() {
+    position = Vector2(
+      _state.pos.x * bundle.cellWidth,
+      _state.pos.y * bundle.cellHeight,
+    );
+  }
 
   @override
   Future<void> onLoad() async {
+    _snapToStatePosition();
     final entry = characterEntry;
     if (entry != null) {
       final actor = OverworldActorComponent(
@@ -46,7 +58,7 @@ class PlayerComponent extends PositionComponent {
         cellHeight: bundle.cellHeight,
         facing: EntityFacing.values.byName(_state.facing.name),
       );
-      actor.position = Vector2(0, -(entry.frameHeight - 1) * bundle.cellHeight);
+      actor.position = Vector2(0, -actor.footOffsetY);
       _actor = actor;
       await add(actor);
     }
@@ -55,6 +67,22 @@ class PlayerComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (_moveRemaining > 0 && _moveFrom != null && _moveTo != null) {
+      _moveRemaining -= dt;
+      final progress = ((_kStepInterpolationSeconds - _moveRemaining) /
+              _kStepInterpolationSeconds)
+          .clamp(0.0, 1.0);
+      position = Vector2(
+        _moveFrom!.x + (_moveTo!.x - _moveFrom!.x) * progress,
+        _moveFrom!.y + (_moveTo!.y - _moveFrom!.y) * progress,
+      );
+      if (_moveRemaining <= 0) {
+        position = _moveTo!.clone();
+        _moveFrom = null;
+        _moveTo = null;
+        _moveRemaining = 0.0;
+      }
+    }
     if (_walkAnimRemaining > 0) {
       _walkAnimRemaining -= dt;
       if (_walkAnimRemaining <= 0) {
@@ -96,13 +124,23 @@ class PlayerComponent extends PositionComponent {
   void updateState(GameplayPlayerState state) {
     final moved = state.pos != _state.pos;
     _state = state;
-    position = Vector2(
+    final target = Vector2(
       state.pos.x * bundle.cellWidth,
       state.pos.y * bundle.cellHeight,
     );
+    if (moved) {
+      _moveFrom = position.clone();
+      _moveTo = target;
+      _moveRemaining = _kStepInterpolationSeconds;
+    } else {
+      _moveFrom = null;
+      _moveTo = null;
+      _moveRemaining = 0.0;
+      position = target;
+    }
     final facing = EntityFacing.values.byName(state.facing.name);
     if (moved) {
-      _walkAnimRemaining = 0.3;
+      _walkAnimRemaining = _kStepInterpolationSeconds;
       _actor?.setMotion(facing, CharacterAnimationState.walk);
     } else {
       _actor?.setMotion(facing, CharacterAnimationState.idle);

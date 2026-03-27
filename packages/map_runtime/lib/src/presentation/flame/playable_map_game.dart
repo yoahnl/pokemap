@@ -37,9 +37,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late MapLayersComponent _layers;
   late PlayerComponent _player;
   bool _transitioning = false;
+  final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
+  LogicalKeyboardKey? _lastMoveKey;
+  double _moveStepRemaining = 0.0;
   DialogueOverlayComponent? _dialogueOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
+  static const double _kMoveStepSeconds = 0.12;
 
   @override
   Future<void> onLoad() async {
@@ -49,7 +53,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
       );
     } on GameplaySpawnResolutionException catch (e) {
-      debugPrint('[runtime] Spawn resolution failed ($e), falling back to (0,0)');
+      debugPrint(
+          '[runtime] Spawn resolution failed ($e), falling back to (0,0)');
       _world = GameplayWorldState.initial(
         map: _bundle.map,
         playerPos: const GridPos(x: 0, y: 0),
@@ -78,32 +83,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    if (_transitioning) return KeyEventResult.ignored;
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
+    final isDown = event is KeyDownEvent || event is KeyRepeatEvent;
+    final isUp = event is KeyUpEvent;
+    final key = event.logicalKey;
+
+    if (_isMovementKey(key)) {
+      if (isDown) {
+        _pressedKeys.add(key);
+        _lastMoveKey = key;
+      } else if (isUp) {
+        _pressedKeys.remove(key);
+        if (_lastMoveKey == key) {
+          _lastMoveKey = null;
+        }
+      }
+      return KeyEventResult.handled;
     }
+
+    if (_transitioning) return KeyEventResult.ignored;
+    if (!isDown) return KeyEventResult.ignored;
 
     if (_dialogueOverlay != null) {
       final overlay = _dialogueOverlay!;
       if (overlay.isShowingChoices) {
-        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        if (key == LogicalKeyboardKey.arrowUp) {
           _moveChoiceCursor(-1);
           return KeyEventResult.handled;
         }
-        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        if (key == LogicalKeyboardKey.arrowDown) {
           _moveChoiceCursor(1);
           return KeyEventResult.handled;
         }
         if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.keyE ||
-                event.logicalKey == LogicalKeyboardKey.space)) {
+            (key == LogicalKeyboardKey.keyE ||
+                key == LogicalKeyboardKey.space)) {
           _confirmDialogueChoice();
           return KeyEventResult.handled;
         }
       } else {
         if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.keyE ||
-                event.logicalKey == LogicalKeyboardKey.space)) {
+            (key == LogicalKeyboardKey.keyE ||
+                key == LogicalKeyboardKey.space)) {
           _advanceDialogue();
           return KeyEventResult.handled;
         }
@@ -112,49 +132,100 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (event is KeyDownEvent &&
-        (event.logicalKey == LogicalKeyboardKey.keyE ||
-            event.logicalKey == LogicalKeyboardKey.space)) {
+        (key == LogicalKeyboardKey.keyE || key == LogicalKeyboardKey.space)) {
       _handleInteract();
       return KeyEventResult.handled;
     }
 
-    final intent = _intentFromKey(event.logicalKey);
-    if (intent == null) return KeyEventResult.ignored;
+    return KeyEventResult.handled;
+  }
+
+  @override
+  void update(double dt) {
+    _tickContinuousMovement(dt);
+    super.update(dt);
+  }
+
+  bool _isMovementKey(LogicalKeyboardKey key) {
+    return key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.keyW ||
+        key == LogicalKeyboardKey.keyA ||
+        key == LogicalKeyboardKey.keyS ||
+        key == LogicalKeyboardKey.keyD;
+  }
+
+  GameplayIntent? _intentFromPressedKeys() {
+    Direction? dirFor(LogicalKeyboardKey key) {
+      if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
+        return Direction.north;
+      }
+      if (key == LogicalKeyboardKey.arrowDown ||
+          key == LogicalKeyboardKey.keyS) {
+        return Direction.south;
+      }
+      if (key == LogicalKeyboardKey.arrowLeft ||
+          key == LogicalKeyboardKey.keyA) {
+        return Direction.west;
+      }
+      if (key == LogicalKeyboardKey.arrowRight ||
+          key == LogicalKeyboardKey.keyD) {
+        return Direction.east;
+      }
+      return null;
+    }
+
+    final preferred = _lastMoveKey;
+    if (preferred != null && _pressedKeys.contains(preferred)) {
+      final d = dirFor(preferred);
+      if (d != null) {
+        return MoveIntent(d);
+      }
+    }
+
+    for (final key in _pressedKeys) {
+      final d = dirFor(key);
+      if (d != null) {
+        return MoveIntent(d);
+      }
+    }
+    return null;
+  }
+
+  void _tickContinuousMovement(double dt) {
+    if (_transitioning || _dialogueOverlay != null) {
+      return;
+    }
+    if (_moveStepRemaining > 0) {
+      _moveStepRemaining -= dt;
+      if (_moveStepRemaining > 0) {
+        return;
+      }
+    }
+
+    final intent = _intentFromPressedKeys();
+    if (intent == null) {
+      return;
+    }
 
     final result = stepGameplayWorld(_world, intent);
     _world = result.world;
     _player.updateState(_world.player);
     _applyCamera();
+    _moveStepRemaining = _kMoveStepSeconds;
 
     if (result is Blocked) {
-      debugPrint('[move] Blocked at (${_world.player.pos.x}, ${_world.player.pos.y})');
+      debugPrint(
+          '[move] Blocked at (${_world.player.pos.x}, ${_world.player.pos.y})');
     }
-
     if (result is WarpTriggered) {
       debugPrint(
         '[warp] Triggered warp ${result.warp.warpId} → map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
       );
       _handleWarp(result.warp);
     }
-
-    return KeyEventResult.handled;
-  }
-
-  GameplayIntent? _intentFromKey(LogicalKeyboardKey key) {
-    if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
-      return const MoveIntent(Direction.north);
-    }
-    if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.keyS) {
-      return const MoveIntent(Direction.south);
-    }
-    if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.keyA) {
-      return const MoveIntent(Direction.west);
-    }
-    if (key == LogicalKeyboardKey.arrowRight ||
-        key == LogicalKeyboardKey.keyD) {
-      return const MoveIntent(Direction.east);
-    }
-    return null;
   }
 
   void _handleInteract() {
@@ -167,10 +238,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification('...');
       case NpcInteracted(:final entity):
         debugPrint('[interact] NPC: ${entity.id}');
-        _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+        _tryOpenDialogue(
+            entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
       case SignInteracted(:final entity):
         debugPrint('[interact] Sign: ${entity.id}');
-        _tryOpenDialogue(entity.id, entity.sign?.dialogue, entity.inspectorHeadline);
+        _tryOpenDialogue(
+            entity.id, entity.sign?.dialogue, entity.inspectorHeadline);
       case ItemInteracted(:final entity):
         debugPrint('[interact] Item: ${entity.id}');
         _showNotification(entity.inspectorHeadline);
@@ -182,7 +255,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _tryOpenDialogue(String entityId, DialogueRef? ref, String fallbackLabel) {
+  void _tryOpenDialogue(
+      String entityId, DialogueRef? ref, String fallbackLabel) {
     if (_dialogueOverlay != null) return;
 
     final resolved = resolveDialogue(
@@ -225,9 +299,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _dialogueOverlay = overlay;
     final openedState = session.state;
     if (openedState is DialogueShowingLine) {
-      debugPrint('[dialogue] opened node=${session.currentNodeTitle} text="${openedState.text}"');
+      debugPrint(
+          '[dialogue] opened node=${session.currentNodeTitle} text="${openedState.text}"');
     } else if (openedState is DialogueWaitingForChoice) {
-      debugPrint('[dialogue] opened node=${session.currentNodeTitle} choice count=${openedState.choices.length}');
+      debugPrint(
+          '[dialogue] opened node=${session.currentNodeTitle} choice count=${openedState.choices.length}');
     }
   }
 
@@ -248,7 +324,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (newState is DialogueShowingLine) {
       debugPrint('[dialogue] line text="${newState.text}"');
     } else if (newState is DialogueWaitingForChoice) {
-      debugPrint('[dialogue] choice opened count=${newState.choices.length} selected=0');
+      debugPrint(
+          '[dialogue] choice opened count=${newState.choices.length} selected=0');
     }
   }
 
@@ -268,7 +345,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final state = overlay.currentSession.state;
     if (state is DialogueWaitingForChoice) {
       final idx = state.selectedIndex;
-      debugPrint('[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"');
+      debugPrint(
+          '[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"');
     }
     final prevNode = overlay.currentSession.currentNodeTitle;
     final stillOpen = overlay.confirmChoice();
@@ -284,7 +362,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (newState is DialogueShowingLine) {
       debugPrint('[dialogue] line text="${newState.text}"');
     } else if (newState is DialogueWaitingForChoice) {
-      debugPrint('[dialogue] choice opened count=${newState.choices.length} selected=0');
+      debugPrint(
+          '[dialogue] choice opened count=${newState.choices.length} selected=0');
     }
   }
 
@@ -340,8 +419,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       _bundle = newBundle;
       _world = newWorld;
-      _layers =
-          MapLayersComponent(bundle: newBundle, tileImagesByTilesetId: newImages);
+      _layers = MapLayersComponent(
+          bundle: newBundle, tileImagesByTilesetId: newImages);
       final playerChar = _resolvePlayerCharacter(newBundle);
       _player = PlayerComponent(
         bundle: newBundle,
@@ -389,9 +468,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         cellHeight: ch,
         facing: entity.npc?.facing ?? EntityFacing.south,
       );
+      final topY = entity.pos.y + entity.size.height - actor.frameHeightTiles;
       actor.position = Vector2(
         entity.pos.x * cw,
-        (entity.pos.y + 1 - char.frameHeight) * ch,
+        topY * ch,
       );
       _npcActors.add(actor);
       await world.add(actor);

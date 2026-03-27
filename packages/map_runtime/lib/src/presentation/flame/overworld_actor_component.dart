@@ -20,12 +20,14 @@ class OverworldActorComponent extends PositionComponent {
         _tileWidth = tileWidth,
         _tileHeight = tileHeight,
         _cellWidth = cellWidth,
+        _frameWidthTiles = math.max(2, character.frameWidth),
+        _frameHeightTiles = math.max(2, character.frameHeight),
         _cellHeight = cellHeight,
         super(
           anchor: Anchor.topLeft,
           size: Vector2(
-            character.frameWidth * cellWidth,
-            character.frameHeight * cellHeight,
+            math.max(2, character.frameWidth) * cellWidth,
+            math.max(2, character.frameHeight) * cellHeight,
           ),
         );
 
@@ -35,10 +37,16 @@ class OverworldActorComponent extends PositionComponent {
   final int _tileHeight;
   final double _cellWidth;
   final double _cellHeight;
+  final int _frameWidthTiles;
+  final int _frameHeightTiles;
 
   EntityFacing _facing;
   CharacterAnimationState _animState;
   double _animElapsed = 0.0;
+
+  int get frameWidthTiles => _frameWidthTiles;
+  int get frameHeightTiles => _frameHeightTiles;
+  double get footOffsetY => (_frameHeightTiles - 1) * _cellHeight;
 
   void setMotion(EntityFacing facing, CharacterAnimationState animState) {
     if (_facing == facing && _animState == animState) return;
@@ -67,11 +75,11 @@ class OverworldActorComponent extends PositionComponent {
     }
     final frame = _pickFrame(anim.frames);
     final src = frame.source;
-    final srcW = character.frameWidth * _tileWidth;
-    final srcH = character.frameHeight * _tileHeight;
+    final srcW = _frameWidthTiles * _tileWidth;
+    final srcH = _frameHeightTiles * _tileHeight;
     final srcRect = Rect.fromLTWH(
-      (src.x * _tileWidth).toDouble(),
-      (src.y * _tileHeight).toDouble(),
+      (src.x * srcW).toDouble(),
+      (src.y * srcH).toDouble(),
       srcW.toDouble(),
       srcH.toDouble(),
     );
@@ -83,7 +91,7 @@ class OverworldActorComponent extends PositionComponent {
       image,
       srcRect,
       Rect.fromLTWH(0, 0, size.x, size.y),
-      Paint()..filterQuality = FilterQuality.medium,
+      Paint()..filterQuality = FilterQuality.none,
     );
   }
 
@@ -115,7 +123,7 @@ class OverworldActorComponent extends PositionComponent {
 
   void _renderFallback(Canvas canvas) {
     final cx = _cellWidth / 2;
-    final cy = (character.frameHeight - 0.5) * _cellHeight;
+    final cy = (_frameHeightTiles - 0.5) * _cellHeight;
     final r = math.min(_cellWidth, _cellHeight) * 0.28;
     canvas.drawCircle(
       Offset(cx, cy),

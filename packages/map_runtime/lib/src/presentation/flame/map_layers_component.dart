@@ -144,7 +144,7 @@ class MapLayersComponent extends PositionComponent {
       image,
       src,
       dst,
-      Paint()..filterQuality = FilterQuality.medium,
+      Paint()..filterQuality = FilterQuality.none,
     );
   }
 
@@ -195,6 +195,7 @@ class MapLayersComponent extends PositionComponent {
       return;
     }
     final paint = Paint()..isAntiAlias = false;
+    paint.filterQuality = FilterQuality.none;
     if (opacity < 1) {
       paint.color = Color.fromRGBO(255, 255, 255, opacity);
     }
@@ -237,8 +238,7 @@ class MapLayersComponent extends PositionComponent {
     final ch = bundle.cellHeight;
     final w = bundle.map.size.width;
     final h = bundle.map.size.height;
-    final paint = Paint()
-      ..color = Color.fromRGBO(255, 0, 0, 0.28 * opacity);
+    final paint = Paint()..color = Color.fromRGBO(255, 0, 0, 0.28 * opacity);
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
         final idx = y * w + x;
@@ -425,8 +425,7 @@ class MapLayersComponent extends PositionComponent {
     final w = map.size.width;
     final h = map.size.height;
     final pid = presetId.trim();
-    final autotileSet =
-        pid.isEmpty ? null : _pathAutotileByPresetId[pid];
+    final autotileSet = pid.isEmpty ? null : _pathAutotileByPresetId[pid];
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
         final idx = y * w + x;
