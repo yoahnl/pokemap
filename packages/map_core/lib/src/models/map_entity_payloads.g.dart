@@ -36,6 +36,7 @@ _$MapEntityNpcDataImpl _$$MapEntityNpcDataImplFromJson(
           ? null
           : DialogueRef.fromJson(
               json['defeatDialogueRef'] as Map<String, dynamic>),
+      characterId: json['characterId'] as String?,
     );
 
 Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
@@ -48,6 +49,7 @@ Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
       'trainerId': instance.trainerId,
       'lineOfSightRange': instance.lineOfSightRange,
       'defeatDialogueRef': instance.defeatDialogueRef?.toJson(),
+      'characterId': instance.characterId,
     };
 
 const _$EntityFacingEnumMap = {

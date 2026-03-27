@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import 'character_library_panel.dart';
 import 'terrain_editor_panel.dart';
 import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
@@ -827,6 +828,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandWorld = true;
   bool _expandSurface = true;
   bool _expandTrainers = false;
+  bool _expandCharacters = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1012,6 +1014,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hSurface = (screenH * 0.36).clamp(280.0, 500.0);
     final hTrainers = (screenH * 0.35).clamp(260.0, 480.0);
+    final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
     const explorerTileRadius = 28.0;
     final actionIcon = CupertinoColors.white.withValues(alpha: 0.92);
     final actionHover = CupertinoColors.white.withValues(alpha: 0.16);
@@ -1150,6 +1153,19 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
               setState(() => _expandTrainers = !_expandTrainers),
           expandedHeight: hTrainers,
           child: const TrainerLibraryPanel(embedded: true),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Character Library',
+          subtitle: 'Overworld sprites for the player and NPCs',
+          icon: CupertinoIcons.person_crop_circle,
+          accentColor: EditorChrome.inspectorJoyCyan,
+          badgeText: '${project.characters.length}',
+          expanded: _expandCharacters,
+          onToggle: () =>
+              setState(() => _expandCharacters = !_expandCharacters),
+          expandedHeight: hCharacters,
+          child: const CharacterLibraryPanel(embedded: true),
         ),
       ],
     );

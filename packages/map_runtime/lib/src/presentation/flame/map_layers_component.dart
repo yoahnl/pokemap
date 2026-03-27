@@ -83,6 +83,10 @@ class MapLayersComponent extends PositionComponent {
     final th = bundle.manifest.settings.tileHeight;
     final elapsedMs = (_animElapsed * 1000).toInt();
     for (final entity in bundle.map.entities) {
+      if (entity.kind == MapEntityKind.npc) {
+        final charId = entity.npc?.characterId?.trim();
+        if (charId != null && charId.isNotEmpty) continue;
+      }
       final elementId = entity.resolvedProjectElementIdForEditor?.trim();
       if (elementId == null || elementId.isEmpty) continue;
       final entry = _elementById[elementId];

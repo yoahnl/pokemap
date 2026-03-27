@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
@@ -17,6 +18,7 @@ import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'dialogue_overlay_component.dart';
 import 'map_layers_component.dart';
+import 'overworld_actor_component.dart';
 import 'player_component.dart';
 
 const double _kViewportTilesX = 15.0;
@@ -36,6 +38,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _transitioning = false;
   DialogueOverlayComponent? _dialogueOverlay;
   TextComponent? _notification;
+  final List<OverworldActorComponent> _npcActors = [];
 
   @override
   Future<void> onLoad() async {
@@ -55,9 +58,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         await loadTilesetImagesById(_bundle.tilesetAbsolutePathsById);
     _layers =
         MapLayersComponent(bundle: _bundle, tileImagesByTilesetId: images);
-    _player = PlayerComponent(bundle: _bundle, state: _world.player);
+    final playerChar = _resolvePlayerCharacter(_bundle);
+    _player = PlayerComponent(
+      bundle: _bundle,
+      state: _world.player,
+      characterEntry: playerChar,
+      tileImages: images,
+    );
     await world.add(_layers);
     await world.add(_player);
+    await _addNpcActors(_bundle, images);
     _applyCamera();
     return super.onLoad();
   }
@@ -322,15 +332,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       world.remove(_layers);
       world.remove(_player);
+      for (final actor in _npcActors) {
+        world.remove(actor);
+      }
+      _npcActors.clear();
 
       _bundle = newBundle;
       _world = newWorld;
       _layers =
           MapLayersComponent(bundle: newBundle, tileImagesByTilesetId: newImages);
-      _player = PlayerComponent(bundle: newBundle, state: _world.player);
+      final playerChar = _resolvePlayerCharacter(newBundle);
+      _player = PlayerComponent(
+        bundle: newBundle,
+        state: _world.player,
+        characterEntry: playerChar,
+        tileImages: newImages,
+      );
 
       await world.add(_layers);
       await world.add(_player);
+      await _addNpcActors(newBundle, newImages);
       _applyCamera();
       debugPrint('[warp] Transition complete → map=${newBundle.map.id}');
     } catch (e, st) {
@@ -338,6 +359,46 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _showNotification('Warp failed');
     } finally {
       _transitioning = false;
+    }
+  }
+
+  ProjectCharacterEntry? _resolvePlayerCharacter(RuntimeMapBundle bundle) {
+    final charId = bundle.manifest.settings.playerCharacterId?.trim();
+    if (charId == null || charId.isEmpty) return null;
+    for (final c in bundle.manifest.characters) {
+      if (c.id == charId) return c;
+    }
+    return null;
+  }
+
+  Future<void> _addNpcActors(
+    RuntimeMapBundle bundle,
+    Map<String, ui.Image> images,
+  ) async {
+    final charById = {for (final c in bundle.manifest.characters) c.id: c};
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    for (final entity in bundle.map.entities) {
+      if (entity.kind != MapEntityKind.npc) continue;
+      final charId = entity.npc?.characterId?.trim();
+      if (charId == null || charId.isEmpty) continue;
+      final char = charById[charId];
+      if (char == null) continue;
+      final actor = OverworldActorComponent(
+        character: char,
+        tileImages: images,
+        tileWidth: bundle.manifest.settings.tileWidth,
+        tileHeight: bundle.manifest.settings.tileHeight,
+        cellWidth: cw,
+        cellHeight: ch,
+        facing: entity.npc?.facing ?? EntityFacing.south,
+      );
+      actor.position = Vector2(
+        entity.pos.x * cw,
+        (entity.pos.y + 1 - char.frameHeight) * ch,
+      );
+      _npcActors.add(actor);
+      await world.add(actor);
     }
   }
 

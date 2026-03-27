@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix ->).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld + éditeur d'animations visuel).
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités et dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E). Pas encore : rencontres, NPC actifs, sauvegarde.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités et dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E). Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel). Pas encore : rencontres, NPC actifs avec IA, sauvegarde.
 
 ---
 
@@ -96,11 +96,23 @@ ProjectManifest(
   encounterTables: List<ProjectEncounterTable>,
   dialogues: List<ProjectDialogueEntry>,
   trainers: List<ProjectTrainerEntry>,
+  characters: List<ProjectCharacterEntry>,  // personnages overworld (sprites animés)
   settings: ProjectSettings,
   ...folders, categories,
 )
 
-ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2.0, defaultMapWidth: 20, defaultMapHeight: 15)
+ProjectCharacterEntry(id, name, tilesetId, frameWidth: int, frameHeight: int, animations: List<CharacterAnimation>)
+CharacterAnimation(state: CharacterAnimationState, direction: EntityFacing, frames: List<CharacterAnimationFrame>)
+CharacterAnimationFrame(source: TilesetSourceRect, durationMs: int)
+// CharacterAnimationState: idle | walk | run
+// TilesetSourceRect.x/y = coordonnées en TILE (même convention que le reste du projet)
+//   → pixelX = source.x * tileWidth, pixelY = source.y * tileHeight
+//   → l'éditeur stocke (col * frameWidth, row * frameHeight) en coords tile
+//   → OverworldActorComponent recalcule le srcRect correctement de son côté
+//   Exemple : char 1×2, frame-grid (0,1) → TilesetSourceRect(x:0, y:2)
+//   → pixel (0, 32) avec tileHeight=16 → sprite complet 2 tuiles de haut ✓
+
+ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2.0, defaultMapWidth: 20, defaultMapHeight: 15, playerCharacterId: String?)
 ProjectElementEntry(id, name, tilesetId, frames: List<TilesetVisualFrame>, ...)
 TilesetVisualFrame(tilesetId: '', source: TilesetSourceRect, durationMs?: int)
 TilesetSourceRect(x, y, width: 1, height: 1)  // en coordonnées tuiles
@@ -454,7 +466,7 @@ lib/
       filesystem/                     → ProjectFileSystem
     domain/repositories/              → interfaces dépôts
     ui/
-      panels/                         → 15+ panneaux (layers, entity, map, warp, trigger, terrain, zones, encounters, trainers…)
+      panels/                         → 16+ panneaux (layers, entity, map, warp, trigger, terrain, zones, encounters, trainers, characters…)
       canvas/                         → map_canvas.dart (rendu Flutter Canvas), tileset_editor_canvas
       shared/                         → top_toolbar, status_bar, inspector widgets, cupertino controls
 ```
@@ -492,7 +504,8 @@ Offset panOffset
 
 ### Marche aujourd'hui
 
-- Éditeur complet : créer/éditer/sauvegarder projets et maps, toutes les couches, toutes les entités (avec toggle "Bloque le mouvement"), warps, triggers, zones, dialogues, dresseurs, rencontres.
+- Éditeur complet : créer/éditer/sauvegarder projets et maps, toutes les couches, toutes les entités (avec toggle "Bloque le mouvement"), warps, triggers, zones, dialogues, dresseurs, rencontres, personnages overworld (bibliothèque + éditeur d'animations visuel).
+- Éditeur d'animations personnages : grille d'états 3×4 (idle/walk/run × N/S/E/W), sélecteur de frames par clic sur spritesheet (1 clic = 1 frame complète = frameWidth×frameHeight tiles), frame strip avec miniatures, preview animée temps réel, contrôles durée/réordonnement/suppression. Supporte nativement N frames par direction (ex. cycle marche 3 frames). Assignation d'un personnage-sprite aux entités NPC.
 - Undo/redo dans l'éditeur.
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
 - Boucle jouable : déplacement clavier, collisions bloquantes, transitions de map via warps.
@@ -511,7 +524,7 @@ Offset panOffset
 - Rencontres aléatoires actives (zones définies mais pas de déclenchement).
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
-- Animations joueur orientées (le `PlayerComponent` n'a qu'un disque fixe).
+- Animations joueur orientées : `PlayerComponent` utilise `OverworldActorComponent` si un `ProjectCharacterEntry` est configuré (joueur avec sprite animé), sinon fallback disque bleu. Les animations walk/run sont déclenchées sur déplacement (300 ms), idle sinon.
 
 ---
 

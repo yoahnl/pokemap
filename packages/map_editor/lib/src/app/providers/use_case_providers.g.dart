@@ -2593,5 +2593,105 @@ final deleteTrainerPokemonUseCaseProvider =
 // ignore: unused_element
 typedef DeleteTrainerPokemonUseCaseRef
     = AutoDisposeProviderRef<DeleteTrainerPokemonUseCase>;
+String _$createCharacterUseCaseHash() =>
+    r'8ceda3c30ac3d41cf602cd2b7d5781db5b58448e';
+
+/// See also [createCharacterUseCase].
+@ProviderFor(createCharacterUseCase)
+final createCharacterUseCaseProvider =
+    AutoDisposeProvider<CreateCharacterUseCase>.internal(
+  createCharacterUseCase,
+  name: r'createCharacterUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createCharacterUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateCharacterUseCaseRef
+    = AutoDisposeProviderRef<CreateCharacterUseCase>;
+String _$updateCharacterUseCaseHash() =>
+    r'e68ea20a98ed37ac6ea86eb4e59c1afa54c57b25';
+
+/// See also [updateCharacterUseCase].
+@ProviderFor(updateCharacterUseCase)
+final updateCharacterUseCaseProvider =
+    AutoDisposeProvider<UpdateCharacterUseCase>.internal(
+  updateCharacterUseCase,
+  name: r'updateCharacterUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateCharacterUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateCharacterUseCaseRef
+    = AutoDisposeProviderRef<UpdateCharacterUseCase>;
+String _$deleteCharacterUseCaseHash() =>
+    r'92e03c6251272a967a370303259606c681285c3a';
+
+/// See also [deleteCharacterUseCase].
+@ProviderFor(deleteCharacterUseCase)
+final deleteCharacterUseCaseProvider =
+    AutoDisposeProvider<DeleteCharacterUseCase>.internal(
+  deleteCharacterUseCase,
+  name: r'deleteCharacterUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteCharacterUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteCharacterUseCaseRef
+    = AutoDisposeProviderRef<DeleteCharacterUseCase>;
+String _$upsertCharacterAnimationUseCaseHash() =>
+    r'8f5b1d583b60a0c5cf8fecb7156d33c08a357885';
+
+/// See also [upsertCharacterAnimationUseCase].
+@ProviderFor(upsertCharacterAnimationUseCase)
+final upsertCharacterAnimationUseCaseProvider =
+    AutoDisposeProvider<UpsertCharacterAnimationUseCase>.internal(
+  upsertCharacterAnimationUseCase,
+  name: r'upsertCharacterAnimationUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$upsertCharacterAnimationUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpsertCharacterAnimationUseCaseRef
+    = AutoDisposeProviderRef<UpsertCharacterAnimationUseCase>;
+String _$setPlayerCharacterUseCaseHash() =>
+    r'1136c8c528f71575349c46cd7abe68a7290b710c';
+
+/// See also [setPlayerCharacterUseCase].
+@ProviderFor(setPlayerCharacterUseCase)
+final setPlayerCharacterUseCaseProvider =
+    AutoDisposeProvider<SetPlayerCharacterUseCase>.internal(
+  setPlayerCharacterUseCase,
+  name: r'setPlayerCharacterUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$setPlayerCharacterUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SetPlayerCharacterUseCaseRef
+    = AutoDisposeProviderRef<SetPlayerCharacterUseCase>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

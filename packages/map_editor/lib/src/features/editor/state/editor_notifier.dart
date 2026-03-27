@@ -5216,6 +5216,154 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // Characters (bibliothèque personnages)
+  // ---------------------------------------------------------------------------
+
+  void selectCharacter(String? characterId) {
+    state = state.copyWith(selectedCharacterId: characterId);
+  }
+
+  Future<void> createCharacter({
+    required String name,
+    required String tilesetId,
+    int frameWidth = 1,
+    int frameHeight = 2,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(createCharacterUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        tilesetId: tilesetId,
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedCharacterId:
+            updated.characters.isNotEmpty ? updated.characters.last.id : null,
+        statusMessage: 'Character created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create character: $e');
+    }
+  }
+
+  Future<void> updateCharacter({
+    required String characterId,
+    String? name,
+    String? tilesetId,
+    int? frameWidth,
+    int? frameHeight,
+    List<String>? tags,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(updateCharacterUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        characterId: characterId,
+        name: name,
+        tilesetId: tilesetId,
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+        tags: tags,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Character updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update character: $e');
+    }
+  }
+
+  Future<void> deleteCharacter(String characterId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteCharacterUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        characterId: characterId,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedCharacterId: state.selectedCharacterId == characterId
+            ? null
+            : state.selectedCharacterId,
+        statusMessage: 'Character deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete character: $e');
+    }
+  }
+
+  Future<void> upsertCharacterAnimation({
+    required String characterId,
+    required CharacterAnimationState animState,
+    required EntityFacing direction,
+    required List<CharacterAnimationFrame> frames,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(upsertCharacterAnimationUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        characterId: characterId,
+        animState: animState,
+        direction: direction,
+        frames: frames,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Animation updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update animation: $e');
+    }
+  }
+
+  Future<void> setPlayerCharacter(String? characterId) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(setPlayerCharacterUseCaseProvider);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        characterId: characterId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: characterId == null
+            ? 'Player character cleared'
+            : 'Player character set',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to set player character: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Trainers (bibliothèque dresseurs)
   // ---------------------------------------------------------------------------
 

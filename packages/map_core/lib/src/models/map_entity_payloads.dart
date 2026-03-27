@@ -32,15 +32,10 @@ class MapEntityNpcData with _$MapEntityNpcData {
     DialogueRef? dialogue,
     @Default(EntityFacing.south) EntityFacing facing,
     @Default('') String visualElementId,
-
-    /// Référence à un [ProjectTrainerEntry.id]. Vide/null = PNJ non dresseur.
     String? trainerId,
-
-    /// Portée de détection visuelle en cases (0 = pas de détection active).
     @Default(0) int lineOfSightRange,
-
-    /// Dialogue déclenché après la défaite du dresseur par le joueur.
     DialogueRef? defeatDialogueRef,
+    String? characterId,
   }) = _MapEntityNpcData;
 
   factory MapEntityNpcData.fromJson(Map<String, dynamic> json) =>

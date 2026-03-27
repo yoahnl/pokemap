@@ -76,6 +76,8 @@ class EditorState with _$EditorState {
     String? selectedProjectDialogueId,
     /// Dresseur sélectionné dans la bibliothèque dresseurs.
     String? selectedTrainerId,
+    /// Personnage sélectionné dans la bibliothèque personnages.
+    String? selectedCharacterId,
     PaletteCategory? paletteCategoryFilter,
 
     // Viewport

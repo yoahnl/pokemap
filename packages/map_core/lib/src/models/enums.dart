@@ -302,6 +302,15 @@ enum EncounterKind {
   special,      // Déclenchement ad-hoc
 }
 
+enum CharacterAnimationState {
+  @JsonValue('idle')
+  idle,
+  @JsonValue('walk')
+  walk,
+  @JsonValue('run')
+  run,
+}
+
 enum TilesetScope {
   @JsonValue('global')
   global,

@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix ->)
+> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -79,6 +79,10 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Tables de rencontres (ProjectEncounterTable) | **Fait** | entries avec speciesId, niveaux, poids |
 | Dialogues projet (ProjectDialogueEntry) | **Fait** | relativePath, tags, startNode, folderId |
 | Dresseurs (ProjectTrainerEntry + équipe) | **Fait** | team[], moves[], held item, form, gender, shiny |
+| Personnages overworld (ProjectCharacterEntry) | **Fait** | id, name, tilesetId, frameWidth, frameHeight, animations[]: CharacterAnimation(state, direction, frames[]: CharacterAnimationFrame(source, durationMs)) |
+| playerCharacterId dans ProjectSettings | **Fait** | Désigne le personnage sprite du joueur |
+| CharacterAnimationState (idle, walk, run) | **Fait** | Enum + JSON |
+| Validation personnages (validators.dart) | **Fait** | IDs uniques, tilesetId connu, dims positives, playerCharacterId référence existante |
 | Éléments visuels projet (ProjectElementEntry) | **Fait** | frames[], tilesetId, categoryId, groupId — multi-frames supporté |
 | Presets terrain (ProjectTerrainPreset) | **Fait** | variants avec poids, frames[] |
 | Presets path / autotile (ProjectPathPreset) | **Fait** | 20 variantes (corners, tees, cross, edges…) |
@@ -127,7 +131,10 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Ordre de rendu : terrain → path → tile → entités → collision | **Fait** | Identique à l'éditeur |
 | RuntimeMapGame (viewer statique) | **Fait** | Caméra = map entière visible |
 | PlayableMapGame (jouable au clavier) | **Fait** | KeyboardEvents : flèches + WASD + E/Space |
-| PlayerComponent (disque + indicateur direction) | **Fait** | Simple marqueur visuel bleu |
+| PlayerComponent (disque + indicateur direction) | **Fait** | Marqueur bleu si pas de personnage configuré ; sinon délègue à OverworldActorComponent |
+| OverworldActorComponent | **Fait** | Composant Flame : rendu sprite personnage depuis spritesheet, animation time-based, facing + state, fallback cercle vert |
+| Sprites personnages NPC dans PlayableMapGame | **Fait** | _addNpcActors, skip rendu entité dans MapLayersComponent si characterId défini |
+| Résolution tilesets personnages (runtime_manifest_tilesets) | **Fait** | Collecte tilesets joueur + NPCs pour préchargement |
 | Collisions au clavier via map_gameplay | **Fait** | |
 | Warps : détection + chargement async nouvelle map | **Fait** | _handleWarp, erreur loggée + notification "Warp failed" |
 | Interactions entités (E/Space) | **Fait** | Résultat typé → overlay 2s (`entity.inspectorHeadline`) + log `[interact]` |
@@ -168,7 +175,9 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Gameplay zone properties panel | **Fait** | |
 | Encounter tables panel | **Fait** | |
 | Trainer library panel | **Fait** | |
-| Project explorer panel | **Fait** | maps, groupes, tilesets, éléments, dialogues, dresseurs |
+| Character library panel | **Fait** | CRUD personnages, désignation joueur ; éditeur d'animations visuel : grille 3×4 (états × directions), sélecteur spritesheet par frame complète (clic sélectionne frameWidth×frameHeight tiles d'un coup), frame strip avec miniatures, preview animée en direct, contrôles durée / réordonnement / suppression ; supporte naturellement 3 frames par direction (walk cycle classique) |
+| Entity properties panel — NPC characterId | **Fait** | Dropdown pour assigner un personnage-sprite à chaque entité NPC |
+| Project explorer panel | **Fait** | maps, groupes, tilesets, éléments, dialogues, dresseurs, personnages |
 | EditorBrush (tile, palette, element) | **Fait** | |
 | Édition visuels entités (editorVisual → ProjectElementEntry) | **Fait** | |
 | Propriétés map avancées (hooks gameplay, flags progression) | **Non fait** | Identifié comme manquant |

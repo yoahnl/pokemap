@@ -63,6 +63,7 @@ class ProjectValidator {
     _validateEncounterTables(manifest.encounterTables);
     _validateProjectDialogues(manifest);
     _validateTrainers(manifest);
+    _validateCharacters(manifest);
     _validateSettings(manifest.settings);
   }
 
@@ -136,6 +137,11 @@ class ProjectValidator {
       manifest.trainers,
       (t) => t.id,
       duplicateMessagePrefix: 'Duplicate trainer ID',
+    );
+    _validateUniqueIds(
+      manifest.characters,
+      (c) => c.id,
+      duplicateMessagePrefix: 'Duplicate character ID',
     );
   }
 
@@ -742,6 +748,64 @@ class ProjectValidator {
             'Trainer $id team[$i] level must be positive (got ${pokemon.level})',
           );
         }
+      }
+    }
+  }
+
+  static void _validateCharacters(ProjectManifest manifest) {
+    final knownTilesetIds = manifest.tilesets.map((t) => t.id).toSet();
+    for (final char in manifest.characters) {
+      final id = char.id.trim();
+      if (id.isEmpty) {
+        throw const ValidationException('Character entry has an empty id');
+      }
+      if (char.name.trim().isEmpty) {
+        throw ValidationException('Character $id has an empty name');
+      }
+      final tid = char.tilesetId.trim();
+      if (tid.isEmpty) {
+        throw ValidationException('Character $id has an empty tilesetId');
+      }
+      if (!knownTilesetIds.contains(tid)) {
+        throw ValidationException(
+          'Character $id references unknown tileset: $tid',
+        );
+      }
+      if (char.frameWidth <= 0 || char.frameHeight <= 0) {
+        throw ValidationException(
+          'Character $id has invalid frame dimensions',
+        );
+      }
+      for (var i = 0; i < char.animations.length; i++) {
+        final anim = char.animations[i];
+        for (var j = 0; j < anim.frames.length; j++) {
+          final frame = anim.frames[j];
+          final src = frame.source;
+          if (src.x < 0 || src.y < 0) {
+            throw ValidationException(
+              'Character $id animation[$i] frame $j has invalid source coordinates',
+            );
+          }
+          if (src.width <= 0 || src.height <= 0) {
+            throw ValidationException(
+              'Character $id animation[$i] frame $j has invalid source size',
+            );
+          }
+          if (frame.durationMs <= 0) {
+            throw ValidationException(
+              'Character $id animation[$i] frame $j durationMs must be positive',
+            );
+          }
+        }
+      }
+    }
+    final playerCharId = manifest.settings.playerCharacterId?.trim();
+    if (playerCharId != null && playerCharId.isNotEmpty) {
+      final charIds = manifest.characters.map((c) => c.id).toSet();
+      if (!charIds.contains(playerCharId)) {
+        throw ValidationException(
+          'Settings playerCharacterId "$playerCharId" references unknown character',
+        );
       }
     }
   }

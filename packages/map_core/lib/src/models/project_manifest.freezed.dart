@@ -37,21 +37,15 @@ mixin _$ProjectManifest {
   List<ProjectTerrainPreset> get terrainPresets =>
       throw _privateConstructorUsedError;
   List<ProjectPathPreset> get pathPresets => throw _privateConstructorUsedError;
-
-  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
   List<ProjectEncounterTable> get encounterTables =>
       throw _privateConstructorUsedError;
-
-  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
   List<ProjectDialogueFolder> get dialogueFolders =>
       throw _privateConstructorUsedError;
-
-  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   List<ProjectDialogueEntry> get dialogues =>
       throw _privateConstructorUsedError;
-
-  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
   List<ProjectTrainerEntry> get trainers => throw _privateConstructorUsedError;
+  List<ProjectCharacterEntry> get characters =>
+      throw _privateConstructorUsedError;
   ProjectSettings get settings => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
@@ -89,6 +83,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       List<ProjectTrainerEntry> trainers,
+      List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -126,6 +121,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? dialogueFolders = null,
     Object? dialogues = null,
     Object? trainers = null,
+    Object? characters = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -194,6 +190,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.trainers
           : trainers // ignore: cast_nullable_to_non_nullable
               as List<ProjectTrainerEntry>,
+      characters: null == characters
+          ? _value.characters
+          : characters // ignore: cast_nullable_to_non_nullable
+              as List<ProjectCharacterEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -241,6 +241,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       List<ProjectTrainerEntry> trainers,
+      List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
       Map<String, dynamic> globalProperties});
 
@@ -277,6 +278,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? dialogueFolders = null,
     Object? dialogues = null,
     Object? trainers = null,
+    Object? characters = null,
     Object? settings = null,
     Object? globalProperties = null,
   }) {
@@ -345,6 +347,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._trainers
           : trainers // ignore: cast_nullable_to_non_nullable
               as List<ProjectTrainerEntry>,
+      characters: null == characters
+          ? _value._characters
+          : characters // ignore: cast_nullable_to_non_nullable
+              as List<ProjectCharacterEntry>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -378,6 +384,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectDialogueFolder> dialogueFolders = const [],
       final List<ProjectDialogueEntry> dialogues = const [],
       final List<ProjectTrainerEntry> trainers = const [],
+      final List<ProjectCharacterEntry> characters = const [],
       this.settings = const ProjectSettings(),
       final Map<String, dynamic> globalProperties = const {}})
       : _maps = maps,
@@ -394,6 +401,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _dialogueFolders = dialogueFolders,
         _dialogues = dialogues,
         _trainers = trainers,
+        _characters = characters,
         _globalProperties = globalProperties;
 
   factory _$ProjectManifestImpl.fromJson(Map<String, dynamic> json) =>
@@ -494,10 +502,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_pathPresets);
   }
 
-  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
   final List<ProjectEncounterTable> _encounterTables;
-
-  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
   @override
   @JsonKey()
   List<ProjectEncounterTable> get encounterTables {
@@ -506,10 +511,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_encounterTables);
   }
 
-  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
   final List<ProjectDialogueFolder> _dialogueFolders;
-
-  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
   @override
   @JsonKey()
   List<ProjectDialogueFolder> get dialogueFolders {
@@ -518,10 +520,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_dialogueFolders);
   }
 
-  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   final List<ProjectDialogueEntry> _dialogues;
-
-  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   @override
   @JsonKey()
   List<ProjectDialogueEntry> get dialogues {
@@ -530,16 +529,22 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_dialogues);
   }
 
-  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
   final List<ProjectTrainerEntry> _trainers;
-
-  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
   @override
   @JsonKey()
   List<ProjectTrainerEntry> get trainers {
     if (_trainers is EqualUnmodifiableListView) return _trainers;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_trainers);
+  }
+
+  final List<ProjectCharacterEntry> _characters;
+  @override
+  @JsonKey()
+  List<ProjectCharacterEntry> get characters {
+    if (_characters is EqualUnmodifiableListView) return _characters;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_characters);
   }
 
   @override
@@ -556,7 +561,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, trainers: $trainers, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, trainers: $trainers, characters: $characters, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -589,6 +594,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality()
                 .equals(other._dialogues, _dialogues) &&
             const DeepCollectionEquality().equals(other._trainers, _trainers) &&
+            const DeepCollectionEquality()
+                .equals(other._characters, _characters) &&
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
             const DeepCollectionEquality()
@@ -597,26 +604,28 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      name,
-      version,
-      const DeepCollectionEquality().hash(_maps),
-      const DeepCollectionEquality().hash(_groups),
-      const DeepCollectionEquality().hash(_tilesetFolders),
-      const DeepCollectionEquality().hash(_tilesets),
-      const DeepCollectionEquality().hash(_elementCategories),
-      const DeepCollectionEquality().hash(_elements),
-      const DeepCollectionEquality().hash(_terrainCategories),
-      const DeepCollectionEquality().hash(_pathCategories),
-      const DeepCollectionEquality().hash(_terrainPresets),
-      const DeepCollectionEquality().hash(_pathPresets),
-      const DeepCollectionEquality().hash(_encounterTables),
-      const DeepCollectionEquality().hash(_dialogueFolders),
-      const DeepCollectionEquality().hash(_dialogues),
-      const DeepCollectionEquality().hash(_trainers),
-      settings,
-      const DeepCollectionEquality().hash(_globalProperties));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        name,
+        version,
+        const DeepCollectionEquality().hash(_maps),
+        const DeepCollectionEquality().hash(_groups),
+        const DeepCollectionEquality().hash(_tilesetFolders),
+        const DeepCollectionEquality().hash(_tilesets),
+        const DeepCollectionEquality().hash(_elementCategories),
+        const DeepCollectionEquality().hash(_elements),
+        const DeepCollectionEquality().hash(_terrainCategories),
+        const DeepCollectionEquality().hash(_pathCategories),
+        const DeepCollectionEquality().hash(_terrainPresets),
+        const DeepCollectionEquality().hash(_pathPresets),
+        const DeepCollectionEquality().hash(_encounterTables),
+        const DeepCollectionEquality().hash(_dialogueFolders),
+        const DeepCollectionEquality().hash(_dialogues),
+        const DeepCollectionEquality().hash(_trainers),
+        const DeepCollectionEquality().hash(_characters),
+        settings,
+        const DeepCollectionEquality().hash(_globalProperties)
+      ]);
 
   /// Create a copy of ProjectManifest
   /// with the given fields replaced by the non-null parameter values.
@@ -653,6 +662,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectDialogueFolder> dialogueFolders,
       final List<ProjectDialogueEntry> dialogues,
       final List<ProjectTrainerEntry> trainers,
+      final List<ProjectCharacterEntry> characters,
       final ProjectSettings settings,
       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
 
@@ -683,22 +693,16 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectTerrainPreset> get terrainPresets;
   @override
   List<ProjectPathPreset> get pathPresets;
-
-  /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
   @override
   List<ProjectEncounterTable> get encounterTables;
-
-  /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
   @override
   List<ProjectDialogueFolder> get dialogueFolders;
-
-  /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
   @override
   List<ProjectDialogueEntry> get dialogues;
-
-  /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
   @override
   List<ProjectTrainerEntry> get trainers;
+  @override
+  List<ProjectCharacterEntry> get characters;
   @override
   ProjectSettings get settings;
   @override
@@ -723,6 +727,7 @@ mixin _$ProjectSettings {
   double get displayScale => throw _privateConstructorUsedError;
   int get defaultMapWidth => throw _privateConstructorUsedError;
   int get defaultMapHeight => throw _privateConstructorUsedError;
+  String? get playerCharacterId => throw _privateConstructorUsedError;
 
   /// Serializes this ProjectSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -745,7 +750,8 @@ abstract class $ProjectSettingsCopyWith<$Res> {
       int tileHeight,
       double displayScale,
       int defaultMapWidth,
-      int defaultMapHeight});
+      int defaultMapHeight,
+      String? playerCharacterId});
 }
 
 /// @nodoc
@@ -768,6 +774,7 @@ class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
     Object? displayScale = null,
     Object? defaultMapWidth = null,
     Object? defaultMapHeight = null,
+    Object? playerCharacterId = freezed,
   }) {
     return _then(_value.copyWith(
       tileWidth: null == tileWidth
@@ -790,6 +797,10 @@ class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
           ? _value.defaultMapHeight
           : defaultMapHeight // ignore: cast_nullable_to_non_nullable
               as int,
+      playerCharacterId: freezed == playerCharacterId
+          ? _value.playerCharacterId
+          : playerCharacterId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -807,7 +818,8 @@ abstract class _$$ProjectSettingsImplCopyWith<$Res>
       int tileHeight,
       double displayScale,
       int defaultMapWidth,
-      int defaultMapHeight});
+      int defaultMapHeight,
+      String? playerCharacterId});
 }
 
 /// @nodoc
@@ -828,6 +840,7 @@ class __$$ProjectSettingsImplCopyWithImpl<$Res>
     Object? displayScale = null,
     Object? defaultMapWidth = null,
     Object? defaultMapHeight = null,
+    Object? playerCharacterId = freezed,
   }) {
     return _then(_$ProjectSettingsImpl(
       tileWidth: null == tileWidth
@@ -850,6 +863,10 @@ class __$$ProjectSettingsImplCopyWithImpl<$Res>
           ? _value.defaultMapHeight
           : defaultMapHeight // ignore: cast_nullable_to_non_nullable
               as int,
+      playerCharacterId: freezed == playerCharacterId
+          ? _value.playerCharacterId
+          : playerCharacterId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -863,7 +880,8 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
       this.tileHeight = 16,
       this.displayScale = 2.0,
       this.defaultMapWidth = 20,
-      this.defaultMapHeight = 15});
+      this.defaultMapHeight = 15,
+      this.playerCharacterId});
 
   factory _$ProjectSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectSettingsImplFromJson(json);
@@ -883,10 +901,12 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
   @override
   @JsonKey()
   final int defaultMapHeight;
+  @override
+  final String? playerCharacterId;
 
   @override
   String toString() {
-    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight)';
+    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, playerCharacterId: $playerCharacterId)';
   }
 
   @override
@@ -903,13 +923,15 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
             (identical(other.defaultMapWidth, defaultMapWidth) ||
                 other.defaultMapWidth == defaultMapWidth) &&
             (identical(other.defaultMapHeight, defaultMapHeight) ||
-                other.defaultMapHeight == defaultMapHeight));
+                other.defaultMapHeight == defaultMapHeight) &&
+            (identical(other.playerCharacterId, playerCharacterId) ||
+                other.playerCharacterId == playerCharacterId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, tileWidth, tileHeight,
-      displayScale, defaultMapWidth, defaultMapHeight);
+      displayScale, defaultMapWidth, defaultMapHeight, playerCharacterId);
 
   /// Create a copy of ProjectSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -934,7 +956,8 @@ abstract class _ProjectSettings implements ProjectSettings {
       final int tileHeight,
       final double displayScale,
       final int defaultMapWidth,
-      final int defaultMapHeight}) = _$ProjectSettingsImpl;
+      final int defaultMapHeight,
+      final String? playerCharacterId}) = _$ProjectSettingsImpl;
 
   factory _ProjectSettings.fromJson(Map<String, dynamic> json) =
       _$ProjectSettingsImpl.fromJson;
@@ -949,6 +972,8 @@ abstract class _ProjectSettings implements ProjectSettings {
   int get defaultMapWidth;
   @override
   int get defaultMapHeight;
+  @override
+  String? get playerCharacterId;
 
   /// Create a copy of ProjectSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -1746,7 +1771,7 @@ mixin _$ProjectDialogueEntry {
   List<String> get tags => throw _privateConstructorUsedError;
   String get description => throw _privateConstructorUsedError;
 
-  /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+  /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
   String? get defaultStartNode => throw _privateConstructorUsedError;
 
   /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
@@ -1959,7 +1984,7 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
   @JsonKey()
   final String description;
 
-  /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+  /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
   @override
   final String? defaultStartNode;
 
@@ -2053,7 +2078,7 @@ abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
   @override
   String get description;
 
-  /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+  /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
   @override
   String? get defaultStartNode;
 
@@ -2671,7 +2696,7 @@ mixin _$TilesetPaletteEntry {
   String get name => throw _privateConstructorUsedError;
   PaletteCategory get category => throw _privateConstructorUsedError;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
   List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
 
@@ -2829,10 +2854,10 @@ class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
   @JsonKey()
   final PaletteCategory category;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
   final List<TilesetVisualFrame> _frames;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
   @override
   List<TilesetVisualFrame> get frames {
     if (_frames is EqualUnmodifiableListView) return _frames;
@@ -2902,7 +2927,7 @@ abstract class _TilesetPaletteEntry implements TilesetPaletteEntry {
   @override
   PaletteCategory get category;
 
-  /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
   @override
   List<TilesetVisualFrame> get frames;
   @override
@@ -3130,7 +3155,7 @@ mixin _$TilesetVisualFrame {
   String get tilesetId => throw _privateConstructorUsedError;
   TilesetSourceRect get source => throw _privateConstructorUsedError;
 
-  /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+  /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
   int? get durationMs => throw _privateConstructorUsedError;
 
   /// Serializes this TilesetVisualFrame to a JSON map.
@@ -3264,7 +3289,7 @@ class _$TilesetVisualFrameImpl implements _TilesetVisualFrame {
   @override
   final TilesetSourceRect source;
 
-  /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+  /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
   @override
   final int? durationMs;
 
@@ -3320,7 +3345,7 @@ abstract class _TilesetVisualFrame implements TilesetVisualFrame {
   @override
   TilesetSourceRect get source;
 
-  /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+  /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
   @override
   int? get durationMs;
 
@@ -5801,5 +5826,734 @@ abstract class _ProjectEncounterTable implements ProjectEncounterTable {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectEncounterTableImplCopyWith<_$ProjectEncounterTableImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectCharacterEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectCharacterEntry {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String get tilesetId => throw _privateConstructorUsedError;
+  int get frameWidth => throw _privateConstructorUsedError;
+  int get frameHeight => throw _privateConstructorUsedError;
+  List<CharacterAnimation> get animations => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectCharacterEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectCharacterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectCharacterEntryCopyWith<ProjectCharacterEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectCharacterEntryCopyWith<$Res> {
+  factory $ProjectCharacterEntryCopyWith(ProjectCharacterEntry value,
+          $Res Function(ProjectCharacterEntry) then) =
+      _$ProjectCharacterEntryCopyWithImpl<$Res, ProjectCharacterEntry>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String tilesetId,
+      int frameWidth,
+      int frameHeight,
+      List<CharacterAnimation> animations,
+      List<String> tags,
+      int sortOrder});
+}
+
+/// @nodoc
+class _$ProjectCharacterEntryCopyWithImpl<$Res,
+        $Val extends ProjectCharacterEntry>
+    implements $ProjectCharacterEntryCopyWith<$Res> {
+  _$ProjectCharacterEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectCharacterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? tilesetId = null,
+    Object? frameWidth = null,
+    Object? frameHeight = null,
+    Object? animations = null,
+    Object? tags = null,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      frameWidth: null == frameWidth
+          ? _value.frameWidth
+          : frameWidth // ignore: cast_nullable_to_non_nullable
+              as int,
+      frameHeight: null == frameHeight
+          ? _value.frameHeight
+          : frameHeight // ignore: cast_nullable_to_non_nullable
+              as int,
+      animations: null == animations
+          ? _value.animations
+          : animations // ignore: cast_nullable_to_non_nullable
+              as List<CharacterAnimation>,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectCharacterEntryImplCopyWith<$Res>
+    implements $ProjectCharacterEntryCopyWith<$Res> {
+  factory _$$ProjectCharacterEntryImplCopyWith(
+          _$ProjectCharacterEntryImpl value,
+          $Res Function(_$ProjectCharacterEntryImpl) then) =
+      __$$ProjectCharacterEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String tilesetId,
+      int frameWidth,
+      int frameHeight,
+      List<CharacterAnimation> animations,
+      List<String> tags,
+      int sortOrder});
+}
+
+/// @nodoc
+class __$$ProjectCharacterEntryImplCopyWithImpl<$Res>
+    extends _$ProjectCharacterEntryCopyWithImpl<$Res,
+        _$ProjectCharacterEntryImpl>
+    implements _$$ProjectCharacterEntryImplCopyWith<$Res> {
+  __$$ProjectCharacterEntryImplCopyWithImpl(_$ProjectCharacterEntryImpl _value,
+      $Res Function(_$ProjectCharacterEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectCharacterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? tilesetId = null,
+    Object? frameWidth = null,
+    Object? frameHeight = null,
+    Object? animations = null,
+    Object? tags = null,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$ProjectCharacterEntryImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      frameWidth: null == frameWidth
+          ? _value.frameWidth
+          : frameWidth // ignore: cast_nullable_to_non_nullable
+              as int,
+      frameHeight: null == frameHeight
+          ? _value.frameHeight
+          : frameHeight // ignore: cast_nullable_to_non_nullable
+              as int,
+      animations: null == animations
+          ? _value._animations
+          : animations // ignore: cast_nullable_to_non_nullable
+              as List<CharacterAnimation>,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectCharacterEntryImpl implements _ProjectCharacterEntry {
+  const _$ProjectCharacterEntryImpl(
+      {required this.id,
+      required this.name,
+      required this.tilesetId,
+      this.frameWidth = 1,
+      this.frameHeight = 2,
+      final List<CharacterAnimation> animations = const [],
+      final List<String> tags = const [],
+      this.sortOrder = 0})
+      : _animations = animations,
+        _tags = tags;
+
+  factory _$ProjectCharacterEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectCharacterEntryImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final String tilesetId;
+  @override
+  @JsonKey()
+  final int frameWidth;
+  @override
+  @JsonKey()
+  final int frameHeight;
+  final List<CharacterAnimation> _animations;
+  @override
+  @JsonKey()
+  List<CharacterAnimation> get animations {
+    if (_animations is EqualUnmodifiableListView) return _animations;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_animations);
+  }
+
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, animations: $animations, tags: $tags, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectCharacterEntryImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.tilesetId, tilesetId) ||
+                other.tilesetId == tilesetId) &&
+            (identical(other.frameWidth, frameWidth) ||
+                other.frameWidth == frameWidth) &&
+            (identical(other.frameHeight, frameHeight) ||
+                other.frameHeight == frameHeight) &&
+            const DeepCollectionEquality()
+                .equals(other._animations, _animations) &&
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      tilesetId,
+      frameWidth,
+      frameHeight,
+      const DeepCollectionEquality().hash(_animations),
+      const DeepCollectionEquality().hash(_tags),
+      sortOrder);
+
+  /// Create a copy of ProjectCharacterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectCharacterEntryImplCopyWith<_$ProjectCharacterEntryImpl>
+      get copyWith => __$$ProjectCharacterEntryImplCopyWithImpl<
+          _$ProjectCharacterEntryImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectCharacterEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectCharacterEntry implements ProjectCharacterEntry {
+  const factory _ProjectCharacterEntry(
+      {required final String id,
+      required final String name,
+      required final String tilesetId,
+      final int frameWidth,
+      final int frameHeight,
+      final List<CharacterAnimation> animations,
+      final List<String> tags,
+      final int sortOrder}) = _$ProjectCharacterEntryImpl;
+
+  factory _ProjectCharacterEntry.fromJson(Map<String, dynamic> json) =
+      _$ProjectCharacterEntryImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String get tilesetId;
+  @override
+  int get frameWidth;
+  @override
+  int get frameHeight;
+  @override
+  List<CharacterAnimation> get animations;
+  @override
+  List<String> get tags;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of ProjectCharacterEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectCharacterEntryImplCopyWith<_$ProjectCharacterEntryImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+CharacterAnimation _$CharacterAnimationFromJson(Map<String, dynamic> json) {
+  return _CharacterAnimation.fromJson(json);
+}
+
+/// @nodoc
+mixin _$CharacterAnimation {
+  CharacterAnimationState get state => throw _privateConstructorUsedError;
+  EntityFacing get direction => throw _privateConstructorUsedError;
+  List<CharacterAnimationFrame> get frames =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this CharacterAnimation to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of CharacterAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $CharacterAnimationCopyWith<CharacterAnimation> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $CharacterAnimationCopyWith<$Res> {
+  factory $CharacterAnimationCopyWith(
+          CharacterAnimation value, $Res Function(CharacterAnimation) then) =
+      _$CharacterAnimationCopyWithImpl<$Res, CharacterAnimation>;
+  @useResult
+  $Res call(
+      {CharacterAnimationState state,
+      EntityFacing direction,
+      List<CharacterAnimationFrame> frames});
+}
+
+/// @nodoc
+class _$CharacterAnimationCopyWithImpl<$Res, $Val extends CharacterAnimation>
+    implements $CharacterAnimationCopyWith<$Res> {
+  _$CharacterAnimationCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of CharacterAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? state = null,
+    Object? direction = null,
+    Object? frames = null,
+  }) {
+    return _then(_value.copyWith(
+      state: null == state
+          ? _value.state
+          : state // ignore: cast_nullable_to_non_nullable
+              as CharacterAnimationState,
+      direction: null == direction
+          ? _value.direction
+          : direction // ignore: cast_nullable_to_non_nullable
+              as EntityFacing,
+      frames: null == frames
+          ? _value.frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<CharacterAnimationFrame>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$CharacterAnimationImplCopyWith<$Res>
+    implements $CharacterAnimationCopyWith<$Res> {
+  factory _$$CharacterAnimationImplCopyWith(_$CharacterAnimationImpl value,
+          $Res Function(_$CharacterAnimationImpl) then) =
+      __$$CharacterAnimationImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {CharacterAnimationState state,
+      EntityFacing direction,
+      List<CharacterAnimationFrame> frames});
+}
+
+/// @nodoc
+class __$$CharacterAnimationImplCopyWithImpl<$Res>
+    extends _$CharacterAnimationCopyWithImpl<$Res, _$CharacterAnimationImpl>
+    implements _$$CharacterAnimationImplCopyWith<$Res> {
+  __$$CharacterAnimationImplCopyWithImpl(_$CharacterAnimationImpl _value,
+      $Res Function(_$CharacterAnimationImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of CharacterAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? state = null,
+    Object? direction = null,
+    Object? frames = null,
+  }) {
+    return _then(_$CharacterAnimationImpl(
+      state: null == state
+          ? _value.state
+          : state // ignore: cast_nullable_to_non_nullable
+              as CharacterAnimationState,
+      direction: null == direction
+          ? _value.direction
+          : direction // ignore: cast_nullable_to_non_nullable
+              as EntityFacing,
+      frames: null == frames
+          ? _value._frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<CharacterAnimationFrame>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$CharacterAnimationImpl implements _CharacterAnimation {
+  const _$CharacterAnimationImpl(
+      {required this.state,
+      required this.direction,
+      final List<CharacterAnimationFrame> frames = const []})
+      : _frames = frames;
+
+  factory _$CharacterAnimationImpl.fromJson(Map<String, dynamic> json) =>
+      _$$CharacterAnimationImplFromJson(json);
+
+  @override
+  final CharacterAnimationState state;
+  @override
+  final EntityFacing direction;
+  final List<CharacterAnimationFrame> _frames;
+  @override
+  @JsonKey()
+  List<CharacterAnimationFrame> get frames {
+    if (_frames is EqualUnmodifiableListView) return _frames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_frames);
+  }
+
+  @override
+  String toString() {
+    return 'CharacterAnimation(state: $state, direction: $direction, frames: $frames)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CharacterAnimationImpl &&
+            (identical(other.state, state) || other.state == state) &&
+            (identical(other.direction, direction) ||
+                other.direction == direction) &&
+            const DeepCollectionEquality().equals(other._frames, _frames));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, state, direction,
+      const DeepCollectionEquality().hash(_frames));
+
+  /// Create a copy of CharacterAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CharacterAnimationImplCopyWith<_$CharacterAnimationImpl> get copyWith =>
+      __$$CharacterAnimationImplCopyWithImpl<_$CharacterAnimationImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$CharacterAnimationImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _CharacterAnimation implements CharacterAnimation {
+  const factory _CharacterAnimation(
+      {required final CharacterAnimationState state,
+      required final EntityFacing direction,
+      final List<CharacterAnimationFrame> frames}) = _$CharacterAnimationImpl;
+
+  factory _CharacterAnimation.fromJson(Map<String, dynamic> json) =
+      _$CharacterAnimationImpl.fromJson;
+
+  @override
+  CharacterAnimationState get state;
+  @override
+  EntityFacing get direction;
+  @override
+  List<CharacterAnimationFrame> get frames;
+
+  /// Create a copy of CharacterAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$CharacterAnimationImplCopyWith<_$CharacterAnimationImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+CharacterAnimationFrame _$CharacterAnimationFrameFromJson(
+    Map<String, dynamic> json) {
+  return _CharacterAnimationFrame.fromJson(json);
+}
+
+/// @nodoc
+mixin _$CharacterAnimationFrame {
+  TilesetSourceRect get source => throw _privateConstructorUsedError;
+  int get durationMs => throw _privateConstructorUsedError;
+
+  /// Serializes this CharacterAnimationFrame to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of CharacterAnimationFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $CharacterAnimationFrameCopyWith<CharacterAnimationFrame> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $CharacterAnimationFrameCopyWith<$Res> {
+  factory $CharacterAnimationFrameCopyWith(CharacterAnimationFrame value,
+          $Res Function(CharacterAnimationFrame) then) =
+      _$CharacterAnimationFrameCopyWithImpl<$Res, CharacterAnimationFrame>;
+  @useResult
+  $Res call({TilesetSourceRect source, int durationMs});
+
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class _$CharacterAnimationFrameCopyWithImpl<$Res,
+        $Val extends CharacterAnimationFrame>
+    implements $CharacterAnimationFrameCopyWith<$Res> {
+  _$CharacterAnimationFrameCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of CharacterAnimationFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? source = null,
+    Object? durationMs = null,
+  }) {
+    return _then(_value.copyWith(
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      durationMs: null == durationMs
+          ? _value.durationMs
+          : durationMs // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+
+  /// Create a copy of CharacterAnimationFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $TilesetSourceRectCopyWith<$Res> get source {
+    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
+      return _then(_value.copyWith(source: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$CharacterAnimationFrameImplCopyWith<$Res>
+    implements $CharacterAnimationFrameCopyWith<$Res> {
+  factory _$$CharacterAnimationFrameImplCopyWith(
+          _$CharacterAnimationFrameImpl value,
+          $Res Function(_$CharacterAnimationFrameImpl) then) =
+      __$$CharacterAnimationFrameImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({TilesetSourceRect source, int durationMs});
+
+  @override
+  $TilesetSourceRectCopyWith<$Res> get source;
+}
+
+/// @nodoc
+class __$$CharacterAnimationFrameImplCopyWithImpl<$Res>
+    extends _$CharacterAnimationFrameCopyWithImpl<$Res,
+        _$CharacterAnimationFrameImpl>
+    implements _$$CharacterAnimationFrameImplCopyWith<$Res> {
+  __$$CharacterAnimationFrameImplCopyWithImpl(
+      _$CharacterAnimationFrameImpl _value,
+      $Res Function(_$CharacterAnimationFrameImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of CharacterAnimationFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? source = null,
+    Object? durationMs = null,
+  }) {
+    return _then(_$CharacterAnimationFrameImpl(
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as TilesetSourceRect,
+      durationMs: null == durationMs
+          ? _value.durationMs
+          : durationMs // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$CharacterAnimationFrameImpl implements _CharacterAnimationFrame {
+  const _$CharacterAnimationFrameImpl(
+      {required this.source, this.durationMs = 150});
+
+  factory _$CharacterAnimationFrameImpl.fromJson(Map<String, dynamic> json) =>
+      _$$CharacterAnimationFrameImplFromJson(json);
+
+  @override
+  final TilesetSourceRect source;
+  @override
+  @JsonKey()
+  final int durationMs;
+
+  @override
+  String toString() {
+    return 'CharacterAnimationFrame(source: $source, durationMs: $durationMs)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CharacterAnimationFrameImpl &&
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.durationMs, durationMs) ||
+                other.durationMs == durationMs));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, source, durationMs);
+
+  /// Create a copy of CharacterAnimationFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CharacterAnimationFrameImplCopyWith<_$CharacterAnimationFrameImpl>
+      get copyWith => __$$CharacterAnimationFrameImplCopyWithImpl<
+          _$CharacterAnimationFrameImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$CharacterAnimationFrameImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _CharacterAnimationFrame implements CharacterAnimationFrame {
+  const factory _CharacterAnimationFrame(
+      {required final TilesetSourceRect source,
+      final int durationMs}) = _$CharacterAnimationFrameImpl;
+
+  factory _CharacterAnimationFrame.fromJson(Map<String, dynamic> json) =
+      _$CharacterAnimationFrameImpl.fromJson;
+
+  @override
+  TilesetSourceRect get source;
+  @override
+  int get durationMs;
+
+  /// Create a copy of CharacterAnimationFrame
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$CharacterAnimationFrameImplCopyWith<_$CharacterAnimationFrameImpl>
       get copyWith => throw _privateConstructorUsedError;
 }

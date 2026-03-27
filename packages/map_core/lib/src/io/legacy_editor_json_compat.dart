@@ -9,6 +9,9 @@ Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
   if (!next.containsKey('tilesetFolders')) {
     next['tilesetFolders'] = <dynamic>[];
   }
+  if (!next.containsKey('characters')) {
+    next['characters'] = <dynamic>[];
+  }
   final legacyCategories = raw['terrainPresetCategories'];
   if (!next.containsKey('terrainCategories') && legacyCategories is List) {
     next['terrainCategories'] = legacyCategories

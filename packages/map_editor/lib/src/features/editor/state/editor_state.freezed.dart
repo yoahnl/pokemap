@@ -736,6 +736,9 @@ mixin _$EditorState {
 
   /// Dresseur sélectionné dans la bibliothèque dresseurs.
   String? get selectedTrainerId => throw _privateConstructorUsedError;
+
+  /// Personnage sélectionné dans la bibliothèque personnages.
+  String? get selectedCharacterId => throw _privateConstructorUsedError;
   PaletteCategory? get paletteCategoryFilter =>
       throw _privateConstructorUsedError; // Viewport
   double get zoom => throw _privateConstructorUsedError;
@@ -792,6 +795,7 @@ abstract class $EditorStateCopyWith<$Res> {
       String? selectedTilesetElementGroupId,
       String? selectedProjectDialogueId,
       String? selectedTrainerId,
+      String? selectedCharacterId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -855,6 +859,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedTilesetElementGroupId = freezed,
     Object? selectedProjectDialogueId = freezed,
     Object? selectedTrainerId = freezed,
+    Object? selectedCharacterId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -969,6 +974,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedTrainerId: freezed == selectedTrainerId
           ? _value.selectedTrainerId
           : selectedTrainerId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedCharacterId: freezed == selectedCharacterId
+          ? _value.selectedCharacterId
+          : selectedCharacterId // ignore: cast_nullable_to_non_nullable
               as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
@@ -1154,6 +1163,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? selectedTilesetElementGroupId,
       String? selectedProjectDialogueId,
       String? selectedTrainerId,
+      String? selectedCharacterId,
       PaletteCategory? paletteCategoryFilter,
       double zoom,
       Offset panOffset,
@@ -1222,6 +1232,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedTilesetElementGroupId = freezed,
     Object? selectedProjectDialogueId = freezed,
     Object? selectedTrainerId = freezed,
+    Object? selectedCharacterId = freezed,
     Object? paletteCategoryFilter = freezed,
     Object? zoom = null,
     Object? panOffset = null,
@@ -1337,6 +1348,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedTrainerId
           : selectedTrainerId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedCharacterId: freezed == selectedCharacterId
+          ? _value.selectedCharacterId
+          : selectedCharacterId // ignore: cast_nullable_to_non_nullable
+              as String?,
       paletteCategoryFilter: freezed == paletteCategoryFilter
           ? _value.paletteCategoryFilter
           : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
@@ -1422,6 +1437,7 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedTilesetElementGroupId,
       this.selectedProjectDialogueId,
       this.selectedTrainerId,
+      this.selectedCharacterId,
       this.paletteCategoryFilter,
       this.zoom = 1.0,
       this.panOffset = Offset.zero,
@@ -1513,6 +1529,10 @@ class _$EditorStateImpl implements _EditorState {
   /// Dresseur sélectionné dans la bibliothèque dresseurs.
   @override
   final String? selectedTrainerId;
+
+  /// Personnage sélectionné dans la bibliothèque personnages.
+  @override
+  final String? selectedCharacterId;
   @override
   final PaletteCategory? paletteCategoryFilter;
 // Viewport
@@ -1565,7 +1585,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1624,6 +1644,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedProjectDialogueId == selectedProjectDialogueId) &&
             (identical(other.selectedTrainerId, selectedTrainerId) ||
                 other.selectedTrainerId == selectedTrainerId) &&
+            (identical(other.selectedCharacterId, selectedCharacterId) ||
+                other.selectedCharacterId == selectedCharacterId) &&
             (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
                 other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
@@ -1639,8 +1661,7 @@ class _$EditorStateImpl implements _EditorState {
                 other.savedMapSnapshot == savedMapSnapshot) &&
             (identical(other.canUndoMap, canUndoMap) ||
                 other.canUndoMap == canUndoMap) &&
-            (identical(other.canRedoMap, canRedoMap) ||
-                other.canRedoMap == canRedoMap) &&
+            (identical(other.canRedoMap, canRedoMap) || other.canRedoMap == canRedoMap) &&
             (identical(other.isDirty, isDirty) || other.isDirty == isDirty) &&
             (identical(other.isSaving, isSaving) || other.isSaving == isSaving) &&
             (identical(other.statusMessage, statusMessage) || other.statusMessage == statusMessage) &&
@@ -1675,6 +1696,7 @@ class _$EditorStateImpl implements _EditorState {
         selectedTilesetElementGroupId,
         selectedProjectDialogueId,
         selectedTrainerId,
+        selectedCharacterId,
         paletteCategoryFilter,
         zoom,
         panOffset,
@@ -1726,6 +1748,7 @@ abstract class _EditorState implements EditorState {
       final String? selectedTilesetElementGroupId,
       final String? selectedProjectDialogueId,
       final String? selectedTrainerId,
+      final String? selectedCharacterId,
       final PaletteCategory? paletteCategoryFilter,
       final double zoom,
       final Offset panOffset,
@@ -1797,6 +1820,10 @@ abstract class _EditorState implements EditorState {
   /// Dresseur sélectionné dans la bibliothèque dresseurs.
   @override
   String? get selectedTrainerId;
+
+  /// Personnage sélectionné dans la bibliothèque personnages.
+  @override
+  String? get selectedCharacterId;
   @override
   PaletteCategory? get paletteCategoryFilter; // Viewport
   @override

@@ -1,3 +1,4 @@
+export 'character_use_cases.dart';
 export 'collision_use_cases.dart';
 export 'encounter_table_use_cases.dart';
 export 'trainer_use_cases.dart';

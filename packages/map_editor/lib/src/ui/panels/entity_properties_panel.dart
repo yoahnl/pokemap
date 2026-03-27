@@ -19,6 +19,7 @@ const _kDialogueNoneMenuId = '__dialogue_none__';
 const _kNodeNoneMenuId = '__yarn_node_none__';
 const _kElementNoneMenuId = '__entity_element_none__';
 const _kTrainerNoneMenuId = '__entity_trainer_none__';
+const _kCharacterNoneMenuId = '__entity_character_none__';
 
 String _normalizeDialogueRelPath(String raw) {
   return raw.trim().replaceAll(r'\', '/');
@@ -82,6 +83,7 @@ class _EntityPropertiesPanelState
   final _npcScriptPath = TextEditingController();
   final _npcStartNode = TextEditingController();
   EntityFacing _npcFacing = EntityFacing.south;
+  String _npcCharacterMenuId = _kCharacterNoneMenuId;
   String _npcTrainerMenuId = _kTrainerNoneMenuId;
   final _npcLineOfSight = TextEditingController();
   final _npcDefeatDialogueId = TextEditingController();
@@ -777,6 +779,67 @@ class _EntityPropertiesPanelState
     );
   }
 
+  List<Widget> _npcCharacterFields(
+    BuildContext context,
+    ProjectManifest? project,
+  ) {
+    const charAccent = EditorChrome.inspectorJoyCyan;
+    final characters = project?.characters ?? const <ProjectCharacterEntry>[];
+    final menuIds = [_kCharacterNoneMenuId, ...characters.map((c) => c.id)];
+    String labelOf(String id) {
+      if (id == _kCharacterNoneMenuId) return _l('Aucun', 'None');
+      for (final c in characters) {
+        if (c.id == id) return c.name;
+      }
+      return id;
+    }
+
+    final selected = menuIds.contains(_npcCharacterMenuId)
+        ? _npcCharacterMenuId
+        : _kCharacterNoneMenuId;
+
+    return [
+      InspectorEmbeddedSectionLabel(_l('PERSONNAGE OVERWORLD', 'OVERWORLD CHARACTER')),
+      const SizedBox(height: 6),
+      if (widget.embedded)
+        InspectorEmbeddedDropdown(
+          accent: charAccent,
+          fieldLabel: _l('Personnage', 'Character'),
+          valueLabel: labelOf(selected),
+          orderedIds: menuIds,
+          selectedMenuValue: selected,
+          selectedIdForCheck: selected,
+          idToLabel: labelOf,
+          onSelected: (id) =>
+              setState(() => _npcCharacterMenuId = id),
+          tooltip: _l(
+            'Sprite de personnage utilisé pour ce PNJ sur l\'overworld',
+            'Character sprite used for this NPC on the overworld',
+          ),
+        )
+      else ...[
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: () async {
+            final picked = await showCupertinoListPicker<String>(
+              context: context,
+              title: _l('Personnage', 'Character'),
+              items: menuIds,
+              labelOf: labelOf,
+            );
+            if (picked != null && context.mounted) {
+              setState(() => _npcCharacterMenuId = picked);
+            }
+          },
+          child: Text(
+            '${_l('Personnage', 'Character')}: ${labelOf(selected)}',
+          ),
+        ),
+      ],
+    ];
+  }
+
   List<Widget> _npcDialogueFields(
     BuildContext context,
     ProjectManifest? project,
@@ -1266,6 +1329,8 @@ class _EntityPropertiesPanelState
             ),
             const SizedBox(height: 8),
             ..._npcDialogueFields(context, project),
+            const SizedBox(height: 8),
+            ..._npcCharacterFields(context, project),
             const SizedBox(height: 8),
             if (widget.embedded)
               InspectorEmbeddedDropdown(
@@ -1798,6 +1863,9 @@ class _EntityPropertiesPanelState
     }
     _npcStartNode.text = n.dialogue?.startNode ?? '';
     _npcFacing = n.facing;
+    final cid = n.characterId?.trim();
+    _npcCharacterMenuId =
+        (cid == null || cid.isEmpty) ? _kCharacterNoneMenuId : cid;
     final tid = n.trainerId?.trim();
     _npcTrainerMenuId =
         (tid == null || tid.isEmpty) ? _kTrainerNoneMenuId : tid;
@@ -2000,6 +2068,11 @@ class _EntityPropertiesPanelState
                 : _npcDefeatStartNode.text.trim(),
           );
         }
+        final charIdRaw = _npcCharacterMenuId.trim();
+        final charId = (charIdRaw.isEmpty ||
+                charIdRaw == _kCharacterNoneMenuId)
+            ? null
+            : charIdRaw;
         npcPayload = MapEntityNpcData(
           displayName: _nameController.text.trim(),
           dialogue: npcDlg,
@@ -2008,6 +2081,7 @@ class _EntityPropertiesPanelState
           trainerId: trainerId,
           lineOfSightRange: losRange.clamp(0, 999),
           defeatDialogueRef: defeatDlgRef,
+          characterId: charId,
         );
         break;
       case MapEntityKind.sign:

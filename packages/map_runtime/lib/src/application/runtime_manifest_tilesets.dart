@@ -102,9 +102,30 @@ void addEntityVisualTilesetIds(
   }
 }
 
+void addCharacterTilesetIds(
+  Set<String> ids,
+  MapData map,
+  ProjectManifest manifest,
+) {
+  final charById = {for (final c in manifest.characters) c.id: c};
+  final playerCharId = manifest.settings.playerCharacterId?.trim();
+  if (playerCharId != null && playerCharId.isNotEmpty) {
+    final tid = charById[playerCharId]?.tilesetId.trim() ?? '';
+    if (tid.isNotEmpty) ids.add(tid);
+  }
+  for (final entity in map.entities) {
+    if (entity.kind != MapEntityKind.npc) continue;
+    final charId = entity.npc?.characterId?.trim();
+    if (charId == null || charId.isEmpty) continue;
+    final tid = charById[charId]?.tilesetId.trim() ?? '';
+    if (tid.isNotEmpty) ids.add(tid);
+  }
+}
+
 Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   final ids = collectTilesetIdsReferencedOnMap(map);
   addTerrainAndPathPresetTilesetIds(ids, map, manifest);
   addEntityVisualTilesetIds(ids, map, manifest);
+  addCharacterTilesetIds(ids, map, manifest);
   return ids;
 }

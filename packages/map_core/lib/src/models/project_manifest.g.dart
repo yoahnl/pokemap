@@ -77,6 +77,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      characters: (json['characters'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectCharacterEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -107,6 +112,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
           instance.dialogueFolders.map((e) => e.toJson()).toList(),
       'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
       'trainers': instance.trainers.map((e) => e.toJson()).toList(),
+      'characters': instance.characters.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'globalProperties': instance.globalProperties,
     };
@@ -123,6 +129,7 @@ _$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
       displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
       defaultMapWidth: (json['defaultMapWidth'] as num?)?.toInt() ?? 20,
       defaultMapHeight: (json['defaultMapHeight'] as num?)?.toInt() ?? 15,
+      playerCharacterId: json['playerCharacterId'] as String?,
     );
 
 Map<String, dynamic> _$$ProjectSettingsImplToJson(
@@ -133,6 +140,7 @@ Map<String, dynamic> _$$ProjectSettingsImplToJson(
       'displayScale': instance.displayScale,
       'defaultMapWidth': instance.defaultMapWidth,
       'defaultMapHeight': instance.defaultMapHeight,
+      'playerCharacterId': instance.playerCharacterId,
     };
 
 _$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(
@@ -669,3 +677,83 @@ const _$EncounterKindEnumMap = {
   EncounterKind.gift: 'gift',
   EncounterKind.special: 'special',
 };
+
+_$ProjectCharacterEntryImpl _$$ProjectCharacterEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectCharacterEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      tilesetId: json['tilesetId'] as String,
+      frameWidth: (json['frameWidth'] as num?)?.toInt() ?? 1,
+      frameHeight: (json['frameHeight'] as num?)?.toInt() ?? 2,
+      animations: (json['animations'] as List<dynamic>?)
+              ?.map(
+                  (e) => CharacterAnimation.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectCharacterEntryImplToJson(
+        _$ProjectCharacterEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'tilesetId': instance.tilesetId,
+      'frameWidth': instance.frameWidth,
+      'frameHeight': instance.frameHeight,
+      'animations': instance.animations.map((e) => e.toJson()).toList(),
+      'tags': instance.tags,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$CharacterAnimationImpl _$$CharacterAnimationImplFromJson(
+        Map<String, dynamic> json) =>
+    _$CharacterAnimationImpl(
+      state: $enumDecode(_$CharacterAnimationStateEnumMap, json['state']),
+      direction: $enumDecode(_$EntityFacingEnumMap, json['direction']),
+      frames: (json['frames'] as List<dynamic>?)
+              ?.map((e) =>
+                  CharacterAnimationFrame.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$CharacterAnimationImplToJson(
+        _$CharacterAnimationImpl instance) =>
+    <String, dynamic>{
+      'state': _$CharacterAnimationStateEnumMap[instance.state]!,
+      'direction': _$EntityFacingEnumMap[instance.direction]!,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
+    };
+
+const _$CharacterAnimationStateEnumMap = {
+  CharacterAnimationState.idle: 'idle',
+  CharacterAnimationState.walk: 'walk',
+  CharacterAnimationState.run: 'run',
+};
+
+const _$EntityFacingEnumMap = {
+  EntityFacing.north: 'north',
+  EntityFacing.south: 'south',
+  EntityFacing.east: 'east',
+  EntityFacing.west: 'west',
+};
+
+_$CharacterAnimationFrameImpl _$$CharacterAnimationFrameImplFromJson(
+        Map<String, dynamic> json) =>
+    _$CharacterAnimationFrameImpl(
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      durationMs: (json['durationMs'] as num?)?.toInt() ?? 150,
+    );
+
+Map<String, dynamic> _$$CharacterAnimationFrameImplToJson(
+        _$CharacterAnimationFrameImpl instance) =>
+    <String, dynamic>{
+      'source': instance.source.toJson(),
+      'durationMs': instance.durationMs,
+    };

@@ -17,6 +17,7 @@ import '../../application/services/trigger_editing_coordinator.dart';
 import '../../application/services/trigger_editing_service.dart';
 import '../../application/services/warp_editing_coordinator.dart';
 import '../../application/services/warp_editing_service.dart';
+import '../../application/use_cases/character_use_cases.dart';
 import '../../application/use_cases/collision_use_cases.dart';
 import '../../application/use_cases/encounter_table_use_cases.dart';
 import '../../application/use_cases/trainer_use_cases.dart';
@@ -904,4 +905,35 @@ UpdateTrainerPokemonUseCase updateTrainerPokemonUseCase(UpdateTrainerPokemonUseC
 @riverpod
 DeleteTrainerPokemonUseCase deleteTrainerPokemonUseCase(DeleteTrainerPokemonUseCaseRef ref) {
   return DeleteTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
+}
+
+// ---------------------------------------------------------------------------
+// Characters
+// ---------------------------------------------------------------------------
+
+@riverpod
+CreateCharacterUseCase createCharacterUseCase(CreateCharacterUseCaseRef ref) {
+  return CreateCharacterUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateCharacterUseCase updateCharacterUseCase(UpdateCharacterUseCaseRef ref) {
+  return UpdateCharacterUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteCharacterUseCase deleteCharacterUseCase(DeleteCharacterUseCaseRef ref) {
+  return DeleteCharacterUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpsertCharacterAnimationUseCase upsertCharacterAnimationUseCase(
+    UpsertCharacterAnimationUseCaseRef ref) {
+  return UpsertCharacterAnimationUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+SetPlayerCharacterUseCase setPlayerCharacterUseCase(
+    SetPlayerCharacterUseCaseRef ref) {
+  return SetPlayerCharacterUseCase(ref.watch(projectRepositoryProvider));
 }

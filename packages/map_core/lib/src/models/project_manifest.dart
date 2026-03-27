@@ -22,14 +22,11 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectPresetCategory> pathCategories,
     @Default([]) List<ProjectTerrainPreset> terrainPresets,
     @Default([]) List<ProjectPathPreset> pathPresets,
-    /// Tables de rencontres globales réutilisables, référencées par [MapGameplayZone.encounterTableId].
     @Default([]) List<ProjectEncounterTable> encounterTables,
-    /// Dossiers de la bibliothèque de scripts (`.yarn` sous `dialogues/`), comme les dossiers tilesets.
     @Default([]) List<ProjectDialogueFolder> dialogueFolders,
-    /// Registre des dialogues (fichiers sous `dialogues/`, références depuis [DialogueRef]).
     @Default([]) List<ProjectDialogueEntry> dialogues,
-    /// Fiches dresseurs réutilisables, référencées depuis [MapEntityNpcData.trainerId].
     @Default([]) List<ProjectTrainerEntry> trainers,
+    @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
@@ -47,6 +44,7 @@ class ProjectSettings with _$ProjectSettings {
     @Default(2.0) double displayScale,
     @Default(20) int defaultMapWidth,
     @Default(15) int defaultMapHeight,
+    String? playerCharacterId,
   }) = _ProjectSettings;
 
   factory ProjectSettings.fromJson(Map<String, dynamic> json) =>
@@ -107,7 +105,7 @@ class ProjectDialogueEntry with _$ProjectDialogueEntry {
     required String relativePath,
     @Default([]) List<String> tags,
     @Default('') String description,
-    /// Nœud Yarn (ou autre) suggéré par défaut dans l’éditeur ; l’entité peut surcharger via [DialogueRef.startNode].
+    /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
     String? defaultStartNode,
     /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
     String? folderId,
@@ -158,7 +156,7 @@ class TilesetPaletteEntry with _$TilesetPaletteEntry {
     required String id,
     @Default('') String name,
     @Default(PaletteCategory.uncategorized) PaletteCategory category,
-    /// Au moins une frame ; l’éditeur n’affiche pour l’instant que la première.
+    /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
     required List<TilesetVisualFrame> frames,
     String? recommendedLayerId,
   }) = _TilesetPaletteEntry;
@@ -180,7 +178,7 @@ class TilesetSourceRect with _$TilesetSourceRect {
       _$TilesetSourceRectFromJson(json);
 }
 
-/// Une frame d’animation ou l’unique frame d’un visuel statique dans un tileset.
+/// Une frame d'animation ou l'unique frame d'un visuel statique dans un tileset.
 ///
 /// [tilesetId] vide = utiliser le tileset du contexte parent (élément, preset, entrée palette).
 @freezed
@@ -189,7 +187,7 @@ class TilesetVisualFrame with _$TilesetVisualFrame {
   const factory TilesetVisualFrame({
     @Default('') String tilesetId,
     required TilesetSourceRect source,
-    /// Millisecondes d’affichage pour le futur lecteur ; null = statique / défaut moteur.
+    /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
     int? durationMs,
   }) = _TilesetVisualFrame;
 
@@ -355,7 +353,6 @@ class ProjectEncounterTable with _$ProjectEncounterTable {
 }
 
 extension TilesetVisualFrameListX on List<TilesetVisualFrame> {
-  /// Première frame : seul visuel utilisé par l’éditeur et l’autotile path pour l’instant.
   TilesetVisualFrame get primaryFrame {
     if (isEmpty) {
       throw StateError('At least one TilesetVisualFrame is required');
@@ -364,4 +361,47 @@ extension TilesetVisualFrameListX on List<TilesetVisualFrame> {
   }
 
   TilesetSourceRect get primarySource => primaryFrame.source;
+}
+
+@freezed
+class ProjectCharacterEntry with _$ProjectCharacterEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectCharacterEntry({
+    required String id,
+    required String name,
+    required String tilesetId,
+    @Default(1) int frameWidth,
+    @Default(2) int frameHeight,
+    @Default([]) List<CharacterAnimation> animations,
+    @Default([]) List<String> tags,
+    @Default(0) int sortOrder,
+  }) = _ProjectCharacterEntry;
+
+  factory ProjectCharacterEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectCharacterEntryFromJson(json);
+}
+
+@freezed
+class CharacterAnimation with _$CharacterAnimation {
+  @JsonSerializable(explicitToJson: true)
+  const factory CharacterAnimation({
+    required CharacterAnimationState state,
+    required EntityFacing direction,
+    @Default([]) List<CharacterAnimationFrame> frames,
+  }) = _CharacterAnimation;
+
+  factory CharacterAnimation.fromJson(Map<String, dynamic> json) =>
+      _$CharacterAnimationFromJson(json);
+}
+
+@freezed
+class CharacterAnimationFrame with _$CharacterAnimationFrame {
+  @JsonSerializable(explicitToJson: true)
+  const factory CharacterAnimationFrame({
+    required TilesetSourceRect source,
+    @Default(150) int durationMs,
+  }) = _CharacterAnimationFrame;
+
+  factory CharacterAnimationFrame.fromJson(Map<String, dynamic> json) =>
+      _$CharacterAnimationFrameFromJson(json);
 }
