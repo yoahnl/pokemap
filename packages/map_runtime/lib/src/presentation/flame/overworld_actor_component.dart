@@ -47,6 +47,7 @@ class OverworldActorComponent extends PositionComponent {
   int get frameWidthTiles => _frameWidthTiles;
   int get frameHeightTiles => _frameHeightTiles;
   double get footOffsetY => (_frameHeightTiles - 1) * _cellHeight;
+  double get depthSortY => position.y + size.y;
 
   void setMotion(EntityFacing facing, CharacterAnimationState animState) {
     if (_facing == facing && _animState == animState) return;

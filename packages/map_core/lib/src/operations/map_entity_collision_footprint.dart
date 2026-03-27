@@ -6,17 +6,25 @@ const String mapEntityCollisionWidthProperty = 'collision.width';
 const String mapEntityCollisionHeightProperty = 'collision.height';
 const String mapEntityCollisionOffsetXProperty = 'collision.offsetX';
 const String mapEntityCollisionOffsetYProperty = 'collision.offsetY';
+const String _legacyCollisionWidthProperty = 'collisionWidth';
+const String _legacyCollisionHeightProperty = 'collisionHeight';
+const String _legacyCollisionOffsetXProperty = 'collisionOffsetX';
+const String _legacyCollisionOffsetYProperty = 'collisionOffsetY';
 
 MapRect resolveEntityCollisionFootprint(MapEntity entity) {
   final defaultSize = _defaultCollisionSize(entity);
   final width = _clampInt(
-    _readPositiveInt(entity.properties[mapEntityCollisionWidthProperty]) ??
+    (_readPositiveInt(entity.properties[mapEntityCollisionWidthProperty]) ??
+            _readPositiveInt(
+                entity.properties[_legacyCollisionWidthProperty])) ??
         defaultSize.width,
     min: 1,
     max: entity.size.width,
   );
   final height = _clampInt(
-    _readPositiveInt(entity.properties[mapEntityCollisionHeightProperty]) ??
+    (_readPositiveInt(entity.properties[mapEntityCollisionHeightProperty]) ??
+            _readPositiveInt(
+                entity.properties[_legacyCollisionHeightProperty])) ??
         defaultSize.height,
     min: 1,
     max: entity.size.height,
@@ -28,13 +36,15 @@ MapRect resolveEntityCollisionFootprint(MapEntity entity) {
   final maxOffsetY = entity.size.height - height;
 
   final offsetX = _clampInt(
-    _readInt(entity.properties[mapEntityCollisionOffsetXProperty]) ??
+    (_readInt(entity.properties[mapEntityCollisionOffsetXProperty]) ??
+            _readInt(entity.properties[_legacyCollisionOffsetXProperty])) ??
         defaultOffsetX,
     min: 0,
     max: maxOffsetX,
   );
   final offsetY = _clampInt(
-    _readInt(entity.properties[mapEntityCollisionOffsetYProperty]) ??
+    (_readInt(entity.properties[mapEntityCollisionOffsetYProperty]) ??
+            _readInt(entity.properties[_legacyCollisionOffsetYProperty])) ??
         defaultOffsetY,
     min: 0,
     max: maxOffsetY,
@@ -62,23 +72,17 @@ Iterable<GridPos> resolveEntityCollisionCells(MapEntity entity) sync* {
 }
 
 GridSize _defaultCollisionSize(MapEntity entity) {
-  return switch (entity.kind) {
-    MapEntityKind.npc => const GridSize(width: 1, height: 1),
-    _ => entity.size,
-  };
+  if (entity.kind == MapEntityKind.npc) {
+    return const GridSize(width: 1, height: 1);
+  }
+  return entity.size;
 }
 
 int _defaultCollisionOffsetX(MapEntity entity, int collisionWidth) {
-  if (entity.kind != MapEntityKind.npc) {
-    return 0;
-  }
   return (entity.size.width - collisionWidth) ~/ 2;
 }
 
 int _defaultCollisionOffsetY(MapEntity entity, int collisionHeight) {
-  if (entity.kind != MapEntityKind.npc) {
-    return 0;
-  }
   return entity.size.height - collisionHeight;
 }
 

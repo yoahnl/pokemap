@@ -144,6 +144,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
+    _updateActorDepthOrdering();
     _syncCameraToPlayer();
 
     if (_transitioning) {
@@ -162,6 +163,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     _driveMovement();
+  }
+
+  void _updateActorDepthOrdering() {
+    _player.priority = 1000 + _player.footPoint.y.round();
+    for (final actor in _npcActors) {
+      actor.priority = 1000 + actor.depthSortY.round();
+    }
   }
 
   bool _isMovementKey(LogicalKeyboardKey key) {

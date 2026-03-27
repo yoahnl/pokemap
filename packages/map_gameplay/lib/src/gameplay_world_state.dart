@@ -10,9 +10,11 @@ class GameplayWorldState {
     required this.map,
     required this.player,
     required List<bool> collisionCache,
+    required Map<int, MapEntity> blockingEntityByPos,
     required Map<int, MapWarp> warpByPos,
     required Map<int, MapEntity> entityByPos,
   })  : _collisionCache = collisionCache,
+        _blockingEntityByPos = blockingEntityByPos,
         _warpByPos = warpByPos,
         _entityByPos = entityByPos;
 
@@ -25,6 +27,7 @@ class GameplayWorldState {
         map: map,
         player: GameplayPlayerState(pos: playerPos, facing: playerFacing),
         collisionCache: _buildCollisionCache(map),
+        blockingEntityByPos: _buildBlockingEntityByPos(map),
         warpByPos: _buildWarpByPos(map),
         entityByPos: _buildEntityByPos(map),
       );
@@ -32,12 +35,14 @@ class GameplayWorldState {
   factory GameplayWorldState.fromMap(MapData map) {
     final player = resolveInitialPlayerSpawn(map);
     final cache = _buildCollisionCache(map);
+    final blockingEntities = _buildBlockingEntityByPos(map);
     final warps = _buildWarpByPos(map);
     final entities = _buildEntityByPos(map);
     final world = GameplayWorldState._(
       map: map,
       player: player,
       collisionCache: cache,
+      blockingEntityByPos: blockingEntities,
       warpByPos: warps,
       entityByPos: entities,
     );
@@ -52,6 +57,7 @@ class GameplayWorldState {
   final MapData map;
   final GameplayPlayerState player;
   final List<bool> _collisionCache;
+  final Map<int, MapEntity> _blockingEntityByPos;
   final Map<int, MapWarp> _warpByPos;
   final Map<int, MapEntity> _entityByPos;
 
@@ -61,7 +67,7 @@ class GameplayWorldState {
     }
     final idx = y * map.size.width + x;
     if (idx < _collisionCache.length && _collisionCache[idx]) return true;
-    final entity = _entityByPos[idx];
+    final entity = _blockingEntityByPos[idx];
     return entity != null && entity.blocksMovement;
   }
 
@@ -74,6 +80,7 @@ class GameplayWorldState {
         map: map,
         player: player,
         collisionCache: _collisionCache,
+        blockingEntityByPos: _blockingEntityByPos,
         warpByPos: _warpByPos,
         entityByPos: _entityByPos,
       );
@@ -101,6 +108,24 @@ Map<int, MapWarp> _buildWarpByPos(MapData map) {
   };
 }
 
+Map<int, MapEntity> _buildBlockingEntityByPos(MapData map) {
+  final w = map.size.width;
+  final result = <int, MapEntity>{};
+  for (final entity in map.entities) {
+    if (!_isEntityBlockingCandidate(entity)) continue;
+    for (final cell in resolveEntityCollisionCells(entity)) {
+      if (cell.x < 0 ||
+          cell.y < 0 ||
+          cell.x >= map.size.width ||
+          cell.y >= map.size.height) {
+        continue;
+      }
+      result[cell.y * w + cell.x] = entity;
+    }
+  }
+  return result;
+}
+
 Map<int, MapEntity> _buildEntityByPos(MapData map) {
   final w = map.size.width;
   final result = <int, MapEntity>{};
@@ -117,4 +142,31 @@ Map<int, MapEntity> _buildEntityByPos(MapData map) {
     }
   }
   return result;
+}
+
+bool _isEntityBlockingCandidate(MapEntity entity) {
+  if (!entity.blocksMovement) return false;
+  if (entity.kind == MapEntityKind.spawn) return false;
+  if (entity.kind != MapEntityKind.custom) return true;
+  return _hasExplicitCollisionOverride(entity);
+}
+
+bool _hasExplicitCollisionOverride(MapEntity entity) {
+  const keys = <String>{
+    mapEntityCollisionWidthProperty,
+    mapEntityCollisionHeightProperty,
+    mapEntityCollisionOffsetXProperty,
+    mapEntityCollisionOffsetYProperty,
+    'collisionWidth',
+    'collisionHeight',
+    'collisionOffsetX',
+    'collisionOffsetY',
+  };
+  for (final key in keys) {
+    final value = entity.properties[key];
+    if (value == null) continue;
+    if (value.trim().isEmpty) continue;
+    return true;
+  }
+  return false;
 }
