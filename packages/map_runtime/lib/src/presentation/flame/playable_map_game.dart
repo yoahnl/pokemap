@@ -73,11 +73,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (_dialogueOverlay != null) {
-      if (event is KeyDownEvent &&
-          (event.logicalKey == LogicalKeyboardKey.keyE ||
-              event.logicalKey == LogicalKeyboardKey.space)) {
-        _advanceDialogue();
-        return KeyEventResult.handled;
+      final overlay = _dialogueOverlay!;
+      if (overlay.isShowingChoices) {
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          _moveChoiceCursor(-1);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          _moveChoiceCursor(1);
+          return KeyEventResult.handled;
+        }
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.keyE ||
+                event.logicalKey == LogicalKeyboardKey.space)) {
+          _confirmDialogueChoice();
+          return KeyEventResult.handled;
+        }
+      } else {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.keyE ||
+                event.logicalKey == LogicalKeyboardKey.space)) {
+          _advanceDialogue();
+          return KeyEventResult.handled;
+        }
       }
       return KeyEventResult.ignored;
     }
@@ -194,11 +212,69 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     camera.viewport.add(overlay);
     _dialogueOverlay = overlay;
-    debugPrint('[dialogue] dialogue opened — line ${session.currentLineIndex + 1}/${session.currentNode.bodyLines.length}');
+    final openedState = session.state;
+    if (openedState is DialogueShowingLine) {
+      debugPrint('[dialogue] opened node=${session.currentNodeTitle} text="${openedState.text}"');
+    } else if (openedState is DialogueWaitingForChoice) {
+      debugPrint('[dialogue] opened node=${session.currentNodeTitle} choice count=${openedState.choices.length}');
+    }
   }
 
   void _advanceDialogue() {
-    _dialogueOverlay?.advance();
+    final overlay = _dialogueOverlay;
+    if (overlay == null) return;
+    final prevNode = overlay.currentSession.currentNodeTitle;
+    final stillOpen = overlay.advance();
+    if (!stillOpen) {
+      debugPrint('[dialogue] finished');
+      return;
+    }
+    final newNode = overlay.currentSession.currentNodeTitle;
+    if (newNode != null && newNode != prevNode) {
+      debugPrint('[dialogue] jump to=$newNode');
+    }
+    final newState = overlay.currentSession.state;
+    if (newState is DialogueShowingLine) {
+      debugPrint('[dialogue] line text="${newState.text}"');
+    } else if (newState is DialogueWaitingForChoice) {
+      debugPrint('[dialogue] choice opened count=${newState.choices.length} selected=0');
+    }
+  }
+
+  void _moveChoiceCursor(int delta) {
+    final overlay = _dialogueOverlay;
+    if (overlay == null) return;
+    overlay.moveCursor(delta);
+    final state = overlay.currentSession.state;
+    if (state is DialogueWaitingForChoice) {
+      debugPrint('[dialogue] choice moved selected=${state.selectedIndex}');
+    }
+  }
+
+  void _confirmDialogueChoice() {
+    final overlay = _dialogueOverlay;
+    if (overlay == null) return;
+    final state = overlay.currentSession.state;
+    if (state is DialogueWaitingForChoice) {
+      final idx = state.selectedIndex;
+      debugPrint('[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"');
+    }
+    final prevNode = overlay.currentSession.currentNodeTitle;
+    final stillOpen = overlay.confirmChoice();
+    if (!stillOpen) {
+      debugPrint('[dialogue] finished');
+      return;
+    }
+    final newNode = overlay.currentSession.currentNodeTitle;
+    if (newNode != null && newNode != prevNode) {
+      debugPrint('[dialogue] jump to=$newNode');
+    }
+    final newState = overlay.currentSession.state;
+    if (newState is DialogueShowingLine) {
+      debugPrint('[dialogue] line text="${newState.text}"');
+    } else if (newState is DialogueWaitingForChoice) {
+      debugPrint('[dialogue] choice opened count=${newState.choices.length} selected=0');
+    }
   }
 
   void _showNotification(String text) {

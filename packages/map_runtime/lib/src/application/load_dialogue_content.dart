@@ -36,13 +36,13 @@ Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved) async {
 
   final startTitle = resolved.startNode;
   if (startTitle != null && startTitle.isNotEmpty) {
-    if (session.currentNode.title != startTitle) {
-      debugPrint('[dialogue] requested node "$startTitle" not found — falling back to "${session.currentNode.title}"');
+    if (session.currentNodeTitle != startTitle) {
+      debugPrint('[dialogue] requested node "$startTitle" not found — falling back to "${session.currentNodeTitle}"');
     } else {
       debugPrint('[dialogue] starting at node "$startTitle"');
     }
   } else {
-    debugPrint('[dialogue] no startNode specified — using first node "${session.currentNode.title}"');
+    debugPrint('[dialogue] no startNode specified — using first node "${session.currentNodeTitle}"');
   }
 
   return session;

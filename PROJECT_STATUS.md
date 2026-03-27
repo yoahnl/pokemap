@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités)
+> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix ->)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -137,11 +137,11 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Fallback spawn (0,0) si pas de spawn configuré | **Fait** | PlayableMapGame.onLoad catch GameplaySpawnResolutionException |
 | Barrel public : 4 exports uniquement | **Fait** | loadRuntimeMapBundle, RuntimeMapBundle, RuntimeMapGame, PlayableMapGame |
 | Résolution dialogue (`resolveDialogue`) | **Fait** | Résout fichier .yarn + startNode, logs [dialogue] |
-| Parser Yarn MVP (`parseYarnFile`, `YarnNode`, `DialogueSession`) | **Fait** | Un seul nœud linéaire, filtre commandes `<<...>>` et blancs |
+| Parser Yarn (`parseYarnFile`) | **Fait** | `YarnStepLine`, `YarnStepJump`, `YarnStepChoiceBlock`, `YarnChoice` — détecte `<<jump X>>` et blocs `->` avec corps indentés |
+| Moteur dialogue (`DialogueSession`) | **Fait** | `advance()`, `moveChoiceCursor()`, `confirmChoice()` ; résolution automatique des `<<jump>>` via `_resolveStep()` |
 | Chargement dialogue (`loadDialogueContent`) | **Fait** | Lecture .yarn → parse → DialogueSession, fallback premier nœud |
-| UI dialogue runtime (`DialogueOverlayComponent`) | **Fait** | Panneau bas-écran, texte ligne par ligne, hint E · Suite/Fermer |
-| Blocage gameplay pendant dialogue | **Fait** | `_dialogueActive` bloque mouvement + re-interaction ; E/Space advance/close |
-| Dialogues Yarn avec branches (options/sauts) | **Non fait** | `<<jump>>` et `->` non supportés — MVN linéaire uniquement |
+| UI dialogue runtime (`DialogueOverlayComponent`) | **Fait** | Mode ligne (E · Suite/Fermer) + mode choix (▶ curseur, ↑/↓, E valider) |
+| Blocage gameplay pendant dialogue | **Fait** | `_dialogueOverlay != null` bloque mouvement + re-interaction ; clavier routé selon mode (ligne/choix) |
 | Rencontres aléatoires actives | **Non fait** | |
 | Comportements NPC (patrouille, LoS) | **Non fait** | |
 | Sauvegarde/chargement état jeu | **Non fait** | |
@@ -272,13 +272,12 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Prochaine recommandation : Yarn avec branches.**
+**Prochaine recommandation : animations joueur orientées.**
 
 Justification :
-1. Le MVP dialogue (lecture .yarn + affichage ligne par ligne) est livré et fonctionnel.
-2. Les dialogues linéaires (une seule chaîne de lignes dans un nœud) fonctionnent complètement.
-3. Il manque les sauts (`<<jump NodeName>>`) et les options (`-> Choix`) pour les dialogues avec branches.
-4. Un vrai moteur Yarn (ex. adapter autour d'un parser AST) permettrait de couvrir tous les cas Yarn Spinner.
+1. Le moteur Yarn avec branches (`<<jump>>` + options `->`) est livré et fonctionnel.
+2. Le runtime dialogue est complet pour des RPG classiques (sans variables Yarn).
+3. `PlayerComponent` ne dessine qu'un disque fixe — les sprites directionnels amélioreraient fortement la lisibilité du jeu.
 
 **Ne pas faire maintenant** :
 - Couches haut niveau (no-code, framework abstrait) — trop tôt.
@@ -318,3 +317,4 @@ Justification :
 | map_runtime + map_editor — Clarification dialogue | 2026-03-27 | resolve_dialogue.dart (règle canonique + logs [dialogue]), defeat dialogue dropdown, labels UI "Dialogue (bibliothèque)"/"Nœud Yarn", fix chargement scriptPathRelative défaite |
 | map_runtime — Dialogue Yarn MVP | 2026-03-27 | dialogue_runtime_models.dart (YarnNode, DialogueSession), parse_yarn_dialogue.dart, load_dialogue_content.dart, dialogue_overlay_component.dart (HUD ligne par ligne), PlayableMapGame branché (blocage gameplay, E/Space avance/ferme) |
 | map_core + map_gameplay + map_editor — Collision entités | 2026-03-27 | MapEntity.blocksMovement (défaut true), _buildEntityByPos couvre toutes cellules de entity.size, isBlocked vérifie entity.blocksMovement, toggle "Bloque le mouvement" dans l'inspecteur éditeur |
+| map_runtime — Yarn avec branches | 2026-03-27 | YarnStep sealed (YarnStepLine/Jump/ChoiceBlock), YarnChoice, DialogueSessionState sealed (ShowingLine/WaitingForChoice), _resolveStep() auto-exécute les <<jump>>, DialogueOverlayComponent mode choix (▶ curseur, ↑/↓, E valider), PlayableMapGame route les touches selon le mode |

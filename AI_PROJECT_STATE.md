@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix ->).
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités et dialogues Yarn MVP (lecture .yarn, affichage ligne par ligne, blocage gameplay). Pas encore : moteur Yarn complet (choix, sauts), rencontres, NPC actifs.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités et dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E). Pas encore : rencontres, NPC actifs, sauvegarde.
 
 ---
 
@@ -328,26 +328,51 @@ ResolvedDialogue? resolveDialogue({
 // Logs produits : [dialogue] interaction, resolved dialogueId, resolved file,
 //                 requested startNode | fallback defaultStartNode | no startNode | error
 
-// Pipeline Yarn MVP (interne map_runtime)
+// Pipeline Yarn avec branches (interne map_runtime)
 // packages/map_runtime/lib/src/application/dialogue_runtime_models.dart
+
+// Étapes Yarn (sealed)
+sealed class YarnStep {}
+class YarnStepLine extends YarnStep { final String text; }
+class YarnStepJump extends YarnStep { final String targetNode; }
+class YarnStepChoiceBlock extends YarnStep { final List<YarnChoice> choices; }
+class YarnChoice { final String text; final List<YarnStep> steps; }
+
 class YarnNode {
   final String title;
-  final List<String> bodyLines;  // lignes filtrées (sans blancs ni commandes <<...>>)
-}
-class DialogueSession {
-  final List<YarnNode> nodes;
-  final int currentNodeIndex;
-  final int currentLineIndex;
-  YarnNode get currentNode;
-  String get currentLine;
-  bool get isLastLine;
-  DialogueSession? advance();   // null = session terminée
-  static DialogueSession? start(List<YarnNode> nodes, String? startNodeTitle);
+  final List<YarnStep> steps;
 }
 
+// État de session (sealed)
+sealed class DialogueSessionState {}
+class DialogueShowingLine extends DialogueSessionState { final String text; }
+class DialogueWaitingForChoice extends DialogueSessionState {
+  final List<YarnChoice> choices;
+  final int selectedIndex;
+}
+
+class DialogueSession {
+  final List<YarnNode> nodes;
+  final DialogueSessionState state;
+  String? get currentNodeTitle;
+  bool get isLastContent;   // vrai si advance() retournerait null
+  DialogueSession? advance();             // null = session terminée
+  DialogueSession moveChoiceCursor(int delta);   // clamp sur [0, choices.length-1]
+  DialogueSession? confirmChoice();       // exécute la branche choisie, null = terminé
+  static DialogueSession? start(List<YarnNode> nodes, String? startNodeTitle);
+}
+// _resolveStep() : boucle de résolution — exécute les <<jump>> automatiquement jusqu'à
+// trouver un YarnStepLine ou YarnStepChoiceBlock (ou retourner null si fin de nœud)
+
 // packages/map_runtime/lib/src/application/parse_yarn_dialogue.dart
-List<YarnNode> parseYarnFile(String content);   // parse sections title:/---/===
-YarnNode? findYarnNode(List<YarnNode> nodes, String title);
+List<YarnNode> parseYarnFile(String content);
+// Règles :
+//   - ligne avec leading whitespace → corps d'une option (body de choix courant)
+//   - "-> texte" → nouvelle option de choix
+//   - "<<jump X>>" en root → YarnStepJump(X)
+//   - "<<jump X>>" indenté → YarnStepJump(X) dans corps du choix courant
+//   - autres "<<...>>" → ignorés
+//   - texte ordinaire → YarnStepLine (ferme le bloc de choix en cours si ouvert)
 
 // packages/map_runtime/lib/src/application/load_dialogue_content.dart
 Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved);
@@ -358,9 +383,14 @@ Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved);
 // packages/map_runtime/lib/src/presentation/flame/dialogue_overlay_component.dart
 class DialogueOverlayComponent extends PositionComponent {
   // priority: 100, taille = viewport
-  // Panneau en bas de l'écran (28% hauteur), fond noir semi-transparent, bordure blanche
-  // Texte courant + hint "E · Suite" / "E · Fermer"
-  // bool advance() → true si encore ouvert, false si terminé (se retire + appelle onFinished)
+  // Mode ligne : panneau 28% hauteur, texte + "E · Suite" / "E · Fermer"
+  // Mode choix : panneau dynamique (hauteur selon nb options),
+  //              "▶" curseur sur option sélectionnée, hint "↑/↓ · Choisir  E · Valider"
+  DialogueSession get currentSession;
+  bool get isShowingChoices;
+  void moveCursor(int delta);
+  bool confirmChoice();  // true si encore ouvert
+  bool advance();        // true si encore ouvert
 }
 ```
 
@@ -469,7 +499,7 @@ Offset panOffset
 - Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
 - Collision entités : `MapEntity.blocksMovement` (défaut `true`) — toutes les cellules couvertes par `entity.size` bloquent le joueur. Désactivable par entité via toggle dans l'inspecteur éditeur.
 - Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`.
-- **Dialogue Yarn MVP** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche les lignes une par une avec hint clavier. E/Space avance ou ferme. Le mouvement est bloqué pendant le dialogue.
+- **Dialogue Yarn avec branches** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche lignes (E · Suite / E · Fermer) et blocs de choix (▶ curseur, ↑/↓ pour naviguer, E pour valider). `<<jump>>` exécuté automatiquement. Le mouvement est bloqué pendant tout le dialogue.
 - Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]`, `[dialogue]` via `debugPrint`.
 - Warp failure visible : `catch (e, st)` avec log + notification "Warp failed".
 - Résolution automatique du spawn joueur.
@@ -477,7 +507,7 @@ Offset panOffset
 
 ### Ne marche pas encore
 
-- Dialogues Yarn complets : la lecture/affichage ligne par ligne est faite, mais les nœuds multiples avec sauts (`-> option` / `<<jump>>`) ne sont pas supportés — un seul nœud est exécuté par interaction.
+- Pas de variables/conditions Yarn : le moteur ne supporte que `<<jump>>` et `->` choix (pas `<<set>>`, `<<if>>`, expressions).
 - Rencontres aléatoires actives (zones définies mais pas de déclenchement).
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
@@ -489,7 +519,7 @@ Offset panOffset
 
 1. **Spawn requis en données** : `GameplayWorldState.fromMap` lève une exception si la map n'a pas de spawn configuré. `PlayableMapGame` l'attrape et démarre à `(0,0)` — fallback dev uniquement.
 
-2. **Dialogue Yarn MVP (pas de sauts)** : `DialogueSession` n'exécute qu'un seul nœud Yarn — `<<jump>>` et options (`->`) ne sont pas parsés ni traités. Le MVN couvre le cas le plus courant (dialogues linéaires). Pour les dialogues avec branches, il faudra un vrai moteur Yarn.
+2. **Yarn sans variables** : `DialogueSession` supporte `<<jump>>` et options `->` mais pas les variables (`<<set>>`), conditions (`<<if>>`), ni portraits/audio. Suffisant pour des dialogues RPG classiques.
 
 3. **DialogueRef.scriptPathRelative non vide = legacy** : si une entité a un chemin de script direct (migré depuis une ancienne version), `resolveDialogue()` utilise ce chemin directement sans passer par le registre. Pas d'erreur si le fichier n'existe pas à ce stade — validation runtime uniquement à l'exécution.
 
@@ -532,6 +562,6 @@ Offset panOffset
 
 ## Prochaines priorités
 
-1. **Yarn avec sauts/options** : `DialogueSession` ne supporte qu'un nœud linéaire. Ajouter un vrai moteur Yarn (sauts `<<jump>>`, options `->`) pour les dialogues avec branches.
-2. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe.
+1. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe.
+2. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
 3. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.

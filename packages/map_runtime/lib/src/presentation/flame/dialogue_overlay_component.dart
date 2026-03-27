@@ -3,14 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../application/dialogue_runtime_models.dart';
 
-/// Callback invoked when the player advances through all dialogue lines.
 typedef OnDialogueFinished = void Function();
 
-/// Full-screen HUD overlay that displays a Yarn dialogue session line by line.
-///
-/// Add this to [camera.viewport] to keep it fixed on screen. Call [advance]
-/// each time the player presses the confirm key; it automatically removes
-/// itself and calls [onFinished] after the last line.
 class DialogueOverlayComponent extends PositionComponent {
   DialogueOverlayComponent({
     required DialogueSession session,
@@ -32,6 +26,7 @@ class DialogueOverlayComponent extends PositionComponent {
   static const double _kCornerRadius = 8.0;
   static const double _kFontSize = 15.0;
   static const double _kHintFontSize = 11.0;
+  static const double _kChoiceLineHeight = 26.0;
   static final Color _kHintColor = Colors.white.withValues(alpha: 0.55);
 
   static final Paint _bgPaint = Paint()..color = const Color(0xDD000000);
@@ -42,17 +37,39 @@ class DialogueOverlayComponent extends PositionComponent {
 
   late TextPainter _textPainter;
   late TextPainter _hintPainter;
+  late TextPainter _cursorPainter;
+  List<TextPainter> _choicePainters = [];
+
+  DialogueSession get currentSession => _session;
+
+  bool get isShowingChoices => _session.state is DialogueWaitingForChoice;
 
   @override
   Future<void> onLoad() async {
+    _cursorPainter = TextPainter(
+      text: const TextSpan(
+        text: '▶',
+        style: TextStyle(color: Colors.white, fontSize: _kFontSize),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
     _rebuildPainters();
     return super.onLoad();
   }
 
   void _rebuildPainters() {
+    final state = _session.state;
+    if (state is DialogueShowingLine) {
+      _rebuildLinePainters(state);
+    } else if (state is DialogueWaitingForChoice) {
+      _rebuildChoicePainters(state);
+    }
+  }
+
+  void _rebuildLinePainters(DialogueShowingLine state) {
     _textPainter = TextPainter(
       text: TextSpan(
-        text: _session.currentLine,
+        text: state.text,
         style: const TextStyle(
           color: Colors.white,
           fontSize: _kFontSize,
@@ -66,7 +83,37 @@ class DialogueOverlayComponent extends PositionComponent {
 
     _hintPainter = TextPainter(
       text: TextSpan(
-        text: _session.isLastLine ? 'E · Fermer' : 'E · Suite',
+        text: _session.isLastContent ? 'E · Fermer' : 'E · Suite',
+        style: TextStyle(color: _kHintColor, fontSize: _kHintFontSize),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+  }
+
+  void _rebuildChoicePainters(DialogueWaitingForChoice state) {
+    final maxW =
+        size.x - 32 - _kPaddingH * 2 - _cursorPainter.width - 8;
+    _choicePainters = state.choices
+        .map(
+          (c) => TextPainter(
+            text: TextSpan(
+              text: c.text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: _kFontSize,
+                height: 1.4,
+                fontFamily: 'monospace',
+              ),
+            ),
+            textDirection: TextDirection.ltr,
+            maxLines: 1,
+          )..layout(maxWidth: maxW),
+        )
+        .toList();
+
+    _hintPainter = TextPainter(
+      text: TextSpan(
+        text: '↑/↓ · Choisir  E · Valider',
         style: TextStyle(color: _kHintColor, fontSize: _kHintFontSize),
       ),
       textDirection: TextDirection.ltr,
@@ -75,6 +122,15 @@ class DialogueOverlayComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    final state = _session.state;
+    if (state is DialogueShowingLine) {
+      _renderLine(canvas);
+    } else if (state is DialogueWaitingForChoice) {
+      _renderChoices(canvas, state);
+    }
+  }
+
+  void _renderLine(Canvas canvas) {
     final vw = size.x;
     final vh = size.y;
     final boxH = vh * _kBoxHeightFraction;
@@ -98,8 +154,57 @@ class DialogueOverlayComponent extends PositionComponent {
     );
   }
 
-  /// Advance to the next line. Returns true if the dialogue is still open,
-  /// false if it just finished (component removes itself automatically).
+  void _renderChoices(Canvas canvas, DialogueWaitingForChoice state) {
+    final vw = size.x;
+    final vh = size.y;
+    final boxH = _kPaddingV * 2 +
+        state.choices.length * _kChoiceLineHeight +
+        _kHintFontSize * 2.0;
+    final boxY = vh - boxH - 16.0;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(16, boxY, vw - 32, boxH),
+      const Radius.circular(_kCornerRadius),
+    );
+    canvas.drawRRect(rrect, _bgPaint);
+    canvas.drawRRect(rrect, _borderPaint);
+
+    for (var i = 0; i < _choicePainters.length; i++) {
+      final y = boxY + _kPaddingV + i * _kChoiceLineHeight;
+      if (i == state.selectedIndex) {
+        _cursorPainter.paint(canvas, Offset(16 + _kPaddingH, y));
+      }
+      _choicePainters[i].paint(
+        canvas,
+        Offset(16 + _kPaddingH + _cursorPainter.width + 8, y),
+      );
+    }
+
+    _hintPainter.paint(
+      canvas,
+      Offset(
+        16 + (vw - 32) - _kPaddingH - _hintPainter.width,
+        boxY + boxH - _kPaddingV - _hintPainter.height,
+      ),
+    );
+  }
+
+  void moveCursor(int delta) {
+    _session = _session.moveChoiceCursor(delta);
+  }
+
+  bool confirmChoice() {
+    final next = _session.confirmChoice();
+    if (next == null) {
+      removeFromParent();
+      onFinished();
+      return false;
+    }
+    _session = next;
+    _rebuildPainters();
+    return true;
+  }
+
   bool advance() {
     final next = _session.advance();
     if (next == null) {
