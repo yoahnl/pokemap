@@ -104,6 +104,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final key = event.logicalKey;
 
     if (_isMovementKey(key)) {
+      if (_dialogueOverlay != null) {
+        _pressedKeys.remove(key);
+        if (_lastMoveKey == key) {
+          _lastMoveKey = null;
+        }
+        if (_dialogueOverlay!.isShowingChoices && isDown) {
+          if (key == LogicalKeyboardKey.arrowUp) {
+            _moveChoiceCursor(-1);
+          } else if (key == LogicalKeyboardKey.arrowDown) {
+            _moveChoiceCursor(1);
+          }
+        }
+        return KeyEventResult.handled;
+      }
       if (isDown) {
         _pressedKeys.add(key);
         _lastMoveKey = key;
@@ -474,6 +488,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _openDialogue(DialogueSession session) {
     _notification?.removeFromParent();
     _notification = null;
+    _pressedKeys.clear();
+    _lastMoveKey = null;
 
     final overlay = DialogueOverlayComponent(
       session: session,
