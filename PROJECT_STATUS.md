@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers)
+> Dernière mise à jour : 2026-03-27 (runtime jouable consolidé : player animé + interpolation de pas + maintien des touches + tri de profondeur Y + NPC qui fait face au joueur ; collisions entités par footprint avec séparation interaction/blocage ; rencontres actives MVP walk ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -53,7 +53,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Package | Version | Type | Rôle réel |
 |---------|---------|------|-----------|
 | `map_core` | 0.1.0 | Dart pur | Schéma métier, validation, sérialisation JSON, migrations legacy, opérations pures sur les données |
-| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, interactions entités, résolution spawn |
+| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, interactions entités, résolution spawn, check rencontres |
 | `map_runtime` | 0.1.0 | Flutter + Flame | Chargement projet depuis disque, rendu Flame (layers + entités animées), boucle jouable au clavier |
 | `map_editor` | 0.2.0 | Flutter desktop (macOS) | Éditeur GUI complet : maps, layers, entités, tilesets, terrains, paths, warps, triggers, zones, dialogues, dresseurs, rencontres |
 
@@ -66,7 +66,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Capacité | Statut | Notes |
 |----------|--------|-------|
 | Modèles freezed (MapData, ProjectManifest, entités, layers, warps, zones…) | **Fait** | Tous @freezed avec JSON serialization |
-| `MapEntity.blocksMovement` (défaut true) | **Fait** | Toutes les cellules couvertes par entity.size bloquent le mouvement ; désactivable par entité |
+| `MapEntity.blocksMovement` (défaut true) | **Fait** | Intention de blocage ; la footprint effective est résolue côté gameplay (`resolveEntityCollisionCells`) |
 | Enums métier complets (MapEntityKind, EntityFacing, MapLayerKind, TerrainType, PathSurfaceKind, GameplayZoneKind, etc.) | **Fait** | Très complet, 20+ enums |
 | Géométrie (GridPos, GridSize, MapRect) | **Fait** | |
 | Layers typés scellés (tile, collision, terrain, path, object) | **Fait** | Sealed class Dart 3, `whenOrNull` |
@@ -102,12 +102,14 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Direction (enum + extensions dx/dy/asFacing) | **Fait** | |
 | EntityFacingX.asDirection (bridge map_core ↔ gameplay) | **Fait** | |
 | GameplayPlayerState (pos, facing, copyWith) | **Fait** | Plain class immuable, pas Freezed |
-| GameplayWorldState (collision cache, warp cache, entity cache) | **Fait** | Cache plat List<bool> + Map<int, MapEntity> row-major, spawns exclus ; entity cache couvre toutes les cellules de entity.size |
+| GameplayWorldState (collision cache, warp cache, caches entités) | **Fait** | Cache plat List<bool> + 2 caches row-major : `blockingEntityByPos` (blocage) et `entityByPos` (interaction), spawns exclus |
 | GameplayWorldState.initial (pos + facing explicites) | **Fait** | Ne valide pas la cellule |
 | GameplayWorldState.fromMap (spawn automatique) | **Fait** | Lance exception si spawn bloqué |
 | Résolution spawn : defaultSpawnId → playerStart (tri par id) → exception | **Fait** | |
-| stepGameplayWorld (move intent → result) | **Fait** | Turn-face + collision (tuiles + entités blocksMovement) + warp check |
+| stepGameplayWorld (move intent → result) | **Fait** | Turn-face + collision (tuiles + entités bloquantes) + warp check |
 | stepGameplayWorld (interact intent → result) | **Fait** | Cellule devant joueur → NPC/sign/item/entity/nothing |
+| Check rencontre gameplay (MVP) | **Fait** | `checkEncounterAtPlayerPosition(...)` : lookup zone encounter (priorité max), filtre `EncounterKind`, lookup table projet, roll chance par pas, tirage pondéré espèce + niveau |
+| Résultat rencontre typé | **Fait** | `GameplayEncounter` + `GameplayEncounterCheckResult` (+ `toJson/fromJson` pour `GameplayEncounter`) |
 | Résultats scellés (Moved, Blocked, WarpTriggered, TriggeredWarp) | **Fait** | |
 | Résultats interaction (NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted) | **Fait** | |
 | GameplaySpawnResolutionException | **Fait** | |
@@ -130,14 +132,17 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Rendu CollisionLayer (overlay semi-transparent) | **Fait** | Visible si couche visible dans les données |
 | Ordre de rendu : terrain → path → tile → entités → collision | **Fait** | Identique à l'éditeur |
 | RuntimeMapGame (viewer statique) | **Fait** | Caméra = map entière visible |
-| PlayableMapGame (jouable au clavier) | **Fait** | KeyboardEvents : flèches + WASD + E/Space |
-| PlayerComponent (disque + indicateur direction) | **Fait** | Marqueur bleu si pas de personnage configuré ; sinon délègue à OverworldActorComponent |
+| PlayableMapGame (jouable au clavier) | **Fait** | KeyboardEvents : flèches + WASD + E/Space, maintien de touche, file warp post-step, tri de profondeur par Y |
+| PlayerComponent (runtime actor joueur) | **Fait** | Sprite personnage via `OverworldActorComponent` (idle/walk) + interpolation de pas ; fallback disque bleu si aucun Character |
 | OverworldActorComponent | **Fait** | Composant Flame : rendu sprite personnage depuis spritesheet, animation time-based, facing + state, fallback cercle vert |
 | Sprites personnages NPC dans PlayableMapGame | **Fait** | _addNpcActors, skip rendu entité dans MapLayersComponent si `npc.characterId` ou fallback `trainer.characterId` est défini |
+| NPC se tourne vers le joueur à l'interaction | **Fait** | `NpcInteracted` → `_faceNpcTowardPlayer()` avant ouverture dialogue |
 | Résolution tilesets personnages (runtime_manifest_tilesets) | **Fait** | Collecte tilesets joueur + NPCs pour préchargement via Character |
 | Collisions au clavier via map_gameplay | **Fait** | |
 | Warps : détection + chargement async nouvelle map | **Fait** | _handleWarp, erreur loggée + notification "Warp failed" |
 | Interactions entités (E/Space) | **Fait** | Résultat typé → overlay 2s (`entity.inspectorHeadline`) + log `[interact]` |
+| Rencontres actives MVP (`walk`) | **Fait** | Check déclenché sur `Moved` uniquement, jamais sur `Blocked`/`WarpTriggered`, ni pendant dialogue/warp/overlay rencontre |
+| Feedback runtime rencontre | **Fait** | `EncounterOverlayComponent` sur viewport, blocage gameplay temporaire, message espèce + niveau |
 | Logs structurés runtime | **Fait** | Préfixes `[runtime]` `[move]` `[warp]` `[interact]` via debugPrint |
 | HUD notification 2s | **Fait** | TextComponent sur camera.viewport |
 | Caméra follow-player (~15×11 tuiles viewport) | **Fait** | |
@@ -149,7 +154,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Chargement dialogue (`loadDialogueContent`) | **Fait** | Lecture .yarn → parse → DialogueSession, fallback premier nœud |
 | UI dialogue runtime (`DialogueOverlayComponent`) | **Fait** | Mode ligne (E · Suite/Fermer) + mode choix (▶ curseur, ↑/↓, E valider) |
 | Blocage gameplay pendant dialogue | **Fait** | `_dialogueOverlay != null` bloque mouvement + re-interaction ; clavier routé selon mode (ligne/choix) |
-| Rencontres aléatoires actives | **Non fait** | |
+| Rencontres `surf` / `rod` / `special` | **Non fait** | MVP ne gère que `EncounterKind.walk` |
 | Comportements NPC (patrouille, LoS) | **Non fait** | |
 | Sauvegarde/chargement état jeu | **Non fait** | |
 
@@ -282,12 +287,12 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Prochaine recommandation : animations joueur orientées.**
+**Prochaine recommandation : transition combat runtime + extension des rencontres.**
 
 Justification :
-1. Le moteur Yarn avec branches (`<<jump>>` + options `->`) est livré et fonctionnel.
-2. Le runtime dialogue est complet pour des RPG classiques (sans variables Yarn).
-3. `PlayerComponent` ne dessine qu'un disque fixe — les sprites directionnels amélioreraient fortement la lisibilité du jeu.
+1. Le check rencontre MVP est livré (`walk`) avec résultat métier typé.
+2. La prochaine valeur produit est de brancher une vraie scène de combat sur ce résultat.
+3. Ensuite, étendre aux modes `surf`/`rod` et aux règles contextuelles.
 
 **Ne pas faire maintenant** :
 - Couches haut niveau (no-code, framework abstrait) — trop tôt.
@@ -299,7 +304,8 @@ Justification :
 - README `map_runtime` : corrigé, `PlayableMapGame` décrit correctement.
 - Interactions entités : `InteractIntent`, 5 résultats typés, E/Space, overlay 2s, logs structurés.
 - Dialogue Yarn MVP : parse .yarn, `DialogueSession`, `DialogueOverlayComponent`, blocage gameplay.
-- Collision entités : `blocksMovement` (défaut true), toutes les cellules de `entity.size` enregistrées dans le cache, toggle dans l'inspecteur éditeur.
+- Collision entités : footprint configurable (`collision.*` + alias legacy), NPC par défaut en 1×1 ; séparation cache interaction / cache blocage ; entités `custom` non bloquantes par défaut sans override explicite.
+- Rencontres actives MVP : `checkEncounterAtPlayerPosition`, tirage pondéré, niveau aléatoire, logs `[encounter]`, overlay bloquant temporaire.
 
 ---
 
@@ -327,5 +333,7 @@ Justification :
 | map_runtime — Logs structurés + interactions + HUD | 2026-03-27 | E/Space → InteractIntent, overlay 2s via TextComponent HUD, logs [runtime]/[move]/[warp]/[interact], fix warp silence → catch (e, st) |
 | map_runtime + map_editor — Clarification dialogue | 2026-03-27 | resolve_dialogue.dart (règle canonique + logs [dialogue]), defeat dialogue dropdown, labels UI "Dialogue (bibliothèque)"/"Nœud Yarn", fix chargement scriptPathRelative défaite |
 | map_runtime — Dialogue Yarn MVP | 2026-03-27 | dialogue_runtime_models.dart (YarnNode, DialogueSession), parse_yarn_dialogue.dart, load_dialogue_content.dart, dialogue_overlay_component.dart (HUD ligne par ligne), PlayableMapGame branché (blocage gameplay, E/Space avance/ferme) |
-| map_core + map_gameplay + map_editor — Collision entités | 2026-03-27 | MapEntity.blocksMovement (défaut true), _buildEntityByPos couvre toutes cellules de entity.size, isBlocked vérifie entity.blocksMovement, toggle "Bloque le mouvement" dans l'inspecteur éditeur |
+| map_core + map_gameplay + map_editor — Collision entités | 2026-03-27 | MapEntity.blocksMovement + `resolveEntityCollisionCells`, footprint configurable (`collision.*` + alias legacy), NPC par défaut 1×1, toggle "Bloque le mouvement" |
 | map_runtime — Yarn avec branches | 2026-03-27 | YarnStep sealed (YarnStepLine/Jump/ChoiceBlock), YarnChoice, DialogueSessionState sealed (ShowingLine/WaitingForChoice), _resolveStep() auto-exécute les <<jump>>, DialogueOverlayComponent mode choix (▶ curseur, ↑/↓, E valider), PlayableMapGame route les touches selon le mode |
+| map_runtime + map_gameplay — Polish déplacement/collisions | 2026-03-27 | Maintien de touches + interpolation visuelle des pas, tri de profondeur Y, NPC qui fait face au joueur en interaction, séparation caches blocage/interaction, blocage `custom` seulement sur override collision explicite |
+| map_gameplay + map_runtime — Rencontres actives MVP walk | 2026-03-27 | `checkEncounterAtPlayerPosition` (zone overlap priorité, filtre kind, table lookup, chance par pas, tirage pondéré, niveau random), `GameplayEncounter` typé, logs `[encounter]`, `EncounterOverlayComponent` bloquant temporaire |

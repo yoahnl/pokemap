@@ -18,12 +18,16 @@ import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'dialogue_overlay_component.dart';
+import 'encounter_overlay_component.dart';
 import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
 import 'player_component.dart';
 
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
+const GameplayEncounterPolicy _kEncounterPolicy = GameplayEncounterPolicy(
+  chancePerStep: 0.12,
+);
 
 class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
@@ -40,10 +44,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   LogicalKeyboardKey? _lastMoveKey;
   TriggeredWarp? _pendingWarp;
+  GameplayEncounter? _pendingEncounter;
   DialogueOverlayComponent? _dialogueOverlay;
+  EncounterOverlayComponent? _encounterOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
   final Map<String, OverworldActorComponent> _npcActorByEntityId = {};
+  final math.Random _encounterRandom = math.Random();
 
   @override
   Future<void> onLoad() async {
@@ -103,6 +110,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (_transitioning) return KeyEventResult.ignored;
     if (!isDown) return KeyEventResult.ignored;
+    if (_encounterOverlay != null) return KeyEventResult.ignored;
 
     if (_dialogueOverlay != null) {
       final overlay = _dialogueOverlay!;
@@ -155,6 +163,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (pendingWarp != null && !_player.isStepping) {
       _pendingWarp = null;
       _handleWarp(pendingWarp);
+      return;
+    }
+
+    final pendingEncounter = _pendingEncounter;
+    if (pendingEncounter != null && !_player.isStepping) {
+      _pendingEncounter = null;
+      _openEncounterOverlay(pendingEncounter);
+      return;
+    }
+
+    if (_encounterOverlay != null) {
       return;
     }
 
@@ -244,6 +263,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _world.player,
         durationSeconds: PlayerComponent.kDefaultStepSeconds,
       );
+      _checkWalkEncounter();
       return;
     }
 
@@ -258,6 +278,93 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       return;
     }
+  }
+
+  void _checkWalkEncounter() {
+    final pos = _world.player.pos;
+    debugPrint('[encounter] checking at x=${pos.x} y=${pos.y} kind=walk');
+    final check = checkEncounterAtPlayerPosition(
+      world: _world,
+      project: _bundle.manifest,
+      encounterKind: EncounterKind.walk,
+      random: _encounterRandom,
+      policy: _kEncounterPolicy,
+    );
+    _logEncounterCheck(check);
+    if (!check.triggered) {
+      return;
+    }
+    _pendingEncounter = check.encounter;
+  }
+
+  void _logEncounterCheck(GameplayEncounterCheckResult check) {
+    final kind = check.encounterKind?.name ?? EncounterKind.walk.name;
+    switch (check.status) {
+      case GameplayEncounterCheckStatus.noZone:
+        debugPrint('[encounter] no compatible zone');
+        return;
+      case GameplayEncounterCheckStatus.noEncounterTableId:
+        debugPrint(
+          '[encounter] zone=${check.zoneId ?? 'unknown'} has no encounter table id (kind=$kind)',
+        );
+        return;
+      case GameplayEncounterCheckStatus.encounterTableNotFound:
+        debugPrint(
+          '[encounter] zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'} not found',
+        );
+        return;
+      case GameplayEncounterCheckStatus.encounterKindMismatch:
+        debugPrint(
+          '[encounter] zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'} kind mismatch (expected=$kind)',
+        );
+        return;
+      case GameplayEncounterCheckStatus.emptyEncounterTable:
+        debugPrint(
+          '[encounter] zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'} has no valid entries',
+        );
+        return;
+      case GameplayEncounterCheckStatus.rollFailed:
+        debugPrint(
+          '[encounter] matched zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'}',
+        );
+        debugPrint(
+          '[encounter] rolled no encounter roll=${check.roll?.toStringAsFixed(3) ?? 'n/a'}',
+        );
+        return;
+      case GameplayEncounterCheckStatus.triggered:
+        final encounter = check.encounter;
+        if (encounter == null) {
+          debugPrint('[encounter] triggered status without payload');
+          return;
+        }
+        debugPrint(
+          '[encounter] matched zone=${encounter.zoneId} table=${encounter.tableId}',
+        );
+        debugPrint(
+          '[encounter] triggered species=${encounter.speciesId} level=${encounter.level} kind=${encounter.encounterKind.name}',
+        );
+        return;
+    }
+  }
+
+  void _openEncounterOverlay(GameplayEncounter encounter) {
+    _notification?.removeFromParent();
+    _notification = null;
+    _encounterOverlay?.removeFromParent();
+    _encounterOverlay = null;
+    final overlay = EncounterOverlayComponent(
+      encounter: encounter,
+      viewportSize: camera.viewport.size,
+      onFinished: () {
+        debugPrint('[encounter] overlay closed');
+        _encounterOverlay = null;
+      },
+    );
+    camera.viewport.add(overlay);
+    _encounterOverlay = overlay;
+    debugPrint(
+      '[encounter] overlay opened species=${encounter.speciesId} level=${encounter.level}',
+    );
   }
 
   void _handleInteract() {

@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités + Yarn branches : <<jump>> + choix -> ; système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, et rencontres actives MVP walk).
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités et dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E). Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel). Pas encore : rencontres, NPC actifs avec IA, sauvegarde.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E) et rencontres actives MVP en déplacement walk. Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : combat, rencontres surf/rod, NPC actifs avec IA, sauvegarde.
 
 ---
 
@@ -69,7 +69,7 @@ MapEntity(
   item?: MapEntityItemData,
   spawn?: MapEntitySpawnData,
   editorVisual?: MapEntityEditorVisual,
-  blocksMovement: bool = true,   // toutes les cellules couvertes par size bloquent le mouvement
+  blocksMovement: bool = true,   // intention de blocage (la footprint effective est résolue côté gameplay)
   properties,
 )
 // Extensions: resolvedProjectElementIdForEditor (editorVisual.elementId ?? npc.visualElementId)
@@ -209,12 +209,11 @@ class GameplayWorldState {
   bool isBlocked(int x, int y);
   // 1. hors bornes → true
   // 2. collisionCache[idx] → true si tuile de collision
-  // 3. entityByPos[idx]?.blocksMovement → true si entité bloquante
+  // 3. blockingEntityByPos[idx]?.blocksMovement → true si entité bloquante
   MapWarp? warpAt(int x, int y);
   MapEntity? entityAt(int x, int y);
-  // cache Map<int, MapEntity> y*w+x — spawns exclus
-  // couvre TOUTES les cellules de entity.size (pas seulement pos)
-  // → interaction possible depuis n'importe quelle cellule adjacente d'un sprite multi-cases
+  // entityByPos : cache d'interaction (footprint entité), spawns exclus
+  // blockingEntityByPos : cache blocage séparé (spawns exclus ; custom bloquants uniquement si override explicite collision.*)
   GameplayWorldState withPlayer(GameplayPlayerState player);
 }
 
@@ -254,6 +253,56 @@ GameplayPlayerState resolveInitialPlayerSpawn(MapData map);
 // Priorité : map.mapMetadata.defaultSpawnId → spawn entity avec role=playerStart (tri par id) → exception
 
 class GameplaySpawnResolutionException implements Exception { final String message; }
+
+// Rencontres
+const double defaultEncounterChancePerStep = 0.12;
+
+class GameplayEncounterPolicy {
+  final double chancePerStep; // [0..1]
+}
+
+enum GameplayEncounterCheckStatus {
+  noZone,
+  noEncounterTableId,
+  encounterTableNotFound,
+  encounterKindMismatch,
+  emptyEncounterTable,
+  rollFailed,
+  triggered,
+}
+
+class GameplayEncounter {
+  final String mapId;
+  final String zoneId;
+  final String tableId;
+  final EncounterKind encounterKind;
+  final String speciesId;
+  final int level;
+  final int minLevel;
+  final int maxLevel;
+  final int weight;
+  final GridPos playerPos;
+  Map<String, dynamic> toJson();
+  factory GameplayEncounter.fromJson(Map<String, dynamic> json);
+}
+
+class GameplayEncounterCheckResult {
+  final GameplayEncounterCheckStatus status;
+  final String? zoneId;
+  final String? tableId;
+  final EncounterKind? encounterKind;
+  final double? roll;
+  final GameplayEncounter? encounter;
+  bool get triggered;
+}
+
+GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
+  required GameplayWorldState world,
+  required ProjectManifest project,
+  required EncounterKind encounterKind,
+  Random? random,
+  GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
+});
 ```
 
 ### Comportement de stepGameplayWorld
@@ -310,12 +359,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required RuntimeMapBundle bundle,
     required String projectFilePath,  // pour charger les maps de warp
   });
-  // Gère flèches + WASD → MoveIntent → stepGameplayWorld
+  // Gère flèches + WASD en maintien de touche → MoveIntent → stepGameplayWorld
+  // Déplacement visuel interpolé (step tween) via PlayerComponent.startStep()
+  // Animation player idle/walk selon état de mouvement
   // E / Space → InteractIntent → si dialogue résolu → loadDialogueContent() → ouvre DialogueOverlayComponent
   // Si dialogue actif : E / Space → advance() (ligne suivante ou fermeture) ; mouvement bloqué
+  // NpcInteracted → NPC se tourne vers le joueur
+  // Tri de profondeur dynamique (priority basée sur Y du pied)
   // NpcInteracted/SignInteracted → _tryOpenDialogue() → resolveDialogue() + loadDialogueContent()
+  // Moved (non warp) → checkEncounterAtPlayerPosition(..., EncounterKind.walk)
+  // Rencontre déclenchée : feedback HUD temporaire + blocage gameplay pendant l'affichage
   // Collisions depuis GameplayWorldState
-  // WarpTriggered → charge async nouvelle map (images avant swap, erreur loggée)
+  // WarpTriggered → charge async nouvelle map (images avant swap, erreur loggée), après fin du step visuel
   // Fallback spawn (0,0) si GameplaySpawnResolutionException
   // Logs structurés : [runtime] | [move] | [warp] | [interact] | [dialogue]
   // HUD notification 2s via TextComponent sur camera.viewport (fallback si pas de dialogue)
@@ -519,9 +574,10 @@ Offset panOffset
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
 - Boucle jouable : déplacement clavier, collisions bloquantes, transitions de map via warps.
 - Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
-- Collision entités : `MapEntity.blocksMovement` (défaut `true`) — toutes les cellules couvertes par `entity.size` bloquent le joueur. Désactivable par entité via toggle dans l'inspecteur éditeur.
+- Collision entités : footprint résolue via `resolveEntityCollisionCells()` ; NPC par défaut en 1×1 (bas centré), override possible via `collision.width/height/offsetX/offsetY` (et alias legacy). Le cache de blocage est séparé du cache d'interaction ; les entités `custom` ne bloquent pas par défaut sans override explicite.
 - Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`.
 - **Dialogue Yarn avec branches** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche lignes (E · Suite / E · Fermer) et blocs de choix (▶ curseur, ↑/↓ pour naviguer, E pour valider). `<<jump>>` exécuté automatiquement. Le mouvement est bloqué pendant tout le dialogue.
+- **Rencontres actives MVP (walk)** : après un `Moved` accepté (hors `Blocked` / `WarpTriggered`), le runtime appelle `checkEncounterAtPlayerPosition()` (`map_gameplay`). Zone retenue = zone encounter de plus haute priorité contenant la cellule joueur et compatible `EncounterKind.walk`. Tirage pondéré dans la table projet, niveau aléatoire `[minLevel..maxLevel]`, logs `[encounter]`, puis feedback HUD temporaire bloquant.
 - Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]`, `[dialogue]` via `debugPrint`.
 - Warp failure visible : `catch (e, st)` avec log + notification "Warp failed".
 - Résolution automatique du spawn joueur.
@@ -530,10 +586,10 @@ Offset panOffset
 ### Ne marche pas encore
 
 - Pas de variables/conditions Yarn : le moteur ne supporte que `<<jump>>` et `->` choix (pas `<<set>>`, `<<if>>`, expressions).
-- Rencontres aléatoires actives (zones définies mais pas de déclenchement).
+- Rencontres MVP limitées à `EncounterKind.walk` (pas surf, rod, gift, special).
+- Pas de scène de combat : le runtime affiche un feedback HUD, sans transition vers un système de battle.
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
-- Animations joueur orientées : `PlayerComponent` utilise `OverworldActorComponent` si un `ProjectCharacterEntry` est configuré (joueur avec sprite animé), sinon fallback disque bleu. Les animations walk/run sont déclenchées sur déplacement (300 ms), idle sinon.
 
 ---
 
@@ -555,7 +611,9 @@ Offset panOffset
 
 8. **Pas de GameplayPlayerState @freezed** : plain class avec copyWith manuel — cohérent fonctionnellement mais pas uniforme avec le reste du domaine.
 
-9. **`blocksMovement` ignoré pour spawn** : le champ existe sur `MapEntity` (kind=spawn), mais les entités spawn sont exclues de `_buildEntityByPos` → le flag n'a aucun effet pour les spawns. C'est voulu (le spawn est invisible au runtime), mais ne pas s'attendre à un comportement de collision dessus.
+9. **`blocksMovement` ignoré pour spawn** : le champ existe sur `MapEntity` (kind=spawn), mais les entités spawn sont exclues des caches gameplay (`_buildEntityByPos` et `_buildBlockingEntityByPos`) → le flag n'a aucun effet pour les spawns.
+
+10. **Entités `custom` et blocage runtime** : côté gameplay, les entités `custom` ne sont ajoutées au cache bloquant que si un override collision explicite est présent (`collision.*` ou alias legacy). Sans override, le blocage attendu doit venir des collision layers.
 
 ---
 
@@ -584,6 +642,6 @@ Offset panOffset
 
 ## Prochaines priorités
 
-1. **Animations joueur orientées** : `PlayerComponent` ne dessine qu'un disque fixe.
-2. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
-3. (Plus tard) Rencontres actives, comportement NPC, sauvegarde.
+1. Brancher une vraie transition battle à partir de `GameplayEncounter` (au lieu du simple HUD).
+2. Étendre les rencontres à `surf`/`rod` et aux conditions de contexte (mode de déplacement, tags de map/zone).
+3. Comportements NPC (patrouille, LoS dresseur, scripts) puis sauvegarde/chargement état de partie.
