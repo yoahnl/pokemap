@@ -22,6 +22,27 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
 
   final tx = world.player.pos.x + direction.dx;
   final ty = world.player.pos.y + direction.dy;
+  final isOutOfBounds = tx < 0 ||
+      ty < 0 ||
+      tx >= world.map.size.width ||
+      ty >= world.map.size.height;
+
+  if (isOutOfBounds) {
+    final connectionDirection = _connectionDirectionForMove(direction);
+    final connection = findMapConnection(world.map, connectionDirection);
+    if (connection == null) {
+      return Blocked(facingWorld);
+    }
+    return ConnectionTriggered(
+      facingWorld,
+      TriggeredConnection(
+        direction: connection.direction,
+        targetMapId: connection.targetMapId,
+        offset: connection.offset,
+        sourcePos: world.player.pos,
+      ),
+    );
+  }
 
   if (facingWorld.isBlocked(tx, ty)) {
     return Blocked(facingWorld);
@@ -44,6 +65,15 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
   }
 
   return Moved(movedWorld);
+}
+
+MapConnectionDirection _connectionDirectionForMove(Direction direction) {
+  return switch (direction) {
+    Direction.north => MapConnectionDirection.north,
+    Direction.south => MapConnectionDirection.south,
+    Direction.east => MapConnectionDirection.east,
+    Direction.west => MapConnectionDirection.west,
+  };
 }
 
 GameplayStepResult _resolveInteract(GameplayWorldState world) {

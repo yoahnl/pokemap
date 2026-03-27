@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, et rencontres actives MVP walk).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, et streaming de maps adjacentes côté runtime).
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E) et rencontres actives MVP en déplacement walk. Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : combat, rencontres surf/rod, NPC actifs avec IA, sauvegarde.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E), rencontres actives MVP en déplacement walk, navigation naturelle bord-à-bord via `MapConnection`, et streaming visuel des maps adjacentes (map active + voisines directes). Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : combat, rencontres surf/rod, NPC actifs avec IA, sauvegarde.
 
 ---
 
@@ -233,6 +233,9 @@ final class Blocked extends GameplayStepResult {}
 final class WarpTriggered extends GameplayStepResult {
   final TriggeredWarp warp;
 }
+final class ConnectionTriggered extends GameplayStepResult {
+  final TriggeredConnection connection;
+}
 final class NothingToInteract extends GameplayStepResult {}
 final class NpcInteracted extends GameplayStepResult { final MapEntity entity; }
 final class SignInteracted extends GameplayStepResult { final MapEntity entity; }
@@ -245,8 +248,23 @@ class TriggeredWarp {
   final GridPos targetPos;
 }
 
+class TriggeredConnection {
+  final MapConnectionDirection direction;
+  final String targetMapId;
+  final int offset;
+  final GridPos sourcePos;
+}
+
 // Boucle principale
 GameplayStepResult stepGameplayWorld(GameplayWorldState world, GameplayIntent intent);
+
+GridPos? resolveConnectedMapTargetPos({
+  required GridPos sourcePos,
+  required GridSize sourceSize,
+  required GridSize targetSize,
+  required MapConnectionDirection direction,
+  required int offset,
+});
 
 // Résolution spawn
 GameplayPlayerState resolveInitialPlayerSpawn(MapData map);
@@ -310,10 +328,14 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
 Pour `MoveIntent(direction)` :
 1. Tourne le joueur dans la direction (même si bloqué)
 2. Calcule `(tx, ty) = pos + direction.delta`
-3. Si `isBlocked(tx, ty)` → retourne `Blocked(facedWorld)`
-4. Sinon déplace le joueur à `(tx, ty)`
-5. Si `warpAt(tx, ty) != null` → retourne `WarpTriggered(movedWorld, warp)`
-6. Sinon → retourne `Moved(movedWorld)`
+3. Si `(tx, ty)` est hors map :
+   - cherche une `MapConnection` sur le bord correspondant à `direction`
+   - si absente → `Blocked(facedWorld)`
+   - si présente → `ConnectionTriggered(facedWorld, connection)` (pas de déplacement hors bornes dans l'état pur)
+4. Si `isBlocked(tx, ty)` → retourne `Blocked(facedWorld)`
+5. Sinon déplace le joueur à `(tx, ty)`
+6. Si `warpAt(tx, ty) != null` → retourne `WarpTriggered(movedWorld, warp)`
+7. Sinon → retourne `Moved(movedWorld)`
 
 Pour `InteractIntent()` :
 1. Calcule `(tx, ty) = pos + facing.delta` (cellule devant le joueur)
@@ -357,7 +379,7 @@ class RuntimeMapGame extends FlameGame {
 class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
     required RuntimeMapBundle bundle,
-    required String projectFilePath,  // pour charger les maps de warp
+    required String projectFilePath,  // pour charger les maps de warp/connection
   });
   // Gère flèches + WASD en maintien de touche → MoveIntent → stepGameplayWorld
   // Déplacement visuel interpolé (step tween) via PlayerComponent.startStep()
@@ -371,8 +393,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // Rencontre déclenchée : feedback HUD temporaire + blocage gameplay pendant l'affichage
   // Collisions depuis GameplayWorldState
   // WarpTriggered → charge async nouvelle map (images avant swap, erreur loggée), après fin du step visuel
+  // ConnectionTriggered → résout/précharge la map cible, calcule la case d'entrée
+  //   avec resolveConnectedMapTargetPos(), puis déclenche un pas interpolé source→cible
+  //   (transition invisible), refuse si entrée invalide/bloquée
+  // Streaming voisinage : map active + maps connectées directes gardées montées pour visibilité continue
   // Fallback spawn (0,0) si GameplaySpawnResolutionException
-  // Logs structurés : [runtime] | [move] | [warp] | [interact] | [dialogue]
+  // Priorité : warp explicite > connection implicite (connection uniquement en sortie hors bornes)
+  // Logs structurés : [runtime] | [warp] | [connection] | [interact] | [dialogue] | [encounter]
   // HUD notification 2s via TextComponent sur camera.viewport (fallback si pas de dialogue)
 }
 
@@ -573,12 +600,16 @@ Offset panOffset
 - Undo/redo dans l'éditeur.
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
 - Boucle jouable : déplacement clavier, collisions bloquantes, transitions de map via warps.
+- Connexions naturelles inter-maps (`MapConnection`) : sortie de bord déclenche une transition vers la map cible sans warp explicite, avec garde d'état (pas de transition concurrente), validation stricte de la case d'entrée, et interpolation visuelle continue source→cible.
+- Streaming maps adjacentes : la map active, sa précédente immédiate et ses voisines connectées directes restent montées dans le monde Flame ; on voit la map suivante/précédente sans changer de scène.
+- Convention canonique `offset` appliquée runtime : `targetAxis = sourceAxis - offset` (offset = décalage de la map cible par rapport à la source). Formules : E/W `targetY = sourceY - offset`, N/S `targetX = sourceX - offset`; entrée sur la bordure opposée (E→x0, W→xMax, N→yMax, S→y0).
+- Priorité des transitions : un warp explicite gagne toujours ; une connection ne s'applique que sur tentative de sortie hors bornes.
 - Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
 - Collision entités : footprint résolue via `resolveEntityCollisionCells()` ; NPC par défaut en 1×1 (bas centré), override possible via `collision.width/height/offsetX/offsetY` (et alias legacy). Le cache de blocage est séparé du cache d'interaction ; les entités `custom` ne bloquent pas par défaut sans override explicite.
 - Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`.
 - **Dialogue Yarn avec branches** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche lignes (E · Suite / E · Fermer) et blocs de choix (▶ curseur, ↑/↓ pour naviguer, E pour valider). `<<jump>>` exécuté automatiquement. Le mouvement est bloqué pendant tout le dialogue.
 - **Rencontres actives MVP (walk)** : après un `Moved` accepté (hors `Blocked` / `WarpTriggered`), le runtime appelle `checkEncounterAtPlayerPosition()` (`map_gameplay`). Zone retenue = zone encounter de plus haute priorité contenant la cellule joueur et compatible `EncounterKind.walk`. Tirage pondéré dans la table projet, niveau aléatoire `[minLevel..maxLevel]`, logs `[encounter]`, puis feedback HUD temporaire bloquant.
-- Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]`, `[dialogue]` via `debugPrint`.
+- Logs structurés : `[runtime]`, `[warp]`, `[connection]`, `[interact]`, `[dialogue]`, `[encounter]` via `debugPrint`.
 - Warp failure visible : `catch (e, st)` avec log + notification "Warp failed".
 - Résolution automatique du spawn joueur.
 - Consommation externe de `map_runtime` depuis un projet Flutter séparé.
@@ -590,6 +621,7 @@ Offset panOffset
 - Pas de scène de combat : le runtime affiche un feedback HUD, sans transition vers un système de battle.
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
+- Pas de streaming profond multi-hop : le runtime garde surtout le voisinage immédiat (active + connexions directes + précédente), pas un graphe complet de maps lointaines.
 
 ---
 
@@ -615,6 +647,10 @@ Offset panOffset
 
 10. **Entités `custom` et blocage runtime** : côté gameplay, les entités `custom` ne sont ajoutées au cache bloquant que si un override collision explicite est présent (`collision.*` ou alias legacy). Sans override, le blocage attendu doit venir des collision layers.
 
+11. **Offsets de connexion à respecter** : l'éditeur et le runtime utilisent la même convention (`targetAxis = sourceAxis - offset`). Un inverse de connexion valide doit donc pointer en sens opposé avec `offset = -sourceOffset`.
+
+12. **Entrée de connection invalidée** : si la case d'arrivée calculée est hors bornes ou bloquée sur la map cible, la transition est annulée côté runtime (log `[connection]` + notification), sans fallback heuristique.
+
 ---
 
 ## Fichiers à lire en premier pour comprendre le repo
@@ -626,17 +662,18 @@ Offset panOffset
 | 3 | `packages/map_core/lib/src/models/project_manifest.dart` | Structure ProjectManifest + tous les registres projet |
 | 4 | `packages/map_gameplay/lib/map_gameplay.dart` | API publique gameplay |
 | 5 | `packages/map_gameplay/lib/src/gameplay_step.dart` | Boucle d'exploration |
-| 6 | `packages/map_gameplay/lib/src/player_spawn_resolver.dart` | Logique spawn |
-| 7 | `packages/map_runtime/lib/map_runtime.dart` | 4 exports publics |
-| 8 | `packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart` | Pipeline de chargement |
-| 9 | `packages/map_runtime/lib/src/application/resolve_dialogue.dart` | Règle canonique de résolution dialogue |
-| 10 | `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | Boucle jouable |
-| 11 | `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart` | Rendu complet |
-| 12 | `packages/map_editor/lib/src/features/editor/state/editor_state.dart` | État éditeur complet |
-| 13 | `packages/map_editor/lib/src/application/services/map_history_coordinator.dart` | Undo/redo |
-| 14 | `packages/map_core/lib/src/io/legacy_editor_json_compat.dart` | Migrations JSON |
-| 15 | `packages/map_core/lib/src/validation/validators.dart` | Règles de validation |
-| 16 | `packages/map_core/lib/src/models/map_entity_payloads.dart` | DialogueRef, NpcData, SignData |
+| 6 | `packages/map_gameplay/lib/src/gameplay_connection.dart` | Convention offset + calcul source→cible des `MapConnection` |
+| 7 | `packages/map_gameplay/lib/src/player_spawn_resolver.dart` | Logique spawn |
+| 8 | `packages/map_runtime/lib/map_runtime.dart` | 4 exports publics |
+| 9 | `packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart` | Pipeline de chargement |
+| 10 | `packages/map_runtime/lib/src/application/resolve_dialogue.dart` | Règle canonique de résolution dialogue |
+| 11 | `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart` | Boucle jouable (warps + connections + rencontres + dialogues) |
+| 12 | `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart` | Rendu complet |
+| 13 | `packages/map_editor/lib/src/features/editor/state/editor_state.dart` | État éditeur complet |
+| 14 | `packages/map_editor/lib/src/application/services/map_history_coordinator.dart` | Undo/redo |
+| 15 | `packages/map_core/lib/src/io/legacy_editor_json_compat.dart` | Migrations JSON |
+| 16 | `packages/map_core/lib/src/validation/validators.dart` | Règles de validation |
+| 17 | `packages/map_core/lib/src/models/map_entity_payloads.dart` | DialogueRef, NpcData, SignData |
 
 ---
 

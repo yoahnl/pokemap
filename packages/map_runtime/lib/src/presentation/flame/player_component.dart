@@ -17,12 +17,14 @@ class PlayerComponent extends PositionComponent {
     required GameplayPlayerState state,
     this.characterEntry,
     this.tileImages = const {},
+    Vector2? mapOrigin,
   })  : _state = state,
+        _mapOrigin = mapOrigin?.clone() ?? Vector2.zero(),
         super(
           anchor: Anchor.topLeft,
           position: Vector2(
-            state.pos.x * bundle.cellWidth,
-            state.pos.y * bundle.cellHeight,
+            (mapOrigin?.x ?? 0) + state.pos.x * bundle.cellWidth,
+            (mapOrigin?.y ?? 0) + state.pos.y * bundle.cellHeight,
           ),
           size: Vector2(bundle.cellWidth, bundle.cellHeight),
         );
@@ -32,6 +34,7 @@ class PlayerComponent extends PositionComponent {
   final Map<String, ui.Image> tileImages;
 
   GameplayPlayerState _state;
+  Vector2 _mapOrigin;
   OverworldActorComponent? _actor;
   Vector2? _moveFrom;
   Vector2? _moveTo;
@@ -48,10 +51,12 @@ class PlayerComponent extends PositionComponent {
         position.y + bundle.cellHeight,
       );
 
+  Vector2 get mapOrigin => _mapOrigin.clone();
+
   void _snapToStatePosition() {
     final target = Vector2(
-      _state.pos.x * bundle.cellWidth,
-      _state.pos.y * bundle.cellHeight,
+      _mapOrigin.x + _state.pos.x * bundle.cellWidth,
+      _mapOrigin.y + _state.pos.y * bundle.cellHeight,
     );
     position = Vector2(
       target.x.roundToDouble(),
@@ -152,8 +157,8 @@ class PlayerComponent extends PositionComponent {
     _stepDurationSeconds = durationSeconds;
     _moveFrom = position.clone();
     _moveTo = Vector2(
-      state.pos.x * bundle.cellWidth,
-      state.pos.y * bundle.cellHeight,
+      _mapOrigin.x + state.pos.x * bundle.cellWidth,
+      _mapOrigin.y + state.pos.y * bundle.cellHeight,
     );
     _moveRemaining = durationSeconds;
     _actor?.setMotion(
@@ -164,5 +169,12 @@ class PlayerComponent extends PositionComponent {
 
   void updateState(GameplayPlayerState state) {
     syncState(state, snapToGrid: true);
+  }
+
+  void setMapOrigin(Vector2 origin, {bool snapToGrid = false}) {
+    _mapOrigin = origin.clone();
+    if (snapToGrid) {
+      _snapToStatePosition();
+    }
   }
 }

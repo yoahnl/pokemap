@@ -38,18 +38,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final String projectFilePath;
   RuntimeMapBundle _bundle;
   late GameplayWorldState _world;
-  late MapLayersComponent _layers;
   late PlayerComponent _player;
+  String _activeMapId = '';
+  String? _previousMapId;
   bool _transitioning = false;
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   LogicalKeyboardKey? _lastMoveKey;
   TriggeredWarp? _pendingWarp;
+  TriggeredConnection? _pendingConnection;
   GameplayEncounter? _pendingEncounter;
   DialogueOverlayComponent? _dialogueOverlay;
   EncounterOverlayComponent? _encounterOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
-  final Map<String, OverworldActorComponent> _npcActorByEntityId = {};
+  final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
+  final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final math.Random _encounterRandom = math.Random();
 
   @override
@@ -69,20 +72,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final images =
         await loadTilesetImagesById(_bundle.tilesetAbsolutePathsById);
-    _layers =
-        MapLayersComponent(bundle: _bundle, tileImagesByTilesetId: images);
+    _activeMapId = _bundle.map.id;
+    final rootMap = await _mountLoadedMap(
+      bundle: _bundle,
+      tileImagesById: images,
+      originCellX: 0,
+      originCellY: 0,
+    );
     final playerChar = _resolvePlayerCharacter(_bundle);
     _player = PlayerComponent(
       bundle: _bundle,
       state: _world.player,
       characterEntry: playerChar,
       tileImages: images,
+      mapOrigin: _originPixelsOf(rootMap),
     );
-    await world.add(_layers);
     await world.add(_player);
-    await _addNpcActors(_bundle, images);
     _configureCameraViewport();
     _syncCameraToPlayer();
+    _preloadActiveMapConnections();
     return super.onLoad();
   }
 
@@ -163,6 +171,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (pendingWarp != null && !_player.isStepping) {
       _pendingWarp = null;
       _handleWarp(pendingWarp);
+      return;
+    }
+
+    final pendingConnection = _pendingConnection;
+    if (pendingConnection != null && !_player.isStepping) {
+      _pendingConnection = null;
+      _handleConnection(pendingConnection);
       return;
     }
 
@@ -249,11 +264,35 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _player.syncState(_world.player);
       return;
     }
+    final attemptedDirection = intent is MoveIntent ? intent.direction : null;
+    final attemptedX = attemptedDirection == null
+        ? null
+        : _world.player.pos.x + attemptedDirection.dx;
+    final attemptedY = attemptedDirection == null
+        ? null
+        : _world.player.pos.y + attemptedDirection.dy;
+    final attemptedOutOfBounds = attemptedX != null &&
+        attemptedY != null &&
+        (attemptedX < 0 ||
+            attemptedY < 0 ||
+            attemptedX >= _world.map.size.width ||
+            attemptedY >= _world.map.size.height);
 
     final result = stepGameplayWorld(_world, intent);
     _world = result.world;
 
     if (result is Blocked) {
+      if (attemptedOutOfBounds && attemptedDirection != null) {
+        final direction = switch (attemptedDirection) {
+          Direction.north => MapConnectionDirection.north,
+          Direction.south => MapConnectionDirection.south,
+          Direction.east => MapConnectionDirection.east,
+          Direction.west => MapConnectionDirection.west,
+        };
+        debugPrint(
+          '[connection] no connection for direction=${direction.name} map=${_bundle.map.id}',
+        );
+      }
       _player.syncState(_world.player);
       return;
     }
@@ -275,6 +314,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingWarp = result.warp;
       debugPrint(
         '[warp] Triggered warp ${result.warp.warpId} → map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
+      );
+      return;
+    }
+
+    if (result is ConnectionTriggered) {
+      _player.syncState(_world.player);
+      _pendingConnection = result.connection;
+      debugPrint(
+        '[connection] exit detected map=${_bundle.map.id} direction=${result.connection.direction.name} target=${result.connection.targetMapId} offset=${result.connection.offset} source=(${result.connection.sourcePos.x}, ${result.connection.sourcePos.y})',
       );
       return;
     }
@@ -538,44 +586,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<void> _handleWarp(TriggeredWarp warp) async {
     _transitioning = true;
     try {
+      _clearTransientUiState();
       final newBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
         mapId: warp.targetMapId,
       );
-      final newImages =
-          await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
       final newWorld = GameplayWorldState.initial(
         map: newBundle.map,
         playerPos: warp.targetPos,
         playerFacing: _world.player.facing,
       );
-
-      world.remove(_layers);
-      world.remove(_player);
-      for (final actor in _npcActors) {
-        world.remove(actor);
-      }
-      _npcActors.clear();
-      _npcActorByEntityId.clear();
-
+      final newImages =
+          await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
+      _unmountAllLoadedMaps();
+      final root = await _mountLoadedMap(
+        bundle: newBundle,
+        tileImagesById: newImages,
+        originCellX: 0,
+        originCellY: 0,
+      );
       _bundle = newBundle;
       _world = newWorld;
-      _layers = MapLayersComponent(
-          bundle: newBundle, tileImagesByTilesetId: newImages);
-      final playerChar = _resolvePlayerCharacter(newBundle);
-      _player = PlayerComponent(
-        bundle: newBundle,
-        state: _world.player,
-        characterEntry: playerChar,
-        tileImages: newImages,
-      );
-
-      await world.add(_layers);
-      await world.add(_player);
-      await _addNpcActors(newBundle, newImages);
+      _activeMapId = newBundle.map.id;
+      _previousMapId = null;
+      _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
+      _player.syncState(_world.player, snapToGrid: true);
+      debugPrint('[warp] Transition complete → map=${newBundle.map.id}');
       _configureCameraViewport();
       _syncCameraToPlayer();
-      debugPrint('[warp] Transition complete → map=${newBundle.map.id}');
+      _preloadActiveMapConnections();
+      _pruneLoadedMapsToActiveNeighborhood();
     } catch (e, st) {
       debugPrint('[warp] Transition failed: $e\n$st');
       _showNotification('Warp failed');
@@ -584,17 +624,153 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  ProjectCharacterEntry? _resolvePlayerCharacter(RuntimeMapBundle bundle) {
-    return resolveDefaultPlayerCharacter(bundle.manifest);
+  Future<void> _handleConnection(TriggeredConnection connection) async {
+    _transitioning = true;
+    try {
+      _clearTransientUiState();
+      debugPrint(
+        '[connection] attempting map=${_bundle.map.id} direction=${connection.direction.name} target=${connection.targetMapId} offset=${connection.offset} source=(${connection.sourcePos.x}, ${connection.sourcePos.y})',
+      );
+      final source = _loadedMapsById[_activeMapId];
+      if (source == null) {
+        debugPrint(
+            '[connection] source map visuals missing for id=$_activeMapId');
+        _player.syncState(_world.player, snapToGrid: true);
+        _showNotification('Connection failed');
+        return;
+      }
+      final target = await _ensureConnectionTargetLoaded(
+        source: source,
+        connection: connection,
+      );
+      if (target == null) {
+        _player.syncState(_world.player, snapToGrid: true);
+        _showNotification('Connection failed');
+        return;
+      }
+      debugPrint('[connection] resolved target map=${target.bundle.map.id}');
+      final targetPos = resolveConnectedMapTargetPos(
+        sourcePos: connection.sourcePos,
+        sourceSize: source.bundle.map.size,
+        targetSize: target.bundle.map.size,
+        direction: connection.direction,
+        offset: connection.offset,
+      );
+      if (targetPos == null) {
+        debugPrint(
+          '[connection] invalid entry coordinates direction=${connection.direction.name} offset=${connection.offset} source=(${connection.sourcePos.x}, ${connection.sourcePos.y}) sourceSize=${source.bundle.map.size.width}x${source.bundle.map.size.height} targetSize=${target.bundle.map.size.width}x${target.bundle.map.size.height}',
+        );
+        _player.syncState(_world.player, snapToGrid: true);
+        _showNotification('Connection invalid');
+        return;
+      }
+      debugPrint(
+        '[connection] computed entry pos=(${targetPos.x}, ${targetPos.y})',
+      );
+      final newWorld = GameplayWorldState.initial(
+        map: target.bundle.map,
+        playerPos: targetPos,
+        playerFacing: _world.player.facing,
+      );
+      if (newWorld.isBlocked(targetPos.x, targetPos.y)) {
+        debugPrint(
+          '[connection] blocked entry map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
+        );
+        _player.syncState(_world.player, snapToGrid: true);
+        _showNotification('Connection blocked');
+        return;
+      }
+      _bundle = target.bundle;
+      _world = newWorld;
+      _previousMapId = _activeMapId;
+      _activeMapId = target.bundle.map.id;
+      final fromPx = _player.position.clone();
+      final targetOriginPx = _originPixelsOf(target);
+      final toPx = Vector2(
+        targetOriginPx.x + targetPos.x * _cellWidth,
+        targetOriginPx.y + targetPos.y * _cellHeight,
+      );
+      debugPrint(
+        '[connection] player step pixels from=(${fromPx.x.toStringAsFixed(1)}, ${fromPx.y.toStringAsFixed(1)}) to=(${toPx.x.toStringAsFixed(1)}, ${toPx.y.toStringAsFixed(1)})',
+      );
+      _player.setMapOrigin(targetOriginPx, snapToGrid: false);
+      _player.startStep(
+        _world.player,
+        durationSeconds: PlayerComponent.kDefaultStepSeconds,
+      );
+      _configureCameraViewport();
+      final visibleSize = camera.viewfinder.visibleGameSize;
+      debugPrint(
+        '[connection] camera after transition focus=(${_player.focusPoint.x.toStringAsFixed(1)}, ${_player.focusPoint.y.toStringAsFixed(1)}) viewport=(${(visibleSize?.x ?? 0).toStringAsFixed(1)}, ${(visibleSize?.y ?? 0).toStringAsFixed(1)})',
+      );
+      debugPrint(
+        '[connection] transition complete → map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
+      );
+      _preloadActiveMapConnections();
+      _pruneLoadedMapsToActiveNeighborhood();
+    } catch (e, st) {
+      debugPrint('[connection] transition failed: $e\n$st');
+      _player.syncState(_world.player, snapToGrid: true);
+      _showNotification('Connection failed');
+    } finally {
+      _transitioning = false;
+    }
   }
 
-  Future<void> _addNpcActors(
-    RuntimeMapBundle bundle,
-    Map<String, ui.Image> images,
-  ) async {
+  void _clearTransientUiState() {
+    _pendingWarp = null;
+    _pendingConnection = null;
+    _pendingEncounter = null;
+    _notification?.removeFromParent();
+    _notification = null;
+    _dialogueOverlay?.removeFromParent();
+    _dialogueOverlay = null;
+    _encounterOverlay?.removeFromParent();
+    _encounterOverlay = null;
+  }
+
+  void _unmountAllLoadedMaps() {
+    final ids = _loadedMapsById.keys.toList(growable: false);
+    for (final id in ids) {
+      _unmountLoadedMap(id);
+    }
+    _loadedMapsById.clear();
+    _loadMapFutureById.clear();
+  }
+
+  void _unmountLoadedMap(String mapId) {
+    final loaded = _loadedMapsById.remove(mapId);
+    if (loaded == null) {
+      return;
+    }
+    loaded.layers.removeFromParent();
+    for (final actor in loaded.npcActors) {
+      actor.removeFromParent();
+      _npcActors.remove(actor);
+    }
+  }
+
+  Future<_LoadedPlayableMap> _mountLoadedMap({
+    required RuntimeMapBundle bundle,
+    required Map<String, ui.Image> tileImagesById,
+    required int originCellX,
+    required int originCellY,
+  }) async {
+    final layers = MapLayersComponent(
+        bundle: bundle, tileImagesByTilesetId: tileImagesById);
+    layers.position = _originPixels(
+      originCellX: originCellX,
+      originCellY: originCellY,
+    );
+    await world.add(layers);
+
+    final npcActors = <OverworldActorComponent>[];
+    final npcActorByEntityId = <String, OverworldActorComponent>{};
     final charById = {for (final c in bundle.manifest.characters) c.id: c};
     final cw = bundle.cellWidth;
     final ch = bundle.cellHeight;
+    final originPx =
+        _originPixels(originCellX: originCellX, originCellY: originCellY);
     for (final entity in bundle.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
       final charId = resolveNpcCharacterId(entity, bundle.manifest);
@@ -603,7 +779,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (char == null) continue;
       final actor = OverworldActorComponent(
         character: char,
-        tileImages: images,
+        tileImages: tileImagesById,
         tileWidth: bundle.manifest.settings.tileWidth,
         tileHeight: bundle.manifest.settings.tileHeight,
         cellWidth: cw,
@@ -612,17 +788,179 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final topY = entity.pos.y + entity.size.height - actor.frameHeightTiles;
       actor.position = Vector2(
-        entity.pos.x * cw,
-        topY * ch,
+        originPx.x + entity.pos.x * cw,
+        originPx.y + topY * ch,
       );
+      npcActors.add(actor);
+      npcActorByEntityId[entity.id] = actor;
       _npcActors.add(actor);
-      _npcActorByEntityId[entity.id] = actor;
       await world.add(actor);
+    }
+
+    final loaded = _LoadedPlayableMap(
+      bundle: bundle,
+      originCellX: originCellX,
+      originCellY: originCellY,
+      layers: layers,
+      npcActors: npcActors,
+      npcActorByEntityId: npcActorByEntityId,
+    );
+    _loadedMapsById[bundle.map.id] = loaded;
+    return loaded;
+  }
+
+  Future<_LoadedPlayableMap?> _ensureConnectionTargetLoaded({
+    required _LoadedPlayableMap source,
+    required TriggeredConnection connection,
+  }) async {
+    final targetMapId = connection.targetMapId;
+    final existing = _loadedMapsById[targetMapId];
+    if (existing != null) {
+      final expected = _computeConnectedOriginCells(
+        source: source,
+        connection: connection,
+        targetSize: existing.bundle.map.size,
+      );
+      if (expected.x != existing.originCellX ||
+          expected.y != existing.originCellY) {
+        debugPrint(
+          '[connection] origin mismatch target=$targetMapId existing=(${existing.originCellX}, ${existing.originCellY}) expected=(${expected.x}, ${expected.y})',
+        );
+      }
+      return existing;
+    }
+    final inFlight = _loadMapFutureById[targetMapId];
+    if (inFlight != null) {
+      return await inFlight;
+    }
+
+    Future<_LoadedPlayableMap?> load() async {
+      try {
+        final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFilePath,
+          mapId: targetMapId,
+        );
+        final origin = _computeConnectedOriginCells(
+          source: source,
+          connection: connection,
+          targetSize: bundle.map.size,
+        );
+        final images =
+            await loadTilesetImagesById(bundle.tilesetAbsolutePathsById);
+        final loaded = await _mountLoadedMap(
+          bundle: bundle,
+          tileImagesById: images,
+          originCellX: origin.x,
+          originCellY: origin.y,
+        );
+        debugPrint(
+          '[connection] loaded map=${bundle.map.id} origin=(${origin.x}, ${origin.y})',
+        );
+        return loaded;
+      } catch (e, st) {
+        debugPrint(
+            '[connection] load failed target=$targetMapId error=$e\n$st');
+        return null;
+      }
+    }
+
+    final future = load();
+    _loadMapFutureById[targetMapId] = future;
+    try {
+      return await future;
+    } finally {
+      final current = _loadMapFutureById[targetMapId];
+      if (identical(current, future)) {
+        _loadMapFutureById.remove(targetMapId);
+      }
     }
   }
 
+  _GridCellPos _computeConnectedOriginCells({
+    required _LoadedPlayableMap source,
+    required TriggeredConnection connection,
+    required GridSize targetSize,
+  }) {
+    return switch (connection.direction) {
+      MapConnectionDirection.east => _GridCellPos(
+          x: source.originCellX + source.bundle.map.size.width,
+          y: source.originCellY + connection.offset,
+        ),
+      MapConnectionDirection.west => _GridCellPos(
+          x: source.originCellX - targetSize.width,
+          y: source.originCellY + connection.offset,
+        ),
+      MapConnectionDirection.north => _GridCellPos(
+          x: source.originCellX + connection.offset,
+          y: source.originCellY - targetSize.height,
+        ),
+      MapConnectionDirection.south => _GridCellPos(
+          x: source.originCellX + connection.offset,
+          y: source.originCellY + source.bundle.map.size.height,
+        ),
+    };
+  }
+
+  void _preloadActiveMapConnections() {
+    final active = _loadedMapsById[_activeMapId];
+    if (active == null) {
+      return;
+    }
+    for (final connection in active.bundle.map.connections) {
+      _ensureConnectionTargetLoaded(
+        source: active,
+        connection: TriggeredConnection(
+          direction: connection.direction,
+          targetMapId: connection.targetMapId,
+          offset: connection.offset,
+          sourcePos: _world.player.pos,
+        ),
+      );
+    }
+  }
+
+  void _pruneLoadedMapsToActiveNeighborhood() {
+    final active = _loadedMapsById[_activeMapId];
+    if (active == null) {
+      return;
+    }
+    final keep = <String>{
+      active.bundle.map.id,
+      ...active.bundle.map.connections.map((c) => c.targetMapId),
+    };
+    final previousMapId = _previousMapId;
+    if (previousMapId != null && previousMapId.isNotEmpty) {
+      keep.add(previousMapId);
+    }
+    final toRemove = _loadedMapsById.keys
+        .where((id) => !keep.contains(id))
+        .toList(growable: false);
+    for (final id in toRemove) {
+      _unmountLoadedMap(id);
+    }
+  }
+
+  Vector2 _originPixels({
+    required int originCellX,
+    required int originCellY,
+  }) {
+    return Vector2(originCellX * _cellWidth, originCellY * _cellHeight);
+  }
+
+  Vector2 _originPixelsOf(_LoadedPlayableMap map) {
+    return _originPixels(
+      originCellX: map.originCellX,
+      originCellY: map.originCellY,
+    );
+  }
+
+  ProjectCharacterEntry? _resolvePlayerCharacter(RuntimeMapBundle bundle) {
+    return resolveDefaultPlayerCharacter(bundle.manifest);
+  }
+
   void _faceNpcTowardPlayer(String entityId) {
-    final actor = _npcActorByEntityId[entityId];
+    final loaded = _loadedMapsById[_activeMapId];
+    final actor = loaded?.npcActorByEntityId[entityId];
     if (actor == null) {
       return;
     }
@@ -635,6 +973,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     };
     actor.setMotion(npcFacing, CharacterAnimationState.idle);
   }
+
+  double get _cellWidth =>
+      _bundle.manifest.settings.tileWidth *
+      _bundle.manifest.settings.displayScale;
+
+  double get _cellHeight =>
+      _bundle.manifest.settings.tileHeight *
+      _bundle.manifest.settings.displayScale;
 
   void _configureCameraViewport() {
     final cw = _bundle.cellWidth;
@@ -656,4 +1002,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       focus.y.roundToDouble(),
     );
   }
+}
+
+class _LoadedPlayableMap {
+  _LoadedPlayableMap({
+    required this.bundle,
+    required this.originCellX,
+    required this.originCellY,
+    required this.layers,
+    required this.npcActors,
+    required this.npcActorByEntityId,
+  });
+
+  final RuntimeMapBundle bundle;
+  final int originCellX;
+  final int originCellY;
+  final MapLayersComponent layers;
+  final List<OverworldActorComponent> npcActors;
+  final Map<String, OverworldActorComponent> npcActorByEntityId;
+}
+
+class _GridCellPos {
+  const _GridCellPos({
+    required this.x,
+    required this.y,
+  });
+
+  final int x;
+  final int y;
 }

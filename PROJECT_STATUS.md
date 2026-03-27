@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (runtime jouable consolidé : player animé + interpolation de pas + maintien des touches + tri de profondeur Y + NPC qui fait face au joueur ; collisions entités par footprint avec séparation interaction/blocage ; rencontres actives MVP walk ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers)
+> Dernière mise à jour : 2026-03-27 (runtime jouable consolidé : player animé + interpolation de pas + maintien des touches + tri de profondeur Y + NPC qui fait face au joueur ; collisions entités par footprint avec séparation interaction/blocage ; rencontres actives MVP walk ; transitions naturelles inter-maps via `MapConnection` + streaming de voisinage (maps adjacentes visibles) ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -53,7 +53,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Package | Version | Type | Rôle réel |
 |---------|---------|------|-----------|
 | `map_core` | 0.1.0 | Dart pur | Schéma métier, validation, sérialisation JSON, migrations legacy, opérations pures sur les données |
-| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, interactions entités, résolution spawn, check rencontres |
+| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, connections, interactions entités, résolution spawn, check rencontres |
 | `map_runtime` | 0.1.0 | Flutter + Flame | Chargement projet depuis disque, rendu Flame (layers + entités animées), boucle jouable au clavier |
 | `map_editor` | 0.2.0 | Flutter desktop (macOS) | Éditeur GUI complet : maps, layers, entités, tilesets, terrains, paths, warps, triggers, zones, dialogues, dresseurs, rencontres |
 
@@ -106,11 +106,12 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | GameplayWorldState.initial (pos + facing explicites) | **Fait** | Ne valide pas la cellule |
 | GameplayWorldState.fromMap (spawn automatique) | **Fait** | Lance exception si spawn bloqué |
 | Résolution spawn : defaultSpawnId → playerStart (tri par id) → exception | **Fait** | |
-| stepGameplayWorld (move intent → result) | **Fait** | Turn-face + collision (tuiles + entités bloquantes) + warp check |
+| stepGameplayWorld (move intent → result) | **Fait** | Turn-face + collision (tuiles + entités bloquantes) + warp check + détection sortie connectée (`MapConnection`) |
 | stepGameplayWorld (interact intent → result) | **Fait** | Cellule devant joueur → NPC/sign/item/entity/nothing |
+| Résolution pure d'arrivée connection | **Fait** | `resolveConnectedMapTargetPos(...)` avec convention canonique `targetAxis = sourceAxis - offset` |
 | Check rencontre gameplay (MVP) | **Fait** | `checkEncounterAtPlayerPosition(...)` : lookup zone encounter (priorité max), filtre `EncounterKind`, lookup table projet, roll chance par pas, tirage pondéré espèce + niveau |
 | Résultat rencontre typé | **Fait** | `GameplayEncounter` + `GameplayEncounterCheckResult` (+ `toJson/fromJson` pour `GameplayEncounter`) |
-| Résultats scellés (Moved, Blocked, WarpTriggered, TriggeredWarp) | **Fait** | |
+| Résultats scellés (Moved, Blocked, WarpTriggered, ConnectionTriggered, TriggeredWarp, TriggeredConnection) | **Fait** | |
 | Résultats interaction (NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted) | **Fait** | |
 | GameplaySpawnResolutionException | **Fait** | |
 | Logique de dialogue, rencontres, NPC AI | **Non fait** | Hors périmètre actuel |
@@ -140,10 +141,13 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Résolution tilesets personnages (runtime_manifest_tilesets) | **Fait** | Collecte tilesets joueur + NPCs pour préchargement via Character |
 | Collisions au clavier via map_gameplay | **Fait** | |
 | Warps : détection + chargement async nouvelle map | **Fait** | _handleWarp, erreur loggée + notification "Warp failed" |
+| Connections : transition naturelle inter-map | **Fait** | Sortie hors bornes -> `ConnectionTriggered` -> résolution map cible, calcul case d'entrée, pas interpolé source→cible, refus si entrée invalide/bloquée |
+| Streaming maps adjacentes | **Fait** | Map active + voisines connectées (et précédente immédiate) restent montées simultanément pour continuité visuelle |
 | Interactions entités (E/Space) | **Fait** | Résultat typé → overlay 2s (`entity.inspectorHeadline`) + log `[interact]` |
 | Rencontres actives MVP (`walk`) | **Fait** | Check déclenché sur `Moved` uniquement, jamais sur `Blocked`/`WarpTriggered`, ni pendant dialogue/warp/overlay rencontre |
 | Feedback runtime rencontre | **Fait** | `EncounterOverlayComponent` sur viewport, blocage gameplay temporaire, message espèce + niveau |
-| Logs structurés runtime | **Fait** | Préfixes `[runtime]` `[move]` `[warp]` `[interact]` via debugPrint |
+| Priorité warp vs connection | **Fait** | Warp explicite prioritaire ; connection appliquée seulement sur sortie hors bornes sans warp |
+| Logs structurés runtime | **Fait** | Préfixes `[runtime]` `[warp]` `[connection]` `[interact]` `[dialogue]` `[encounter]` via debugPrint |
 | HUD notification 2s | **Fait** | TextComponent sur camera.viewport |
 | Caméra follow-player (~15×11 tuiles viewport) | **Fait** | |
 | Fallback spawn (0,0) si pas de spawn configuré | **Fait** | PlayableMapGame.onLoad catch GameplaySpawnResolutionException |
@@ -155,8 +159,16 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | UI dialogue runtime (`DialogueOverlayComponent`) | **Fait** | Mode ligne (E · Suite/Fermer) + mode choix (▶ curseur, ↑/↓, E valider) |
 | Blocage gameplay pendant dialogue | **Fait** | `_dialogueOverlay != null` bloque mouvement + re-interaction ; clavier routé selon mode (ligne/choix) |
 | Rencontres `surf` / `rod` / `special` | **Non fait** | MVP ne gère que `EncounterKind.walk` |
+| Streaming multi-hop profond | **Non fait** | Le runtime ne garde pas un graphe large de maps lointaines, seulement le voisinage immédiat utile |
 | Comportements NPC (patrouille, LoS) | **Non fait** | |
 | Sauvegarde/chargement état jeu | **Non fait** | |
+
+Convention runtime `MapConnection` appliquée :
+- `offset` est le décalage de la map cible par rapport à la source sur l’axe partagé.
+- Formule unique : `targetAxis = sourceAxis - offset`.
+- Direction `east` / `west` : `targetY = sourceY - offset`, entrée côté opposé (`x=0` ou `x=width-1`).
+- Direction `north` / `south` : `targetX = sourceX - offset`, entrée côté opposé (`y=height-1` ou `y=0`).
+- Si la case d’entrée calculée est hors bornes ou bloquée, la transition est refusée avec log `[connection]`.
 
 ### map_editor
 
@@ -220,8 +232,10 @@ GameplaySpawnResolutionException
 resolveInitialPlayerSpawn
 GameplayIntent, MoveIntent, InteractIntent
 GameplayPlayerState
+resolveConnectedMapTargetPos
 stepGameplayWorld
-GameplayStepResult, Moved, Blocked, WarpTriggered, TriggeredWarp,
+GameplayStepResult, Moved, Blocked, WarpTriggered, ConnectionTriggered,
+  TriggeredWarp, TriggeredConnection,
   NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted
 GameplayWorldState
 ```
@@ -306,6 +320,7 @@ Justification :
 - Dialogue Yarn MVP : parse .yarn, `DialogueSession`, `DialogueOverlayComponent`, blocage gameplay.
 - Collision entités : footprint configurable (`collision.*` + alias legacy), NPC par défaut en 1×1 ; séparation cache interaction / cache blocage ; entités `custom` non bloquantes par défaut sans override explicite.
 - Rencontres actives MVP : `checkEncounterAtPlayerPosition`, tirage pondéré, niveau aléatoire, logs `[encounter]`, overlay bloquant temporaire.
+- Connections runtime : `ConnectionTriggered`, calcul d’entrée canonique via `resolveConnectedMapTargetPos`, priorité warp > connection, logs `[connection]`, refus déterministe des entrées invalides/bloquées, streaming de voisinage et transition interpolée sans coupure visuelle.
 
 ---
 
@@ -330,10 +345,11 @@ Justification :
 | map_runtime — Runtime 4 (boucle jouable) | 2026-03-26 | PlayableMapGame, PlayerComponent, KeyboardEvents, warps, caméra follow-player |
 | examples/playable_runtime_host | 2026-03-26 | App Flutter externe consommatrice de map_runtime, entitlements macOS sans sandbox |
 | map_gameplay — Interactions + entity cache | 2026-03-27 | InteractIntent, entityAt(), _buildEntityByPos(), 5 résultats typés (NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted, NothingToInteract) |
-| map_runtime — Logs structurés + interactions + HUD | 2026-03-27 | E/Space → InteractIntent, overlay 2s via TextComponent HUD, logs [runtime]/[move]/[warp]/[interact], fix warp silence → catch (e, st) |
+| map_runtime — Logs structurés + interactions + HUD | 2026-03-27 | E/Space → InteractIntent, overlay 2s via TextComponent HUD, logs [runtime]/[warp]/[interact], fix warp silence → catch (e, st) |
 | map_runtime + map_editor — Clarification dialogue | 2026-03-27 | resolve_dialogue.dart (règle canonique + logs [dialogue]), defeat dialogue dropdown, labels UI "Dialogue (bibliothèque)"/"Nœud Yarn", fix chargement scriptPathRelative défaite |
 | map_runtime — Dialogue Yarn MVP | 2026-03-27 | dialogue_runtime_models.dart (YarnNode, DialogueSession), parse_yarn_dialogue.dart, load_dialogue_content.dart, dialogue_overlay_component.dart (HUD ligne par ligne), PlayableMapGame branché (blocage gameplay, E/Space avance/ferme) |
 | map_core + map_gameplay + map_editor — Collision entités | 2026-03-27 | MapEntity.blocksMovement + `resolveEntityCollisionCells`, footprint configurable (`collision.*` + alias legacy), NPC par défaut 1×1, toggle "Bloque le mouvement" |
 | map_runtime — Yarn avec branches | 2026-03-27 | YarnStep sealed (YarnStepLine/Jump/ChoiceBlock), YarnChoice, DialogueSessionState sealed (ShowingLine/WaitingForChoice), _resolveStep() auto-exécute les <<jump>>, DialogueOverlayComponent mode choix (▶ curseur, ↑/↓, E valider), PlayableMapGame route les touches selon le mode |
 | map_runtime + map_gameplay — Polish déplacement/collisions | 2026-03-27 | Maintien de touches + interpolation visuelle des pas, tri de profondeur Y, NPC qui fait face au joueur en interaction, séparation caches blocage/interaction, blocage `custom` seulement sur override collision explicite |
 | map_gameplay + map_runtime — Rencontres actives MVP walk | 2026-03-27 | `checkEncounterAtPlayerPosition` (zone overlap priorité, filtre kind, table lookup, chance par pas, tirage pondéré, niveau random), `GameplayEncounter` typé, logs `[encounter]`, `EncounterOverlayComponent` bloquant temporaire |
+| map_gameplay + map_runtime — Connections naturelles runtime + streaming voisinage | 2026-03-27 | `ConnectionTriggered` dans `stepGameplayWorld`, `resolveConnectedMapTargetPos` (convention offset canonique), maps adjacentes montées en parallèle, transition interpolée source→cible dans `PlayableMapGame`, priorité warp>connection, logs `[connection]`, refus propre des entrées invalides/bloquées |

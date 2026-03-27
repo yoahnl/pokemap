@@ -14,6 +14,20 @@ class TriggeredWarp {
   final GridPos targetPos;
 }
 
+class TriggeredConnection {
+  const TriggeredConnection({
+    required this.direction,
+    required this.targetMapId,
+    required this.offset,
+    required this.sourcePos,
+  });
+
+  final MapConnectionDirection direction;
+  final String targetMapId;
+  final int offset;
+  final GridPos sourcePos;
+}
+
 sealed class GameplayStepResult {
   const GameplayStepResult(this.world);
   final GameplayWorldState world;
@@ -30,6 +44,11 @@ final class Blocked extends GameplayStepResult {
 final class WarpTriggered extends GameplayStepResult {
   const WarpTriggered(super.world, this.warp);
   final TriggeredWarp warp;
+}
+
+final class ConnectionTriggered extends GameplayStepResult {
+  const ConnectionTriggered(super.world, this.connection);
+  final TriggeredConnection connection;
 }
 
 final class NothingToInteract extends GameplayStepResult {

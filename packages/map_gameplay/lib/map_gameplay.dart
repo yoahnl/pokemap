@@ -14,6 +14,7 @@ export 'src/gameplay_encounter.dart'
         GameplayEncounter,
         GameplayEncounterCheckResult,
         checkEncounterAtPlayerPosition;
+export 'src/gameplay_connection.dart' show resolveConnectedMapTargetPos;
 export 'src/gameplay_step.dart' show stepGameplayWorld;
 export 'src/gameplay_step_result.dart'
     show
@@ -21,7 +22,9 @@ export 'src/gameplay_step_result.dart'
         Moved,
         Blocked,
         WarpTriggered,
+        ConnectionTriggered,
         TriggeredWarp,
+        TriggeredConnection,
         NothingToInteract,
         NpcInteracted,
         SignInteracted,
