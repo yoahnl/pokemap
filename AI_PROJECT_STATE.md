@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-27 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités).
 
 ---
 
@@ -69,6 +69,7 @@ MapEntity(
   item?: MapEntityItemData,
   spawn?: MapEntitySpawnData,
   editorVisual?: MapEntityEditorVisual,
+  blocksMovement: bool = true,   // toutes les cellules couvertes par size bloquent le mouvement
   properties,
 )
 // Extensions: resolvedProjectElementIdForEditor (editorVisual.elementId ?? npc.visualElementId)
@@ -185,8 +186,14 @@ class GameplayWorldState {
   final MapData map;
   final GameplayPlayerState player;
   bool isBlocked(int x, int y);
+  // 1. hors bornes → true
+  // 2. collisionCache[idx] → true si tuile de collision
+  // 3. entityByPos[idx]?.blocksMovement → true si entité bloquante
   MapWarp? warpAt(int x, int y);
-  MapEntity? entityAt(int x, int y);  // cache Map<int, MapEntity> y*w+x, spawns exclus
+  MapEntity? entityAt(int x, int y);
+  // cache Map<int, MapEntity> y*w+x — spawns exclus
+  // couvre TOUTES les cellules de entity.size (pas seulement pos)
+  // → interaction possible depuis n'importe quelle cellule adjacente d'un sprite multi-cases
   GameplayWorldState withPlayer(GameplayPlayerState player);
 }
 
@@ -455,11 +462,12 @@ Offset panOffset
 
 ### Marche aujourd'hui
 
-- Éditeur complet : créer/éditer/sauvegarder projets et maps, toutes les couches, toutes les entités, warps, triggers, zones, dialogues, dresseurs, rencontres.
+- Éditeur complet : créer/éditer/sauvegarder projets et maps, toutes les couches, toutes les entités (avec toggle "Bloque le mouvement"), warps, triggers, zones, dialogues, dresseurs, rencontres.
 - Undo/redo dans l'éditeur.
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
 - Boucle jouable : déplacement clavier, collisions bloquantes, transitions de map via warps.
 - Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
+- Collision entités : `MapEntity.blocksMovement` (défaut `true`) — toutes les cellules couvertes par `entity.size` bloquent le joueur. Désactivable par entité via toggle dans l'inspecteur éditeur.
 - Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`.
 - **Dialogue Yarn MVP** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche les lignes une par une avec hint clavier. E/Space avance ou ferme. Le mouvement est bloqué pendant le dialogue.
 - Logs structurés : `[runtime]`, `[move]`, `[warp]`, `[interact]`, `[dialogue]` via `debugPrint`.
@@ -494,6 +502,8 @@ Offset panOffset
 7. **map_editor v0.2.0, autres v0.1.0** : versions désynchronisées mais sans impact fonctionnel (packages path-locaux, pas publiés).
 
 8. **Pas de GameplayPlayerState @freezed** : plain class avec copyWith manuel — cohérent fonctionnellement mais pas uniforme avec le reste du domaine.
+
+9. **`blocksMovement` ignoré pour spawn** : le champ existe sur `MapEntity` (kind=spawn), mais les entités spawn sont exclues de `_buildEntityByPos` → le flag n'a aucun effet pour les spawns. C'est voulu (le spawn est invisible au runtime), mais ne pas s'attendre à un comportement de collision dessus.
 
 ---
 

@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime)
+> Dernière mise à jour : 2026-03-27 (interactions runtime + logs structurés + clarification dialogue + dialogue Yarn MVP runtime + blocksMovement entités)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -66,6 +66,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Capacité | Statut | Notes |
 |----------|--------|-------|
 | Modèles freezed (MapData, ProjectManifest, entités, layers, warps, zones…) | **Fait** | Tous @freezed avec JSON serialization |
+| `MapEntity.blocksMovement` (défaut true) | **Fait** | Toutes les cellules couvertes par entity.size bloquent le mouvement ; désactivable par entité |
 | Enums métier complets (MapEntityKind, EntityFacing, MapLayerKind, TerrainType, PathSurfaceKind, GameplayZoneKind, etc.) | **Fait** | Très complet, 20+ enums |
 | Géométrie (GridPos, GridSize, MapRect) | **Fait** | |
 | Layers typés scellés (tile, collision, terrain, path, object) | **Fait** | Sealed class Dart 3, `whenOrNull` |
@@ -97,11 +98,11 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Direction (enum + extensions dx/dy/asFacing) | **Fait** | |
 | EntityFacingX.asDirection (bridge map_core ↔ gameplay) | **Fait** | |
 | GameplayPlayerState (pos, facing, copyWith) | **Fait** | Plain class immuable, pas Freezed |
-| GameplayWorldState (collision cache, warp cache, entity cache) | **Fait** | Cache plat List<bool> + Map<int, MapEntity> row-major, spawns exclus |
+| GameplayWorldState (collision cache, warp cache, entity cache) | **Fait** | Cache plat List<bool> + Map<int, MapEntity> row-major, spawns exclus ; entity cache couvre toutes les cellules de entity.size |
 | GameplayWorldState.initial (pos + facing explicites) | **Fait** | Ne valide pas la cellule |
 | GameplayWorldState.fromMap (spawn automatique) | **Fait** | Lance exception si spawn bloqué |
 | Résolution spawn : defaultSpawnId → playerStart (tri par id) → exception | **Fait** | |
-| stepGameplayWorld (move intent → result) | **Fait** | Turn-face + collision + warp check |
+| stepGameplayWorld (move intent → result) | **Fait** | Turn-face + collision (tuiles + entités blocksMovement) + warp check |
 | stepGameplayWorld (interact intent → result) | **Fait** | Cellule devant joueur → NPC/sign/item/entity/nothing |
 | Résultats scellés (Moved, Blocked, WarpTriggered, TriggeredWarp) | **Fait** | |
 | Résultats interaction (NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted) | **Fait** | |
@@ -157,7 +158,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Animation entités multi-frames sur canvas | **Fait** | Timer.periodic ~110ms si nécessaire |
 | Layers panel (visibilité, ordre) | **Fait** | |
 | Tileset palette panel | **Fait** | |
-| Entity properties panel (NPC, signe, item, spawn, custom) | **Fait** | Dropdown manifest pour dialogue principal + défaite, label "Dialogue (bibliothèque)", "Nœud Yarn (optionnel)" |
+| Entity properties panel (NPC, signe, item, spawn, custom) | **Fait** | Dropdown manifest pour dialogue principal + défaite, label "Dialogue (bibliothèque)", "Nœud Yarn (optionnel)", toggle "Bloque le mouvement" |
 | Map properties panel (MapMetadata) | **Fait** | displayName, type, musique, météo, indoor, escapeRope, defaultSpawnId, tags |
 | Map connections panel | **Fait** | |
 | Warp properties panel | **Fait** | |
@@ -289,6 +290,7 @@ Justification :
 - README `map_runtime` : corrigé, `PlayableMapGame` décrit correctement.
 - Interactions entités : `InteractIntent`, 5 résultats typés, E/Space, overlay 2s, logs structurés.
 - Dialogue Yarn MVP : parse .yarn, `DialogueSession`, `DialogueOverlayComponent`, blocage gameplay.
+- Collision entités : `blocksMovement` (défaut true), toutes les cellules de `entity.size` enregistrées dans le cache, toggle dans l'inspecteur éditeur.
 
 ---
 
@@ -315,3 +317,4 @@ Justification :
 | map_runtime — Logs structurés + interactions + HUD | 2026-03-27 | E/Space → InteractIntent, overlay 2s via TextComponent HUD, logs [runtime]/[move]/[warp]/[interact], fix warp silence → catch (e, st) |
 | map_runtime + map_editor — Clarification dialogue | 2026-03-27 | resolve_dialogue.dart (règle canonique + logs [dialogue]), defeat dialogue dropdown, labels UI "Dialogue (bibliothèque)"/"Nœud Yarn", fix chargement scriptPathRelative défaite |
 | map_runtime — Dialogue Yarn MVP | 2026-03-27 | dialogue_runtime_models.dart (YarnNode, DialogueSession), parse_yarn_dialogue.dart, load_dialogue_content.dart, dialogue_overlay_component.dart (HUD ligne par ligne), PlayableMapGame branché (blocage gameplay, E/Space avance/ferme) |
+| map_core + map_gameplay + map_editor — Collision entités | 2026-03-27 | MapEntity.blocksMovement (défaut true), _buildEntityByPos couvre toutes cellules de entity.size, isBlocked vérifie entity.blocksMovement, toggle "Bloque le mouvement" dans l'inspecteur éditeur |
