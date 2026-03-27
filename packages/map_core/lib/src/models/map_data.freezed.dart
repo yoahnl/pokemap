@@ -970,6 +970,7 @@ mixin _$MapEntity {
   MapEntityItemData? get item => throw _privateConstructorUsedError;
   MapEntitySpawnData? get spawn => throw _privateConstructorUsedError;
   MapEntityEditorVisual? get editorVisual => throw _privateConstructorUsedError;
+  bool get blocksMovement => throw _privateConstructorUsedError;
   Map<String, String> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapEntity to a JSON map.
@@ -998,6 +999,7 @@ abstract class $MapEntityCopyWith<$Res> {
       MapEntityItemData? item,
       MapEntitySpawnData? spawn,
       MapEntityEditorVisual? editorVisual,
+      bool blocksMovement,
       Map<String, String> properties});
 
   $GridPosCopyWith<$Res> get pos;
@@ -1034,6 +1036,7 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
     Object? item = freezed,
     Object? spawn = freezed,
     Object? editorVisual = freezed,
+    Object? blocksMovement = null,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -1077,6 +1080,10 @@ class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
           ? _value.editorVisual
           : editorVisual // ignore: cast_nullable_to_non_nullable
               as MapEntityEditorVisual?,
+      blocksMovement: null == blocksMovement
+          ? _value.blocksMovement
+          : blocksMovement // ignore: cast_nullable_to_non_nullable
+              as bool,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -1194,6 +1201,7 @@ abstract class _$$MapEntityImplCopyWith<$Res>
       MapEntityItemData? item,
       MapEntitySpawnData? spawn,
       MapEntityEditorVisual? editorVisual,
+      bool blocksMovement,
       Map<String, String> properties});
 
   @override
@@ -1235,6 +1243,7 @@ class __$$MapEntityImplCopyWithImpl<$Res>
     Object? item = freezed,
     Object? spawn = freezed,
     Object? editorVisual = freezed,
+    Object? blocksMovement = null,
     Object? properties = null,
   }) {
     return _then(_$MapEntityImpl(
@@ -1278,6 +1287,10 @@ class __$$MapEntityImplCopyWithImpl<$Res>
           ? _value.editorVisual
           : editorVisual // ignore: cast_nullable_to_non_nullable
               as MapEntityEditorVisual?,
+      blocksMovement: null == blocksMovement
+          ? _value.blocksMovement
+          : blocksMovement // ignore: cast_nullable_to_non_nullable
+              as bool,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -1301,6 +1314,7 @@ class _$MapEntityImpl implements _MapEntity {
       this.item,
       this.spawn,
       this.editorVisual,
+      this.blocksMovement = true,
       final Map<String, String> properties = const {}})
       : _properties = properties;
 
@@ -1329,6 +1343,9 @@ class _$MapEntityImpl implements _MapEntity {
   final MapEntitySpawnData? spawn;
   @override
   final MapEntityEditorVisual? editorVisual;
+  @override
+  @JsonKey()
+  final bool blocksMovement;
   final Map<String, String> _properties;
   @override
   @JsonKey()
@@ -1340,7 +1357,7 @@ class _$MapEntityImpl implements _MapEntity {
 
   @override
   String toString() {
-    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, editorVisual: $editorVisual, properties: $properties)';
+    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
   }
 
   @override
@@ -1359,6 +1376,8 @@ class _$MapEntityImpl implements _MapEntity {
             (identical(other.spawn, spawn) || other.spawn == spawn) &&
             (identical(other.editorVisual, editorVisual) ||
                 other.editorVisual == editorVisual) &&
+            (identical(other.blocksMovement, blocksMovement) ||
+                other.blocksMovement == blocksMovement) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
@@ -1377,6 +1396,7 @@ class _$MapEntityImpl implements _MapEntity {
       item,
       spawn,
       editorVisual,
+      blocksMovement,
       const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapEntity
@@ -1407,6 +1427,7 @@ abstract class _MapEntity implements MapEntity {
       final MapEntityItemData? item,
       final MapEntitySpawnData? spawn,
       final MapEntityEditorVisual? editorVisual,
+      final bool blocksMovement,
       final Map<String, String> properties}) = _$MapEntityImpl;
 
   factory _MapEntity.fromJson(Map<String, dynamic> json) =
@@ -1432,6 +1453,8 @@ abstract class _MapEntity implements MapEntity {
   MapEntitySpawnData? get spawn;
   @override
   MapEntityEditorVisual? get editorVisual;
+  @override
+  bool get blocksMovement;
   @override
   Map<String, String> get properties;
 

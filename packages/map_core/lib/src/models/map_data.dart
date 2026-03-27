@@ -1,8 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'geometry.dart';
+
 import 'enums.dart';
-import 'map_entity_payloads.dart';
+import 'geometry.dart';
 import 'map_entity_editor_visual.dart';
+import 'map_entity_payloads.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 import 'map_metadata.dart';
@@ -24,6 +25,7 @@ class MapData with _$MapData {
     @Default([]) List<MapConnection> connections,
     @Default([]) List<MapWarp> warps,
     @Default([]) List<MapTrigger> triggers,
+
     /// Zones gameplay (rencontres, déplacement, dangers, etc.).
     /// Séparées des triggers (logiques scriptées) et des layers visuelles.
     @Default([]) List<MapGameplayZone> gameplayZones,
@@ -60,14 +62,19 @@ class MapGameplayZone with _$MapGameplayZone {
     @Default('') String name,
     required GameplayZoneKind kind,
     required MapRect area,
+
     /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
     @Default(0) int priority,
+
     /// Payload pour [GameplayZoneKind.encounter].
     EncounterZonePayload? encounter,
+
     /// Payload pour [GameplayZoneKind.movement].
     MovementZonePayload? movement,
+
     /// Payload pour [GameplayZoneKind.hazard].
     HazardZonePayload? hazard,
+
     /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
     SpecialZonePayload? special,
   }) = _MapGameplayZone;
@@ -90,6 +97,7 @@ class MapEntity with _$MapEntity {
     MapEntityItemData? item,
     MapEntitySpawnData? spawn,
     MapEntityEditorVisual? editorVisual,
+    @Default(true) bool blocksMovement,
     @Default({}) Map<String, String> properties,
   }) = _MapEntity;
 

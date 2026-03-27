@@ -60,8 +60,9 @@ class GameplayWorldState {
       return true;
     }
     final idx = y * map.size.width + x;
-    if (idx >= _collisionCache.length) return false;
-    return _collisionCache[idx];
+    if (idx < _collisionCache.length && _collisionCache[idx]) return true;
+    final entity = _entityByPos[idx];
+    return entity != null && entity.blocksMovement;
   }
 
   MapWarp? warpAt(int x, int y) => _warpByPos[y * map.size.width + x];
@@ -102,9 +103,14 @@ Map<int, MapWarp> _buildWarpByPos(MapData map) {
 
 Map<int, MapEntity> _buildEntityByPos(MapData map) {
   final w = map.size.width;
-  return {
-    for (final entity in map.entities)
-      if (entity.kind != MapEntityKind.spawn)
-        entity.pos.y * w + entity.pos.x: entity,
-  };
+  final result = <int, MapEntity>{};
+  for (final entity in map.entities) {
+    if (entity.kind == MapEntityKind.spawn) continue;
+    for (var dy = 0; dy < entity.size.height; dy++) {
+      for (var dx = 0; dx < entity.size.width; dx++) {
+        result[(entity.pos.y + dy) * w + (entity.pos.x + dx)] = entity;
+      }
+    }
+  }
+  return result;
 }

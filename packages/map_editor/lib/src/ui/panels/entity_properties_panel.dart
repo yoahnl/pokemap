@@ -106,6 +106,7 @@ class _EntityPropertiesPanelState
 
   String? _boundFingerprint;
   MapEntityKind _selectedKind = MapEntityKind.npc;
+  bool _blocksMovement = true;
   _DialogueRefSource _npcDialogueSource = _DialogueRefSource.none;
   _DialogueRefSource _signDialogueSource = _DialogueRefSource.none;
   String _editorVisualMenuId = _kElementNoneMenuId;
@@ -403,6 +404,30 @@ class _EntityPropertiesPanelState
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           maxLines: maxLines ?? 1,
+        ),
+      ],
+    );
+  }
+
+  Widget _toggleField(
+    BuildContext context, {
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: secondary),
+          ),
+        ),
+        CupertinoSwitch(
+          value: value,
+          onChanged: onChanged,
+          activeTrackColor: EditorChrome.inspectorJoyCyan,
         ),
       ],
     );
@@ -1611,6 +1636,15 @@ class _EntityPropertiesPanelState
             ),
           ],
         ),
+        if (_selectedKind != MapEntityKind.spawn) ...[
+          const SizedBox(height: 8),
+          _toggleField(
+            context,
+            label: _l('Bloque le mouvement', 'Blocks movement'),
+            value: _blocksMovement,
+            onChanged: (v) => setState(() => _blocksMovement = v),
+          ),
+        ],
         const SizedBox(height: 12),
         ..._editorVisualFields(context, project),
         const SizedBox(height: 12),
@@ -1737,6 +1771,7 @@ class _EntityPropertiesPanelState
     _widthController.text = entity?.size.width.toString() ?? '';
     _heightController.text = entity?.size.height.toString() ?? '';
     _selectedKind = entity?.kind ?? MapEntityKind.npc;
+    _blocksMovement = entity?.blocksMovement ?? true;
 
     final n = entity?.npc ?? const MapEntityNpcData();
     final nd = n.dialogue;
@@ -1873,6 +1908,7 @@ class _EntityPropertiesPanelState
       '${entity.pos.x},${entity.pos.y}',
       '${entity.size.width}x${entity.size.height}',
       enc(entity.properties),
+      entity.blocksMovement.toString(),
       enc(entity.npc?.toJson()),
       enc(entity.sign?.toJson()),
       enc(entity.item?.toJson()),
@@ -2097,6 +2133,7 @@ class _EntityPropertiesPanelState
       width: width,
       height: height,
       properties: properties,
+      blocksMovement: _blocksMovement,
       npc: _selectedKind == MapEntityKind.npc ? npcPayload : null,
       sign: _selectedKind == MapEntityKind.sign ? signPayload : null,
       item: _selectedKind == MapEntityKind.item ? itemPayload : null,

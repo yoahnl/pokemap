@@ -66,6 +66,7 @@ MapData updateEntityOnMap(
   GridPos? pos,
   GridSize? size,
   Map<String, String>? properties,
+  bool? blocksMovement,
   Object? npc = mapEntityTypedPayloadUnset,
   Object? sign = mapEntityTypedPayloadUnset,
   Object? item = mapEntityTypedPayloadUnset,
@@ -83,6 +84,7 @@ MapData updateEntityOnMap(
     kind: kind ?? current.kind,
     pos: pos ?? current.pos,
     size: size ?? current.size,
+    blocksMovement: blocksMovement ?? current.blocksMovement,
     properties: properties == null
         ? current.properties
         : _normalizeProperties(properties),
