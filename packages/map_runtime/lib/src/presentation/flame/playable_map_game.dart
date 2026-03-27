@@ -9,10 +9,13 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../../application/dialogue_runtime_models.dart';
+import '../../application/load_dialogue_content.dart';
 import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import 'dialogue_overlay_component.dart';
 import 'map_layers_component.dart';
 import 'player_component.dart';
 
@@ -31,6 +34,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late MapLayersComponent _layers;
   late PlayerComponent _player;
   bool _transitioning = false;
+  DialogueOverlayComponent? _dialogueOverlay;
   TextComponent? _notification;
 
   @override
@@ -65,6 +69,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ) {
     if (_transitioning) return KeyEventResult.ignored;
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (_dialogueOverlay != null) {
+      if (event is KeyDownEvent &&
+          (event.logicalKey == LogicalKeyboardKey.keyE ||
+              event.logicalKey == LogicalKeyboardKey.space)) {
+        _advanceDialogue();
+        return KeyEventResult.handled;
+      }
       return KeyEventResult.ignored;
     }
 
@@ -124,12 +138,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification('...');
       case NpcInteracted(:final entity):
         debugPrint('[interact] NPC: ${entity.id}');
-        _resolveAndLogDialogue(entity.id, entity.npc?.dialogue);
-        _showNotification(entity.inspectorHeadline);
+        _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
       case SignInteracted(:final entity):
         debugPrint('[interact] Sign: ${entity.id}');
-        _resolveAndLogDialogue(entity.id, entity.sign?.dialogue);
-        _showNotification(entity.inspectorHeadline);
+        _tryOpenDialogue(entity.id, entity.sign?.dialogue, entity.inspectorHeadline);
       case ItemInteracted(:final entity):
         debugPrint('[interact] Item: ${entity.id}');
         _showNotification(entity.inspectorHeadline);
@@ -141,13 +153,52 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _resolveAndLogDialogue(String entityId, DialogueRef? ref) {
-    resolveDialogue(
+  void _tryOpenDialogue(String entityId, DialogueRef? ref, String fallbackLabel) {
+    if (_dialogueOverlay != null) return;
+
+    final resolved = resolveDialogue(
       entityId: entityId,
       ref: ref,
       projectRootDirectory: _bundle.projectRootDirectory,
       dialogues: _bundle.manifest.dialogues,
     );
+
+    if (resolved == null) {
+      _showNotification(fallbackLabel);
+      return;
+    }
+
+    loadDialogueContent(resolved).then((session) {
+      if (_dialogueOverlay != null) return;
+      if (session == null) {
+        debugPrint('[dialogue] failed to load session for entity=$entityId');
+        _showNotification(fallbackLabel);
+        return;
+      }
+      debugPrint('[dialogue] opening dialogue for entity=$entityId');
+      _openDialogue(session);
+    });
+  }
+
+  void _openDialogue(DialogueSession session) {
+    _notification?.removeFromParent();
+    _notification = null;
+
+    final overlay = DialogueOverlayComponent(
+      session: session,
+      viewportSize: camera.viewport.size,
+      onFinished: () {
+        debugPrint('[dialogue] dialogue closed');
+        _dialogueOverlay = null;
+      },
+    );
+    camera.viewport.add(overlay);
+    _dialogueOverlay = overlay;
+    debugPrint('[dialogue] dialogue opened — line ${session.currentLineIndex + 1}/${session.currentNode.bodyLines.length}');
+  }
+
+  void _advanceDialogue() {
+    _dialogueOverlay?.advance();
   }
 
   void _showNotification(String text) {
