@@ -23,6 +23,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   PlayableMapGame? _game;
   String? _error;
   bool _loading = false;
+  bool _showCollisionOverlay = false;
 
   @override
   void dispose() {
@@ -70,8 +71,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       );
       if (!mounted) return;
       setState(() {
-        _game = PlayableMapGame(bundle: bundle, projectFilePath: projectFilePath);
+        _game =
+            PlayableMapGame(bundle: bundle, projectFilePath: projectFilePath);
       });
+      _game?.setCollisionOverlayVisible(_showCollisionOverlay);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -97,7 +100,39 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
             onPressed: _reset,
           ),
         ),
-        body: GameWidget(game: game),
+        body: Stack(
+          children: [
+            GameWidget(game: game),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Card(
+                color: Colors.black.withValues(alpha: 0.55),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Collisions',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      Switch(
+                        value: _showCollisionOverlay,
+                        onChanged: (v) {
+                          setState(() => _showCollisionOverlay = v);
+                          game.setCollisionOverlayVisible(v);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
 

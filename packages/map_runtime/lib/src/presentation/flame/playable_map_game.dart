@@ -68,6 +68,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final math.Random _encounterRandom = math.Random();
+  bool _showCollisionOverlay = false;
+
+  bool get showCollisionOverlay => _showCollisionOverlay;
+
+  void setCollisionOverlayVisible(bool visible) {
+    _showCollisionOverlay = visible;
+    for (final loaded in _loadedMapsById.values) {
+      loaded.backgroundLayers.showCollisionOverlay = visible;
+    }
+  }
 
   @override
   Future<void> onLoad() async {
@@ -1100,7 +1110,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int originCellY,
   }) async {
     final backgroundLayers = MapLayersComponent(
-        bundle: bundle, tileImagesByTilesetId: tileImagesById);
+      bundle: bundle,
+      tileImagesByTilesetId: tileImagesById,
+      showCollisionOverlay: _showCollisionOverlay,
+    );
     backgroundLayers.position = _originPixels(
       originCellX: originCellX,
       originCellY: originCellY,
@@ -1112,6 +1125,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       bundle: bundle,
       tileImagesByTilesetId: tileImagesById,
       renderPass: MapLayerRenderPass.foreground,
+      showCollisionOverlay: false,
     );
     foregroundLayers.position = _originPixels(
       originCellX: originCellX,
@@ -1143,8 +1157,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         facing: entity.npc?.facing ?? EntityFacing.south,
       );
       final topY = entity.pos.y + entity.size.height - actor.frameHeightTiles;
+      final extraWidthTiles =
+          math.max(0, actor.frameWidthTiles - entity.size.width);
+      final offsetX = -(extraWidthTiles * cw) / 2;
       actor.position = Vector2(
-        originPx.x + entity.pos.x * cw,
+        originPx.x + entity.pos.x * cw + offsetX,
         originPx.y + topY * ch,
       );
       npcActors.add(actor);

@@ -21,6 +21,7 @@ class MapLayersComponent extends PositionComponent {
     required this.bundle,
     required this.tileImagesByTilesetId,
     this.renderPass = MapLayerRenderPass.background,
+    this.showCollisionOverlay = false,
   })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
         _pathAutotileByPresetId = {
           for (final p in bundle.manifest.pathPresets)
@@ -40,6 +41,7 @@ class MapLayersComponent extends PositionComponent {
   final RuntimeMapBundle bundle;
   final Map<String, ui.Image> tileImagesByTilesetId;
   final MapLayerRenderPass renderPass;
+  bool showCollisionOverlay;
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
@@ -100,11 +102,13 @@ class MapLayersComponent extends PositionComponent {
       );
     }
     _paintEntities(canvas);
-    for (var i = visible.length - 1; i >= 0; i--) {
-      visible[i].whenOrNull(
-        collision: (id, name, v, o, collisions) =>
-            _paintCollisionLayer(canvas, collisions, o),
-      );
+    if (showCollisionOverlay) {
+      for (var i = visible.length - 1; i >= 0; i--) {
+        visible[i].whenOrNull(
+          collision: (id, name, v, o, collisions) =>
+              _paintCollisionLayer(canvas, collisions, o),
+        );
+      }
     }
   }
 
@@ -389,7 +393,7 @@ class MapLayersComponent extends PositionComponent {
     final ch = bundle.cellHeight;
     final w = bundle.map.size.width;
     final h = bundle.map.size.height;
-    final paint = Paint()..color = Color.fromRGBO(255, 0, 0, 0.28 * opacity);
+    final paint = Paint()..color = Color.fromRGBO(255, 153, 0, 0.30 * opacity);
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
         final idx = y * w + x;

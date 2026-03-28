@@ -78,7 +78,9 @@ class PlayerComponent extends PositionComponent {
         cellHeight: bundle.cellHeight,
         facing: EntityFacing.values.byName(_state.facing.name),
       );
-      actor.position = Vector2(0, -actor.footOffsetY);
+      final extraWidthTiles = math.max(0, actor.frameWidthTiles - 1);
+      final offsetX = -(extraWidthTiles * bundle.cellWidth) / 2;
+      actor.position = Vector2(offsetX, -actor.footOffsetY);
       _actor = actor;
       await add(actor);
     }
