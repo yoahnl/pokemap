@@ -273,6 +273,7 @@ class CreateProjectElementUseCase {
     required String tilesetId,
     required String categoryId,
     required TilesetSourceRect source,
+    List<TilesetVisualFrame>? frames,
     ElementPresetKind presetKind = ElementPresetKind.generic,
     ElementCollisionProfile? collisionProfile,
     String? tilesetGroupId,
@@ -311,6 +312,9 @@ class CreateProjectElementUseCase {
         'Element source coordinates must be >= 0',
       );
     }
+    final normalizedFrames = _normalizeElementFrames(
+      frames ?? [TilesetVisualFrame(source: source)],
+    );
 
     final normalizedTags = tags
         .map((tag) => tag.trim())
@@ -332,7 +336,7 @@ class CreateProjectElementUseCase {
       tilesetId: tilesetId,
       categoryId: categoryId,
       tilesetGroupId: tilesetGroupId,
-      frames: [TilesetVisualFrame(source: source)],
+      frames: normalizedFrames,
       presetKind: presetKind,
       collisionProfile: collisionProfile,
       groupId: groupId,
@@ -368,6 +372,7 @@ class UpdateProjectElementUseCase {
     String? recommendedLayerId,
     bool clearRecommendedLayerId = false,
     TilesetSourceRect? source,
+    List<TilesetVisualFrame>? frames,
     List<String>? tags,
   }) async {
     final current = project.elements.firstWhere(
@@ -408,24 +413,32 @@ class UpdateProjectElementUseCase {
       throw EditorNotFoundException('Group not found: $nextGroupId');
     }
 
-    final nextSource = source ?? current.frames.primarySource;
-    if (nextSource.width <= 0 ||
-        nextSource.height <= 0 ||
-        nextSource.x < 0 ||
-        nextSource.y < 0) {
-      throw const EditorValidationException('Element source rect is invalid');
-    }
-
-    final nextFrames = source == null
-        ? current.frames
-        : [
-            TilesetVisualFrame(
-              tilesetId: current.frames.first.tilesetId,
-              source: nextSource,
-              durationMs: current.frames.first.durationMs,
-            ),
-            ...current.frames.skip(1),
-          ];
+    final nextFrames = (() {
+      if (frames != null) {
+        return _normalizeElementFrames(
+          frames,
+        );
+      }
+      if (source != null) {
+        final nextSource = source;
+        if (nextSource.width <= 0 ||
+            nextSource.height <= 0 ||
+            nextSource.x < 0 ||
+            nextSource.y < 0) {
+          throw const EditorValidationException(
+              'Element source rect is invalid');
+        }
+        return [
+          TilesetVisualFrame(
+            tilesetId: current.frames.first.tilesetId,
+            source: nextSource,
+            durationMs: current.frames.first.durationMs,
+          ),
+          ...current.frames.skip(1),
+        ];
+      }
+      return current.frames;
+    })();
 
     final nextTags = tags == null
         ? current.tags
@@ -461,6 +474,48 @@ class UpdateProjectElementUseCase {
     await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
+}
+
+List<TilesetVisualFrame> _normalizeElementFrames(
+  List<TilesetVisualFrame> frames,
+) {
+  if (frames.isEmpty) {
+    throw const EditorValidationException(
+      'Element must have at least one visual frame',
+    );
+  }
+  final normalized = <TilesetVisualFrame>[];
+  for (var i = 0; i < frames.length; i++) {
+    final frame = frames[i];
+    final src = frame.source;
+    if (src.x < 0 || src.y < 0 || src.width <= 0 || src.height <= 0) {
+      throw EditorValidationException(
+        'Element frame $i has invalid source rectangle',
+      );
+    }
+    final durationMs = frame.durationMs;
+    if (durationMs != null && durationMs <= 0) {
+      throw EditorValidationException(
+        'Element frame $i has invalid durationMs: $durationMs',
+      );
+    }
+    normalized.add(
+      frame.copyWith(
+        tilesetId: frame.tilesetId.trim().isEmpty ? '' : frame.tilesetId.trim(),
+      ),
+    );
+  }
+  final width = normalized.first.source.width;
+  final height = normalized.first.source.height;
+  for (var i = 1; i < normalized.length; i++) {
+    final src = normalized[i].source;
+    if (src.width != width || src.height != height) {
+      throw const EditorValidationException(
+        'All element animation frames must share the same size',
+      );
+    }
+  }
+  return List<TilesetVisualFrame>.unmodifiable(normalized);
 }
 
 class DeleteProjectElementUseCase {

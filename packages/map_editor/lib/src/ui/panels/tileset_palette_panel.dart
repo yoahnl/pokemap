@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart'
     show
         BorderSide,
@@ -2584,6 +2585,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     var collisionPadding =
         collisionProfile?.padding ?? const WarpTriggerPadding();
     var generatingCollision = false;
+    var frames = List<TilesetVisualFrame>.from(element.frames);
     var shouldSave = false;
 
     String editTilesetGroupRowLabel(String id) {
@@ -2619,6 +2621,19 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   Text(
                     'Edit Element',
                     style: editorMacosSheetTitleStyle(ctx),
+                  ),
+                  const SizedBox(height: 12),
+                  _ElementFramesEditor(
+                    image: image,
+                    tileWidth: tileWidth,
+                    tileHeight: tileHeight,
+                    ownerTilesetId: element.tilesetId,
+                    frames: frames,
+                    onChanged: (next) {
+                      setStateDialog(() {
+                        frames = next;
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
                   MacosTextField(
@@ -2768,10 +2783,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   const SizedBox(height: 8),
                   _ElementCollisionPaddingEditor(
                     padding: collisionPadding,
-                    maxHorizontal: math.max(
-                        0, element.frames.primarySource.width * tileWidth - 1),
-                    maxVertical: math.max(0,
-                        element.frames.primarySource.height * tileHeight - 1),
+                    maxHorizontal:
+                        math.max(0, frames.primarySource.width * tileWidth - 1),
+                    maxVertical: math.max(
+                        0, frames.primarySource.height * tileHeight - 1),
                     onChanged: (next) {
                       setStateDialog(() {
                         collisionPadding = next;
@@ -2798,7 +2813,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                   final generated = await notifier
                                       .generateElementCollisionProfile(
                                     tilesetId: element.tilesetId,
-                                    source: element.frames.primarySource,
+                                    source: frames.primarySource,
                                     presetKind: selectedPresetKind,
                                     padding: collisionPadding,
                                   );
@@ -2835,7 +2850,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   const SizedBox(height: 8),
                   _ElementCollisionProfileEditor(
                     image: image,
-                    source: element.frames.primarySource,
+                    source: frames.primarySource,
                     tileWidth: tileWidth,
                     tileHeight: tileHeight,
                     profile: collisionProfile,
@@ -2896,6 +2911,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       clearGroupId: selectedGroupId == null,
       recommendedLayerId: selectedLayerId,
       clearRecommendedLayerId: selectedLayerId == null,
+      frames: frames,
       tags: _parseTags(tagsController.text),
     );
   }
@@ -3887,6 +3903,801 @@ class _PlacedElementAnimationPreviewState
         ),
       ],
     );
+  }
+}
+
+class _ElementFramesEditor extends StatefulWidget {
+  const _ElementFramesEditor({
+    required this.image,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.ownerTilesetId,
+    required this.frames,
+    required this.onChanged,
+  });
+
+  final ui.Image image;
+  final int tileWidth;
+  final int tileHeight;
+  final String ownerTilesetId;
+  final List<TilesetVisualFrame> frames;
+  final ValueChanged<List<TilesetVisualFrame>> onChanged;
+
+  @override
+  State<_ElementFramesEditor> createState() => _ElementFramesEditorState();
+}
+
+class _ElementFramesEditorState extends State<_ElementFramesEditor> {
+  late final Stopwatch _previewStopwatch;
+  Timer? _previewTimer;
+  final TextEditingController _durationCtrl = TextEditingController();
+  int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _previewStopwatch = Stopwatch()..start();
+    _previewTimer = Timer.periodic(const Duration(milliseconds: 80), (_) {
+      if (!mounted) return;
+      setState(() {});
+    });
+    _syncDurationControl();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ElementFramesEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.frames.isEmpty) {
+      _selectedIndex = 0;
+      _durationCtrl.text = '';
+      return;
+    }
+    if (_selectedIndex >= widget.frames.length) {
+      _selectedIndex = widget.frames.length - 1;
+    }
+    _syncDurationControl();
+  }
+
+  @override
+  void dispose() {
+    _previewTimer?.cancel();
+    _durationCtrl.dispose();
+    super.dispose();
+  }
+
+  void _syncDurationControl() {
+    if (widget.frames.isEmpty || _selectedIndex >= widget.frames.length) {
+      _durationCtrl.text = '';
+      return;
+    }
+    final duration = widget.frames[_selectedIndex].durationMs ??
+        defaultPlacedElementAnimationFrameDurationMs;
+    _durationCtrl.text = '$duration';
+  }
+
+  void _emitFrames(List<TilesetVisualFrame> nextFrames) {
+    if (nextFrames.isEmpty) return;
+    widget.onChanged(List<TilesetVisualFrame>.unmodifiable(nextFrames));
+    if (_selectedIndex >= nextFrames.length) {
+      _selectedIndex = nextFrames.length - 1;
+    }
+    _syncDurationControl();
+  }
+
+  int _resolvePreviewFrameIndex() {
+    final frames = widget.frames;
+    if (frames.isEmpty) return 0;
+    if (frames.length == 1) return 0;
+    final durations = normalizeElementFrameDurationsMs(
+      frames.map((frame) => frame.durationMs).toList(growable: false),
+    );
+    return resolvePlacedElementAnimationFrameIndex(
+      frameDurationsMs: durations,
+      elapsedMs: _previewStopwatch.elapsedMilliseconds.toDouble(),
+      animation: const MapPlacedElementAnimation(
+        enabled: true,
+        mode: MapPlacedElementAnimationMode.loop,
+        autoplay: true,
+        speed: 1.0,
+      ),
+    );
+  }
+
+  Future<void> _addFrame() async {
+    final frames = widget.frames;
+    if (frames.isEmpty) return;
+    final base = frames.first.source;
+    final picked = await _showElementFramePickerDialog(
+      context,
+      image: widget.image,
+      tileWidth: widget.tileWidth,
+      tileHeight: widget.tileHeight,
+      frameWidthTiles: base.width,
+      frameHeightTiles: base.height,
+      initial: frames[_selectedIndex].source,
+    );
+    if (picked == null) return;
+    final defaultDuration = (frames[_selectedIndex].durationMs ??
+            frames.first.durationMs ??
+            defaultPlacedElementAnimationFrameDurationMs)
+        .clamp(1, 99999);
+    final frame = TilesetVisualFrame(
+      tilesetId: frames.first.tilesetId.trim().isEmpty
+          ? ''
+          : frames.first.tilesetId.trim(),
+      source: picked,
+      durationMs: defaultDuration,
+    );
+    final nextFrames = [...frames, frame];
+    setState(() {
+      _selectedIndex = nextFrames.length - 1;
+    });
+    _emitFrames(nextFrames);
+  }
+
+  void _duplicateFrame() {
+    final frames = widget.frames;
+    if (frames.isEmpty || _selectedIndex >= frames.length) return;
+    final target = frames[_selectedIndex];
+    final duplicate = target.copyWith();
+    final nextFrames = <TilesetVisualFrame>[
+      ...frames.take(_selectedIndex + 1),
+      duplicate,
+      ...frames.skip(_selectedIndex + 1),
+    ];
+    setState(() {
+      _selectedIndex = _selectedIndex + 1;
+    });
+    _emitFrames(nextFrames);
+  }
+
+  void _deleteSelectedFrame() {
+    final frames = widget.frames;
+    if (frames.length <= 1) return;
+    if (_selectedIndex < 0 || _selectedIndex >= frames.length) return;
+    final nextFrames = <TilesetVisualFrame>[
+      ...frames.take(_selectedIndex),
+      ...frames.skip(_selectedIndex + 1),
+    ];
+    final nextIndex = math.min(_selectedIndex, nextFrames.length - 1);
+    setState(() {
+      _selectedIndex = nextIndex;
+    });
+    _emitFrames(nextFrames);
+  }
+
+  void _moveSelectedFrame(int delta) {
+    final frames = widget.frames;
+    if (frames.length <= 1) return;
+    final current = _selectedIndex;
+    final next = current + delta;
+    if (current < 0 || current >= frames.length) return;
+    if (next < 0 || next >= frames.length) return;
+    final mutable = List<TilesetVisualFrame>.from(frames);
+    final value = mutable.removeAt(current);
+    mutable.insert(next, value);
+    setState(() {
+      _selectedIndex = next;
+    });
+    _emitFrames(mutable);
+  }
+
+  void _clearExtraFrames() {
+    final frames = widget.frames;
+    if (frames.length <= 1) return;
+    setState(() {
+      _selectedIndex = 0;
+    });
+    _emitFrames([frames.first]);
+  }
+
+  void _setSelectedDuration(int nextDurationMs) {
+    final frames = widget.frames;
+    if (frames.isEmpty || _selectedIndex >= frames.length) return;
+    final clamped = nextDurationMs.clamp(1, 99999);
+    final mutable = List<TilesetVisualFrame>.from(frames);
+    mutable[_selectedIndex] =
+        mutable[_selectedIndex].copyWith(durationMs: clamped);
+    _emitFrames(mutable);
+  }
+
+  void _applyDurationInput() {
+    final parsed = int.tryParse(_durationCtrl.text.trim());
+    if (parsed == null) {
+      _syncDurationControl();
+      return;
+    }
+    _setSelectedDuration(parsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final frames = widget.frames;
+    final selectedFrame = frames[_selectedIndex];
+    final previewIndex =
+        _resolvePreviewFrameIndex().clamp(0, frames.length - 1);
+    final previewFrame = frames[previewIndex];
+    final frameSizeLabel =
+        '${frames.first.source.width}x${frames.first.source.height} tiles';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.02),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Animation frames',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '${frames.length} frame${frames.length > 1 ? 's' : ''}',
+                style: TextStyle(color: secondary, fontSize: 10),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Size: $frameSizeLabel',
+            style: TextStyle(color: secondary, fontSize: 10),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 58,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 58,
+                  height: 58,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: CupertinoColors.separator.resolveFrom(context),
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: _PaletteRectPreview(
+                        image: widget.image,
+                        source: previewFrame.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    frames.length > 1
+                        ? 'Preview frame ${previewIndex + 1}/${frames.length}'
+                        : 'Static element preview',
+                    style: TextStyle(color: secondary, fontSize: 10),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: _addFrame,
+                child: const Text('Add frame'),
+              ),
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: _duplicateFrame,
+                child: const Text('Duplicate'),
+              ),
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: frames.length > 1 ? _deleteSelectedFrame : null,
+                child: const Text('Delete'),
+              ),
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: frames.length > 1 ? _clearExtraFrames : null,
+                child: const Text('Clear extras'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 86,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: frames.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              itemBuilder: (context, index) {
+                final frame = frames[index];
+                final isSelected = index == _selectedIndex;
+                final duration = frame.durationMs ??
+                    defaultPlacedElementAnimationFrameDurationMs;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = index;
+                      _syncDurationControl();
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 120),
+                    width: 70,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? EditorPaintColors.orange.withValues(alpha: 0.12)
+                          : EditorPaintColors.white10,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isSelected
+                            ? EditorPaintColors.orange
+                            : EditorPaintColors.white24,
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(5),
+                            child: _PaletteRectPreview(
+                              image: widget.image,
+                              source: frame.source,
+                              tileWidth: widget.tileWidth,
+                              tileHeight: widget.tileHeight,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '${duration}ms',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: EditorPaintColors.white60,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                'Frame ${_selectedIndex + 1}/${frames.length}',
+                style: TextStyle(color: secondary, fontSize: 10),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _moveSelectedFrame(-1),
+                child: const Icon(
+                  CupertinoIcons.arrow_left,
+                  size: 14,
+                  color: EditorPaintColors.white60,
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () => _moveSelectedFrame(1),
+                child: const Icon(
+                  CupertinoIcons.arrow_right,
+                  size: 14,
+                  color: EditorPaintColors.white60,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              SizedBox(
+                width: 64,
+                height: 26,
+                child: CupertinoTextField(
+                  controller: _durationCtrl,
+                  placeholder: 'ms',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  onSubmitted: (_) => _applyDurationInput(),
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'ms',
+                style:
+                    TextStyle(fontSize: 11, color: EditorPaintColors.white54),
+              ),
+              const SizedBox(width: 6),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                minSize: 22,
+                color: EditorPaintColors.orange.withValues(alpha: 0.85),
+                onPressed: _applyDurationInput,
+                child: const Text('Set', style: TextStyle(fontSize: 11)),
+              ),
+              const SizedBox(width: 6),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                minSize: 22,
+                color: EditorPaintColors.white24,
+                onPressed: () {
+                  final current = selectedFrame.durationMs ??
+                      defaultPlacedElementAnimationFrameDurationMs;
+                  _setSelectedDuration(current - 50);
+                },
+                child: const Text('-', style: TextStyle(fontSize: 11)),
+              ),
+              const SizedBox(width: 4),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                minSize: 22,
+                color: EditorPaintColors.white24,
+                onPressed: () {
+                  final current = selectedFrame.durationMs ??
+                      defaultPlacedElementAnimationFrameDurationMs;
+                  _setSelectedDuration(current + 50);
+                },
+                child: const Text('+', style: TextStyle(fontSize: 11)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<TilesetSourceRect?> _showElementFramePickerDialog(
+  BuildContext context, {
+  required ui.Image image,
+  required int tileWidth,
+  required int tileHeight,
+  required int frameWidthTiles,
+  required int frameHeightTiles,
+  required TilesetSourceRect initial,
+}) async {
+  final colsTiles = image.width ~/ math.max(1, tileWidth);
+  final rowsTiles = image.height ~/ math.max(1, tileHeight);
+  final colsFrames = colsTiles ~/ math.max(1, frameWidthTiles);
+  final rowsFrames = rowsTiles ~/ math.max(1, frameHeightTiles);
+  if (colsFrames <= 0 || rowsFrames <= 0) {
+    return null;
+  }
+  final initialX = (initial.x ~/ frameWidthTiles).clamp(0, colsFrames - 1);
+  final initialY = (initial.y ~/ frameHeightTiles).clamp(0, rowsFrames - 1);
+  GridPos selected = GridPos(x: initialX, y: initialY);
+  final horizontalController = ScrollController();
+  final verticalController = ScrollController();
+  bool shouldSave = false;
+  double zoom = 3.0;
+  GridPos toCell(Offset local, double cw, double ch) {
+    final x = (local.dx / cw).floor().clamp(0, colsFrames - 1);
+    final y = (local.dy / ch).floor().clamp(0, rowsFrames - 1);
+    return GridPos(x: x, y: y);
+  }
+
+  await showMacosEditorTallSheet<void>(
+    context: context,
+    maxWidth: 720,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setStateDialog) {
+        final baseCellWidth = (frameWidthTiles * tileWidth).toDouble();
+        final baseCellHeight = (frameHeightTiles * tileHeight).toDouble();
+        final cellWidth = math.max(16.0, baseCellWidth * zoom);
+        final cellHeight = math.max(16.0, baseCellHeight * zoom);
+        final canvasWidth = colsFrames * cellWidth;
+        final canvasHeight = rowsFrames * cellHeight;
+        return ListView(
+          shrinkWrap: true,
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text('Pick frame source', style: editorMacosSheetTitleStyle(ctx)),
+            const SizedBox(height: 8),
+            Text(
+              'Frame size: $frameWidthTiles x $frameHeightTiles tiles',
+              style: TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text(
+                  'Zoom',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: EditorPaintColors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minSize: 24,
+                  color: EditorPaintColors.white24,
+                  onPressed: () {
+                    setStateDialog(() {
+                      zoom = (zoom - 0.25).clamp(0.75, 8.0);
+                    });
+                  },
+                  child: const Text('-', style: TextStyle(fontSize: 12)),
+                ),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 170,
+                  child: CupertinoSlider(
+                    value: zoom,
+                    min: 0.75,
+                    max: 8.0,
+                    divisions: 29,
+                    onChanged: (v) {
+                      setStateDialog(() {
+                        zoom = v;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 6),
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minSize: 24,
+                  color: EditorPaintColors.white24,
+                  onPressed: () {
+                    setStateDialog(() {
+                      zoom = (zoom + 0.25).clamp(0.75, 8.0);
+                    });
+                  },
+                  child: const Text('+', style: TextStyle(fontSize: 12)),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${zoom.toStringAsFixed(2)}x',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 420,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: CupertinoColors.separator.resolveFrom(ctx),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  controller: horizontalController,
+                  scrollDirection: Axis.horizontal,
+                  child: SingleChildScrollView(
+                    controller: verticalController,
+                    scrollDirection: Axis.vertical,
+                    child: SizedBox(
+                      width: canvasWidth,
+                      height: canvasHeight,
+                      child: GestureDetector(
+                        onTapUp: (details) {
+                          setStateDialog(() {
+                            selected = toCell(
+                              details.localPosition,
+                              cellWidth,
+                              cellHeight,
+                            );
+                          });
+                        },
+                        onPanStart: (details) {
+                          setStateDialog(() {
+                            selected = toCell(
+                              details.localPosition,
+                              cellWidth,
+                              cellHeight,
+                            );
+                          });
+                        },
+                        onPanUpdate: (details) {
+                          setStateDialog(() {
+                            selected = toCell(
+                              details.localPosition,
+                              cellWidth,
+                              cellHeight,
+                            );
+                          });
+                        },
+                        child: CustomPaint(
+                          painter: _ElementFramePickerPainter(
+                            image: image,
+                            frameColumns: colsFrames,
+                            frameRows: rowsFrames,
+                            frameWidthTiles: frameWidthTiles,
+                            frameHeightTiles: frameHeightTiles,
+                            tileWidth: tileWidth,
+                            tileHeight: tileHeight,
+                            selected: selected,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Selected: (${selected.x * frameWidthTiles}, ${selected.y * frameHeightTiles})',
+              style: TextStyle(
+                fontSize: 11,
+                color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                PushButton(
+                  controlSize: ControlSize.large,
+                  secondary: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 10),
+                PushButton(
+                  controlSize: ControlSize.large,
+                  onPressed: () {
+                    shouldSave = true;
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Use frame'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    ),
+  );
+  horizontalController.dispose();
+  verticalController.dispose();
+  if (!shouldSave) {
+    return null;
+  }
+  return TilesetSourceRect(
+    x: selected.x * frameWidthTiles,
+    y: selected.y * frameHeightTiles,
+    width: frameWidthTiles,
+    height: frameHeightTiles,
+  );
+}
+
+class _ElementFramePickerPainter extends CustomPainter {
+  _ElementFramePickerPainter({
+    required this.image,
+    required this.frameColumns,
+    required this.frameRows,
+    required this.frameWidthTiles,
+    required this.frameHeightTiles,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.selected,
+  });
+
+  final ui.Image image;
+  final int frameColumns;
+  final int frameRows;
+  final int frameWidthTiles;
+  final int frameHeightTiles;
+  final int tileWidth;
+  final int tileHeight;
+  final GridPos selected;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cellWidth = size.width / frameColumns;
+    final cellHeight = size.height / frameRows;
+    for (var y = 0; y < frameRows; y++) {
+      for (var x = 0; x < frameColumns; x++) {
+        final srcRect = Rect.fromLTWH(
+          (x * frameWidthTiles * tileWidth).toDouble(),
+          (y * frameHeightTiles * tileHeight).toDouble(),
+          (frameWidthTiles * tileWidth).toDouble(),
+          (frameHeightTiles * tileHeight).toDouble(),
+        );
+        final dstRect = Rect.fromLTWH(
+          x * cellWidth,
+          y * cellHeight,
+          cellWidth,
+          cellHeight,
+        );
+        canvas.drawImageRect(
+          image,
+          srcRect,
+          dstRect,
+          Paint()..filterQuality = FilterQuality.none,
+        );
+      }
+    }
+    final gridPaint = Paint()
+      ..color = EditorPaintColors.white24
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    for (var x = 0; x <= frameColumns; x++) {
+      final dx = x * cellWidth;
+      canvas.drawLine(Offset(dx, 0), Offset(dx, size.height), gridPaint);
+    }
+    for (var y = 0; y <= frameRows; y++) {
+      final dy = y * cellHeight;
+      canvas.drawLine(Offset(0, dy), Offset(size.width, dy), gridPaint);
+    }
+    final selectedRect = Rect.fromLTWH(
+      selected.x * cellWidth,
+      selected.y * cellHeight,
+      cellWidth,
+      cellHeight,
+    );
+    canvas.drawRect(
+      selectedRect,
+      Paint()..color = EditorPaintColors.orange.withValues(alpha: 0.22),
+    );
+    canvas.drawRect(
+      selectedRect,
+      Paint()
+        ..color = EditorPaintColors.orange
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ElementFramePickerPainter oldDelegate) {
+    return oldDelegate.image != image ||
+        oldDelegate.frameColumns != frameColumns ||
+        oldDelegate.frameRows != frameRows ||
+        oldDelegate.frameWidthTiles != frameWidthTiles ||
+        oldDelegate.frameHeightTiles != frameHeightTiles ||
+        oldDelegate.tileWidth != tileWidth ||
+        oldDelegate.tileHeight != tileHeight ||
+        oldDelegate.selected != selected;
   }
 }
 

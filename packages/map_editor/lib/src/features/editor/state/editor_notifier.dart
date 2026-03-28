@@ -1675,6 +1675,7 @@ class EditorNotifier extends _$EditorNotifier {
     String? recommendedLayerId,
     bool clearRecommendedLayerId = false,
     TilesetSourceRect? source,
+    List<TilesetVisualFrame>? frames,
     List<String>? tags,
   }) async {
     final fs = _projectWorkspace;
@@ -1698,6 +1699,7 @@ class EditorNotifier extends _$EditorNotifier {
         recommendedLayerId: recommendedLayerId,
         clearRecommendedLayerId: clearRecommendedLayerId,
         source: source,
+        frames: frames,
         tags: tags,
       );
       String? selectedTilesetElementGroupId =

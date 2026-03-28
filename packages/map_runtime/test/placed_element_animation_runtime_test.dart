@@ -3,6 +3,31 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   group('placed element animation runtime resolution', () {
+    test('single frame always resolves to index zero', () {
+      const animation = MapPlacedElementAnimation(
+        enabled: true,
+        mode: MapPlacedElementAnimationMode.loop,
+        autoplay: true,
+      );
+      final durations = normalizeElementFrameDurationsMs(const [120]);
+      expect(
+        resolvePlacedElementAnimationFrameIndex(
+          frameDurationsMs: durations,
+          elapsedMs: 0,
+          animation: animation,
+        ),
+        0,
+      );
+      expect(
+        resolvePlacedElementAnimationFrameIndex(
+          frameDurationsMs: durations,
+          elapsedMs: 10000,
+          animation: animation,
+        ),
+        0,
+      );
+    });
+
     test('loop mode advances forward and wraps', () {
       const animation = MapPlacedElementAnimation(
         enabled: true,
@@ -152,6 +177,42 @@ void main() {
 
       expect(a1, a2);
       expect(b, inInclusiveRange(0, 3));
+    });
+
+    test('respects different frame durations in loop mode', () {
+      const animation = MapPlacedElementAnimation(
+        enabled: true,
+        mode: MapPlacedElementAnimationMode.loop,
+        autoplay: true,
+        speed: 1,
+      );
+      final durations = normalizeElementFrameDurationsMs(
+        const [100, 300, 100],
+      );
+      expect(
+        resolvePlacedElementAnimationFrameIndex(
+          frameDurationsMs: durations,
+          elapsedMs: 90,
+          animation: animation,
+        ),
+        0,
+      );
+      expect(
+        resolvePlacedElementAnimationFrameIndex(
+          frameDurationsMs: durations,
+          elapsedMs: 200,
+          animation: animation,
+        ),
+        1,
+      );
+      expect(
+        resolvePlacedElementAnimationFrameIndex(
+          frameDurationsMs: durations,
+          elapsedMs: 480,
+          animation: animation,
+        ),
+        2,
+      );
     });
   });
 }
