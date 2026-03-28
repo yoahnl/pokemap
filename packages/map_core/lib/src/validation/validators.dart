@@ -521,6 +521,15 @@ class ProjectValidator {
     if (profile == null) {
       return;
     }
+    final padding = profile.padding;
+    if (padding.top < 0 ||
+        padding.right < 0 ||
+        padding.bottom < 0 ||
+        padding.left < 0) {
+      throw ValidationException(
+        'Element ${element.id} collision profile contains negative padding values',
+      );
+    }
     final source = element.frames.primarySource;
     final seen = <String>{};
     for (final cell in profile.cells) {

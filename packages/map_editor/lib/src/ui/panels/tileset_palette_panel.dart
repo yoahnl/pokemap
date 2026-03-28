@@ -2208,6 +2208,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     }
     var selectedPresetKind = ElementPresetKind.generic;
     ElementCollisionProfile? collisionProfile;
+    var collisionPadding = const WarpTriggerPadding();
     var generatingCollision = false;
 
     final groups = List<ProjectMapGroup>.from(project.groups)
@@ -2410,6 +2411,21 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  _ElementCollisionPaddingEditor(
+                    padding: collisionPadding,
+                    maxHorizontal: math.max(0, source.width * tileWidth - 1),
+                    maxVertical: math.max(0, source.height * tileHeight - 1),
+                    onChanged: (next) {
+                      setStateDialog(() {
+                        collisionPadding = next;
+                        if (collisionProfile != null) {
+                          collisionProfile =
+                              collisionProfile!.copyWith(padding: next);
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -2427,12 +2443,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                     tilesetId: tilesetId,
                                     source: source,
                                     presetKind: selectedPresetKind,
+                                    padding: collisionPadding,
                                   );
                                   if (!mounted) return;
                                   setStateDialog(() {
                                     generatingCollision = false;
                                     if (generated != null) {
                                       collisionProfile = generated;
+                                      collisionPadding = generated.padding;
                                     }
                                   });
                                 },
@@ -2450,6 +2468,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         onPressed: () {
                           setStateDialog(() {
                             collisionProfile = null;
+                            collisionPadding = const WarpTriggerPadding();
                           });
                         },
                         child: const Text('Effacer'),
@@ -2463,6 +2482,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     tileWidth: tileWidth,
                     tileHeight: tileHeight,
                     profile: collisionProfile,
+                    draftPadding: collisionPadding,
                     onProfileChanged: (profile) {
                       setStateDialog(() {
                         collisionProfile = profile;
@@ -2584,6 +2604,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     }
     var selectedPresetKind = element.presetKind;
     ElementCollisionProfile? collisionProfile = element.collisionProfile;
+    var collisionPadding =
+        collisionProfile?.padding ?? const WarpTriggerPadding();
     var generatingCollision = false;
     var shouldSave = false;
 
@@ -2767,6 +2789,23 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  _ElementCollisionPaddingEditor(
+                    padding: collisionPadding,
+                    maxHorizontal: math.max(
+                        0, element.frames.primarySource.width * tileWidth - 1),
+                    maxVertical: math.max(0,
+                        element.frames.primarySource.height * tileHeight - 1),
+                    onChanged: (next) {
+                      setStateDialog(() {
+                        collisionPadding = next;
+                        if (collisionProfile != null) {
+                          collisionProfile =
+                              collisionProfile!.copyWith(padding: next);
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -2784,12 +2823,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                     tilesetId: element.tilesetId,
                                     source: element.frames.primarySource,
                                     presetKind: selectedPresetKind,
+                                    padding: collisionPadding,
                                   );
                                   if (!mounted) return;
                                   setStateDialog(() {
                                     generatingCollision = false;
                                     if (generated != null) {
                                       collisionProfile = generated;
+                                      collisionPadding = generated.padding;
                                     }
                                   });
                                 },
@@ -2807,6 +2848,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         onPressed: () {
                           setStateDialog(() {
                             collisionProfile = null;
+                            collisionPadding = const WarpTriggerPadding();
                           });
                         },
                         child: const Text('Effacer'),
@@ -2820,6 +2862,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     tileWidth: tileWidth,
                     tileHeight: tileHeight,
                     profile: collisionProfile,
+                    draftPadding: collisionPadding,
                     onProfileChanged: (profile) {
                       setStateDialog(() {
                         collisionProfile = profile;
@@ -3559,6 +3602,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
     required this.tileWidth,
     required this.tileHeight,
     required this.profile,
+    required this.draftPadding,
     required this.onProfileChanged,
   });
 
@@ -3567,6 +3611,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
   final int tileWidth;
   final int tileHeight;
   final ElementCollisionProfile? profile;
+  final WarpTriggerPadding draftPadding;
   final ValueChanged<ElementCollisionProfile?> onProfileChanged;
 
   @override
@@ -3574,6 +3619,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     final cells = _normalizedCells(profile?.cells ?? const []);
+    final padding = profile?.padding ?? draftPadding;
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       decoration: BoxDecoration(
@@ -3609,6 +3655,22 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Padding px: T${padding.top} R${padding.right} B${padding.bottom} L${padding.left}',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Zone sombre = exclue par padding, contour cyan = zone active d’analyse.',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
           ),
           const SizedBox(height: 6),
           LayoutBuilder(
@@ -3654,6 +3716,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
                     onProfileChanged(
                       ElementCollisionProfile(
                         source: ElementCollisionProfileSource.manual,
+                        padding: padding,
                         cells: _normalizedCells(
                             next.values.toList(growable: false)),
                       ),
@@ -3672,6 +3735,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
                         source: source,
                         tileWidth: tileWidth,
                         tileHeight: tileHeight,
+                        padding: padding,
                         cells: cells,
                       ),
                     ),
@@ -3716,12 +3780,179 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
   }
 }
 
+class _ElementCollisionPaddingEditor extends StatelessWidget {
+  const _ElementCollisionPaddingEditor({
+    required this.padding,
+    required this.maxHorizontal,
+    required this.maxVertical,
+    required this.onChanged,
+  });
+
+  final WarpTriggerPadding padding;
+  final int maxHorizontal;
+  final int maxVertical;
+  final ValueChanged<WarpTriggerPadding> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.01),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Padding collision (px)',
+            style: TextStyle(
+              color: label,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Ajuste l’auto-génération puis affine manuellement si besoin.',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _CollisionPaddingStepper(
+                label: 'Top',
+                value: padding.top,
+                maxValue: maxVertical,
+                onChanged: (v) => onChanged(padding.copyWith(top: v)),
+              ),
+              _CollisionPaddingStepper(
+                label: 'Right',
+                value: padding.right,
+                maxValue: maxHorizontal,
+                onChanged: (v) => onChanged(padding.copyWith(right: v)),
+              ),
+              _CollisionPaddingStepper(
+                label: 'Bottom',
+                value: padding.bottom,
+                maxValue: maxVertical,
+                onChanged: (v) => onChanged(padding.copyWith(bottom: v)),
+              ),
+              _CollisionPaddingStepper(
+                label: 'Left',
+                value: padding.left,
+                maxValue: maxHorizontal,
+                onChanged: (v) => onChanged(padding.copyWith(left: v)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollisionPaddingStepper extends StatelessWidget {
+  const _CollisionPaddingStepper({
+    required this.label,
+    required this.value,
+    required this.maxValue,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final int maxValue;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final canDecrease = value > 0;
+    final canIncrease = value < maxValue;
+    return Container(
+      width: 92,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: canDecrease ? () => onChanged(value - 1) : null,
+                child: Icon(
+                  CupertinoIcons.minus_circle_fill,
+                  size: 16,
+                  color: canDecrease
+                      ? labelColor
+                      : labelColor.withValues(alpha: 0.25),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  '$value',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: labelColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: canIncrease ? () => onChanged(value + 1) : null,
+                child: Icon(
+                  CupertinoIcons.plus_circle_fill,
+                  size: 16,
+                  color: canIncrease
+                      ? labelColor
+                      : labelColor.withValues(alpha: 0.25),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ElementCollisionProfilePainter extends CustomPainter {
   _ElementCollisionProfilePainter({
     required this.image,
     required this.source,
     required this.tileWidth,
     required this.tileHeight,
+    required this.padding,
     required this.cells,
   });
 
@@ -3729,6 +3960,7 @@ class _ElementCollisionProfilePainter extends CustomPainter {
   final TilesetSourceRect source;
   final int tileWidth;
   final int tileHeight;
+  final WarpTriggerPadding padding;
   final List<GridPos> cells;
 
   @override
@@ -3753,6 +3985,76 @@ class _ElementCollisionProfilePainter extends CustomPainter {
       ..isAntiAlias = false
       ..filterQuality = FilterQuality.none;
     canvas.drawImageRect(image, sourceRect, targetRect, imagePaint);
+
+    final sourcePixelWidth = source.width * tileWidth.toDouble();
+    final sourcePixelHeight = source.height * tileHeight.toDouble();
+    final scaleX =
+        sourcePixelWidth <= 0 ? 1.0 : targetRect.width / sourcePixelWidth;
+    final scaleY =
+        sourcePixelHeight <= 0 ? 1.0 : targetRect.height / sourcePixelHeight;
+    final leftPad = padding.left * scaleX;
+    final rightPad = padding.right * scaleX;
+    final topPad = padding.top * scaleY;
+    final bottomPad = padding.bottom * scaleY;
+    final activeLeft = targetRect.left + leftPad;
+    final activeTop = targetRect.top + topPad;
+    final activeRight = targetRect.right - rightPad;
+    final activeBottom = targetRect.bottom - bottomPad;
+    final activeRect = Rect.fromLTRB(
+      math.min(activeLeft, activeRight),
+      math.min(activeTop, activeBottom),
+      math.max(activeLeft, activeRight),
+      math.max(activeTop, activeBottom),
+    );
+
+    final excludedPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.22)
+      ..style = PaintingStyle.fill;
+    if (leftPad > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+            targetRect.left, targetRect.top, leftPad, targetRect.height),
+        excludedPaint,
+      );
+    }
+    if (rightPad > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          targetRect.right - rightPad,
+          targetRect.top,
+          rightPad,
+          targetRect.height,
+        ),
+        excludedPaint,
+      );
+    }
+    if (topPad > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+            targetRect.left, targetRect.top, targetRect.width, topPad),
+        excludedPaint,
+      );
+    }
+    if (bottomPad > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          targetRect.left,
+          targetRect.bottom - bottomPad,
+          targetRect.width,
+          bottomPad,
+        ),
+        excludedPaint,
+      );
+    }
+    if (activeRect.width > 0 && activeRect.height > 0) {
+      canvas.drawRect(
+        activeRect,
+        Paint()
+          ..color = Colors.cyanAccent.withValues(alpha: 0.72)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4,
+      );
+    }
 
     final cellWidth = targetRect.width / source.width;
     final cellHeight = targetRect.height / source.height;
@@ -3806,6 +4108,7 @@ class _ElementCollisionProfilePainter extends CustomPainter {
         oldDelegate.source != source ||
         oldDelegate.tileWidth != tileWidth ||
         oldDelegate.tileHeight != tileHeight ||
+        oldDelegate.padding != padding ||
         oldDelegate.cells.length != cells.length) {
       return true;
     }

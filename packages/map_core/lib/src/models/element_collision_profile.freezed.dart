@@ -23,6 +23,7 @@ ElementCollisionProfile _$ElementCollisionProfileFromJson(
 mixin _$ElementCollisionProfile {
   ElementCollisionProfileSource get source =>
       throw _privateConstructorUsedError;
+  WarpTriggerPadding get padding => throw _privateConstructorUsedError;
   List<GridPos> get cells => throw _privateConstructorUsedError;
 
   /// Serializes this ElementCollisionProfile to a JSON map.
@@ -41,7 +42,12 @@ abstract class $ElementCollisionProfileCopyWith<$Res> {
           $Res Function(ElementCollisionProfile) then) =
       _$ElementCollisionProfileCopyWithImpl<$Res, ElementCollisionProfile>;
   @useResult
-  $Res call({ElementCollisionProfileSource source, List<GridPos> cells});
+  $Res call(
+      {ElementCollisionProfileSource source,
+      WarpTriggerPadding padding,
+      List<GridPos> cells});
+
+  $WarpTriggerPaddingCopyWith<$Res> get padding;
 }
 
 /// @nodoc
@@ -61,6 +67,7 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
   @override
   $Res call({
     Object? source = null,
+    Object? padding = null,
     Object? cells = null,
   }) {
     return _then(_value.copyWith(
@@ -68,11 +75,25 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as ElementCollisionProfileSource,
+      padding: null == padding
+          ? _value.padding
+          : padding // ignore: cast_nullable_to_non_nullable
+              as WarpTriggerPadding,
       cells: null == cells
           ? _value.cells
           : cells // ignore: cast_nullable_to_non_nullable
               as List<GridPos>,
     ) as $Val);
+  }
+
+  /// Create a copy of ElementCollisionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $WarpTriggerPaddingCopyWith<$Res> get padding {
+    return $WarpTriggerPaddingCopyWith<$Res>(_value.padding, (value) {
+      return _then(_value.copyWith(padding: value) as $Val);
+    });
   }
 }
 
@@ -85,7 +106,13 @@ abstract class _$$ElementCollisionProfileImplCopyWith<$Res>
       __$$ElementCollisionProfileImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({ElementCollisionProfileSource source, List<GridPos> cells});
+  $Res call(
+      {ElementCollisionProfileSource source,
+      WarpTriggerPadding padding,
+      List<GridPos> cells});
+
+  @override
+  $WarpTriggerPaddingCopyWith<$Res> get padding;
 }
 
 /// @nodoc
@@ -104,6 +131,7 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? source = null,
+    Object? padding = null,
     Object? cells = null,
   }) {
     return _then(_$ElementCollisionProfileImpl(
@@ -111,6 +139,10 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as ElementCollisionProfileSource,
+      padding: null == padding
+          ? _value.padding
+          : padding // ignore: cast_nullable_to_non_nullable
+              as WarpTriggerPadding,
       cells: null == cells
           ? _value._cells
           : cells // ignore: cast_nullable_to_non_nullable
@@ -125,6 +157,7 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
 class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   const _$ElementCollisionProfileImpl(
       {this.source = ElementCollisionProfileSource.generated,
+      this.padding = const WarpTriggerPadding(),
       final List<GridPos> cells = const []})
       : _cells = cells;
 
@@ -134,6 +167,9 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   @override
   @JsonKey()
   final ElementCollisionProfileSource source;
+  @override
+  @JsonKey()
+  final WarpTriggerPadding padding;
   final List<GridPos> _cells;
   @override
   @JsonKey()
@@ -145,7 +181,7 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 
   @override
   String toString() {
-    return 'ElementCollisionProfile(source: $source, cells: $cells)';
+    return 'ElementCollisionProfile(source: $source, padding: $padding, cells: $cells)';
   }
 
   @override
@@ -154,13 +190,14 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
         (other.runtimeType == runtimeType &&
             other is _$ElementCollisionProfileImpl &&
             (identical(other.source, source) || other.source == source) &&
+            (identical(other.padding, padding) || other.padding == padding) &&
             const DeepCollectionEquality().equals(other._cells, _cells));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, source, const DeepCollectionEquality().hash(_cells));
+  int get hashCode => Object.hash(runtimeType, source, padding,
+      const DeepCollectionEquality().hash(_cells));
 
   /// Create a copy of ElementCollisionProfile
   /// with the given fields replaced by the non-null parameter values.
@@ -182,6 +219,7 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   const factory _ElementCollisionProfile(
       {final ElementCollisionProfileSource source,
+      final WarpTriggerPadding padding,
       final List<GridPos> cells}) = _$ElementCollisionProfileImpl;
 
   factory _ElementCollisionProfile.fromJson(Map<String, dynamic> json) =
@@ -189,6 +227,8 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
 
   @override
   ElementCollisionProfileSource get source;
+  @override
+  WarpTriggerPadding get padding;
   @override
   List<GridPos> get cells;
 

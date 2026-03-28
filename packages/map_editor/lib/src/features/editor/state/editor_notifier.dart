@@ -1751,6 +1751,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String tilesetId,
     required TilesetSourceRect source,
     required ElementPresetKind presetKind,
+    WarpTriggerPadding padding = const WarpTriggerPadding(),
   }) async {
     final project = state.project;
     if (project == null) {
@@ -1769,6 +1770,7 @@ class EditorNotifier extends _$EditorNotifier {
         tileWidth: project.settings.tileWidth,
         tileHeight: project.settings.tileHeight,
         presetKind: presetKind,
+        padding: padding,
       );
       state = state.copyWith(
         statusMessage:

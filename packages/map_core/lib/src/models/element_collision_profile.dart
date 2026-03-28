@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
 import 'geometry.dart';
+import 'map_data.dart';
 
 part 'element_collision_profile.freezed.dart';
 part 'element_collision_profile.g.dart';
@@ -12,6 +13,7 @@ class ElementCollisionProfile with _$ElementCollisionProfile {
   const factory ElementCollisionProfile({
     @Default(ElementCollisionProfileSource.generated)
     ElementCollisionProfileSource source,
+    @Default(WarpTriggerPadding()) WarpTriggerPadding padding,
     @Default([]) List<GridPos> cells,
   }) = _ElementCollisionProfile;
 
