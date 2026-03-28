@@ -1085,7 +1085,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (loaded == null) {
       return;
     }
-    loaded.layers.removeFromParent();
+    loaded.backgroundLayers.removeFromParent();
+    loaded.foregroundLayers.removeFromParent();
     for (final actor in loaded.npcActors) {
       actor.removeFromParent();
       _npcActors.remove(actor);
@@ -1098,13 +1099,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int originCellX,
     required int originCellY,
   }) async {
-    final layers = MapLayersComponent(
+    final backgroundLayers = MapLayersComponent(
         bundle: bundle, tileImagesByTilesetId: tileImagesById);
-    layers.position = _originPixels(
+    backgroundLayers.position = _originPixels(
       originCellX: originCellX,
       originCellY: originCellY,
     );
-    await world.add(layers);
+    backgroundLayers.priority = 0;
+    await world.add(backgroundLayers);
+
+    final foregroundLayers = MapLayersComponent(
+      bundle: bundle,
+      tileImagesByTilesetId: tileImagesById,
+      renderPass: MapLayerRenderPass.foreground,
+    );
+    foregroundLayers.position = _originPixels(
+      originCellX: originCellX,
+      originCellY: originCellY,
+    );
+    foregroundLayers.priority = 100000;
+    await world.add(foregroundLayers);
 
     final npcActors = <OverworldActorComponent>[];
     final npcActorByEntityId = <String, OverworldActorComponent>{};
@@ -1143,7 +1157,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       bundle: bundle,
       originCellX: originCellX,
       originCellY: originCellY,
-      layers: layers,
+      backgroundLayers: backgroundLayers,
+      foregroundLayers: foregroundLayers,
       npcActors: npcActors,
       npcActorByEntityId: npcActorByEntityId,
     );
@@ -1351,7 +1366,8 @@ class _LoadedPlayableMap {
     required this.bundle,
     required this.originCellX,
     required this.originCellY,
-    required this.layers,
+    required this.backgroundLayers,
+    required this.foregroundLayers,
     required this.npcActors,
     required this.npcActorByEntityId,
   });
@@ -1359,7 +1375,8 @@ class _LoadedPlayableMap {
   final RuntimeMapBundle bundle;
   final int originCellX;
   final int originCellY;
-  final MapLayersComponent layers;
+  final MapLayersComponent backgroundLayers;
+  final MapLayersComponent foregroundLayers;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;
 }

@@ -11,15 +11,23 @@ import 'runtime_path_autotile.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
 
+enum MapLayerRenderPass {
+  background,
+  foreground,
+}
+
 class MapLayersComponent extends PositionComponent {
   MapLayersComponent({
     required this.bundle,
     required this.tileImagesByTilesetId,
+    this.renderPass = MapLayerRenderPass.background,
   })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
         _pathAutotileByPresetId = {
           for (final p in bundle.manifest.pathPresets)
             p.id: RuntimePathAutotileSet.fromPreset(p),
         },
+        _foregroundTileCellIndicesByLayerId =
+            _buildForegroundTileCellIndicesByLayerId(bundle),
         super(
           anchor: Anchor.topLeft,
           position: Vector2.zero(),
@@ -31,8 +39,10 @@ class MapLayersComponent extends PositionComponent {
 
   final RuntimeMapBundle bundle;
   final Map<String, ui.Image> tileImagesByTilesetId;
+  final MapLayerRenderPass renderPass;
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
+  final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
 
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
@@ -50,6 +60,21 @@ class MapLayersComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
     final visible = bundle.map.layers.where((l) => l.isVisible).toList();
+    if (renderPass == MapLayerRenderPass.foreground) {
+      for (var i = visible.length - 1; i >= 0; i--) {
+        visible[i].whenOrNull(
+          tile: (id, name, tilesetId, v, o, tiles) => _paintTileLayer(
+            canvas,
+            layerId: id,
+            layerName: name,
+            tilesetId: tilesetId,
+            tiles: tiles,
+            opacity: o,
+          ),
+        );
+      }
+      return;
+    }
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
         terrain: (id, name, v, o, terrains) =>
@@ -64,8 +89,14 @@ class MapLayersComponent extends PositionComponent {
     }
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
-        tile: (id, name, tilesetId, v, o, tiles) =>
-            _paintTileLayer(canvas, tilesetId, tiles, o),
+        tile: (id, name, tilesetId, v, o, tiles) => _paintTileLayer(
+          canvas,
+          layerId: id,
+          layerName: name,
+          tilesetId: tilesetId,
+          tiles: tiles,
+          opacity: o,
+        ),
       );
     }
     _paintEntities(canvas);
@@ -170,11 +201,27 @@ class MapLayersComponent extends PositionComponent {
   }
 
   void _paintTileLayer(
-    Canvas canvas,
-    String? tilesetId,
-    List<int> tiles,
-    double opacity,
-  ) {
+    Canvas canvas, {
+    required String layerId,
+    required String layerName,
+    required String? tilesetId,
+    required List<int> tiles,
+    required double opacity,
+  }) {
+    final explicitForeground = _isExplicitForegroundTileLayer(
+      layerId: layerId,
+      layerName: layerName,
+    );
+    final foregroundCells = _foregroundTileCellIndicesByLayerId[layerId];
+    final shouldRenderThisLayer = switch (renderPass) {
+      MapLayerRenderPass.background => !explicitForeground ||
+          (foregroundCells != null && foregroundCells.isNotEmpty),
+      MapLayerRenderPass.foreground => explicitForeground ||
+          (foregroundCells != null && foregroundCells.isNotEmpty),
+    };
+    if (!shouldRenderThisLayer) {
+      return;
+    }
     final map = bundle.map;
     final cw = bundle.cellWidth;
     final ch = bundle.cellHeight;
@@ -209,6 +256,16 @@ class MapLayersComponent extends PositionComponent {
         if (tileId <= 0) {
           continue;
         }
+        final isForegroundCell = foregroundCells?.contains(idx) ?? false;
+        final shouldDrawCell = switch (renderPass) {
+          MapLayerRenderPass.background =>
+            explicitForeground ? false : !isForegroundCell,
+          MapLayerRenderPass.foreground =>
+            explicitForeground || isForegroundCell,
+        };
+        if (!shouldDrawCell) {
+          continue;
+        }
         final sourceIndex = tileId - 1;
         final col = sourceIndex % cols;
         final row = sourceIndex ~/ cols;
@@ -227,6 +284,100 @@ class MapLayersComponent extends PositionComponent {
         canvas.drawImageRect(image, src, dst, paint);
       }
     }
+  }
+
+  bool _isExplicitForegroundTileLayer({
+    required String layerId,
+    required String layerName,
+  }) {
+    final id = layerId.trim().toLowerCase();
+    final name = layerName.trim().toLowerCase();
+    const markers = <String>{
+      'foreground',
+      'fg',
+      'above',
+      'overlay',
+      'front',
+      'roof',
+      'toit',
+    };
+    bool containsMarker(String value) {
+      for (final marker in markers) {
+        if (value == marker ||
+            value.startsWith('${marker}_') ||
+            value.endsWith('_$marker') ||
+            value.contains('_${marker}_')) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    return containsMarker(id) || containsMarker(name);
+  }
+
+  static Map<String, Set<int>> _buildForegroundTileCellIndicesByLayerId(
+    RuntimeMapBundle bundle,
+  ) {
+    final map = bundle.map;
+    final tileLayerById = <String, TileLayer>{
+      for (final layer in map.layers.whereType<TileLayer>()) layer.id: layer,
+    };
+    if (tileLayerById.isEmpty || map.placedElements.isEmpty) {
+      return const <String, Set<int>>{};
+    }
+    final elementById = {
+      for (final entry in bundle.manifest.elements) entry.id: entry,
+    };
+    final out = <String, Set<int>>{};
+    final mapW = map.size.width;
+    final mapH = map.size.height;
+
+    for (final instance in map.placedElements) {
+      final layer = tileLayerById[instance.layerId];
+      if (layer == null) {
+        continue;
+      }
+      final entry = elementById[instance.elementId];
+      if (entry == null || entry.frames.isEmpty) {
+        continue;
+      }
+      final source = entry.frames.primaryFrame.source;
+      final width = source.width <= 0 ? 1 : source.width;
+      final height = source.height <= 0 ? 1 : source.height;
+      if (width <= 1 && height <= 1) {
+        continue;
+      }
+      final collisionCells = entry.collisionProfile?.cells;
+      if (collisionCells == null || collisionCells.isEmpty) {
+        continue;
+      }
+      final collisionSet = <int>{
+        for (final c in collisionCells) c.y * width + c.x,
+      };
+      final layerMask = out.putIfAbsent(layer.id, () => <int>{});
+      for (var ly = 0; ly < height; ly++) {
+        for (var lx = 0; lx < width; lx++) {
+          final localIndex = ly * width + lx;
+          if (collisionSet.contains(localIndex)) {
+            continue;
+          }
+          final x = instance.pos.x + lx;
+          final y = instance.pos.y + ly;
+          if (x < 0 || y < 0 || x >= mapW || y >= mapH) {
+            continue;
+          }
+          final globalIndex = y * mapW + x;
+          if (globalIndex >= layer.tiles.length ||
+              layer.tiles[globalIndex] <= 0) {
+            continue;
+          }
+          layerMask.add(globalIndex);
+        }
+      }
+    }
+
+    return out;
   }
 
   void _paintCollisionLayer(

@@ -49,7 +49,7 @@ class PlacedElementInstanceIndexer {
     final elements = project.elements
         .where(
           (entry) =>
-              entry.tilesetId == layerTilesetId &&
+              _resolveElementPrimaryTilesetId(entry) == layerTilesetId &&
               entry.frames.primarySource.width > 0 &&
               entry.frames.primarySource.height > 0,
         )
@@ -77,9 +77,9 @@ class PlacedElementInstanceIndexer {
       );
     }
 
-    final columnsByTilesetId = _resolveTilesetColumns(project);
-    final columns = columnsByTilesetId[layerTilesetId] ?? 0;
-    if (columns <= 0) {
+    final mapWidth = map.size.width;
+    final mapHeight = map.size.height;
+    if (mapWidth <= 0 || mapHeight <= 0) {
       return replaceMapPlacedElementsForLayer(
         map,
         layerId: layerId,
@@ -87,9 +87,16 @@ class PlacedElementInstanceIndexer {
       );
     }
 
-    final mapWidth = map.size.width;
-    final mapHeight = map.size.height;
-    if (mapWidth <= 0 || mapHeight <= 0) {
+    final columnsByTilesetId = _resolveTilesetColumns(project);
+    final baselineColumns = columnsByTilesetId[layerTilesetId] ?? 0;
+    final columns = _resolveLayerTilesetColumns(
+      layer: layer,
+      mapWidth: mapWidth,
+      mapHeight: mapHeight,
+      elements: elements,
+      minimumColumns: baselineColumns,
+    );
+    if (columns <= 0) {
       return replaceMapPlacedElementsForLayer(
         map,
         layerId: layerId,
@@ -249,7 +256,7 @@ class PlacedElementInstanceIndexer {
   }) {
     var maxRight = 0;
     for (final element in project.elements) {
-      if (element.tilesetId != tilesetId) {
+      if (_resolveElementPrimaryTilesetId(element) != tilesetId) {
         continue;
       }
       final source = element.frames.primarySource;
@@ -271,6 +278,184 @@ class PlacedElementInstanceIndexer {
       }
     }
     return maxRight;
+  }
+
+  String _resolveElementPrimaryTilesetId(ProjectElementEntry entry) {
+    final frameTilesetId = entry.frames.primaryFrame.tilesetId.trim();
+    if (frameTilesetId.isNotEmpty) {
+      return frameTilesetId;
+    }
+    return entry.tilesetId.trim();
+  }
+
+  int _resolveLayerTilesetColumns({
+    required TileLayer layer,
+    required int mapWidth,
+    required int mapHeight,
+    required List<ProjectElementEntry> elements,
+    required int minimumColumns,
+  }) {
+    if (elements.isEmpty) {
+      return minimumColumns;
+    }
+    final minColumns = minimumColumns > 0 ? minimumColumns : 1;
+    final uniqueTileIds = <int>{};
+    for (final tileId in layer.tiles) {
+      if (tileId > 0) {
+        uniqueTileIds.add(tileId);
+      }
+    }
+    if (uniqueTileIds.isEmpty) {
+      return minColumns;
+    }
+    final candidates = <int>{minColumns};
+    final verticalDiffCandidates = _collectVerticalDiffCandidates(
+      layer: layer,
+      mapWidth: mapWidth,
+      mapHeight: mapHeight,
+    );
+    for (final candidate in verticalDiffCandidates) {
+      if (candidate < minColumns || candidate > 4096) {
+        continue;
+      }
+      candidates.add(candidate);
+    }
+    for (final tileId in uniqueTileIds) {
+      for (final element in elements) {
+        final source = element.frames.primarySource;
+        if (source.y <= 0) {
+          continue;
+        }
+        final numerator = tileId - source.x - 1;
+        if (numerator <= 0) {
+          continue;
+        }
+        if (numerator % source.y != 0) {
+          continue;
+        }
+        final candidate = numerator ~/ source.y;
+        if (candidate < minColumns) {
+          continue;
+        }
+        if (candidate > 4096) {
+          continue;
+        }
+        candidates.add(candidate);
+      }
+    }
+    if (candidates.length == 1) {
+      return minColumns;
+    }
+
+    final sortedCandidates = candidates.toList(growable: false)..sort();
+    var bestColumns = minColumns;
+    var bestScore = _scoreColumns(
+      layer: layer,
+      mapWidth: mapWidth,
+      mapHeight: mapHeight,
+      elements: elements,
+      columns: minColumns,
+    );
+
+    for (final candidate in sortedCandidates) {
+      if (candidate == minColumns) {
+        continue;
+      }
+      final score = _scoreColumns(
+        layer: layer,
+        mapWidth: mapWidth,
+        mapHeight: mapHeight,
+        elements: elements,
+        columns: candidate,
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        bestColumns = candidate;
+      }
+    }
+    return bestColumns;
+  }
+
+  Set<int> _collectVerticalDiffCandidates({
+    required TileLayer layer,
+    required int mapWidth,
+    required int mapHeight,
+  }) {
+    final out = <int>{};
+    for (var y = 0; y < mapHeight - 1; y++) {
+      for (var x = 0; x < mapWidth; x++) {
+        final top = _tileAt(
+          tiles: layer.tiles,
+          mapWidth: mapWidth,
+          mapHeight: mapHeight,
+          x: x,
+          y: y,
+        );
+        final bottom = _tileAt(
+          tiles: layer.tiles,
+          mapWidth: mapWidth,
+          mapHeight: mapHeight,
+          x: x,
+          y: y + 1,
+        );
+        if (top <= 0 || bottom <= 0) {
+          continue;
+        }
+        final diff = bottom - top;
+        if (diff <= 0) {
+          continue;
+        }
+        out.add(diff);
+      }
+    }
+    return out;
+  }
+
+  int _scoreColumns({
+    required TileLayer layer,
+    required int mapWidth,
+    required int mapHeight,
+    required List<ProjectElementEntry> elements,
+    required int columns,
+  }) {
+    var score = 0;
+    for (var originY = 0; originY < mapHeight; originY++) {
+      for (var originX = 0; originX < mapWidth; originX++) {
+        final tileId = _tileAt(
+          tiles: layer.tiles,
+          mapWidth: mapWidth,
+          mapHeight: mapHeight,
+          x: originX,
+          y: originY,
+        );
+        if (tileId <= 0) {
+          continue;
+        }
+        for (final element in elements) {
+          final source = element.frames.primarySource;
+          if (originX + source.width > mapWidth ||
+              originY + source.height > mapHeight) {
+            continue;
+          }
+          final expectedTopLeft = source.y * columns + source.x + 1;
+          if (tileId != expectedTopLeft) {
+            continue;
+          }
+          if (_matchesElementPatternAt(
+            layer: layer,
+            mapWidth: mapWidth,
+            mapHeight: mapHeight,
+            originX: originX,
+            originY: originY,
+            source: source,
+            tilesetColumns: columns,
+          )) {
+            score++;
+          }
+        }
+      }
+    }
+    return score;
   }
 
   bool _matchesElementPatternAt({

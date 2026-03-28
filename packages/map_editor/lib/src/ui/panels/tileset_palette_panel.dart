@@ -1341,6 +1341,13 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 applyCollision: applyCollision,
               );
             },
+            onDeleteInstance: (instance) async {
+              await _showDeletePlacedInstanceDialog(
+                context,
+                notifier: notifier,
+                instance: instance,
+              );
+            },
           ),
       ],
     );
@@ -1532,7 +1539,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     for (final instance in rawLayerInstances) {
       final candidateElement = elementById[instance.elementId];
       final element = candidateElement != null &&
-              candidateElement.tilesetId == layerTilesetId
+              _resolveElementPrimaryTilesetId(candidateElement) ==
+                  layerTilesetId
           ? candidateElement
           : null;
       final key = element?.id ?? instance.elementId;
@@ -2888,6 +2896,26 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     await notifier.deleteProjectElement(element.id);
   }
 
+  Future<void> _showDeletePlacedInstanceDialog(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required _PlacedElementInstanceVm instance,
+  }) async {
+    final elementName = instance.element?.name ?? instance.instance.elementId;
+    final shouldDelete = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Supprimer l’instance',
+      message:
+          'Supprimer "$elementName" en (${instance.pos.x}, ${instance.pos.y}) sur "${instance.layerName}" ?',
+      primaryLabel: 'Supprimer',
+      primaryIsDestructive: true,
+    );
+    if (!shouldDelete) {
+      return;
+    }
+    notifier.deletePlacedElementInstance(instanceId: instance.instanceId);
+  }
+
   List<String> _parseTags(String value) {
     return value
         .split(',')
@@ -2989,6 +3017,7 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.selectedInstance,
     required this.onSelectInstance,
     required this.onCollisionAppliedChanged,
+    required this.onDeleteInstance,
   });
 
   final ui.Image image;
@@ -3000,6 +3029,8 @@ class _PlacedInstancesSection extends StatelessWidget {
   final ValueChanged<_PlacedElementInstanceVm?> onSelectInstance;
   final void Function(_PlacedElementInstanceVm instance, bool applyCollision)
       onCollisionAppliedChanged;
+  final Future<void> Function(_PlacedElementInstanceVm instance)
+      onDeleteInstance;
 
   @override
   Widget build(BuildContext context) {
@@ -3210,6 +3241,27 @@ class _PlacedInstancesSection extends StatelessWidget {
                     }
                     onCollisionAppliedChanged(selected, value);
                   },
+                ),
+                const SizedBox(height: 8),
+                CupertinoButton(
+                  color: CupertinoColors.systemRed.withValues(alpha: 0.9),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  onPressed: () => onDeleteInstance(selected),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(CupertinoIcons.trash, size: 14),
+                      SizedBox(width: 6),
+                      Text(
+                        'Supprimer cette instance',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 6),
                 const _FuturePropertyGroup(
@@ -4363,4 +4415,12 @@ String _elementPresetLabel(ElementPresetKind kind) {
     case ElementPresetKind.tallDecoration:
       return 'Tall deco';
   }
+}
+
+String _resolveElementPrimaryTilesetId(ProjectElementEntry entry) {
+  final frameTilesetId = entry.frames.primaryFrame.tilesetId.trim();
+  if (frameTilesetId.isNotEmpty) {
+    return frameTilesetId;
+  }
+  return entry.tilesetId.trim();
 }

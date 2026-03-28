@@ -5293,6 +5293,98 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void deletePlacedElementInstance({
+    required String instanceId,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    final index =
+        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    if (index < 0) {
+      state = state.copyWith(
+        errorMessage: 'Placed element instance not found: $trimmedId',
+      );
+      return;
+    }
+    final instance = map.placedElements[index];
+    final layer = _findLayerById(map, instance.layerId);
+    if (layer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage:
+            'Placed element layer is not a tile layer: ${instance.layerId}',
+      );
+      return;
+    }
+
+    final project = state.project;
+    var patternSize = const GridSize(width: 1, height: 1);
+    if (project != null) {
+      ProjectElementEntry? element;
+      for (final entry in project.elements) {
+        if (entry.id == instance.elementId) {
+          element = entry;
+          break;
+        }
+      }
+      if (element != null) {
+        final source = element.frames.primarySource;
+        patternSize = GridSize(
+          width: source.width > 0 ? source.width : 1,
+          height: source.height > 0 ? source.height : 1,
+        );
+      }
+    }
+
+    try {
+      late final MapData erased;
+      if (patternSize.width == 1 && patternSize.height == 1) {
+        final useCase = ref.read(eraseTileOnMapUseCaseProvider);
+        erased = useCase.execute(
+          map,
+          layerId: instance.layerId,
+          pos: instance.pos,
+        );
+      } else {
+        final useCase = ref.read(eraseTilePatternOnMapUseCaseProvider);
+        erased = useCase.execute(
+          map,
+          layerId: instance.layerId,
+          pos: instance.pos,
+          patternSize: patternSize,
+          clipToMapBounds: true,
+        );
+      }
+
+      final committed = project == null
+          ? erased
+          : _placedElementInstanceIndexer.syncLayer(
+              map: erased,
+              project: project,
+              layerId: instance.layerId,
+            );
+
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: committed,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Instance supprimée (${instance.elementId})',
+      );
+      debugPrint(
+        '[editor][elements] deleted placed instance id=$trimmedId elementId=${instance.elementId} layer=${instance.layerId} pos=(${instance.pos.x},${instance.pos.y})',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to delete placed element instance: $e',
+      );
+    }
+  }
+
   /// Bascule vers la sélection si l’outil courant ne peut pas agir sur le calque actif.
   void _coerceActiveToolIfIncompatibleWithLayer() {
     final map = state.activeMap;
