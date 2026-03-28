@@ -13,6 +13,7 @@ import 'package:map_core/map_core.dart';
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../application/services/entity_editor_element_visual.dart';
+import '../../features/editor/models/placed_element_instance_ref.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
@@ -199,27 +200,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           onPointerCancel: _onMapPointerCancel,
           onPointerHover: (event) => _onMapPointerHover(event.localPosition),
           child: GestureDetector(
-          onTapUp: (details) {
-            if (!isTapEditingTool) return;
-            final gridPos = _screenToGrid(
-              details.localPosition,
-              state.panOffset,
-              state.zoom,
-              activeMap.size,
-              tileWidth,
-              tileHeight,
-            );
-            if (gridPos == null) return;
-            if (isStrokeEditingTool) {
-              notifier.beginMapStroke();
-            }
-            applyToolAt(gridPos);
-            if (isStrokeEditingTool) {
-              notifier.endMapStroke();
-            }
-          },
-          onPanStart: (details) {
-            if (state.activeTool == EditorToolType.gameplayZonePlacement) {
+            onTapUp: (details) {
+              if (!isTapEditingTool) return;
               final gridPos = _screenToGrid(
                 details.localPosition,
                 state.panOffset,
@@ -229,31 +211,66 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 tileHeight,
               );
               if (gridPos == null) return;
-              setState(() => _zoneDragStart = gridPos);
-              notifier.setGameplayZoneDraftArea(
-                MapRect(
-                  pos: gridPos,
-                  size: const GridSize(width: 1, height: 1),
-                ),
+              if (isStrokeEditingTool) {
+                notifier.beginMapStroke();
+              }
+              applyToolAt(gridPos);
+              if (isStrokeEditingTool) {
+                notifier.endMapStroke();
+              }
+            },
+            onPanStart: (details) {
+              if (state.activeTool == EditorToolType.gameplayZonePlacement) {
+                final gridPos = _screenToGrid(
+                  details.localPosition,
+                  state.panOffset,
+                  state.zoom,
+                  activeMap.size,
+                  tileWidth,
+                  tileHeight,
+                );
+                if (gridPos == null) return;
+                setState(() => _zoneDragStart = gridPos);
+                notifier.setGameplayZoneDraftArea(
+                  MapRect(
+                    pos: gridPos,
+                    size: const GridSize(width: 1, height: 1),
+                  ),
+                );
+                return;
+              }
+              if (!isStrokeEditingTool) return;
+              final gridPos = _screenToGrid(
+                details.localPosition,
+                state.panOffset,
+                state.zoom,
+                activeMap.size,
+                tileWidth,
+                tileHeight,
               );
-              return;
-            }
-            if (!isStrokeEditingTool) return;
-            final gridPos = _screenToGrid(
-              details.localPosition,
-              state.panOffset,
-              state.zoom,
-              activeMap.size,
-              tileWidth,
-              tileHeight,
-            );
-            if (gridPos == null) return;
-            notifier.beginMapStroke();
-            applyToolAt(gridPos);
-          },
-          onPanUpdate: (details) {
-            if (state.activeTool == EditorToolType.gameplayZonePlacement &&
-                _zoneDragStart != null) {
+              if (gridPos == null) return;
+              notifier.beginMapStroke();
+              applyToolAt(gridPos);
+            },
+            onPanUpdate: (details) {
+              if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+                  _zoneDragStart != null) {
+                final gridPos = _screenToGrid(
+                  details.localPosition,
+                  state.panOffset,
+                  state.zoom,
+                  activeMap.size,
+                  tileWidth,
+                  tileHeight,
+                );
+                if (gridPos != null) {
+                  notifier.setGameplayZoneDraftArea(
+                    _rectFromCorners(_zoneDragStart!, gridPos),
+                  );
+                }
+                return;
+              }
+              if (!isStrokeEditingTool) return;
               final gridPos = _screenToGrid(
                 details.localPosition,
                 state.panOffset,
@@ -263,56 +280,40 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 tileHeight,
               );
               if (gridPos != null) {
-                notifier.setGameplayZoneDraftArea(
-                  _rectFromCorners(_zoneDragStart!, gridPos),
-                );
-              }
-              return;
-            }
-            if (!isStrokeEditingTool) return;
-            final gridPos = _screenToGrid(
-              details.localPosition,
-              state.panOffset,
-              state.zoom,
-              activeMap.size,
-              tileWidth,
-              tileHeight,
-            );
-            if (gridPos != null) {
-              applyToolAt(gridPos);
-            }
-          },
-          onPanEnd: (_) {
-            if (state.activeTool == EditorToolType.gameplayZonePlacement &&
-                _zoneDragStart != null) {
-              setState(() => _zoneDragStart = null);
-              notifier.commitGameplayZoneDraft();
-              return;
-            }
-            if (isStrokeEditingTool) {
-              notifier.endMapStroke();
-            }
-          },
-          onPanCancel: () {
-            if (state.activeTool == EditorToolType.gameplayZonePlacement &&
-                _zoneDragStart != null) {
-              setState(() => _zoneDragStart = null);
-              notifier.cancelGameplayZoneDraft();
-              return;
-            }
-            if (isStrokeEditingTool) {
-              notifier.endMapStroke();
-            }
-          },
-          child: MouseRegion(
-            onExit: (_) {
-              if (_hoveredTile != null) {
-                setState(() {
-                  _hoveredTile = null;
-                });
+                applyToolAt(gridPos);
               }
             },
-            child: ClipRect(
+            onPanEnd: (_) {
+              if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+                  _zoneDragStart != null) {
+                setState(() => _zoneDragStart = null);
+                notifier.commitGameplayZoneDraft();
+                return;
+              }
+              if (isStrokeEditingTool) {
+                notifier.endMapStroke();
+              }
+            },
+            onPanCancel: () {
+              if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+                  _zoneDragStart != null) {
+                setState(() => _zoneDragStart = null);
+                notifier.cancelGameplayZoneDraft();
+                return;
+              }
+              if (isStrokeEditingTool) {
+                notifier.endMapStroke();
+              }
+            },
+            child: MouseRegion(
+              onExit: (_) {
+                if (_hoveredTile != null) {
+                  setState(() {
+                    _hoveredTile = null;
+                  });
+                }
+              },
+              child: ClipRect(
                 child: CustomPaint(
                   size: Size.infinite,
                   painter: MapGridPainter(
@@ -335,6 +336,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     selectedWarpId: state.selectedWarpId,
                     selectedTriggerId: state.selectedTriggerId,
                     selectedGameplayZoneId: state.selectedGameplayZoneId,
+                    selectedPlacedElementInstanceId:
+                        state.selectedPlacedElementInstanceId,
                     connectionLabelsByDirection: connectionLabelsByDirection,
                     selectedPathAutotileSet: selectedPathAutotileSet,
                     pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
@@ -343,9 +346,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     editorEntityAnimationMs: _editorEntityAnimationMs,
                   ),
                 ),
+              ),
             ),
           ),
-        ),
         );
       },
     );
@@ -562,6 +565,7 @@ class MapGridPainter extends CustomPainter {
   final String? selectedWarpId;
   final String? selectedTriggerId;
   final String? selectedGameplayZoneId;
+  final String? selectedPlacedElementInstanceId;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final PathAutotileSet? selectedPathAutotileSet;
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
@@ -589,6 +593,7 @@ class MapGridPainter extends CustomPainter {
     this.selectedWarpId,
     this.selectedTriggerId,
     this.selectedGameplayZoneId,
+    this.selectedPlacedElementInstanceId,
     required this.connectionLabelsByDirection,
     this.selectedPathAutotileSet,
     required this.pathAutotileSetsByPresetId,
@@ -689,6 +694,7 @@ class MapGridPainter extends CustomPainter {
     }
 
     _paintGameplayZones(canvas);
+    _paintSelectedPlacedElementInstance(canvas);
     _paintToolPreview(canvas);
     _paintEntities(canvas);
     _paintTriggers(canvas);
@@ -721,8 +727,30 @@ class MapGridPainter extends CustomPainter {
         tileWidth,
         tileHeight,
       );
+      final activationRect = _warpActivationRect(warp);
+      if (activationRect != rect) {
+        final areaPaint = Paint()
+          ..color = (warp.triggerMode == MapWarpTriggerMode.onBump
+                  ? Colors.orangeAccent
+                  : Colors.cyanAccent)
+              .withValues(alpha: isSelected ? 0.18 : 0.12)
+          ..style = PaintingStyle.fill;
+        final areaBorder = Paint()
+          ..color = (warp.triggerMode == MapWarpTriggerMode.onBump
+                  ? Colors.orangeAccent
+                  : Colors.cyanAccent)
+              .withValues(alpha: isSelected ? 0.75 : 0.55)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = isSelected ? 1.8 / zoom : 1.2 / zoom;
+        canvas.drawRect(activationRect, areaPaint);
+        canvas.drawRect(activationRect, areaBorder);
+      }
       final fillPaint = Paint()
-        ..color = (isSelected ? Colors.cyanAccent : Colors.purpleAccent)
+        ..color = (isSelected
+                ? (warp.triggerMode == MapWarpTriggerMode.onBump
+                    ? Colors.orangeAccent
+                    : Colors.cyanAccent)
+                : Colors.purpleAccent)
             .withValues(alpha: isSelected ? 0.42 : 0.34)
         ..style = PaintingStyle.fill;
       final borderPaint = Paint()
@@ -731,11 +759,148 @@ class MapGridPainter extends CustomPainter {
         ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
       canvas.drawRect(rect, fillPaint);
       canvas.drawRect(rect, borderPaint);
+      _paintWarpApproachMarkers(
+        canvas,
+        activationRect: activationRect,
+        allowedApproachFacings: warp.allowedApproachFacings,
+        isSelected: isSelected,
+      );
       final center = Offset(rect.center.dx, rect.center.dy);
-      canvas.drawCircle(
-        center,
-        (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.14,
-        Paint()..color = isSelected ? Colors.white : Colors.purple.shade100,
+      if (warp.triggerMode == MapWarpTriggerMode.onEnter) {
+        canvas.drawCircle(
+          center,
+          (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.14,
+          Paint()..color = isSelected ? Colors.white : Colors.purple.shade100,
+        );
+      } else {
+        final symbolSize =
+            (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.24;
+        final symbolRect = Rect.fromCenter(
+          center: center,
+          width: symbolSize,
+          height: symbolSize,
+        );
+        canvas.drawRect(
+          symbolRect,
+          Paint()..color = isSelected ? Colors.white : Colors.orange.shade100,
+        );
+      }
+    }
+  }
+
+  void _paintSelectedPlacedElementInstance(Canvas canvas) {
+    final selection = PlacedElementInstanceRef.parse(
+      selectedPlacedElementInstanceId,
+    );
+    if (selection == null) {
+      return;
+    }
+    if (selection.pos.x < 0 || selection.pos.y < 0) {
+      return;
+    }
+    if (selection.pos.x >= map.size.width ||
+        selection.pos.y >= map.size.height) {
+      return;
+    }
+    final projectContext = project;
+    if (projectContext == null) {
+      return;
+    }
+    TilesetSourceRect? source;
+    for (final entry in projectContext.elements) {
+      if (entry.id == selection.elementId) {
+        source = entry.frames.primarySource;
+        break;
+      }
+    }
+    final width = source?.width ?? 1;
+    final height = source?.height ?? 1;
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+    final rect = Rect.fromLTWH(
+      selection.pos.x * tileWidth,
+      selection.pos.y * tileHeight,
+      width * tileWidth,
+      height * tileHeight,
+    );
+    final fill = Paint()
+      ..color = Colors.yellowAccent.withValues(alpha: 0.17)
+      ..style = PaintingStyle.fill;
+    final border = Paint()
+      ..color = Colors.yellowAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0 / zoom;
+    canvas.drawRect(rect, fill);
+    canvas.drawRect(rect, border);
+  }
+
+  Rect _warpActivationRect(MapWarp warp) {
+    final scaleX = sourceTileWidth > 0 ? tileWidth / sourceTileWidth : 1.0;
+    final scaleY = sourceTileHeight > 0 ? tileHeight / sourceTileHeight : 1.0;
+    final padding = warp.triggerPadding;
+    final left = warp.pos.x * tileWidth - padding.left * scaleX;
+    final top = warp.pos.y * tileHeight - padding.top * scaleY;
+    final width = tileWidth + (padding.left + padding.right) * scaleX;
+    final height = tileHeight + (padding.top + padding.bottom) * scaleY;
+    return Rect.fromLTWH(left, top, width, height);
+  }
+
+  void _paintWarpApproachMarkers(
+    Canvas canvas, {
+    required Rect activationRect,
+    required List<EntityFacing> allowedApproachFacings,
+    required bool isSelected,
+  }) {
+    if (allowedApproachFacings.isEmpty) {
+      return;
+    }
+    final markerPaint = Paint()
+      ..color = (isSelected ? Colors.white : Colors.black)
+          .withValues(alpha: isSelected ? 0.95 : 0.7)
+      ..style = PaintingStyle.fill;
+    final markerThickness = (1.8 / zoom).clamp(1.0, 3.0);
+    final markerLength =
+        ((tileWidth < tileHeight ? tileWidth : tileHeight) * 0.45)
+            .clamp(6.0, 22.0);
+    for (final facing in allowedApproachFacings) {
+      Rect markerRect;
+      switch (facing) {
+        case EntityFacing.north:
+          markerRect = Rect.fromCenter(
+            center: Offset(activationRect.center.dx, activationRect.top),
+            width: markerLength,
+            height: markerThickness,
+          );
+          break;
+        case EntityFacing.south:
+          markerRect = Rect.fromCenter(
+            center: Offset(activationRect.center.dx, activationRect.bottom),
+            width: markerLength,
+            height: markerThickness,
+          );
+          break;
+        case EntityFacing.east:
+          markerRect = Rect.fromCenter(
+            center: Offset(activationRect.right, activationRect.center.dy),
+            width: markerThickness,
+            height: markerLength,
+          );
+          break;
+        case EntityFacing.west:
+          markerRect = Rect.fromCenter(
+            center: Offset(activationRect.left, activationRect.center.dy),
+            width: markerThickness,
+            height: markerLength,
+          );
+          break;
+      }
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          markerRect,
+          Radius.circular(markerThickness),
+        ),
+        markerPaint,
       );
     }
   }
@@ -931,8 +1096,7 @@ class MapGridPainter extends CustomPainter {
         canvas,
         Offset(
           badgeRect.left + (3 / zoom),
-          badgeRect.top +
-              ((badgeRect.height - badgeTextPainter.height) / 2),
+          badgeRect.top + ((badgeRect.height - badgeTextPainter.height) / 2),
         ),
       );
     }
@@ -2103,6 +2267,8 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.selectedWarpId != selectedWarpId ||
         oldDelegate.selectedTriggerId != selectedTriggerId ||
         oldDelegate.selectedGameplayZoneId != selectedGameplayZoneId ||
+        oldDelegate.selectedPlacedElementInstanceId !=
+            selectedPlacedElementInstanceId ||
         oldDelegate.gameplayZoneDraftArea != gameplayZoneDraftArea ||
         !listEquals(oldDelegate.warps, warps) ||
         !listEquals(oldDelegate.gameplayZones, gameplayZones) ||

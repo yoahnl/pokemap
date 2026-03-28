@@ -131,211 +131,207 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 child: const MapPropertiesPanel(embedded: true),
               ),
               InspectorSectionCard(
-                  title: 'Layers',
-                  subtitle: activeLayer == null
-                      ? 'Select the active layer for this map'
-                      : 'Active: ${_layerLabel(activeLayer)}',
-                  icon: CupertinoIcons.layers,
-                  badgeText: '${activeMap.layers.length}',
-                  accentColor: EditorChrome.inspectorJoyBlue,
-                  expanded: _isExpanded(_InspectorSectionId.layers, true),
+                title: 'Layers',
+                subtitle: activeLayer == null
+                    ? 'Select the active layer for this map'
+                    : 'Active: ${_layerLabel(activeLayer)}',
+                icon: CupertinoIcons.layers,
+                badgeText: '${activeMap.layers.length}',
+                accentColor: EditorChrome.inspectorJoyBlue,
+                expanded: _isExpanded(_InspectorSectionId.layers, true),
+                onToggle: () => _toggleSection(
+                  _InspectorSectionId.layers,
+                  defaultExpanded: true,
+                ),
+                expandedHeight: 260,
+                child: const LayersPanel(embedded: true),
+              ),
+              if (showTilesSection)
+                InspectorSectionCard(
+                  title: 'Tiles & Elements',
+                  subtitle:
+                      'Palette de placement et gestion des instances posées sur le layer actif.',
+                  icon: CupertinoIcons.square_grid_2x2,
+                  accentColor: EditorChrome.inspectorJoyLilac,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.tiles,
+                    activeLayer is TileLayer ||
+                        state.activeTool == EditorToolType.tilePaint,
+                  ),
                   onToggle: () => _toggleSection(
-                    _InspectorSectionId.layers,
+                    _InspectorSectionId.tiles,
+                    defaultExpanded: activeLayer is TileLayer ||
+                        state.activeTool == EditorToolType.tilePaint,
+                  ),
+                  expandedHeight: paletteHeight,
+                  child: const TilesetPalettePanel(embedded: true),
+                ),
+              if (showGroundSection)
+                InspectorSectionCard(
+                  title: 'Base Ground',
+                  subtitle: 'Terrain-only editing for the map background.',
+                  icon: CupertinoIcons.tree,
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.ground,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.ground,
                     defaultExpanded: true,
                   ),
-                  expandedHeight: 260,
-                  child: const LayersPanel(embedded: true),
+                  expandedHeight: 300,
+                  child: const TerrainMapPanel(
+                    embedded: true,
+                    mode: TerrainMapPanelMode.groundOnly,
+                  ),
                 ),
-                if (showTilesSection)
-                  InspectorSectionCard(
-                    title: 'Tiles & Elements',
-                    subtitle:
-                        'Tileset palette and element placement for tile layers.',
-                    icon: CupertinoIcons.square_grid_2x2,
-                    accentColor: EditorChrome.inspectorJoyLilac,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.tiles,
-                      activeLayer is TileLayer ||
-                          state.activeTool == EditorToolType.tilePaint,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.tiles,
-                      defaultExpanded: activeLayer is TileLayer ||
-                          state.activeTool == EditorToolType.tilePaint,
-                    ),
-                    expandedHeight: paletteHeight,
-                    child: const TilesetPalettePanel(embedded: true),
+              if (showSurfaceSection)
+                InspectorSectionCard(
+                  title: 'Paths',
+                  subtitle:
+                      'Edit the active path layer for roads and specialized surfaces.',
+                  icon: CupertinoIcons.map,
+                  accentColor: EditorChrome.inspectorJoyAmber,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.surfaces,
+                    true,
                   ),
-                if (showGroundSection)
-                  InspectorSectionCard(
-                    title: 'Base Ground',
-                    subtitle: 'Terrain-only editing for the map background.',
-                    icon: CupertinoIcons.tree,
-                    accentColor: EditorChrome.inspectorJoyMint,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.ground,
-                      true,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.ground,
-                      defaultExpanded: true,
-                    ),
-                    expandedHeight: 300,
-                    child: const TerrainMapPanel(
-                      embedded: true,
-                      mode: TerrainMapPanelMode.groundOnly,
-                    ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.surfaces,
+                    defaultExpanded: true,
                   ),
-                if (showSurfaceSection)
-                  InspectorSectionCard(
-                    title: 'Paths',
-                    subtitle:
-                        'Edit the active path layer for roads and specialized surfaces.',
-                    icon: CupertinoIcons.map,
-                    accentColor: EditorChrome.inspectorJoyAmber,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.surfaces,
-                      true,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.surfaces,
-                      defaultExpanded: true,
-                    ),
-                    expandedHeight: 340,
-                    child: const TerrainMapPanel(
-                      embedded: true,
-                      mode: TerrainMapPanelMode.surfaceOnly,
-                    ),
+                  expandedHeight: 340,
+                  child: const TerrainMapPanel(
+                    embedded: true,
+                    mode: TerrainMapPanelMode.surfaceOnly,
                   ),
-                if (showEntitySection)
-                  InspectorSectionCard(
-                    title: 'Map Entities',
-                    subtitle: state.selectedEntityId != null
-                        ? 'Selected entity ready for editing.'
-                        : 'Visible world content such as NPCs, signs, items and spawn points.',
-                    icon: CupertinoIcons.sparkles,
-                    badgeText: '${activeMap.entities.length}',
-                    accentColor: EditorChrome.inspectorJoyCyan,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.entities,
-                      state.activeTool == EditorToolType.entityPlacement ||
-                          state.selectedEntityId != null,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.entities,
-                      defaultExpanded:
-                          state.activeTool == EditorToolType.entityPlacement ||
-                              state.selectedEntityId != null,
-                    ),
-                    expandedHeight: 560,
-                    child: const EntityPropertiesPanel(embedded: true),
+                ),
+              if (showEntitySection)
+                InspectorSectionCard(
+                  title: 'Map Entities',
+                  subtitle: state.selectedEntityId != null
+                      ? 'Selected entity ready for editing.'
+                      : 'Visible world content such as NPCs, signs, items and spawn points.',
+                  icon: CupertinoIcons.sparkles,
+                  badgeText: '${activeMap.entities.length}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.entities,
+                    state.activeTool == EditorToolType.entityPlacement ||
+                        state.selectedEntityId != null,
                   ),
-                if (showConnectionsSection)
-                  InspectorSectionCard(
-                    title: 'Connections',
-                    subtitle: 'Link the current map to adjacent world maps.',
-                    icon: CupertinoIcons.arrow_branch,
-                    badgeText: '${activeMap.connections.length}',
-                    accentColor: EditorChrome.inspectorJoyPlum,
-                    expanded:
-                        _isExpanded(_InspectorSectionId.connections, false),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.connections,
-                      defaultExpanded: false,
-                    ),
-                    expandedHeight: 520,
-                    child: const MapConnectionsPanel(embedded: true),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.entities,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.entityPlacement ||
+                            state.selectedEntityId != null,
                   ),
-                if (showTriggerSection)
-                  InspectorSectionCard(
-                    title: 'Triggers',
-                    subtitle: state.selectedTriggerId != null
-                        ? 'Selected trigger ready for editing.'
-                        : 'Gameplay zones and editable trigger areas.',
-                    icon: CupertinoIcons.square,
-                    badgeText: '${activeMap.triggers.length}',
-                    accentColor: EditorChrome.inspectorJoyCoral,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.triggers,
-                      state.activeTool == EditorToolType.triggerPlacement ||
-                          state.selectedTriggerId != null,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.triggers,
-                      defaultExpanded:
-                          state.activeTool == EditorToolType.triggerPlacement ||
-                              state.selectedTriggerId != null,
-                    ),
-                    expandedHeight: 520,
-                    child: const TriggerPropertiesPanel(embedded: true),
+                  expandedHeight: 560,
+                  child: const EntityPropertiesPanel(embedded: true),
+                ),
+              if (showConnectionsSection)
+                InspectorSectionCard(
+                  title: 'Connections',
+                  subtitle: 'Link the current map to adjacent world maps.',
+                  icon: CupertinoIcons.arrow_branch,
+                  badgeText: '${activeMap.connections.length}',
+                  accentColor: EditorChrome.inspectorJoyPlum,
+                  expanded: _isExpanded(_InspectorSectionId.connections, false),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.connections,
+                    defaultExpanded: false,
                   ),
-                if (showWarpSection)
-                  InspectorSectionCard(
-                    title: 'Warps',
-                    subtitle: state.selectedWarpId != null
-                        ? 'Selected warp ready for editing.'
-                        : 'Map transitions such as doors, stairs and exits.',
-                    icon: CupertinoIcons.arrow_down_circle,
-                    badgeText: '${activeMap.warps.length}',
-                    accentColor: EditorChrome.inspectorJoyOrchid,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.warps,
-                      state.activeTool == EditorToolType.warpPlacement ||
-                          state.selectedWarpId != null,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.warps,
-                      defaultExpanded:
-                          state.activeTool == EditorToolType.warpPlacement ||
-                              state.selectedWarpId != null,
-                    ),
-                    expandedHeight: 320,
-                    child: const WarpPropertiesPanel(embedded: true),
+                  expandedHeight: 520,
+                  child: const MapConnectionsPanel(embedded: true),
+                ),
+              if (showTriggerSection)
+                InspectorSectionCard(
+                  title: 'Triggers',
+                  subtitle: state.selectedTriggerId != null
+                      ? 'Selected trigger ready for editing.'
+                      : 'Gameplay zones and editable trigger areas.',
+                  icon: CupertinoIcons.square,
+                  badgeText: '${activeMap.triggers.length}',
+                  accentColor: EditorChrome.inspectorJoyCoral,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.triggers,
+                    state.activeTool == EditorToolType.triggerPlacement ||
+                        state.selectedTriggerId != null,
                   ),
-                if (showGameplayZoneSection)
-                  InspectorSectionCard(
-                    title: 'Gameplay Zones',
-                    subtitle: state.selectedGameplayZoneId != null
-                        ? 'Selected zone ready for editing.'
-                        : 'Encounter areas, movement constraints and special zones.',
-                    icon: CupertinoIcons.leaf_arrow_circlepath,
-                    badgeText: '${activeMap.gameplayZones.length}',
-                    accentColor: EditorChrome.inspectorJoyMint,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.gameplayZones,
-                      state.activeTool ==
-                              EditorToolType.gameplayZonePlacement ||
-                          state.selectedGameplayZoneId != null,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.gameplayZones,
-                      defaultExpanded:
-                          state.activeTool ==
-                                  EditorToolType.gameplayZonePlacement ||
-                              state.selectedGameplayZoneId != null,
-                    ),
-                    expandedHeight: 520,
-                    child: const GameplayZonePropertiesPanel(embedded: true),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.triggers,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.triggerPlacement ||
+                            state.selectedTriggerId != null,
                   ),
-                if (showEncounterTablesSection)
-                  InspectorSectionCard(
-                    title: 'Encounter Tables',
-                    subtitle: 'Project-level encounter tables for wild Pokémon.',
-                    icon: CupertinoIcons.list_bullet,
-                    badgeText:
-                        '${state.project?.encounterTables.length ?? 0}',
-                    accentColor: EditorChrome.inspectorJoyCyan,
-                    expanded: _isExpanded(
-                      _InspectorSectionId.encounterTables,
-                      false,
-                    ),
-                    onToggle: () => _toggleSection(
-                      _InspectorSectionId.encounterTables,
-                      defaultExpanded: false,
-                    ),
-                    expandedHeight: 480,
-                    child: const EncounterTablesPanel(embedded: true),
+                  expandedHeight: 520,
+                  child: const TriggerPropertiesPanel(embedded: true),
+                ),
+              if (showWarpSection)
+                InspectorSectionCard(
+                  title: 'Warps',
+                  subtitle: state.selectedWarpId != null
+                      ? 'Selected warp ready for editing.'
+                      : 'Map transitions such as doors, stairs and exits.',
+                  icon: CupertinoIcons.arrow_down_circle,
+                  badgeText: '${activeMap.warps.length}',
+                  accentColor: EditorChrome.inspectorJoyOrchid,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.warps,
+                    state.activeTool == EditorToolType.warpPlacement ||
+                        state.selectedWarpId != null,
                   ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.warps,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.warpPlacement ||
+                            state.selectedWarpId != null,
+                  ),
+                  expandedHeight: 320,
+                  child: const WarpPropertiesPanel(embedded: true),
+                ),
+              if (showGameplayZoneSection)
+                InspectorSectionCard(
+                  title: 'Gameplay Zones',
+                  subtitle: state.selectedGameplayZoneId != null
+                      ? 'Selected zone ready for editing.'
+                      : 'Encounter areas, movement constraints and special zones.',
+                  icon: CupertinoIcons.leaf_arrow_circlepath,
+                  badgeText: '${activeMap.gameplayZones.length}',
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.gameplayZones,
+                    state.activeTool == EditorToolType.gameplayZonePlacement ||
+                        state.selectedGameplayZoneId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.gameplayZones,
+                    defaultExpanded: state.activeTool ==
+                            EditorToolType.gameplayZonePlacement ||
+                        state.selectedGameplayZoneId != null,
+                  ),
+                  expandedHeight: 520,
+                  child: const GameplayZonePropertiesPanel(embedded: true),
+                ),
+              if (showEncounterTablesSection)
+                InspectorSectionCard(
+                  title: 'Encounter Tables',
+                  subtitle: 'Project-level encounter tables for wild Pokémon.',
+                  icon: CupertinoIcons.list_bullet,
+                  badgeText: '${state.project?.encounterTables.length ?? 0}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.encounterTables,
+                    false,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.encounterTables,
+                    defaultExpanded: false,
+                  ),
+                  expandedHeight: 480,
+                  child: const EncounterTablesPanel(embedded: true),
+                ),
             ],
           ),
         );

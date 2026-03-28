@@ -174,6 +174,17 @@ _$MapWarpImpl _$$MapWarpImplFromJson(Map<String, dynamic> json) =>
       pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
       targetMapId: json['targetMapId'] as String,
       targetPos: GridPos.fromJson(json['targetPos'] as Map<String, dynamic>),
+      triggerMode: $enumDecodeNullable(
+              _$MapWarpTriggerModeEnumMap, json['triggerMode']) ??
+          MapWarpTriggerMode.onEnter,
+      allowedApproachFacings: (json['allowedApproachFacings'] as List<dynamic>?)
+              ?.map((e) => $enumDecode(_$EntityFacingEnumMap, e))
+              .toList() ??
+          const [],
+      triggerPadding: json['triggerPadding'] == null
+          ? const WarpTriggerPadding()
+          : WarpTriggerPadding.fromJson(
+              json['triggerPadding'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$MapWarpImplToJson(_$MapWarpImpl instance) =>
@@ -182,6 +193,41 @@ Map<String, dynamic> _$$MapWarpImplToJson(_$MapWarpImpl instance) =>
       'pos': instance.pos.toJson(),
       'targetMapId': instance.targetMapId,
       'targetPos': instance.targetPos.toJson(),
+      'triggerMode': _$MapWarpTriggerModeEnumMap[instance.triggerMode]!,
+      'allowedApproachFacings': instance.allowedApproachFacings
+          .map((e) => _$EntityFacingEnumMap[e]!)
+          .toList(),
+      'triggerPadding': instance.triggerPadding.toJson(),
+    };
+
+const _$MapWarpTriggerModeEnumMap = {
+  MapWarpTriggerMode.onEnter: 'on_enter',
+  MapWarpTriggerMode.onBump: 'on_bump',
+};
+
+const _$EntityFacingEnumMap = {
+  EntityFacing.north: 'north',
+  EntityFacing.south: 'south',
+  EntityFacing.east: 'east',
+  EntityFacing.west: 'west',
+};
+
+_$WarpTriggerPaddingImpl _$$WarpTriggerPaddingImplFromJson(
+        Map<String, dynamic> json) =>
+    _$WarpTriggerPaddingImpl(
+      top: (json['top'] as num?)?.toInt() ?? 0,
+      right: (json['right'] as num?)?.toInt() ?? 0,
+      bottom: (json['bottom'] as num?)?.toInt() ?? 0,
+      left: (json['left'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$WarpTriggerPaddingImplToJson(
+        _$WarpTriggerPaddingImpl instance) =>
+    <String, dynamic>{
+      'top': instance.top,
+      'right': instance.right,
+      'bottom': instance.bottom,
+      'left': instance.left,
     };
 
 _$MapConnectionImpl _$$MapConnectionImplFromJson(Map<String, dynamic> json) =>

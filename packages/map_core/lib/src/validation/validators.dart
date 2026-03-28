@@ -146,8 +146,7 @@ class ProjectValidator {
   }
 
   static void _validateProjectDialogues(ProjectManifest manifest) {
-    final dialogueFolderIds =
-        manifest.dialogueFolders.map((f) => f.id).toSet();
+    final dialogueFolderIds = manifest.dialogueFolders.map((f) => f.id).toSet();
     for (final d in manifest.dialogues) {
       final id = d.id.trim();
       if (id.isEmpty) {
@@ -643,8 +642,7 @@ class ProjectValidator {
         }
         _validateVisualFrames(
           mapping.frames,
-          context:
-              'Path preset ${preset.id} variant ${mapping.variant.name}',
+          context: 'Path preset ${preset.id} variant ${mapping.variant.name}',
           knownTilesetIds: tilesetIds,
         );
       }
@@ -949,6 +947,22 @@ class MapValidator {
           'Warp $warpId has invalid target position: (${warp.targetPos.x}, ${warp.targetPos.y})',
         );
       }
+      if (warp.triggerPadding.top < 0 ||
+          warp.triggerPadding.right < 0 ||
+          warp.triggerPadding.bottom < 0 ||
+          warp.triggerPadding.left < 0) {
+        throw ValidationException(
+          'Warp $warpId has invalid negative trigger padding',
+        );
+      }
+      final seenApproach = <EntityFacing>{};
+      for (final facing in warp.allowedApproachFacings) {
+        if (!seenApproach.add(facing)) {
+          throw ValidationException(
+            'Warp $warpId has duplicate allowed approach facing: ${facing.name}',
+          );
+        }
+      }
     }
     _validateUniqueIds(
       map.warps,
@@ -993,8 +1007,10 @@ class MapValidator {
     );
 
     for (final zone in map.gameplayZones) {
-      final zoneId = _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
-      _requireNonBlank(zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
+      final zoneId =
+          _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
+      _requireNonBlank(
+          zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
       final specialProps = zone.special?.properties;
       if (specialProps != null) {
         for (final key in specialProps.keys) {

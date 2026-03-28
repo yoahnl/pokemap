@@ -340,11 +340,7 @@ mixin _$ProjectTrainerEntry {
 
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   String get trainerClass => throw _privateConstructorUsedError;
-
-  /// Référence métier vers [ProjectCharacterEntry.id] pour l'apparence overworld.
   String? get characterId => throw _privateConstructorUsedError;
-
-  /// Référence à un [ProjectElementEntry.id] pour le portrait (éditeur).
   String? get portraitElementId => throw _privateConstructorUsedError;
   String? get battleThemeId => throw _privateConstructorUsedError;
   String? get victoryThemeId => throw _privateConstructorUsedError;
@@ -558,12 +554,8 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   @override
   final String trainerClass;
-
-  /// Référence métier vers [ProjectCharacterEntry.id] pour l'apparence overworld.
   @override
   final String? characterId;
-
-  /// Référence à un [ProjectElementEntry.id] pour le portrait (éditeur).
   @override
   final String? portraitElementId;
   @override
@@ -668,12 +660,8 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   @override
   String get trainerClass;
-
-  /// Référence métier vers [ProjectCharacterEntry.id] pour l'apparence overworld.
   @override
   String? get characterId;
-
-  /// Référence à un [ProjectElementEntry.id] pour le portrait (éditeur).
   @override
   String? get portraitElementId;
   @override

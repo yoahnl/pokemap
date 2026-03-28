@@ -1,4 +1,5 @@
 import '../exceptions/map_exceptions.dart';
+import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 
@@ -23,6 +24,9 @@ MapData updateWarpOnMap(
   GridPos? pos,
   String? targetMapId,
   GridPos? targetPos,
+  MapWarpTriggerMode? triggerMode,
+  List<EntityFacing>? allowedApproachFacings,
+  WarpTriggerPadding? triggerPadding,
 }) {
   final index = map.warps.indexWhere((warp) => warp.id == warpId);
   if (index < 0) {
@@ -34,6 +38,10 @@ MapData updateWarpOnMap(
     pos: pos ?? current.pos,
     targetMapId: targetMapId?.trim() ?? current.targetMapId,
     targetPos: targetPos ?? current.targetPos,
+    triggerMode: triggerMode ?? current.triggerMode,
+    allowedApproachFacings:
+        allowedApproachFacings ?? current.allowedApproachFacings,
+    triggerPadding: triggerPadding ?? current.triggerPadding,
   );
   _validateWarp(
     map,
@@ -82,6 +90,20 @@ void _validateWarp(
   if (warp.targetPos.x < 0 || warp.targetPos.y < 0) {
     throw ValidationException(
         'Warp $id has invalid target position: (${warp.targetPos.x}, ${warp.targetPos.y})');
+  }
+  final padding = warp.triggerPadding;
+  if (padding.top < 0 ||
+      padding.right < 0 ||
+      padding.bottom < 0 ||
+      padding.left < 0) {
+    throw ValidationException('Warp $id has invalid negative trigger padding');
+  }
+  final seen = <EntityFacing>{};
+  for (final facing in warp.allowedApproachFacings) {
+    if (!seen.add(facing)) {
+      throw ValidationException(
+          'Warp $id has duplicate allowed approach facing: ${facing.name}');
+    }
   }
 }
 

@@ -1476,6 +1476,10 @@ mixin _$MapWarp {
   GridPos get pos => throw _privateConstructorUsedError;
   String get targetMapId => throw _privateConstructorUsedError;
   GridPos get targetPos => throw _privateConstructorUsedError;
+  MapWarpTriggerMode get triggerMode => throw _privateConstructorUsedError;
+  List<EntityFacing> get allowedApproachFacings =>
+      throw _privateConstructorUsedError;
+  WarpTriggerPadding get triggerPadding => throw _privateConstructorUsedError;
 
   /// Serializes this MapWarp to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1491,10 +1495,18 @@ abstract class $MapWarpCopyWith<$Res> {
   factory $MapWarpCopyWith(MapWarp value, $Res Function(MapWarp) then) =
       _$MapWarpCopyWithImpl<$Res, MapWarp>;
   @useResult
-  $Res call({String id, GridPos pos, String targetMapId, GridPos targetPos});
+  $Res call(
+      {String id,
+      GridPos pos,
+      String targetMapId,
+      GridPos targetPos,
+      MapWarpTriggerMode triggerMode,
+      List<EntityFacing> allowedApproachFacings,
+      WarpTriggerPadding triggerPadding});
 
   $GridPosCopyWith<$Res> get pos;
   $GridPosCopyWith<$Res> get targetPos;
+  $WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
 }
 
 /// @nodoc
@@ -1516,6 +1528,9 @@ class _$MapWarpCopyWithImpl<$Res, $Val extends MapWarp>
     Object? pos = null,
     Object? targetMapId = null,
     Object? targetPos = null,
+    Object? triggerMode = null,
+    Object? allowedApproachFacings = null,
+    Object? triggerPadding = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -1534,6 +1549,18 @@ class _$MapWarpCopyWithImpl<$Res, $Val extends MapWarp>
           ? _value.targetPos
           : targetPos // ignore: cast_nullable_to_non_nullable
               as GridPos,
+      triggerMode: null == triggerMode
+          ? _value.triggerMode
+          : triggerMode // ignore: cast_nullable_to_non_nullable
+              as MapWarpTriggerMode,
+      allowedApproachFacings: null == allowedApproachFacings
+          ? _value.allowedApproachFacings
+          : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
+              as List<EntityFacing>,
+      triggerPadding: null == triggerPadding
+          ? _value.triggerPadding
+          : triggerPadding // ignore: cast_nullable_to_non_nullable
+              as WarpTriggerPadding,
     ) as $Val);
   }
 
@@ -1556,6 +1583,16 @@ class _$MapWarpCopyWithImpl<$Res, $Val extends MapWarp>
       return _then(_value.copyWith(targetPos: value) as $Val);
     });
   }
+
+  /// Create a copy of MapWarp
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
+    return $WarpTriggerPaddingCopyWith<$Res>(_value.triggerPadding, (value) {
+      return _then(_value.copyWith(triggerPadding: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -1565,12 +1602,21 @@ abstract class _$$MapWarpImplCopyWith<$Res> implements $MapWarpCopyWith<$Res> {
       __$$MapWarpImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, GridPos pos, String targetMapId, GridPos targetPos});
+  $Res call(
+      {String id,
+      GridPos pos,
+      String targetMapId,
+      GridPos targetPos,
+      MapWarpTriggerMode triggerMode,
+      List<EntityFacing> allowedApproachFacings,
+      WarpTriggerPadding triggerPadding});
 
   @override
   $GridPosCopyWith<$Res> get pos;
   @override
   $GridPosCopyWith<$Res> get targetPos;
+  @override
+  $WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
 }
 
 /// @nodoc
@@ -1590,6 +1636,9 @@ class __$$MapWarpImplCopyWithImpl<$Res>
     Object? pos = null,
     Object? targetMapId = null,
     Object? targetPos = null,
+    Object? triggerMode = null,
+    Object? allowedApproachFacings = null,
+    Object? triggerPadding = null,
   }) {
     return _then(_$MapWarpImpl(
       id: null == id
@@ -1608,6 +1657,18 @@ class __$$MapWarpImplCopyWithImpl<$Res>
           ? _value.targetPos
           : targetPos // ignore: cast_nullable_to_non_nullable
               as GridPos,
+      triggerMode: null == triggerMode
+          ? _value.triggerMode
+          : triggerMode // ignore: cast_nullable_to_non_nullable
+              as MapWarpTriggerMode,
+      allowedApproachFacings: null == allowedApproachFacings
+          ? _value._allowedApproachFacings
+          : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
+              as List<EntityFacing>,
+      triggerPadding: null == triggerPadding
+          ? _value.triggerPadding
+          : triggerPadding // ignore: cast_nullable_to_non_nullable
+              as WarpTriggerPadding,
     ));
   }
 }
@@ -1620,7 +1681,11 @@ class _$MapWarpImpl implements _MapWarp {
       {required this.id,
       required this.pos,
       required this.targetMapId,
-      required this.targetPos});
+      required this.targetPos,
+      this.triggerMode = MapWarpTriggerMode.onEnter,
+      final List<EntityFacing> allowedApproachFacings = const [],
+      this.triggerPadding = const WarpTriggerPadding()})
+      : _allowedApproachFacings = allowedApproachFacings;
 
   factory _$MapWarpImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapWarpImplFromJson(json);
@@ -1633,10 +1698,26 @@ class _$MapWarpImpl implements _MapWarp {
   final String targetMapId;
   @override
   final GridPos targetPos;
+  @override
+  @JsonKey()
+  final MapWarpTriggerMode triggerMode;
+  final List<EntityFacing> _allowedApproachFacings;
+  @override
+  @JsonKey()
+  List<EntityFacing> get allowedApproachFacings {
+    if (_allowedApproachFacings is EqualUnmodifiableListView)
+      return _allowedApproachFacings;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_allowedApproachFacings);
+  }
+
+  @override
+  @JsonKey()
+  final WarpTriggerPadding triggerPadding;
 
   @override
   String toString() {
-    return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos)';
+    return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding)';
   }
 
   @override
@@ -1649,12 +1730,26 @@ class _$MapWarpImpl implements _MapWarp {
             (identical(other.targetMapId, targetMapId) ||
                 other.targetMapId == targetMapId) &&
             (identical(other.targetPos, targetPos) ||
-                other.targetPos == targetPos));
+                other.targetPos == targetPos) &&
+            (identical(other.triggerMode, triggerMode) ||
+                other.triggerMode == triggerMode) &&
+            const DeepCollectionEquality().equals(
+                other._allowedApproachFacings, _allowedApproachFacings) &&
+            (identical(other.triggerPadding, triggerPadding) ||
+                other.triggerPadding == triggerPadding));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, pos, targetMapId, targetPos);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      pos,
+      targetMapId,
+      targetPos,
+      triggerMode,
+      const DeepCollectionEquality().hash(_allowedApproachFacings),
+      triggerPadding);
 
   /// Create a copy of MapWarp
   /// with the given fields replaced by the non-null parameter values.
@@ -1677,7 +1772,10 @@ abstract class _MapWarp implements MapWarp {
       {required final String id,
       required final GridPos pos,
       required final String targetMapId,
-      required final GridPos targetPos}) = _$MapWarpImpl;
+      required final GridPos targetPos,
+      final MapWarpTriggerMode triggerMode,
+      final List<EntityFacing> allowedApproachFacings,
+      final WarpTriggerPadding triggerPadding}) = _$MapWarpImpl;
 
   factory _MapWarp.fromJson(Map<String, dynamic> json) = _$MapWarpImpl.fromJson;
 
@@ -1689,12 +1787,226 @@ abstract class _MapWarp implements MapWarp {
   String get targetMapId;
   @override
   GridPos get targetPos;
+  @override
+  MapWarpTriggerMode get triggerMode;
+  @override
+  List<EntityFacing> get allowedApproachFacings;
+  @override
+  WarpTriggerPadding get triggerPadding;
 
   /// Create a copy of MapWarp
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$MapWarpImplCopyWith<_$MapWarpImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+WarpTriggerPadding _$WarpTriggerPaddingFromJson(Map<String, dynamic> json) {
+  return _WarpTriggerPadding.fromJson(json);
+}
+
+/// @nodoc
+mixin _$WarpTriggerPadding {
+  int get top => throw _privateConstructorUsedError;
+  int get right => throw _privateConstructorUsedError;
+  int get bottom => throw _privateConstructorUsedError;
+  int get left => throw _privateConstructorUsedError;
+
+  /// Serializes this WarpTriggerPadding to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of WarpTriggerPadding
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $WarpTriggerPaddingCopyWith<WarpTriggerPadding> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $WarpTriggerPaddingCopyWith<$Res> {
+  factory $WarpTriggerPaddingCopyWith(
+          WarpTriggerPadding value, $Res Function(WarpTriggerPadding) then) =
+      _$WarpTriggerPaddingCopyWithImpl<$Res, WarpTriggerPadding>;
+  @useResult
+  $Res call({int top, int right, int bottom, int left});
+}
+
+/// @nodoc
+class _$WarpTriggerPaddingCopyWithImpl<$Res, $Val extends WarpTriggerPadding>
+    implements $WarpTriggerPaddingCopyWith<$Res> {
+  _$WarpTriggerPaddingCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of WarpTriggerPadding
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? top = null,
+    Object? right = null,
+    Object? bottom = null,
+    Object? left = null,
+  }) {
+    return _then(_value.copyWith(
+      top: null == top
+          ? _value.top
+          : top // ignore: cast_nullable_to_non_nullable
+              as int,
+      right: null == right
+          ? _value.right
+          : right // ignore: cast_nullable_to_non_nullable
+              as int,
+      bottom: null == bottom
+          ? _value.bottom
+          : bottom // ignore: cast_nullable_to_non_nullable
+              as int,
+      left: null == left
+          ? _value.left
+          : left // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$WarpTriggerPaddingImplCopyWith<$Res>
+    implements $WarpTriggerPaddingCopyWith<$Res> {
+  factory _$$WarpTriggerPaddingImplCopyWith(_$WarpTriggerPaddingImpl value,
+          $Res Function(_$WarpTriggerPaddingImpl) then) =
+      __$$WarpTriggerPaddingImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int top, int right, int bottom, int left});
+}
+
+/// @nodoc
+class __$$WarpTriggerPaddingImplCopyWithImpl<$Res>
+    extends _$WarpTriggerPaddingCopyWithImpl<$Res, _$WarpTriggerPaddingImpl>
+    implements _$$WarpTriggerPaddingImplCopyWith<$Res> {
+  __$$WarpTriggerPaddingImplCopyWithImpl(_$WarpTriggerPaddingImpl _value,
+      $Res Function(_$WarpTriggerPaddingImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of WarpTriggerPadding
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? top = null,
+    Object? right = null,
+    Object? bottom = null,
+    Object? left = null,
+  }) {
+    return _then(_$WarpTriggerPaddingImpl(
+      top: null == top
+          ? _value.top
+          : top // ignore: cast_nullable_to_non_nullable
+              as int,
+      right: null == right
+          ? _value.right
+          : right // ignore: cast_nullable_to_non_nullable
+              as int,
+      bottom: null == bottom
+          ? _value.bottom
+          : bottom // ignore: cast_nullable_to_non_nullable
+              as int,
+      left: null == left
+          ? _value.left
+          : left // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$WarpTriggerPaddingImpl implements _WarpTriggerPadding {
+  const _$WarpTriggerPaddingImpl(
+      {this.top = 0, this.right = 0, this.bottom = 0, this.left = 0});
+
+  factory _$WarpTriggerPaddingImpl.fromJson(Map<String, dynamic> json) =>
+      _$$WarpTriggerPaddingImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final int top;
+  @override
+  @JsonKey()
+  final int right;
+  @override
+  @JsonKey()
+  final int bottom;
+  @override
+  @JsonKey()
+  final int left;
+
+  @override
+  String toString() {
+    return 'WarpTriggerPadding(top: $top, right: $right, bottom: $bottom, left: $left)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WarpTriggerPaddingImpl &&
+            (identical(other.top, top) || other.top == top) &&
+            (identical(other.right, right) || other.right == right) &&
+            (identical(other.bottom, bottom) || other.bottom == bottom) &&
+            (identical(other.left, left) || other.left == left));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, top, right, bottom, left);
+
+  /// Create a copy of WarpTriggerPadding
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WarpTriggerPaddingImplCopyWith<_$WarpTriggerPaddingImpl> get copyWith =>
+      __$$WarpTriggerPaddingImplCopyWithImpl<_$WarpTriggerPaddingImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$WarpTriggerPaddingImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _WarpTriggerPadding implements WarpTriggerPadding {
+  const factory _WarpTriggerPadding(
+      {final int top,
+      final int right,
+      final int bottom,
+      final int left}) = _$WarpTriggerPaddingImpl;
+
+  factory _WarpTriggerPadding.fromJson(Map<String, dynamic> json) =
+      _$WarpTriggerPaddingImpl.fromJson;
+
+  @override
+  int get top;
+  @override
+  int get right;
+  @override
+  int get bottom;
+  @override
+  int get left;
+
+  /// Create a copy of WarpTriggerPadding
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$WarpTriggerPaddingImplCopyWith<_$WarpTriggerPaddingImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

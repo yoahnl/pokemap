@@ -22,6 +22,11 @@ enum TerrainSelectionMode {
   path,
 }
 
+enum TilesElementsPanelMode {
+  palette,
+  placedInstances,
+}
+
 @freezed
 sealed class EditorBrush with _$EditorBrush {
   const factory EditorBrush.none() = NoEditorBrush;
@@ -68,14 +73,21 @@ class EditorState with _$EditorState {
     String? selectedWarpId,
     String? selectedTriggerId,
     String? selectedGameplayZoneId,
+
     /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
     MapRect? gameplayZoneDraftArea,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
+    @Default(TilesElementsPanelMode.palette)
+    TilesElementsPanelMode tilesElementsPanelMode,
+    String? selectedPlacedElementInstanceId,
+
     /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
     String? selectedProjectDialogueId,
+
     /// Dresseur sélectionné dans la bibliothèque dresseurs.
     String? selectedTrainerId,
+
     /// Personnage sélectionné dans la bibliothèque personnages.
     String? selectedCharacterId,
     PaletteCategory? paletteCategoryFilter,

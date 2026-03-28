@@ -23,6 +23,7 @@ import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
+import '../models/placed_element_instance_ref.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 
@@ -130,6 +131,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedEntityId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
+        selectedPlacedElementInstanceId: null,
+        tilesElementsPanelMode: TilesElementsPanelMode.palette,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -176,6 +179,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedEntityId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
+        selectedPlacedElementInstanceId: null,
+        tilesElementsPanelMode: TilesElementsPanelMode.palette,
         selectedProjectDialogueId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
@@ -298,6 +303,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetEditorId:
             _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
+        selectedPlacedElementInstanceId: null,
+        tilesElementsPanelMode: TilesElementsPanelMode.palette,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -361,6 +368,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedEntityId: null,
         selectedTilesetEditorId: nextSelectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
+        selectedPlacedElementInstanceId: null,
+        tilesElementsPanelMode: TilesElementsPanelMode.palette,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -1798,6 +1807,7 @@ class EditorNotifier extends _$EditorNotifier {
       activeBrush: EditorBrush.projectElement(elementId: element.id),
       selectedTilesetEditorId: element.tilesetId,
       selectedTilesetElementGroupId: element.tilesetGroupId,
+      selectedPlacedElementInstanceId: null,
     );
   }
 
@@ -2322,9 +2332,8 @@ class EditorNotifier extends _$EditorNotifier {
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedEntityId: state.selectedEntityId == entityId
-            ? null
-            : state.selectedEntityId,
+        preferredSelectedEntityId:
+            state.selectedEntityId == entityId ? null : state.selectedEntityId,
         preferredSelectedWarpId: state.selectedWarpId,
         preferredSelectedTriggerId: state.selectedTriggerId,
         statusMessage: 'Entity deleted',
@@ -2661,7 +2670,8 @@ class EditorNotifier extends _$EditorNotifier {
     final w = rect.size.width.clamp(1, mapSize.width - x);
     final h = rect.size.height.clamp(1, mapSize.height - y);
     if (w <= 0 || h <= 0) return null;
-    return MapRect(pos: GridPos(x: x, y: y), size: GridSize(width: w, height: h));
+    return MapRect(
+        pos: GridPos(x: x, y: y), size: GridSize(width: w, height: h));
   }
 
   void placeOrSelectWarpAt(GridPos pos) {
@@ -2719,6 +2729,9 @@ class EditorNotifier extends _$EditorNotifier {
     required String targetMapId,
     required int targetPosX,
     required int targetPosY,
+    required MapWarpTriggerMode triggerMode,
+    required List<EntityFacing> allowedApproachFacings,
+    required WarpTriggerPadding triggerPadding,
   }) {
     final selectedWarpId = state.selectedWarpId;
     if (selectedWarpId == null) return;
@@ -2727,6 +2740,9 @@ class EditorNotifier extends _$EditorNotifier {
       id: id,
       targetMapId: targetMapId,
       targetPos: GridPos(x: targetPosX, y: targetPosY),
+      triggerMode: triggerMode,
+      allowedApproachFacings: allowedApproachFacings,
+      triggerPadding: triggerPadding,
     );
   }
 
@@ -2788,6 +2804,9 @@ class EditorNotifier extends _$EditorNotifier {
     GridPos? pos,
     String? targetMapId,
     GridPos? targetPos,
+    MapWarpTriggerMode? triggerMode,
+    List<EntityFacing>? allowedApproachFacings,
+    WarpTriggerPadding? triggerPadding,
   }) {
     final map = state.activeMap;
     final project = state.project;
@@ -2801,6 +2820,9 @@ class EditorNotifier extends _$EditorNotifier {
         pos: pos,
         targetMapId: targetMapId,
         targetPos: targetPos,
+        triggerMode: triggerMode,
+        allowedApproachFacings: allowedApproachFacings,
+        triggerPadding: triggerPadding,
       );
       _applyMapMutation(
         previousMap: map,
@@ -3101,12 +3123,17 @@ class EditorNotifier extends _$EditorNotifier {
       savedMapSnapshot: state.savedMapSnapshot,
     );
     if (restored == null) return;
+    final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
+      currentSelectionId: state.selectedPlacedElementInstanceId,
+      nextActiveLayerId: restored.activeLayerId,
+    );
     state = state.copyWith(
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
       selectedEntityId: restored.selectedEntityId,
       selectedWarpId: restored.selectedWarpId,
       selectedTriggerId: restored.selectedTriggerId,
+      selectedPlacedElementInstanceId: nextPlacedSelectionId,
       selectedTilesetEditorId: restored.selectedTilesetEditorId,
       mapUndoStack: restored.undoStack,
       mapRedoStack: restored.redoStack,
@@ -3136,12 +3163,17 @@ class EditorNotifier extends _$EditorNotifier {
       savedMapSnapshot: state.savedMapSnapshot,
     );
     if (restored == null) return;
+    final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
+      currentSelectionId: state.selectedPlacedElementInstanceId,
+      nextActiveLayerId: restored.activeLayerId,
+    );
     state = state.copyWith(
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
       selectedEntityId: restored.selectedEntityId,
       selectedWarpId: restored.selectedWarpId,
       selectedTriggerId: restored.selectedTriggerId,
+      selectedPlacedElementInstanceId: nextPlacedSelectionId,
       selectedTilesetEditorId: restored.selectedTilesetEditorId,
       mapUndoStack: restored.undoStack,
       mapRedoStack: restored.redoStack,
@@ -4621,8 +4653,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (fs == null || project == null) return;
     try {
       final useCase = ref.read(deleteEncounterTableUseCaseProvider);
-      final updated =
-          await useCase.execute(fs, project, tableId: tableId);
+      final updated = await useCase.execute(fs, project, tableId: tableId);
       state = state.copyWith(
         project: updated,
         statusMessage: 'Encounter table deleted',
@@ -4659,9 +4690,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
       state = state.copyWith(
         project: updated,
-        selectedProjectDialogueId: updated.dialogues.isNotEmpty
-            ? updated.dialogues.last.id
-            : null,
+        selectedProjectDialogueId:
+            updated.dialogues.isNotEmpty ? updated.dialogues.last.id : null,
         statusMessage: 'Dialogue created',
         errorMessage: null,
       );
@@ -4689,9 +4719,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
       state = state.copyWith(
         project: updated,
-        selectedProjectDialogueId: updated.dialogues.isNotEmpty
-            ? updated.dialogues.last.id
-            : null,
+        selectedProjectDialogueId:
+            updated.dialogues.isNotEmpty ? updated.dialogues.last.id : null,
         statusMessage: 'Dialogue imported',
         errorMessage: null,
       );
@@ -4739,10 +4768,9 @@ class EditorNotifier extends _$EditorNotifier {
       );
       state = state.copyWith(
         project: updated,
-        selectedProjectDialogueId:
-            state.selectedProjectDialogueId == dialogueId
-                ? null
-                : state.selectedProjectDialogueId,
+        selectedProjectDialogueId: state.selectedProjectDialogueId == dialogueId
+            ? null
+            : state.selectedProjectDialogueId,
         statusMessage: 'Dialogue deleted',
         errorMessage: null,
       );
@@ -4932,8 +4960,7 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: null,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to add encounter entry: $e');
+      state = state.copyWith(errorMessage: 'Failed to add encounter entry: $e');
     }
   }
 
@@ -5082,9 +5109,43 @@ class EditorNotifier extends _$EditorNotifier {
     }
     state = state.copyWith(
       activeLayerId: layerId,
+      selectedPlacedElementInstanceId: null,
       errorMessage: null,
     );
     _coerceActiveToolIfIncompatibleWithLayer();
+  }
+
+  void setTilesElementsPanelMode(TilesElementsPanelMode mode) {
+    if (state.tilesElementsPanelMode == mode) {
+      return;
+    }
+    state = state.copyWith(
+      tilesElementsPanelMode: mode,
+      errorMessage: null,
+    );
+  }
+
+  void selectPlacedElementInstance({
+    required String? instanceId,
+    String? elementId,
+    String? layerId,
+  }) {
+    if (state.selectedPlacedElementInstanceId == instanceId) {
+      return;
+    }
+    state = state.copyWith(
+      selectedPlacedElementInstanceId: instanceId,
+      errorMessage: null,
+    );
+    if (instanceId == null) {
+      debugPrint('[editor][elements] selected placed instance cleared');
+      return;
+    }
+    final safeElementId = elementId?.trim() ?? '';
+    final safeLayerId = layerId?.trim() ?? '';
+    debugPrint(
+      '[editor][elements] selected placed instance id=$instanceId elementId=$safeElementId layer=$safeLayerId',
+    );
   }
 
   /// Bascule vers la sélection si l’outil courant ne peut pas agir sur le calque actif.
@@ -5181,12 +5242,17 @@ class EditorNotifier extends _$EditorNotifier {
       partOfStroke: partOfStroke,
       updateSavedSnapshot: updateSavedSnapshot,
     );
+    final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
+      currentSelectionId: state.selectedPlacedElementInstanceId,
+      nextActiveLayerId: mutation.activeLayerId,
+    );
     state = state.copyWith(
       activeMap: mutation.activeMap,
       activeLayerId: mutation.activeLayerId,
       selectedEntityId: mutation.selectedEntityId,
       selectedWarpId: mutation.selectedWarpId,
       selectedTriggerId: mutation.selectedTriggerId,
+      selectedPlacedElementInstanceId: nextPlacedSelectionId,
       selectedTilesetEditorId: mutation.selectedTilesetEditorId,
       hoveredTile: updateHoveredTile ? hoveredTile : state.hoveredTile,
       mapUndoStack: mutation.undoStack,
@@ -5200,6 +5266,23 @@ class EditorNotifier extends _$EditorNotifier {
       errorMessage: null,
     );
     _coerceActiveToolIfIncompatibleWithLayer();
+  }
+
+  String? _resolvePlacedElementSelectionAfterMutation({
+    required String? currentSelectionId,
+    required String? nextActiveLayerId,
+  }) {
+    final parsed = PlacedElementInstanceRef.parse(currentSelectionId);
+    if (parsed == null) {
+      return null;
+    }
+    if (nextActiveLayerId == null || nextActiveLayerId.isEmpty) {
+      return null;
+    }
+    if (parsed.layerId != nextActiveLayerId) {
+      return null;
+    }
+    return parsed.id;
   }
 
   int _findLayerIndexById(MapData map, String layerId) {
@@ -5359,7 +5442,8 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to set player character: $e');
+      state =
+          state.copyWith(errorMessage: 'Failed to set player character: $e');
     }
   }
 

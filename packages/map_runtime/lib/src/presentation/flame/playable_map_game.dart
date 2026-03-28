@@ -10,24 +10,36 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
+import '../../application/encounter_to_battle_request.dart';
 import '../../application/load_dialogue_content.dart';
 import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import 'battle_overlay_component.dart';
+import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
-import 'encounter_overlay_component.dart';
 import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
 import 'player_component.dart';
+import 'warp_transition_overlay_component.dart';
 
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
 const GameplayEncounterPolicy _kEncounterPolicy = GameplayEncounterPolicy(
   chancePerStep: 0.12,
 );
+
+enum _RuntimeFlowPhase {
+  overworld,
+  dialogue,
+  mapTransition,
+  battleTransition,
+  battle,
+}
 
 class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
@@ -41,14 +53,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late PlayerComponent _player;
   String _activeMapId = '';
   String? _previousMapId;
-  bool _transitioning = false;
+  _RuntimeFlowPhase _flowPhase = _RuntimeFlowPhase.overworld;
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   LogicalKeyboardKey? _lastMoveKey;
   TriggeredWarp? _pendingWarp;
   TriggeredConnection? _pendingConnection;
-  GameplayEncounter? _pendingEncounter;
+  BattleStartRequest? _pendingBattleRequest;
   DialogueOverlayComponent? _dialogueOverlay;
-  EncounterOverlayComponent? _encounterOverlay;
+  BattleTransitionOverlayComponent? _battleTransitionOverlay;
+  BattleOverlayComponent? _battleOverlay;
+  WarpTransitionOverlayComponent? _warpTransitionOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
@@ -58,7 +72,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   Future<void> onLoad() async {
     try {
-      _world = GameplayWorldState.fromMap(_bundle.map);
+      _world = GameplayWorldState.fromMap(
+        _bundle.map,
+        tileWidth: _bundle.manifest.settings.tileWidth,
+        tileHeight: _bundle.manifest.settings.tileHeight,
+      );
       debugPrint(
         '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
       );
@@ -68,6 +86,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = GameplayWorldState.initial(
         map: _bundle.map,
         playerPos: const GridPos(x: 0, y: 0),
+        tileWidth: _bundle.manifest.settings.tileWidth,
+        tileHeight: _bundle.manifest.settings.tileHeight,
       );
     }
     final images =
@@ -104,17 +124,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final key = event.logicalKey;
 
     if (_isMovementKey(key)) {
-      if (_dialogueOverlay != null) {
+      if (_flowPhase == _RuntimeFlowPhase.dialogue) {
         _pressedKeys.remove(key);
         if (_lastMoveKey == key) {
           _lastMoveKey = null;
         }
-        if (_dialogueOverlay!.isShowingChoices && isDown) {
+        if ((_dialogueOverlay?.isShowingChoices ?? false) && isDown) {
           if (key == LogicalKeyboardKey.arrowUp) {
             _moveChoiceCursor(-1);
           } else if (key == LogicalKeyboardKey.arrowDown) {
             _moveChoiceCursor(1);
           }
+        }
+        return KeyEventResult.handled;
+      }
+      if (_flowPhase != _RuntimeFlowPhase.overworld) {
+        _pressedKeys.remove(key);
+        if (_lastMoveKey == key) {
+          _lastMoveKey = null;
         }
         return KeyEventResult.handled;
       }
@@ -130,11 +157,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return KeyEventResult.handled;
     }
 
-    if (_transitioning) return KeyEventResult.ignored;
+    if (_flowPhase == _RuntimeFlowPhase.mapTransition ||
+        _flowPhase == _RuntimeFlowPhase.battleTransition) {
+      return KeyEventResult.ignored;
+    }
     if (!isDown) return KeyEventResult.ignored;
-    if (_encounterOverlay != null) return KeyEventResult.ignored;
 
-    if (_dialogueOverlay != null) {
+    if (_flowPhase == _RuntimeFlowPhase.battle) {
+      if (event is KeyDownEvent &&
+          (key == LogicalKeyboardKey.keyE ||
+              key == LogicalKeyboardKey.space ||
+              key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.escape)) {
+        _closeBattleOverlay();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (_flowPhase == _RuntimeFlowPhase.dialogue) {
       final overlay = _dialogueOverlay!;
       if (overlay.isShowingChoices) {
         if (key == LogicalKeyboardKey.arrowUp) {
@@ -162,6 +203,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return KeyEventResult.ignored;
     }
 
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      return KeyEventResult.ignored;
+    }
+
     if (event is KeyDownEvent &&
         (key == LogicalKeyboardKey.keyE || key == LogicalKeyboardKey.space)) {
       _handleInteract();
@@ -177,7 +222,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _updateActorDepthOrdering();
     _syncCameraToPlayer();
 
-    if (_transitioning) {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
     }
 
@@ -195,18 +240,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    final pendingEncounter = _pendingEncounter;
-    if (pendingEncounter != null && !_player.isStepping) {
-      _pendingEncounter = null;
-      _openEncounterOverlay(pendingEncounter);
-      return;
-    }
-
-    if (_encounterOverlay != null) {
-      return;
-    }
-
-    if (_dialogueOverlay != null) {
+    final pendingBattleRequest = _pendingBattleRequest;
+    if (pendingBattleRequest != null && !_player.isStepping) {
+      _pendingBattleRequest = null;
+      _startBattleHandoff(pendingBattleRequest);
       return;
     }
 
@@ -321,13 +358,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (result is WarpTriggered) {
-      _player.startStep(
-        _world.player,
-        durationSeconds: PlayerComponent.kDefaultStepSeconds,
-      );
+      if (result.warp.triggerMode == MapWarpTriggerMode.onEnter) {
+        _player.startStep(
+          _world.player,
+          durationSeconds: PlayerComponent.kDefaultStepSeconds,
+        );
+      } else {
+        _player.syncState(_world.player, snapToGrid: true);
+      }
       _pendingWarp = result.warp;
       debugPrint(
-        '[warp] Triggered warp ${result.warp.warpId} → map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
+        '[warp] Triggered warp ${result.warp.warpId} mode=${result.warp.triggerMode.name} → map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
       );
       return;
     }
@@ -356,7 +397,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!check.triggered) {
       return;
     }
-    _pendingEncounter = check.encounter;
+    final encounter = check.encounter;
+    if (encounter == null) {
+      return;
+    }
+    final request = buildBattleStartRequestFromEncounter(
+      encounter: encounter,
+      world: _world,
+    );
+    _pendingBattleRequest = request;
+    debugPrint(
+      '[battle] battle request created kind=${request.kind.name} source=${request.source.name} requestId=${request.requestId}',
+    );
+    debugPrint(
+      '[battle] wild payload species=${encounter.speciesId} level=${encounter.level} map=${encounter.mapId} zone=${encounter.zoneId}',
+    );
   }
 
   void _logEncounterCheck(GameplayEncounterCheckResult check) {
@@ -409,24 +464,65 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _openEncounterOverlay(GameplayEncounter encounter) {
+  void _startBattleHandoff(BattleStartRequest request) {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      return;
+    }
+    _flowPhase = _RuntimeFlowPhase.battleTransition;
     _notification?.removeFromParent();
     _notification = null;
-    _encounterOverlay?.removeFromParent();
-    _encounterOverlay = null;
-    final overlay = EncounterOverlayComponent(
-      encounter: encounter,
+    _battleTransitionOverlay?.removeFromParent();
+    _battleTransitionOverlay = null;
+    _battleOverlay?.removeFromParent();
+    _battleOverlay = null;
+    debugPrint(
+      '[battle] transition started requestId=${request.requestId} kind=${request.kind.name}',
+    );
+    final overlay = BattleTransitionOverlayComponent(
+      request: request,
       viewportSize: camera.viewport.size,
-      onFinished: () {
-        debugPrint('[encounter] overlay closed');
-        _encounterOverlay = null;
-      },
+      onFinished: () => _openBattleOverlay(request),
     );
     camera.viewport.add(overlay);
-    _encounterOverlay = overlay;
-    debugPrint(
-      '[encounter] overlay opened species=${encounter.speciesId} level=${encounter.level}',
+    _battleTransitionOverlay = overlay;
+  }
+
+  void _openBattleOverlay(BattleStartRequest request) {
+    if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
+      return;
+    }
+    _battleTransitionOverlay?.removeFromParent();
+    _battleTransitionOverlay = null;
+    _flowPhase = _RuntimeFlowPhase.battle;
+    final overlay = BattleOverlayComponent(
+      request: request,
+      viewportSize: camera.viewport.size,
+      onExitRequested: _onBattleClosed,
     );
+    camera.viewport.add(overlay);
+    _battleOverlay = overlay;
+    debugPrint(
+      '[battle] overlay opened requestId=${request.requestId} kind=${request.kind.name}',
+    );
+  }
+
+  void _closeBattleOverlay() {
+    final overlay = _battleOverlay;
+    if (overlay == null) {
+      return;
+    }
+    overlay.close();
+  }
+
+  void _onBattleClosed() {
+    _battleOverlay = null;
+    _battleTransitionOverlay?.removeFromParent();
+    _battleTransitionOverlay = null;
+    _flowPhase = _RuntimeFlowPhase.overworld;
+    _pressedKeys.clear();
+    _lastMoveKey = null;
+    debugPrint('[battle] battle closed');
+    debugPrint('[battle] overworld resumed');
   }
 
   void _handleInteract() {
@@ -459,6 +555,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _tryOpenDialogue(
       String entityId, DialogueRef? ref, String fallbackLabel) {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) return;
     if (_dialogueOverlay != null) return;
 
     final resolved = resolveDialogue(
@@ -490,6 +587,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _notification = null;
     _pressedKeys.clear();
     _lastMoveKey = null;
+    _flowPhase = _RuntimeFlowPhase.dialogue;
 
     final overlay = DialogueOverlayComponent(
       session: session,
@@ -497,6 +595,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       onFinished: () {
         debugPrint('[dialogue] dialogue closed');
         _dialogueOverlay = null;
+        _flowPhase = _RuntimeFlowPhase.overworld;
       },
     );
     camera.viewport.add(overlay);
@@ -600,18 +699,61 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   Future<void> _handleWarp(TriggeredWarp warp) async {
-    _transitioning = true;
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      debugPrint('[warp] ignored: flow=${_flowPhase.name}');
+      return;
+    }
+    _flowPhase = _RuntimeFlowPhase.mapTransition;
+    final sourceBundle = _bundle;
+    final sourceWorld = _world;
+    final sourceMapId = _activeMapId;
+    final sourcePos = _world.player.pos;
+    final sourceFacing = _world.player.facing;
+    WarpTransitionOverlayComponent? overlay;
+    var swapCompleted = false;
     try {
       _clearTransientUiState();
+      overlay = WarpTransitionOverlayComponent(
+        viewportSize: camera.viewport.size,
+      );
+      camera.viewport.add(overlay);
+      _warpTransitionOverlay = overlay;
+      debugPrint(
+        '[warp] start transition warp=${warp.warpId} map=$sourceMapId -> ${warp.targetMapId} target=(${warp.targetPos.x}, ${warp.targetPos.y})',
+      );
       final newBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
         mapId: warp.targetMapId,
       );
+      debugPrint('[warp] target map loaded id=${newBundle.map.id}');
+      final transitionSpec = _resolveWarpTransitionSpec(
+        sourceMap: sourceBundle.map,
+        targetMap: newBundle.map,
+      );
+      if (transitionSpec.style == _WarpTransitionStyle.fade) {
+        debugPrint(
+          '[warp] fade out durationMs=${transitionSpec.fadeOut.inMilliseconds}',
+        );
+        await overlay.fadeOut(duration: transitionSpec.fadeOut);
+      }
+      if (!_isWithinMapBounds(newBundle.map, warp.targetPos)) {
+        throw StateError(
+          'warp target out of bounds map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y}) size=${newBundle.map.size.width}x${newBundle.map.size.height}',
+        );
+      }
       final newWorld = GameplayWorldState.initial(
         map: newBundle.map,
         playerPos: warp.targetPos,
-        playerFacing: _world.player.facing,
+        playerFacing: sourceFacing,
+        tileWidth: newBundle.manifest.settings.tileWidth,
+        tileHeight: newBundle.manifest.settings.tileHeight,
       );
+      if (newWorld.isBlocked(warp.targetPos.x, warp.targetPos.y)) {
+        throw StateError(
+          'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
+        );
+      }
+      debugPrint('[warp] loading target map visuals id=${newBundle.map.id}');
       final newImages =
           await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
       _unmountAllLoadedMaps();
@@ -627,21 +769,188 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _previousMapId = null;
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
-      debugPrint('[warp] Transition complete → map=${newBundle.map.id}');
+      swapCompleted = true;
+      debugPrint(
+        '[warp] player placed at map=${newBundle.map.id} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
+      );
       _configureCameraViewport();
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();
+      if (transitionSpec.style == _WarpTransitionStyle.fade) {
+        debugPrint(
+          '[warp] fade in durationMs=${transitionSpec.fadeIn.inMilliseconds}',
+        );
+        await overlay.fadeIn(duration: transitionSpec.fadeIn);
+      }
+      debugPrint('[warp] transition completed');
     } catch (e, st) {
-      debugPrint('[warp] Transition failed: $e\n$st');
+      debugPrint('[warp] transition failed: $e\n$st');
       _showNotification('Warp failed');
+      if (!swapCompleted) {
+        await _recoverFromWarpFailure(
+          sourceBundle: sourceBundle,
+          sourceWorld: sourceWorld,
+          sourceMapId: sourceMapId,
+        );
+      }
+      if (overlay != null) {
+        await overlay.fadeIn(duration: const Duration(milliseconds: 140));
+      }
     } finally {
-      _transitioning = false;
+      _warpTransitionOverlay?.close();
+      _warpTransitionOverlay = null;
+      _flowPhase = _RuntimeFlowPhase.overworld;
+      debugPrint(
+        '[warp] gameplay unlocked map=$_activeMapId pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
+      );
+      if (_activeMapId == sourceMapId &&
+          _world.player.pos.x == sourcePos.x &&
+          _world.player.pos.y == sourcePos.y) {
+        _player.syncState(_world.player, snapToGrid: true);
+      }
     }
   }
 
+  _WarpTransitionSpec _resolveWarpTransitionSpec({
+    required MapData sourceMap,
+    required MapData targetMap,
+  }) {
+    final sourceIndoor = sourceMap.mapMetadata.isIndoor ||
+        sourceMap.mapMetadata.mapType == MapType.building ||
+        sourceMap.mapMetadata.mapType == MapType.interior ||
+        sourceMap.mapMetadata.mapType == MapType.cave ||
+        sourceMap.mapMetadata.mapType == MapType.facility;
+    final targetIndoor = targetMap.mapMetadata.isIndoor ||
+        targetMap.mapMetadata.mapType == MapType.building ||
+        targetMap.mapMetadata.mapType == MapType.interior ||
+        targetMap.mapMetadata.mapType == MapType.cave ||
+        targetMap.mapMetadata.mapType == MapType.facility;
+    final duration = sourceIndoor == targetIndoor
+        ? const Duration(milliseconds: 170)
+        : const Duration(milliseconds: 230);
+    return _WarpTransitionSpec(
+      style: _WarpTransitionStyle.fade,
+      fadeOut: duration,
+      fadeIn: duration,
+    );
+  }
+
+  Future<void> _recoverFromWarpFailure({
+    required RuntimeMapBundle sourceBundle,
+    required GameplayWorldState sourceWorld,
+    required String sourceMapId,
+  }) async {
+    if (_loadedMapsById.isNotEmpty && _activeMapId == sourceMapId) {
+      _bundle = sourceBundle;
+      _world = sourceWorld;
+      _player.syncState(_world.player, snapToGrid: true);
+      _configureCameraViewport();
+      _syncCameraToPlayer();
+      debugPrint('[warp] rollback no-op (source map still mounted)');
+      return;
+    }
+
+    try {
+      _unmountAllLoadedMaps();
+      final fallbackBundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: sourceMapId,
+      );
+      final fallbackWorld = _buildSafeWorldState(
+        map: fallbackBundle.map,
+        preferredPos: sourceWorld.player.pos,
+        fallbackFacing: sourceWorld.player.facing,
+        tileWidth: fallbackBundle.manifest.settings.tileWidth,
+        tileHeight: fallbackBundle.manifest.settings.tileHeight,
+      );
+      final fallbackImages =
+          await loadTilesetImagesById(fallbackBundle.tilesetAbsolutePathsById);
+      final root = await _mountLoadedMap(
+        bundle: fallbackBundle,
+        tileImagesById: fallbackImages,
+        originCellX: 0,
+        originCellY: 0,
+      );
+      _bundle = fallbackBundle;
+      _world = fallbackWorld;
+      _activeMapId = fallbackBundle.map.id;
+      _previousMapId = null;
+      _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
+      _player.syncState(_world.player, snapToGrid: true);
+      _configureCameraViewport();
+      _syncCameraToPlayer();
+      _preloadActiveMapConnections();
+      _pruneLoadedMapsToActiveNeighborhood();
+      debugPrint(
+        '[warp] rollback restored map=${fallbackBundle.map.id} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
+      );
+    } catch (e, st) {
+      debugPrint('[warp] rollback failed: $e\n$st');
+    }
+  }
+
+  GameplayWorldState _buildSafeWorldState({
+    required MapData map,
+    required GridPos preferredPos,
+    required Direction fallbackFacing,
+    required int tileWidth,
+    required int tileHeight,
+  }) {
+    final safePos = _isWithinMapBounds(map, preferredPos)
+        ? preferredPos
+        : const GridPos(x: 0, y: 0);
+    final world = GameplayWorldState.initial(
+      map: map,
+      playerPos: safePos,
+      playerFacing: fallbackFacing,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+    );
+    if (!world.isBlocked(safePos.x, safePos.y)) {
+      return world;
+    }
+
+    try {
+      final spawn = resolveInitialPlayerSpawn(map);
+      final spawnWorld = GameplayWorldState.initial(
+        map: map,
+        playerPos: spawn.pos,
+        playerFacing: fallbackFacing,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+      );
+      if (!spawnWorld.isBlocked(spawn.pos.x, spawn.pos.y)) {
+        return spawnWorld;
+      }
+    } catch (_) {}
+
+    for (var y = 0; y < map.size.height; y++) {
+      for (var x = 0; x < map.size.width; x++) {
+        if (!world.isBlocked(x, y)) {
+          return GameplayWorldState.initial(
+            map: map,
+            playerPos: GridPos(x: x, y: y),
+            playerFacing: fallbackFacing,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+          );
+        }
+      }
+    }
+
+    return world;
+  }
+
+  bool _isWithinMapBounds(MapData map, GridPos pos) {
+    return pos.x >= 0 &&
+        pos.y >= 0 &&
+        pos.x < map.size.width &&
+        pos.y < map.size.height;
+  }
+
   Future<void> _handleConnection(TriggeredConnection connection) async {
-    _transitioning = true;
+    _flowPhase = _RuntimeFlowPhase.mapTransition;
     try {
       _clearTransientUiState();
       debugPrint(
@@ -687,6 +996,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: target.bundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,
+        tileWidth: target.bundle.manifest.settings.tileWidth,
+        tileHeight: target.bundle.manifest.settings.tileHeight,
       );
       if (newWorld.isBlocked(targetPos.x, targetPos.y)) {
         debugPrint(
@@ -729,20 +1040,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _player.syncState(_world.player, snapToGrid: true);
       _showNotification('Connection failed');
     } finally {
-      _transitioning = false;
+      _flowPhase = _RuntimeFlowPhase.overworld;
     }
   }
 
   void _clearTransientUiState() {
     _pendingWarp = null;
     _pendingConnection = null;
-    _pendingEncounter = null;
+    _pendingBattleRequest = null;
     _notification?.removeFromParent();
     _notification = null;
     _dialogueOverlay?.removeFromParent();
     _dialogueOverlay = null;
-    _encounterOverlay?.removeFromParent();
-    _encounterOverlay = null;
+    _battleTransitionOverlay?.removeFromParent();
+    _battleTransitionOverlay = null;
+    _battleOverlay?.removeFromParent();
+    _battleOverlay = null;
+    _warpTransitionOverlay?.removeFromParent();
+    _warpTransitionOverlay = null;
+    _pressedKeys.clear();
+    _lastMoveKey = null;
   }
 
   void _unmountAllLoadedMaps() {
@@ -1046,4 +1363,20 @@ class _GridCellPos {
 
   final int x;
   final int y;
+}
+
+enum _WarpTransitionStyle {
+  fade,
+}
+
+class _WarpTransitionSpec {
+  const _WarpTransitionSpec({
+    required this.style,
+    required this.fadeOut,
+    required this.fadeIn,
+  });
+
+  final _WarpTransitionStyle style;
+  final Duration fadeOut;
+  final Duration fadeIn;
 }

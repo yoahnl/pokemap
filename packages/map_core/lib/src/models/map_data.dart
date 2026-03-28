@@ -167,10 +167,34 @@ class MapWarp with _$MapWarp {
     required GridPos pos,
     required String targetMapId,
     required GridPos targetPos,
+    @Default(MapWarpTriggerMode.onEnter) MapWarpTriggerMode triggerMode,
+    @Default([]) List<EntityFacing> allowedApproachFacings,
+    @Default(WarpTriggerPadding()) WarpTriggerPadding triggerPadding,
   }) = _MapWarp;
 
   factory MapWarp.fromJson(Map<String, dynamic> json) =>
       _$MapWarpFromJson(json);
+}
+
+enum MapWarpTriggerMode {
+  @JsonValue('on_enter')
+  onEnter,
+  @JsonValue('on_bump')
+  onBump,
+}
+
+@freezed
+class WarpTriggerPadding with _$WarpTriggerPadding {
+  @JsonSerializable(explicitToJson: true)
+  const factory WarpTriggerPadding({
+    @Default(0) int top,
+    @Default(0) int right,
+    @Default(0) int bottom,
+    @Default(0) int left,
+  }) = _WarpTriggerPadding;
+
+  factory WarpTriggerPadding.fromJson(Map<String, dynamic> json) =>
+      _$WarpTriggerPaddingFromJson(json);
 }
 
 @freezed

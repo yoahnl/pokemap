@@ -26,6 +26,9 @@ class UpdateWarpOnMapUseCase {
     GridPos? pos,
     String? targetMapId,
     GridPos? targetPos,
+    MapWarpTriggerMode? triggerMode,
+    List<EntityFacing>? allowedApproachFacings,
+    WarpTriggerPadding? triggerPadding,
   }) {
     final updated = updateWarpOnMap(
       map,
@@ -34,6 +37,9 @@ class UpdateWarpOnMapUseCase {
       pos: pos,
       targetMapId: targetMapId,
       targetPos: targetPos,
+      triggerMode: triggerMode,
+      allowedApproachFacings: allowedApproachFacings,
+      triggerPadding: triggerPadding,
     );
     MapValidator.validate(updated);
     return updated;
@@ -133,6 +139,11 @@ class CreateReciprocalWarpUseCase {
       pos: destinationPos,
       targetMapId: sourceMap.id,
       targetPos: sourceWarp.pos,
+      triggerMode: sourceWarp.triggerMode,
+      allowedApproachFacings: sourceWarp.allowedApproachFacings
+          .map(_oppositeFacing)
+          .toList(growable: false),
+      triggerPadding: sourceWarp.triggerPadding,
     );
     final updatedTargetMap = addWarpToMap(targetMap, warp: reciprocalWarp);
     MapValidator.validate(updatedTargetMap);
@@ -157,5 +168,14 @@ class CreateReciprocalWarpUseCase {
       index++;
     }
     return 'warp_$index';
+  }
+
+  EntityFacing _oppositeFacing(EntityFacing facing) {
+    return switch (facing) {
+      EntityFacing.north => EntityFacing.south,
+      EntityFacing.south => EntityFacing.north,
+      EntityFacing.east => EntityFacing.west,
+      EntityFacing.west => EntityFacing.east,
+    };
   }
 }

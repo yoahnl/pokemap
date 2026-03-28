@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
     show
@@ -21,6 +22,7 @@ import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../features/editor/models/placed_element_instance_ref.dart';
 
 class _InspectorPulldownAction {
   const _InspectorPulldownAction({
@@ -58,6 +60,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       ScrollController();
   final ScrollController _selectionVerticalScrollController =
       ScrollController();
+  String? _lastPlacedInstancesSignature;
 
   @override
   void dispose() {
@@ -391,8 +394,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding:
-                  EdgeInsets.fromLTRB(12, widget.embedded ? 8 : 12, 12, 6),
+              padding: EdgeInsets.fromLTRB(12, widget.embedded ? 8 : 12, 12, 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -416,9 +418,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     orderedIds:
                         sortedTilesets.map((tileset) => tileset.id).toList(),
                     selectedId: selectedTileset.id,
-                    idToLabel: (id) => sortedTilesets
-                        .firstWhere((t) => t.id == id)
-                        .name,
+                    idToLabel: (id) =>
+                        sortedTilesets.firstWhere((t) => t.id == id).name,
                     onSelected: notifier.selectTilesetEditorContext,
                   ),
                   const SizedBox(height: 4),
@@ -516,9 +517,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       -1,
       ...List.generate(PaletteCategory.values.length, (i) => i),
     ];
-    String filterLabel(int i) => i < 0
-        ? 'All'
-        : _legacyCategoryLabel(PaletteCategory.values[i]);
+    String filterLabel(int i) =>
+        i < 0 ? 'All' : _legacyCategoryLabel(PaletteCategory.values[i]);
     final currentFilterIndex =
         filter == null ? -1 : PaletteCategory.values.indexOf(filter);
 
@@ -682,7 +682,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           decoration: BoxDecoration(
             border: Border(
-              top: BorderSide(color: CupertinoColors.separator.resolveFrom(context)),
+              top: BorderSide(
+                  color: CupertinoColors.separator.resolveFrom(context)),
             ),
           ),
           child: Column(
@@ -753,9 +754,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           onPressed: selectedTileId == null
                               ? null
                               : () async {
-                                  final picked =
-                                      await showCupertinoListPicker<
-                                          PaletteCategory>(
+                                  final picked = await showCupertinoListPicker<
+                                      PaletteCategory>(
                                     context: context,
                                     title: 'Tile Category',
                                     items: PaletteCategory.values.toList(),
@@ -1005,277 +1005,756 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       ),
     ];
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 12),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 3),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    CupertinoIcons.square_stack_3d_up_fill,
-                    size: 14,
-                    color: tilesAccent,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Groupes internes (tileset)',
-                      style: TextStyle(
-                        color: secondaryLabel,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  _inspectorAccentPopupMenu(
-                    context: context,
-                    accent: tilesAccent,
-                    buttonLabel: 'Actions',
-                    actions: tilesetGroupActions,
-                  ),
-                ],
-              ),
-              Text(
-                'Filtre les éléments selon le groupe dans ce tileset.',
-                style: TextStyle(
-                  color: secondaryLabel,
-                  fontSize: 10,
-                  height: 1.2,
+    final panelMode = state.tilesElementsPanelMode;
+    final placedInstancesScope = _resolvePlacedElementInstances(
+      state: state,
+      activeTileset: activeTileset,
+      project: project,
+      tilesetColumns: columns,
+    );
+    final selectedPlacedInstance = _findPlacedElementInstanceById(
+      instances: placedInstancesScope.instances,
+      instanceId: state.selectedPlacedElementInstanceId,
+    );
+
+    if (panelMode == TilesElementsPanelMode.placedInstances) {
+      _logPlacedInstancesSnapshot(placedInstancesScope);
+      if (state.selectedPlacedElementInstanceId != null &&
+          selectedPlacedInstance == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+          ref.read(editorNotifierProvider.notifier).selectPlacedElementInstance(
+                instanceId: null,
+              );
+        });
+      }
+    }
+
+    final paletteSections = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.square_stack_3d_up_fill,
+                  size: 14,
+                  color: tilesAccent,
                 ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          height: 72,
-          margin: const EdgeInsets.symmetric(horizontal: 12),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: listSurface,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: rim),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ColoredBox(
-                color: tilesAccent,
-                child: const SizedBox(width: 3),
-              ),
-              Expanded(
-                child: ListView(
-                  children: tilesetGroupRows,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 5),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 2, 12, 3),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    CupertinoIcons.tag_fill,
-                    size: 14,
-                    color: categoryStripe,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      "Catégories d'éléments",
-                      style: TextStyle(
-                        color: secondaryLabel,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  _inspectorAccentPopupMenu(
-                    context: context,
-                    accent: categoryStripe,
-                    buttonLabel: 'Actions',
-                    actions: categoryActions,
-                  ),
-                ],
-              ),
-              Text(
-                'Filtre la liste par catégorie projet (pas le tileset).',
-                style: TextStyle(
-                  color: secondaryLabel,
-                  fontSize: 10,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          height: 72,
-          margin: const EdgeInsets.symmetric(horizontal: 12),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: listSurface,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: rim),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ColoredBox(
-                color: categoryStripe,
-                child: const SizedBox(width: 3),
-              ),
-              Expanded(
-                child: ListView(
-                  children: categoryRows,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 10),
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-          decoration: BoxDecoration(
-            color: EditorChrome.largeIslandSurfaceColor(
-              context,
-              tint: tilesAccent.withValues(alpha: 0.08),
-            ),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: tilesAccent.withValues(alpha: 0.4)),
-            boxShadow: [
-              BoxShadow(
-                color: tilesAccent.withValues(alpha: 0.1),
-                blurRadius: 0,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    CupertinoIcons.cube_box_fill,
-                    size: 15,
-                    color: tilesAccent,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Éléments à placer',
-                      style: TextStyle(
-                        color: EditorChrome.primaryLabel(context),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${filteredElements.length}',
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Groupes internes (tileset)',
                     style: TextStyle(
                       color: secondaryLabel,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (filteredElements.isEmpty)
-                Text(
-                  'Aucun élément pour ces filtres',
-                  style: TextStyle(
-                    color: CupertinoColors.placeholderText.resolveFrom(context),
-                    fontSize: 12,
-                  ),
-                )
-              else
-                ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: filteredElements.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final element = filteredElements[index];
-                    final categoryPath = _buildCategoryPathLabel(
-                      categoriesById: categoriesById,
-                      categoryId: element.categoryId,
-                    );
-                    final tilesetName = activeTileset.name;
-                    final groupLabel = element.groupId == null
-                        ? 'Global'
-                        : 'Groupe : ${_buildGroupPathLabel(groupById, element.groupId!)}';
-                    final tilesetGroupLabel = element.tilesetGroupId == null
-                        ? 'Interne : aucun'
-                        : 'Interne : ${_buildTilesetGroupPathLabel(tilesetGroupById, element.tilesetGroupId!)}';
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: _ProjectElementCard(
-                        image: image,
-                        element: element,
-                        tileWidth: tileWidth,
-                        tileHeight: tileHeight,
-                        selectionAccent: tilesAccent,
-                        selected: state.activeBrush.maybeMap(
-                          projectElement: (brush) =>
-                              brush.elementId == element.id,
-                          orElse: () => false,
-                        ),
-                        categoryPath: categoryPath,
-                        tilesetName: tilesetName,
-                        groupLabel: groupLabel,
-                        tilesetGroupLabel: tilesetGroupLabel,
-                        onTap: () {
-                          notifier.selectProjectElement(element.id);
-                          if (element.recommendedLayerId != null &&
-                              (state.activeMap?.layers.any(
-                                    (layer) =>
-                                        layer is TileLayer &&
-                                        layer.id ==
-                                            element.recommendedLayerId,
-                                  ) ??
-                                  false)) {
-                            notifier.setActiveLayer(
-                              element.recommendedLayerId!,
-                            );
-                          }
-                          notifier.selectTool(EditorToolType.tilePaint);
-                        },
-                        onEdit: () => _showEditElementDialog(
-                          context,
-                          notifier: notifier,
-                          project: project,
-                          element: element,
-                          categories: categories,
-                          tileLayers: tileLayers,
-                          tilesetGroups: tilesetGroups,
-                        ),
-                        onDelete: () => _showDeleteElementDialog(
-                          context,
-                          notifier: notifier,
-                          element: element,
-                        ),
-                      ),
-                    );
-                  },
                 ),
-            ],
+                _inspectorAccentPopupMenu(
+                  context: context,
+                  accent: tilesAccent,
+                  buttonLabel: 'Actions',
+                  actions: tilesetGroupActions,
+                ),
+              ],
+            ),
+            Text(
+              'Filtre les éléments selon le groupe dans ce tileset.',
+              style: TextStyle(
+                color: secondaryLabel,
+                fontSize: 10,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Container(
+        height: 72,
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: listSurface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: rim),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ColoredBox(
+              color: tilesAccent,
+              child: const SizedBox(width: 3),
+            ),
+            Expanded(
+              child: ListView(
+                children: tilesetGroupRows,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 5),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 2, 12, 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.tag_fill,
+                  size: 14,
+                  color: categoryStripe,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    "Catégories d'éléments",
+                    style: TextStyle(
+                      color: secondaryLabel,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                _inspectorAccentPopupMenu(
+                  context: context,
+                  accent: categoryStripe,
+                  buttonLabel: 'Actions',
+                  actions: categoryActions,
+                ),
+              ],
+            ),
+            Text(
+              'Filtre la liste par catégorie projet (pas le tileset).',
+              style: TextStyle(
+                color: secondaryLabel,
+                fontSize: 10,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+      Container(
+        height: 72,
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: listSurface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: rim),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ColoredBox(
+              color: categoryStripe,
+              child: const SizedBox(width: 3),
+            ),
+            Expanded(
+              child: ListView(
+                children: categoryRows,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 6),
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: tilesAccent.withValues(alpha: 0.08),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: tilesAccent.withValues(alpha: 0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: tilesAccent.withValues(alpha: 0.1),
+              blurRadius: 0,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  CupertinoIcons.cube_box_fill,
+                  size: 15,
+                  color: tilesAccent,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Éléments à placer',
+                    style: TextStyle(
+                      color: EditorChrome.primaryLabel(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${filteredElements.length}',
+                  style: TextStyle(
+                    color: secondaryLabel,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (filteredElements.isEmpty)
+              Text(
+                'Aucun élément pour ces filtres',
+                style: TextStyle(
+                  color: CupertinoColors.placeholderText.resolveFrom(context),
+                  fontSize: 12,
+                ),
+              )
+            else
+              ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: filteredElements.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final element = filteredElements[index];
+                  final categoryPath = _buildCategoryPathLabel(
+                    categoriesById: categoriesById,
+                    categoryId: element.categoryId,
+                  );
+                  final tilesetName = activeTileset.name;
+                  final groupLabel = element.groupId == null
+                      ? 'Global'
+                      : 'Groupe : ${_buildGroupPathLabel(groupById, element.groupId!)}';
+                  final tilesetGroupLabel = element.tilesetGroupId == null
+                      ? 'Interne : aucun'
+                      : 'Interne : ${_buildTilesetGroupPathLabel(tilesetGroupById, element.tilesetGroupId!)}';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: _ProjectElementCard(
+                      image: image,
+                      element: element,
+                      tileWidth: tileWidth,
+                      tileHeight: tileHeight,
+                      selectionAccent: tilesAccent,
+                      selected: state.activeBrush.maybeMap(
+                        projectElement: (brush) =>
+                            brush.elementId == element.id,
+                        orElse: () => false,
+                      ),
+                      categoryPath: categoryPath,
+                      tilesetName: tilesetName,
+                      groupLabel: groupLabel,
+                      tilesetGroupLabel: tilesetGroupLabel,
+                      onTap: () {
+                        notifier.selectProjectElement(element.id);
+                        if (element.recommendedLayerId != null &&
+                            (state.activeMap?.layers.any(
+                                  (layer) =>
+                                      layer is TileLayer &&
+                                      layer.id == element.recommendedLayerId,
+                                ) ??
+                                false)) {
+                          notifier.setActiveLayer(
+                            element.recommendedLayerId!,
+                          );
+                        }
+                        notifier.selectTool(EditorToolType.tilePaint);
+                      },
+                      onEdit: () => _showEditElementDialog(
+                        context,
+                        notifier: notifier,
+                        project: project,
+                        element: element,
+                        categories: categories,
+                        tileLayers: tileLayers,
+                        tilesetGroups: tilesetGroups,
+                      ),
+                      onDelete: () => _showDeleteElementDialog(
+                        context,
+                        notifier: notifier,
+                        element: element,
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 12),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
+          child: _buildTilesElementsModeSelector(
+            mode: panelMode,
+            onChanged: notifier.setTilesElementsPanelMode,
+            placedCount: placedInstancesScope.instances.length,
           ),
         ),
+        const SizedBox(height: 4),
+        if (panelMode == TilesElementsPanelMode.palette) ...paletteSections,
+        if (panelMode == TilesElementsPanelMode.placedInstances)
+          _PlacedInstancesSection(
+            image: image,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+            scope: placedInstancesScope,
+            selectedInstanceId: state.selectedPlacedElementInstanceId,
+            selectedInstance: selectedPlacedInstance,
+            onSelectInstance: (instance) {
+              notifier.selectPlacedElementInstance(
+                instanceId: instance?.instanceRef.id,
+                elementId: instance?.element.id,
+                layerId: instance?.layerId,
+              );
+            },
+          ),
       ],
+    );
+  }
+
+  Widget _buildTilesElementsModeSelector({
+    required TilesElementsPanelMode mode,
+    required ValueChanged<TilesElementsPanelMode> onChanged,
+    required int placedCount,
+  }) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyLilac.withValues(alpha: 0.08),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyLilac.withValues(alpha: 0.38),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Mode',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          CupertinoSlidingSegmentedControl<TilesElementsPanelMode>(
+            groupValue: mode,
+            children: const {
+              TilesElementsPanelMode.palette: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Text('Palette'),
+              ),
+              TilesElementsPanelMode.placedInstances: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Text('Instances posées'),
+              ),
+            },
+            onValueChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              onChanged(value);
+            },
+          ),
+          if (mode == TilesElementsPanelMode.placedInstances) ...[
+            const SizedBox(height: 6),
+            Text(
+              '$placedCount instance${placedCount > 1 ? 's' : ''} détectée${placedCount > 1 ? 's' : ''} sur le calque actif',
+              style: TextStyle(
+                color: secondary,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  _PlacedElementInstancesScope _resolvePlacedElementInstances({
+    required EditorState state,
+    required ProjectManifest project,
+    required ProjectTilesetEntry activeTileset,
+    required int tilesetColumns,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      return const _PlacedElementInstancesScope(
+        layerId: null,
+        layerName: null,
+        instances: [],
+        emptyTitle: 'Aucune map active',
+        emptyMessage: 'Charge une map pour parcourir les éléments posés.',
+      );
+    }
+    final layerId = state.activeLayerId;
+    if (layerId == null || layerId.isEmpty) {
+      return const _PlacedElementInstancesScope(
+        layerId: null,
+        layerName: null,
+        instances: [],
+        emptyTitle: 'Aucun calque actif',
+        emptyMessage: 'Sélectionne un calque pour afficher les instances.',
+      );
+    }
+    MapLayer? layer;
+    for (final entry in map.layers) {
+      if (entry.id == layerId) {
+        layer = entry;
+        break;
+      }
+    }
+    if (layer == null) {
+      return _PlacedElementInstancesScope(
+        layerId: layerId,
+        layerName: null,
+        instances: const [],
+        emptyTitle: 'Calque introuvable',
+        emptyMessage: 'Le calque actif "$layerId" est introuvable.',
+      );
+    }
+    if (layer is! TileLayer) {
+      return _PlacedElementInstancesScope(
+        layerId: layer.id,
+        layerName: layer.name,
+        instances: const [],
+        emptyTitle: 'Calque non compatible',
+        emptyMessage:
+            'Les instances posées sont disponibles sur les calques de tuiles.',
+      );
+    }
+    final layerTilesetId = (layer.tilesetId ?? map.tilesetId).trim();
+    if (layerTilesetId.isEmpty) {
+      return _PlacedElementInstancesScope(
+        layerId: layer.id,
+        layerName: layer.name,
+        instances: const [],
+        emptyTitle: 'Tileset manquant',
+        emptyMessage:
+            'Le calque actif n’a pas de tileset associé pour détecter les éléments.',
+      );
+    }
+    if (layerTilesetId != activeTileset.id) {
+      String layerTilesetName = layerTilesetId;
+      for (final tileset in project.tilesets) {
+        if (tileset.id == layerTilesetId) {
+          layerTilesetName = tileset.name;
+          break;
+        }
+      }
+      return _PlacedElementInstancesScope(
+        layerId: layer.id,
+        layerName: layer.name,
+        instances: const [],
+        emptyTitle: 'Tileset différent',
+        emptyMessage:
+            'Le calque actif utilise "$layerTilesetName". Sélectionne ce tileset dans la palette pour afficher les miniatures.',
+      );
+    }
+
+    final elements = project.elements
+        .where(
+          (element) =>
+              element.tilesetId == layerTilesetId &&
+              element.frames.primarySource.width > 0 &&
+              element.frames.primarySource.height > 0,
+        )
+        .toList(growable: true)
+      ..sort((a, b) {
+        final areaA =
+            a.frames.primarySource.width * a.frames.primarySource.height;
+        final areaB =
+            b.frames.primarySource.width * b.frames.primarySource.height;
+        final areaCompare = areaB.compareTo(areaA);
+        if (areaCompare != 0) {
+          return areaCompare;
+        }
+        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
+        if (sortCompare != 0) {
+          return sortCompare;
+        }
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+    if (elements.isEmpty) {
+      return _PlacedElementInstancesScope(
+        layerId: layer.id,
+        layerName: layer.name,
+        instances: const [],
+        emptyTitle: 'Aucune définition trouvée',
+        emptyMessage:
+            'Aucun élément projet n’est lié à ce tileset pour détecter les instances.',
+      );
+    }
+
+    final mapWidth = map.size.width;
+    final mapHeight = map.size.height;
+    if (mapWidth <= 0 || mapHeight <= 0) {
+      return _PlacedElementInstancesScope(
+        layerId: layer.id,
+        layerName: layer.name,
+        instances: const [],
+        emptyTitle: 'Map invalide',
+        emptyMessage:
+            'La taille de la map ne permet pas de lire les instances.',
+      );
+    }
+
+    final covered = List<bool>.filled(mapWidth * mapHeight, false);
+    final occurrencesByElementId = <String, int>{};
+    final instances = <_PlacedElementInstanceVm>[];
+
+    for (var y = 0; y < mapHeight; y++) {
+      for (var x = 0; x < mapWidth; x++) {
+        final index = y * mapWidth + x;
+        if (index < 0 || index >= covered.length) {
+          continue;
+        }
+        if (covered[index]) {
+          continue;
+        }
+        final cellTileId = _tileIdAt(
+          tiles: layer.tiles,
+          mapWidth: mapWidth,
+          mapHeight: mapHeight,
+          x: x,
+          y: y,
+        );
+        if (cellTileId <= 0) {
+          continue;
+        }
+
+        ProjectElementEntry? matchedElement;
+        TilesetSourceRect? matchedSource;
+        for (final element in elements) {
+          final source = element.frames.primarySource;
+          if (x + source.width > mapWidth || y + source.height > mapHeight) {
+            continue;
+          }
+          if (!_canUseCells(
+            covered: covered,
+            mapWidth: mapWidth,
+            x: x,
+            y: y,
+            width: source.width,
+            height: source.height,
+          )) {
+            continue;
+          }
+          final matches = _matchesElementPatternAt(
+            layer: layer,
+            mapWidth: mapWidth,
+            mapHeight: mapHeight,
+            originX: x,
+            originY: y,
+            source: source,
+            tilesetColumns: tilesetColumns,
+          );
+          if (!matches) {
+            continue;
+          }
+          matchedElement = element;
+          matchedSource = source;
+          break;
+        }
+
+        if (matchedElement == null || matchedSource == null) {
+          continue;
+        }
+
+        final nextOccurrence =
+            (occurrencesByElementId[matchedElement.id] ?? 0) + 1;
+        occurrencesByElementId[matchedElement.id] = nextOccurrence;
+
+        final instanceRef = PlacedElementInstanceRef(
+          layerId: layer.id,
+          elementId: matchedElement.id,
+          pos: GridPos(x: x, y: y),
+        );
+        instances.add(
+          _PlacedElementInstanceVm(
+            instanceRef: instanceRef,
+            element: matchedElement,
+            layerId: layer.id,
+            layerName: layer.name,
+            occurrence: nextOccurrence,
+          ),
+        );
+        _markCellsAsCovered(
+          covered: covered,
+          mapWidth: mapWidth,
+          x: x,
+          y: y,
+          width: matchedSource.width,
+          height: matchedSource.height,
+        );
+      }
+    }
+
+    if (instances.isEmpty) {
+      return _PlacedElementInstancesScope(
+        layerId: layer.id,
+        layerName: layer.name,
+        instances: const [],
+        emptyTitle: 'Aucun élément placé sur ce layer',
+        emptyMessage: 'Place un élément depuis la palette pour le voir ici.',
+      );
+    }
+
+    return _PlacedElementInstancesScope(
+      layerId: layer.id,
+      layerName: layer.name,
+      instances: instances,
+      emptyTitle: '',
+      emptyMessage: '',
+    );
+  }
+
+  _PlacedElementInstanceVm? _findPlacedElementInstanceById({
+    required List<_PlacedElementInstanceVm> instances,
+    required String? instanceId,
+  }) {
+    if (instanceId == null || instanceId.isEmpty) {
+      return null;
+    }
+    for (final instance in instances) {
+      if (instance.instanceRef.id == instanceId) {
+        return instance;
+      }
+    }
+    return null;
+  }
+
+  bool _matchesElementPatternAt({
+    required TileLayer layer,
+    required int mapWidth,
+    required int mapHeight,
+    required int originX,
+    required int originY,
+    required TilesetSourceRect source,
+    required int tilesetColumns,
+  }) {
+    for (var y = 0; y < source.height; y++) {
+      for (var x = 0; x < source.width; x++) {
+        final tileId = _tileIdAt(
+          tiles: layer.tiles,
+          mapWidth: mapWidth,
+          mapHeight: mapHeight,
+          x: originX + x,
+          y: originY + y,
+        );
+        final expectedTileId =
+            (source.y + y) * tilesetColumns + (source.x + x) + 1;
+        if (tileId != expectedTileId) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  int _tileIdAt({
+    required List<int> tiles,
+    required int mapWidth,
+    required int mapHeight,
+    required int x,
+    required int y,
+  }) {
+    if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) {
+      return 0;
+    }
+    final index = y * mapWidth + x;
+    if (index < 0 || index >= tiles.length) {
+      return 0;
+    }
+    return tiles[index];
+  }
+
+  bool _canUseCells({
+    required List<bool> covered,
+    required int mapWidth,
+    required int x,
+    required int y,
+    required int width,
+    required int height,
+  }) {
+    for (var row = 0; row < height; row++) {
+      for (var col = 0; col < width; col++) {
+        final index = (y + row) * mapWidth + (x + col);
+        if (index < 0 || index >= covered.length) {
+          return false;
+        }
+        if (covered[index]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  void _markCellsAsCovered({
+    required List<bool> covered,
+    required int mapWidth,
+    required int x,
+    required int y,
+    required int width,
+    required int height,
+  }) {
+    for (var row = 0; row < height; row++) {
+      for (var col = 0; col < width; col++) {
+        final index = (y + row) * mapWidth + (x + col);
+        if (index < 0 || index >= covered.length) {
+          continue;
+        }
+        covered[index] = true;
+      }
+    }
+  }
+
+  void _logPlacedInstancesSnapshot(_PlacedElementInstancesScope scope) {
+    if (!kDebugMode) {
+      return;
+    }
+    final layerId = scope.layerId ?? '';
+    final signature =
+        '$layerId|${scope.instances.length}|${scope.emptyTitle}|${scope.emptyMessage}';
+    if (signature == _lastPlacedInstancesSignature) {
+      return;
+    }
+    _lastPlacedInstancesSignature = signature;
+    if (scope.instances.isEmpty) {
+      debugPrint('[editor][elements] no placed instances for layer=$layerId');
+      return;
+    }
+    debugPrint(
+      '[editor][elements] loaded placed instances count=${scope.instances.length} layer=$layerId',
     );
   }
 
@@ -1487,15 +1966,15 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             },
             onPanUpdate: (details) {
               if (_selectionStart == null) return;
-              final pos =
-                  _gridFromLocal(details.localPosition, cellSize, columns, rows);
+              final pos = _gridFromLocal(
+                  details.localPosition, cellSize, columns, rows);
               setState(() {
                 _selectionEnd = pos;
               });
             },
             onTapUp: (details) {
-              final pos =
-                  _gridFromLocal(details.localPosition, cellSize, columns, rows);
+              final pos = _gridFromLocal(
+                  details.localPosition, cellSize, columns, rows);
               setState(() {
                 _selectionStart = pos;
                 _selectionEnd = pos;
@@ -2433,6 +2912,484 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }
 }
 
+class _PlacedElementInstancesScope {
+  const _PlacedElementInstancesScope({
+    required this.layerId,
+    required this.layerName,
+    required this.instances,
+    required this.emptyTitle,
+    required this.emptyMessage,
+  });
+
+  final String? layerId;
+  final String? layerName;
+  final List<_PlacedElementInstanceVm> instances;
+  final String emptyTitle;
+  final String emptyMessage;
+}
+
+class _PlacedElementInstanceVm {
+  const _PlacedElementInstanceVm({
+    required this.instanceRef,
+    required this.element,
+    required this.layerId,
+    required this.layerName,
+    required this.occurrence,
+  });
+
+  final PlacedElementInstanceRef instanceRef;
+  final ProjectElementEntry element;
+  final String layerId;
+  final String layerName;
+  final int occurrence;
+
+  String get displayLabel => '${element.id} #$occurrence';
+  GridPos get pos => instanceRef.pos;
+  TilesetSourceRect get source => element.frames.primarySource;
+}
+
+class _PlacedInstancesSection extends StatelessWidget {
+  const _PlacedInstancesSection({
+    required this.image,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.scope,
+    required this.selectedInstanceId,
+    required this.selectedInstance,
+    required this.onSelectInstance,
+  });
+
+  final ui.Image image;
+  final int tileWidth;
+  final int tileHeight;
+  final _PlacedElementInstancesScope scope;
+  final String? selectedInstanceId;
+  final _PlacedElementInstanceVm? selectedInstance;
+  final ValueChanged<_PlacedElementInstanceVm?> onSelectInstance;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = EditorChrome.inspectorJoyCyan;
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final separator = CupertinoColors.separator.resolveFrom(context);
+    final selected = selectedInstance;
+
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          decoration: BoxDecoration(
+            color: EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: accent.withValues(alpha: 0.09),
+            ),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: accent.withValues(alpha: 0.4)),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: 0.1),
+                blurRadius: 0,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.square_stack_3d_down_right_fill,
+                    size: 15,
+                    color: accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Instances posées (calque actif)',
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${scope.instances.length}',
+                    style: TextStyle(
+                      color: secondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                scope.layerId == null
+                    ? 'Calque actif: —'
+                    : 'Calque actif: ${scope.layerName ?? scope.layerId}',
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (scope.instances.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: EditorChrome.largeIslandSurfaceColor(
+                      context,
+                      tint: Colors.white.withValues(alpha: 0.02),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: separator),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        scope.emptyTitle,
+                        style: TextStyle(
+                          color: label,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        scope.emptyMessage,
+                        style: TextStyle(
+                          color: secondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  height:
+                      math.min(260, scope.instances.length * 67 + 6).toDouble(),
+                  child: ListView.separated(
+                    itemCount: scope.instances.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final instance = scope.instances[index];
+                      return _PlacedInstanceCard(
+                        image: image,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                        instance: instance,
+                        selected: selectedInstanceId == instance.instanceRef.id,
+                        onTap: () => onSelectInstance(instance),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          decoration: BoxDecoration(
+            color: EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.08),
+            ),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    CupertinoIcons.slider_horizontal_3,
+                    size: 15,
+                    color: EditorChrome.inspectorJoyMint,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Propriétés de l'instance sélectionnée",
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (selected == null)
+                Text(
+                  'Sélectionne une instance dans la liste pour afficher ses détails.',
+                  style: TextStyle(
+                    color: secondary,
+                    fontSize: 11,
+                  ),
+                )
+              else ...[
+                _PropertyLine(
+                  label: 'Élément source',
+                  value: '${selected.element.name} (${selected.element.id})',
+                ),
+                _PropertyLine(
+                  label: 'Instance',
+                  value: selected.displayLabel,
+                ),
+                _PropertyLine(
+                  label: 'Position',
+                  value: '(${selected.pos.x}, ${selected.pos.y})',
+                ),
+                _PropertyLine(
+                  label: 'Taille',
+                  value: '${selected.source.width} x ${selected.source.height}',
+                ),
+                _PropertyLine(
+                  label: 'Layer',
+                  value: '${selected.layerName} (${selected.layerId})',
+                ),
+                _PropertyLine(
+                  label: 'ID interne',
+                  value: selected.instanceRef.id,
+                ),
+                const SizedBox(height: 8),
+                const _FuturePropertyGroup(
+                  title: 'Collision',
+                  status: 'À venir',
+                ),
+                const SizedBox(height: 6),
+                const _FuturePropertyGroup(
+                  title: 'Animation',
+                  status: 'À venir',
+                ),
+                const SizedBox(height: 6),
+                const _FuturePropertyGroup(
+                  title: 'Comportement / Triggers',
+                  status: 'À venir',
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlacedInstanceCard extends StatelessWidget {
+  const _PlacedInstanceCard({
+    required this.image,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.instance,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ui.Image image;
+  final int tileWidth;
+  final int tileHeight;
+  final _PlacedElementInstanceVm instance;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = EditorChrome.inspectorJoyCyan;
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final border = CupertinoColors.separator.resolveFrom(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(6, 6, 8, 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? accent.withValues(alpha: 0.13)
+              : EditorPaintColors.transparent,
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(
+            color: selected ? accent : border,
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: border),
+                ),
+                child: _PaletteRectPreview(
+                  image: image,
+                  source: instance.source,
+                  tileWidth: tileWidth,
+                  tileHeight: tileHeight,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    instance.element.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: label,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    instance.displayLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: secondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    'Pos: (${instance.pos.x}, ${instance.pos.y}) · Layer: ${instance.layerName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: secondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (selected)
+              const Icon(
+                CupertinoIcons.check_mark_circled_solid,
+                size: 16,
+                color: EditorChrome.inspectorJoyCyan,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PropertyLine extends StatelessWidget {
+  const _PropertyLine({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final primary = CupertinoColors.label.resolveFrom(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: secondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: primary,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FuturePropertyGroup extends StatelessWidget {
+  const _FuturePropertyGroup({
+    required this.title,
+    required this.status,
+  });
+
+  final String title;
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.015),
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: secondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            status,
+            style: TextStyle(
+              color: secondary,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CategoryTreeRow extends StatelessWidget {
   final int depth;
   final bool selected;
@@ -2456,8 +3413,7 @@ class _CategoryTreeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        accentOverride ?? CupertinoTheme.of(context).primaryColor;
+    final accent = accentOverride ?? CupertinoTheme.of(context).primaryColor;
     final labelColor = CupertinoColors.label.resolveFrom(context);
     final background = selected
         ? accent.withValues(alpha: 0.14)

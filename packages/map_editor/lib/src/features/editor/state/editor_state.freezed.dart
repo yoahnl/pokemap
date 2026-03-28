@@ -730,6 +730,10 @@ mixin _$EditorState {
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
+  TilesElementsPanelMode get tilesElementsPanelMode =>
+      throw _privateConstructorUsedError;
+  String? get selectedPlacedElementInstanceId =>
+      throw _privateConstructorUsedError;
 
   /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
   String? get selectedProjectDialogueId => throw _privateConstructorUsedError;
@@ -793,6 +797,8 @@ abstract class $EditorStateCopyWith<$Res> {
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
+      TilesElementsPanelMode tilesElementsPanelMode,
+      String? selectedPlacedElementInstanceId,
       String? selectedProjectDialogueId,
       String? selectedTrainerId,
       String? selectedCharacterId,
@@ -857,6 +863,8 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
+    Object? tilesElementsPanelMode = null,
+    Object? selectedPlacedElementInstanceId = freezed,
     Object? selectedProjectDialogueId = freezed,
     Object? selectedTrainerId = freezed,
     Object? selectedCharacterId = freezed,
@@ -966,6 +974,15 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId
           ? _value.selectedTilesetElementGroupId
           : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tilesElementsPanelMode: null == tilesElementsPanelMode
+          ? _value.tilesElementsPanelMode
+          : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
+              as TilesElementsPanelMode,
+      selectedPlacedElementInstanceId: freezed ==
+              selectedPlacedElementInstanceId
+          ? _value.selectedPlacedElementInstanceId
+          : selectedPlacedElementInstanceId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedProjectDialogueId: freezed == selectedProjectDialogueId
           ? _value.selectedProjectDialogueId
@@ -1161,6 +1178,8 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
+      TilesElementsPanelMode tilesElementsPanelMode,
+      String? selectedPlacedElementInstanceId,
       String? selectedProjectDialogueId,
       String? selectedTrainerId,
       String? selectedCharacterId,
@@ -1230,6 +1249,8 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
+    Object? tilesElementsPanelMode = null,
+    Object? selectedPlacedElementInstanceId = freezed,
     Object? selectedProjectDialogueId = freezed,
     Object? selectedTrainerId = freezed,
     Object? selectedCharacterId = freezed,
@@ -1340,6 +1361,15 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedTilesetElementGroupId
           : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
               as String?,
+      tilesElementsPanelMode: null == tilesElementsPanelMode
+          ? _value.tilesElementsPanelMode
+          : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
+              as TilesElementsPanelMode,
+      selectedPlacedElementInstanceId: freezed ==
+              selectedPlacedElementInstanceId
+          ? _value.selectedPlacedElementInstanceId
+          : selectedPlacedElementInstanceId // ignore: cast_nullable_to_non_nullable
+              as String?,
       selectedProjectDialogueId: freezed == selectedProjectDialogueId
           ? _value.selectedProjectDialogueId
           : selectedProjectDialogueId // ignore: cast_nullable_to_non_nullable
@@ -1435,6 +1465,8 @@ class _$EditorStateImpl implements _EditorState {
       this.gameplayZoneDraftArea,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
+      this.tilesElementsPanelMode = TilesElementsPanelMode.palette,
+      this.selectedPlacedElementInstanceId,
       this.selectedProjectDialogueId,
       this.selectedTrainerId,
       this.selectedCharacterId,
@@ -1521,6 +1553,11 @@ class _$EditorStateImpl implements _EditorState {
   final String? selectedTilesetEditorId;
   @override
   final String? selectedTilesetElementGroupId;
+  @override
+  @JsonKey()
+  final TilesElementsPanelMode tilesElementsPanelMode;
+  @override
+  final String? selectedPlacedElementInstanceId;
 
   /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
   @override
@@ -1585,7 +1622,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1640,6 +1677,12 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
                 other.selectedTilesetElementGroupId ==
                     selectedTilesetElementGroupId) &&
+            (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) ||
+                other.tilesElementsPanelMode == tilesElementsPanelMode) &&
+            (identical(other.selectedPlacedElementInstanceId,
+                    selectedPlacedElementInstanceId) ||
+                other.selectedPlacedElementInstanceId ==
+                    selectedPlacedElementInstanceId) &&
             (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) ||
                 other.selectedProjectDialogueId == selectedProjectDialogueId) &&
             (identical(other.selectedTrainerId, selectedTrainerId) ||
@@ -1651,16 +1694,11 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
             (identical(other.panOffset, panOffset) ||
                 other.panOffset == panOffset) &&
-            const DeepCollectionEquality()
-                .equals(other._mapUndoStack, _mapUndoStack) &&
-            const DeepCollectionEquality()
-                .equals(other._mapRedoStack, _mapRedoStack) &&
-            (identical(other.mapStrokeStart, mapStrokeStart) ||
-                other.mapStrokeStart == mapStrokeStart) &&
-            (identical(other.savedMapSnapshot, savedMapSnapshot) ||
-                other.savedMapSnapshot == savedMapSnapshot) &&
-            (identical(other.canUndoMap, canUndoMap) ||
-                other.canUndoMap == canUndoMap) &&
+            const DeepCollectionEquality().equals(other._mapUndoStack, _mapUndoStack) &&
+            const DeepCollectionEquality().equals(other._mapRedoStack, _mapRedoStack) &&
+            (identical(other.mapStrokeStart, mapStrokeStart) || other.mapStrokeStart == mapStrokeStart) &&
+            (identical(other.savedMapSnapshot, savedMapSnapshot) || other.savedMapSnapshot == savedMapSnapshot) &&
+            (identical(other.canUndoMap, canUndoMap) || other.canUndoMap == canUndoMap) &&
             (identical(other.canRedoMap, canRedoMap) || other.canRedoMap == canRedoMap) &&
             (identical(other.isDirty, isDirty) || other.isDirty == isDirty) &&
             (identical(other.isSaving, isSaving) || other.isSaving == isSaving) &&
@@ -1694,6 +1732,8 @@ class _$EditorStateImpl implements _EditorState {
         gameplayZoneDraftArea,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
+        tilesElementsPanelMode,
+        selectedPlacedElementInstanceId,
         selectedProjectDialogueId,
         selectedTrainerId,
         selectedCharacterId,
@@ -1746,6 +1786,8 @@ abstract class _EditorState implements EditorState {
       final MapRect? gameplayZoneDraftArea,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
+      final TilesElementsPanelMode tilesElementsPanelMode,
+      final String? selectedPlacedElementInstanceId,
       final String? selectedProjectDialogueId,
       final String? selectedTrainerId,
       final String? selectedCharacterId,
@@ -1812,6 +1854,10 @@ abstract class _EditorState implements EditorState {
   String? get selectedTilesetEditorId;
   @override
   String? get selectedTilesetElementGroupId;
+  @override
+  TilesElementsPanelMode get tilesElementsPanelMode;
+  @override
+  String? get selectedPlacedElementInstanceId;
 
   /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
   @override

@@ -45,6 +45,18 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
   }
 
   if (facingWorld.isBlocked(tx, ty)) {
+    final bumpWarp = facingWorld.warpOnBumpAt(tx, ty, direction);
+    if (bumpWarp != null) {
+      return WarpTriggered(
+        facingWorld,
+        TriggeredWarp(
+          warpId: bumpWarp.id,
+          targetMapId: bumpWarp.targetMapId,
+          targetPos: bumpWarp.targetPos,
+          triggerMode: bumpWarp.triggerMode,
+        ),
+      );
+    }
     return Blocked(facingWorld);
   }
 
@@ -52,7 +64,7 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
     facingWorld.player.copyWith(pos: GridPos(x: tx, y: ty)),
   );
 
-  final warp = movedWorld.warpAt(tx, ty);
+  final warp = movedWorld.warpOnEnterAt(tx, ty, direction);
   if (warp != null) {
     return WarpTriggered(
       movedWorld,
@@ -60,6 +72,7 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
         warpId: warp.id,
         targetMapId: warp.targetMapId,
         targetPos: warp.targetPos,
+        triggerMode: warp.triggerMode,
       ),
     );
   }

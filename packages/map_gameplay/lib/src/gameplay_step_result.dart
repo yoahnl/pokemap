@@ -7,11 +7,13 @@ class TriggeredWarp {
     required this.warpId,
     required this.targetMapId,
     required this.targetPos,
+    required this.triggerMode,
   });
 
   final String warpId;
   final String targetMapId;
   final GridPos targetPos;
+  final MapWarpTriggerMode triggerMode;
 }
 
 class TriggeredConnection {

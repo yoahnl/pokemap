@@ -25,14 +25,24 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
   final _idController = TextEditingController();
   final _targetXController = TextEditingController();
   final _targetYController = TextEditingController();
+  final _paddingTopController = TextEditingController();
+  final _paddingRightController = TextEditingController();
+  final _paddingBottomController = TextEditingController();
+  final _paddingLeftController = TextEditingController();
   String? _boundWarpId;
   String? _selectedTargetMapId;
+  MapWarpTriggerMode _selectedTriggerMode = MapWarpTriggerMode.onEnter;
+  Set<EntityFacing> _selectedApproachFacings = <EntityFacing>{};
 
   @override
   void dispose() {
     _idController.dispose();
     _targetXController.dispose();
     _targetYController.dispose();
+    _paddingTopController.dispose();
+    _paddingRightController.dispose();
+    _paddingBottomController.dispose();
+    _paddingLeftController.dispose();
     super.dispose();
   }
 
@@ -82,7 +92,8 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                         ? 'Aucun warp sur cette carte.\nChoisissez l’outil Warp et cliquez sur la carte pour en ajouter.'
                         : 'No warps on this map.\nSelect the Warp tool and click on the map to add one.',
                     style: TextStyle(
-                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      color:
+                          CupertinoColors.placeholderText.resolveFrom(context),
                       fontSize: 12,
                     ),
                   ),
@@ -134,9 +145,10 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: labelColor,
-                                      fontWeight: warp.id == state.selectedWarpId
-                                          ? FontWeight.w600
-                                          : FontWeight.w500,
+                                      fontWeight:
+                                          warp.id == state.selectedWarpId
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -144,6 +156,14 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                                     '(${warp.pos.x}, ${warp.pos.y}) -> ${_buildTargetMapLabel(warp.targetMapId, projectMapById)} (${warp.targetPos.x}, ${warp.targetPos.y})',
                                     style: TextStyle(
                                       fontSize: 11,
+                                      color: subtle,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_modeLabel(warp.triggerMode, embedded: widget.embedded)} · ${_approachSummary(warp.allowedApproachFacings, embedded: widget.embedded)}',
+                                    style: TextStyle(
+                                      fontSize: 10,
                                       color: subtle,
                                     ),
                                   ),
@@ -202,7 +222,8 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
@@ -242,8 +263,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
   }) {
-    final secondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -303,6 +323,10 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
     Future<void> onSaveWarp() async {
       final x = int.tryParse(_targetXController.text.trim());
       final y = int.tryParse(_targetYController.text.trim());
+      final top = int.tryParse(_paddingTopController.text.trim());
+      final right = int.tryParse(_paddingRightController.text.trim());
+      final bottom = int.tryParse(_paddingBottomController.text.trim());
+      final left = int.tryParse(_paddingLeftController.text.trim());
       if (x == null || y == null) {
         await showCupertinoEditorAlert(
           context,
@@ -312,21 +336,49 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
         );
         return;
       }
+      if (top == null || right == null || bottom == null || left == null) {
+        await showCupertinoEditorAlert(
+          context,
+          message: embedded
+              ? 'Les marges d’activation doivent être des entiers valides.'
+              : 'Activation padding must be valid integers',
+        );
+        return;
+      }
+      if (top < 0 || right < 0 || bottom < 0 || left < 0) {
+        await showCupertinoEditorAlert(
+          context,
+          message: embedded
+              ? 'Les marges d’activation doivent être positives.'
+              : 'Activation padding must be non-negative',
+        );
+        return;
+      }
       final targetMapId = _selectedTargetMapId?.trim();
       if (targetMapId == null || targetMapId.isEmpty) {
         await showCupertinoEditorAlert(
           context,
-          message: embedded
-              ? 'Choisissez une carte cible.'
-              : 'Select a target map',
+          message:
+              embedded ? 'Choisissez une carte cible.' : 'Select a target map',
         );
         return;
       }
+      final sortedApproachFacings = _selectedApproachFacings.toList(
+          growable: false)
+        ..sort((a, b) => a.index.compareTo(b.index));
       notifier.updateSelectedWarp(
         id: _idController.text.trim(),
         targetMapId: targetMapId,
         targetPosX: x,
         targetPosY: y,
+        triggerMode: _selectedTriggerMode,
+        allowedApproachFacings: sortedApproachFacings,
+        triggerPadding: WarpTriggerPadding(
+          top: top,
+          right: right,
+          bottom: bottom,
+          left: left,
+        ),
       );
     }
 
@@ -381,8 +433,7 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
               valueLabel: targetValueLabel,
               orderedIds: mapMenuIds,
               selectedMenuValue: effectiveMenuId,
-              selectedIdForCheck:
-                  rawTargetId.isEmpty ? null : rawTargetId,
+              selectedIdForCheck: rawTargetId.isEmpty ? null : rawTargetId,
               idToLabel: (id) => id.isEmpty
                   ? '—'
                   : projectMapById.containsKey(id)
@@ -434,7 +485,8 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
             embedded
                 ? 'La carte cible est absente du projet : $pickedTargetMapId'
                 : 'Current target map is missing from project: $pickedTargetMapId',
-            style: const TextStyle(fontSize: 11, color: EditorPaintColors.amber),
+            style:
+                const TextStyle(fontSize: 11, color: EditorPaintColors.amber),
           ),
         ],
         const SizedBox(height: 8),
@@ -462,6 +514,21 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
           ],
         ),
         const SizedBox(height: 8),
+        _buildTriggerModeSelector(
+          context,
+          embedded: embedded,
+        ),
+        const SizedBox(height: 8),
+        _buildApproachFacingSelector(
+          context,
+          embedded: embedded,
+        ),
+        const SizedBox(height: 8),
+        _buildPaddingEditor(
+          context,
+          embedded: embedded,
+        ),
+        const SizedBox(height: 10),
         if (embedded)
           Row(
             children: [
@@ -552,13 +619,427 @@ class _WarpPropertiesPanelState extends ConsumerState<WarpPropertiesPanel> {
       _idController.text = '';
       _targetXController.text = '';
       _targetYController.text = '';
+      _paddingTopController.text = '0';
+      _paddingRightController.text = '0';
+      _paddingBottomController.text = '0';
+      _paddingLeftController.text = '0';
       _selectedTargetMapId = null;
+      _selectedTriggerMode = MapWarpTriggerMode.onEnter;
+      _selectedApproachFacings = <EntityFacing>{};
       return;
     }
     _idController.text = selectedWarp.id;
     _selectedTargetMapId = selectedWarp.targetMapId;
     _targetXController.text = selectedWarp.targetPos.x.toString();
     _targetYController.text = selectedWarp.targetPos.y.toString();
+    _paddingTopController.text = selectedWarp.triggerPadding.top.toString();
+    _paddingRightController.text = selectedWarp.triggerPadding.right.toString();
+    _paddingBottomController.text =
+        selectedWarp.triggerPadding.bottom.toString();
+    _paddingLeftController.text = selectedWarp.triggerPadding.left.toString();
+    _selectedTriggerMode = selectedWarp.triggerMode;
+    _selectedApproachFacings = selectedWarp.allowedApproachFacings.toSet();
+  }
+
+  Widget _buildTriggerModeSelector(
+    BuildContext context, {
+    required bool embedded,
+  }) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          embedded ? 'Mode d’activation' : 'Trigger Mode',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        CupertinoSlidingSegmentedControl<MapWarpTriggerMode>(
+          groupValue: _selectedTriggerMode,
+          children: {
+            for (final mode in MapWarpTriggerMode.values)
+              mode: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Text(
+                  _modeLabel(mode, embedded: embedded),
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+          },
+          onValueChanged: (value) {
+            if (value == null) return;
+            setState(() => _selectedTriggerMode = value);
+          },
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _selectedTriggerMode == MapWarpTriggerMode.onEnter
+              ? (embedded
+                  ? 'Le warp se déclenche quand le joueur entre dans la zone.'
+                  : 'Warp triggers when the player enters its area.')
+              : (embedded
+                  ? 'Le warp se déclenche quand le joueur pousse une case bloquée dans la zone.'
+                  : 'Warp triggers when movement is blocked while bumping into its area.'),
+          style: TextStyle(fontSize: 11, color: secondary),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildApproachFacingSelector(
+    BuildContext context, {
+    required bool embedded,
+  }) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    const accent = EditorChrome.inspectorJoyOrchid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          embedded ? 'Côtés actifs' : 'Active Sides',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final facing in EntityFacing.values)
+              _buildFacingToggle(
+                context,
+                facing: facing,
+                embedded: embedded,
+                accent: accent,
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _selectedApproachFacings.isEmpty
+              ? (embedded
+                  ? 'Aucun filtre : le warp est actif depuis tous les côtés.'
+                  : 'No filter: warp can trigger from any side.')
+              : (embedded
+                  ? 'Le warp est actif seulement si le joueur arrive depuis les côtés sélectionnés.'
+                  : 'Warp only triggers when the player approaches from selected sides.'),
+          style: TextStyle(fontSize: 11, color: secondary),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFacingToggle(
+    BuildContext context, {
+    required EntityFacing facing,
+    required bool embedded,
+    required Color accent,
+  }) {
+    final selected = _selectedApproachFacings.contains(facing);
+    final label = _facingLabel(facing, embedded: embedded);
+    final baseFill = EditorChrome.largeIslandSurfaceColor(
+      context,
+      tint: accent.withValues(alpha: selected ? 0.22 : 0.08),
+    );
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: () {
+        setState(() {
+          final next = Set<EntityFacing>.from(_selectedApproachFacings);
+          if (next.contains(facing)) {
+            next.remove(facing);
+          } else {
+            next.add(facing);
+          }
+          _selectedApproachFacings = next;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: baseFill,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected
+                ? accent.withValues(alpha: 0.85)
+                : accent.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _facingIcon(facing),
+              size: 14,
+              color: selected
+                  ? accent
+                  : CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: EditorChrome.primaryLabel(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaddingEditor(
+    BuildContext context, {
+    required bool embedded,
+  }) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          embedded ? 'Padding d’activation (px)' : 'Activation Padding (px)',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: _paddingField(
+                context,
+                label: embedded ? 'Haut' : 'Top',
+                controller: _paddingTopController,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _paddingField(
+                context,
+                label: embedded ? 'Droite' : 'Right',
+                controller: _paddingRightController,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _paddingField(
+                context,
+                label: embedded ? 'Bas' : 'Bottom',
+                controller: _paddingBottomController,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _paddingField(
+                context,
+                label: embedded ? 'Gauche' : 'Left',
+                controller: _paddingLeftController,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          embedded ? 'Presets rapides' : 'Quick Presets',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _presetButton(
+              context,
+              label: embedded ? 'Reset' : 'Reset',
+              onPressed: _resetActivationSettings,
+            ),
+            _presetButton(
+              context,
+              label: embedded ? 'Porte Sud' : 'Door South',
+              onPressed: () => _applyDoorPreset(EntityFacing.south),
+            ),
+            _presetButton(
+              context,
+              label: embedded ? 'Porte Nord' : 'Door North',
+              onPressed: () => _applyDoorPreset(EntityFacing.north),
+            ),
+            _presetButton(
+              context,
+              label: embedded ? 'Porte Est' : 'Door East',
+              onPressed: () => _applyDoorPreset(EntityFacing.east),
+            ),
+            _presetButton(
+              context,
+              label: embedded ? 'Porte Ouest' : 'Door West',
+              onPressed: () => _applyDoorPreset(EntityFacing.west),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _presetButton(
+    BuildContext context, {
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    final accent = EditorChrome.inspectorJoyOrchid.withValues(alpha: 0.78);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: accent.withValues(alpha: 0.12),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: accent.withValues(alpha: 0.45)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: EditorChrome.primaryLabel(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _paddingField(
+    BuildContext context, {
+    required String label,
+    required TextEditingController controller,
+  }) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: secondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        CupertinoTextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        ),
+      ],
+    );
+  }
+
+  String _modeLabel(
+    MapWarpTriggerMode mode, {
+    required bool embedded,
+  }) {
+    return switch (mode) {
+      MapWarpTriggerMode.onEnter => embedded ? 'Entrée' : 'Enter',
+      MapWarpTriggerMode.onBump => embedded ? 'Collision' : 'Bump',
+    };
+  }
+
+  String _approachSummary(
+    List<EntityFacing> facings, {
+    required bool embedded,
+  }) {
+    if (facings.isEmpty) {
+      return embedded ? 'Tous côtés' : 'All sides';
+    }
+    return facings
+        .map((facing) => _facingLabel(facing, embedded: embedded))
+        .join(' · ');
+  }
+
+  String _facingLabel(
+    EntityFacing facing, {
+    required bool embedded,
+  }) {
+    return switch (facing) {
+      EntityFacing.north => embedded ? 'Nord' : 'North',
+      EntityFacing.south => embedded ? 'Sud' : 'South',
+      EntityFacing.east => embedded ? 'Est' : 'East',
+      EntityFacing.west => embedded ? 'Ouest' : 'West',
+    };
+  }
+
+  IconData _facingIcon(EntityFacing facing) {
+    return switch (facing) {
+      EntityFacing.north => CupertinoIcons.arrow_up,
+      EntityFacing.south => CupertinoIcons.arrow_down,
+      EntityFacing.east => CupertinoIcons.arrow_right,
+      EntityFacing.west => CupertinoIcons.arrow_left,
+    };
+  }
+
+  void _resetActivationSettings() {
+    setState(() {
+      _selectedTriggerMode = MapWarpTriggerMode.onEnter;
+      _selectedApproachFacings = <EntityFacing>{};
+      _paddingTopController.text = '0';
+      _paddingRightController.text = '0';
+      _paddingBottomController.text = '0';
+      _paddingLeftController.text = '0';
+    });
+  }
+
+  void _applyDoorPreset(EntityFacing approachSide) {
+    setState(() {
+      _selectedTriggerMode = MapWarpTriggerMode.onBump;
+      _selectedApproachFacings = <EntityFacing>{approachSide};
+      var top = 0;
+      var right = 0;
+      var bottom = 0;
+      var left = 0;
+      switch (approachSide) {
+        case EntityFacing.north:
+          top = 8;
+          break;
+        case EntityFacing.south:
+          bottom = 8;
+          break;
+        case EntityFacing.east:
+          right = 8;
+          break;
+        case EntityFacing.west:
+          left = 8;
+          break;
+      }
+      _paddingTopController.text = top.toString();
+      _paddingRightController.text = right.toString();
+      _paddingBottomController.text = bottom.toString();
+      _paddingLeftController.text = left.toString();
+    });
   }
 
   String _buildTargetMapLabel(

@@ -98,6 +98,9 @@ class WarpEditingService {
     GridPos? pos,
     String? targetMapId,
     GridPos? targetPos,
+    MapWarpTriggerMode? triggerMode,
+    List<EntityFacing>? allowedApproachFacings,
+    WarpTriggerPadding? triggerPadding,
   }) {
     final currentWarp = _warpEditingCoordinator.findWarpById(map, warpId);
     final effectiveTargetMapId = targetMapId ?? currentWarp?.targetMapId;
@@ -112,6 +115,9 @@ class WarpEditingService {
       pos: pos,
       targetMapId: targetMapId?.trim(),
       targetPos: targetPos,
+      triggerMode: triggerMode,
+      allowedApproachFacings: allowedApproachFacings,
+      triggerPadding: triggerPadding,
     );
     final nextSelectedWarpId =
         id?.trim().isNotEmpty == true ? id!.trim() : warpId;
