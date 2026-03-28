@@ -13,17 +13,18 @@ import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
+import '../../../application/services/element_collision_profile_generator.dart';
 import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
 import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/path_layer_editing_coordinator.dart';
+import '../../../application/services/placed_element_instance_indexer.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
-import '../models/placed_element_instance_ref.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 
@@ -68,6 +69,10 @@ class EditorNotifier extends _$EditorNotifier {
       ref.read(terrainPaintingCoordinatorProvider);
   PathLayerEditingCoordinator get _pathLayerEditingCoordinator =>
       ref.read(pathLayerEditingCoordinatorProvider);
+  ElementCollisionProfileGenerator get _elementCollisionProfileGenerator =>
+      ref.read(elementCollisionProfileGeneratorProvider);
+  PlacedElementInstanceIndexer get _placedElementInstanceIndexer =>
+      ref.read(placedElementInstanceIndexerProvider);
 
   TerrainPresetSelection _currentTerrainPresetSelection() {
     return TerrainPresetSelection(
@@ -330,8 +335,14 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final useCase = ref.read(loadMapUseCaseProvider);
-      final map = await useCase.execute(fs, relativePath);
       final project = state.project;
+      final loadedMap = await useCase.execute(fs, relativePath);
+      final map = project == null
+          ? loadedMap
+          : _placedElementInstanceIndexer.syncAllTileLayers(
+              map: loadedMap,
+              project: project,
+            );
       final presetSelection = project == null
           ? _currentTerrainPresetSelection()
           : _terrainPresetSelectionCoordinator.normalize(
@@ -1596,6 +1607,8 @@ class EditorNotifier extends _$EditorNotifier {
     required String name,
     required String categoryId,
     required TilesetSourceRect source,
+    ElementPresetKind presetKind = ElementPresetKind.generic,
+    ElementCollisionProfile? collisionProfile,
     String? tilesetId,
     String? tilesetGroupId,
     String? groupId,
@@ -1619,6 +1632,8 @@ class EditorNotifier extends _$EditorNotifier {
         name: name,
         tilesetId: effectiveTilesetId,
         categoryId: categoryId,
+        presetKind: presetKind,
+        collisionProfile: collisionProfile,
         tilesetGroupId: tilesetGroupId,
         source: source,
         groupId: groupId,
@@ -1633,6 +1648,7 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Element "${result.element.name}" created',
         errorMessage: null,
       );
+      _resyncPlacedElementsForActiveMapFromProject();
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to create element: $e');
     }
@@ -1641,6 +1657,9 @@ class EditorNotifier extends _$EditorNotifier {
   Future<void> updateProjectElement({
     required String elementId,
     String? name,
+    ElementPresetKind? presetKind,
+    ElementCollisionProfile? collisionProfile,
+    bool clearCollisionProfile = false,
     String? categoryId,
     String? tilesetGroupId,
     bool clearTilesetGroupId = false,
@@ -1661,6 +1680,9 @@ class EditorNotifier extends _$EditorNotifier {
         project,
         elementId: elementId,
         name: name,
+        presetKind: presetKind,
+        collisionProfile: collisionProfile,
+        clearCollisionProfile: clearCollisionProfile,
         categoryId: categoryId,
         tilesetGroupId: tilesetGroupId,
         clearTilesetGroupId: clearTilesetGroupId,
@@ -1690,6 +1712,7 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Element updated',
         errorMessage: null,
       );
+      _resyncPlacedElementsForActiveMapFromProject();
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update element: $e');
     }
@@ -1718,9 +1741,68 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Element deleted',
         errorMessage: null,
       );
+      _resyncPlacedElementsForActiveMapFromProject();
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete element: $e');
     }
+  }
+
+  Future<ElementCollisionProfile?> generateElementCollisionProfile({
+    required String tilesetId,
+    required TilesetSourceRect source,
+    required ElementPresetKind presetKind,
+  }) async {
+    final project = state.project;
+    if (project == null) {
+      state = state.copyWith(errorMessage: 'No project loaded');
+      return null;
+    }
+    final tilesetPath = getTilesetAbsolutePathById(tilesetId);
+    if (tilesetPath == null || tilesetPath.trim().isEmpty) {
+      state = state.copyWith(errorMessage: 'Tileset path not found');
+      return null;
+    }
+    try {
+      final profile = await _elementCollisionProfileGenerator.generate(
+        tilesetImagePath: tilesetPath,
+        source: source,
+        tileWidth: project.settings.tileWidth,
+        tileHeight: project.settings.tileHeight,
+        presetKind: presetKind,
+      );
+      state = state.copyWith(
+        statusMessage:
+            'Collision auto-générée (${profile.cells.length} cellule${profile.cells.length > 1 ? 's' : ''})',
+        errorMessage: null,
+      );
+      return profile;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to generate collision profile: $e',
+      );
+      return null;
+    }
+  }
+
+  void _resyncPlacedElementsForActiveMapFromProject() {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) {
+      return;
+    }
+    final synced = _placedElementInstanceIndexer.syncAllTileLayers(
+      map: map,
+      project: project,
+    );
+    if (identical(synced, map) || synced == map) {
+      return;
+    }
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: synced,
+      preferredActiveLayerId: state.activeLayerId,
+      statusMessage: 'Instances d’éléments synchronisées',
+    );
   }
 
   List<TilesetPaletteEntry> getActivePaletteEntries() {
@@ -3125,6 +3207,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (restored == null) return;
     final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
       currentSelectionId: state.selectedPlacedElementInstanceId,
+      nextMap: restored.activeMap,
       nextActiveLayerId: restored.activeLayerId,
     );
     state = state.copyWith(
@@ -3165,6 +3248,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (restored == null) return;
     final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
       currentSelectionId: state.selectedPlacedElementInstanceId,
+      nextMap: restored.activeMap,
       nextActiveLayerId: restored.activeLayerId,
     );
     state = state.copyWith(
@@ -3449,9 +3533,17 @@ class EditorNotifier extends _$EditorNotifier {
         tiles: pattern.tiles,
         clipToMapBounds: true,
       );
+      final project = state.project;
+      final committed = project == null
+          ? painted
+          : _placedElementInstanceIndexer.syncLayer(
+              map: painted,
+              project: project,
+              layerId: layerId,
+            );
       _applyMapMutation(
         previousMap: map,
-        updatedMap: painted,
+        updatedMap: committed,
         preferredActiveLayerId: layerId,
         partOfStroke: true,
       );
@@ -3468,6 +3560,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String failureLabel,
   }) {
     try {
+      final project = state.project;
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(eraseTileOnMapUseCaseProvider);
         final erased = useCase.execute(
@@ -3475,9 +3568,16 @@ class EditorNotifier extends _$EditorNotifier {
           layerId: layerId,
           pos: pos,
         );
+        final committed = project == null
+            ? erased
+            : _placedElementInstanceIndexer.syncLayer(
+                map: erased,
+                project: project,
+                layerId: layerId,
+              );
         _applyMapMutation(
           previousMap: map,
-          updatedMap: erased,
+          updatedMap: committed,
           preferredActiveLayerId: layerId,
           partOfStroke: true,
         );
@@ -3492,9 +3592,16 @@ class EditorNotifier extends _$EditorNotifier {
         patternSize: patternSize,
         clipToMapBounds: true,
       );
+      final committed = project == null
+          ? erased
+          : _placedElementInstanceIndexer.syncLayer(
+              map: erased,
+              project: project,
+              layerId: layerId,
+            );
       _applyMapMutation(
         previousMap: map,
-        updatedMap: erased,
+        updatedMap: committed,
         preferredActiveLayerId: layerId,
         partOfStroke: true,
       );
@@ -5148,6 +5255,44 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void setPlacedElementInstanceCollisionApplied({
+    required String instanceId,
+    required bool applyCollision,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    final index =
+        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    if (index < 0) {
+      state = state.copyWith(
+        errorMessage: 'Placed element instance not found: $trimmedId',
+      );
+      return;
+    }
+    final previous = map.placedElements[index];
+    if (previous.applyCollision == applyCollision) {
+      return;
+    }
+    final updatedMap = setMapPlacedElementCollisionApplied(
+      map,
+      instanceId: trimmedId,
+      applyCollision: applyCollision,
+    );
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: updatedMap,
+      preferredActiveLayerId: state.activeLayerId,
+      statusMessage:
+          'Collision ${applyCollision ? 'activée' : 'désactivée'} pour ${previous.elementId}',
+    );
+  }
+
   /// Bascule vers la sélection si l’outil courant ne peut pas agir sur le calque actif.
   void _coerceActiveToolIfIncompatibleWithLayer() {
     final map = state.activeMap;
@@ -5244,6 +5389,7 @@ class EditorNotifier extends _$EditorNotifier {
     );
     final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
       currentSelectionId: state.selectedPlacedElementInstanceId,
+      nextMap: mutation.activeMap,
       nextActiveLayerId: mutation.activeLayerId,
     );
     state = state.copyWith(
@@ -5270,19 +5416,26 @@ class EditorNotifier extends _$EditorNotifier {
 
   String? _resolvePlacedElementSelectionAfterMutation({
     required String? currentSelectionId,
+    required MapData nextMap,
     required String? nextActiveLayerId,
   }) {
-    final parsed = PlacedElementInstanceRef.parse(currentSelectionId);
-    if (parsed == null) {
+    final normalizedSelection = currentSelectionId?.trim();
+    if (normalizedSelection == null || normalizedSelection.isEmpty) {
       return null;
     }
     if (nextActiveLayerId == null || nextActiveLayerId.isEmpty) {
       return null;
     }
-    if (parsed.layerId != nextActiveLayerId) {
-      return null;
+    for (final instance in nextMap.placedElements) {
+      if (instance.id != normalizedSelection) {
+        continue;
+      }
+      if (instance.layerId != nextActiveLayerId) {
+        return null;
+      }
+      return normalizedSelection;
     }
-    return parsed.id;
+    return null;
   }
 
   int _findLayerIndexById(MapData map, String layerId) {

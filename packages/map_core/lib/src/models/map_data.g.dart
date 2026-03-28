@@ -18,6 +18,10 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => MapLayer.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      placedElements: (json['placedElements'] as List<dynamic>?)
+              ?.map((e) => MapPlacedElement.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       entities: (json['entities'] as List<dynamic>?)
               ?.map((e) => MapEntity.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -52,6 +56,7 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'version': _$ProjectVersionEnumMap[instance.version]!,
       'tilesetId': instance.tilesetId,
       'layers': instance.layers.map((e) => e.toJson()).toList(),
+      'placedElements': instance.placedElements.map((e) => e.toJson()).toList(),
       'entities': instance.entities.map((e) => e.toJson()).toList(),
       'connections': instance.connections.map((e) => e.toJson()).toList(),
       'warps': instance.warps.map((e) => e.toJson()).toList(),
@@ -111,6 +116,31 @@ const _$GameplayZoneKindEnumMap = {
   GameplayZoneKind.special: 'special',
   GameplayZoneKind.custom: 'custom',
 };
+
+_$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapPlacedElementImpl(
+      id: json['id'] as String,
+      layerId: json['layerId'] as String,
+      elementId: json['elementId'] as String,
+      pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+      applyCollision: json['applyCollision'] as bool? ?? true,
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const {},
+    );
+
+Map<String, dynamic> _$$MapPlacedElementImplToJson(
+        _$MapPlacedElementImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'layerId': instance.layerId,
+      'elementId': instance.elementId,
+      'pos': instance.pos.toJson(),
+      'applyCollision': instance.applyCollision,
+      'properties': instance.properties,
+    };
 
 _$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
     _$MapEntityImpl(

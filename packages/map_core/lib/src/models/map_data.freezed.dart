@@ -26,6 +26,8 @@ mixin _$MapData {
   ProjectVersion get version => throw _privateConstructorUsedError;
   String get tilesetId => throw _privateConstructorUsedError;
   List<MapLayer> get layers => throw _privateConstructorUsedError;
+  List<MapPlacedElement> get placedElements =>
+      throw _privateConstructorUsedError;
   List<MapEntity> get entities => throw _privateConstructorUsedError;
   List<MapConnection> get connections => throw _privateConstructorUsedError;
   List<MapWarp> get warps => throw _privateConstructorUsedError;
@@ -58,6 +60,7 @@ abstract class $MapDataCopyWith<$Res> {
       ProjectVersion version,
       String tilesetId,
       List<MapLayer> layers,
+      List<MapPlacedElement> placedElements,
       List<MapEntity> entities,
       List<MapConnection> connections,
       List<MapWarp> warps,
@@ -91,6 +94,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
     Object? version = null,
     Object? tilesetId = null,
     Object? layers = null,
+    Object? placedElements = null,
     Object? entities = null,
     Object? connections = null,
     Object? warps = null,
@@ -124,6 +128,10 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
           ? _value.layers
           : layers // ignore: cast_nullable_to_non_nullable
               as List<MapLayer>,
+      placedElements: null == placedElements
+          ? _value.placedElements
+          : placedElements // ignore: cast_nullable_to_non_nullable
+              as List<MapPlacedElement>,
       entities: null == entities
           ? _value.entities
           : entities // ignore: cast_nullable_to_non_nullable
@@ -190,6 +198,7 @@ abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
       ProjectVersion version,
       String tilesetId,
       List<MapLayer> layers,
+      List<MapPlacedElement> placedElements,
       List<MapEntity> entities,
       List<MapConnection> connections,
       List<MapWarp> warps,
@@ -223,6 +232,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
     Object? version = null,
     Object? tilesetId = null,
     Object? layers = null,
+    Object? placedElements = null,
     Object? entities = null,
     Object? connections = null,
     Object? warps = null,
@@ -256,6 +266,10 @@ class __$$MapDataImplCopyWithImpl<$Res>
           ? _value._layers
           : layers // ignore: cast_nullable_to_non_nullable
               as List<MapLayer>,
+      placedElements: null == placedElements
+          ? _value._placedElements
+          : placedElements // ignore: cast_nullable_to_non_nullable
+              as List<MapPlacedElement>,
       entities: null == entities
           ? _value._entities
           : entities // ignore: cast_nullable_to_non_nullable
@@ -299,6 +313,7 @@ class _$MapDataImpl implements _MapData {
       this.version = ProjectVersion.v1,
       this.tilesetId = '',
       final List<MapLayer> layers = const [],
+      final List<MapPlacedElement> placedElements = const [],
       final List<MapEntity> entities = const [],
       final List<MapConnection> connections = const [],
       final List<MapWarp> warps = const [],
@@ -307,6 +322,7 @@ class _$MapDataImpl implements _MapData {
       this.mapMetadata = const MapMetadata(),
       final Map<String, dynamic> properties = const {}})
       : _layers = layers,
+        _placedElements = placedElements,
         _entities = entities,
         _connections = connections,
         _warps = warps,
@@ -336,6 +352,15 @@ class _$MapDataImpl implements _MapData {
     if (_layers is EqualUnmodifiableListView) return _layers;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_layers);
+  }
+
+  final List<MapPlacedElement> _placedElements;
+  @override
+  @JsonKey()
+  List<MapPlacedElement> get placedElements {
+    if (_placedElements is EqualUnmodifiableListView) return _placedElements;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_placedElements);
   }
 
   final List<MapEntity> _entities;
@@ -402,7 +427,7 @@ class _$MapDataImpl implements _MapData {
 
   @override
   String toString() {
-    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties)';
+    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties)';
   }
 
   @override
@@ -417,6 +442,8 @@ class _$MapDataImpl implements _MapData {
             (identical(other.tilesetId, tilesetId) ||
                 other.tilesetId == tilesetId) &&
             const DeepCollectionEquality().equals(other._layers, _layers) &&
+            const DeepCollectionEquality()
+                .equals(other._placedElements, _placedElements) &&
             const DeepCollectionEquality().equals(other._entities, _entities) &&
             const DeepCollectionEquality()
                 .equals(other._connections, _connections) &&
@@ -440,6 +467,7 @@ class _$MapDataImpl implements _MapData {
       version,
       tilesetId,
       const DeepCollectionEquality().hash(_layers),
+      const DeepCollectionEquality().hash(_placedElements),
       const DeepCollectionEquality().hash(_entities),
       const DeepCollectionEquality().hash(_connections),
       const DeepCollectionEquality().hash(_warps),
@@ -472,6 +500,7 @@ abstract class _MapData implements MapData {
       final ProjectVersion version,
       final String tilesetId,
       final List<MapLayer> layers,
+      final List<MapPlacedElement> placedElements,
       final List<MapEntity> entities,
       final List<MapConnection> connections,
       final List<MapWarp> warps,
@@ -494,6 +523,8 @@ abstract class _MapData implements MapData {
   String get tilesetId;
   @override
   List<MapLayer> get layers;
+  @override
+  List<MapPlacedElement> get placedElements;
   @override
   List<MapEntity> get entities;
   @override
@@ -951,6 +982,288 @@ abstract class _MapGameplayZone implements MapGameplayZone {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$MapGameplayZoneImplCopyWith<_$MapGameplayZoneImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+MapPlacedElement _$MapPlacedElementFromJson(Map<String, dynamic> json) {
+  return _MapPlacedElement.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapPlacedElement {
+  String get id => throw _privateConstructorUsedError;
+  String get layerId => throw _privateConstructorUsedError;
+  String get elementId => throw _privateConstructorUsedError;
+  GridPos get pos => throw _privateConstructorUsedError;
+  bool get applyCollision => throw _privateConstructorUsedError;
+  Map<String, String> get properties => throw _privateConstructorUsedError;
+
+  /// Serializes this MapPlacedElement to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapPlacedElement
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapPlacedElementCopyWith<MapPlacedElement> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapPlacedElementCopyWith<$Res> {
+  factory $MapPlacedElementCopyWith(
+          MapPlacedElement value, $Res Function(MapPlacedElement) then) =
+      _$MapPlacedElementCopyWithImpl<$Res, MapPlacedElement>;
+  @useResult
+  $Res call(
+      {String id,
+      String layerId,
+      String elementId,
+      GridPos pos,
+      bool applyCollision,
+      Map<String, String> properties});
+
+  $GridPosCopyWith<$Res> get pos;
+}
+
+/// @nodoc
+class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
+    implements $MapPlacedElementCopyWith<$Res> {
+  _$MapPlacedElementCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapPlacedElement
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? layerId = null,
+    Object? elementId = null,
+    Object? pos = null,
+    Object? applyCollision = null,
+    Object? properties = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      layerId: null == layerId
+          ? _value.layerId
+          : layerId // ignore: cast_nullable_to_non_nullable
+              as String,
+      elementId: null == elementId
+          ? _value.elementId
+          : elementId // ignore: cast_nullable_to_non_nullable
+              as String,
+      pos: null == pos
+          ? _value.pos
+          : pos // ignore: cast_nullable_to_non_nullable
+              as GridPos,
+      applyCollision: null == applyCollision
+          ? _value.applyCollision
+          : applyCollision // ignore: cast_nullable_to_non_nullable
+              as bool,
+      properties: null == properties
+          ? _value.properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ) as $Val);
+  }
+
+  /// Create a copy of MapPlacedElement
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $GridPosCopyWith<$Res> get pos {
+    return $GridPosCopyWith<$Res>(_value.pos, (value) {
+      return _then(_value.copyWith(pos: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$MapPlacedElementImplCopyWith<$Res>
+    implements $MapPlacedElementCopyWith<$Res> {
+  factory _$$MapPlacedElementImplCopyWith(_$MapPlacedElementImpl value,
+          $Res Function(_$MapPlacedElementImpl) then) =
+      __$$MapPlacedElementImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String layerId,
+      String elementId,
+      GridPos pos,
+      bool applyCollision,
+      Map<String, String> properties});
+
+  @override
+  $GridPosCopyWith<$Res> get pos;
+}
+
+/// @nodoc
+class __$$MapPlacedElementImplCopyWithImpl<$Res>
+    extends _$MapPlacedElementCopyWithImpl<$Res, _$MapPlacedElementImpl>
+    implements _$$MapPlacedElementImplCopyWith<$Res> {
+  __$$MapPlacedElementImplCopyWithImpl(_$MapPlacedElementImpl _value,
+      $Res Function(_$MapPlacedElementImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapPlacedElement
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? layerId = null,
+    Object? elementId = null,
+    Object? pos = null,
+    Object? applyCollision = null,
+    Object? properties = null,
+  }) {
+    return _then(_$MapPlacedElementImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      layerId: null == layerId
+          ? _value.layerId
+          : layerId // ignore: cast_nullable_to_non_nullable
+              as String,
+      elementId: null == elementId
+          ? _value.elementId
+          : elementId // ignore: cast_nullable_to_non_nullable
+              as String,
+      pos: null == pos
+          ? _value.pos
+          : pos // ignore: cast_nullable_to_non_nullable
+              as GridPos,
+      applyCollision: null == applyCollision
+          ? _value.applyCollision
+          : applyCollision // ignore: cast_nullable_to_non_nullable
+              as bool,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapPlacedElementImpl implements _MapPlacedElement {
+  const _$MapPlacedElementImpl(
+      {required this.id,
+      required this.layerId,
+      required this.elementId,
+      required this.pos,
+      this.applyCollision = true,
+      final Map<String, String> properties = const {}})
+      : _properties = properties;
+
+  factory _$MapPlacedElementImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MapPlacedElementImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String layerId;
+  @override
+  final String elementId;
+  @override
+  final GridPos pos;
+  @override
+  @JsonKey()
+  final bool applyCollision;
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @override
+  String toString() {
+    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapPlacedElementImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.layerId, layerId) || other.layerId == layerId) &&
+            (identical(other.elementId, elementId) ||
+                other.elementId == elementId) &&
+            (identical(other.pos, pos) || other.pos == pos) &&
+            (identical(other.applyCollision, applyCollision) ||
+                other.applyCollision == applyCollision) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, layerId, elementId, pos,
+      applyCollision, const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of MapPlacedElement
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapPlacedElementImplCopyWith<_$MapPlacedElementImpl> get copyWith =>
+      __$$MapPlacedElementImplCopyWithImpl<_$MapPlacedElementImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapPlacedElementImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapPlacedElement implements MapPlacedElement {
+  const factory _MapPlacedElement(
+      {required final String id,
+      required final String layerId,
+      required final String elementId,
+      required final GridPos pos,
+      final bool applyCollision,
+      final Map<String, String> properties}) = _$MapPlacedElementImpl;
+
+  factory _MapPlacedElement.fromJson(Map<String, dynamic> json) =
+      _$MapPlacedElementImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get layerId;
+  @override
+  String get elementId;
+  @override
+  GridPos get pos;
+  @override
+  bool get applyCollision;
+  @override
+  Map<String, String> get properties;
+
+  /// Create a copy of MapPlacedElement
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapPlacedElementImplCopyWith<_$MapPlacedElementImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

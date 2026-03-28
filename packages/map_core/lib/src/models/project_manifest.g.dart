@@ -447,6 +447,13 @@ _$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
       frames: (json['frames'] as List<dynamic>)
           .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
           .toList(),
+      presetKind:
+          $enumDecodeNullable(_$ElementPresetKindEnumMap, json['presetKind']) ??
+              ElementPresetKind.generic,
+      collisionProfile: json['collisionProfile'] == null
+          ? null
+          : ElementCollisionProfile.fromJson(
+              json['collisionProfile'] as Map<String, dynamic>),
       groupId: json['groupId'] as String?,
       recommendedLayerId: json['recommendedLayerId'] as String?,
       tags:
@@ -464,11 +471,22 @@ Map<String, dynamic> _$$ProjectElementEntryImplToJson(
       'categoryId': instance.categoryId,
       'tilesetGroupId': instance.tilesetGroupId,
       'frames': instance.frames.map((e) => e.toJson()).toList(),
+      'presetKind': _$ElementPresetKindEnumMap[instance.presetKind]!,
+      'collisionProfile': instance.collisionProfile?.toJson(),
       'groupId': instance.groupId,
       'recommendedLayerId': instance.recommendedLayerId,
       'tags': instance.tags,
       'sortOrder': instance.sortOrder,
     };
+
+const _$ElementPresetKindEnumMap = {
+  ElementPresetKind.generic: 'generic',
+  ElementPresetKind.tree: 'tree',
+  ElementPresetKind.building: 'building',
+  ElementPresetKind.rock: 'rock',
+  ElementPresetKind.cliff: 'cliff',
+  ElementPresetKind.tallDecoration: 'tall_decoration',
+};
 
 _$ProjectTerrainPresetImpl _$$ProjectTerrainPresetImplFromJson(
         Map<String, dynamic> json) =>

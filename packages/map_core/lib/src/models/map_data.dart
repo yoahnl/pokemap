@@ -21,6 +21,7 @@ class MapData with _$MapData {
     @Default(ProjectVersion.v1) ProjectVersion version,
     @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
+    @Default([]) List<MapPlacedElement> placedElements,
     @Default([]) List<MapEntity> entities,
     @Default([]) List<MapConnection> connections,
     @Default([]) List<MapWarp> warps,
@@ -81,6 +82,22 @@ class MapGameplayZone with _$MapGameplayZone {
 
   factory MapGameplayZone.fromJson(Map<String, dynamic> json) =>
       _$MapGameplayZoneFromJson(migrateMapGameplayZoneJson(json));
+}
+
+@freezed
+class MapPlacedElement with _$MapPlacedElement {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapPlacedElement({
+    required String id,
+    required String layerId,
+    required String elementId,
+    required GridPos pos,
+    @Default(true) bool applyCollision,
+    @Default({}) Map<String, String> properties,
+  }) = _MapPlacedElement;
+
+  factory MapPlacedElement.fromJson(Map<String, dynamic> json) =>
+      _$MapPlacedElementFromJson(json);
 }
 
 @freezed

@@ -26,13 +26,14 @@ class GameplayWorldState {
     required MapData map,
     required GridPos playerPos,
     Direction playerFacing = Direction.south,
+    ProjectManifest? project,
     int tileWidth = 16,
     int tileHeight = 16,
   }) =>
       GameplayWorldState._(
         map: map,
         player: GameplayPlayerState(pos: playerPos, facing: playerFacing),
-        collisionCache: _buildCollisionCache(map),
+        collisionCache: _buildCollisionCache(map, project: project),
         blockingEntityByPos: _buildBlockingEntityByPos(map),
         warpCandidatesByPos:
             _buildWarpCandidatesByPos(map, tileWidth, tileHeight),
@@ -43,11 +44,12 @@ class GameplayWorldState {
 
   factory GameplayWorldState.fromMap(
     MapData map, {
+    ProjectManifest? project,
     int tileWidth = 16,
     int tileHeight = 16,
   }) {
     final player = resolveInitialPlayerSpawn(map);
-    final cache = _buildCollisionCache(map);
+    final cache = _buildCollisionCache(map, project: project);
     final blockingEntities = _buildBlockingEntityByPos(map);
     final warps = _buildWarpCandidatesByPos(map, tileWidth, tileHeight);
     final entities = _buildEntityByPos(map);
@@ -184,7 +186,10 @@ class GameplayWorldState {
   }
 }
 
-List<bool> _buildCollisionCache(MapData map) {
+List<bool> _buildCollisionCache(
+  MapData map, {
+  ProjectManifest? project,
+}) {
   final size = map.size.width * map.size.height;
   final cache = List<bool>.filled(size, false);
   for (final layer in map.layers) {
@@ -195,6 +200,28 @@ List<bool> _buildCollisionCache(MapData map) {
         }
       },
     );
+  }
+  final elementById = project == null
+      ? const <String, ProjectElementEntry>{}
+      : {
+          for (final entry in project.elements) entry.id: entry,
+        };
+  for (final instance in map.placedElements) {
+    if (!instance.applyCollision) {
+      continue;
+    }
+    final profile = elementById[instance.elementId]?.collisionProfile;
+    if (profile == null || profile.cells.isEmpty) {
+      continue;
+    }
+    for (final localCell in profile.cells) {
+      final x = instance.pos.x + localCell.x;
+      final y = instance.pos.y + localCell.y;
+      if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+        continue;
+      }
+      cache[y * map.size.width + x] = true;
+    }
   }
   return cache;
 }

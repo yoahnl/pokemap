@@ -3824,6 +3824,9 @@ mixin _$ProjectElementEntry {
 
   /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
   List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
+  ElementPresetKind get presetKind => throw _privateConstructorUsedError;
+  ElementCollisionProfile? get collisionProfile =>
+      throw _privateConstructorUsedError;
   String? get groupId => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -3852,10 +3855,14 @@ abstract class $ProjectElementEntryCopyWith<$Res> {
       String categoryId,
       String? tilesetGroupId,
       List<TilesetVisualFrame> frames,
+      ElementPresetKind presetKind,
+      ElementCollisionProfile? collisionProfile,
       String? groupId,
       String? recommendedLayerId,
       List<String> tags,
       int sortOrder});
+
+  $ElementCollisionProfileCopyWith<$Res>? get collisionProfile;
 }
 
 /// @nodoc
@@ -3879,6 +3886,8 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
     Object? categoryId = null,
     Object? tilesetGroupId = freezed,
     Object? frames = null,
+    Object? presetKind = null,
+    Object? collisionProfile = freezed,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
     Object? tags = null,
@@ -3909,6 +3918,14 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
           ? _value.frames
           : frames // ignore: cast_nullable_to_non_nullable
               as List<TilesetVisualFrame>,
+      presetKind: null == presetKind
+          ? _value.presetKind
+          : presetKind // ignore: cast_nullable_to_non_nullable
+              as ElementPresetKind,
+      collisionProfile: freezed == collisionProfile
+          ? _value.collisionProfile
+          : collisionProfile // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionProfile?,
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
@@ -3927,6 +3944,21 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
               as int,
     ) as $Val);
   }
+
+  /// Create a copy of ProjectElementEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ElementCollisionProfileCopyWith<$Res>? get collisionProfile {
+    if (_value.collisionProfile == null) {
+      return null;
+    }
+
+    return $ElementCollisionProfileCopyWith<$Res>(_value.collisionProfile!,
+        (value) {
+      return _then(_value.copyWith(collisionProfile: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -3944,10 +3976,15 @@ abstract class _$$ProjectElementEntryImplCopyWith<$Res>
       String categoryId,
       String? tilesetGroupId,
       List<TilesetVisualFrame> frames,
+      ElementPresetKind presetKind,
+      ElementCollisionProfile? collisionProfile,
       String? groupId,
       String? recommendedLayerId,
       List<String> tags,
       int sortOrder});
+
+  @override
+  $ElementCollisionProfileCopyWith<$Res>? get collisionProfile;
 }
 
 /// @nodoc
@@ -3969,6 +4006,8 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
     Object? categoryId = null,
     Object? tilesetGroupId = freezed,
     Object? frames = null,
+    Object? presetKind = null,
+    Object? collisionProfile = freezed,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
     Object? tags = null,
@@ -3999,6 +4038,14 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
           ? _value._frames
           : frames // ignore: cast_nullable_to_non_nullable
               as List<TilesetVisualFrame>,
+      presetKind: null == presetKind
+          ? _value.presetKind
+          : presetKind // ignore: cast_nullable_to_non_nullable
+              as ElementPresetKind,
+      collisionProfile: freezed == collisionProfile
+          ? _value.collisionProfile
+          : collisionProfile // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionProfile?,
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
@@ -4030,6 +4077,8 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       required this.categoryId,
       this.tilesetGroupId,
       required final List<TilesetVisualFrame> frames,
+      this.presetKind = ElementPresetKind.generic,
+      this.collisionProfile,
       this.groupId,
       this.recommendedLayerId,
       final List<String> tags = const [],
@@ -4063,6 +4112,11 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
   }
 
   @override
+  @JsonKey()
+  final ElementPresetKind presetKind;
+  @override
+  final ElementCollisionProfile? collisionProfile;
+  @override
   final String? groupId;
   @override
   final String? recommendedLayerId;
@@ -4081,7 +4135,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
 
   @override
   String toString() {
-    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
+    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, presetKind: $presetKind, collisionProfile: $collisionProfile, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
   }
 
   @override
@@ -4098,6 +4152,10 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
             (identical(other.tilesetGroupId, tilesetGroupId) ||
                 other.tilesetGroupId == tilesetGroupId) &&
             const DeepCollectionEquality().equals(other._frames, _frames) &&
+            (identical(other.presetKind, presetKind) ||
+                other.presetKind == presetKind) &&
+            (identical(other.collisionProfile, collisionProfile) ||
+                other.collisionProfile == collisionProfile) &&
             (identical(other.groupId, groupId) || other.groupId == groupId) &&
             (identical(other.recommendedLayerId, recommendedLayerId) ||
                 other.recommendedLayerId == recommendedLayerId) &&
@@ -4116,6 +4174,8 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       categoryId,
       tilesetGroupId,
       const DeepCollectionEquality().hash(_frames),
+      presetKind,
+      collisionProfile,
       groupId,
       recommendedLayerId,
       const DeepCollectionEquality().hash(_tags),
@@ -4146,6 +4206,8 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
       required final String categoryId,
       final String? tilesetGroupId,
       required final List<TilesetVisualFrame> frames,
+      final ElementPresetKind presetKind,
+      final ElementCollisionProfile? collisionProfile,
       final String? groupId,
       final String? recommendedLayerId,
       final List<String> tags,
@@ -4168,6 +4230,10 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
   /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
   @override
   List<TilesetVisualFrame> get frames;
+  @override
+  ElementPresetKind get presetKind;
+  @override
+  ElementCollisionProfile? get collisionProfile;
   @override
   String? get groupId;
   @override

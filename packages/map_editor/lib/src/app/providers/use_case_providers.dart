@@ -2,12 +2,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../application/services/editor_map_session_coordinator.dart';
 import '../../application/services/editor_map_mutation_coordinator.dart';
+import '../../application/services/element_collision_profile_generator.dart';
 import '../../application/services/entity_editing_coordinator.dart';
 import '../../application/services/entity_editing_service.dart';
 import '../../application/services/gameplay_zone_editing_coordinator.dart';
 import '../../application/services/gameplay_zone_editing_service.dart';
 import '../../application/services/map_history_coordinator.dart';
 import '../../application/services/map_connection_editing_service.dart';
+import '../../application/services/placed_element_instance_indexer.dart';
 import '../../application/services/path_autotile_resolver.dart';
 import '../../application/services/path_layer_editing_coordinator.dart';
 import '../../application/services/terrain_painting_coordinator.dart';
@@ -70,6 +72,18 @@ EditorMapSessionCoordinator editorMapSessionCoordinator(
 @riverpod
 MapHistoryCoordinator mapHistoryCoordinator(MapHistoryCoordinatorRef ref) {
   return const MapHistoryCoordinator(maxEntries: 100);
+}
+
+@riverpod
+ElementCollisionProfileGenerator elementCollisionProfileGenerator(
+    ElementCollisionProfileGeneratorRef ref) {
+  return const ElementCollisionProfileGenerator();
+}
+
+@riverpod
+PlacedElementInstanceIndexer placedElementInstanceIndexer(
+    PlacedElementInstanceIndexerRef ref) {
+  return const PlacedElementInstanceIndexer();
 }
 
 @riverpod
@@ -251,13 +265,15 @@ ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(
 @riverpod
 CreateTilesetLibraryFolderUseCase createTilesetLibraryFolderUseCase(
     CreateTilesetLibraryFolderUseCaseRef ref) {
-  return CreateTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+  return CreateTilesetLibraryFolderUseCase(
+      ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
 RenameTilesetLibraryFolderUseCase renameTilesetLibraryFolderUseCase(
     RenameTilesetLibraryFolderUseCaseRef ref) {
-  return RenameTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+  return RenameTilesetLibraryFolderUseCase(
+      ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
@@ -269,13 +285,15 @@ MoveTilesetLibraryFolderUseCase moveTilesetLibraryFolderUseCase(
 @riverpod
 DeleteTilesetLibraryFolderUseCase deleteTilesetLibraryFolderUseCase(
     DeleteTilesetLibraryFolderUseCaseRef ref) {
-  return DeleteTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+  return DeleteTilesetLibraryFolderUseCase(
+      ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
 AssignTilesetToLibraryFolderUseCase assignTilesetToLibraryFolderUseCase(
     AssignTilesetToLibraryFolderUseCaseRef ref) {
-  return AssignTilesetToLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
+  return AssignTilesetToLibraryFolderUseCase(
+      ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
@@ -623,7 +641,8 @@ MoveMapLayerUseCase moveMapLayerUseCase(MoveMapLayerUseCaseRef ref) {
 }
 
 @riverpod
-ReorderMapLayersUseCase reorderMapLayersUseCase(ReorderMapLayersUseCaseRef ref) {
+ReorderMapLayersUseCase reorderMapLayersUseCase(
+    ReorderMapLayersUseCaseRef ref) {
   return ReorderMapLayersUseCase();
 }
 
@@ -744,8 +763,7 @@ DeleteGameplayZoneFromMapUseCase deleteGameplayZoneFromMapUseCase(
 GameplayZoneEditingService gameplayZoneEditingService(
     GameplayZoneEditingServiceRef ref) {
   return GameplayZoneEditingService(
-    addGameplayZoneToMapUseCase:
-        ref.watch(addGameplayZoneToMapUseCaseProvider),
+    addGameplayZoneToMapUseCase: ref.watch(addGameplayZoneToMapUseCaseProvider),
     updateGameplayZoneOnMapUseCase:
         ref.watch(updateGameplayZoneOnMapUseCaseProvider),
     deleteGameplayZoneFromMapUseCase:
@@ -893,17 +911,20 @@ DeleteTrainerUseCase deleteTrainerUseCase(DeleteTrainerUseCaseRef ref) {
 }
 
 @riverpod
-AddTrainerPokemonUseCase addTrainerPokemonUseCase(AddTrainerPokemonUseCaseRef ref) {
+AddTrainerPokemonUseCase addTrainerPokemonUseCase(
+    AddTrainerPokemonUseCaseRef ref) {
   return AddTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-UpdateTrainerPokemonUseCase updateTrainerPokemonUseCase(UpdateTrainerPokemonUseCaseRef ref) {
+UpdateTrainerPokemonUseCase updateTrainerPokemonUseCase(
+    UpdateTrainerPokemonUseCaseRef ref) {
   return UpdateTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-DeleteTrainerPokemonUseCase deleteTrainerPokemonUseCase(DeleteTrainerPokemonUseCaseRef ref) {
+DeleteTrainerPokemonUseCase deleteTrainerPokemonUseCase(
+    DeleteTrainerPokemonUseCaseRef ref) {
   return DeleteTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
 }
 

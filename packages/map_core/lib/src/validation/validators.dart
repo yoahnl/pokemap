@@ -512,6 +512,34 @@ class ProjectValidator {
         context: 'Element ${element.id}',
         knownTilesetIds: tilesetIds,
       );
+      _validateElementCollisionProfile(element);
+    }
+  }
+
+  static void _validateElementCollisionProfile(ProjectElementEntry element) {
+    final profile = element.collisionProfile;
+    if (profile == null) {
+      return;
+    }
+    final source = element.frames.primarySource;
+    final seen = <String>{};
+    for (final cell in profile.cells) {
+      if (cell.x < 0 || cell.y < 0) {
+        throw ValidationException(
+          'Element ${element.id} collision profile contains negative cell coordinates',
+        );
+      }
+      if (cell.x >= source.width || cell.y >= source.height) {
+        throw ValidationException(
+          'Element ${element.id} collision cell (${cell.x}, ${cell.y}) is outside source bounds ${source.width}x${source.height}',
+        );
+      }
+      final key = '${cell.x}:${cell.y}';
+      if (!seen.add(key)) {
+        throw ValidationException(
+          'Element ${element.id} collision profile contains duplicate cell ($key)',
+        );
+      }
     }
   }
 
@@ -914,6 +942,62 @@ class MapValidator {
       map.entities,
       (entity) => entity.id,
       duplicateMessagePrefix: 'Duplicate entity ID',
+    );
+
+    final layerById = <String, MapLayer>{
+      for (final layer in map.layers) layer.id: layer,
+    };
+
+    for (final instance in map.placedElements) {
+      final instanceId = _requireNonBlank(
+        instance.id,
+        'Placed element instance ID cannot be empty',
+      );
+      final layerId = _requireNonBlank(
+        instance.layerId,
+        'Placed element instance $instanceId has empty layerId',
+      );
+      final elementId = _requireNonBlank(
+        instance.elementId,
+        'Placed element instance $instanceId has empty elementId',
+      );
+      final layer = layerById[layerId];
+      if (layer == null) {
+        throw ValidationException(
+          'Placed element instance $instanceId references unknown layer: $layerId',
+        );
+      }
+      if (layer is! TileLayer) {
+        throw ValidationException(
+          'Placed element instance $instanceId must reference a tile layer: $layerId',
+        );
+      }
+      _validatePositionInBounds(
+        instance.pos,
+        map.size,
+        errorLabel: 'Placed element instance $instanceId origin',
+      );
+      for (final key in instance.properties.keys) {
+        if (key.trim().isEmpty) {
+          throw ValidationException(
+            'Placed element instance $instanceId has an empty property key',
+          );
+        }
+      }
+      if (projectDialogueContext != null) {
+        final hasElement = projectDialogueContext.elements
+            .any((candidate) => candidate.id == elementId);
+        if (!hasElement) {
+          throw ValidationException(
+            'Placed element instance $instanceId references unknown element: $elementId',
+          );
+        }
+      }
+    }
+    _validateUniqueIds(
+      map.placedElements,
+      (instance) => instance.id,
+      duplicateMessagePrefix: 'Duplicate placed element instance ID',
     );
 
     final seenConnectionDirections = <MapConnectionDirection>{};

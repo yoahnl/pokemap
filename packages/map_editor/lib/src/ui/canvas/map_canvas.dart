@@ -13,7 +13,6 @@ import 'package:map_core/map_core.dart';
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../application/services/entity_editor_element_visual.dart';
-import '../../features/editor/models/placed_element_instance_ref.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 
@@ -789,17 +788,26 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintSelectedPlacedElementInstance(Canvas canvas) {
-    final selection = PlacedElementInstanceRef.parse(
-      selectedPlacedElementInstanceId,
-    );
-    if (selection == null) {
+    final selectedId = selectedPlacedElementInstanceId?.trim();
+    if (selectedId == null || selectedId.isEmpty) {
       return;
     }
-    if (selection.pos.x < 0 || selection.pos.y < 0) {
+    MapPlacedElement? selectedInstance;
+    for (final instance in map.placedElements) {
+      if (instance.id != selectedId) {
+        continue;
+      }
+      selectedInstance = instance;
+      break;
+    }
+    if (selectedInstance == null) {
       return;
     }
-    if (selection.pos.x >= map.size.width ||
-        selection.pos.y >= map.size.height) {
+    if (selectedInstance.pos.x < 0 || selectedInstance.pos.y < 0) {
+      return;
+    }
+    if (selectedInstance.pos.x >= map.size.width ||
+        selectedInstance.pos.y >= map.size.height) {
       return;
     }
     final projectContext = project;
@@ -808,7 +816,7 @@ class MapGridPainter extends CustomPainter {
     }
     TilesetSourceRect? source;
     for (final entry in projectContext.elements) {
-      if (entry.id == selection.elementId) {
+      if (entry.id == selectedInstance.elementId) {
         source = entry.frames.primarySource;
         break;
       }
@@ -819,8 +827,8 @@ class MapGridPainter extends CustomPainter {
       return;
     }
     final rect = Rect.fromLTWH(
-      selection.pos.x * tileWidth,
-      selection.pos.y * tileHeight,
+      selectedInstance.pos.x * tileWidth,
+      selectedInstance.pos.y * tileHeight,
       width * tileWidth,
       height * tileHeight,
     );

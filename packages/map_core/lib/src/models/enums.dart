@@ -239,13 +239,13 @@ enum PathSurfaceKind {
 /// nouveau code ; préférer un kind typé.
 enum GameplayZoneKind {
   @JsonValue('encounter')
-  encounter,  // Zone de rencontre aléatoire (herbes, grotte, surf, etc.)
+  encounter, // Zone de rencontre aléatoire (herbes, grotte, surf, etc.)
   @JsonValue('movement')
-  movement,   // Zone à contrainte de déplacement (surf requis, glace, etc.)
+  movement, // Zone à contrainte de déplacement (surf requis, glace, etc.)
   @JsonValue('hazard')
-  hazard,     // Danger environnemental (lave, marais, etc.)
+  hazard, // Danger environnemental (lave, marais, etc.)
   @JsonValue('special')
-  special,    // Comportement scripté ou spécial
+  special, // Comportement scripté ou spécial
   /// Fallback non-typé pour les extensions futures.
   /// Ne pas utiliser dans du nouveau code.
   @JsonValue('custom')
@@ -255,13 +255,13 @@ enum GameplayZoneKind {
 /// Sous-type de danger environnemental pour [GameplayZoneKind.hazard].
 enum HazardKind {
   @JsonValue('lava')
-  lava,      // Contact : dommage direct
+  lava, // Contact : dommage direct
   @JsonValue('poison')
-  poison,    // Empoisonnement au passage
+  poison, // Empoisonnement au passage
   @JsonValue('swamp')
-  swamp,     // Ralentissement / enlisement
+  swamp, // Ralentissement / enlisement
   @JsonValue('pitfall')
-  pitfall,   // Chute dans un trou
+  pitfall, // Chute dans un trou
   @JsonValue('other')
   other,
 }
@@ -285,11 +285,11 @@ enum MovementMode {
 /// Mode de déclenchement d'une rencontre Pokémon-like.
 enum EncounterKind {
   @JsonValue('walk')
-  walk,         // Herbes hautes, caverne, etc.
+  walk, // Herbes hautes, caverne, etc.
   @JsonValue('surf')
-  surf,         // Navigation sur l'eau
+  surf, // Navigation sur l'eau
   @JsonValue('headbutt')
-  headbutt,     // Secouer un arbre
+  headbutt, // Secouer un arbre
   @JsonValue('old_rod')
   oldRod,
   @JsonValue('good_rod')
@@ -297,9 +297,9 @@ enum EncounterKind {
   @JsonValue('super_rod')
   superRod,
   @JsonValue('gift')
-  gift,         // Rencontre / don statique
+  gift, // Rencontre / don statique
   @JsonValue('special')
-  special,      // Déclenchement ad-hoc
+  special, // Déclenchement ad-hoc
 }
 
 enum CharacterAnimationState {
@@ -316,6 +316,28 @@ enum TilesetScope {
   global,
   @JsonValue('group')
   group,
+}
+
+enum ElementPresetKind {
+  @JsonValue('generic')
+  generic,
+  @JsonValue('tree')
+  tree,
+  @JsonValue('building')
+  building,
+  @JsonValue('rock')
+  rock,
+  @JsonValue('cliff')
+  cliff,
+  @JsonValue('tall_decoration')
+  tallDecoration,
+}
+
+enum ElementCollisionProfileSource {
+  @JsonValue('generated')
+  generated,
+  @JsonValue('manual')
+  manual,
 }
 
 enum PaletteCategory {

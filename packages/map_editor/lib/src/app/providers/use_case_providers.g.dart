@@ -105,6 +105,46 @@ final mapHistoryCoordinatorProvider =
 // ignore: unused_element
 typedef MapHistoryCoordinatorRef
     = AutoDisposeProviderRef<MapHistoryCoordinator>;
+String _$elementCollisionProfileGeneratorHash() =>
+    r'2adebc7c6dc7c05475a9a426f0b725f3687c76a8';
+
+/// See also [elementCollisionProfileGenerator].
+@ProviderFor(elementCollisionProfileGenerator)
+final elementCollisionProfileGeneratorProvider =
+    AutoDisposeProvider<ElementCollisionProfileGenerator>.internal(
+  elementCollisionProfileGenerator,
+  name: r'elementCollisionProfileGeneratorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$elementCollisionProfileGeneratorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ElementCollisionProfileGeneratorRef
+    = AutoDisposeProviderRef<ElementCollisionProfileGenerator>;
+String _$placedElementInstanceIndexerHash() =>
+    r'575b3692d10a96a48fc857fcb0f96f2df9a70604';
+
+/// See also [placedElementInstanceIndexer].
+@ProviderFor(placedElementInstanceIndexer)
+final placedElementInstanceIndexerProvider =
+    AutoDisposeProvider<PlacedElementInstanceIndexer>.internal(
+  placedElementInstanceIndexer,
+  name: r'placedElementInstanceIndexerProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$placedElementInstanceIndexerHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PlacedElementInstanceIndexerRef
+    = AutoDisposeProviderRef<PlacedElementInstanceIndexer>;
 String _$editorMapMutationCoordinatorHash() =>
     r'295b6529c68a03d38c8956595db8dceb04d17374';
 

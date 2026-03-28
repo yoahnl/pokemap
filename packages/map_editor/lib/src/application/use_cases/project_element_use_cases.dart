@@ -273,6 +273,8 @@ class CreateProjectElementUseCase {
     required String tilesetId,
     required String categoryId,
     required TilesetSourceRect source,
+    ElementPresetKind presetKind = ElementPresetKind.generic,
+    ElementCollisionProfile? collisionProfile,
     String? tilesetGroupId,
     String? groupId,
     String? recommendedLayerId,
@@ -331,6 +333,8 @@ class CreateProjectElementUseCase {
       categoryId: categoryId,
       tilesetGroupId: tilesetGroupId,
       frames: [TilesetVisualFrame(source: source)],
+      presetKind: presetKind,
+      collisionProfile: collisionProfile,
       groupId: groupId,
       recommendedLayerId: recommendedLayerId,
       tags: normalizedTags,
@@ -353,6 +357,9 @@ class UpdateProjectElementUseCase {
     ProjectManifest project, {
     required String elementId,
     String? name,
+    ElementPresetKind? presetKind,
+    ElementCollisionProfile? collisionProfile,
+    bool clearCollisionProfile = false,
     String? categoryId,
     String? tilesetGroupId,
     bool clearTilesetGroupId = false,
@@ -427,6 +434,10 @@ class UpdateProjectElementUseCase {
             .where((tag) => tag.isNotEmpty)
             .toSet()
             .toList(growable: false);
+    final nextPresetKind = presetKind ?? current.presetKind;
+    final nextCollisionProfile = clearCollisionProfile
+        ? null
+        : (collisionProfile ?? current.collisionProfile);
     final nextRecommendedLayerId = clearRecommendedLayerId
         ? null
         : (recommendedLayerId ?? current.recommendedLayerId);
@@ -439,6 +450,8 @@ class UpdateProjectElementUseCase {
         tilesetGroupId: nextTilesetGroupId,
         groupId: nextGroupId,
         frames: nextFrames,
+        presetKind: nextPresetKind,
+        collisionProfile: nextCollisionProfile,
         recommendedLayerId: nextRecommendedLayerId,
         tags: nextTags,
       );

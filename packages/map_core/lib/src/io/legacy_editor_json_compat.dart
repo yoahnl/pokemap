@@ -55,7 +55,8 @@ Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
         if (entry is! Map) {
           return entry;
         }
-        final trainer = Map<String, dynamic>.from(entry.cast<String, dynamic>());
+        final trainer =
+            Map<String, dynamic>.from(entry.cast<String, dynamic>());
         if (!trainer.containsKey('characterId')) {
           final legacyCharacterId = trainer['overworldCharacterId'] ??
               trainer['spriteCharacterId'] ??
@@ -201,6 +202,9 @@ Map<String, dynamic> migrateMapDataJson(Map<String, dynamic> raw) {
   final md = next['mapMetadata'];
   if (md == null || md is! Map) {
     next['mapMetadata'] = <String, dynamic>{};
+  }
+  if (!next.containsKey('placedElements') || next['placedElements'] == null) {
+    next['placedElements'] = <dynamic>[];
   }
 
   return next;

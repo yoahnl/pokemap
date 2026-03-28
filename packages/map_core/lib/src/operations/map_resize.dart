@@ -57,9 +57,20 @@ MapData resizeMapData(
       )
       .toList(growable: false);
 
+  final newPlacedElements = map.placedElements
+      .where(
+        (instance) =>
+            instance.pos.x >= 0 &&
+            instance.pos.y >= 0 &&
+            instance.pos.x < width &&
+            instance.pos.y < height,
+      )
+      .toList(growable: false);
+
   return map.copyWith(
     size: GridSize(width: width, height: height),
     layers: newLayers,
+    placedElements: newPlacedElements,
   );
 }
 

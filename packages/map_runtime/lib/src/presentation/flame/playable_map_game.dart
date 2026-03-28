@@ -74,6 +74,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     try {
       _world = GameplayWorldState.fromMap(
         _bundle.map,
+        project: _bundle.manifest,
         tileWidth: _bundle.manifest.settings.tileWidth,
         tileHeight: _bundle.manifest.settings.tileHeight,
       );
@@ -86,6 +87,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = GameplayWorldState.initial(
         map: _bundle.map,
         playerPos: const GridPos(x: 0, y: 0),
+        project: _bundle.manifest,
         tileWidth: _bundle.manifest.settings.tileWidth,
         tileHeight: _bundle.manifest.settings.tileHeight,
       );
@@ -745,6 +747,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: newBundle.map,
         playerPos: warp.targetPos,
         playerFacing: sourceFacing,
+        project: newBundle.manifest,
         tileWidth: newBundle.manifest.settings.tileWidth,
         tileHeight: newBundle.manifest.settings.tileHeight,
       );
@@ -859,6 +862,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final fallbackWorld = _buildSafeWorldState(
         map: fallbackBundle.map,
+        project: fallbackBundle.manifest,
         preferredPos: sourceWorld.player.pos,
         fallbackFacing: sourceWorld.player.facing,
         tileWidth: fallbackBundle.manifest.settings.tileWidth,
@@ -892,6 +896,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   GameplayWorldState _buildSafeWorldState({
     required MapData map,
+    required ProjectManifest project,
     required GridPos preferredPos,
     required Direction fallbackFacing,
     required int tileWidth,
@@ -904,6 +909,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       map: map,
       playerPos: safePos,
       playerFacing: fallbackFacing,
+      project: project,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
     );
@@ -917,6 +923,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: map,
         playerPos: spawn.pos,
         playerFacing: fallbackFacing,
+        project: project,
         tileWidth: tileWidth,
         tileHeight: tileHeight,
       );
@@ -932,6 +939,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             map: map,
             playerPos: GridPos(x: x, y: y),
             playerFacing: fallbackFacing,
+            project: project,
             tileWidth: tileWidth,
             tileHeight: tileHeight,
           );
@@ -996,6 +1004,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: target.bundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,
+        project: target.bundle.manifest,
         tileWidth: target.bundle.manifest.settings.tileWidth,
         tileHeight: target.bundle.manifest.settings.tileHeight,
       );

@@ -111,11 +111,20 @@ MapData removeMapLayer(
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: true)
     ..removeAt(layerIndex);
-  return map.copyWith(layers: updatedLayers);
+  final updatedPlacedElements = map.placedElements
+      .where((instance) => instance.layerId != layerId)
+      .toList(growable: false);
+  return map.copyWith(
+    layers: updatedLayers,
+    placedElements: updatedPlacedElements,
+  );
 }
 
 MapData removeAllMapLayers(MapData map) {
-  return map.copyWith(layers: const []);
+  return map.copyWith(
+    layers: const [],
+    placedElements: const [],
+  );
 }
 
 MapData moveMapLayer(

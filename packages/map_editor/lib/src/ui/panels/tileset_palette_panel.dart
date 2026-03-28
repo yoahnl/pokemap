@@ -22,7 +22,6 @@ import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
-import '../../features/editor/models/placed_element_instance_ref.dart';
 
 class _InspectorPulldownAction {
   const _InspectorPulldownAction({
@@ -597,9 +596,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           context,
                           notifier: notifier,
                           project: project,
+                          image: image,
                           tilesetId: activeTileset.id,
                           tilesetGroups: activeTileset.elementGroups,
                           source: selectionRect,
+                          tileWidth: settings.tileWidth,
+                          tileHeight: settings.tileHeight,
                           activeLayerId: state.activeLayerId,
                           tileLayers: tileLayers,
                         ),
@@ -1282,8 +1284,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         context,
                         notifier: notifier,
                         project: project,
+                        image: image,
                         element: element,
                         categories: categories,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
                         tileLayers: tileLayers,
                         tilesetGroups: tilesetGroups,
                       ),
@@ -1324,9 +1329,16 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             selectedInstance: selectedPlacedInstance,
             onSelectInstance: (instance) {
               notifier.selectPlacedElementInstance(
-                instanceId: instance?.instanceRef.id,
-                elementId: instance?.element.id,
+                instanceId: instance?.instanceId,
+                elementId:
+                    instance?.element?.id ?? instance?.instance.elementId,
                 layerId: instance?.layerId,
+              );
+            },
+            onCollisionAppliedChanged: (instance, applyCollision) {
+              notifier.setPlacedElementInstanceCollisionApplied(
+                instanceId: instance.instanceId,
+                applyCollision: applyCollision,
               );
             },
           ),
@@ -1450,11 +1462,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             'Les instances posées sont disponibles sur les calques de tuiles.',
       );
     }
-    final layerTilesetId = (layer.tilesetId ?? map.tilesetId).trim();
+    final tileLayer = layer;
+    final layerTilesetId = (tileLayer.tilesetId ?? map.tilesetId).trim();
     if (layerTilesetId.isEmpty) {
       return _PlacedElementInstancesScope(
-        layerId: layer.id,
-        layerName: layer.name,
+        layerId: tileLayer.id,
+        layerName: tileLayer.name,
         instances: const [],
         emptyTitle: 'Tileset manquant',
         emptyMessage:
@@ -1470,8 +1483,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         }
       }
       return _PlacedElementInstancesScope(
-        layerId: layer.id,
-        layerName: layer.name,
+        layerId: tileLayer.id,
+        layerName: tileLayer.name,
         instances: const [],
         emptyTitle: 'Tileset différent',
         emptyMessage:
@@ -1479,143 +1492,60 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       );
     }
 
-    final elements = project.elements
-        .where(
-          (element) =>
-              element.tilesetId == layerTilesetId &&
-              element.frames.primarySource.width > 0 &&
-              element.frames.primarySource.height > 0,
-        )
+    if (tilesetColumns <= 0) {
+      return _PlacedElementInstancesScope(
+        layerId: tileLayer.id,
+        layerName: tileLayer.name,
+        instances: const [],
+        emptyTitle: 'Tileset non disponible',
+        emptyMessage:
+            'Impossible d’afficher les miniatures tant que le tileset n’est pas chargé.',
+      );
+    }
+
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in project.elements) entry.id: entry,
+    };
+    final rawLayerInstances = map.placedElements
+        .where((instance) => instance.layerId == tileLayer.id)
         .toList(growable: true)
       ..sort((a, b) {
-        final areaA =
-            a.frames.primarySource.width * a.frames.primarySource.height;
-        final areaB =
-            b.frames.primarySource.width * b.frames.primarySource.height;
-        final areaCompare = areaB.compareTo(areaA);
-        if (areaCompare != 0) {
-          return areaCompare;
-        }
-        final sortCompare = a.sortOrder.compareTo(b.sortOrder);
-        if (sortCompare != 0) {
-          return sortCompare;
-        }
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        final yCompare = a.pos.y.compareTo(b.pos.y);
+        if (yCompare != 0) return yCompare;
+        final xCompare = a.pos.x.compareTo(b.pos.x);
+        if (xCompare != 0) return xCompare;
+        return a.id.compareTo(b.id);
       });
 
-    if (elements.isEmpty) {
+    if (rawLayerInstances.isEmpty) {
       return _PlacedElementInstancesScope(
-        layerId: layer.id,
-        layerName: layer.name,
+        layerId: tileLayer.id,
+        layerName: tileLayer.name,
         instances: const [],
-        emptyTitle: 'Aucune définition trouvée',
-        emptyMessage:
-            'Aucun élément projet n’est lié à ce tileset pour détecter les instances.',
+        emptyTitle: 'Aucun élément placé sur ce layer',
+        emptyMessage: 'Place un élément depuis la palette pour le voir ici.',
       );
     }
 
-    final mapWidth = map.size.width;
-    final mapHeight = map.size.height;
-    if (mapWidth <= 0 || mapHeight <= 0) {
-      return _PlacedElementInstancesScope(
-        layerId: layer.id,
-        layerName: layer.name,
-        instances: const [],
-        emptyTitle: 'Map invalide',
-        emptyMessage:
-            'La taille de la map ne permet pas de lire les instances.',
-      );
-    }
-
-    final covered = List<bool>.filled(mapWidth * mapHeight, false);
     final occurrencesByElementId = <String, int>{};
     final instances = <_PlacedElementInstanceVm>[];
-
-    for (var y = 0; y < mapHeight; y++) {
-      for (var x = 0; x < mapWidth; x++) {
-        final index = y * mapWidth + x;
-        if (index < 0 || index >= covered.length) {
-          continue;
-        }
-        if (covered[index]) {
-          continue;
-        }
-        final cellTileId = _tileIdAt(
-          tiles: layer.tiles,
-          mapWidth: mapWidth,
-          mapHeight: mapHeight,
-          x: x,
-          y: y,
-        );
-        if (cellTileId <= 0) {
-          continue;
-        }
-
-        ProjectElementEntry? matchedElement;
-        TilesetSourceRect? matchedSource;
-        for (final element in elements) {
-          final source = element.frames.primarySource;
-          if (x + source.width > mapWidth || y + source.height > mapHeight) {
-            continue;
-          }
-          if (!_canUseCells(
-            covered: covered,
-            mapWidth: mapWidth,
-            x: x,
-            y: y,
-            width: source.width,
-            height: source.height,
-          )) {
-            continue;
-          }
-          final matches = _matchesElementPatternAt(
-            layer: layer,
-            mapWidth: mapWidth,
-            mapHeight: mapHeight,
-            originX: x,
-            originY: y,
-            source: source,
-            tilesetColumns: tilesetColumns,
-          );
-          if (!matches) {
-            continue;
-          }
-          matchedElement = element;
-          matchedSource = source;
-          break;
-        }
-
-        if (matchedElement == null || matchedSource == null) {
-          continue;
-        }
-
-        final nextOccurrence =
-            (occurrencesByElementId[matchedElement.id] ?? 0) + 1;
-        occurrencesByElementId[matchedElement.id] = nextOccurrence;
-
-        final instanceRef = PlacedElementInstanceRef(
-          layerId: layer.id,
-          elementId: matchedElement.id,
-          pos: GridPos(x: x, y: y),
-        );
-        instances.add(
-          _PlacedElementInstanceVm(
-            instanceRef: instanceRef,
-            element: matchedElement,
-            layerId: layer.id,
-            layerName: layer.name,
-            occurrence: nextOccurrence,
-          ),
-        );
-        _markCellsAsCovered(
-          covered: covered,
-          mapWidth: mapWidth,
-          x: x,
-          y: y,
-          width: matchedSource.width,
-          height: matchedSource.height,
-        );
-      }
+    for (final instance in rawLayerInstances) {
+      final candidateElement = elementById[instance.elementId];
+      final element = candidateElement != null &&
+              candidateElement.tilesetId == layerTilesetId
+          ? candidateElement
+          : null;
+      final key = element?.id ?? instance.elementId;
+      final occurrence = (occurrencesByElementId[key] ?? 0) + 1;
+      occurrencesByElementId[key] = occurrence;
+      instances.add(
+        _PlacedElementInstanceVm(
+          instance: instance,
+          element: element,
+          layerName: tileLayer.name,
+          occurrence: occurrence,
+        ),
+      );
     }
 
     if (instances.isEmpty) {
@@ -1645,97 +1575,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       return null;
     }
     for (final instance in instances) {
-      if (instance.instanceRef.id == instanceId) {
+      if (instance.instanceId == instanceId) {
         return instance;
       }
     }
     return null;
-  }
-
-  bool _matchesElementPatternAt({
-    required TileLayer layer,
-    required int mapWidth,
-    required int mapHeight,
-    required int originX,
-    required int originY,
-    required TilesetSourceRect source,
-    required int tilesetColumns,
-  }) {
-    for (var y = 0; y < source.height; y++) {
-      for (var x = 0; x < source.width; x++) {
-        final tileId = _tileIdAt(
-          tiles: layer.tiles,
-          mapWidth: mapWidth,
-          mapHeight: mapHeight,
-          x: originX + x,
-          y: originY + y,
-        );
-        final expectedTileId =
-            (source.y + y) * tilesetColumns + (source.x + x) + 1;
-        if (tileId != expectedTileId) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  int _tileIdAt({
-    required List<int> tiles,
-    required int mapWidth,
-    required int mapHeight,
-    required int x,
-    required int y,
-  }) {
-    if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) {
-      return 0;
-    }
-    final index = y * mapWidth + x;
-    if (index < 0 || index >= tiles.length) {
-      return 0;
-    }
-    return tiles[index];
-  }
-
-  bool _canUseCells({
-    required List<bool> covered,
-    required int mapWidth,
-    required int x,
-    required int y,
-    required int width,
-    required int height,
-  }) {
-    for (var row = 0; row < height; row++) {
-      for (var col = 0; col < width; col++) {
-        final index = (y + row) * mapWidth + (x + col);
-        if (index < 0 || index >= covered.length) {
-          return false;
-        }
-        if (covered[index]) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  void _markCellsAsCovered({
-    required List<bool> covered,
-    required int mapWidth,
-    required int x,
-    required int y,
-    required int width,
-    required int height,
-  }) {
-    for (var row = 0; row < height; row++) {
-      for (var col = 0; col < width; col++) {
-        final index = (y + row) * mapWidth + (x + col);
-        if (index < 0 || index >= covered.length) {
-          continue;
-        }
-        covered[index] = true;
-      }
-    }
   }
 
   void _logPlacedInstancesSnapshot(_PlacedElementInstancesScope scope) {
@@ -2295,9 +2139,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     BuildContext context, {
     required EditorNotifier notifier,
     required ProjectManifest project,
+    required ui.Image image,
     required String tilesetId,
     required List<TilesetElementGroup> tilesetGroups,
     required TilesetSourceRect source,
+    required int tileWidth,
+    required int tileHeight,
     required String? activeLayerId,
     required List<TileLayer> tileLayers,
   }) async {
@@ -2351,6 +2198,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         !tileLayers.any((layer) => layer.id == selectedLayerId)) {
       selectedLayerId = null;
     }
+    var selectedPresetKind = ElementPresetKind.generic;
+    ElementCollisionProfile? collisionProfile;
+    var generatingCollision = false;
 
     final groups = List<ProjectMapGroup>.from(project.groups)
       ..sort((a, b) {
@@ -2529,6 +2379,89 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     placeholder: 'Tags (tree,outdoor,oak)',
                   ),
                   const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final picked =
+                            await showCupertinoListPicker<ElementPresetKind>(
+                          context: ctx,
+                          title: 'Type prédéfini',
+                          items: ElementPresetKind.values,
+                          labelOf: _elementPresetLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(() => selectedPresetKind = picked);
+                        }
+                      },
+                      child: Text(
+                        'Type: ${_elementPresetLabel(selectedPresetKind)}',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: PushButton(
+                          controlSize: ControlSize.regular,
+                          secondary: true,
+                          onPressed: generatingCollision
+                              ? null
+                              : () async {
+                                  setStateDialog(() {
+                                    generatingCollision = true;
+                                  });
+                                  final generated = await notifier
+                                      .generateElementCollisionProfile(
+                                    tilesetId: tilesetId,
+                                    source: source,
+                                    presetKind: selectedPresetKind,
+                                  );
+                                  if (!mounted) return;
+                                  setStateDialog(() {
+                                    generatingCollision = false;
+                                    if (generated != null) {
+                                      collisionProfile = generated;
+                                    }
+                                  });
+                                },
+                          child: Text(
+                            generatingCollision
+                                ? 'Génération...'
+                                : 'Générer automatiquement la collision',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () {
+                          setStateDialog(() {
+                            collisionProfile = null;
+                          });
+                        },
+                        child: const Text('Effacer'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _ElementCollisionProfileEditor(
+                    image: image,
+                    source: source,
+                    tileWidth: tileWidth,
+                    tileHeight: tileHeight,
+                    profile: collisionProfile,
+                    onProfileChanged: (profile) {
+                      setStateDialog(() {
+                        collisionProfile = profile;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -2571,6 +2504,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       categoryId: selectedCategoryId!,
       tilesetGroupId: selectedTilesetGroupId,
       source: source,
+      presetKind: selectedPresetKind,
+      collisionProfile: collisionProfile,
       groupId: selectedGroupId,
       recommendedLayerId: selectedLayerId,
       tags: _parseTags(tagsController.text),
@@ -2588,8 +2523,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     BuildContext context, {
     required EditorNotifier notifier,
     required ProjectManifest project,
+    required ui.Image image,
     required ProjectElementEntry element,
     required List<ProjectElementCategory> categories,
+    required int tileWidth,
+    required int tileHeight,
     required List<TileLayer> tileLayers,
     required List<TilesetElementGroup> tilesetGroups,
   }) async {
@@ -2636,6 +2574,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         !tileLayers.any((layer) => layer.id == selectedLayerId)) {
       selectedLayerId = null;
     }
+    var selectedPresetKind = element.presetKind;
+    ElementCollisionProfile? collisionProfile = element.collisionProfile;
+    var generatingCollision = false;
     var shouldSave = false;
 
     String editTilesetGroupRowLabel(String id) {
@@ -2795,6 +2736,89 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     placeholder: 'Tags (tree,outdoor,oak)',
                   ),
                   const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PushButton(
+                      controlSize: ControlSize.regular,
+                      secondary: true,
+                      onPressed: () async {
+                        final picked =
+                            await showCupertinoListPicker<ElementPresetKind>(
+                          context: ctx,
+                          title: 'Type prédéfini',
+                          items: ElementPresetKind.values,
+                          labelOf: _elementPresetLabel,
+                        );
+                        if (picked != null) {
+                          setStateDialog(() => selectedPresetKind = picked);
+                        }
+                      },
+                      child: Text(
+                        'Type: ${_elementPresetLabel(selectedPresetKind)}',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: PushButton(
+                          controlSize: ControlSize.regular,
+                          secondary: true,
+                          onPressed: generatingCollision
+                              ? null
+                              : () async {
+                                  setStateDialog(() {
+                                    generatingCollision = true;
+                                  });
+                                  final generated = await notifier
+                                      .generateElementCollisionProfile(
+                                    tilesetId: element.tilesetId,
+                                    source: element.frames.primarySource,
+                                    presetKind: selectedPresetKind,
+                                  );
+                                  if (!mounted) return;
+                                  setStateDialog(() {
+                                    generatingCollision = false;
+                                    if (generated != null) {
+                                      collisionProfile = generated;
+                                    }
+                                  });
+                                },
+                          child: Text(
+                            generatingCollision
+                                ? 'Génération...'
+                                : 'Générer automatiquement la collision',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () {
+                          setStateDialog(() {
+                            collisionProfile = null;
+                          });
+                        },
+                        child: const Text('Effacer'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _ElementCollisionProfileEditor(
+                    image: image,
+                    source: element.frames.primarySource,
+                    tileWidth: tileWidth,
+                    tileHeight: tileHeight,
+                    profile: collisionProfile,
+                    onProfileChanged: (profile) {
+                      setStateDialog(() {
+                        collisionProfile = profile;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -2834,6 +2858,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     await notifier.updateProjectElement(
       elementId: element.id,
       name: nameController.text.trim(),
+      presetKind: selectedPresetKind,
+      collisionProfile: collisionProfile,
+      clearCollisionProfile: collisionProfile == null,
       categoryId: selectedCategoryId,
       tilesetGroupId: selectedTilesetGroupId,
       clearTilesetGroupId: selectedTilesetGroupId == null,
@@ -2930,22 +2957,26 @@ class _PlacedElementInstancesScope {
 
 class _PlacedElementInstanceVm {
   const _PlacedElementInstanceVm({
-    required this.instanceRef,
+    required this.instance,
     required this.element,
-    required this.layerId,
     required this.layerName,
     required this.occurrence,
   });
 
-  final PlacedElementInstanceRef instanceRef;
-  final ProjectElementEntry element;
-  final String layerId;
+  final MapPlacedElement instance;
+  final ProjectElementEntry? element;
   final String layerName;
   final int occurrence;
 
-  String get displayLabel => '${element.id} #$occurrence';
-  GridPos get pos => instanceRef.pos;
-  TilesetSourceRect get source => element.frames.primarySource;
+  String get displayLabel =>
+      '${element?.id ?? instance.elementId} #$occurrence';
+  GridPos get pos => instance.pos;
+  String get layerId => instance.layerId;
+  String get instanceId => instance.id;
+  bool get applyCollision => instance.applyCollision;
+  TilesetSourceRect get source =>
+      element?.frames.primarySource ??
+      const TilesetSourceRect(x: 0, y: 0, width: 1, height: 1);
 }
 
 class _PlacedInstancesSection extends StatelessWidget {
@@ -2957,6 +2988,7 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.selectedInstanceId,
     required this.selectedInstance,
     required this.onSelectInstance,
+    required this.onCollisionAppliedChanged,
   });
 
   final ui.Image image;
@@ -2966,6 +2998,8 @@ class _PlacedInstancesSection extends StatelessWidget {
   final String? selectedInstanceId;
   final _PlacedElementInstanceVm? selectedInstance;
   final ValueChanged<_PlacedElementInstanceVm?> onSelectInstance;
+  final void Function(_PlacedElementInstanceVm instance, bool applyCollision)
+      onCollisionAppliedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -3085,7 +3119,7 @@ class _PlacedInstancesSection extends StatelessWidget {
                         tileWidth: tileWidth,
                         tileHeight: tileHeight,
                         instance: instance,
-                        selected: selectedInstanceId == instance.instanceRef.id,
+                        selected: selectedInstanceId == instance.instanceId,
                         onTap: () => onSelectInstance(instance),
                       );
                     },
@@ -3143,7 +3177,9 @@ class _PlacedInstancesSection extends StatelessWidget {
               else ...[
                 _PropertyLine(
                   label: 'Élément source',
-                  value: '${selected.element.name} (${selected.element.id})',
+                  value: selected.element == null
+                      ? 'Introuvable (${selected.instance.elementId})'
+                      : '${selected.element!.name} (${selected.element!.id})',
                 ),
                 _PropertyLine(
                   label: 'Instance',
@@ -3163,12 +3199,17 @@ class _PlacedInstancesSection extends StatelessWidget {
                 ),
                 _PropertyLine(
                   label: 'ID interne',
-                  value: selected.instanceRef.id,
+                  value: selected.instanceId,
                 ),
                 const SizedBox(height: 8),
-                const _FuturePropertyGroup(
-                  title: 'Collision',
-                  status: 'À venir',
+                _CollisionToggleRow(
+                  value: selected.applyCollision,
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    onCollisionAppliedChanged(selected, value);
+                  },
                 ),
                 const SizedBox(height: 6),
                 const _FuturePropertyGroup(
@@ -3236,12 +3277,18 @@ class _PlacedInstanceCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border.all(color: border),
                 ),
-                child: _PaletteRectPreview(
-                  image: image,
-                  source: instance.source,
-                  tileWidth: tileWidth,
-                  tileHeight: tileHeight,
-                ),
+                child: instance.element == null
+                    ? Icon(
+                        CupertinoIcons.question_circle,
+                        size: 18,
+                        color: secondary,
+                      )
+                    : _PaletteRectPreview(
+                        image: image,
+                        source: instance.source,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                      ),
               ),
             ),
             const SizedBox(width: 8),
@@ -3251,7 +3298,7 @@ class _PlacedInstanceCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    instance.element.name,
+                    instance.element?.name ?? 'Élément introuvable',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -3271,7 +3318,7 @@ class _PlacedInstanceCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Pos: (${instance.pos.x}, ${instance.pos.y}) · Layer: ${instance.layerName}',
+                    'Pos: (${instance.pos.x}, ${instance.pos.y}) · Layer: ${instance.layerName} · Collision: ${instance.applyCollision ? 'on' : 'off'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -3390,6 +3437,360 @@ class _FuturePropertyGroup extends StatelessWidget {
   }
 }
 
+class _CollisionToggleRow extends StatelessWidget {
+  const _CollisionToggleRow({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.015),
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Collision',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Appliquer la collision de l’élément',
+                  style: TextStyle(
+                    color: secondary,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Transform.scale(
+            scale: 0.9,
+            child: CupertinoSwitch(
+              value: value,
+              onChanged: (next) => onChanged(next),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ElementCollisionProfileEditor extends StatelessWidget {
+  const _ElementCollisionProfileEditor({
+    required this.image,
+    required this.source,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.profile,
+    required this.onProfileChanged,
+  });
+
+  final ui.Image image;
+  final TilesetSourceRect source;
+  final int tileWidth;
+  final int tileHeight;
+  final ElementCollisionProfile? profile;
+  final ValueChanged<ElementCollisionProfile?> onProfileChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final cells = _normalizedCells(profile?.cells ?? const []);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.015),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Collision overlay',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '${cells.length} cellule${cells.length > 1 ? 's' : ''}',
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final boxHeight = math
+                  .min(210, constraints.maxWidth * 0.72)
+                  .toDouble()
+                  .clamp(120.0, 210.0);
+              return SizedBox(
+                height: boxHeight,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) {
+                    final local = details.localPosition;
+                    final size = Size(constraints.maxWidth, boxHeight);
+                    final targetRect = _fitCollisionPreviewRect(
+                      size: size,
+                      source: source,
+                      tileWidth: tileWidth,
+                      tileHeight: tileHeight,
+                    );
+                    if (!targetRect.contains(local)) {
+                      return;
+                    }
+                    final localX = local.dx - targetRect.left;
+                    final localY = local.dy - targetRect.top;
+                    final cellWidth = targetRect.width / source.width;
+                    final cellHeight = targetRect.height / source.height;
+                    final cellX =
+                        (localX / cellWidth).floor().clamp(0, source.width - 1);
+                    final cellY = (localY / cellHeight)
+                        .floor()
+                        .clamp(0, source.height - 1);
+                    final key = '$cellX:$cellY';
+                    final next = <String, GridPos>{
+                      for (final cell in cells) '${cell.x}:${cell.y}': cell,
+                    };
+                    if (next.containsKey(key)) {
+                      next.remove(key);
+                    } else {
+                      next[key] = GridPos(x: cellX, y: cellY);
+                    }
+                    onProfileChanged(
+                      ElementCollisionProfile(
+                        source: ElementCollisionProfileSource.manual,
+                        cells: _normalizedCells(
+                            next.values.toList(growable: false)),
+                      ),
+                    );
+                  },
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: CupertinoColors.separator.resolveFrom(context),
+                      ),
+                    ),
+                    child: CustomPaint(
+                      painter: _ElementCollisionProfilePainter(
+                        image: image,
+                        source: source,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                        cells: cells,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Clique sur la grille pour activer/désactiver des cellules.',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<GridPos> _normalizedCells(List<GridPos> cells) {
+    final unique = <String, GridPos>{};
+    for (final cell in cells) {
+      if (cell.x < 0 || cell.y < 0) {
+        continue;
+      }
+      if (cell.x >= source.width || cell.y >= source.height) {
+        continue;
+      }
+      unique['${cell.x}:${cell.y}'] = GridPos(x: cell.x, y: cell.y);
+    }
+    final out = unique.values.toList(growable: false)
+      ..sort((a, b) {
+        final yCompare = a.y.compareTo(b.y);
+        if (yCompare != 0) {
+          return yCompare;
+        }
+        return a.x.compareTo(b.x);
+      });
+    return out;
+  }
+}
+
+class _ElementCollisionProfilePainter extends CustomPainter {
+  _ElementCollisionProfilePainter({
+    required this.image,
+    required this.source,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.cells,
+  });
+
+  final ui.Image image;
+  final TilesetSourceRect source;
+  final int tileWidth;
+  final int tileHeight;
+  final List<GridPos> cells;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sourceRect = Rect.fromLTWH(
+      source.x * tileWidth.toDouble(),
+      source.y * tileHeight.toDouble(),
+      source.width * tileWidth.toDouble(),
+      source.height * tileHeight.toDouble(),
+    );
+    if (sourceRect.right > image.width || sourceRect.bottom > image.height) {
+      return;
+    }
+
+    final targetRect = _fitCollisionPreviewRect(
+      size: size,
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+    );
+    final imagePaint = Paint()
+      ..isAntiAlias = false
+      ..filterQuality = FilterQuality.none;
+    canvas.drawImageRect(image, sourceRect, targetRect, imagePaint);
+
+    final cellWidth = targetRect.width / source.width;
+    final cellHeight = targetRect.height / source.height;
+    for (final cell in cells) {
+      final cellRect = Rect.fromLTWH(
+        targetRect.left + cell.x * cellWidth,
+        targetRect.top + cell.y * cellHeight,
+        cellWidth,
+        cellHeight,
+      );
+      canvas.drawRect(
+        cellRect,
+        Paint()
+          ..color = EditorChrome.inspectorJoyCoral.withValues(alpha: 0.32)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        cellRect,
+        Paint()
+          ..color = EditorChrome.inspectorJoyCoral
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0,
+      );
+    }
+
+    final gridPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    for (var x = 0; x <= source.width; x++) {
+      final dx = targetRect.left + x * cellWidth;
+      canvas.drawLine(
+        Offset(dx, targetRect.top),
+        Offset(dx, targetRect.bottom),
+        gridPaint,
+      );
+    }
+    for (var y = 0; y <= source.height; y++) {
+      final dy = targetRect.top + y * cellHeight;
+      canvas.drawLine(
+        Offset(targetRect.left, dy),
+        Offset(targetRect.right, dy),
+        gridPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ElementCollisionProfilePainter oldDelegate) {
+    if (oldDelegate.image != image ||
+        oldDelegate.source != source ||
+        oldDelegate.tileWidth != tileWidth ||
+        oldDelegate.tileHeight != tileHeight ||
+        oldDelegate.cells.length != cells.length) {
+      return true;
+    }
+    for (var i = 0; i < cells.length; i++) {
+      if (cells[i] != oldDelegate.cells[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+Rect _fitCollisionPreviewRect({
+  required Size size,
+  required TilesetSourceRect source,
+  required int tileWidth,
+  required int tileHeight,
+}) {
+  final sourcePixelWidth = source.width * tileWidth.toDouble();
+  final sourcePixelHeight = source.height * tileHeight.toDouble();
+  if (sourcePixelWidth <= 0 || sourcePixelHeight <= 0) {
+    return Rect.fromLTWH(0, 0, size.width, size.height);
+  }
+  final sourceAspect = sourcePixelWidth / sourcePixelHeight;
+  final targetAspect = size.width <= 0 || size.height <= 0
+      ? sourceAspect
+      : size.width / size.height;
+  if (sourceAspect > targetAspect) {
+    final height = size.width / sourceAspect;
+    final top = (size.height - height) / 2;
+    return Rect.fromLTWH(0, top, size.width, height);
+  }
+  final width = size.height * sourceAspect;
+  final left = (size.width - width) / 2;
+  return Rect.fromLTWH(left, 0, width, size.height);
+}
+
 class _CategoryTreeRow extends StatelessWidget {
   final int depth;
   final bool selected;
@@ -3499,9 +3900,12 @@ class _ProjectElementCard extends StatelessWidget {
     final baseColor = selected
         ? selectionAccent.withValues(alpha: 0.1)
         : EditorPaintColors.transparent;
+    final collisionCellCount = element.collisionProfile?.cells.length ?? 0;
     final meta2 = [
       groupLabel,
       tilesetGroupLabel,
+      'Type: ${_elementPresetLabel(element.presetKind)}',
+      'Collision: $collisionCellCount',
       if (element.recommendedLayerId != null &&
           element.recommendedLayerId!.isNotEmpty)
         'Calque : ${element.recommendedLayerId}',
@@ -3941,5 +4345,22 @@ class _PaletteImageCache {
         return null;
       }
     });
+  }
+}
+
+String _elementPresetLabel(ElementPresetKind kind) {
+  switch (kind) {
+    case ElementPresetKind.generic:
+      return 'Generic';
+    case ElementPresetKind.tree:
+      return 'Tree';
+    case ElementPresetKind.building:
+      return 'Building';
+    case ElementPresetKind.rock:
+      return 'Rock';
+    case ElementPresetKind.cliff:
+      return 'Cliff';
+    case ElementPresetKind.tallDecoration:
+      return 'Tall deco';
   }
 }

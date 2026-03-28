@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'element_collision_profile.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
 import 'visual_frame_json.dart';
@@ -109,12 +110,15 @@ class ProjectDialogueEntry with _$ProjectDialogueEntry {
   const factory ProjectDialogueEntry({
     required String id,
     required String name,
+
     /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
     required String relativePath,
     @Default([]) List<String> tags,
     @Default('') String description,
+
     /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
     String? defaultStartNode,
+
     /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
     String? folderId,
     @Default(0) int sortOrder,
@@ -145,6 +149,7 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
     required String relativePath,
     @Default(TilesetScope.global) TilesetScope scope,
     String? groupId,
+
     /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
     String? folderId,
     @Default(0) int sortOrder,
@@ -164,6 +169,7 @@ class TilesetPaletteEntry with _$TilesetPaletteEntry {
     required String id,
     @Default('') String name,
     @Default(PaletteCategory.uncategorized) PaletteCategory category,
+
     /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
     required List<TilesetVisualFrame> frames,
     String? recommendedLayerId,
@@ -195,6 +201,7 @@ class TilesetVisualFrame with _$TilesetVisualFrame {
   const factory TilesetVisualFrame({
     @Default('') String tilesetId,
     required TilesetSourceRect source,
+
     /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
     int? durationMs,
   }) = _TilesetVisualFrame;
@@ -238,8 +245,11 @@ class ProjectElementEntry with _$ProjectElementEntry {
     required String tilesetId,
     required String categoryId,
     String? tilesetGroupId,
+
     /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
     required List<TilesetVisualFrame> frames,
+    @Default(ElementPresetKind.generic) ElementPresetKind presetKind,
+    ElementCollisionProfile? collisionProfile,
     String? groupId,
     String? recommendedLayerId,
     @Default([]) List<String> tags,
@@ -300,6 +310,7 @@ class PathPresetVariantMapping with _$PathPresetVariantMapping {
   @JsonSerializable(explicitToJson: true)
   const factory PathPresetVariantMapping({
     required TerrainPathVariant variant,
+
     /// Au moins une frame ; rendu éditeur / autotile = première frame.
     required List<TilesetVisualFrame> frames,
   }) = _PathPresetVariantMapping;
@@ -333,6 +344,7 @@ class ProjectEncounterEntry with _$ProjectEncounterEntry {
     required String speciesId,
     required int minLevel,
     required int maxLevel,
+
     /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
     @Default(1) int weight,
   }) = _ProjectEncounterEntry;
