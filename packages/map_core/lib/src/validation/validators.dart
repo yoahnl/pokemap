@@ -956,6 +956,12 @@ class MapValidator {
     final layerById = <String, MapLayer>{
       for (final layer in map.layers) layer.id: layer,
     };
+    final elementById = projectDialogueContext == null
+        ? const <String, ProjectElementEntry>{}
+        : {
+            for (final element in projectDialogueContext.elements)
+              element.id: element,
+          };
 
     for (final instance in map.placedElements) {
       final instanceId = _requireNonBlank(
@@ -993,12 +999,49 @@ class MapValidator {
           );
         }
       }
+      final animation = instance.animation;
+      if (animation != null) {
+        if (animation.speed <= 0) {
+          throw ValidationException(
+            'Placed element instance $instanceId has invalid animation speed: ${animation.speed}',
+          );
+        }
+        final startOffsetMs = animation.startOffsetMs;
+        if (startOffsetMs != null && startOffsetMs < 0) {
+          throw ValidationException(
+            'Placed element instance $instanceId has negative animation startOffsetMs: $startOffsetMs',
+          );
+        }
+      }
       if (projectDialogueContext != null) {
-        final hasElement = projectDialogueContext.elements
-            .any((candidate) => candidate.id == elementId);
-        if (!hasElement) {
+        final element = elementById[elementId];
+        if (element == null) {
           throw ValidationException(
             'Placed element instance $instanceId references unknown element: $elementId',
+          );
+        }
+        final layerTilesetId = (layer.tilesetId ?? map.tilesetId).trim();
+        final elementTilesetId = _resolveElementPrimaryTilesetId(element);
+        if (layerTilesetId.isNotEmpty &&
+            elementTilesetId.isNotEmpty &&
+            layerTilesetId != elementTilesetId) {
+          throw ValidationException(
+            'Placed element instance $instanceId references element $elementId from tileset $elementTilesetId, but layer $layerId uses tileset $layerTilesetId',
+          );
+        }
+        final source = element.frames.primarySource;
+        final width = source.width <= 0 ? 1 : source.width;
+        final height = source.height <= 0 ? 1 : source.height;
+        final right = instance.pos.x + width;
+        final bottom = instance.pos.y + height;
+        if (right > map.size.width || bottom > map.size.height) {
+          throw ValidationException(
+            'Placed element instance $instanceId footprint ${width}x$height exceeds map bounds from origin (${instance.pos.x}, ${instance.pos.y})',
+          );
+        }
+        if (animation != null && animation.enabled && element.frames.isEmpty) {
+          throw ValidationException(
+            'Placed element instance $instanceId enables animation but source element $elementId has no frames',
           );
         }
       }
@@ -1250,6 +1293,14 @@ class MapValidator {
       },
       object: (_) {},
     );
+  }
+
+  static String _resolveElementPrimaryTilesetId(ProjectElementEntry element) {
+    final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
+    if (frameTilesetId.isNotEmpty) {
+      return frameTilesetId;
+    }
+    return element.tilesetId.trim();
   }
 
   static String _requireNonBlank(String value, String message) {

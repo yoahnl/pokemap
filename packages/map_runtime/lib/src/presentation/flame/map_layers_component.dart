@@ -29,6 +29,8 @@ class MapLayersComponent extends PositionComponent {
         },
         _foregroundTileCellIndicesByLayerId =
             _buildForegroundTileCellIndicesByLayerId(bundle),
+        _animatedPlacedCellsByLayerId =
+            _buildAnimatedPlacedCellsByLayerId(bundle),
         super(
           anchor: Anchor.topLeft,
           position: Vector2.zero(),
@@ -45,6 +47,8 @@ class MapLayersComponent extends PositionComponent {
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
+  final Map<String, Map<int, _AnimatedPlacedCell>>
+      _animatedPlacedCellsByLayerId;
 
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
@@ -109,6 +113,7 @@ class MapLayersComponent extends PositionComponent {
               _paintCollisionLayer(canvas, collisions, o),
         );
       }
+      _paintPlacedElementsCollisionOverlay(canvas);
     }
   }
 
@@ -250,6 +255,7 @@ class MapLayersComponent extends PositionComponent {
     if (opacity < 1) {
       paint.color = Color.fromRGBO(255, 255, 255, opacity);
     }
+    final animatedCells = _animatedPlacedCellsByLayerId[layerId];
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
         final idx = y * w + x;
@@ -269,6 +275,23 @@ class MapLayersComponent extends PositionComponent {
         };
         if (!shouldDrawCell) {
           continue;
+        }
+        if (animatedCells != null) {
+          final animatedCell = animatedCells[idx];
+          if (animatedCell != null) {
+            final drewAnimated = _paintAnimatedPlacedCell(
+              canvas,
+              animatedCell: animatedCell,
+              x: x,
+              y: y,
+              dstWidth: cw,
+              dstHeight: ch,
+              paint: paint,
+            );
+            if (drewAnimated) {
+              continue;
+            }
+          }
         }
         final sourceIndex = tileId - 1;
         final col = sourceIndex % cols;
@@ -384,6 +407,144 @@ class MapLayersComponent extends PositionComponent {
     return out;
   }
 
+  static Map<String, Map<int, _AnimatedPlacedCell>>
+      _buildAnimatedPlacedCellsByLayerId(
+    RuntimeMapBundle bundle,
+  ) {
+    final map = bundle.map;
+    final tileLayerById = <String, TileLayer>{
+      for (final layer in map.layers.whereType<TileLayer>()) layer.id: layer,
+    };
+    if (tileLayerById.isEmpty || map.placedElements.isEmpty) {
+      return const <String, Map<int, _AnimatedPlacedCell>>{};
+    }
+    final elementById = {
+      for (final entry in bundle.manifest.elements) entry.id: entry,
+    };
+    final out = <String, Map<int, _AnimatedPlacedCell>>{};
+    final mapW = map.size.width;
+    final mapH = map.size.height;
+    for (final instance in map.placedElements) {
+      final layer = tileLayerById[instance.layerId];
+      if (layer == null) {
+        continue;
+      }
+      final entry = elementById[instance.elementId];
+      if (entry == null || entry.frames.length < 2) {
+        continue;
+      }
+      final animation = instance.animation;
+      if (animation == null || !animation.enabled) {
+        continue;
+      }
+      final frames = <_RuntimeAnimationFrame>[];
+      for (final frame in entry.frames) {
+        final source = frame.source;
+        if (source.width <= 0 || source.height <= 0) {
+          continue;
+        }
+        final tilesetId = frame.tilesetId.trim().isNotEmpty
+            ? frame.tilesetId.trim()
+            : entry.tilesetId.trim();
+        if (tilesetId.isEmpty) {
+          continue;
+        }
+        frames.add(
+          _RuntimeAnimationFrame(
+            tilesetId: tilesetId,
+            source: source,
+            durationMs: frame.durationMs,
+          ),
+        );
+      }
+      if (frames.length < 2) {
+        continue;
+      }
+      final baseSource = frames.first.source;
+      final width = baseSource.width <= 0 ? 1 : baseSource.width;
+      final height = baseSource.height <= 0 ? 1 : baseSource.height;
+      final seed = stableHash32(instance.id);
+      final layerCells =
+          out.putIfAbsent(instance.layerId, () => <int, _AnimatedPlacedCell>{});
+      for (var ly = 0; ly < height; ly++) {
+        for (var lx = 0; lx < width; lx++) {
+          final x = instance.pos.x + lx;
+          final y = instance.pos.y + ly;
+          if (x < 0 || y < 0 || x >= mapW || y >= mapH) {
+            continue;
+          }
+          final index = y * mapW + x;
+          if (index >= layer.tiles.length || layer.tiles[index] <= 0) {
+            continue;
+          }
+          layerCells[index] = _AnimatedPlacedCell(
+            localX: lx,
+            localY: ly,
+            frames: frames,
+            animation: animation,
+            deterministicSeed: seed,
+          );
+        }
+      }
+    }
+    return out;
+  }
+
+  bool _paintAnimatedPlacedCell(
+    Canvas canvas, {
+    required _AnimatedPlacedCell animatedCell,
+    required int x,
+    required int y,
+    required double dstWidth,
+    required double dstHeight,
+    required Paint paint,
+  }) {
+    final frameDurations = normalizeElementFrameDurationsMs(
+      animatedCell.frames
+          .map((frame) => frame.durationMs)
+          .toList(growable: false),
+    );
+    final frameIndex = resolvePlacedElementAnimationFrameIndex(
+      frameDurationsMs: frameDurations,
+      elapsedMs: _animElapsed * 1000,
+      animation: animatedCell.animation,
+      deterministicSeed: animatedCell.deterministicSeed,
+    );
+    if (frameIndex < 0 || frameIndex >= animatedCell.frames.length) {
+      return false;
+    }
+    final frame = animatedCell.frames[frameIndex];
+    final image = tileImagesByTilesetId[frame.tilesetId];
+    if (image == null) {
+      return false;
+    }
+    final tw = bundle.manifest.settings.tileWidth;
+    final th = bundle.manifest.settings.tileHeight;
+    if (tw <= 0 || th <= 0) {
+      return false;
+    }
+    if (animatedCell.localX < 0 ||
+        animatedCell.localY < 0 ||
+        animatedCell.localX >= frame.source.width ||
+        animatedCell.localY >= frame.source.height) {
+      return false;
+    }
+    final sx = (frame.source.x + animatedCell.localX) * tw;
+    final sy = (frame.source.y + animatedCell.localY) * th;
+    if (sx + tw > image.width || sy + th > image.height) {
+      return false;
+    }
+    final src = Rect.fromLTWH(
+      sx.toDouble(),
+      sy.toDouble(),
+      tw.toDouble(),
+      th.toDouble(),
+    );
+    final dst = Rect.fromLTWH(x * dstWidth, y * dstHeight, dstWidth, dstHeight);
+    canvas.drawImageRect(image, src, dst, paint);
+    return true;
+  }
+
   void _paintCollisionLayer(
     Canvas canvas,
     List<bool> collisions,
@@ -398,6 +559,35 @@ class MapLayersComponent extends PositionComponent {
       for (var x = 0; x < w; x++) {
         final idx = y * w + x;
         if (idx >= collisions.length || !collisions[idx]) {
+          continue;
+        }
+        canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw, ch), paint);
+      }
+    }
+  }
+
+  void _paintPlacedElementsCollisionOverlay(Canvas canvas) {
+    final w = bundle.map.size.width;
+    final h = bundle.map.size.height;
+    if (w <= 0 || h <= 0) {
+      return;
+    }
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    final paint = Paint()..color = const Color.fromRGBO(255, 153, 0, 0.30);
+    final elementById = _elementById;
+    for (final instance in bundle.map.placedElements) {
+      if (!instance.applyCollision) {
+        continue;
+      }
+      final profile = elementById[instance.elementId]?.collisionProfile;
+      if (profile == null || profile.cells.isEmpty) {
+        continue;
+      }
+      for (final local in profile.cells) {
+        final x = instance.pos.x + local.x;
+        final y = instance.pos.y + local.y;
+        if (x < 0 || y < 0 || x >= w || y >= h) {
           continue;
         }
         canvas.drawRect(Rect.fromLTWH(x * cw, y * ch, cw, ch), paint);
@@ -698,6 +888,34 @@ class MapLayersComponent extends PositionComponent {
     );
     return true;
   }
+}
+
+class _RuntimeAnimationFrame {
+  const _RuntimeAnimationFrame({
+    required this.tilesetId,
+    required this.source,
+    required this.durationMs,
+  });
+
+  final String tilesetId;
+  final TilesetSourceRect source;
+  final int? durationMs;
+}
+
+class _AnimatedPlacedCell {
+  const _AnimatedPlacedCell({
+    required this.localX,
+    required this.localY,
+    required this.frames,
+    required this.animation,
+    required this.deterministicSeed,
+  });
+
+  final int localX;
+  final int localY;
+  final List<_RuntimeAnimationFrame> frames;
+  final MapPlacedElementAnimation animation;
+  final int deterministicSeed;
 }
 
 String? _resolveTilesetId(MapData map, String? layerTilesetId) {

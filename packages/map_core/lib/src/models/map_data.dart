@@ -93,11 +93,29 @@ class MapPlacedElement with _$MapPlacedElement {
     required String elementId,
     required GridPos pos,
     @Default(true) bool applyCollision,
+    MapPlacedElementAnimation? animation,
     @Default({}) Map<String, String> properties,
   }) = _MapPlacedElement;
 
   factory MapPlacedElement.fromJson(Map<String, dynamic> json) =>
       _$MapPlacedElementFromJson(json);
+}
+
+@freezed
+class MapPlacedElementAnimation with _$MapPlacedElementAnimation {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapPlacedElementAnimation({
+    @Default(false) bool enabled,
+    @Default(MapPlacedElementAnimationMode.none)
+    MapPlacedElementAnimationMode mode,
+    @Default(true) bool autoplay,
+    @Default(1.0) double speed,
+    double? startOffsetMs,
+    @Default(false) bool randomStart,
+  }) = _MapPlacedElementAnimation;
+
+  factory MapPlacedElementAnimation.fromJson(Map<String, dynamic> json) =>
+      _$MapPlacedElementAnimationFromJson(json);
 }
 
 @freezed

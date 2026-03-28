@@ -407,8 +407,15 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(resizeMapUseCaseProvider);
       final resized = useCase.execute(map, width, height);
+      final project = state.project;
+      final committed = project == null
+          ? resized
+          : _placedElementInstanceIndexer.syncAllTileLayers(
+              map: resized,
+              project: project,
+            );
 
-      if (resized == map) {
+      if (committed == map) {
         state = state.copyWith(
           statusMessage: 'Map "${map.id}" is already ${width}x$height',
           errorMessage: null,
@@ -426,7 +433,7 @@ class EditorNotifier extends _$EditorNotifier {
           : hovered;
       _applyMapMutation(
         previousMap: map,
-        updatedMap: resized,
+        updatedMap: committed,
         preferredActiveLayerId: state.activeLayerId,
         hoveredTile: nextHovered,
         updateHoveredTile: true,
@@ -5292,6 +5299,45 @@ class EditorNotifier extends _$EditorNotifier {
       preferredActiveLayerId: state.activeLayerId,
       statusMessage:
           'Collision ${applyCollision ? 'activée' : 'désactivée'} pour ${previous.elementId}',
+    );
+  }
+
+  void setPlacedElementInstanceAnimationConfig({
+    required String instanceId,
+    required MapPlacedElementAnimation? animation,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    final index =
+        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    if (index < 0) {
+      state = state.copyWith(
+        errorMessage: 'Placed element instance not found: $trimmedId',
+      );
+      return;
+    }
+    final previous = map.placedElements[index];
+    if (previous.animation == animation) {
+      return;
+    }
+    final updatedMap = setMapPlacedElementAnimation(
+      map,
+      instanceId: trimmedId,
+      animation: animation,
+    );
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: updatedMap,
+      preferredActiveLayerId: state.activeLayerId,
+      statusMessage: animation == null
+          ? 'Animation réinitialisée pour ${previous.elementId}'
+          : 'Animation mise à jour pour ${previous.elementId}',
     );
   }
 

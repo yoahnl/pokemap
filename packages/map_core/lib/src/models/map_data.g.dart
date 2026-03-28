@@ -125,6 +125,10 @@ _$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
       elementId: json['elementId'] as String,
       pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
       applyCollision: json['applyCollision'] as bool? ?? true,
+      animation: json['animation'] == null
+          ? null
+          : MapPlacedElementAnimation.fromJson(
+              json['animation'] as Map<String, dynamic>),
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -139,8 +143,39 @@ Map<String, dynamic> _$$MapPlacedElementImplToJson(
       'elementId': instance.elementId,
       'pos': instance.pos.toJson(),
       'applyCollision': instance.applyCollision,
+      'animation': instance.animation?.toJson(),
       'properties': instance.properties,
     };
+
+_$MapPlacedElementAnimationImpl _$$MapPlacedElementAnimationImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapPlacedElementAnimationImpl(
+      enabled: json['enabled'] as bool? ?? false,
+      mode: $enumDecodeNullable(
+              _$MapPlacedElementAnimationModeEnumMap, json['mode']) ??
+          MapPlacedElementAnimationMode.none,
+      autoplay: json['autoplay'] as bool? ?? true,
+      speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
+      startOffsetMs: (json['startOffsetMs'] as num?)?.toDouble(),
+      randomStart: json['randomStart'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$$MapPlacedElementAnimationImplToJson(
+        _$MapPlacedElementAnimationImpl instance) =>
+    <String, dynamic>{
+      'enabled': instance.enabled,
+      'mode': _$MapPlacedElementAnimationModeEnumMap[instance.mode]!,
+      'autoplay': instance.autoplay,
+      'speed': instance.speed,
+      'startOffsetMs': instance.startOffsetMs,
+      'randomStart': instance.randomStart,
+    };
+
+const _$MapPlacedElementAnimationModeEnumMap = {
+  MapPlacedElementAnimationMode.none: 'none',
+  MapPlacedElementAnimationMode.loop: 'loop',
+  MapPlacedElementAnimationMode.pingPong: 'ping_pong',
+};
 
 _$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
     _$MapEntityImpl(

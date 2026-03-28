@@ -97,14 +97,11 @@ class PlacedElementInstanceIndexer {
       minimumColumns: baselineColumns,
     );
     if (columns <= 0) {
-      return replaceMapPlacedElementsForLayer(
-        map,
-        layerId: layerId,
-        instances: const [],
-      );
+      return map;
     }
 
     final existingByKey = <String, MapPlacedElement>{};
+    final existingByPos = <String, MapPlacedElement>{};
     for (final existing in map.placedElements) {
       if (existing.layerId != layerId) {
         continue;
@@ -114,6 +111,8 @@ class PlacedElementInstanceIndexer {
         elementId: existing.elementId,
         pos: existing.pos,
       )] = existing;
+      existingByPos[_keyForPos(layerId: existing.layerId, pos: existing.pos)] =
+          existing;
     }
 
     final covered =
@@ -180,7 +179,8 @@ class PlacedElementInstanceIndexer {
           elementId: matched.id,
           pos: pos,
         );
-        final existing = existingByKey[key];
+        final existing = existingByKey[key] ??
+            existingByPos[_keyForPos(layerId: layerId, pos: pos)];
         final instance = existing ??
             MapPlacedElement(
               id: buildMapPlacedElementId(
@@ -550,6 +550,13 @@ class PlacedElementInstanceIndexer {
     required GridPos pos,
   }) {
     return '$layerId::$elementId::${pos.x}::${pos.y}';
+  }
+
+  String _keyForPos({
+    required String layerId,
+    required GridPos pos,
+  }) {
+    return '$layerId::${pos.x}::${pos.y}';
   }
 }
 

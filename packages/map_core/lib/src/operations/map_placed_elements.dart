@@ -7,7 +7,7 @@ String buildMapPlacedElementId({
   required String elementId,
   required GridPos pos,
 }) {
-  return '${Uri.encodeComponent(layerId)}::${Uri.encodeComponent(elementId)}::${pos.x}::${pos.y}';
+  return '${Uri.encodeComponent(layerId)}::${pos.x}::${pos.y}';
 }
 
 MapData upsertMapPlacedElement(
@@ -82,6 +82,64 @@ MapData setMapPlacedElementCollisionApplied(
   final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
   next[index] = next[index].copyWith(applyCollision: applyCollision);
   return map.copyWith(placedElements: next);
+}
+
+MapData setMapPlacedElementAnimation(
+  MapData map, {
+  required String instanceId,
+  required MapPlacedElementAnimation? animation,
+}) {
+  final normalizedId = instanceId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException(
+        'Placed element instance id cannot be empty');
+  }
+  final index =
+      map.placedElements.indexWhere((entry) => entry.id == normalizedId);
+  if (index < 0) {
+    throw ValidationException(
+        'Placed element instance not found: $normalizedId');
+  }
+  final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
+  next[index] = next[index].copyWith(animation: animation);
+  return map.copyWith(placedElements: next);
+}
+
+MapData resetMapPlacedElementAnimation(
+  MapData map, {
+  required String instanceId,
+}) {
+  return setMapPlacedElementAnimation(
+    map,
+    instanceId: instanceId,
+    animation: null,
+  );
+}
+
+MapData setMapPlacedElementAnimationEnabled(
+  MapData map, {
+  required String instanceId,
+  required bool enabled,
+}) {
+  final normalizedId = instanceId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException(
+        'Placed element instance id cannot be empty');
+  }
+  final index =
+      map.placedElements.indexWhere((entry) => entry.id == normalizedId);
+  if (index < 0) {
+    throw ValidationException(
+        'Placed element instance not found: $normalizedId');
+  }
+  final current = map.placedElements[index];
+  final currentAnim = current.animation ?? const MapPlacedElementAnimation();
+  final nextAnim = currentAnim.copyWith(enabled: enabled);
+  return setMapPlacedElementAnimation(
+    map,
+    instanceId: normalizedId,
+    animation: nextAnim,
+  );
 }
 
 MapPlacedElement _normalizePlacedElement(MapPlacedElement instance) {

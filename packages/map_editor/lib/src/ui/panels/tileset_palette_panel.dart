@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -1341,6 +1342,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 applyCollision: applyCollision,
               );
             },
+            onAnimationConfigChanged: (instance, animation) {
+              notifier.setPlacedElementInstanceAnimationConfig(
+                instanceId: instance.instanceId,
+                animation: animation,
+              );
+            },
             onDeleteInstance: (instance) async {
               await _showDeletePlacedInstanceDialog(
                 context,
@@ -1481,35 +1488,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             'Le calque actif n’a pas de tileset associé pour détecter les éléments.',
       );
     }
-    if (layerTilesetId != activeTileset.id) {
-      String layerTilesetName = layerTilesetId;
-      for (final tileset in project.tilesets) {
-        if (tileset.id == layerTilesetId) {
-          layerTilesetName = tileset.name;
-          break;
-        }
-      }
-      return _PlacedElementInstancesScope(
-        layerId: tileLayer.id,
-        layerName: tileLayer.name,
-        instances: const [],
-        emptyTitle: 'Tileset différent',
-        emptyMessage:
-            'Le calque actif utilise "$layerTilesetName". Sélectionne ce tileset dans la palette pour afficher les miniatures.',
-      );
-    }
-
-    if (tilesetColumns <= 0) {
-      return _PlacedElementInstancesScope(
-        layerId: tileLayer.id,
-        layerName: tileLayer.name,
-        instances: const [],
-        emptyTitle: 'Tileset non disponible',
-        emptyMessage:
-            'Impossible d’afficher les miniatures tant que le tileset n’est pas chargé.',
-      );
-    }
-
     final elementById = <String, ProjectElementEntry>{
       for (final entry in project.elements) entry.id: entry,
     };
@@ -1537,12 +1515,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final occurrencesByElementId = <String, int>{};
     final instances = <_PlacedElementInstanceVm>[];
     for (final instance in rawLayerInstances) {
-      final candidateElement = elementById[instance.elementId];
-      final element = candidateElement != null &&
-              _resolveElementPrimaryTilesetId(candidateElement) ==
-                  layerTilesetId
-          ? candidateElement
-          : null;
+      final element = elementById[instance.elementId];
+      final previewAvailable = element != null &&
+          _resolveElementPrimaryTilesetId(element) == activeTileset.id &&
+          tilesetColumns > 0;
       final key = element?.id ?? instance.elementId;
       final occurrence = (occurrencesByElementId[key] ?? 0) + 1;
       occurrencesByElementId[key] = occurrence;
@@ -1552,6 +1528,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           element: element,
           layerName: tileLayer.name,
           occurrence: occurrence,
+          previewAvailable: previewAvailable,
         ),
       );
     }
@@ -3032,12 +3009,14 @@ class _PlacedElementInstanceVm {
     required this.element,
     required this.layerName,
     required this.occurrence,
+    required this.previewAvailable,
   });
 
   final MapPlacedElement instance;
   final ProjectElementEntry? element;
   final String layerName;
   final int occurrence;
+  final bool previewAvailable;
 
   String get displayLabel =>
       '${element?.id ?? instance.elementId} #$occurrence';
@@ -3045,6 +3024,8 @@ class _PlacedElementInstanceVm {
   String get layerId => instance.layerId;
   String get instanceId => instance.id;
   bool get applyCollision => instance.applyCollision;
+  MapPlacedElementAnimation? get animation => instance.animation;
+  int get frameCount => element?.frames.length ?? 1;
   TilesetSourceRect get source =>
       element?.frames.primarySource ??
       const TilesetSourceRect(x: 0, y: 0, width: 1, height: 1);
@@ -3060,6 +3041,7 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.selectedInstance,
     required this.onSelectInstance,
     required this.onCollisionAppliedChanged,
+    required this.onAnimationConfigChanged,
     required this.onDeleteInstance,
   });
 
@@ -3072,6 +3054,10 @@ class _PlacedInstancesSection extends StatelessWidget {
   final ValueChanged<_PlacedElementInstanceVm?> onSelectInstance;
   final void Function(_PlacedElementInstanceVm instance, bool applyCollision)
       onCollisionAppliedChanged;
+  final void Function(
+    _PlacedElementInstanceVm instance,
+    MapPlacedElementAnimation? animation,
+  ) onAnimationConfigChanged;
   final Future<void> Function(_PlacedElementInstanceVm instance)
       onDeleteInstance;
 
@@ -3286,6 +3272,17 @@ class _PlacedInstancesSection extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 8),
+                _PlacedElementAnimationSection(
+                  value: selected.animation,
+                  frameCount: selected.frameCount,
+                  previewEnabled: selected.previewAvailable,
+                  image: image,
+                  sourceFrames: selected.element?.frames ?? const [],
+                  tileWidth: tileWidth,
+                  tileHeight: tileHeight,
+                  onChanged: (next) => onAnimationConfigChanged(selected, next),
+                ),
+                const SizedBox(height: 8),
                 CupertinoButton(
                   color: CupertinoColors.systemRed.withValues(alpha: 0.9),
                   padding:
@@ -3305,11 +3302,6 @@ class _PlacedInstancesSection extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                const _FuturePropertyGroup(
-                  title: 'Animation',
-                  status: 'À venir',
                 ),
                 const SizedBox(height: 6),
                 const _FuturePropertyGroup(
@@ -3378,12 +3370,18 @@ class _PlacedInstanceCard extends StatelessWidget {
                         size: 18,
                         color: secondary,
                       )
-                    : _PaletteRectPreview(
-                        image: image,
-                        source: instance.source,
-                        tileWidth: tileWidth,
-                        tileHeight: tileHeight,
-                      ),
+                    : !instance.previewAvailable
+                        ? Icon(
+                            CupertinoIcons.question_circle,
+                            size: 18,
+                            color: secondary,
+                          )
+                        : _PaletteRectPreview(
+                            image: image,
+                            source: instance.source,
+                            tileWidth: tileWidth,
+                            tileHeight: tileHeight,
+                          ),
               ),
             ),
             const SizedBox(width: 8),
@@ -3591,6 +3589,402 @@ class _CollisionToggleRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PlacedElementAnimationSection extends StatelessWidget {
+  const _PlacedElementAnimationSection({
+    required this.value,
+    required this.frameCount,
+    required this.previewEnabled,
+    required this.image,
+    required this.sourceFrames,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.onChanged,
+  });
+
+  final MapPlacedElementAnimation? value;
+  final int frameCount;
+  final bool previewEnabled;
+  final ui.Image image;
+  final List<TilesetVisualFrame> sourceFrames;
+  final int tileWidth;
+  final int tileHeight;
+  final ValueChanged<MapPlacedElementAnimation?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final current = value ?? const MapPlacedElementAnimation();
+    final effectiveFrameCount = frameCount <= 0 ? 1 : frameCount;
+    final canAnimate = effectiveFrameCount > 1;
+    final speedLabel = current.speed.toStringAsFixed(2);
+    final offset = current.startOffsetMs;
+    final offsetLabel = offset == null ? 'Auto' : '${offset.round()} ms';
+
+    void emit(MapPlacedElementAnimation next) {
+      onChanged(next);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.015),
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Animation',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                minSize: 0,
+                onPressed: value == null ? null : () => onChanged(null),
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            canAnimate
+                ? '$effectiveFrameCount frames détectées'
+                : 'Une seule frame: animation visuelle limitée',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _CompactSwitchRow(
+            title: 'Activer animation',
+            value: current.enabled,
+            onChanged: (next) => emit(current.copyWith(enabled: next)),
+          ),
+          const SizedBox(height: 6),
+          Opacity(
+            opacity: current.enabled ? 1 : 0.55,
+            child: IgnorePointer(
+              ignoring: !current.enabled,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Mode',
+                    style: TextStyle(
+                      color: secondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  CupertinoSlidingSegmentedControl<
+                      MapPlacedElementAnimationMode>(
+                    groupValue: current.mode,
+                    onValueChanged: (next) {
+                      if (next == null) {
+                        return;
+                      }
+                      emit(current.copyWith(mode: next));
+                    },
+                    children: const {
+                      MapPlacedElementAnimationMode.none: Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Text('None', style: TextStyle(fontSize: 10)),
+                      ),
+                      MapPlacedElementAnimationMode.loop: Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Text('Loop', style: TextStyle(fontSize: 10)),
+                      ),
+                      MapPlacedElementAnimationMode.pingPong: Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Text('PingPong', style: TextStyle(fontSize: 10)),
+                      ),
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  _CompactSwitchRow(
+                    title: 'Autoplay',
+                    value: current.autoplay,
+                    onChanged: (next) => emit(current.copyWith(autoplay: next)),
+                  ),
+                  const SizedBox(height: 6),
+                  _CompactSwitchRow(
+                    title: 'Random start',
+                    value: current.randomStart,
+                    onChanged: (next) =>
+                        emit(current.copyWith(randomStart: next)),
+                  ),
+                  const SizedBox(height: 6),
+                  _CompactStepperRow(
+                    label: 'Speed',
+                    value: speedLabel,
+                    onMinus: () => emit(
+                      current.copyWith(
+                        speed: (current.speed - 0.10).clamp(0.1, 10.0),
+                      ),
+                    ),
+                    onPlus: () => emit(
+                      current.copyWith(
+                        speed: (current.speed + 0.10).clamp(0.1, 10.0),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _CompactStepperRow(
+                    label: 'Start offset',
+                    value: offsetLabel,
+                    onMinus: () {
+                      final next = (current.startOffsetMs ?? 0) - 100;
+                      emit(current.copyWith(startOffsetMs: math.max(0, next)));
+                    },
+                    onPlus: () {
+                      final next = (current.startOffsetMs ?? 0) + 100;
+                      emit(current.copyWith(startOffsetMs: next));
+                    },
+                    onReset: () => emit(current.copyWith(startOffsetMs: null)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (!previewEnabled || sourceFrames.isEmpty)
+            Text(
+              'Aperçu indisponible pour le tileset actuellement chargé.',
+              style: TextStyle(
+                color: secondary,
+                fontSize: 10,
+              ),
+            )
+          else
+            SizedBox(
+              height: 52,
+              child: _PlacedElementAnimationPreview(
+                image: image,
+                sourceFrames: sourceFrames,
+                tileWidth: tileWidth,
+                tileHeight: tileHeight,
+                config: current,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlacedElementAnimationPreview extends StatefulWidget {
+  const _PlacedElementAnimationPreview({
+    required this.image,
+    required this.sourceFrames,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.config,
+  });
+
+  final ui.Image image;
+  final List<TilesetVisualFrame> sourceFrames;
+  final int tileWidth;
+  final int tileHeight;
+  final MapPlacedElementAnimation config;
+
+  @override
+  State<_PlacedElementAnimationPreview> createState() =>
+      _PlacedElementAnimationPreviewState();
+}
+
+class _PlacedElementAnimationPreviewState
+    extends State<_PlacedElementAnimationPreview> {
+  late final Stopwatch _stopwatch;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch = Stopwatch()..start();
+    _timer = Timer.periodic(const Duration(milliseconds: 80), (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final durations = normalizeElementFrameDurationsMs(
+      widget.sourceFrames
+          .map((frame) => frame.durationMs)
+          .toList(growable: false),
+    );
+    final index = resolvePlacedElementAnimationFrameIndex(
+      frameDurationsMs: durations,
+      elapsedMs: _stopwatch.elapsedMilliseconds.toDouble(),
+      animation: widget.config,
+      deterministicSeed: stableHash32('editor_preview'),
+    );
+    final clampedIndex = index.clamp(0, widget.sourceFrames.length - 1);
+    final source = widget.sourceFrames[clampedIndex].source;
+    return Row(
+      children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: CupertinoColors.separator.resolveFrom(context),
+              ),
+            ),
+            child: _PaletteRectPreview(
+              image: widget.image,
+              source: source,
+              tileWidth: widget.tileWidth,
+              tileHeight: widget.tileHeight,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Frame ${clampedIndex + 1}/${widget.sourceFrames.length}',
+            style: TextStyle(
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontSize: 10,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactSwitchRow extends StatelessWidget {
+  const _CompactSwitchRow({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = CupertinoColors.label.resolveFrom(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: label,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Transform.scale(
+          scale: 0.85,
+          child: CupertinoSwitch(
+            value: value,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactStepperRow extends StatelessWidget {
+  const _CompactStepperRow({
+    required this.label,
+    required this.value,
+    required this.onMinus,
+    required this.onPlus,
+    this.onReset,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+  final VoidCallback? onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '$label: $value',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          minSize: 0,
+          onPressed: onMinus,
+          child: const Text('-', style: TextStyle(fontSize: 12)),
+        ),
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          minSize: 0,
+          onPressed: onPlus,
+          child: const Text('+', style: TextStyle(fontSize: 12)),
+        ),
+        if (onReset != null)
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            minSize: 0,
+            onPressed: onReset,
+            child: Text(
+              'Auto',
+              style: TextStyle(
+                fontSize: 10,
+                color: textColor,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

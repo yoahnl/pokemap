@@ -996,6 +996,8 @@ mixin _$MapPlacedElement {
   String get elementId => throw _privateConstructorUsedError;
   GridPos get pos => throw _privateConstructorUsedError;
   bool get applyCollision => throw _privateConstructorUsedError;
+  MapPlacedElementAnimation? get animation =>
+      throw _privateConstructorUsedError;
   Map<String, String> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this MapPlacedElement to a JSON map.
@@ -1020,9 +1022,11 @@ abstract class $MapPlacedElementCopyWith<$Res> {
       String elementId,
       GridPos pos,
       bool applyCollision,
+      MapPlacedElementAnimation? animation,
       Map<String, String> properties});
 
   $GridPosCopyWith<$Res> get pos;
+  $MapPlacedElementAnimationCopyWith<$Res>? get animation;
 }
 
 /// @nodoc
@@ -1045,6 +1049,7 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
     Object? elementId = null,
     Object? pos = null,
     Object? applyCollision = null,
+    Object? animation = freezed,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -1068,6 +1073,10 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
           ? _value.applyCollision
           : applyCollision // ignore: cast_nullable_to_non_nullable
               as bool,
+      animation: freezed == animation
+          ? _value.animation
+          : animation // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementAnimation?,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -1082,6 +1091,20 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
   $GridPosCopyWith<$Res> get pos {
     return $GridPosCopyWith<$Res>(_value.pos, (value) {
       return _then(_value.copyWith(pos: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapPlacedElement
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapPlacedElementAnimationCopyWith<$Res>? get animation {
+    if (_value.animation == null) {
+      return null;
+    }
+
+    return $MapPlacedElementAnimationCopyWith<$Res>(_value.animation!, (value) {
+      return _then(_value.copyWith(animation: value) as $Val);
     });
   }
 }
@@ -1100,10 +1123,13 @@ abstract class _$$MapPlacedElementImplCopyWith<$Res>
       String elementId,
       GridPos pos,
       bool applyCollision,
+      MapPlacedElementAnimation? animation,
       Map<String, String> properties});
 
   @override
   $GridPosCopyWith<$Res> get pos;
+  @override
+  $MapPlacedElementAnimationCopyWith<$Res>? get animation;
 }
 
 /// @nodoc
@@ -1124,6 +1150,7 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
     Object? elementId = null,
     Object? pos = null,
     Object? applyCollision = null,
+    Object? animation = freezed,
     Object? properties = null,
   }) {
     return _then(_$MapPlacedElementImpl(
@@ -1147,6 +1174,10 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
           ? _value.applyCollision
           : applyCollision // ignore: cast_nullable_to_non_nullable
               as bool,
+      animation: freezed == animation
+          ? _value.animation
+          : animation // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementAnimation?,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -1165,6 +1196,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       required this.elementId,
       required this.pos,
       this.applyCollision = true,
+      this.animation,
       final Map<String, String> properties = const {}})
       : _properties = properties;
 
@@ -1182,6 +1214,8 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
   @override
   @JsonKey()
   final bool applyCollision;
+  @override
+  final MapPlacedElementAnimation? animation;
   final Map<String, String> _properties;
   @override
   @JsonKey()
@@ -1193,7 +1227,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
 
   @override
   String toString() {
-    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, properties: $properties)';
+    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, animation: $animation, properties: $properties)';
   }
 
   @override
@@ -1208,14 +1242,23 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
             (identical(other.pos, pos) || other.pos == pos) &&
             (identical(other.applyCollision, applyCollision) ||
                 other.applyCollision == applyCollision) &&
+            (identical(other.animation, animation) ||
+                other.animation == animation) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, layerId, elementId, pos,
-      applyCollision, const DeepCollectionEquality().hash(_properties));
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      layerId,
+      elementId,
+      pos,
+      applyCollision,
+      animation,
+      const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapPlacedElement
   /// with the given fields replaced by the non-null parameter values.
@@ -1241,6 +1284,7 @@ abstract class _MapPlacedElement implements MapPlacedElement {
       required final String elementId,
       required final GridPos pos,
       final bool applyCollision,
+      final MapPlacedElementAnimation? animation,
       final Map<String, String> properties}) = _$MapPlacedElementImpl;
 
   factory _MapPlacedElement.fromJson(Map<String, dynamic> json) =
@@ -1257,6 +1301,8 @@ abstract class _MapPlacedElement implements MapPlacedElement {
   @override
   bool get applyCollision;
   @override
+  MapPlacedElementAnimation? get animation;
+  @override
   Map<String, String> get properties;
 
   /// Create a copy of MapPlacedElement
@@ -1265,6 +1311,275 @@ abstract class _MapPlacedElement implements MapPlacedElement {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$MapPlacedElementImplCopyWith<_$MapPlacedElementImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+MapPlacedElementAnimation _$MapPlacedElementAnimationFromJson(
+    Map<String, dynamic> json) {
+  return _MapPlacedElementAnimation.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapPlacedElementAnimation {
+  bool get enabled => throw _privateConstructorUsedError;
+  MapPlacedElementAnimationMode get mode => throw _privateConstructorUsedError;
+  bool get autoplay => throw _privateConstructorUsedError;
+  double get speed => throw _privateConstructorUsedError;
+  double? get startOffsetMs => throw _privateConstructorUsedError;
+  bool get randomStart => throw _privateConstructorUsedError;
+
+  /// Serializes this MapPlacedElementAnimation to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapPlacedElementAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapPlacedElementAnimationCopyWith<MapPlacedElementAnimation> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapPlacedElementAnimationCopyWith<$Res> {
+  factory $MapPlacedElementAnimationCopyWith(MapPlacedElementAnimation value,
+          $Res Function(MapPlacedElementAnimation) then) =
+      _$MapPlacedElementAnimationCopyWithImpl<$Res, MapPlacedElementAnimation>;
+  @useResult
+  $Res call(
+      {bool enabled,
+      MapPlacedElementAnimationMode mode,
+      bool autoplay,
+      double speed,
+      double? startOffsetMs,
+      bool randomStart});
+}
+
+/// @nodoc
+class _$MapPlacedElementAnimationCopyWithImpl<$Res,
+        $Val extends MapPlacedElementAnimation>
+    implements $MapPlacedElementAnimationCopyWith<$Res> {
+  _$MapPlacedElementAnimationCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapPlacedElementAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? enabled = null,
+    Object? mode = null,
+    Object? autoplay = null,
+    Object? speed = null,
+    Object? startOffsetMs = freezed,
+    Object? randomStart = null,
+  }) {
+    return _then(_value.copyWith(
+      enabled: null == enabled
+          ? _value.enabled
+          : enabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementAnimationMode,
+      autoplay: null == autoplay
+          ? _value.autoplay
+          : autoplay // ignore: cast_nullable_to_non_nullable
+              as bool,
+      speed: null == speed
+          ? _value.speed
+          : speed // ignore: cast_nullable_to_non_nullable
+              as double,
+      startOffsetMs: freezed == startOffsetMs
+          ? _value.startOffsetMs
+          : startOffsetMs // ignore: cast_nullable_to_non_nullable
+              as double?,
+      randomStart: null == randomStart
+          ? _value.randomStart
+          : randomStart // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$MapPlacedElementAnimationImplCopyWith<$Res>
+    implements $MapPlacedElementAnimationCopyWith<$Res> {
+  factory _$$MapPlacedElementAnimationImplCopyWith(
+          _$MapPlacedElementAnimationImpl value,
+          $Res Function(_$MapPlacedElementAnimationImpl) then) =
+      __$$MapPlacedElementAnimationImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {bool enabled,
+      MapPlacedElementAnimationMode mode,
+      bool autoplay,
+      double speed,
+      double? startOffsetMs,
+      bool randomStart});
+}
+
+/// @nodoc
+class __$$MapPlacedElementAnimationImplCopyWithImpl<$Res>
+    extends _$MapPlacedElementAnimationCopyWithImpl<$Res,
+        _$MapPlacedElementAnimationImpl>
+    implements _$$MapPlacedElementAnimationImplCopyWith<$Res> {
+  __$$MapPlacedElementAnimationImplCopyWithImpl(
+      _$MapPlacedElementAnimationImpl _value,
+      $Res Function(_$MapPlacedElementAnimationImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapPlacedElementAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? enabled = null,
+    Object? mode = null,
+    Object? autoplay = null,
+    Object? speed = null,
+    Object? startOffsetMs = freezed,
+    Object? randomStart = null,
+  }) {
+    return _then(_$MapPlacedElementAnimationImpl(
+      enabled: null == enabled
+          ? _value.enabled
+          : enabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementAnimationMode,
+      autoplay: null == autoplay
+          ? _value.autoplay
+          : autoplay // ignore: cast_nullable_to_non_nullable
+              as bool,
+      speed: null == speed
+          ? _value.speed
+          : speed // ignore: cast_nullable_to_non_nullable
+              as double,
+      startOffsetMs: freezed == startOffsetMs
+          ? _value.startOffsetMs
+          : startOffsetMs // ignore: cast_nullable_to_non_nullable
+              as double?,
+      randomStart: null == randomStart
+          ? _value.randomStart
+          : randomStart // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapPlacedElementAnimationImpl implements _MapPlacedElementAnimation {
+  const _$MapPlacedElementAnimationImpl(
+      {this.enabled = false,
+      this.mode = MapPlacedElementAnimationMode.none,
+      this.autoplay = true,
+      this.speed = 1.0,
+      this.startOffsetMs,
+      this.randomStart = false});
+
+  factory _$MapPlacedElementAnimationImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MapPlacedElementAnimationImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final bool enabled;
+  @override
+  @JsonKey()
+  final MapPlacedElementAnimationMode mode;
+  @override
+  @JsonKey()
+  final bool autoplay;
+  @override
+  @JsonKey()
+  final double speed;
+  @override
+  final double? startOffsetMs;
+  @override
+  @JsonKey()
+  final bool randomStart;
+
+  @override
+  String toString() {
+    return 'MapPlacedElementAnimation(enabled: $enabled, mode: $mode, autoplay: $autoplay, speed: $speed, startOffsetMs: $startOffsetMs, randomStart: $randomStart)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapPlacedElementAnimationImpl &&
+            (identical(other.enabled, enabled) || other.enabled == enabled) &&
+            (identical(other.mode, mode) || other.mode == mode) &&
+            (identical(other.autoplay, autoplay) ||
+                other.autoplay == autoplay) &&
+            (identical(other.speed, speed) || other.speed == speed) &&
+            (identical(other.startOffsetMs, startOffsetMs) ||
+                other.startOffsetMs == startOffsetMs) &&
+            (identical(other.randomStart, randomStart) ||
+                other.randomStart == randomStart));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, enabled, mode, autoplay, speed, startOffsetMs, randomStart);
+
+  /// Create a copy of MapPlacedElementAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapPlacedElementAnimationImplCopyWith<_$MapPlacedElementAnimationImpl>
+      get copyWith => __$$MapPlacedElementAnimationImplCopyWithImpl<
+          _$MapPlacedElementAnimationImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapPlacedElementAnimationImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapPlacedElementAnimation implements MapPlacedElementAnimation {
+  const factory _MapPlacedElementAnimation(
+      {final bool enabled,
+      final MapPlacedElementAnimationMode mode,
+      final bool autoplay,
+      final double speed,
+      final double? startOffsetMs,
+      final bool randomStart}) = _$MapPlacedElementAnimationImpl;
+
+  factory _MapPlacedElementAnimation.fromJson(Map<String, dynamic> json) =
+      _$MapPlacedElementAnimationImpl.fromJson;
+
+  @override
+  bool get enabled;
+  @override
+  MapPlacedElementAnimationMode get mode;
+  @override
+  bool get autoplay;
+  @override
+  double get speed;
+  @override
+  double? get startOffsetMs;
+  @override
+  bool get randomStart;
+
+  /// Create a copy of MapPlacedElementAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapPlacedElementAnimationImplCopyWith<_$MapPlacedElementAnimationImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 MapEntity _$MapEntityFromJson(Map<String, dynamic> json) {

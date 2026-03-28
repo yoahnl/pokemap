@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-28 (runtime jouable consolidé : player animé + interpolation de pas + maintien des touches + tri de profondeur Y + NPC qui fait face au joueur ; collisions entités par footprint avec séparation interaction/blocage ; rencontres actives MVP walk ; transitions naturelles inter-maps via `MapConnection` + streaming de voisinage (maps adjacentes visibles) ; battle handoff MVP structuré encounter → transition → battle shell → reprise overworld ; pipeline warp runtime propre avec verrouillage gameplay + fade out/in + validation cible + rollback ; warps avancés `onEnter`/`onBump` avec côtés actifs + padding d’activation éditable ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers ; tuile éditeur `Tiles & Elements` refondue en double mode palette + gestion d’instances posées ; collisions d’éléments livrées via profils auto par preset + override par instance persistée)
+> Dernière mise à jour : 2026-03-28 (runtime jouable consolidé : player animé + interpolation de pas + maintien des touches + tri de profondeur Y + NPC qui fait face au joueur ; collisions entités par footprint avec séparation interaction/blocage ; rencontres actives MVP walk ; transitions naturelles inter-maps via `MapConnection` + streaming de voisinage (maps adjacentes visibles) ; battle handoff MVP structuré encounter → transition → battle shell → reprise overworld ; pipeline warp runtime propre avec verrouillage gameplay + fade out/in + validation cible + rollback ; warps avancés `onEnter`/`onBump` avec côtés actifs + padding d’activation éditable ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers ; tuile éditeur `Tiles & Elements` refondue en double mode palette + gestion d’instances posées ; collisions d’éléments livrées via profils auto par preset + padding par élément + override par instance persistée ; rendu runtime foreground pour passer derrière les bâtiments ; animation locale des `MapPlacedElement` livrée en MVP (none/loop/pingPong, autoplay/speed/start offset/randomStart))
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -84,8 +84,9 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | CharacterAnimationState (idle, walk, run) | **Fait** | Enum + JSON |
 | Validation personnages (validators.dart) | **Fait** | IDs uniques, tilesetId connu, dims positives, `defaultPlayerCharacterId`, `trainer.characterId` et `npc.characterId` référencent des Characters connus |
 | Éléments visuels projet (ProjectElementEntry) | **Fait** | frames[], tilesetId, categoryId, groupId, `presetKind`, `collisionProfile` — multi-frames supporté |
-| Profil collision élément (ElementCollisionProfile) | **Fait** | `source` (`generated`/`manual`) + cellules grille (`cells`) |
-| Instances posées persistées (MapPlacedElement) | **Fait** | `MapData.placedElements` avec `layerId`, `elementId`, `pos`, `applyCollision`, `properties` |
+| Profil collision élément (ElementCollisionProfile) | **Fait** | `source` (`generated`/`manual`) + cellules grille (`cells`) + `padding` (px) |
+| Instances posées persistées (MapPlacedElement) | **Fait** | `MapData.placedElements` avec `layerId`, `elementId`, `pos`, `applyCollision`, `animation`, `properties` |
+| Animation d’instance posée (MapPlacedElementAnimation) | **Fait** | `enabled`, `mode` (`none`/`loop`/`pingPong`), `autoplay`, `speed`, `startOffsetMs`, `randomStart` + validation (`speed>0`, offset >= 0) |
 | Presets terrain (ProjectTerrainPreset) | **Fait** | variants avec poids, frames[] |
 | Presets path / autotile (ProjectPathPreset) | **Fait** | 20 variantes (corners, tees, cross, edges…) |
 | Palette tilesets (TilesetPaletteEntry) | **Fait** | |
@@ -95,6 +96,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Migration entités legacy (migrateMapEntityJson) | **Fait** | Convertit ancien format properties plat → payloads typés |
 | Migration zones gameplay legacy | **Fait** | `transition` → `special`, payloads aplatis → typés |
 | Opérations pures sur les données (18+ modules) | **Fait** | Resize, paint, collision, terrain, path, layers, entities, warps, triggers, zones, connections, metadata, `map_placed_elements`, tileset/dialogue library trees |
+| Opérations pures animation d’instance posée | **Fait** | `setMapPlacedElementAnimation`, `resetMapPlacedElementAnimation`, `setMapPlacedElementAnimationEnabled`, resolver de frame pur (`loop`/`pingPong`/autoplay/randomStart) |
 | Exceptions hiérarchisées (ValidationException, ProjectLoadException, etc.) | **Fait** | Sealed class |
 
 ### map_gameplay
@@ -133,7 +135,9 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Rendu PathLayer (autotile 20 variantes) | **Fait** | RuntimePathAutotileSet depuis ProjectPathPreset |
 | Rendu entités animées (multi-frames) | **Fait** | _pickEntityFrame avec cycle durationMs (fallback 200ms) |
 | Rendu CollisionLayer (overlay semi-transparent) | **Fait** | Visible si couche visible dans les données |
-| Ordre de rendu : terrain → path → tile → entités → collision | **Fait** | Identique à l'éditeur |
+| Ordre de rendu : terrain → path → tile → entités → collision | **Fait** | Identique à l'éditeur, avec split runtime background/foreground |
+| Rendu runtime foreground | **Fait** | Passe foreground (toits/overlay) basée sur couches nommées `foreground|fg|above|overlay|front|roof|toit` + cellules non-collision des `placedElements` |
+| Rendu runtime des `placedElements` animés | **Fait** | Animation par instance via `MapPlacedElement.animation` sur `ProjectElementEntry.frames` (mode none/loop/pingPong, autoplay, speed, startOffset, randomStart déterministe par `instance.id`) |
 | RuntimeMapGame (viewer statique) | **Fait** | Caméra = map entière visible |
 | PlayableMapGame (jouable au clavier) | **Fait** | KeyboardEvents : flèches + WASD + E/Space, maintien de touche, file warp post-step, tri de profondeur par Y |
 | PlayerComponent (runtime actor joueur) | **Fait** | Sprite personnage via `OverworldActorComponent` (idle/walk) + interpolation de pas ; fallback disque bleu si aucun Character |
@@ -199,8 +203,9 @@ Convention gameplay/runtime `MapWarp` appliquée :
 | Tiles & Elements panel (palette + instances posées) | **Fait** | Mode palette conservé (tileset/filtres/sélection/placement) + mode instances posées sur le layer actif (liste persistée + sélection + panneau détail) |
 | Sélection d’instance posée centralisée | **Fait** | `EditorState.tilesElementsPanelMode` + `selectedPlacedElementInstanceId`, sélection via `EditorNotifier`, surlignage de l’instance sélectionnée sur le canvas |
 | Génération auto collision élément | **Fait** | Service `ElementCollisionProfileGenerator` (alpha coverage) + presets `tree/building/rock/cliff/tallDecoration/generic` |
-| Édition collision élément (visuelle) | **Fait** | Preview du sprite + overlay cellules collision éditables manuellement, sauvegarde profil `manual` |
+| Édition collision élément (visuelle) | **Fait** | Preview du sprite + overlay cellules collision éditables, padding (px) par élément avec preview visuelle, sauvegarde profil `manual` |
 | Sync instances posées depuis tuiles | **Fait** | `PlacedElementInstanceIndexer` synchronise `MapData.placedElements` au chargement et après peinture/effacement |
+| Animation locale des instances posées | **Fait** | Panneau détail instance: `enabled`, mode, autoplay, speed, randomStart, startOffset; preview locale animée; persistance via `EditorNotifier.setPlacedElementInstanceAnimationConfig` |
 | Entity properties panel (NPC, signe, item, spawn, custom) | **Fait** | Dropdown manifest pour dialogue principal + défaite, label "Dialogue (bibliothèque)", "Nœud Yarn (optionnel)", toggle "Bloque le mouvement" |
 | Map properties panel (MapMetadata) | **Fait** | displayName, type, musique, météo, indoor, escapeRope, defaultSpawnId, tags |
 | Map connections panel | **Fait** | |
@@ -217,7 +222,7 @@ Convention gameplay/runtime `MapWarp` appliquée :
 | Project explorer panel | **Fait** | maps, groupes, tilesets, éléments, dialogues, dresseurs, personnages |
 | EditorBrush (tile, palette, element) | **Fait** | |
 | Édition visuels entités (editorVisual → ProjectElementEntry) | **Fait** | |
-| Propriétés d’instance posée (collision/animation/triggers) | **Partiel** | Collision branchée (`applyCollision` persistant, consommé runtime) ; animation/triggers/comportement restent placeholders |
+| Propriétés d’instance posée (collision/animation/triggers) | **Partiel** | Collision + animation locale branchées (`MapPlacedElement.animation` consommée runtime) ; triggers/comportement restent placeholders |
 | Propriétés map avancées (hooks gameplay, flags progression) | **Non fait** | Identifié comme manquant |
 | Interface dialogues avancée (éditeur Yarn intégré) | **Non fait** | Seulement référencement de fichiers .yarn |
 | Comportements NPC éditables (IA, patrouille) | **Non fait** | |
@@ -325,11 +330,11 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Prochaine recommandation : implémenter les propriétés d’instances posées au-delà de la collision (animation/triggers/comportement) sur la base `MapPlacedElement`.**
+**Prochaine recommandation : implémenter les triggers/comportements d’instances posées (au-delà de collision + animation locale) sur la base `MapPlacedElement`.**
 
 Justification :
-1. Le socle collision élément est désormais en place de bout en bout (core → editor → gameplay/runtime).
-2. Le prochain gain structurant est d’utiliser la même structure d’instance pour l’animation locale, les triggers et comportements spéciaux.
+1. Le socle collision + animation locale est désormais en place de bout en bout (core → editor → runtime).
+2. Le prochain gain structurant est d’ajouter des triggers/comportements par instance sur la même structure `MapPlacedElement`.
 3. Cela prépare ensuite les interactions riches (événements map-level, scripts, battle trainers) sans refonte de modèle.
 
 **Ne pas faire maintenant** :
@@ -347,6 +352,7 @@ Justification :
 - Battle handoff MVP : `BattleStartRequest` (wild/trainer-ready), mapper `buildBattleStartRequestFromEncounter`, `BattleTransitionOverlayComponent`, `BattleOverlayComponent`, états runtime centralisés, logs `[battle]`.
 - Connections runtime : `ConnectionTriggered`, calcul d’entrée canonique via `resolveConnectedMapTargetPos`, priorité warp > connection, logs `[connection]`, refus déterministe des entrées invalides/bloquées, streaming de voisinage et transition interpolée sans coupure visuelle.
 - Collisions d’éléments + override par instance : `ElementPresetKind`, `ElementCollisionProfile` (`generated`/`manual`), `MapData.placedElements` + `applyCollision`, génération auto via analyse alpha, édition visuelle collision dans l’éditeur, prise en compte gameplay/runtime via `GameplayWorldState(project: ...)`.
+- Animation locale d’instances posées : `MapPlacedElement.animation`, validations core, opérations pures de mise à jour/reset, UI éditeur dédiée avec preview, rendu runtime par instance (loop/pingPong/autoplay/randomStart déterministe).
 
 ---
 
@@ -383,3 +389,4 @@ Justification :
 | map_runtime — Warp transition pipeline | 2026-03-27 | Nouveau `WarpTransitionOverlayComponent`, fade out/in autour du warp, validation `targetPos` (bornes + cellule libre), rollback runtime best-effort si échec avant swap, logs `[warp]` enrichis |
 | map_core + map_gameplay + map_editor + map_runtime — Warp activation avancée | 2026-03-27 | `MapWarp.triggerMode` (`onEnter`/`onBump`), `allowedApproachFacings`, `triggerPadding`; résolution gameplay côté approche réelle; runtime `onBump` sans faux pas; panneau warp enrichi (mode/côtés/padding/presets) + preview canvas de zone active |
 | map_core + map_editor + map_gameplay + map_runtime — Element Collision Profiles + Instance Collision Overrides | 2026-03-28 | `ProjectElementEntry.presetKind` + `collisionProfile`, nouveau `MapData.placedElements` (`MapPlacedElement.applyCollision`), génération auto collision par analyse alpha et preset, éditeur visuel collision, sync instances persistées, toggle collision par instance, collisions prises en compte dans `GameplayWorldState(project: ...)` et donc en runtime |
+| map_core + map_editor + map_runtime — Placed Element Instance Animation MVP | 2026-03-28 | `MapPlacedElement.animation` typé (`enabled`, `mode`, `autoplay`, `speed`, `startOffsetMs`, `randomStart`), validation core, opérations pures set/reset/enable, UI édition/preview par instance dans Tiles & Elements, rendu runtime des éléments posés animé avec randomStart déterministe par `instance.id` |

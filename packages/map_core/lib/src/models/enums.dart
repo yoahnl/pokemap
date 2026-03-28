@@ -340,6 +340,15 @@ enum ElementCollisionProfileSource {
   manual,
 }
 
+enum MapPlacedElementAnimationMode {
+  @JsonValue('none')
+  none,
+  @JsonValue('loop')
+  loop,
+  @JsonValue('ping_pong')
+  pingPong,
+}
+
 enum PaletteCategory {
   @JsonValue('floors')
   floors,
