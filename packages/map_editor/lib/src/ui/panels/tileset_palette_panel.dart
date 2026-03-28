@@ -1329,6 +1329,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             scope: placedInstancesScope,
             selectedInstanceId: state.selectedPlacedElementInstanceId,
             selectedInstance: selectedPlacedInstance,
+            dialogues: project.dialogues,
+            projectRootPath: state.projectRootPath,
             onSelectInstance: (instance) {
               notifier.selectPlacedElementInstance(
                 instanceId: instance?.instanceId,
@@ -1347,6 +1349,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
               notifier.setPlacedElementInstanceAnimationConfig(
                 instanceId: instance.instanceId,
                 animation: animation,
+              );
+            },
+            onBehaviorsChanged: (instance, behaviors) {
+              notifier.setPlacedElementInstanceBehaviors(
+                instanceId: instance.instanceId,
+                behaviors: behaviors,
               );
             },
             onDeleteInstance: (instance) async {
@@ -3041,6 +3049,7 @@ class _PlacedElementInstanceVm {
   String get instanceId => instance.id;
   bool get applyCollision => instance.applyCollision;
   MapPlacedElementAnimation? get animation => instance.animation;
+  List<MapPlacedElementBehavior> get behaviors => instance.behaviors;
   int get frameCount => element?.frames.length ?? 1;
   TilesetSourceRect get source =>
       element?.frames.primarySource ??
@@ -3058,6 +3067,9 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.onSelectInstance,
     required this.onCollisionAppliedChanged,
     required this.onAnimationConfigChanged,
+    required this.onBehaviorsChanged,
+    required this.dialogues,
+    required this.projectRootPath,
     required this.onDeleteInstance,
   });
 
@@ -3067,6 +3079,8 @@ class _PlacedInstancesSection extends StatelessWidget {
   final _PlacedElementInstancesScope scope;
   final String? selectedInstanceId;
   final _PlacedElementInstanceVm? selectedInstance;
+  final List<ProjectDialogueEntry> dialogues;
+  final String? projectRootPath;
   final ValueChanged<_PlacedElementInstanceVm?> onSelectInstance;
   final void Function(_PlacedElementInstanceVm instance, bool applyCollision)
       onCollisionAppliedChanged;
@@ -3074,6 +3088,10 @@ class _PlacedInstancesSection extends StatelessWidget {
     _PlacedElementInstanceVm instance,
     MapPlacedElementAnimation? animation,
   ) onAnimationConfigChanged;
+  final void Function(
+    _PlacedElementInstanceVm instance,
+    List<MapPlacedElementBehavior> behaviors,
+  ) onBehaviorsChanged;
   final Future<void> Function(_PlacedElementInstanceVm instance)
       onDeleteInstance;
 
@@ -3299,6 +3317,13 @@ class _PlacedInstancesSection extends StatelessWidget {
                   onChanged: (next) => onAnimationConfigChanged(selected, next),
                 ),
                 const SizedBox(height: 8),
+                _PlacedElementBehaviorsSection(
+                  value: selected.behaviors,
+                  dialogues: dialogues,
+                  projectRootPath: projectRootPath,
+                  onChanged: (next) => onBehaviorsChanged(selected, next),
+                ),
+                const SizedBox(height: 8),
                 CupertinoButton(
                   color: CupertinoColors.systemRed.withValues(alpha: 0.9),
                   padding:
@@ -3318,11 +3343,6 @@ class _PlacedInstancesSection extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                const _FuturePropertyGroup(
-                  title: 'Comportement / Triggers',
-                  status: 'À venir',
                 ),
               ],
             ],
@@ -3489,55 +3509,6 @@ class _PropertyLine extends StatelessWidget {
                 color: primary,
                 fontSize: 11,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FuturePropertyGroup extends StatelessWidget {
-  const _FuturePropertyGroup({
-    required this.title,
-    required this.status,
-  });
-
-  final String title;
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: Colors.white.withValues(alpha: 0.015),
-        ),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: secondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Text(
-            status,
-            style: TextStyle(
-              color: secondary,
-              fontSize: 11,
             ),
           ),
         ],
@@ -3808,6 +3779,1060 @@ class _PlacedElementAnimationSection extends StatelessWidget {
                 config: current,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlacedElementBehaviorsSection extends StatefulWidget {
+  const _PlacedElementBehaviorsSection({
+    required this.value,
+    required this.dialogues,
+    required this.projectRootPath,
+    required this.onChanged,
+  });
+
+  final List<MapPlacedElementBehavior> value;
+  final List<ProjectDialogueEntry> dialogues;
+  final String? projectRootPath;
+  final ValueChanged<List<MapPlacedElementBehavior>> onChanged;
+
+  @override
+  State<_PlacedElementBehaviorsSection> createState() =>
+      _PlacedElementBehaviorsSectionState();
+}
+
+class _PlacedElementBehaviorsSectionState
+    extends State<_PlacedElementBehaviorsSection> {
+  static const String _dialogueNoneMenuId = '__placed_behavior_dialogue_none__';
+  static const String _nodeNoneMenuId = '__placed_behavior_node_none__';
+  final TextEditingController _messageController = TextEditingController();
+  final FocusNode _messageFocusNode = FocusNode();
+  int _selectedIndex = 0;
+  String _messageDraft = '';
+  Timer? _messageCommitDebounce;
+  List<String> _dialogueNodes = const <String>[];
+  bool _dialogueNodesLoading = false;
+  int _dialogueNodesRequestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _messageFocusNode.addListener(_onMessageFocusChanged);
+    _syncFromWidget(force: true);
+    Future.microtask(_reloadDialogueNodesForSelected);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlacedElementBehaviorsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncFromWidget();
+    final dialoguesChanged = !listEquals(oldWidget.dialogues, widget.dialogues);
+    final rootChanged = oldWidget.projectRootPath != widget.projectRootPath;
+    final valueChanged = !listEquals(oldWidget.value, widget.value);
+    if (dialoguesChanged || rootChanged || valueChanged) {
+      Future.microtask(_reloadDialogueNodesForSelected);
+    }
+  }
+
+  @override
+  void dispose() {
+    _messageCommitDebounce?.cancel();
+    _messageFocusNode.removeListener(_onMessageFocusChanged);
+    _messageFocusNode.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  void _onMessageFocusChanged() {
+    if (_messageFocusNode.hasFocus) {
+      return;
+    }
+    _commitMessageDraft();
+  }
+
+  void _syncFromWidget({bool force = false}) {
+    if (widget.value.isEmpty) {
+      _selectedIndex = 0;
+      _setMessageDraft('', force: force);
+      return;
+    }
+    if (_selectedIndex >= widget.value.length) {
+      _selectedIndex = widget.value.length - 1;
+    }
+    _applyDraftsFromBehavior(widget.value[_selectedIndex], force: force);
+  }
+
+  void _applyDraftsFromBehavior(
+    MapPlacedElementBehavior behavior, {
+    bool force = false,
+  }) {
+    _setMessageDraft(behavior.effect.message ?? '', force: force);
+  }
+
+  void _setMessageDraft(String value, {bool force = false}) {
+    final canApply = force || !_messageFocusNode.hasFocus;
+    if (!canApply) {
+      return;
+    }
+    if (_messageDraft == value && _messageController.text == value) {
+      return;
+    }
+    _messageDraft = value;
+    _messageController.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
+
+  void _scheduleMessageCommit() {
+    _messageCommitDebounce?.cancel();
+    _messageCommitDebounce = Timer(const Duration(milliseconds: 220), () {
+      _commitMessageDraft();
+    });
+  }
+
+  void _commitDrafts() {
+    _commitMessageDraft();
+  }
+
+  void _commitMessageDraft() {
+    _messageCommitDebounce?.cancel();
+    final selected = _selectedBehavior;
+    if (selected == null ||
+        selected.effect.type != MapPlacedElementEffectType.showMessage) {
+      return;
+    }
+    final normalized = _messageDraft.trim().isEmpty ? null : _messageDraft;
+    if (selected.effect.message == normalized) {
+      return;
+    }
+    _replaceSelectedBehavior(
+      selected.copyWith(
+        effect: selected.effect.copyWith(message: normalized),
+      ),
+    );
+  }
+
+  MapPlacedElementBehavior _defaultBehavior() {
+    return const MapPlacedElementBehavior(
+      enabled: true,
+      trigger: MapPlacedElementTriggerType.onAction,
+      effect: MapPlacedElementEffect(
+        type: MapPlacedElementEffectType.showMessage,
+        message: '...',
+      ),
+    );
+  }
+
+  void _emit(List<MapPlacedElementBehavior> next) {
+    widget.onChanged(next);
+  }
+
+  void _addBehavior() {
+    _commitDrafts();
+    final next = List<MapPlacedElementBehavior>.from(
+      widget.value,
+      growable: true,
+    )..add(_defaultBehavior());
+    _selectedIndex = next.length - 1;
+    _emit(next);
+  }
+
+  void _removeSelectedBehavior() {
+    if (widget.value.isEmpty) {
+      return;
+    }
+    _commitDrafts();
+    final next = List<MapPlacedElementBehavior>.from(
+      widget.value,
+      growable: true,
+    );
+    next.removeAt(_selectedIndex);
+    if (_selectedIndex >= next.length) {
+      _selectedIndex = next.isEmpty ? 0 : next.length - 1;
+    }
+    _emit(next);
+  }
+
+  void _replaceSelectedBehavior(MapPlacedElementBehavior behavior) {
+    if (widget.value.isEmpty) {
+      return;
+    }
+    final next = List<MapPlacedElementBehavior>.from(
+      widget.value,
+      growable: true,
+    );
+    next[_selectedIndex] = behavior;
+    _emit(next);
+  }
+
+  void _updateSelected(MapPlacedElementBehavior behavior) {
+    _replaceSelectedBehavior(behavior);
+  }
+
+  MapPlacedElementBehavior? get _selectedBehavior {
+    if (widget.value.isEmpty) {
+      return null;
+    }
+    if (_selectedIndex < 0 || _selectedIndex >= widget.value.length) {
+      return null;
+    }
+    return widget.value[_selectedIndex];
+  }
+
+  List<ProjectDialogueEntry> _sortedDialogues() {
+    final sorted = List<ProjectDialogueEntry>.of(widget.dialogues);
+    sorted.sort((a, b) {
+      final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      if (byName != 0) {
+        return byName;
+      }
+      return a.id.compareTo(b.id);
+    });
+    return sorted;
+  }
+
+  String _normalizeDialogueRelativePath(String raw) {
+    return raw.trim().replaceAll(r'\', '/');
+  }
+
+  String? _resolveDialogueFilePath(String dialogueId) {
+    final root = widget.projectRootPath;
+    if (root == null || root.trim().isEmpty) {
+      return null;
+    }
+    final normalizedId = dialogueId.trim();
+    if (normalizedId.isEmpty) {
+      return null;
+    }
+    final matches = widget.dialogues.where((e) => e.id == normalizedId);
+    if (matches.isEmpty) {
+      return null;
+    }
+    final rel = _normalizeDialogueRelativePath(matches.first.relativePath);
+    if (rel.isEmpty) {
+      return null;
+    }
+    return '$root/$rel';
+  }
+
+  Future<List<String>> _extractYarnNodeTitles(String absolutePath) async {
+    try {
+      final file = File(absolutePath);
+      if (!await file.exists()) {
+        return const <String>[];
+      }
+      final lines = await file.readAsLines();
+      return [
+        for (final line in lines)
+          if (line.trim().startsWith('title:'))
+            line.trim().substring('title:'.length).trim(),
+      ].where((title) => title.isNotEmpty).toList(growable: false);
+    } catch (_) {
+      return const <String>[];
+    }
+  }
+
+  Future<void> _reloadDialogueNodesForSelected() async {
+    final selected = _selectedBehavior;
+    if (selected == null ||
+        selected.effect.type != MapPlacedElementEffectType.openDialogue) {
+      if (mounted) {
+        setState(() {
+          _dialogueNodesLoading = false;
+          _dialogueNodes = const <String>[];
+        });
+      }
+      return;
+    }
+    final dialogueId = selected.effect.dialogue?.dialogueId.trim() ?? '';
+    final path = _resolveDialogueFilePath(dialogueId);
+    if (path == null) {
+      if (mounted) {
+        setState(() {
+          _dialogueNodesLoading = false;
+          _dialogueNodes = const <String>[];
+        });
+      }
+      return;
+    }
+    final requestId = ++_dialogueNodesRequestId;
+    if (mounted) {
+      setState(() {
+        _dialogueNodesLoading = true;
+      });
+    }
+    final nodes = await _extractYarnNodeTitles(path);
+    if (!mounted || requestId != _dialogueNodesRequestId) {
+      return;
+    }
+    setState(() {
+      _dialogueNodesLoading = false;
+      _dialogueNodes = nodes;
+    });
+  }
+
+  Future<String?> _showDialoguePicker({
+    required BuildContext context,
+    required List<ProjectDialogueEntry> sorted,
+    required String selectedDialogueId,
+  }) async {
+    final searchController = TextEditingController();
+    var query = '';
+    try {
+      return await showMacosSheet<String>(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) {
+          return StatefulBuilder(
+            builder: (ctx, setModalState) {
+              final q = query.trim().toLowerCase();
+              final filtered = sorted.where((entry) {
+                if (q.isEmpty) {
+                  return true;
+                }
+                final haystack =
+                    '${entry.name} ${entry.id} ${entry.relativePath}'
+                        .toLowerCase();
+                return haystack.contains(q);
+              }).toList(growable: false);
+              final selectedMissing = selectedDialogueId.isNotEmpty &&
+                  !sorted.any((entry) => entry.id == selectedDialogueId);
+              return Center(
+                child: MacosSheet(
+                  insetPadding: const EdgeInsets.symmetric(
+                    horizontal: 72,
+                    vertical: 44,
+                  ),
+                  child: SizedBox(
+                    width: 520,
+                    height: MediaQuery.sizeOf(ctx).height * 0.62,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Choisir un script Yarn',
+                            textAlign: TextAlign.center,
+                            style: editorMacosSheetTitleStyle(ctx),
+                          ),
+                          const SizedBox(height: 10),
+                          CupertinoTextField(
+                            controller: searchController,
+                            placeholder: 'Rechercher (nom, id, chemin)…',
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            onChanged: (value) {
+                              setModalState(() {
+                                query = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          Expanded(
+                            child: ListView.separated(
+                              itemCount: 1 +
+                                  (selectedMissing ? 1 : 0) +
+                                  filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 6),
+                              itemBuilder: (c, i) {
+                                if (i == 0) {
+                                  return PushButton(
+                                    controlSize: ControlSize.large,
+                                    secondary: true,
+                                    onPressed: () => Navigator.of(c).pop(
+                                      _dialogueNoneMenuId,
+                                    ),
+                                    child: const Text('Aucun dialogue'),
+                                  );
+                                }
+                                final offset = i - 1;
+                                if (selectedMissing && offset == 0) {
+                                  return PushButton(
+                                    controlSize: ControlSize.large,
+                                    secondary: true,
+                                    onPressed: () => Navigator.of(c).pop(
+                                      selectedDialogueId,
+                                    ),
+                                    child: Text(
+                                      '$selectedDialogueId (absent du projet)',
+                                    ),
+                                  );
+                                }
+                                final index =
+                                    offset - (selectedMissing ? 1 : 0);
+                                final entry = filtered[index];
+                                return PushButton(
+                                  controlSize: ControlSize.large,
+                                  secondary: true,
+                                  onPressed: () =>
+                                      Navigator.of(c).pop(entry.id),
+                                  child: Text(
+                                    '${entry.name} · ${entry.relativePath}',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          PushButton(
+                            controlSize: ControlSize.large,
+                            secondary: true,
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      searchController.dispose();
+    }
+  }
+
+  void _updateSelectedDialogue(String dialogueId) {
+    final selected = _selectedBehavior;
+    if (selected == null ||
+        selected.effect.type != MapPlacedElementEffectType.openDialogue) {
+      return;
+    }
+    final normalizedId = dialogueId.trim();
+    final currentDialogue = selected.effect.dialogue;
+    if (currentDialogue?.dialogueId == normalizedId) {
+      return;
+    }
+    final nextDialogue = DialogueRef(
+      dialogueId: normalizedId,
+      scriptPathRelative: currentDialogue?.scriptPathRelative ?? '',
+      startNode: null,
+    );
+    _updateSelected(
+      selected.copyWith(
+        effect: selected.effect.copyWith(dialogue: nextDialogue),
+      ),
+    );
+  }
+
+  void _updateSelectedDialogueNode(String? nodeId) {
+    final selected = _selectedBehavior;
+    if (selected == null ||
+        selected.effect.type != MapPlacedElementEffectType.openDialogue) {
+      return;
+    }
+    final currentDialogue = selected.effect.dialogue;
+    if (currentDialogue == null) {
+      return;
+    }
+    final normalizedNode =
+        (nodeId == null || nodeId.trim().isEmpty) ? null : nodeId.trim();
+    if (currentDialogue.startNode == normalizedNode) {
+      return;
+    }
+    _updateSelected(
+      selected.copyWith(
+        effect: selected.effect.copyWith(
+          dialogue: currentDialogue.copyWith(startNode: normalizedNode),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final selected = _selectedBehavior;
+
+    String triggerHelp(MapPlacedElementTriggerType trigger) {
+      switch (trigger) {
+        case MapPlacedElementTriggerType.onAction:
+          return 'Action: déclenché avec la touche d’action face à l’élément.';
+        case MapPlacedElementTriggerType.onEnter:
+          return 'Entrée: déclenché quand le joueur marche sur l’élément.';
+        case MapPlacedElementTriggerType.onBump:
+          return 'Contact: déclenché quand le joueur se cogne contre l’élément.';
+      }
+    }
+
+    String effectHelp(MapPlacedElementEffectType effectType) {
+      switch (effectType) {
+        case MapPlacedElementEffectType.showMessage:
+          return 'Message: affiche un texte court dans le HUD runtime.';
+        case MapPlacedElementEffectType.openDialogue:
+          return 'Dialogue: choisis un script Yarn, puis un nœud de départ.';
+        case MapPlacedElementEffectType.setAnimationEnabled:
+          return 'Animation on/off: active ou coupe l’animation locale de cette instance.';
+        case MapPlacedElementEffectType.playAnimationOnce:
+          return 'Animation 1x: prévu en modèle, exécution runtime non livrée pour l’instant.';
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.015),
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Comportements',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                minSize: 0,
+                onPressed: _addBehavior,
+                child: const Text(
+                  'Ajouter',
+                  style: TextStyle(fontSize: 10),
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                minSize: 0,
+                onPressed:
+                    widget.value.isEmpty ? null : _removeSelectedBehavior,
+                child: const Text(
+                  'Supprimer',
+                  style: TextStyle(fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Décor enrichi local: utilise cette section pour des réactions simples. Pour un vrai acteur gameplay (PNJ, panneau, item), utilise une MapEntity.',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
+          ),
+          if (widget.value.isEmpty) ...[
+            Text(
+              'Aucun comportement configuré.',
+              style: TextStyle(
+                color: secondary,
+                fontSize: 10,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Ajoute un comportement pour définir déclencheur + effet.',
+              style: TextStyle(
+                color: secondary,
+                fontSize: 10,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 28,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: widget.value.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (context, index) {
+                  final behavior = widget.value[index];
+                  final selectedChip = index == _selectedIndex;
+                  return CupertinoButton(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minSize: 0,
+                    color: selectedChip
+                        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.3)
+                        : EditorPaintColors.white12,
+                    onPressed: () {
+                      _commitDrafts();
+                      setState(() {
+                        _selectedIndex = index;
+                        _applyDraftsFromBehavior(behavior, force: true);
+                      });
+                      Future.microtask(_reloadDialogueNodesForSelected);
+                    },
+                    child: Text(
+                      '${index + 1}. ${behavior.trigger.name} → ${behavior.effect.type.name}',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (selected != null) ...[
+              const SizedBox(height: 8),
+              _CompactSwitchRow(
+                title: 'Activé',
+                value: selected.enabled,
+                onChanged: (next) =>
+                    _updateSelected(selected.copyWith(enabled: next)),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Text(
+                    'Déclencheur',
+                    style: TextStyle(color: secondary, fontSize: 10),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: CupertinoSlidingSegmentedControl<
+                        MapPlacedElementTriggerType>(
+                      groupValue: selected.trigger,
+                      children: const {
+                        MapPlacedElementTriggerType.onAction: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Action', style: TextStyle(fontSize: 10)),
+                        ),
+                        MapPlacedElementTriggerType.onEnter: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Entrée', style: TextStyle(fontSize: 10)),
+                        ),
+                        MapPlacedElementTriggerType.onBump: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child:
+                              Text('Contact', style: TextStyle(fontSize: 10)),
+                        ),
+                      },
+                      onValueChanged: (next) {
+                        if (next == null) {
+                          return;
+                        }
+                        _commitDrafts();
+                        _updateSelected(selected.copyWith(trigger: next));
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                triggerHelp(selected.trigger),
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Effet',
+                    style: TextStyle(color: secondary, fontSize: 10),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: CupertinoSlidingSegmentedControl<
+                        MapPlacedElementEffectType>(
+                      groupValue: selected.effect.type,
+                      children: const {
+                        MapPlacedElementEffectType.showMessage: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child:
+                              Text('Message', style: TextStyle(fontSize: 10)),
+                        ),
+                        MapPlacedElementEffectType.openDialogue: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child:
+                              Text('Dialogue', style: TextStyle(fontSize: 10)),
+                        ),
+                        MapPlacedElementEffectType.setAnimationEnabled: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Anim ON/OFF',
+                              style: TextStyle(fontSize: 10)),
+                        ),
+                        MapPlacedElementEffectType.playAnimationOnce: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child:
+                              Text('Anim 1x', style: TextStyle(fontSize: 10)),
+                        ),
+                      },
+                      onValueChanged: (next) {
+                        if (next == null) {
+                          return;
+                        }
+                        _commitDrafts();
+                        final effect = switch (next) {
+                          MapPlacedElementEffectType.showMessage =>
+                            const MapPlacedElementEffect(
+                              type: MapPlacedElementEffectType.showMessage,
+                              message: '...',
+                            ),
+                          MapPlacedElementEffectType.openDialogue =>
+                            const MapPlacedElementEffect(
+                              type: MapPlacedElementEffectType.openDialogue,
+                              dialogue: DialogueRef(dialogueId: ''),
+                            ),
+                          MapPlacedElementEffectType.setAnimationEnabled =>
+                            const MapPlacedElementEffect(
+                              type: MapPlacedElementEffectType
+                                  .setAnimationEnabled,
+                              animationEnabled: true,
+                            ),
+                          MapPlacedElementEffectType.playAnimationOnce =>
+                            const MapPlacedElementEffect(
+                              type:
+                                  MapPlacedElementEffectType.playAnimationOnce,
+                            ),
+                        };
+                        _updateSelected(selected.copyWith(effect: effect));
+                        Future.microtask(_reloadDialogueNodesForSelected);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                effectHelp(selected.effect.type),
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 10,
+                ),
+              ),
+              if (selected.effect.type ==
+                  MapPlacedElementEffectType.showMessage)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: CupertinoTextField(
+                    controller: _messageController,
+                    focusNode: _messageFocusNode,
+                    placeholder: 'Message…',
+                    style: TextStyle(color: label, fontSize: 11),
+                    placeholderStyle: TextStyle(color: secondary, fontSize: 11),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    onChanged: (text) {
+                      _messageDraft = text;
+                      _scheduleMessageCommit();
+                    },
+                    onSubmitted: (_) => _commitMessageDraft(),
+                    onEditingComplete: _commitMessageDraft,
+                  ),
+                ),
+              if (selected.effect.type ==
+                  MapPlacedElementEffectType.openDialogue)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Builder(
+                    builder: (context) {
+                      final sortedDialogues = _sortedDialogues();
+                      final selectedDialogueId =
+                          selected.effect.dialogue?.dialogueId.trim() ?? '';
+                      ProjectDialogueEntry? selectedDialogue;
+                      for (final entry in sortedDialogues) {
+                        if (entry.id == selectedDialogueId) {
+                          selectedDialogue = entry;
+                          break;
+                        }
+                      }
+                      final selectedDialogueLabel = selectedDialogueId.isEmpty
+                          ? 'Aucun dialogue'
+                          : selectedDialogue != null
+                              ? '${selectedDialogue.name} · ${selectedDialogue.relativePath}'
+                              : '$selectedDialogueId (absent du projet)';
+                      final currentNode =
+                          selected.effect.dialogue?.startNode?.trim() ?? '';
+                      final nodeMenuIds = <String>[
+                        _nodeNoneMenuId,
+                        ..._dialogueNodes,
+                      ];
+                      if (currentNode.isNotEmpty &&
+                          !nodeMenuIds.contains(currentNode)) {
+                        nodeMenuIds.add(currentNode);
+                      }
+                      final selectedNodeMenu =
+                          currentNode.isEmpty ? _nodeNoneMenuId : currentNode;
+                      String nodeLabel(String id) {
+                        if (id == _nodeNoneMenuId) {
+                          return 'Nœud par défaut';
+                        }
+                        return id;
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () async {
+                              final picked = await _showDialoguePicker(
+                                context: context,
+                                sorted: sortedDialogues,
+                                selectedDialogueId: selectedDialogueId,
+                              );
+                              if (picked == null) {
+                                return;
+                              }
+                              if (picked == _dialogueNoneMenuId) {
+                                _updateSelectedDialogue('');
+                              } else {
+                                _updateSelectedDialogue(picked);
+                              }
+                              await _reloadDialogueNodesForSelected();
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: EditorChrome.largeIslandSurfaceColor(
+                                  context,
+                                  tint: EditorChrome.inspectorJoyLilac
+                                      .withValues(alpha: 0.08),
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: EditorChrome.inspectorJoyLilac
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Script Yarn',
+                                          style: TextStyle(
+                                            color: secondary,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          selectedDialogueLabel,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: label,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    CupertinoIcons.chevron_down,
+                                    size: 12,
+                                    color: secondary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Material(
+                            color: Colors.transparent,
+                            child: PopupMenuButton<String>(
+                              enabled: selectedDialogueId.isNotEmpty,
+                              tooltip: 'Choisir un nœud Yarn',
+                              padding: EdgeInsets.zero,
+                              splashRadius: 20,
+                              offset: const Offset(0, 6),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: EditorChrome.inspectorJoyBlue
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                              color: EditorChrome.islandFillElevated(context),
+                              elevation: 3,
+                              initialValue: selectedNodeMenu,
+                              onSelected: (picked) {
+                                if (picked == _nodeNoneMenuId) {
+                                  _updateSelectedDialogueNode(null);
+                                } else {
+                                  _updateSelectedDialogueNode(picked);
+                                }
+                              },
+                              itemBuilder: (menuCtx) => [
+                                for (final id in nodeMenuIds)
+                                  PopupMenuItem<String>(
+                                    value: id,
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 22,
+                                          child: id == selectedNodeMenu
+                                              ? const Icon(
+                                                  CupertinoIcons.checkmark,
+                                                  size: 14,
+                                                  color: EditorChrome
+                                                      .inspectorJoyBlue,
+                                                )
+                                              : null,
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            nodeLabel(id),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontWeight: id == selectedNodeMenu
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w500,
+                                              color: label,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: EditorChrome.largeIslandSurfaceColor(
+                                    context,
+                                    tint: EditorChrome.inspectorJoyBlue
+                                        .withValues(alpha: 0.08),
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: EditorChrome.inspectorJoyBlue
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Nœud Yarn',
+                                            style: TextStyle(
+                                              color: secondary,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            nodeLabel(selectedNodeMenu),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: selectedDialogueId.isEmpty
+                                                  ? secondary
+                                                  : label,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      CupertinoIcons.chevron_down,
+                                      size: 12,
+                                      color: secondary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          if (selectedDialogueId.isEmpty)
+                            Text(
+                              'Choisis un script pour activer la sélection du nœud.',
+                              style: TextStyle(
+                                color: secondary,
+                                fontSize: 10,
+                              ),
+                            )
+                          else if (_dialogueNodesLoading)
+                            Text(
+                              'Chargement des nœuds Yarn…',
+                              style: TextStyle(
+                                color: secondary,
+                                fontSize: 10,
+                              ),
+                            )
+                          else if (_dialogueNodes.isEmpty)
+                            Text(
+                              'Aucun nœud détecté dans ce script (ou fichier introuvable).',
+                              style: TextStyle(
+                                color: secondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              if (selected.effect.type ==
+                  MapPlacedElementEffectType.setAnimationEnabled)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: _CompactSwitchRow(
+                    title: 'Animation activée',
+                    value: selected.effect.animationEnabled ?? true,
+                    onChanged: (next) {
+                      _updateSelected(
+                        selected.copyWith(
+                          effect:
+                              selected.effect.copyWith(animationEnabled: next),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              if (selected.effect.type ==
+                  MapPlacedElementEffectType.playAnimationOnce)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    'Animation 1x: l’éditeur la configure, mais le runtime affiche encore un fallback explicite.',
+                    style: TextStyle(
+                      color: secondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+            ],
+          ],
         ],
       ),
     );

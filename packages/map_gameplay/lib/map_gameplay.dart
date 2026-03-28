@@ -29,5 +29,6 @@ export 'src/gameplay_step_result.dart'
         NpcInteracted,
         SignInteracted,
         ItemInteracted,
-        EntityInteracted;
+        EntityInteracted,
+        PlacedElementInteracted;
 export 'src/gameplay_world_state.dart' show GameplayWorldState;

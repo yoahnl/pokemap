@@ -5343,6 +5343,45 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void setPlacedElementInstanceBehaviors({
+    required String instanceId,
+    required List<MapPlacedElementBehavior> behaviors,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    final index =
+        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    if (index < 0) {
+      state = state.copyWith(
+        errorMessage: 'Placed element instance not found: $trimmedId',
+      );
+      return;
+    }
+    final previous = map.placedElements[index];
+    if (listEquals(previous.behaviors, behaviors)) {
+      return;
+    }
+    final updatedMap = setMapPlacedElementBehaviors(
+      map,
+      instanceId: trimmedId,
+      behaviors: behaviors,
+    );
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: updatedMap,
+      preferredActiveLayerId: state.activeLayerId,
+      statusMessage: behaviors.isEmpty
+          ? 'Comportements réinitialisés pour ${previous.elementId}'
+          : 'Comportements mis à jour pour ${previous.elementId}',
+    );
+  }
+
   void deletePlacedElementInstance({
     required String instanceId,
   }) {

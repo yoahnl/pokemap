@@ -13,12 +13,18 @@ class GameplayWorldState {
     required Map<int, MapEntity> blockingEntityByPos,
     required Map<int, List<MapWarp>> warpCandidatesByPos,
     required Map<int, MapEntity> entityByPos,
+    required Map<int, PlacedElementBehaviorActivation> actionBehaviorByPos,
+    required Map<int, PlacedElementBehaviorActivation> enterBehaviorByPos,
+    required Map<int, PlacedElementBehaviorActivation> bumpBehaviorByPos,
     required int tileWidth,
     required int tileHeight,
   })  : _collisionCache = collisionCache,
         _blockingEntityByPos = blockingEntityByPos,
         _warpCandidatesByPos = warpCandidatesByPos,
         _entityByPos = entityByPos,
+        _actionBehaviorByPos = actionBehaviorByPos,
+        _enterBehaviorByPos = enterBehaviorByPos,
+        _bumpBehaviorByPos = bumpBehaviorByPos,
         _tileWidth = tileWidth <= 0 ? 16 : tileWidth,
         _tileHeight = tileHeight <= 0 ? 16 : tileHeight;
 
@@ -38,6 +44,21 @@ class GameplayWorldState {
         warpCandidatesByPos:
             _buildWarpCandidatesByPos(map, tileWidth, tileHeight),
         entityByPos: _buildEntityByPos(map),
+        actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
+          map,
+          project: project,
+          trigger: MapPlacedElementTriggerType.onAction,
+        ),
+        enterBehaviorByPos: _buildPlacedElementBehaviorByPos(
+          map,
+          project: project,
+          trigger: MapPlacedElementTriggerType.onEnter,
+        ),
+        bumpBehaviorByPos: _buildPlacedElementBehaviorByPos(
+          map,
+          project: project,
+          trigger: MapPlacedElementTriggerType.onBump,
+        ),
         tileWidth: tileWidth,
         tileHeight: tileHeight,
       );
@@ -60,6 +81,21 @@ class GameplayWorldState {
       blockingEntityByPos: blockingEntities,
       warpCandidatesByPos: warps,
       entityByPos: entities,
+      actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onAction,
+      ),
+      enterBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onEnter,
+      ),
+      bumpBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onBump,
+      ),
       tileWidth: tileWidth,
       tileHeight: tileHeight,
     );
@@ -77,6 +113,9 @@ class GameplayWorldState {
   final Map<int, MapEntity> _blockingEntityByPos;
   final Map<int, List<MapWarp>> _warpCandidatesByPos;
   final Map<int, MapEntity> _entityByPos;
+  final Map<int, PlacedElementBehaviorActivation> _actionBehaviorByPos;
+  final Map<int, PlacedElementBehaviorActivation> _enterBehaviorByPos;
+  final Map<int, PlacedElementBehaviorActivation> _bumpBehaviorByPos;
   final int _tileWidth;
   final int _tileHeight;
 
@@ -127,6 +166,24 @@ class GameplayWorldState {
 
   MapEntity? entityAt(int x, int y) => _entityByPos[y * map.size.width + x];
 
+  PlacedElementBehaviorActivation? placedElementBehaviorOnActionAt(
+    int x,
+    int y,
+  ) =>
+      _actionBehaviorByPos[y * map.size.width + x];
+
+  PlacedElementBehaviorActivation? placedElementBehaviorOnEnterAt(
+    int x,
+    int y,
+  ) =>
+      _enterBehaviorByPos[y * map.size.width + x];
+
+  PlacedElementBehaviorActivation? placedElementBehaviorOnBumpAt(
+    int x,
+    int y,
+  ) =>
+      _bumpBehaviorByPos[y * map.size.width + x];
+
   GameplayWorldState withPlayer(GameplayPlayerState player) =>
       GameplayWorldState._(
         map: map,
@@ -135,6 +192,9 @@ class GameplayWorldState {
         blockingEntityByPos: _blockingEntityByPos,
         warpCandidatesByPos: _warpCandidatesByPos,
         entityByPos: _entityByPos,
+        actionBehaviorByPos: _actionBehaviorByPos,
+        enterBehaviorByPos: _enterBehaviorByPos,
+        bumpBehaviorByPos: _bumpBehaviorByPos,
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
       );
@@ -299,6 +359,57 @@ Map<int, MapEntity> _buildEntityByPos(MapData map) {
   return result;
 }
 
+Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
+  MapData map, {
+  required ProjectManifest? project,
+  required MapPlacedElementTriggerType trigger,
+}) {
+  final w = map.size.width;
+  final h = map.size.height;
+  final result = <int, PlacedElementBehaviorActivation>{};
+  final elementById = project == null
+      ? const <String, ProjectElementEntry>{}
+      : {
+          for (final entry in project.elements) entry.id: entry,
+        };
+  for (final instance in map.placedElements) {
+    final behaviors = instance.behaviors;
+    if (behaviors.isEmpty) {
+      continue;
+    }
+    final entry = elementById[instance.elementId];
+    final source = entry?.frames.primarySource;
+    final width = source == null || source.width <= 0 ? 1 : source.width;
+    final height = source == null || source.height <= 0 ? 1 : source.height;
+    for (final behavior in behaviors) {
+      if (!behavior.enabled) {
+        continue;
+      }
+      if (behavior.trigger != trigger) {
+        continue;
+      }
+      for (var localY = 0; localY < height; localY++) {
+        for (var localX = 0; localX < width; localX++) {
+          final x = instance.pos.x + localX;
+          final y = instance.pos.y + localY;
+          if (x < 0 || y < 0 || x >= w || y >= h) {
+            continue;
+          }
+          final index = y * w + x;
+          result.putIfAbsent(
+            index,
+            () => PlacedElementBehaviorActivation(
+              element: instance,
+              behavior: behavior,
+            ),
+          );
+        }
+      }
+    }
+  }
+  return result;
+}
+
 bool _isEntityBlockingCandidate(MapEntity entity) {
   if (!entity.blocksMovement) return false;
   if (entity.kind == MapEntityKind.spawn) return false;
@@ -324,4 +435,14 @@ bool _hasExplicitCollisionOverride(MapEntity entity) {
     return true;
   }
   return false;
+}
+
+class PlacedElementBehaviorActivation {
+  const PlacedElementBehaviorActivation({
+    required this.element,
+    required this.behavior,
+  });
+
+  final MapPlacedElement element;
+  final MapPlacedElementBehavior behavior;
 }

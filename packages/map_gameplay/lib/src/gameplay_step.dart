@@ -57,6 +57,15 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
         ),
       );
     }
+    final bumpBehavior = facingWorld.placedElementBehaviorOnBumpAt(tx, ty);
+    if (bumpBehavior != null) {
+      return PlacedElementInteracted(
+        facingWorld,
+        bumpBehavior.element,
+        bumpBehavior.behavior,
+        MapPlacedElementTriggerType.onBump,
+      );
+    }
     return Blocked(facingWorld);
   }
 
@@ -74,6 +83,16 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
         targetPos: warp.targetPos,
         triggerMode: warp.triggerMode,
       ),
+    );
+  }
+
+  final enterBehavior = movedWorld.placedElementBehaviorOnEnterAt(tx, ty);
+  if (enterBehavior != null) {
+    return PlacedElementInteracted(
+      movedWorld,
+      enterBehavior.element,
+      enterBehavior.behavior,
+      MapPlacedElementTriggerType.onEnter,
     );
   }
 
@@ -95,12 +114,24 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
   final ty = world.player.pos.y + facing.dy;
   final entity = world.entityAt(tx, ty);
 
-  if (entity == null) return NothingToInteract(world);
+  if (entity != null) {
+    return switch (entity.kind) {
+      MapEntityKind.npc => NpcInteracted(world, entity),
+      MapEntityKind.sign => SignInteracted(world, entity),
+      MapEntityKind.item => ItemInteracted(world, entity),
+      _ => EntityInteracted(world, entity),
+    };
+  }
 
-  return switch (entity.kind) {
-    MapEntityKind.npc => NpcInteracted(world, entity),
-    MapEntityKind.sign => SignInteracted(world, entity),
-    MapEntityKind.item => ItemInteracted(world, entity),
-    _ => EntityInteracted(world, entity),
-  };
+  final actionBehavior = world.placedElementBehaviorOnActionAt(tx, ty);
+  if (actionBehavior != null) {
+    return PlacedElementInteracted(
+      world,
+      actionBehavior.element,
+      actionBehavior.behavior,
+      MapPlacedElementTriggerType.onAction,
+    );
+  }
+
+  return NothingToInteract(world);
 }

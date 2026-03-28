@@ -76,3 +76,15 @@ final class EntityInteracted extends GameplayStepResult {
   const EntityInteracted(super.world, this.entity);
   final MapEntity entity;
 }
+
+final class PlacedElementInteracted extends GameplayStepResult {
+  const PlacedElementInteracted(
+    super.world,
+    this.element,
+    this.behavior,
+    this.trigger,
+  );
+  final MapPlacedElement element;
+  final MapPlacedElementBehavior behavior;
+  final MapPlacedElementTriggerType trigger;
+}

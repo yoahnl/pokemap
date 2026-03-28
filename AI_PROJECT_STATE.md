@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-28 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, streaming de maps adjacentes côté runtime, battle handoff MVP structuré encounter → transition → battle shell → retour overworld, pipeline warp runtime verrouillé avec transition fade + rollback, warps gameplay avancés `onEnter`/`onBump` + côtés actifs + padding d’activation, refonte `Tiles & Elements` côté éditeur en mode palette + navigateur d’instances posées, milestone collisions d’éléments (profil auto + padding + override par instance), milestone animation locale des instances posées `MapPlacedElement` (none/loop/pingPong, autoplay, speed, start offset, randomStart déterministe), puis authoring MVP des frames d’animation de bibliothèque d’éléments `ProjectElementEntry.frames` dans l’éditeur).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-28 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, streaming de maps adjacentes côté runtime, battle handoff MVP structuré encounter → transition → battle shell → retour overworld, pipeline warp runtime verrouillé avec transition fade + rollback, warps gameplay avancés `onEnter`/`onBump` + côtés actifs + padding d’activation, refonte `Tiles & Elements` côté éditeur en mode palette + navigateur d’instances posées, milestone collisions d’éléments (profil auto + padding + override par instance), milestone animation locale des instances posées `MapPlacedElement` (none/loop/pingPong, autoplay, speed, start offset, randomStart déterministe), puis authoring MVP des frames d’animation de bibliothèque d’éléments `ProjectElementEntry.frames` dans l’éditeur, et enfin MVP `MapPlacedElement.behaviors` (trigger/effect typé : `onAction`/`onEnter`/`onBump` + `showMessage`/`openDialogue`/`setAnimationEnabled`) avec saisie éditeur stabilisée (draft local + commit contrôlé) et wording UX clarifié.
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E), rencontres actives MVP en déplacement walk, navigation naturelle bord-à-bord via `MapConnection`, streaming visuel des maps adjacentes (map active + voisines directes), handoff battle MVP (transition + écran battle minimal + reprise overworld), et warps explicites avec pipeline runtime propre (verrouillage gameplay, fade out/in, validation cible, rollback en cas d'échec). Les warps supportent aussi un déclenchement avancé (`onEnter`/`onBump`, côtés actifs, padding d’activation) éditable visuellement. Côté éditeur, `Tiles & Elements` est en double mode (palette + instances posées sur layer actif) avec sélection centralisée, collision par instance, animation locale par instance (`enabled`, `mode`, `autoplay`, `speed`, `startOffsetMs`, `randomStart`) et édition/génération de collision sur les éléments de bibliothèque (`tree`, `building`, `rock`, `cliff`, `tallDecoration`). L’éditeur d’éléments permet maintenant d’éditer réellement `ProjectElementEntry.frames` (ajout frame visuel depuis tileset, suppression, réordonnancement, duplication, durée par frame, preview animée). Les instances posées sont persistées dans `MapData.placedElements` et consommées par le runtime/gameplay pour le blocage et le rendu animé. Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : logique de combat complète, rencontres surf/rod, NPC actifs avec IA, sauvegarde.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E), rencontres actives MVP en déplacement walk, navigation naturelle bord-à-bord via `MapConnection`, streaming visuel des maps adjacentes (map active + voisines directes), handoff battle MVP (transition + écran battle minimal + reprise overworld), et warps explicites avec pipeline runtime propre (verrouillage gameplay, fade out/in, validation cible, rollback en cas d'échec). Les warps supportent aussi un déclenchement avancé (`onEnter`/`onBump`, côtés actifs, padding d’activation) éditable visuellement. Côté éditeur, `Tiles & Elements` est en double mode (palette + instances posées sur layer actif) avec sélection centralisée, collision par instance, animation locale par instance (`enabled`, `mode`, `autoplay`, `speed`, `startOffsetMs`, `randomStart`) et comportements locaux typés (`trigger` + `effect`) sur `MapPlacedElement`. L’éditeur d’éléments permet maintenant d’éditer réellement `ProjectElementEntry.frames` (ajout frame visuel depuis tileset, suppression, réordonnancement, duplication, durée par frame, preview animée). Les instances posées sont persistées dans `MapData.placedElements` et consommées par le runtime/gameplay pour le blocage, l’animation et les comportements trigger/effect MVP. Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : logique de combat complète, rencontres surf/rod, NPC actifs avec IA, sauvegarde, et exécution runtime de `playAnimationOnce`.
 
 ---
 
@@ -61,6 +61,7 @@ MapPlacedElement(
   id, layerId, elementId, pos: GridPos,
   applyCollision: bool = true,
   animation?: MapPlacedElementAnimation,
+  behaviors: List<MapPlacedElementBehavior> = [],
   properties: Map<String, String> = {},
 )
 MapPlacedElementAnimation(
@@ -70,6 +71,17 @@ MapPlacedElementAnimation(
   speed: double = 1.0,
   startOffsetMs?: int,
   randomStart: bool = false,
+)
+MapPlacedElementBehavior(
+  enabled: bool = true,
+  trigger: MapPlacedElementTriggerType = onAction, // onAction | onEnter | onBump
+  effect: MapPlacedElementEffect,
+)
+MapPlacedElementEffect(
+  type: MapPlacedElementEffectType, // showMessage | openDialogue | setAnimationEnabled | playAnimationOnce
+  message?: String,
+  dialogue?: DialogueRef,
+  animationEnabled?: bool,
 )
 
 MapWarp(
@@ -663,6 +675,7 @@ Offset panOffset
 - Surlignage canvas de l’instance posée sélectionnée (`MapGridPainter`) pour synchroniser la sélection panel ↔ map.
 - Override collision par instance posée : toggle `applyCollision` dans le panneau détail ; valeur persistée dans `MapPlacedElement` et consommée par gameplay/runtime.
 - Animation locale par instance posée : section dédiée dans le panneau détail (`enabled`, mode `none/loop/pingPong`, `autoplay`, `speed`, `randomStart`, `startOffsetMs`), preview locale côté éditeur, persistance dans `MapPlacedElement.animation`.
+- Comportements locaux des instances posées : section `Comportements` dans le panneau détail (liste de comportements, `enabled`, trigger `Action/Entrée/Contact`, effet `Message/Dialogue/Anim ON/OFF/Anim 1x`) avec modèle persistant `MapPlacedElement.behaviors`, aides contextuelles explicites, rappel de frontière `PlacedElement` (décor enrichi local) vs `MapEntity` (acteur gameplay riche), et saisie texte stabilisée (controllers persistants + draft local + commit blur/submit/debounce).
 - Éditeur d'animations personnages : grille d'états 3×4 (idle/walk/run × N/S/E/W), sélecteur de frames par clic sur spritesheet (1 clic = 1 frame complète = frameWidth×frameHeight tiles), frame strip avec miniatures, preview animée temps réel, contrôles durée/réordonnement/suppression. Supporte nativement N frames par direction (ex. cycle marche 3 frames). Assignation d'un personnage-sprite aux entités NPC.
 - Undo/redo dans l'éditeur.
 - Viewer statique Flame : rendu fidèle de toutes les couches (terrain, path, tile, entités animées, collision).
@@ -690,7 +703,7 @@ Offset panOffset
 ### Ne marche pas encore
 
 - Pas de variables/conditions Yarn : le moteur ne supporte que `<<jump>>` et `->` choix (pas `<<set>>`, `<<if>>`, expressions).
-- Les propriétés avancées d’instance restent partielles : collision + animation locale sont branchées; triggers/comportement restent à implémenter.
+- Les propriétés avancées d’instance restent partielles : collision + animation locale sont branchées; triggers/effects MVP sont livrés mais `playAnimationOnce` n’est pas encore exécuté côté runtime.
 - Les instances posées sont persistées dans `MapData.placedElements`, avec resynchronisation depuis les motifs tuiles du calque après peinture/effacement et au chargement de map.
 - Rencontres MVP limitées à `EncounterKind.walk` (pas surf, rod, gift, special).
 - Pas de logique de combat Pokémon complète : battle shell minimal sans tour par tour, HP, attaques, capture, IA.

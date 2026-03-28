@@ -59,6 +59,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   TriggeredWarp? _pendingWarp;
   TriggeredConnection? _pendingConnection;
   BattleStartRequest? _pendingBattleRequest;
+  PlacedElementInteracted? _pendingPlacedElementBehavior;
   DialogueOverlayComponent? _dialogueOverlay;
   BattleTransitionOverlayComponent? _battleTransitionOverlay;
   BattleOverlayComponent? _battleOverlay;
@@ -259,6 +260,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
+    final pendingPlacedElementBehavior = _pendingPlacedElementBehavior;
+    if (pendingPlacedElementBehavior != null && !_player.isStepping) {
+      _pendingPlacedElementBehavior = null;
+      _executePlacedElementBehavior(
+        element: pendingPlacedElementBehavior.element,
+        behavior: pendingPlacedElementBehavior.behavior,
+        trigger: pendingPlacedElementBehavior.trigger,
+      );
+      return;
+    }
+
     _driveMovement();
   }
 
@@ -390,6 +402,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingConnection = result.connection;
       debugPrint(
         '[connection] exit detected map=${_bundle.map.id} direction=${result.connection.direction.name} target=${result.connection.targetMapId} offset=${result.connection.offset} source=(${result.connection.sourcePos.x}, ${result.connection.sourcePos.y})',
+      );
+      return;
+    }
+
+    if (result is PlacedElementInteracted) {
+      if (result.trigger == MapPlacedElementTriggerType.onEnter) {
+        _player.startStep(
+          _world.player,
+          durationSeconds: PlayerComponent.kDefaultStepSeconds,
+        );
+      } else {
+        _player.syncState(_world.player);
+      }
+      _pendingPlacedElementBehavior = result;
+      debugPrint(
+        '[placed_behavior] queued trigger=${result.trigger.name} instance=${result.element.id} effect=${result.behavior.effect.type.name}',
       );
       return;
     }
@@ -560,8 +588,122 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       case EntityInteracted(:final entity):
         debugPrint('[interact] Entity: ${entity.id}');
         _showNotification(entity.inspectorHeadline);
+      case PlacedElementInteracted(
+          :final element,
+          :final behavior,
+          :final trigger,
+        ):
+        debugPrint('[interact] PlacedElement: ${element.id}');
+        _executePlacedElementBehavior(
+          element: element,
+          behavior: behavior,
+          trigger: trigger,
+        );
       default:
         break;
+    }
+  }
+
+  void _executePlacedElementBehavior({
+    required MapPlacedElement element,
+    required MapPlacedElementBehavior behavior,
+    required MapPlacedElementTriggerType trigger,
+  }) {
+    if (!behavior.enabled) {
+      return;
+    }
+    final effect = behavior.effect;
+    debugPrint(
+      '[placed_behavior] trigger=${trigger.name} instance=${element.id} effect=${effect.type.name}',
+    );
+    switch (effect.type) {
+      case MapPlacedElementEffectType.showMessage:
+        final text = effect.message?.trim() ?? '';
+        if (text.isEmpty) {
+          debugPrint(
+            '[placed_behavior] showMessage ignored instance=${element.id} reason=empty_message',
+          );
+          return;
+        }
+        _showNotification(text);
+        return;
+      case MapPlacedElementEffectType.openDialogue:
+        _tryOpenDialogue(element.id, effect.dialogue, element.elementId);
+        return;
+      case MapPlacedElementEffectType.setAnimationEnabled:
+        final enabled = effect.animationEnabled;
+        if (enabled == null) {
+          debugPrint(
+            '[placed_behavior] setAnimationEnabled ignored instance=${element.id} reason=missing_value',
+          );
+          return;
+        }
+        _applyPlacedElementAnimationEnabled(
+          instanceId: element.id,
+          enabled: enabled,
+        );
+        return;
+      case MapPlacedElementEffectType.playAnimationOnce:
+        debugPrint(
+          '[placed_behavior] playAnimationOnce not implemented yet instance=${element.id}',
+        );
+        _showNotification('Animation one-shot: bientôt dispo');
+        return;
+    }
+  }
+
+  void _applyPlacedElementAnimationEnabled({
+    required String instanceId,
+    required bool enabled,
+  }) {
+    try {
+      final updatedMap = setMapPlacedElementAnimationEnabled(
+        _world.map,
+        instanceId: instanceId,
+        enabled: enabled,
+      );
+      _world = GameplayWorldState.initial(
+        map: updatedMap,
+        playerPos: _world.player.pos,
+        playerFacing: _world.player.facing,
+        project: _bundle.manifest,
+        tileWidth: _bundle.manifest.settings.tileWidth,
+        tileHeight: _bundle.manifest.settings.tileHeight,
+      );
+      _bundle = RuntimeMapBundle(
+        manifest: _bundle.manifest,
+        map: updatedMap,
+        projectRootDirectory: _bundle.projectRootDirectory,
+        tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
+      );
+      final activeLoaded = _loadedMapsById[_activeMapId];
+      if (activeLoaded != null) {
+        activeLoaded.backgroundLayers.setPlacedElementAnimationEnabledOverride(
+          instanceId: instanceId,
+          enabled: enabled,
+        );
+        activeLoaded.foregroundLayers.setPlacedElementAnimationEnabledOverride(
+          instanceId: instanceId,
+          enabled: enabled,
+        );
+        _loadedMapsById[_activeMapId] = _LoadedPlayableMap(
+          bundle: _bundle,
+          originCellX: activeLoaded.originCellX,
+          originCellY: activeLoaded.originCellY,
+          backgroundLayers: activeLoaded.backgroundLayers,
+          foregroundLayers: activeLoaded.foregroundLayers,
+          npcActors: activeLoaded.npcActors,
+          npcActorByEntityId: activeLoaded.npcActorByEntityId,
+        );
+      }
+      debugPrint(
+        '[placed_behavior] setAnimationEnabled applied instance=$instanceId enabled=$enabled',
+      );
+    } catch (e, st) {
+      debugPrint(
+        '[placed_behavior] setAnimationEnabled failed instance=$instanceId enabled=$enabled error=$e\n$st',
+      );
+      _showNotification('Animation update failed');
     }
   }
 
@@ -1067,6 +1209,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingWarp = null;
     _pendingConnection = null;
     _pendingBattleRequest = null;
+    _pendingPlacedElementBehavior = null;
     _notification?.removeFromParent();
     _notification = null;
     _dialogueOverlay?.removeFromParent();

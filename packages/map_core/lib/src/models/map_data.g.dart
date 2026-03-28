@@ -129,6 +129,11 @@ _$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
           ? null
           : MapPlacedElementAnimation.fromJson(
               json['animation'] as Map<String, dynamic>),
+      behaviors: (json['behaviors'] as List<dynamic>?)
+              ?.map((e) =>
+                  MapPlacedElementBehavior.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -144,8 +149,61 @@ Map<String, dynamic> _$$MapPlacedElementImplToJson(
       'pos': instance.pos.toJson(),
       'applyCollision': instance.applyCollision,
       'animation': instance.animation?.toJson(),
+      'behaviors': instance.behaviors.map((e) => e.toJson()).toList(),
       'properties': instance.properties,
     };
+
+_$MapPlacedElementBehaviorImpl _$$MapPlacedElementBehaviorImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapPlacedElementBehaviorImpl(
+      enabled: json['enabled'] as bool? ?? true,
+      trigger: $enumDecodeNullable(
+              _$MapPlacedElementTriggerTypeEnumMap, json['trigger']) ??
+          MapPlacedElementTriggerType.onAction,
+      effect: MapPlacedElementEffect.fromJson(
+          json['effect'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$MapPlacedElementBehaviorImplToJson(
+        _$MapPlacedElementBehaviorImpl instance) =>
+    <String, dynamic>{
+      'enabled': instance.enabled,
+      'trigger': _$MapPlacedElementTriggerTypeEnumMap[instance.trigger]!,
+      'effect': instance.effect.toJson(),
+    };
+
+const _$MapPlacedElementTriggerTypeEnumMap = {
+  MapPlacedElementTriggerType.onAction: 'on_action',
+  MapPlacedElementTriggerType.onEnter: 'on_enter',
+  MapPlacedElementTriggerType.onBump: 'on_bump',
+};
+
+_$MapPlacedElementEffectImpl _$$MapPlacedElementEffectImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapPlacedElementEffectImpl(
+      type: $enumDecode(_$MapPlacedElementEffectTypeEnumMap, json['type']),
+      message: json['message'] as String?,
+      dialogue: json['dialogue'] == null
+          ? null
+          : DialogueRef.fromJson(json['dialogue'] as Map<String, dynamic>),
+      animationEnabled: json['animationEnabled'] as bool?,
+    );
+
+Map<String, dynamic> _$$MapPlacedElementEffectImplToJson(
+        _$MapPlacedElementEffectImpl instance) =>
+    <String, dynamic>{
+      'type': _$MapPlacedElementEffectTypeEnumMap[instance.type]!,
+      'message': instance.message,
+      'dialogue': instance.dialogue?.toJson(),
+      'animationEnabled': instance.animationEnabled,
+    };
+
+const _$MapPlacedElementEffectTypeEnumMap = {
+  MapPlacedElementEffectType.showMessage: 'show_message',
+  MapPlacedElementEffectType.openDialogue: 'open_dialogue',
+  MapPlacedElementEffectType.setAnimationEnabled: 'set_animation_enabled',
+  MapPlacedElementEffectType.playAnimationOnce: 'play_animation_once',
+};
 
 _$MapPlacedElementAnimationImpl _$$MapPlacedElementAnimationImplFromJson(
         Map<String, dynamic> json) =>

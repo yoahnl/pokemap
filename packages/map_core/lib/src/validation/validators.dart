@@ -1013,6 +1013,71 @@ class MapValidator {
           );
         }
       }
+      for (var behaviorIndex = 0;
+          behaviorIndex < instance.behaviors.length;
+          behaviorIndex++) {
+        final behavior = instance.behaviors[behaviorIndex];
+        final effect = behavior.effect;
+        final behaviorLabel =
+            'Placed element instance $instanceId behavior[$behaviorIndex]';
+        switch (effect.type) {
+          case MapPlacedElementEffectType.showMessage:
+            final message = effect.message?.trim() ?? '';
+            if (message.isEmpty) {
+              throw ValidationException(
+                '$behaviorLabel showMessage requires a non-empty message',
+              );
+            }
+            break;
+          case MapPlacedElementEffectType.openDialogue:
+            final dialogue = effect.dialogue;
+            if (dialogue == null) {
+              throw ValidationException(
+                '$behaviorLabel openDialogue requires a dialogue reference',
+              );
+            }
+            final dialogueId = dialogue.dialogueId.trim();
+            if (dialogueId.isEmpty) {
+              throw ValidationException(
+                '$behaviorLabel openDialogue requires a non-empty dialogueId',
+              );
+            }
+            final scriptPath = dialogue.scriptPathRelative.trim();
+            if (scriptPath.startsWith('/') || scriptPath.startsWith(r'\')) {
+              throw ValidationException(
+                '$behaviorLabel dialogue scriptPathRelative must be relative',
+              );
+            }
+            if (scriptPath.contains('..')) {
+              throw ValidationException(
+                '$behaviorLabel dialogue scriptPathRelative must not contain ..',
+              );
+            }
+            assertValidDialogueStartNode(
+              dialogue.startNode,
+              contextLabel: '$behaviorLabel dialogue',
+            );
+            if (projectDialogueContext != null && scriptPath.isEmpty) {
+              final exists = projectDialogueContext.dialogues
+                  .any((entry) => entry.id == dialogueId);
+              if (!exists) {
+                throw ValidationException(
+                  '$behaviorLabel references unknown dialogue id "$dialogueId"',
+                );
+              }
+            }
+            break;
+          case MapPlacedElementEffectType.setAnimationEnabled:
+            if (effect.animationEnabled == null) {
+              throw ValidationException(
+                '$behaviorLabel setAnimationEnabled requires animationEnabled',
+              );
+            }
+            break;
+          case MapPlacedElementEffectType.playAnimationOnce:
+            break;
+        }
+      }
       if (projectDialogueContext != null) {
         final element = elementById[elementId];
         if (element == null) {

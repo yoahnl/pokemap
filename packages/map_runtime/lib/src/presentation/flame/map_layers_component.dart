@@ -49,6 +49,8 @@ class MapLayersComponent extends PositionComponent {
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
+  final Map<String, bool> _animationEnabledOverrideByInstanceId =
+      <String, bool>{};
 
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
@@ -60,6 +62,17 @@ class MapLayersComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _animElapsed += dt;
+  }
+
+  void setPlacedElementAnimationEnabledOverride({
+    required String instanceId,
+    required bool enabled,
+  }) {
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    _animationEnabledOverrideByInstanceId[trimmedId] = enabled;
   }
 
   @override
@@ -434,7 +447,7 @@ class MapLayersComponent extends PositionComponent {
         continue;
       }
       final animation = instance.animation;
-      if (animation == null || !animation.enabled) {
+      if (animation == null) {
         continue;
       }
       final frames = <_RuntimeAnimationFrame>[];
@@ -478,6 +491,7 @@ class MapLayersComponent extends PositionComponent {
             continue;
           }
           layerCells[index] = _AnimatedPlacedCell(
+            instanceId: instance.id,
             localX: lx,
             localY: ly,
             frames: frames,
@@ -504,10 +518,15 @@ class MapLayersComponent extends PositionComponent {
           .map((frame) => frame.durationMs)
           .toList(growable: false),
     );
+    final enabledOverride =
+        _animationEnabledOverrideByInstanceId[animatedCell.instanceId];
+    final effectiveAnimation = enabledOverride == null
+        ? animatedCell.animation
+        : animatedCell.animation.copyWith(enabled: enabledOverride);
     final frameIndex = resolvePlacedElementAnimationFrameIndex(
       frameDurationsMs: frameDurations,
       elapsedMs: _animElapsed * 1000,
-      animation: animatedCell.animation,
+      animation: effectiveAnimation,
       deterministicSeed: animatedCell.deterministicSeed,
     );
     if (frameIndex < 0 || frameIndex >= animatedCell.frames.length) {
@@ -904,6 +923,7 @@ class _RuntimeAnimationFrame {
 
 class _AnimatedPlacedCell {
   const _AnimatedPlacedCell({
+    required this.instanceId,
     required this.localX,
     required this.localY,
     required this.frames,
@@ -911,6 +931,7 @@ class _AnimatedPlacedCell {
     required this.deterministicSeed,
   });
 
+  final String instanceId;
   final int localX;
   final int localY;
   final List<_RuntimeAnimationFrame> frames;

@@ -94,11 +94,60 @@ class MapPlacedElement with _$MapPlacedElement {
     required GridPos pos,
     @Default(true) bool applyCollision,
     MapPlacedElementAnimation? animation,
+    @Default([]) List<MapPlacedElementBehavior> behaviors,
     @Default({}) Map<String, String> properties,
   }) = _MapPlacedElement;
 
   factory MapPlacedElement.fromJson(Map<String, dynamic> json) =>
-      _$MapPlacedElementFromJson(json);
+      _$MapPlacedElementFromJson(migrateMapPlacedElementJson(json));
+}
+
+enum MapPlacedElementTriggerType {
+  @JsonValue('on_action')
+  onAction,
+  @JsonValue('on_enter')
+  onEnter,
+  @JsonValue('on_bump')
+  onBump,
+}
+
+@freezed
+class MapPlacedElementBehavior with _$MapPlacedElementBehavior {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapPlacedElementBehavior({
+    @Default(true) bool enabled,
+    @Default(MapPlacedElementTriggerType.onAction)
+    MapPlacedElementTriggerType trigger,
+    required MapPlacedElementEffect effect,
+  }) = _MapPlacedElementBehavior;
+
+  factory MapPlacedElementBehavior.fromJson(Map<String, dynamic> json) =>
+      _$MapPlacedElementBehaviorFromJson(json);
+}
+
+enum MapPlacedElementEffectType {
+  @JsonValue('show_message')
+  showMessage,
+  @JsonValue('open_dialogue')
+  openDialogue,
+  @JsonValue('set_animation_enabled')
+  setAnimationEnabled,
+  @JsonValue('play_animation_once')
+  playAnimationOnce,
+}
+
+@freezed
+class MapPlacedElementEffect with _$MapPlacedElementEffect {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapPlacedElementEffect({
+    required MapPlacedElementEffectType type,
+    String? message,
+    DialogueRef? dialogue,
+    bool? animationEnabled,
+  }) = _MapPlacedElementEffect;
+
+  factory MapPlacedElementEffect.fromJson(Map<String, dynamic> json) =>
+      _$MapPlacedElementEffectFromJson(json);
 }
 
 @freezed
@@ -258,4 +307,68 @@ class MapTrigger with _$MapTrigger {
 
   factory MapTrigger.fromJson(Map<String, dynamic> json) =>
       _$MapTriggerFromJson(json);
+}
+
+Map<String, dynamic> migrateMapPlacedElementJson(Map<String, dynamic> json) {
+  final out = Map<String, dynamic>.from(json);
+  final existingBehaviorsRaw = out['behaviors'];
+  final hasBehaviorList =
+      existingBehaviorsRaw is List && existingBehaviorsRaw.isNotEmpty;
+  if (hasBehaviorList) {
+    out.remove('interaction');
+    return out;
+  }
+
+  final interactionRaw = out['interaction'];
+  if (interactionRaw is! Map) {
+    out.remove('interaction');
+    return out;
+  }
+  final interaction =
+      Map<String, dynamic>.from(interactionRaw.cast<Object?, Object?>());
+  final enabled = interaction['enabled'] == true;
+  final modeRaw = (interaction['mode'] as String?)?.trim().toLowerCase();
+  Map<String, dynamic>? behavior;
+  if (modeRaw == 'message') {
+    final message = (interaction['message'] as String?)?.trim() ?? '';
+    if (message.isNotEmpty) {
+      behavior = <String, dynamic>{
+        'enabled': enabled,
+        'trigger': 'on_action',
+        'effect': <String, dynamic>{
+          'type': 'show_message',
+          'message': message,
+        },
+      };
+    }
+  } else if (modeRaw == 'dialogue') {
+    final dialogueRaw = interaction['dialogue'];
+    if (dialogueRaw is Map) {
+      final dialogue = Map<String, dynamic>.from(
+        dialogueRaw.cast<Object?, Object?>(),
+      );
+      final dialogueId = (dialogue['dialogueId'] as String?)?.trim() ?? '';
+      if (dialogueId.isNotEmpty) {
+        behavior = <String, dynamic>{
+          'enabled': enabled,
+          'trigger': 'on_action',
+          'effect': <String, dynamic>{
+            'type': 'open_dialogue',
+            'dialogue': <String, dynamic>{
+              'dialogueId': dialogueId,
+              'scriptPathRelative':
+                  (dialogue['scriptPathRelative'] as String?) ?? '',
+              if ((dialogue['startNode'] as String?)?.trim().isNotEmpty == true)
+                'startNode': (dialogue['startNode'] as String).trim(),
+            },
+          },
+        };
+      }
+    }
+  }
+  if (behavior != null) {
+    out['behaviors'] = <Map<String, dynamic>>[behavior];
+  }
+  out.remove('interaction');
+  return out;
 }
