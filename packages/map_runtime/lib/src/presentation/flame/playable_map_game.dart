@@ -15,6 +15,7 @@ import '../../application/dialogue_runtime_models.dart';
 import '../../application/encounter_to_battle_request.dart';
 import '../../application/load_dialogue_content.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
+import '../../application/movement_feedback.dart';
 import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
@@ -30,6 +31,7 @@ import 'warp_transition_overlay_component.dart';
 
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
+const double _kWaterRequiresSurfMessageCooldownMs = 900;
 const GameplayEncounterPolicy _kEncounterPolicy = GameplayEncounterPolicy(
   chancePerStep: 0.12,
 );
@@ -73,6 +75,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
       PlacedBehaviorCooldownGate();
   double _runtimeClockMs = 0;
+  double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   bool _showCollisionOverlay = false;
   bool _showBehaviorDebugOverlay = false;
   TextComponent? _behaviorDebugOverlay;
@@ -88,6 +91,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool get showBehaviorDebugOverlay => _showBehaviorDebugOverlay;
+
+  MovementMode get playerMovementMode => _world.player.movementMode;
+
+  bool get isSurfing => playerMovementMode == MovementMode.surf;
+
+  void setPlayerMovementMode(MovementMode movementMode) {
+    if (!isLoaded) {
+      return;
+    }
+    if (_world.player.movementMode == movementMode) {
+      return;
+    }
+    _world = _world.withPlayer(
+      _world.player.copyWith(movementMode: movementMode),
+    );
+    _player.syncState(_world.player);
+  }
+
+  void setSurfingEnabled(bool enabled) {
+    setPlayerMovementMode(enabled ? MovementMode.surf : MovementMode.walk);
+  }
 
   void setBehaviorDebugOverlayVisible(bool visible) {
     _showBehaviorDebugOverlay = visible;
@@ -382,6 +406,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _world = result.world;
 
     if (result is Blocked) {
+      if (result.reason == GameplayMovementBlockReason.waterRequiresSurf) {
+        _showWaterRequiresSurfMessage();
+      }
       if (attemptedOutOfBounds && attemptedDirection != null) {
         final direction = switch (attemptedDirection) {
           Direction.north => MapConnectionDirection.north,
@@ -402,7 +429,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _world.player,
         durationSeconds: PlayerComponent.kDefaultStepSeconds,
       );
-      _checkWalkEncounter();
+      _checkStepEncounter();
       return;
     }
 
@@ -458,13 +485,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _checkWalkEncounter() {
+  void _checkStepEncounter() {
+    final encounterKind = _world.player.movementMode == MovementMode.surf
+        ? EncounterKind.surf
+        : EncounterKind.walk;
     final pos = _world.player.pos;
-    debugPrint('[encounter] checking at x=${pos.x} y=${pos.y} kind=walk');
+    debugPrint(
+      '[encounter] checking at x=${pos.x} y=${pos.y} kind=${encounterKind.name}',
+    );
     final check = checkEncounterAtPlayerPosition(
       world: _world,
       project: _bundle.manifest,
-      encounterKind: EncounterKind.walk,
+      encounterKind: encounterKind,
       random: _encounterRandom,
       policy: _kEncounterPolicy,
     );
@@ -965,6 +997,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _notification = null;
       }
     });
+  }
+
+  void _showWaterRequiresSurfMessage() {
+    final delta = _runtimeClockMs - _lastWaterRequiresSurfMessageAtMs;
+    if (delta < _kWaterRequiresSurfMessageCooldownMs) {
+      return;
+    }
+    _lastWaterRequiresSurfMessageAtMs = _runtimeClockMs;
+    final message = runtimeMovementBlockedMessage(
+      GameplayMovementBlockReason.waterRequiresSurf,
+    );
+    if (message == null || message.isEmpty) {
+      return;
+    }
+    _showNotification(message);
   }
 
   PlacedBehaviorRuntimeKey _buildPlacedBehaviorCooldownKey({

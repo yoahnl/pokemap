@@ -5,6 +5,7 @@ export 'src/gameplay_exceptions.dart' show GameplaySpawnResolutionException;
 export 'src/player_spawn_resolver.dart' show resolveInitialPlayerSpawn;
 export 'src/gameplay_intent.dart'
     show GameplayIntent, MoveIntent, InteractIntent;
+export 'src/movement_block_reason.dart' show GameplayMovementBlockReason;
 export 'src/gameplay_player_state.dart' show GameplayPlayerState;
 export 'src/gameplay_encounter.dart'
     show

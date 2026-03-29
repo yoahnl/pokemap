@@ -21,7 +21,7 @@ class PathAutotileResolver {
     return PathAutotileSet(
       id: selectedPreset.id,
       tilesetId: tilesetId,
-      variants: <TerrainPathVariant, TilesetSourceRect>{
+      variants: <TerrainPathVariant, List<TilesetVisualFrame>>{
         ...defaults.variants,
         ...mapped.variants,
       },

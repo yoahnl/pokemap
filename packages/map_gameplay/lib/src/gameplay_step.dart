@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'direction.dart';
 import 'gameplay_intent.dart';
+import 'movement_block_reason.dart';
 import 'gameplay_step_result.dart';
 import 'gameplay_world_state.dart';
 
@@ -31,7 +32,10 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
     final connectionDirection = _connectionDirectionForMove(direction);
     final connection = findMapConnection(world.map, connectionDirection);
     if (connection == null) {
-      return Blocked(facingWorld);
+      return Blocked(
+        facingWorld,
+        reason: GameplayMovementBlockReason.outOfBounds,
+      );
     }
     return ConnectionTriggered(
       facingWorld,
@@ -44,7 +48,12 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
     );
   }
 
-  if (facingWorld.isBlocked(tx, ty)) {
+  final blockReason = facingWorld.movementBlockReasonAt(
+    x: tx,
+    y: ty,
+    movementMode: facingWorld.player.movementMode,
+  );
+  if (blockReason != null) {
     final bumpWarp = facingWorld.warpOnBumpAt(tx, ty, direction);
     if (bumpWarp != null) {
       return WarpTriggered(
@@ -66,7 +75,10 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
         MapPlacedElementTriggerType.onBump,
       );
     }
-    return Blocked(facingWorld);
+    return Blocked(
+      facingWorld,
+      reason: blockReason,
+    );
   }
 
   final movedWorld = facingWorld.withPlayer(

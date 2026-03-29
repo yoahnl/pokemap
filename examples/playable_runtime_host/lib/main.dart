@@ -24,6 +24,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   String? _error;
   bool _loading = false;
   bool _showCollisionOverlay = false;
+  bool _surfingEnabled = false;
 
   @override
   void dispose() {
@@ -75,6 +76,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
             PlayableMapGame(bundle: bundle, projectFilePath: projectFilePath);
       });
       _game?.setCollisionOverlayVisible(_showCollisionOverlay);
+      _game?.setSurfingEnabled(_surfingEnabled);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -124,6 +126,19 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                         onChanged: (v) {
                           setState(() => _showCollisionOverlay = v);
                           game.setCollisionOverlayVisible(v);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Surf',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      Switch(
+                        value: _surfingEnabled,
+                        onChanged: (v) {
+                          setState(() => _surfingEnabled = v);
+                          game.setSurfingEnabled(v);
                         },
                       ),
                     ],

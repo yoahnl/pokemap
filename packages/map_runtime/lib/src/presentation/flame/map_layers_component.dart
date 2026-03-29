@@ -738,7 +738,16 @@ class MapLayersComponent extends PositionComponent {
     if (preset == null || preset.variants.isEmpty) {
       return false;
     }
-    final tilesetId = preset.tilesetId.trim();
+    final resolved = _resolveTerrainPresetFrame(
+      preset: preset,
+      x: x,
+      y: y,
+      elapsedMs: _animElapsed * 1000,
+    );
+    if (resolved == null) {
+      return false;
+    }
+    final tilesetId = resolved.tilesetId.trim();
     if (tilesetId.isEmpty) {
       return false;
     }
@@ -746,16 +755,19 @@ class MapLayersComponent extends PositionComponent {
     if (tilesetImage == null || tw <= 0 || th <= 0) {
       return false;
     }
-    final sourceTile = _resolveTerrainPresetSourceTile(
-      preset: preset,
+    final sourceRect = resolved.source;
+    final width = sourceRect.width <= 0 ? 1 : sourceRect.width;
+    final height = sourceRect.height <= 0 ? 1 : sourceRect.height;
+    final cellSeed = _stableCellSeed(
       x: x,
       y: y,
+      salt: sourceRect.x * 73856093 + sourceRect.y * 19349663,
     );
-    if (sourceTile == null) {
-      return false;
-    }
-    final sourceX = sourceTile.dx * tw;
-    final sourceY = sourceTile.dy * th;
+    final tileIndex = cellSeed % (width * height);
+    final offsetX = tileIndex % width;
+    final offsetY = tileIndex ~/ width;
+    final sourceX = (sourceRect.x + offsetX) * tw;
+    final sourceY = (sourceRect.y + offsetY) * th;
     if (sourceX < 0 ||
         sourceY < 0 ||
         sourceX + tw > tilesetImage.width ||
@@ -763,8 +775,8 @@ class MapLayersComponent extends PositionComponent {
       return false;
     }
     final srcRect = Rect.fromLTWH(
-      sourceX,
-      sourceY,
+      sourceX.toDouble(),
+      sourceY.toDouble(),
       tw.toDouble(),
       th.toDouble(),
     );
@@ -780,10 +792,11 @@ class MapLayersComponent extends PositionComponent {
     return true;
   }
 
-  Offset? _resolveTerrainPresetSourceTile({
+  _ResolvedTerrainFrame? _resolveTerrainPresetFrame({
     required ProjectTerrainPreset preset,
     required int x,
     required int y,
+    required double elapsedMs,
   }) {
     final variants = preset.variants;
     if (variants.isEmpty) {
@@ -807,20 +820,30 @@ class MapLayersComponent extends PositionComponent {
       }
       selectedWeight -= weight;
     }
-    final primary = chosen.frames.primarySource;
-    final width = primary.width <= 0 ? 1 : primary.width;
-    final height = primary.height <= 0 ? 1 : primary.height;
-    final cellSeed = _stableCellSeed(
-      x: x,
-      y: y,
-      salt: primary.x * 73856093 + primary.y * 19349663,
+    if (chosen.frames.isEmpty) {
+      return null;
+    }
+    final frameIndex = resolvePlacedElementAnimationFrameIndex(
+      frameDurationsMs: normalizeElementFrameDurationsMs(
+        chosen.frames.map((frame) => frame.durationMs).toList(growable: false),
+      ),
+      elapsedMs: elapsedMs,
+      animation: const MapPlacedElementAnimation(
+        enabled: true,
+        mode: MapPlacedElementAnimationMode.loop,
+      ),
     );
-    final tileIndex = cellSeed % (width * height);
-    final offsetX = tileIndex % width;
-    final offsetY = tileIndex ~/ width;
-    return Offset(
-      (primary.x + offsetX).toDouble(),
-      (primary.y + offsetY).toDouble(),
+    final resolvedFrame =
+        chosen.frames[frameIndex.clamp(0, chosen.frames.length - 1)];
+    final frameTilesetId = resolvedFrame.tilesetId.trim();
+    final resolvedTilesetId =
+        frameTilesetId.isNotEmpty ? frameTilesetId : preset.tilesetId.trim();
+    if (resolvedTilesetId.isEmpty) {
+      return null;
+    }
+    return _ResolvedTerrainFrame(
+      tilesetId: resolvedTilesetId,
+      source: resolvedFrame.source,
     );
   }
 
@@ -898,12 +921,7 @@ class MapLayersComponent extends PositionComponent {
     required Rect cell,
     required double alpha,
   }) {
-    final tilesetId = autotileSet.tilesetId.trim();
-    if (tilesetId.isEmpty) {
-      return false;
-    }
-    final tilesetImage = tileImagesByTilesetId[tilesetId];
-    if (tilesetImage == null || tw <= 0 || th <= 0) {
+    if (tw <= 0 || th <= 0) {
       return false;
     }
     final variant = resolvePathVariantAt(
@@ -914,27 +932,41 @@ class MapLayersComponent extends PositionComponent {
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
-      tilesetImage: tilesetImage,
       variant: variant,
       tw: tw,
       th: th,
       dstRect: cell,
       alpha: alpha,
+      elapsedMs: _animElapsed * 1000,
     );
   }
 
   bool _paintAutotileVariantCell(
     Canvas canvas, {
     required RuntimePathAutotileSet autotileSet,
-    required ui.Image tilesetImage,
     required TerrainPathVariant variant,
     required int tw,
     required int th,
     required Rect dstRect,
     required double alpha,
+    required double elapsedMs,
   }) {
-    final source = autotileSet.sourceForVariant(variant);
+    final source = autotileSet.sourceForVariantAt(
+      variant,
+      elapsedMs: elapsedMs,
+    );
     if (source == null) {
+      return false;
+    }
+    final tilesetId = autotileSet.resolvedTilesetIdForVariantAt(
+      variant,
+      elapsedMs: elapsedMs,
+    );
+    if (tilesetId.isEmpty) {
+      return false;
+    }
+    final tilesetImage = tileImagesByTilesetId[tilesetId];
+    if (tilesetImage == null) {
       return false;
     }
     final sourceX = source.x * tw;
@@ -974,6 +1006,16 @@ class _RuntimeAnimationFrame {
   final String tilesetId;
   final TilesetSourceRect source;
   final int? durationMs;
+}
+
+class _ResolvedTerrainFrame {
+  const _ResolvedTerrainFrame({
+    required this.tilesetId,
+    required this.source,
+  });
+
+  final String tilesetId;
+  final TilesetSourceRect source;
 }
 
 class _AnimatedPlacedCell {

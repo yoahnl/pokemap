@@ -132,11 +132,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           activeMap,
           state.project,
         );
+        final needsSurfaceAnim = _surfacePresetsNeedEditorFrameAnimation(
+          pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
+          terrainPresetsByType: terrainPresetsByType,
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) {
             return;
           }
-          _syncEditorEntityAnimationTimer(needsEntityAnim);
+          _syncEditorEntityAnimationTimer(needsEntityAnim || needsSurfaceAnim);
         });
 
         final toolPreview = notifier.resolveMapToolPreview(
@@ -469,28 +473,89 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         result[pathTilesetId] = pathTilesetPath;
       }
     }
+    if (selectedPathAutotileSet != null) {
+      for (final frames in selectedPathAutotileSet.variants.values) {
+        for (final frame in frames) {
+          final frameTilesetId = frame.tilesetId.trim();
+          if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
+            continue;
+          }
+          final frameTilesetPath =
+              notifier.getTilesetAbsolutePathById(frameTilesetId);
+          if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
+            result[frameTilesetId] = frameTilesetPath;
+          }
+        }
+      }
+    }
     for (final preset in terrainPresetsByType.values) {
       final terrainTilesetId = preset.tilesetId.trim();
-      if (terrainTilesetId.isEmpty || result.containsKey(terrainTilesetId)) {
-        continue;
+      if (terrainTilesetId.isNotEmpty &&
+          !result.containsKey(terrainTilesetId)) {
+        final terrainTilesetPath =
+            notifier.getTilesetAbsolutePathById(terrainTilesetId);
+        if (terrainTilesetPath != null && terrainTilesetPath.isNotEmpty) {
+          result[terrainTilesetId] = terrainTilesetPath;
+        }
       }
-      final terrainTilesetPath =
-          notifier.getTilesetAbsolutePathById(terrainTilesetId);
-      if (terrainTilesetPath != null && terrainTilesetPath.isNotEmpty) {
-        result[terrainTilesetId] = terrainTilesetPath;
+      for (final variant in preset.variants) {
+        for (final frame in variant.frames) {
+          final frameTilesetId = frame.tilesetId.trim();
+          if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
+            continue;
+          }
+          final frameTilesetPath =
+              notifier.getTilesetAbsolutePathById(frameTilesetId);
+          if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
+            result[frameTilesetId] = frameTilesetPath;
+          }
+        }
       }
     }
     for (final autotileSet in pathAutotileSetsByPresetId.values) {
       final tilesetId = autotileSet.tilesetId.trim();
-      if (tilesetId.isEmpty || result.containsKey(tilesetId)) {
-        continue;
+      if (tilesetId.isNotEmpty && !result.containsKey(tilesetId)) {
+        final pathTilesetPath = notifier.getTilesetAbsolutePathById(tilesetId);
+        if (pathTilesetPath != null && pathTilesetPath.isNotEmpty) {
+          result[tilesetId] = pathTilesetPath;
+        }
       }
-      final pathTilesetPath = notifier.getTilesetAbsolutePathById(tilesetId);
-      if (pathTilesetPath != null && pathTilesetPath.isNotEmpty) {
-        result[tilesetId] = pathTilesetPath;
+      for (final frames in autotileSet.variants.values) {
+        for (final frame in frames) {
+          final frameTilesetId = frame.tilesetId.trim();
+          if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
+            continue;
+          }
+          final frameTilesetPath =
+              notifier.getTilesetAbsolutePathById(frameTilesetId);
+          if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
+            result[frameTilesetId] = frameTilesetPath;
+          }
+        }
       }
     }
     return result;
+  }
+
+  bool _surfacePresetsNeedEditorFrameAnimation({
+    required Map<String, PathAutotileSet> pathAutotileSetsByPresetId,
+    required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
+  }) {
+    for (final autotileSet in pathAutotileSetsByPresetId.values) {
+      for (final frames in autotileSet.variants.values) {
+        if (frames.length > 1) {
+          return true;
+        }
+      }
+    }
+    for (final preset in terrainPresetsByType.values) {
+      for (final variant in preset.variants) {
+        if (variant.frames.length > 1) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   Map<MapConnectionDirection, String> _resolveConnectionLabels(
@@ -1518,12 +1583,7 @@ class MapGridPainter extends CustomPainter {
     if (autotileSet == null) {
       return false;
     }
-    final tilesetId = autotileSet.tilesetId.trim();
-    if (tilesetId.isEmpty) {
-      return false;
-    }
-    final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
       return false;
     }
 
@@ -1560,10 +1620,10 @@ class MapGridPainter extends CustomPainter {
     final painted = _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
-      tilesetImage: tilesetImage,
       variant: variant,
       dstRect: dstRect,
       alpha: 0.66,
+      elapsedMs: editorEntityAnimationMs.toDouble(),
     );
     if (!painted) {
       return false;
@@ -1587,15 +1647,9 @@ class MapGridPainter extends CustomPainter {
     if (preset == null || preset.variants.isEmpty) {
       return false;
     }
-    final tilesetId = preset.tilesetId.trim();
-    if (tilesetId.isEmpty) {
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
       return false;
     }
-    final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.62);
     var rendered = false;
     for (var y = 0; y < preview.size.height; y++) {
       for (var x = 0; x < preview.size.width; x++) {
@@ -1607,14 +1661,23 @@ class MapGridPainter extends CustomPainter {
             mapY >= map.size.height) {
           continue;
         }
-        final sourceTile = _resolveTerrainPresetSourceTile(
+        final resolved = _resolveTerrainPresetFrame(
           preset: preset,
           x: mapX,
           y: mapY,
+          elapsedMs: editorEntityAnimationMs.toDouble(),
         );
-        if (sourceTile == null) continue;
-        final sourceX = sourceTile.dx * sourceTileWidth;
-        final sourceY = sourceTile.dy * sourceTileHeight;
+        if (resolved == null) continue;
+        final tilesetId = resolved.tilesetId.trim();
+        if (tilesetId.isEmpty) {
+          continue;
+        }
+        final tilesetImage = tilesetImagesById[tilesetId];
+        if (tilesetImage == null) {
+          continue;
+        }
+        final sourceX = resolved.source.x * sourceTileWidth;
+        final sourceY = resolved.source.y * sourceTileHeight;
         if (sourceX < 0 ||
             sourceY < 0 ||
             sourceX + sourceTileWidth > tilesetImage.width ||
@@ -1635,7 +1698,7 @@ class MapGridPainter extends CustomPainter {
             tileWidth,
             tileHeight,
           ),
-          paint,
+          Paint()..color = Colors.white.withValues(alpha: 0.62),
         );
         rendered = true;
       }
@@ -1929,23 +1992,40 @@ class MapGridPainter extends CustomPainter {
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
-      tilesetImage: tilesetImage,
       variant: variant,
       dstRect: dstRect,
       alpha: alpha,
+      elapsedMs: editorEntityAnimationMs.toDouble(),
     );
   }
 
   bool _paintAutotileVariantCell(
     Canvas canvas, {
     required PathAutotileSet autotileSet,
-    required ui.Image tilesetImage,
     required TerrainPathVariant variant,
     required Rect dstRect,
     required double alpha,
+    required double elapsedMs,
   }) {
-    final source = autotileSet.sourceForVariant(variant);
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+      return false;
+    }
+    final source = autotileSet.sourceForVariantAt(
+      variant,
+      elapsedMs: elapsedMs,
+    );
     if (source == null) return false;
+    final tilesetId = autotileSet.resolvedTilesetIdForVariantAt(
+      variant,
+      elapsedMs: elapsedMs,
+    );
+    if (tilesetId.isEmpty) {
+      return false;
+    }
+    final tilesetImage = tilesetImagesById[tilesetId];
+    if (tilesetImage == null) {
+      return false;
+    }
 
     final sourceX = source.x * sourceTileWidth;
     final sourceY = source.y * sourceTileHeight;
@@ -1982,22 +2062,26 @@ class MapGridPainter extends CustomPainter {
     if (preset == null || preset.variants.isEmpty) {
       return false;
     }
-    final tilesetId = preset.tilesetId.trim();
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+      return false;
+    }
+    final resolved = _resolveTerrainPresetFrame(
+      preset: preset,
+      x: x,
+      y: y,
+      elapsedMs: editorEntityAnimationMs.toDouble(),
+    );
+    if (resolved == null) return false;
+    final tilesetId = resolved.tilesetId.trim();
     if (tilesetId.isEmpty) {
       return false;
     }
     final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+    if (tilesetImage == null) {
       return false;
     }
-    final sourceTile = _resolveTerrainPresetSourceTile(
-      preset: preset,
-      x: x,
-      y: y,
-    );
-    if (sourceTile == null) return false;
-    final sourceX = sourceTile.dx * sourceTileWidth;
-    final sourceY = sourceTile.dy * sourceTileHeight;
+    final sourceX = resolved.source.x * sourceTileWidth;
+    final sourceY = resolved.source.y * sourceTileHeight;
     if (sourceX < 0 ||
         sourceY < 0 ||
         sourceX + sourceTileWidth > tilesetImage.width ||
@@ -2026,10 +2110,11 @@ class MapGridPainter extends CustomPainter {
     return true;
   }
 
-  Offset? _resolveTerrainPresetSourceTile({
+  _ResolvedTerrainFrame? _resolveTerrainPresetFrame({
     required ProjectTerrainPreset preset,
     required int x,
     required int y,
+    required double elapsedMs,
   }) {
     final variants = preset.variants;
     if (variants.isEmpty) return null;
@@ -2051,20 +2136,44 @@ class MapGridPainter extends CustomPainter {
       selectedWeight -= weight;
     }
 
-    final primary = chosen.frames.primarySource;
-    final width = primary.width <= 0 ? 1 : primary.width;
-    final height = primary.height <= 0 ? 1 : primary.height;
+    if (chosen.frames.isEmpty) {
+      return null;
+    }
+    final frameIndex = resolvePlacedElementAnimationFrameIndex(
+      frameDurationsMs: normalizeElementFrameDurationsMs(
+        chosen.frames.map((frame) => frame.durationMs).toList(growable: false),
+      ),
+      elapsedMs: elapsedMs,
+      animation: const MapPlacedElementAnimation(
+        enabled: true,
+        mode: MapPlacedElementAnimationMode.loop,
+      ),
+    );
+    final resolvedFrame =
+        chosen.frames[frameIndex.clamp(0, chosen.frames.length - 1)];
+    final frameSource = resolvedFrame.source;
+    final width = frameSource.width <= 0 ? 1 : frameSource.width;
+    final height = frameSource.height <= 0 ? 1 : frameSource.height;
     final cellSeed = _stableCellSeed(
       x: x,
       y: y,
-      salt: primary.x * 73856093 + primary.y * 19349663,
+      salt: frameSource.x * 73856093 + frameSource.y * 19349663,
     );
     final tileIndex = cellSeed % (width * height);
     final offsetX = tileIndex % width;
     final offsetY = tileIndex ~/ width;
-    return Offset(
-      (primary.x + offsetX).toDouble(),
-      (primary.y + offsetY).toDouble(),
+    final frameTilesetId = resolvedFrame.tilesetId.trim();
+    final resolvedTilesetId =
+        frameTilesetId.isNotEmpty ? frameTilesetId : preset.tilesetId.trim();
+    if (resolvedTilesetId.isEmpty) {
+      return null;
+    }
+    return _ResolvedTerrainFrame(
+      tilesetId: resolvedTilesetId,
+      source: TilesetSourceRect(
+        x: frameSource.x + offsetX,
+        y: frameSource.y + offsetY,
+      ),
     );
   }
 
@@ -2322,7 +2431,8 @@ class MapGridPainter extends CustomPainter {
     if (previous.variants.length != next.variants.length) return false;
     for (final entry in previous.variants.entries) {
       final other = next.variants[entry.key];
-      if (other != entry.value) return false;
+      if (other == null) return false;
+      if (!listEquals(other, entry.value)) return false;
     }
     return true;
   }
@@ -2341,6 +2451,16 @@ class MapGridPainter extends CustomPainter {
     }
     return true;
   }
+}
+
+class _ResolvedTerrainFrame {
+  const _ResolvedTerrainFrame({
+    required this.tilesetId,
+    required this.source,
+  });
+
+  final String tilesetId;
+  final TilesetSourceRect source;
 }
 
 class _TilesetImageCache {

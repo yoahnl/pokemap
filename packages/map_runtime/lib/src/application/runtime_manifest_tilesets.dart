@@ -58,9 +58,20 @@ void addTerrainAndPathPresetTilesetIds(
             continue;
           }
           final preset = terrainByType[t];
-          final tid = preset?.tilesetId.trim() ?? '';
-          if (tid.isNotEmpty) {
-            ids.add(tid);
+          if (preset == null) {
+            continue;
+          }
+          final presetTilesetId = preset.tilesetId.trim();
+          if (presetTilesetId.isNotEmpty) {
+            ids.add(presetTilesetId);
+          }
+          for (final variant in preset.variants) {
+            for (final frame in variant.frames) {
+              final overrideTilesetId = frame.tilesetId.trim();
+              if (overrideTilesetId.isNotEmpty) {
+                ids.add(overrideTilesetId);
+              }
+            }
           }
         }
       },
@@ -71,9 +82,17 @@ void addTerrainAndPathPresetTilesetIds(
         }
         for (final p in manifest.pathPresets) {
           if (p.id == pid) {
-            final tid = p.tilesetId.trim();
-            if (tid.isNotEmpty) {
-              ids.add(tid);
+            final presetTilesetId = p.tilesetId.trim();
+            if (presetTilesetId.isNotEmpty) {
+              ids.add(presetTilesetId);
+            }
+            for (final mapping in p.variants) {
+              for (final frame in mapping.frames) {
+                final overrideTilesetId = frame.tilesetId.trim();
+                if (overrideTilesetId.isNotEmpty) {
+                  ids.add(overrideTilesetId);
+                }
+              }
             }
             return;
           }

@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-29 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, streaming de maps adjacentes côté runtime, battle handoff MVP structuré encounter → transition → battle shell → retour overworld, pipeline warp runtime verrouillé avec transition fade + rollback, warps gameplay avancés `onEnter`/`onBump` + côtés actifs + padding d’activation, refonte `Tiles & Elements` côté éditeur en mode palette + navigateur d’instances posées, milestone collisions d’éléments (profil auto + padding + override par instance), milestone animation locale des instances posées `MapPlacedElement` (none/loop/pingPong, autoplay, speed, start offset, randomStart déterministe), authoring MVP des frames d’animation de bibliothèque d’éléments `ProjectElementEntry.frames`, extension du MVP `MapPlacedElement.behaviors` (triggers `onAction`/`onEnter`/`onBump`/`onExit`/`onNear`, effets `showMessage`/`openDialogue`/`setAnimationEnabled`/`playAnimationOnce`) et hardening runtime behaviors (id stable par behavior, priorité explicite `onEnter > onExit > onNear`, anti-spam/cooldown runtime, debug overlay léger des activations, cooldown configurable par behavior côté data via `cooldownMs`, trigger scope MVP via `triggerScope`).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-29 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, streaming de maps adjacentes côté runtime, battle handoff MVP structuré encounter → transition → battle shell → retour overworld, pipeline warp runtime verrouillé avec transition fade + rollback, warps gameplay avancés `onEnter`/`onBump` + côtés actifs + padding d’activation, refonte `Tiles & Elements` côté éditeur en mode palette + navigateur d’instances posées, milestone collisions d’éléments (profil auto + padding + override par instance), milestone animation locale des instances posées `MapPlacedElement` (none/loop/pingPong, autoplay, speed, start offset, randomStart déterministe), authoring MVP des frames d’animation de bibliothèque d’éléments `ProjectElementEntry.frames`, extension du MVP `MapPlacedElement.behaviors` (triggers `onAction`/`onEnter`/`onBump`/`onExit`/`onNear`, effets `showMessage`/`openDialogue`/`setAnimationEnabled`/`playAnimationOnce`) et hardening runtime behaviors (id stable par behavior, priorité explicite `onEnter > onExit > onNear`, anti-spam/cooldown runtime, debug overlay léger des activations, cooldown configurable par behavior côté data via `cooldownMs`, trigger scope MVP via `triggerScope`), animation des surfaces terrain/path multi-frames (eau incluse) et mode de déplacement joueur `walk|surf` avec blocage eau explicite).
 
 ---
 
@@ -11,7 +11,7 @@ Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
 4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
-Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E), rencontres actives MVP en déplacement walk, navigation naturelle bord-à-bord via `MapConnection`, streaming visuel des maps adjacentes (map active + voisines directes), handoff battle MVP (transition + écran battle minimal + reprise overworld), et warps explicites avec pipeline runtime propre (verrouillage gameplay, fade out/in, validation cible, rollback en cas d'échec). Les warps supportent aussi un déclenchement avancé (`onEnter`/`onBump`, côtés actifs, padding d’activation) éditable visuellement. Côté éditeur, `Tiles & Elements` est en double mode (palette + instances posées sur layer actif) avec sélection centralisée, collision par instance, animation locale par instance (`enabled`, `mode`, `autoplay`, `speed`, `startOffsetMs`, `randomStart`) et comportements locaux typés (`trigger` + `effect`) sur `MapPlacedElement`. Les behaviors disposent désormais d’un identifiant stable (`behavior.id`), d’un `cooldownMs` optionnel (override data) et d’un `triggerScope` MVP (`defaultScope`, `oncePerEnter`, `whileInsideSingleShot`, `facingOnly`, `nearCardinalOnly`). Le runtime conserve un fallback anti-spam déterministe par `(instanceId, behaviorId, trigger, effectType)` quand `cooldownMs` est absent, et applique les filtres de scope côté gameplay (réarmement entrée/sortie + `facingOnly` + proximité cardinale explicite). L’éditeur d’éléments permet d’éditer réellement `ProjectElementEntry.frames` (ajout frame visuel depuis tileset, suppression, réordonnancement, duplication, durée par frame, preview animée). Les instances posées sont persistées dans `MapData.placedElements` et consommées par le runtime/gameplay pour le blocage, l’animation et les comportements trigger/effect MVP, y compris `playAnimationOnce` en exécution runtime réelle. Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : logique de combat complète, rencontres surf/rod et NPC actifs avec IA.
+Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E), rencontres actives MVP en déplacement walk, navigation naturelle bord-à-bord via `MapConnection`, streaming visuel des maps adjacentes (map active + voisines directes), handoff battle MVP (transition + écran battle minimal + reprise overworld), et warps explicites avec pipeline runtime propre (verrouillage gameplay, fade out/in, validation cible, rollback en cas d'échec). Les warps supportent aussi un déclenchement avancé (`onEnter`/`onBump`, côtés actifs, padding d’activation) éditable visuellement. Côté éditeur, `Tiles & Elements` est en double mode (palette + instances posées sur layer actif) avec sélection centralisée, collision par instance, animation locale par instance (`enabled`, `mode`, `autoplay`, `speed`, `startOffsetMs`, `randomStart`) et comportements locaux typés (`trigger` + `effect`) sur `MapPlacedElement`. Les behaviors disposent désormais d’un identifiant stable (`behavior.id`), d’un `cooldownMs` optionnel (override data) et d’un `triggerScope` MVP (`defaultScope`, `oncePerEnter`, `whileInsideSingleShot`, `facingOnly`, `nearCardinalOnly`). Le runtime conserve un fallback anti-spam déterministe par `(instanceId, behaviorId, trigger, effectType)` quand `cooldownMs` est absent, et applique les filtres de scope côté gameplay (réarmement entrée/sortie + `facingOnly` + proximité cardinale explicite). L’éditeur d’éléments permet d’éditer réellement `ProjectElementEntry.frames` (ajout frame visuel depuis tileset, suppression, réordonnancement, duplication, durée par frame, preview animée). Les instances posées sont persistées dans `MapData.placedElements` et consommées par le runtime/gameplay pour le blocage, l’animation et les comportements trigger/effect MVP, y compris `playAnimationOnce` en exécution runtime réelle. Les presets terrain/path multi-frames sont aussi animés côté éditeur/runtime (eau incluse), et le joueur porte maintenant un mode de déplacement explicite `walk|surf` utilisé par `stepGameplayWorld` : l’eau est refusée en `walk` (raison typée + message runtime) et traversable en `surf` (toggle debug présent dans les apps exemple). Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : logique de combat complète, rencontres surf/rod et NPC actifs avec IA.
 
 ---
 
@@ -240,7 +240,8 @@ extension EntityFacingX on EntityFacing {  // EntityFacing est dans map_core
 class GameplayPlayerState {
   final GridPos pos;
   final Direction facing;
-  GameplayPlayerState copyWith({GridPos? pos, Direction? facing});
+  final MovementMode movementMode; // walk | surf (extensible)
+  GameplayPlayerState copyWith({GridPos? pos, Direction? facing, MovementMode? movementMode});
 }
 
 // État monde
@@ -250,6 +251,7 @@ class GameplayWorldState {
     ProjectManifest? project,
     required GridPos playerPos,
     Direction playerFacing = Direction.south,
+    MovementMode playerMovementMode = MovementMode.walk,
   });
   factory GameplayWorldState.fromMap(MapData map, {ProjectManifest? project});
   // Lance GameplaySpawnResolutionException si pas de spawn ou spawn bloqué
@@ -257,6 +259,8 @@ class GameplayWorldState {
   final MapData map;
   final GameplayPlayerState player;
   bool isBlocked(int x, int y);
+  bool isWaterCell(int x, int y);
+  GameplayMovementBlockReason? movementBlockReasonAt({required int x, required int y, required MovementMode movementMode});
   // 1. hors bornes → true
   // 2. collisionCache[idx] → true si tuile de collision
   // 3. blockingEntityByPos[idx]?.blocksMovement → true si entité bloquante
@@ -280,7 +284,10 @@ sealed class GameplayStepResult {
   final GameplayWorldState world;
 }
 final class Moved extends GameplayStepResult {}
-final class Blocked extends GameplayStepResult {}
+enum GameplayMovementBlockReason { solid, outOfBounds, waterRequiresSurf }
+final class Blocked extends GameplayStepResult {
+  final GameplayMovementBlockReason reason;
+}
 final class WarpTriggered extends GameplayStepResult {
   final TriggeredWarp warp;
 }
@@ -382,18 +389,21 @@ Pour `MoveIntent(direction)` :
 2. Calcule `(tx, ty) = pos + direction.delta`
 3. Si `(tx, ty)` est hors map :
    - cherche une `MapConnection` sur le bord correspondant à `direction`
-   - si absente → `Blocked(facedWorld)`
+   - si absente → `Blocked(facedWorld, reason: outOfBounds)`
    - si présente → `ConnectionTriggered(facedWorld, connection)` (pas de déplacement hors bornes dans l'état pur)
-4. Si `isBlocked(tx, ty)` :
+4. Sinon, calcule `movementBlockReasonAt(tx, ty, movementMode)` :
+   - si `waterRequiresSurf` (case eau + joueur pas en surf) → `Blocked(..., reason: waterRequiresSurf)` sauf warp `onBump` / behavior `onBump`
+   - si `solid` (collisions/entités) → même pipeline bump puis `Blocked(..., reason: solid)`
+5. Si blocage `solid`/`waterRequiresSurf` :
    - si un warp `onBump` correspond (côté autorisé + zone/padding ; côté = côté d’arrivée réel du joueur) → `WarpTriggered(facingWorld, warp)` sans déplacement
    - sinon si un behavior `onBump` couvre la cellule bloquée → `PlacedElementInteracted(facingWorld, ..., trigger=onBump)`
-   - sinon → `Blocked(facedWorld)`
-5. Sinon déplace le joueur à `(tx, ty)`
-6. Si un warp `onEnter` correspond sur la cellule d'arrivée (côté autorisé + zone/padding ; côté = côté d’arrivée réel du joueur) → `WarpTriggered(movedWorld, warp)`
-7. Sinon si un behavior `onEnter` couvre la cellule d’arrivée et passe le filtre `triggerScope` → `PlacedElementInteracted(movedWorld, ..., trigger=onEnter)`
-8. Sinon si transition couverture élément `inside -> outside` détectée pour `onExit` et passe le filtre `triggerScope` → `PlacedElementInteracted(movedWorld, ..., trigger=onExit)`
-9. Sinon si transition proximité `outside -> near` détectée pour `onNear` (adjacence 4 directions) et passe le filtre `triggerScope` → `PlacedElementInteracted(movedWorld, ..., trigger=onNear)`
-10. Sinon → `Moved(movedWorld)`
+   - sinon → `Blocked(facedWorld, reason: <...>)`
+6. Sinon déplace le joueur à `(tx, ty)`
+7. Si un warp `onEnter` correspond sur la cellule d'arrivée (côté autorisé + zone/padding ; côté = côté d’arrivée réel du joueur) → `WarpTriggered(movedWorld, warp)`
+8. Sinon si un behavior `onEnter` couvre la cellule d’arrivée et passe le filtre `triggerScope` → `PlacedElementInteracted(movedWorld, ..., trigger=onEnter)`
+9. Sinon si transition couverture élément `inside -> outside` détectée pour `onExit` et passe le filtre `triggerScope` → `PlacedElementInteracted(movedWorld, ..., trigger=onExit)`
+10. Sinon si transition proximité `outside -> near` détectée pour `onNear` (adjacence 4 directions) et passe le filtre `triggerScope` → `PlacedElementInteracted(movedWorld, ..., trigger=onNear)`
+11. Sinon → `Moved(movedWorld)`
 
 Pour `InteractIntent()` :
 1. Calcule `(tx, ty) = pos + facing.delta` (cellule devant le joueur)
@@ -457,7 +467,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // NpcInteracted → NPC se tourne vers le joueur
   // Tri de profondeur dynamique (priority basée sur Y du pied)
   // NpcInteracted/SignInteracted → _tryOpenDialogue() → resolveDialogue() + loadDialogueContent()
-  // Moved (non warp) → checkEncounterAtPlayerPosition(..., EncounterKind.walk)
+  // Moved (non warp) → checkEncounterAtPlayerPosition(..., EncounterKind.walk|surf selon movementMode)
+  // Blocked(reason=waterRequiresSurf) → notification runtime dédiée (cooldown local anti-spam)
+  // API runtime MVP pour changer le mode : setPlayerMovementMode / setSurfingEnabled
   // Rencontre déclenchée : création BattleStartRequest (mapper pur) puis handoff battle
   // Flow runtime centralisé : overworld | dialogue | mapTransition | battleTransition | battle
   // Battle transition + battle shell dédiés :
@@ -699,13 +711,15 @@ Offset panOffset
 - Connexions naturelles inter-maps (`MapConnection`) : sortie de bord déclenche une transition vers la map cible sans warp explicite, avec garde d'état (pas de transition concurrente), validation stricte de la case d'entrée, et interpolation visuelle continue source→cible.
 - Streaming maps adjacentes : la map active, sa précédente immédiate et ses voisines connectées directes restent montées dans le monde Flame ; on voit la map suivante/précédente sans changer de scène.
 - Rendu runtime des éléments posés animés : `MapLayersComponent` lit `MapPlacedElement.animation`, résout la frame sur la base des `ProjectElementEntry.frames`, supporte `loop` et `pingPong`; `autoplay=false` fige la frame de départ; `randomStart` est déterministe (seed dérivée de `instance.id`).
+- Rendu animé des surfaces terrain/path : les presets `ProjectTerrainPreset` et `ProjectPathPreset` avec `frames[]` multi-frames sont animés en boucle en éditeur (`MapCanvas`) et en runtime (`MapLayersComponent`), avec fallback statique propre quand une seule frame est définie.
+- Mode de déplacement joueur explicite : `GameplayPlayerState.movementMode` (`walk`/`surf`) est appliqué dans `stepGameplayWorld` ; une case d’eau (`PathSurfaceKind.water` ou zone movement surf) bloque en `walk` avec raison typée `waterRequiresSurf`, et devient traversable en `surf`.
 - Convention canonique `offset` appliquée runtime : `targetAxis = sourceAxis - offset` (offset = décalage de la map cible par rapport à la source). Formules : E/W `targetY = sourceY - offset`, N/S `targetX = sourceX - offset`; entrée sur la bordure opposée (E→x0, W→xMax, N→yMax, S→y0).
 - Priorité des transitions : un warp explicite gagne toujours ; une connection ne s'applique que sur tentative de sortie hors bornes.
 - Interactions entités : E/Space → détecte NPC/signe/item devant le joueur, affiche `entity.inspectorHeadline` en overlay 2s + log `[interact]`.
 - Collision entités : footprint résolue via `resolveEntityCollisionCells()` ; NPC par défaut en 1×1 (bas centré), override possible via `collision.width/height/offsetX/offsetY` (et alias legacy). Le cache de blocage est séparé du cache d'interaction ; les entités `custom` ne bloquent pas par défaut sans override explicite.
 - Résolution dialogue : sur interaction NPC/signe, `resolveDialogue()` résout le fichier .yarn et le startNode avec logs structurés `[dialogue]`.
 - **Dialogue Yarn avec branches** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche lignes (E · Suite / E · Fermer) et blocs de choix (▶ curseur, ↑/↓ pour naviguer, E pour valider). `<<jump>>` exécuté automatiquement. Le mouvement est bloqué pendant tout le dialogue.
-- **Rencontres actives MVP (walk)** : après un `Moved` accepté (hors `Blocked` / `WarpTriggered`), le runtime appelle `checkEncounterAtPlayerPosition()` (`map_gameplay`). Zone retenue = zone encounter de plus haute priorité contenant la cellule joueur et compatible `EncounterKind.walk`. Tirage pondéré dans la table projet, niveau aléatoire `[minLevel..maxLevel]`, logs `[encounter]`.
+- **Rencontres actives MVP (mode-aware)** : après un `Moved` accepté (hors `Blocked` / `WarpTriggered`), le runtime appelle `checkEncounterAtPlayerPosition()` (`map_gameplay`) avec `EncounterKind.walk` en mode `walk` et `EncounterKind.surf` en mode `surf`. Zone retenue = zone encounter de plus haute priorité contenant la cellule joueur et compatible avec le kind demandé. Tirage pondéré dans la table projet, niveau aléatoire `[minLevel..maxLevel]`, logs `[encounter]`.
 - **Battle handoff MVP** : une rencontre déclenchée est transformée via `buildBattleStartRequestFromEncounter()` en `WildBattleStartRequest` (avec `OverworldReturnContext`). Le runtime suspend l'overworld, lance `BattleTransitionOverlayComponent`, puis ouvre `BattleOverlayComponent` (shell battle minimal). La fermeture du battle overlay reprend proprement l'overworld.
 - Logs structurés : `[runtime]`, `[warp]`, `[connection]`, `[interact]`, `[dialogue]`, `[encounter]`, `[battle]`, `[placed_behavior]` via `debugPrint`.
 - Logs battle : `[battle] battle request created`, `[battle] transition started`, `[battle] overlay opened`, `[battle] battle closed`, `[battle] overworld resumed`.
@@ -718,7 +732,8 @@ Offset panOffset
 - Pas de variables/conditions Yarn : le moteur ne supporte que `<<jump>>` et `->` choix (pas `<<set>>`, `<<if>>`, expressions).
 - Les propriétés avancées d’instance restent partielles : collision + animation locale sont branchées; triggers/effects MVP sont livrés avec exécution runtime de `playAnimationOnce`, mais il n’y a pas encore de système de script/chaînage d’effets avancé.
 - Les instances posées sont persistées dans `MapData.placedElements`, avec resynchronisation depuis les motifs tuiles du calque après peinture/effacement et au chargement de map.
-- Rencontres MVP limitées à `EncounterKind.walk` (pas surf, rod, gift, special).
+- Rencontres MVP encore incomplètes : `EncounterKind.surf` est demandé quand le joueur est en mode `surf`, mais il n’y a pas encore de transition automatique rive walk/surf ni de progression Surf ; pas de `rod`/`gift`/`special`.
+- Pas de transition automatique rive `walk <-> surf` ni de condition d’acquisition Surf : bascule de mode exposée en API runtime + toggle debug dans les apps exemple.
 - Pas de logique de combat Pokémon complète : battle shell minimal sans tour par tour, HP, attaques, capture, IA.
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.

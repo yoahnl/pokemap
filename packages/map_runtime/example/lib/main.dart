@@ -22,6 +22,7 @@ class _LoaderPageState extends State<LoaderPage> {
   bool _busy = false;
   bool _collisionOverlayVisible = false;
   bool _behaviorDebugVisible = false;
+  bool _surfingEnabled = false;
 
   Future<void> _pickProjectJson() async {
     final result = await FilePicker.platform.pickFiles(
@@ -67,6 +68,7 @@ class _LoaderPageState extends State<LoaderPage> {
         _game = PlayableMapGame(bundle: bundle, projectFilePath: _manifestPath);
         _game!.setCollisionOverlayVisible(_collisionOverlayVisible);
         _game!.setBehaviorDebugOverlayVisible(_behaviorDebugVisible);
+        _game!.setSurfingEnabled(_surfingEnabled);
       });
     } catch (e) {
       if (!mounted) {
@@ -147,6 +149,23 @@ class _LoaderPageState extends State<LoaderPage> {
                             onChanged: (next) {
                               setState(() => _behaviorDebugVisible = next);
                               game.setBehaviorDebugOverlayVisible(next);
+                            },
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Surf',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _surfingEnabled,
+                            onChanged: (next) {
+                              setState(() => _surfingEnabled = next);
+                              game.setSurfingEnabled(next);
                             },
                           ),
                         ],

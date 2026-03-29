@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import 'movement_block_reason.dart';
 import 'gameplay_world_state.dart';
 
 class TriggeredWarp {
@@ -40,7 +41,12 @@ final class Moved extends GameplayStepResult {
 }
 
 final class Blocked extends GameplayStepResult {
-  const Blocked(super.world);
+  const Blocked(
+    super.world, {
+    this.reason = GameplayMovementBlockReason.solid,
+  });
+
+  final GameplayMovementBlockReason reason;
 }
 
 final class WarpTriggered extends GameplayStepResult {

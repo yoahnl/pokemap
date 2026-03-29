@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'direction.dart';
 import 'gameplay_exceptions.dart';
+import 'movement_block_reason.dart';
 import 'gameplay_player_state.dart';
 import 'player_spawn_resolver.dart';
 
@@ -19,6 +20,7 @@ class GameplayWorldState {
     required Map<int, PlacedElementBehaviorActivation> exitBehaviorByPos,
     required Map<int, PlacedElementBehaviorActivation> nearBehaviorByPos,
     required Map<int, Set<String>> placedElementCoverageByPos,
+    required List<bool> waterCellCache,
     required int tileWidth,
     required int tileHeight,
   })  : _collisionCache = collisionCache,
@@ -31,6 +33,7 @@ class GameplayWorldState {
         _exitBehaviorByPos = exitBehaviorByPos,
         _nearBehaviorByPos = nearBehaviorByPos,
         _placedElementCoverageByPos = placedElementCoverageByPos,
+        _waterCellCache = waterCellCache,
         _tileWidth = tileWidth <= 0 ? 16 : tileWidth,
         _tileHeight = tileHeight <= 0 ? 16 : tileHeight;
 
@@ -38,13 +41,18 @@ class GameplayWorldState {
     required MapData map,
     required GridPos playerPos,
     Direction playerFacing = Direction.south,
+    MovementMode playerMovementMode = MovementMode.walk,
     ProjectManifest? project,
     int tileWidth = 16,
     int tileHeight = 16,
   }) =>
       GameplayWorldState._(
         map: map,
-        player: GameplayPlayerState(pos: playerPos, facing: playerFacing),
+        player: GameplayPlayerState(
+          pos: playerPos,
+          facing: playerFacing,
+          movementMode: playerMovementMode,
+        ),
         collisionCache: _buildCollisionCache(map, project: project),
         blockingEntityByPos: _buildBlockingEntityByPos(map),
         warpCandidatesByPos:
@@ -78,6 +86,7 @@ class GameplayWorldState {
           map,
           project: project,
         ),
+        waterCellCache: _buildWaterCellCache(map, project: project),
         tileWidth: tileWidth,
         tileHeight: tileHeight,
       );
@@ -128,6 +137,7 @@ class GameplayWorldState {
         map,
         project: project,
       ),
+      waterCellCache: _buildWaterCellCache(map, project: project),
       tileWidth: tileWidth,
       tileHeight: tileHeight,
     );
@@ -151,6 +161,7 @@ class GameplayWorldState {
   final Map<int, PlacedElementBehaviorActivation> _exitBehaviorByPos;
   final Map<int, PlacedElementBehaviorActivation> _nearBehaviorByPos;
   final Map<int, Set<String>> _placedElementCoverageByPos;
+  final List<bool> _waterCellCache;
   final int _tileWidth;
   final int _tileHeight;
 
@@ -162,6 +173,31 @@ class GameplayWorldState {
     if (idx < _collisionCache.length && _collisionCache[idx]) return true;
     final entity = _blockingEntityByPos[idx];
     return entity != null && entity.blocksMovement;
+  }
+
+  bool isWaterCell(int x, int y) {
+    if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+      return false;
+    }
+    final idx = y * map.size.width + x;
+    if (idx < 0 || idx >= _waterCellCache.length) {
+      return false;
+    }
+    return _waterCellCache[idx];
+  }
+
+  GameplayMovementBlockReason? movementBlockReasonAt({
+    required int x,
+    required int y,
+    required MovementMode movementMode,
+  }) {
+    if (isWaterCell(x, y) && movementMode != MovementMode.surf) {
+      return GameplayMovementBlockReason.waterRequiresSurf;
+    }
+    if (isBlocked(x, y)) {
+      return GameplayMovementBlockReason.solid;
+    }
+    return null;
   }
 
   MapWarp? warpAt(int x, int y) {
@@ -293,6 +329,7 @@ class GameplayWorldState {
         exitBehaviorByPos: _exitBehaviorByPos,
         nearBehaviorByPos: _nearBehaviorByPos,
         placedElementCoverageByPos: _placedElementCoverageByPos,
+        waterCellCache: _waterCellCache,
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
       );
@@ -402,6 +439,76 @@ List<bool> _buildCollisionCache(
     }
   }
   return cache;
+}
+
+List<bool> _buildWaterCellCache(
+  MapData map, {
+  required ProjectManifest? project,
+}) {
+  final size = map.size.width * map.size.height;
+  final cache = List<bool>.filled(size, false);
+  if (size <= 0 || map.size.width <= 0 || map.size.height <= 0) {
+    return cache;
+  }
+
+  final pathPresetById = project == null
+      ? const <String, ProjectPathPreset>{}
+      : {
+          for (final preset in project.pathPresets) preset.id: preset,
+        };
+
+  for (final layer in map.layers.whereType<PathLayer>()) {
+    final presetId = layer.presetId.trim();
+    if (presetId.isEmpty) {
+      continue;
+    }
+    final preset = pathPresetById[presetId];
+    if (preset == null || preset.surfaceKind != PathSurfaceKind.water) {
+      continue;
+    }
+    for (var i = 0; i < layer.cells.length && i < size; i++) {
+      if (layer.cells[i]) {
+        cache[i] = true;
+      }
+    }
+  }
+
+  for (final zone in map.gameplayZones) {
+    if (zone.kind != GameplayZoneKind.movement) {
+      continue;
+    }
+    final movement = zone.movement;
+    if (movement == null) {
+      continue;
+    }
+    if (!_movementZoneRequiresSurf(movement)) {
+      continue;
+    }
+    final left = zone.area.pos.x;
+    final top = zone.area.pos.y;
+    final right = left + zone.area.size.width;
+    final bottom = top + zone.area.size.height;
+    for (var y = top; y < bottom; y++) {
+      if (y < 0 || y >= map.size.height) {
+        continue;
+      }
+      for (var x = left; x < right; x++) {
+        if (x < 0 || x >= map.size.width) {
+          continue;
+        }
+        cache[y * map.size.width + x] = true;
+      }
+    }
+  }
+
+  return cache;
+}
+
+bool _movementZoneRequiresSurf(MovementZonePayload movement) {
+  if (movement.requiredMode == MovementMode.surf) {
+    return true;
+  }
+  return movement.allowedModes.contains(MovementMode.surf);
 }
 
 Map<int, List<MapWarp>> _buildWarpCandidatesByPos(
