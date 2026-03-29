@@ -452,8 +452,7 @@ List<Widget> _groundInspectorEmbeddedChildren({
   void onCreateTerrain() =>
       notifier.activateFirstTerrainLayer(createIfMissing: true);
 
-  final canPaint =
-      activeTerrainLayer != null && selectedTerrainPreset != null;
+  final canPaint = activeTerrainLayer != null && selectedTerrainPreset != null;
 
   return [
     if (terrainLayers.isEmpty)
@@ -1137,17 +1136,8 @@ String _terrainLabel(TerrainType terrain) {
 }
 
 String _pathSurfaceLabel(PathSurfaceKind kind) {
-  return switch (kind) {
-    PathSurfaceKind.path => 'Path',
-    PathSurfaceKind.road => 'Road',
-    PathSurfaceKind.water => 'Water',
-    PathSurfaceKind.tallGrass => 'Tall Grass',
-    PathSurfaceKind.ice => 'Ice',
-    PathSurfaceKind.lava => 'Lava',
-    PathSurfaceKind.swamp => 'Swamp',
-    PathSurfaceKind.rails => 'Rails',
-    PathSurfaceKind.bridge => 'Bridge',
-    PathSurfaceKind.special => 'Special',
-    PathSurfaceKind.custom => 'Custom',
-  };
+  if (kind == PathSurfaceKind.water) {
+    return 'Water';
+  }
+  return 'Ground';
 }

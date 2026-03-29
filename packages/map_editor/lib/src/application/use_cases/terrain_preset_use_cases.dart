@@ -484,10 +484,7 @@ List<TerrainPresetVariant> _normalizeTerrainPresetVariants(
 void _validateTerrainPresetVariants(List<TerrainPresetVariant> variants) {
   for (final variant in variants) {
     final src = variant.frames.primarySource;
-    if (src.x < 0 ||
-        src.y < 0 ||
-        src.width <= 0 ||
-        src.height <= 0) {
+    if (src.x < 0 || src.y < 0 || src.width <= 0 || src.height <= 0) {
       throw const EditorValidationException(
         'Terrain preset variant source is invalid',
       );
@@ -517,14 +514,24 @@ void _validatePathPresetVariants(List<PathPresetVariantMapping> variants) {
         'Duplicate path variant mapping: ${variant.variant.name}',
       );
     }
-    final src = variant.frames.primarySource;
-    if (src.x < 0 ||
-        src.y < 0 ||
-        src.width <= 0 ||
-        src.height <= 0) {
+    if (variant.frames.isEmpty) {
       throw const EditorValidationException(
-        'Path preset variant source is invalid',
+        'Path preset variant must include at least one frame',
       );
+    }
+    for (final frame in variant.frames) {
+      final src = frame.source;
+      if (src.x < 0 || src.y < 0 || src.width <= 0 || src.height <= 0) {
+        throw const EditorValidationException(
+          'Path preset variant source is invalid',
+        );
+      }
+      final duration = frame.durationMs;
+      if (duration != null && duration <= 0) {
+        throw const EditorValidationException(
+          'Path preset frame duration must be > 0',
+        );
+      }
     }
   }
 }
@@ -613,7 +620,8 @@ String _generateUniquePresetCategoryId(
   final base = normalized.isEmpty ? 'category' : normalized;
   var candidate = base;
   var suffix = 1;
-  final existing = _categoriesFor(project, kind).map((category) => category.id).toSet();
+  final existing =
+      _categoriesFor(project, kind).map((category) => category.id).toSet();
   while (existing.contains(candidate)) {
     candidate = '${base}_$suffix';
     suffix++;

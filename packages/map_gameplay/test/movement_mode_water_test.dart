@@ -19,6 +19,21 @@ void main() {
       expect(result.world.player.pos, const GridPos(x: 1, y: 0));
     });
 
+    test('walking can move on non-water path surface kinds', () {
+      final world = GameplayWorldState.initial(
+        map: _baseMap(
+          includeWaterPath: true,
+          includeCollisionAtTarget: false,
+        ),
+        playerPos: const GridPos(x: 0, y: 0),
+        project: _projectWithRoadPreset(),
+      );
+
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(result, isA<Moved>());
+      expect(result.world.player.pos, const GridPos(x: 1, y: 0));
+    });
+
     test('walking is blocked on water path cells with explicit reason', () {
       final world = GameplayWorldState.initial(
         map: _baseMap(
@@ -146,6 +161,25 @@ ProjectManifest _projectWithWaterPreset() {
         id: 'water_path',
         name: 'Water',
         surfaceKind: PathSurfaceKind.water,
+        tilesetId: 'ts',
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithRoadPreset() {
+  return const ProjectManifest(
+    name: 'project',
+    maps: [],
+    tilesets: [
+      ProjectTilesetEntry(
+          id: 'ts', name: 'Tileset', relativePath: 'tileset.png'),
+    ],
+    pathPresets: [
+      ProjectPathPreset(
+        id: 'water_path',
+        name: 'Road',
+        surfaceKind: PathSurfaceKind.road,
         tilesetId: 'ts',
       ),
     ],
