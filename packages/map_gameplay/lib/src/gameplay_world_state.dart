@@ -321,7 +321,17 @@ bool _isSameBehaviorActivation(
   if (a == null || b == null) {
     return false;
   }
-  return a.element.id == b.element.id && a.behavior == b.behavior;
+  return a.element.id == b.element.id &&
+      _resolveBehaviorIdentity(a.behavior) ==
+          _resolveBehaviorIdentity(b.behavior);
+}
+
+String _resolveBehaviorIdentity(MapPlacedElementBehavior behavior) {
+  final behaviorId = behavior.id.trim();
+  if (behaviorId.isNotEmpty) {
+    return behaviorId;
+  }
+  return '${behavior.trigger.name}:${behavior.effect.type.name}';
 }
 
 List<bool> _buildCollisionCache(

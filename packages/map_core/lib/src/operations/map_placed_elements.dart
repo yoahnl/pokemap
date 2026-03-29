@@ -10,6 +10,17 @@ String buildMapPlacedElementId({
   return '${Uri.encodeComponent(layerId)}::${pos.x}::${pos.y}';
 }
 
+String buildMapPlacedElementBehaviorId({
+  required String instanceId,
+  required int ordinal,
+}) {
+  final trimmedInstanceId = instanceId.trim();
+  final base = trimmedInstanceId.isEmpty
+      ? 'placed_element'
+      : Uri.encodeComponent(trimmedInstanceId);
+  return '$base::behavior::$ordinal';
+}
+
 MapData upsertMapPlacedElement(
   MapData map, {
   required MapPlacedElement instance,
@@ -68,16 +79,16 @@ MapData setMapPlacedElementCollisionApplied(
   required String instanceId,
   required bool applyCollision,
 }) {
-  final normalizedId = instanceId.trim();
-  if (normalizedId.isEmpty) {
+  final normalizedInstanceId = instanceId.trim();
+  if (normalizedInstanceId.isEmpty) {
     throw const ValidationException(
         'Placed element instance id cannot be empty');
   }
-  final index =
-      map.placedElements.indexWhere((entry) => entry.id == normalizedId);
+  final index = map.placedElements
+      .indexWhere((entry) => entry.id == normalizedInstanceId);
   if (index < 0) {
     throw ValidationException(
-        'Placed element instance not found: $normalizedId');
+        'Placed element instance not found: $normalizedInstanceId');
   }
   final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
   next[index] = next[index].copyWith(applyCollision: applyCollision);
@@ -159,7 +170,7 @@ MapData setMapPlacedElementBehaviors(
         'Placed element instance not found: $normalizedId');
   }
   final normalizedBehaviors =
-      behaviors.map(_normalizePlacedElementBehavior).toList(growable: false);
+      _normalizePlacedElementBehaviors(normalizedId, behaviors);
   final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
   next[index] = next[index].copyWith(behaviors: normalizedBehaviors);
   return map.copyWith(placedElements: next);
@@ -230,7 +241,12 @@ MapData updateMapPlacedElementBehaviorAt(
       'Placed element behavior index out of range: $behaviorIndex',
     );
   }
-  nextBehaviors[behaviorIndex] = _normalizePlacedElementBehavior(behavior);
+  final previous = nextBehaviors[behaviorIndex];
+  final normalized = _normalizePlacedElementBehavior(behavior);
+  final normalizedBehaviorId = normalized.id.trim();
+  nextBehaviors[behaviorIndex] = normalized.copyWith(
+    id: normalizedBehaviorId.isEmpty ? previous.id : normalizedBehaviorId,
+  );
   return setMapPlacedElementBehaviors(
     map,
     instanceId: normalizedId,
@@ -325,9 +341,8 @@ MapPlacedElement _normalizePlacedElement(MapPlacedElement instance) {
     id: normalizedId,
     layerId: normalizedLayerId,
     elementId: normalizedElementId,
-    behaviors: instance.behaviors
-        .map(_normalizePlacedElementBehavior)
-        .toList(growable: false),
+    behaviors:
+        _normalizePlacedElementBehaviors(normalizedId, instance.behaviors),
     properties: {
       for (final entry in instance.properties.entries)
         entry.key.trim(): entry.value.trim(),
@@ -335,10 +350,36 @@ MapPlacedElement _normalizePlacedElement(MapPlacedElement instance) {
   );
 }
 
+List<MapPlacedElementBehavior> _normalizePlacedElementBehaviors(
+  String instanceId,
+  List<MapPlacedElementBehavior> behaviors,
+) {
+  final next = <MapPlacedElementBehavior>[];
+  final seenIds = <String>{};
+  var nextOrdinal = 0;
+  for (final behavior in behaviors) {
+    final normalized = _normalizePlacedElementBehavior(behavior);
+    var behaviorId = normalized.id.trim();
+    if (behaviorId.isEmpty || seenIds.contains(behaviorId)) {
+      do {
+        behaviorId = buildMapPlacedElementBehaviorId(
+          instanceId: instanceId,
+          ordinal: nextOrdinal,
+        );
+        nextOrdinal += 1;
+      } while (seenIds.contains(behaviorId));
+    }
+    seenIds.add(behaviorId);
+    next.add(normalized.copyWith(id: behaviorId));
+  }
+  return next;
+}
+
 MapPlacedElementBehavior _normalizePlacedElementBehavior(
   MapPlacedElementBehavior behavior,
 ) {
   return behavior.copyWith(
+    id: behavior.id.trim(),
     effect: _normalizePlacedElementEffect(behavior.effect),
   );
 }

@@ -119,6 +119,7 @@ enum MapPlacedElementTriggerType {
 class MapPlacedElementBehavior with _$MapPlacedElementBehavior {
   @JsonSerializable(explicitToJson: true)
   const factory MapPlacedElementBehavior({
+    @Default('') String id,
     @Default(true) bool enabled,
     @Default(MapPlacedElementTriggerType.onAction)
     MapPlacedElementTriggerType trigger,
@@ -315,10 +316,15 @@ class MapTrigger with _$MapTrigger {
 
 Map<String, dynamic> migrateMapPlacedElementJson(Map<String, dynamic> json) {
   final out = Map<String, dynamic>.from(json);
+  final instanceId = (out['id'] as String?)?.trim() ?? '';
   final existingBehaviorsRaw = out['behaviors'];
   final hasBehaviorList =
       existingBehaviorsRaw is List && existingBehaviorsRaw.isNotEmpty;
   if (hasBehaviorList) {
+    out['behaviors'] = _migratePlacedElementBehaviorListJson(
+      existingBehaviorsRaw,
+      instanceId: instanceId,
+    );
     out.remove('interaction');
     return out;
   }
@@ -373,6 +379,52 @@ Map<String, dynamic> migrateMapPlacedElementJson(Map<String, dynamic> json) {
   if (behavior != null) {
     out['behaviors'] = <Map<String, dynamic>>[behavior];
   }
+  final migratedBehaviorsRaw = out['behaviors'];
+  if (migratedBehaviorsRaw is List) {
+    out['behaviors'] = _migratePlacedElementBehaviorListJson(
+      migratedBehaviorsRaw,
+      instanceId: instanceId,
+    );
+  }
   out.remove('interaction');
   return out;
+}
+
+List<Map<String, dynamic>> _migratePlacedElementBehaviorListJson(
+  List<dynamic> rawBehaviors, {
+  required String instanceId,
+}) {
+  final out = <Map<String, dynamic>>[];
+  final seenIds = <String>{};
+  var nextOrdinal = 0;
+  for (var i = 0; i < rawBehaviors.length; i++) {
+    final raw = rawBehaviors[i];
+    if (raw is! Map) {
+      continue;
+    }
+    final behavior = Map<String, dynamic>.from(raw.cast<Object?, Object?>());
+    var id = (behavior['id'] as String?)?.trim() ?? '';
+    if (id.isEmpty || seenIds.contains(id)) {
+      do {
+        id = _buildMigratedPlacedElementBehaviorId(
+          instanceId: instanceId,
+          ordinal: nextOrdinal,
+        );
+        nextOrdinal += 1;
+      } while (seenIds.contains(id));
+    }
+    behavior['id'] = id;
+    seenIds.add(id);
+    out.add(behavior);
+  }
+  return out;
+}
+
+String _buildMigratedPlacedElementBehaviorId({
+  required String instanceId,
+  required int ordinal,
+}) {
+  final base =
+      instanceId.isEmpty ? 'placed_element' : Uri.encodeComponent(instanceId);
+  return '$base::behavior::$ordinal';
 }

@@ -195,6 +195,267 @@ void main() {
       expect(fourthInteracted.trigger, MapPlacedElementTriggerType.onNear);
       expect(fourthInteracted.world.player.pos, const GridPos(x: 1, y: 3));
     });
+
+    test('movement trigger priority resolves onExit before onNear', () {
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 6, height: 4),
+        layers: const [
+          MapLayer.tile(
+            id: 'layer',
+            name: 'Layer',
+            tiles: [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+            ],
+          ),
+        ],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'layer::1::1',
+            layerId: 'layer',
+            elementId: 'tree',
+            pos: GridPos(x: 1, y: 1),
+            applyCollision: false,
+            behaviors: [
+              MapPlacedElementBehavior(
+                id: 'exit_behavior',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onExit,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'exit',
+                ),
+              ),
+              MapPlacedElementBehavior(
+                id: 'near_behavior',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onNear,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'near',
+                ),
+              ),
+            ],
+          ),
+        ],
+        entities: const [
+          MapEntity(
+            id: 'spawn',
+            kind: MapEntityKind.spawn,
+            pos: GridPos(x: 2, y: 1),
+          ),
+        ],
+      );
+      final world = GameplayWorldState.initial(
+        map: map,
+        playerPos: const GridPos(x: 2, y: 1),
+        playerFacing: Direction.east,
+        project: _project(includeCollisionProfile: false),
+      );
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(result, isA<PlacedElementInteracted>());
+      final interacted = result as PlacedElementInteracted;
+      expect(interacted.trigger, MapPlacedElementTriggerType.onExit);
+      expect(interacted.behavior.id, 'exit_behavior');
+    });
+
+    test('overlapping elements on same trigger resolve by map order', () {
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 5, height: 4),
+        layers: const [
+          MapLayer.tile(
+            id: 'layer',
+            name: 'Layer',
+            tiles: [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+            ],
+          ),
+        ],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'first',
+            layerId: 'layer',
+            elementId: 'tree',
+            pos: GridPos(x: 1, y: 1),
+            applyCollision: false,
+            behaviors: [
+              MapPlacedElementBehavior(
+                id: 'first_enter',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onEnter,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'first',
+                ),
+              ),
+            ],
+          ),
+          MapPlacedElement(
+            id: 'second',
+            layerId: 'layer',
+            elementId: 'tree',
+            pos: GridPos(x: 1, y: 1),
+            applyCollision: false,
+            behaviors: [
+              MapPlacedElementBehavior(
+                id: 'second_enter',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onEnter,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'second',
+                ),
+              ),
+            ],
+          ),
+        ],
+        entities: const [
+          MapEntity(
+            id: 'spawn',
+            kind: MapEntityKind.spawn,
+            pos: GridPos(x: 0, y: 1),
+          ),
+        ],
+      );
+      final world = GameplayWorldState.initial(
+        map: map,
+        playerPos: const GridPos(x: 0, y: 1),
+        playerFacing: Direction.east,
+        project: _project(includeCollisionProfile: false),
+      );
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(result, isA<PlacedElementInteracted>());
+      final interacted = result as PlacedElementInteracted;
+      expect(interacted.behavior.id, 'first_enter');
+      expect(interacted.element.id, 'first');
+    });
+
+    test('same element same trigger resolves by behavior order', () {
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 5, height: 4),
+        layers: const [
+          MapLayer.tile(
+            id: 'layer',
+            name: 'Layer',
+            tiles: [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+            ],
+          ),
+        ],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'instance',
+            layerId: 'layer',
+            elementId: 'tree',
+            pos: GridPos(x: 1, y: 1),
+            applyCollision: false,
+            behaviors: [
+              MapPlacedElementBehavior(
+                id: 'first_behavior',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onEnter,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'first',
+                ),
+              ),
+              MapPlacedElementBehavior(
+                id: 'second_behavior',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onEnter,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'second',
+                ),
+              ),
+            ],
+          ),
+        ],
+        entities: const [
+          MapEntity(
+            id: 'spawn',
+            kind: MapEntityKind.spawn,
+            pos: GridPos(x: 0, y: 1),
+          ),
+        ],
+      );
+      final world = GameplayWorldState.initial(
+        map: map,
+        playerPos: const GridPos(x: 0, y: 1),
+        playerFacing: Direction.east,
+        project: _project(includeCollisionProfile: false),
+      );
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(result, isA<PlacedElementInteracted>());
+      final interacted = result as PlacedElementInteracted;
+      expect(interacted.behavior.id, 'first_behavior');
+    });
   });
 }
 

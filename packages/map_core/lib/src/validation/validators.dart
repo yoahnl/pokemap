@@ -1017,9 +1017,22 @@ class MapValidator {
           behaviorIndex < instance.behaviors.length;
           behaviorIndex++) {
         final behavior = instance.behaviors[behaviorIndex];
+        final behaviorId = behavior.id.trim();
+        if (behaviorId.isEmpty) {
+          throw ValidationException(
+            'Placed element instance $instanceId behavior[$behaviorIndex] has empty id',
+          );
+        }
+        for (var i = behaviorIndex + 1; i < instance.behaviors.length; i++) {
+          if (instance.behaviors[i].id.trim() == behaviorId) {
+            throw ValidationException(
+              'Placed element instance $instanceId has duplicate behavior id "$behaviorId"',
+            );
+          }
+        }
         final effect = behavior.effect;
         final behaviorLabel =
-            'Placed element instance $instanceId behavior[$behaviorIndex]';
+            'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId]';
         switch (effect.type) {
           case MapPlacedElementEffectType.showMessage:
             final message = effect.message?.trim() ?? '';

@@ -87,44 +87,60 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
     );
   }
 
-  final enterBehavior = movedWorld.placedElementBehaviorOnEnterAt(tx, ty);
-  if (enterBehavior != null) {
-    return PlacedElementInteracted(
-      movedWorld,
-      enterBehavior.element,
-      enterBehavior.behavior,
-      MapPlacedElementTriggerType.onEnter,
-    );
-  }
-
-  final exitBehavior = movedWorld.placedElementBehaviorOnExitTransition(
-    from: previousPos,
-    to: movedWorld.player.pos,
+  final movementBehavior = _resolveMovementTriggeredBehavior(
+    world: movedWorld,
+    targetX: tx,
+    targetY: ty,
+    previousPos: previousPos,
   );
-  if (exitBehavior != null) {
-    return PlacedElementInteracted(
-      movedWorld,
-      exitBehavior.element,
-      exitBehavior.behavior,
-      MapPlacedElementTriggerType.onExit,
-    );
-  }
-
-  final nearBehavior = movedWorld.placedElementBehaviorOnNearTransition(
-    from: previousPos,
-    to: movedWorld.player.pos,
-  );
-  if (nearBehavior != null) {
-    return PlacedElementInteracted(
-      movedWorld,
-      nearBehavior.element,
-      nearBehavior.behavior,
-      MapPlacedElementTriggerType.onNear,
-    );
+  if (movementBehavior != null) {
+    return movementBehavior;
   }
 
   return Moved(movedWorld);
 }
+
+GameplayStepResult? _resolveMovementTriggeredBehavior({
+  required GameplayWorldState world,
+  required int targetX,
+  required int targetY,
+  required GridPos previousPos,
+}) {
+  for (final trigger in _movementTriggerPriority) {
+    final activation = switch (trigger) {
+      MapPlacedElementTriggerType.onEnter =>
+        world.placedElementBehaviorOnEnterAt(targetX, targetY),
+      MapPlacedElementTriggerType.onExit =>
+        world.placedElementBehaviorOnExitTransition(
+          from: previousPos,
+          to: world.player.pos,
+        ),
+      MapPlacedElementTriggerType.onNear =>
+        world.placedElementBehaviorOnNearTransition(
+          from: previousPos,
+          to: world.player.pos,
+        ),
+      _ => null,
+    };
+    if (activation == null) {
+      continue;
+    }
+    return PlacedElementInteracted(
+      world,
+      activation.element,
+      activation.behavior,
+      trigger,
+    );
+  }
+  return null;
+}
+
+const List<MapPlacedElementTriggerType> _movementTriggerPriority =
+    <MapPlacedElementTriggerType>[
+  MapPlacedElementTriggerType.onEnter,
+  MapPlacedElementTriggerType.onExit,
+  MapPlacedElementTriggerType.onNear,
+];
 
 MapConnectionDirection _connectionDirectionForMove(Direction direction) {
   return switch (direction) {

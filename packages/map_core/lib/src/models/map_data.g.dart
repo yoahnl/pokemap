@@ -156,6 +156,7 @@ Map<String, dynamic> _$$MapPlacedElementImplToJson(
 _$MapPlacedElementBehaviorImpl _$$MapPlacedElementBehaviorImplFromJson(
         Map<String, dynamic> json) =>
     _$MapPlacedElementBehaviorImpl(
+      id: json['id'] as String? ?? '',
       enabled: json['enabled'] as bool? ?? true,
       trigger: $enumDecodeNullable(
               _$MapPlacedElementTriggerTypeEnumMap, json['trigger']) ??
@@ -167,6 +168,7 @@ _$MapPlacedElementBehaviorImpl _$$MapPlacedElementBehaviorImplFromJson(
 Map<String, dynamic> _$$MapPlacedElementBehaviorImplToJson(
         _$MapPlacedElementBehaviorImpl instance) =>
     <String, dynamic>{
+      'id': instance.id,
       'enabled': instance.enabled,
       'trigger': _$MapPlacedElementTriggerTypeEnumMap[instance.trigger]!,
       'effect': instance.effect.toJson(),

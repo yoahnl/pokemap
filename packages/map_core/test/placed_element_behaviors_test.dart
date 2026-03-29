@@ -18,10 +18,36 @@ void main() {
 
       expect(decoded.behaviors, hasLength(1));
       final behavior = decoded.behaviors.first;
+      expect(behavior.id.trim(), isNotEmpty);
       expect(behavior.enabled, isTrue);
       expect(behavior.trigger, MapPlacedElementTriggerType.onAction);
       expect(behavior.effect.type, MapPlacedElementEffectType.showMessage);
       expect(behavior.effect.message, 'Bonjour');
+    });
+
+    test('legacy behavior list without ids receives stable non-empty ids', () {
+      final decoded = MapPlacedElement.fromJson({
+        'id': 'layer::1::1',
+        'layerId': 'layer',
+        'elementId': 'tree',
+        'pos': {'x': 1, 'y': 1},
+        'behaviors': [
+          {
+            'enabled': true,
+            'trigger': 'on_action',
+            'effect': {'type': 'show_message', 'message': 'A'},
+          },
+          {
+            'enabled': true,
+            'trigger': 'on_enter',
+            'effect': {'type': 'show_message', 'message': 'B'},
+          },
+        ],
+      });
+      expect(decoded.behaviors, hasLength(2));
+      expect(decoded.behaviors[0].id.trim(), isNotEmpty);
+      expect(decoded.behaviors[1].id.trim(), isNotEmpty);
+      expect(decoded.behaviors[0].id, isNot(decoded.behaviors[1].id));
     });
 
     test('parses onExit and onNear triggers from json', () {
@@ -50,9 +76,29 @@ void main() {
   });
 
   group('MapPlacedElement behavior validation', () {
+    test('rejects behavior with empty id', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: '',
+          enabled: true,
+          trigger: MapPlacedElementTriggerType.onAction,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.showMessage,
+            message: 'hello',
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
     test('rejects showMessage without text', () {
       final map = _baseMap(
         behavior: const MapPlacedElementBehavior(
+          id: 'b1',
           enabled: true,
           trigger: MapPlacedElementTriggerType.onAction,
           effect: MapPlacedElementEffect(
@@ -71,6 +117,7 @@ void main() {
     test('rejects openDialogue without dialogue ref', () {
       final map = _baseMap(
         behavior: const MapPlacedElementBehavior(
+          id: 'b1',
           enabled: true,
           trigger: MapPlacedElementTriggerType.onAction,
           effect: MapPlacedElementEffect(
@@ -88,12 +135,47 @@ void main() {
     test('rejects setAnimationEnabled without value', () {
       final map = _baseMap(
         behavior: const MapPlacedElementBehavior(
+          id: 'b1',
           enabled: true,
           trigger: MapPlacedElementTriggerType.onAction,
           effect: MapPlacedElementEffect(
             type: MapPlacedElementEffectType.setAnimationEnabled,
           ),
         ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects duplicate behavior ids in same instance', () {
+      final map = _baseMap().copyWith(
+        placedElements: [
+          _baseMap().placedElements.first.copyWith(
+            behaviors: const [
+              MapPlacedElementBehavior(
+                id: 'dup',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onAction,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'A',
+                ),
+              ),
+              MapPlacedElementBehavior(
+                id: 'dup',
+                enabled: true,
+                trigger: MapPlacedElementTriggerType.onEnter,
+                effect: MapPlacedElementEffect(
+                  type: MapPlacedElementEffectType.showMessage,
+                  message: 'B',
+                ),
+              ),
+            ],
+          ),
+        ],
       );
 
       expect(
@@ -119,6 +201,8 @@ void main() {
         ),
       );
       expect(added.placedElements.first.behaviors, hasLength(1));
+      final addedBehaviorId = added.placedElements.first.behaviors.first.id;
+      expect(addedBehaviorId.trim(), isNotEmpty);
 
       final updated = updateMapPlacedElementBehaviorAt(
         added,
@@ -137,6 +221,7 @@ void main() {
         updated.placedElements.first.behaviors.first.trigger,
         MapPlacedElementTriggerType.onEnter,
       );
+      expect(updated.placedElements.first.behaviors.first.id, addedBehaviorId);
       expect(updated.placedElements.first.behaviors.first.effect.message, 'B');
 
       final toggled = setMapPlacedElementBehaviorEnabledAt(

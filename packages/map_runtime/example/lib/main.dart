@@ -20,6 +20,8 @@ class _LoaderPageState extends State<LoaderPage> {
   String? _error;
   PlayableMapGame? _game;
   bool _busy = false;
+  bool _collisionOverlayVisible = false;
+  bool _behaviorDebugVisible = false;
 
   Future<void> _pickProjectJson() async {
     final result = await FilePicker.platform.pickFiles(
@@ -62,10 +64,9 @@ class _LoaderPageState extends State<LoaderPage> {
         return;
       }
       setState(() {
-        _game = PlayableMapGame(
-          bundle: bundle,
-          projectFilePath: _manifestPath,
-        );
+        _game = PlayableMapGame(bundle: bundle, projectFilePath: _manifestPath);
+        _game!.setCollisionOverlayVisible(_collisionOverlayVisible);
+        _game!.setBehaviorDebugOverlayVisible(_behaviorDebugVisible);
       });
     } catch (e) {
       if (!mounted) {
@@ -97,7 +98,66 @@ class _LoaderPageState extends State<LoaderPage> {
             onPressed: () => setState(() => _game = null),
           ),
         ),
-        body: GameWidget(game: game),
+        body: Stack(
+          children: [
+            GameWidget(game: game),
+            Positioned(
+              right: 12,
+              top: 12,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Collisions',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _collisionOverlayVisible,
+                            onChanged: (next) {
+                              setState(() => _collisionOverlayVisible = next);
+                              game.setCollisionOverlayVisible(next);
+                            },
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Behaviors',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _behaviorDebugVisible,
+                            onChanged: (next) {
+                              setState(() => _behaviorDebugVisible = next);
+                              game.setBehaviorDebugOverlayVisible(next);
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
@@ -108,10 +168,7 @@ class _LoaderPageState extends State<LoaderPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Projet',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
+            Text('Projet', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -132,10 +189,10 @@ class _LoaderPageState extends State<LoaderPage> {
                             ? 'Aucun fichier sélectionné'
                             : _manifestPath,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: _manifestPath.isEmpty
-                                  ? Theme.of(context).hintColor
-                                  : null,
-                            ),
+                          color: _manifestPath.isEmpty
+                              ? Theme.of(context).hintColor
+                              : null,
+                        ),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),

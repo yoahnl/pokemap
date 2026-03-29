@@ -1,6 +1,6 @@
 # Project Status — pokemonProject
 
-> Dernière mise à jour : 2026-03-28 (runtime jouable consolidé : player animé + interpolation de pas + maintien des touches + tri de profondeur Y + NPC qui fait face au joueur ; collisions entités par footprint avec séparation interaction/blocage ; rencontres actives MVP walk ; transitions naturelles inter-maps via `MapConnection` + streaming de voisinage (maps adjacentes visibles) ; battle handoff MVP structuré encounter → transition → battle shell → reprise overworld ; pipeline warp runtime propre avec verrouillage gameplay + fade out/in + validation cible + rollback ; warps avancés `onEnter`/`onBump` avec côtés actifs + padding d’activation éditable ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers ; tuile éditeur `Tiles & Elements` refondue en double mode palette + gestion d’instances posées ; collisions d’éléments livrées via profils auto par preset + padding par élément + override par instance persistée ; rendu runtime foreground pour passer derrière les bâtiments ; animation locale des `MapPlacedElement` livrée en MVP (none/loop/pingPong, autoplay/speed/start offset/randomStart) ; authoring animation des éléments bibliothèque (`ProjectElementEntry.frames`) livré en MVP ; comportements d’instances posées MVP étendus avec triggers `onExit`/`onNear` + exécution runtime réelle de `playAnimationOnce`, UI éditeur trigger/effect mise à jour et dropdown script+nœud Yarn)
+> Dernière mise à jour : 2026-03-29 (runtime jouable consolidé : player animé + interpolation de pas + maintien des touches + tri de profondeur Y + NPC qui fait face au joueur ; collisions entités par footprint avec séparation interaction/blocage ; rencontres actives MVP walk ; transitions naturelles inter-maps via `MapConnection` + streaming de voisinage (maps adjacentes visibles) ; battle handoff MVP structuré encounter → transition → battle shell → reprise overworld ; pipeline warp runtime propre avec verrouillage gameplay + fade out/in + validation cible + rollback ; warps avancés `onEnter`/`onBump` avec côtés actifs + padding d’activation éditable ; système personnages overworld : modèles, CRUD éditeur, composants Flame, éditeur d'animations visuel ; `Character` canonique pour joueur / NPC / trainers ; tuile éditeur `Tiles & Elements` refondue en double mode palette + gestion d’instances posées ; collisions d’éléments livrées via profils auto par preset + padding par élément + override par instance persistée ; rendu runtime foreground pour passer derrière les bâtiments ; animation locale des `MapPlacedElement` livrée en MVP (none/loop/pingPong, autoplay/speed/start offset/randomStart) ; authoring animation des éléments bibliothèque (`ProjectElementEntry.frames`) livré en MVP ; comportements d’instances posées hardenés côté runtime avec `behavior.id` stable, priorité explicite `onEnter > onExit > onNear`, cooldown anti-spam minimal et debug overlay léger)
 > Source de vérité : code du dépôt. Ce fichier a été entièrement regénéré depuis les fichiers sources.
 
 ---
@@ -87,7 +87,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Profil collision élément (ElementCollisionProfile) | **Fait** | `source` (`generated`/`manual`) + cellules grille (`cells`) + `padding` (px) |
 | Instances posées persistées (MapPlacedElement) | **Fait** | `MapData.placedElements` avec `layerId`, `elementId`, `pos`, `applyCollision`, `animation`, `behaviors`, `properties` |
 | Animation d’instance posée (MapPlacedElementAnimation) | **Fait** | `enabled`, `mode` (`none`/`loop`/`pingPong`), `autoplay`, `speed`, `startOffsetMs`, `randomStart` + validation (`speed>0`, offset >= 0) |
-| Comportements d’instance posée (MapPlacedElementBehavior/Effect) | **Fait (MVP étendu)** | Triggers typés (`onAction`/`onEnter`/`onBump`/`onExit`/`onNear`) + effets typés (`showMessage`/`openDialogue`/`setAnimationEnabled`/`playAnimationOnce`) + migration legacy `interaction` -> `behaviors` |
+| Comportements d’instance posée (MapPlacedElementBehavior/Effect) | **Fait (MVP étendu + hardening)** | Triggers typés (`onAction`/`onEnter`/`onBump`/`onExit`/`onNear`) + effets typés (`showMessage`/`openDialogue`/`setAnimationEnabled`/`playAnimationOnce`) + `behavior.id` stable + migration legacy `interaction` -> `behaviors` |
 | Presets terrain (ProjectTerrainPreset) | **Fait** | variants avec poids, frames[] |
 | Presets path / autotile (ProjectPathPreset) | **Fait** | 20 variantes (corners, tees, cross, edges…) |
 | Palette tilesets (TilesetPaletteEntry) | **Fait** | |
@@ -150,7 +150,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Warps : pipeline runtime explicite | **Fait** | `WarpTriggered` traité post-step avec garde de phase, clear état transitoire, `WarpTransitionOverlayComponent` (fade out/in), chargement cible, validation bornes + blocage, swap map atomique puis unlock ; `onBump` ne lance pas de faux pas interpolé |
 | Connections : transition naturelle inter-map | **Fait** | Sortie hors bornes -> `ConnectionTriggered` -> résolution map cible, calcul case d'entrée, pas interpolé source→cible, refus si entrée invalide/bloquée |
 | Streaming maps adjacentes | **Fait** | Map active + voisines connectées (et précédente immédiate) restent montées simultanément pour continuité visuelle |
-| Interactions entités + comportements d’éléments posés (E/Space + move) | **Fait (MVP étendu)** | Triggers exécutés côté runtime/gameplay : `onAction`/`onEnter`/`onBump`/`onExit`/`onNear` ; effets actifs : `showMessage`, `openDialogue`, `setAnimationEnabled`, `playAnimationOnce` |
+| Interactions entités + comportements d’éléments posés (E/Space + move) | **Fait (MVP étendu + hardening)** | Triggers exécutés côté runtime/gameplay : `onAction`/`onEnter`/`onBump`/`onExit`/`onNear` ; effets actifs : `showMessage`, `openDialogue`, `setAnimationEnabled`, `playAnimationOnce` ; anti-spam runtime par cooldown `(instanceId, behaviorId, trigger, effectType)` |
 | Rencontres actives MVP (`walk`) | **Fait** | Check déclenché sur `Moved` uniquement, jamais sur `Blocked`/`WarpTriggered`, ni hors phase overworld |
 | BattleStartRequest (handoff runtime) | **Fait** | Modèle dédié `BattleStartRequest` + variantes `WildBattleStartRequest` / `TrainerBattleStartRequest` + `OverworldReturnContext` |
 | Mapping rencontre → battle request | **Fait** | `buildBattleStartRequestFromEncounter(...)` en couche application runtime (testable, sans UI) |
@@ -160,7 +160,8 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Reprise overworld après battle | **Fait** | Fermeture overlay battle → cleanup strict + restauration contrôle joueur |
 | Transition visuelle warp | **Fait** | `WarpTransitionOverlayComponent` couvre le viewport pendant le changement de map |
 | Priorité warp vs connection | **Fait** | Warp explicite prioritaire ; connection appliquée seulement sur sortie hors bornes sans warp |
-| Logs structurés runtime | **Fait** | Préfixes `[runtime]` `[warp]` `[connection]` `[interact]` `[dialogue]` `[encounter]` `[battle]` via debugPrint |
+| Logs structurés runtime | **Fait** | Préfixes `[runtime]` `[warp]` `[connection]` `[interact]` `[dialogue]` `[encounter]` `[battle]` et `[placed_behavior]` via debugPrint |
+| Debug behaviors runtime | **Fait** | `PlayableMapGame.setBehaviorDebugOverlayVisible(bool)` affiche le dernier behavior déclenché/filtré ; utilisé par `map_runtime/example` |
 | HUD notification 2s | **Fait** | TextComponent sur camera.viewport |
 | Caméra follow-player (~15×11 tuiles viewport) | **Fait** | |
 | Fallback spawn (0,0) si pas de spawn configuré | **Fait** | PlayableMapGame.onLoad catch GameplaySpawnResolutionException |
@@ -233,7 +234,7 @@ Convention gameplay/runtime `MapWarp` appliquée :
 
 | Exemple | Statut | Notes |
 |---------|--------|-------|
-| `packages/map_runtime/example` | **Fait** | App Flutter interne au package, PlayableMapGame |
+| `packages/map_runtime/example` | **Fait** | App Flutter interne au package, PlayableMapGame + toggles `Collisions` et `Behaviors` (debug overlay) |
 | `examples/playable_runtime_host` | **Fait** | App Flutter externe indépendante, même code, entitlements macOS sans sandbox |
 
 **Redondance** : les deux exemples font exactement la même chose. L'exemple interne est une convention pub.dev ; l'externe valide la consommabilité depuis un projet tiers.
@@ -332,12 +333,12 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Prochaine recommandation : introduire un système de cooldown/anti-spam configurable par behavior + file d’effets locale (toujours côté `MapPlacedElement`, sans basculer vers un système NPC).**
+**Prochaine recommandation : rendre la politique de cooldown configurable par behavior côté data (MVP limité), sans casser le fallback runtime par défaut.**
 
 Justification :
 1. Le socle collision + animation locale est désormais en place de bout en bout (core → editor → runtime).
-2. Les triggers `onExit`/`onNear` et `playAnimationOnce` sont maintenant en production, mais l’orchestration reste volontairement simple (déclenchement immédiat, sans cooldown).
-3. Une couche de cooldown et de politique de concurrence d’effets renforcera la robustesse sans changer le modèle métier.
+2. Le hardening runtime est en place (id stable `behavior.id`, priorité explicite, cooldown anti-spam, debug overlay), ce qui donne une base propre pour exposer ensuite une configuration minimale.
+3. Le prochain pas utile est d’ouvrir seulement quelques paramètres de cooldown en édition, sans transformer `MapPlacedElement` en système script.
 
 **Ne pas faire maintenant** :
 - Couches haut niveau (no-code, framework abstrait) — trop tôt.
@@ -356,6 +357,7 @@ Justification :
 - Collisions d’éléments + override par instance : `ElementPresetKind`, `ElementCollisionProfile` (`generated`/`manual`), `MapData.placedElements` + `applyCollision`, génération auto via analyse alpha, édition visuelle collision dans l’éditeur, prise en compte gameplay/runtime via `GameplayWorldState(project: ...)`.
 - Animation locale d’instances posées : `MapPlacedElement.animation`, validations core, opérations pures de mise à jour/reset, UI éditeur dédiée avec preview, rendu runtime par instance (loop/pingPong/autoplay/randomStart déterministe).
 - Comportements d’instances posées : `MapPlacedElement.behaviors` typé, migration legacy `interaction`, triggers `onAction/onEnter/onBump/onExit/onNear` branchés gameplay/runtime, effets MVP (`showMessage`, `openDialogue`, `setAnimationEnabled`, `playAnimationOnce`) branchés.
+- Behavior Runtime Hardening : `MapPlacedElementBehavior.id` stable (JSON + migration legacy + validation + normalisation), priorité mouvement explicite `onEnter > onExit > onNear`, résolution déterministe sur chevauchement (ordre `map.placedElements` puis ordre `behaviors`), anti-spam runtime par cooldown `(instanceId, behaviorId, trigger, effectType)`, et debug overlay léger activable.
 - Authoring animation d’éléments bibliothèque : `UpdateProjectElementUseCase` accepte `frames`, UI d’édition des frames dans `TilesetPalettePanel`, preview et persistance sur `ProjectElementEntry.frames`.
 
 ---
@@ -395,4 +397,5 @@ Justification :
 | map_core + map_editor + map_gameplay + map_runtime — Element Collision Profiles + Instance Collision Overrides | 2026-03-28 | `ProjectElementEntry.presetKind` + `collisionProfile`, nouveau `MapData.placedElements` (`MapPlacedElement.applyCollision`), génération auto collision par analyse alpha et preset, éditeur visuel collision, sync instances persistées, toggle collision par instance, collisions prises en compte dans `GameplayWorldState(project: ...)` et donc en runtime |
 | map_core + map_editor + map_runtime — Placed Element Instance Animation MVP | 2026-03-28 | `MapPlacedElement.animation` typé (`enabled`, `mode`, `autoplay`, `speed`, `startOffsetMs`, `randomStart`), validation core, opérations pures set/reset/enable, UI édition/preview par instance dans Tiles & Elements, rendu runtime des éléments posés animé avec randomStart déterministe par `instance.id` |
 | map_core + map_editor + map_gameplay + map_runtime — Placed Element Triggers & Effects MVP (extension) | 2026-03-28 | `MapPlacedElement.behaviors` étendu avec triggers `onExit`/`onNear`, priorité move déterministe (`onEnter` > `onExit` > `onNear`), exécution runtime réelle de `playAnimationOnce` via état transitoire par `instanceId` (stratégie restart), UI éditeur trigger/effect mise à jour + dropdown script+nœud Yarn, tests core/gameplay ajoutés |
+| map_core + map_gameplay + map_runtime — Behavior Runtime Hardening | 2026-03-29 | `MapPlacedElementBehavior.id` ajouté et normalisé (JSON + migration legacy + validation d’unicité par instance), résolution gameplay déterministe testée (priorité `onEnter > onExit > onNear`, chevauchements éléments/behaviors), cooldown anti-spam runtime par clé `(instanceId, behaviorId, trigger, effectType)`, `setAnimationEnabled` idempotent, debug overlay behaviors activable dans `PlayableMapGame` + toggle dans l’exemple runtime |
 | map_editor + map_runtime + map_core — Element Library Animation Authoring MVP | 2026-03-28 | Édition des `ProjectElementEntry.frames` dans l’éditeur d’éléments (frame strip, preview animée, ajout visuel depuis tileset, duplication, suppression, réordonnancement, durée par frame) + persistance via `updateProjectElement(frames: ...)`; runtime inchangé sur le fond et consomme directement ces frames pour les instances animées |

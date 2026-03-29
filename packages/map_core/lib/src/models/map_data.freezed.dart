@@ -1351,6 +1351,7 @@ MapPlacedElementBehavior _$MapPlacedElementBehaviorFromJson(
 
 /// @nodoc
 mixin _$MapPlacedElementBehavior {
+  String get id => throw _privateConstructorUsedError;
   bool get enabled => throw _privateConstructorUsedError;
   MapPlacedElementTriggerType get trigger => throw _privateConstructorUsedError;
   MapPlacedElementEffect get effect => throw _privateConstructorUsedError;
@@ -1372,7 +1373,8 @@ abstract class $MapPlacedElementBehaviorCopyWith<$Res> {
       _$MapPlacedElementBehaviorCopyWithImpl<$Res, MapPlacedElementBehavior>;
   @useResult
   $Res call(
-      {bool enabled,
+      {String id,
+      bool enabled,
       MapPlacedElementTriggerType trigger,
       MapPlacedElementEffect effect});
 
@@ -1395,11 +1397,16 @@ class _$MapPlacedElementBehaviorCopyWithImpl<$Res,
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? id = null,
     Object? enabled = null,
     Object? trigger = null,
     Object? effect = null,
   }) {
     return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -1436,7 +1443,8 @@ abstract class _$$MapPlacedElementBehaviorImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {bool enabled,
+      {String id,
+      bool enabled,
       MapPlacedElementTriggerType trigger,
       MapPlacedElementEffect effect});
 
@@ -1459,11 +1467,16 @@ class __$$MapPlacedElementBehaviorImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? id = null,
     Object? enabled = null,
     Object? trigger = null,
     Object? effect = null,
   }) {
     return _then(_$MapPlacedElementBehaviorImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -1485,13 +1498,17 @@ class __$$MapPlacedElementBehaviorImplCopyWithImpl<$Res>
 @JsonSerializable(explicitToJson: true)
 class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
   const _$MapPlacedElementBehaviorImpl(
-      {this.enabled = true,
+      {this.id = '',
+      this.enabled = true,
       this.trigger = MapPlacedElementTriggerType.onAction,
       required this.effect});
 
   factory _$MapPlacedElementBehaviorImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapPlacedElementBehaviorImplFromJson(json);
 
+  @override
+  @JsonKey()
+  final String id;
   @override
   @JsonKey()
   final bool enabled;
@@ -1503,7 +1520,7 @@ class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
 
   @override
   String toString() {
-    return 'MapPlacedElementBehavior(enabled: $enabled, trigger: $trigger, effect: $effect)';
+    return 'MapPlacedElementBehavior(id: $id, enabled: $enabled, trigger: $trigger, effect: $effect)';
   }
 
   @override
@@ -1511,6 +1528,7 @@ class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$MapPlacedElementBehaviorImpl &&
+            (identical(other.id, id) || other.id == id) &&
             (identical(other.enabled, enabled) || other.enabled == enabled) &&
             (identical(other.trigger, trigger) || other.trigger == trigger) &&
             (identical(other.effect, effect) || other.effect == effect));
@@ -1518,7 +1536,7 @@ class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, enabled, trigger, effect);
+  int get hashCode => Object.hash(runtimeType, id, enabled, trigger, effect);
 
   /// Create a copy of MapPlacedElementBehavior
   /// with the given fields replaced by the non-null parameter values.
@@ -1539,7 +1557,8 @@ class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
 
 abstract class _MapPlacedElementBehavior implements MapPlacedElementBehavior {
   const factory _MapPlacedElementBehavior(
-          {final bool enabled,
+          {final String id,
+          final bool enabled,
           final MapPlacedElementTriggerType trigger,
           required final MapPlacedElementEffect effect}) =
       _$MapPlacedElementBehaviorImpl;
@@ -1547,6 +1566,8 @@ abstract class _MapPlacedElementBehavior implements MapPlacedElementBehavior {
   factory _MapPlacedElementBehavior.fromJson(Map<String, dynamic> json) =
       _$MapPlacedElementBehaviorImpl.fromJson;
 
+  @override
+  String get id;
   @override
   bool get enabled;
   @override

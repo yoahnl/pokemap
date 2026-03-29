@@ -14,6 +14,7 @@ import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
 import '../../application/encounter_to_battle_request.dart';
 import '../../application/load_dialogue_content.dart';
+import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
@@ -69,7 +70,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final math.Random _encounterRandom = math.Random();
+  final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
+      PlacedBehaviorCooldownGate();
+  double _runtimeClockMs = 0;
   bool _showCollisionOverlay = false;
+  bool _showBehaviorDebugOverlay = false;
+  TextComponent? _behaviorDebugOverlay;
+  String _lastBehaviorDebugLine = 'Aucun behavior déclenché';
 
   bool get showCollisionOverlay => _showCollisionOverlay;
 
@@ -78,6 +85,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     for (final loaded in _loadedMapsById.values) {
       loaded.backgroundLayers.showCollisionOverlay = visible;
     }
+  }
+
+  bool get showBehaviorDebugOverlay => _showBehaviorDebugOverlay;
+
+  void setBehaviorDebugOverlayVisible(bool visible) {
+    _showBehaviorDebugOverlay = visible;
+    if (!visible) {
+      _behaviorDebugOverlay?.removeFromParent();
+      _behaviorDebugOverlay = null;
+      return;
+    }
+    if (!isLoaded) {
+      return;
+    }
+    _ensureBehaviorDebugOverlay();
   }
 
   @override
@@ -124,6 +146,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _configureCameraViewport();
     _syncCameraToPlayer();
     _preloadActiveMapConnections();
+    _ensureBehaviorDebugOverlay();
     return super.onLoad();
   }
 
@@ -232,6 +255,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
+    _runtimeClockMs += dt * 1000;
+    _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
     _updateActorDepthOrdering();
     _syncCameraToPlayer();
 
@@ -420,8 +445,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _player.syncState(_world.player);
       }
       _pendingPlacedElementBehavior = result;
+      final behaviorId = result.behavior.id.trim().isEmpty
+          ? 'legacy'
+          : result.behavior.id.trim();
       debugPrint(
-        '[placed_behavior] queued trigger=${result.trigger.name} instance=${result.element.id} effect=${result.behavior.effect.type.name}',
+        '[placed_behavior] queued trigger=${result.trigger.name} instance=${result.element.id} behavior=$behaviorId effect=${result.behavior.effect.type.name}',
+      );
+      _updateBehaviorDebugLine(
+        'Queued ${result.trigger.name} · ${result.behavior.effect.type.name} · ${result.element.id}#$behaviorId',
       );
       return;
     }
@@ -617,28 +648,64 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     final effect = behavior.effect;
-    debugPrint(
-      '[placed_behavior] trigger=${trigger.name} instance=${element.id} effect=${effect.type.name}',
+    final cooldownKey = _buildPlacedBehaviorCooldownKey(
+      element: element,
+      behavior: behavior,
+      trigger: trigger,
     );
+    if (!_placedBehaviorCooldownGate.canTrigger(
+      key: cooldownKey,
+      nowMs: _runtimeClockMs,
+    )) {
+      final remainingMs = _placedBehaviorCooldownGate.remainingMs(
+        key: cooldownKey,
+        nowMs: _runtimeClockMs,
+      );
+      debugPrint(
+        '[placed_behavior] cooldown blocked trigger=${trigger.name} instance=${element.id} behavior=${cooldownKey.behaviorId} effect=${effect.type.name} remainingMs=${remainingMs.toStringAsFixed(0)}',
+      );
+      _updateBehaviorDebugLine(
+        'Cooldown ${effect.type.name} (${remainingMs.toStringAsFixed(0)} ms) · ${element.id}#${cooldownKey.behaviorId}',
+      );
+      return;
+    }
+    debugPrint(
+      '[placed_behavior] trigger=${trigger.name} instance=${element.id} behavior=${cooldownKey.behaviorId} effect=${effect.type.name}',
+    );
+    var effectApplied = false;
     switch (effect.type) {
       case MapPlacedElementEffectType.showMessage:
         final text = effect.message?.trim() ?? '';
         if (text.isEmpty) {
           debugPrint(
-            '[placed_behavior] showMessage ignored instance=${element.id} reason=empty_message',
+            '[placed_behavior] showMessage ignored instance=${element.id} behavior=${cooldownKey.behaviorId} reason=empty_message',
           );
           return;
         }
         _showNotification(text);
-        return;
+        effectApplied = true;
+        break;
       case MapPlacedElementEffectType.openDialogue:
-        _tryOpenDialogue(element.id, effect.dialogue, element.elementId);
-        return;
+        effectApplied =
+            _tryOpenDialogue(element.id, effect.dialogue, element.elementId);
+        break;
       case MapPlacedElementEffectType.setAnimationEnabled:
         final enabled = effect.animationEnabled;
         if (enabled == null) {
           debugPrint(
-            '[placed_behavior] setAnimationEnabled ignored instance=${element.id} reason=missing_value',
+            '[placed_behavior] setAnimationEnabled ignored instance=${element.id} behavior=${cooldownKey.behaviorId} reason=missing_value',
+          );
+          return;
+        }
+        final currentEnabled = _resolvePlacedElementAnimationEnabled(
+          element.id,
+        );
+        if (currentEnabled == enabled) {
+          debugPrint(
+            '[placed_behavior] setAnimationEnabled ignored instance=${element.id} behavior=${cooldownKey.behaviorId} reason=no_change value=$enabled',
+          );
+          _updateBehaviorDebugLine(
+            'Animation déjà ${enabled ? 'active' : 'inactive'} · ${element.id}#${cooldownKey.behaviorId}',
           );
           return;
         }
@@ -646,21 +713,37 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           instanceId: element.id,
           enabled: enabled,
         );
-        return;
+        effectApplied = true;
+        break;
       case MapPlacedElementEffectType.playAnimationOnce:
         final triggered =
             _playPlacedElementAnimationOnce(instanceId: element.id);
         if (!triggered) {
           debugPrint(
-            '[placed_behavior] playAnimationOnce ignored instance=${element.id} reason=no_animatable_frames',
+            '[placed_behavior] playAnimationOnce ignored instance=${element.id} behavior=${cooldownKey.behaviorId} reason=no_animatable_frames',
           );
+          _updateBehaviorDebugLine(
+            'Animation 1x indisponible · ${element.id}#${cooldownKey.behaviorId}',
+          );
+          return;
         } else {
           debugPrint(
-            '[placed_behavior] playAnimationOnce started instance=${element.id} strategy=restart',
+            '[placed_behavior] playAnimationOnce started instance=${element.id} behavior=${cooldownKey.behaviorId} strategy=restart',
           );
         }
-        return;
+        effectApplied = true;
+        break;
     }
+    if (!effectApplied) {
+      return;
+    }
+    _placedBehaviorCooldownGate.markTriggered(
+      key: cooldownKey,
+      nowMs: _runtimeClockMs,
+    );
+    _updateBehaviorDebugLine(
+      'Triggered ${trigger.name} -> ${effect.type.name} · ${element.id}#${cooldownKey.behaviorId}',
+    );
   }
 
   bool _playPlacedElementAnimationOnce({
@@ -736,10 +819,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _tryOpenDialogue(
+  bool _tryOpenDialogue(
       String entityId, DialogueRef? ref, String fallbackLabel) {
-    if (_flowPhase != _RuntimeFlowPhase.overworld) return;
-    if (_dialogueOverlay != null) return;
+    if (_flowPhase != _RuntimeFlowPhase.overworld) return false;
+    if (_dialogueOverlay != null) return false;
 
     final resolved = resolveDialogue(
       entityId: entityId,
@@ -750,7 +833,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (resolved == null) {
       _showNotification(fallbackLabel);
-      return;
+      return false;
     }
 
     loadDialogueContent(resolved).then((session) {
@@ -763,6 +846,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[dialogue] opening dialogue for entity=$entityId');
       _openDialogue(session);
     });
+    return true;
   }
 
   void _openDialogue(DialogueSession session) {
@@ -879,6 +963,70 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _notification = null;
       }
     });
+  }
+
+  PlacedBehaviorRuntimeKey _buildPlacedBehaviorCooldownKey({
+    required MapPlacedElement element,
+    required MapPlacedElementBehavior behavior,
+    required MapPlacedElementTriggerType trigger,
+  }) {
+    final trimmedBehaviorId = behavior.id.trim();
+    final behaviorId = trimmedBehaviorId.isEmpty ? 'legacy' : trimmedBehaviorId;
+    return PlacedBehaviorRuntimeKey(
+      instanceId: element.id,
+      behaviorId: behaviorId,
+      trigger: trigger,
+      effectType: behavior.effect.type,
+    );
+  }
+
+  bool _resolvePlacedElementAnimationEnabled(String instanceId) {
+    for (final instance in _world.map.placedElements) {
+      if (instance.id != instanceId) {
+        continue;
+      }
+      return instance.animation?.enabled ?? false;
+    }
+    return false;
+  }
+
+  void _ensureBehaviorDebugOverlay() {
+    if (!_showBehaviorDebugOverlay) {
+      return;
+    }
+    final existing = _behaviorDebugOverlay;
+    if (existing != null) {
+      existing.text = _lastBehaviorDebugLine;
+      return;
+    }
+    final overlay = TextComponent(
+      text: _lastBehaviorDebugLine,
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.white,
+          backgroundColor: Color(0xAA111111),
+        ),
+      ),
+      anchor: Anchor.topLeft,
+      position: Vector2(10, 10),
+      priority: 30000,
+    );
+    camera.viewport.add(overlay);
+    _behaviorDebugOverlay = overlay;
+  }
+
+  void _updateBehaviorDebugLine(String line) {
+    _lastBehaviorDebugLine = line;
+    if (!_showBehaviorDebugOverlay) {
+      return;
+    }
+    _ensureBehaviorDebugOverlay();
+    final overlay = _behaviorDebugOverlay;
+    if (overlay == null) {
+      return;
+    }
+    overlay.text = line;
   }
 
   Future<void> _handleWarp(TriggeredWarp warp) async {
