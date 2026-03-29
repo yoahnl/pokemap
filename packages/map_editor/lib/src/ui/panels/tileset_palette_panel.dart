@@ -4265,6 +4265,10 @@ class _PlacedElementBehaviorsSectionState
           return 'Entrée: déclenché quand le joueur marche sur l’élément.';
         case MapPlacedElementTriggerType.onBump:
           return 'Contact: déclenché quand le joueur se cogne contre l’élément.';
+        case MapPlacedElementTriggerType.onExit:
+          return 'Sortie: déclenché quand le joueur quitte la zone couverte.';
+        case MapPlacedElementTriggerType.onNear:
+          return 'Proximité: déclenché quand le joueur devient adjacent (4 directions).';
       }
     }
 
@@ -4277,7 +4281,7 @@ class _PlacedElementBehaviorsSectionState
         case MapPlacedElementEffectType.setAnimationEnabled:
           return 'Animation on/off: active ou coupe l’animation locale de cette instance.';
         case MapPlacedElementEffectType.playAnimationOnce:
-          return 'Animation 1x: prévu en modèle, exécution runtime non livrée pour l’instant.';
+          return 'Animation 1x: joue une séquence une fois puis revient à l’état normal.';
       }
     }
 
@@ -4420,6 +4424,14 @@ class _PlacedElementBehaviorsSectionState
                           padding: EdgeInsets.symmetric(horizontal: 4),
                           child:
                               Text('Contact', style: TextStyle(fontSize: 10)),
+                        ),
+                        MapPlacedElementTriggerType.onExit: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Sortie', style: TextStyle(fontSize: 10)),
+                        ),
+                        MapPlacedElementTriggerType.onNear: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Proche', style: TextStyle(fontSize: 10)),
                         ),
                       },
                       onValueChanged: (next) {
@@ -4824,7 +4836,7 @@ class _PlacedElementBehaviorsSectionState
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                    'Animation 1x: l’éditeur la configure, mais le runtime affiche encore un fallback explicite.',
+                    'Animation 1x: déclenche une lecture unique puis restaure l’animation locale normale.',
                     style: TextStyle(
                       color: secondary,
                       fontSize: 10,

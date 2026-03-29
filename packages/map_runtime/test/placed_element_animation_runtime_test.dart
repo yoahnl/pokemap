@@ -215,4 +215,62 @@ void main() {
       );
     });
   });
+
+  group('placed element animation one-shot resolution', () {
+    test('advances once and reports completion at end of sequence', () {
+      final durations = normalizeElementFrameDurationsMs(
+        const [100, 100, 100],
+      );
+      expect(
+        resolvePlacedElementAnimationOneShotFrame(
+          frameDurationsMs: durations,
+          elapsedMs: 0,
+        ),
+        isA<PlacedElementAnimationOneShotFrame>()
+            .having((value) => value.frameIndex, 'frameIndex', 0)
+            .having((value) => value.completed, 'completed', false),
+      );
+      expect(
+        resolvePlacedElementAnimationOneShotFrame(
+          frameDurationsMs: durations,
+          elapsedMs: 110,
+        ),
+        isA<PlacedElementAnimationOneShotFrame>()
+            .having((value) => value.frameIndex, 'frameIndex', 1)
+            .having((value) => value.completed, 'completed', false),
+      );
+      expect(
+        resolvePlacedElementAnimationOneShotFrame(
+          frameDurationsMs: durations,
+          elapsedMs: 250,
+        ),
+        isA<PlacedElementAnimationOneShotFrame>()
+            .having((value) => value.frameIndex, 'frameIndex', 2)
+            .having((value) => value.completed, 'completed', false),
+      );
+      expect(
+        resolvePlacedElementAnimationOneShotFrame(
+          frameDurationsMs: durations,
+          elapsedMs: 300,
+        ),
+        isA<PlacedElementAnimationOneShotFrame>()
+            .having((value) => value.frameIndex, 'frameIndex', 2)
+            .having((value) => value.completed, 'completed', true),
+      );
+    });
+
+    test('respects speed multiplier during one-shot playback', () {
+      final durations = normalizeElementFrameDurationsMs(const [100, 100, 100]);
+      expect(
+        resolvePlacedElementAnimationOneShotFrame(
+          frameDurationsMs: durations,
+          elapsedMs: 70,
+          speed: 2,
+        ),
+        isA<PlacedElementAnimationOneShotFrame>()
+            .having((value) => value.frameIndex, 'frameIndex', 1)
+            .having((value) => value.completed, 'completed', false),
+      );
+    });
+  });
 }

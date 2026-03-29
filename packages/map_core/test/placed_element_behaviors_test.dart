@@ -23,6 +23,30 @@ void main() {
       expect(behavior.effect.type, MapPlacedElementEffectType.showMessage);
       expect(behavior.effect.message, 'Bonjour');
     });
+
+    test('parses onExit and onNear triggers from json', () {
+      final exitBehavior = MapPlacedElementBehavior.fromJson({
+        'enabled': true,
+        'trigger': 'on_exit',
+        'effect': {
+          'type': 'show_message',
+          'message': 'bye',
+        },
+      });
+      final nearBehavior = MapPlacedElementBehavior.fromJson({
+        'enabled': true,
+        'trigger': 'on_near',
+        'effect': {
+          'type': 'show_message',
+          'message': 'near',
+        },
+      });
+
+      expect(exitBehavior.trigger, MapPlacedElementTriggerType.onExit);
+      expect(nearBehavior.trigger, MapPlacedElementTriggerType.onNear);
+      expect(exitBehavior.toJson()['trigger'], 'on_exit');
+      expect(nearBehavior.toJson()['trigger'], 'on_near');
+    });
   });
 
   group('MapPlacedElement behavior validation', () {

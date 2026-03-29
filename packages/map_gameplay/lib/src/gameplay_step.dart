@@ -72,6 +72,7 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
   final movedWorld = facingWorld.withPlayer(
     facingWorld.player.copyWith(pos: GridPos(x: tx, y: ty)),
   );
+  final previousPos = facingWorld.player.pos;
 
   final warp = movedWorld.warpOnEnterAt(tx, ty, direction);
   if (warp != null) {
@@ -93,6 +94,32 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
       enterBehavior.element,
       enterBehavior.behavior,
       MapPlacedElementTriggerType.onEnter,
+    );
+  }
+
+  final exitBehavior = movedWorld.placedElementBehaviorOnExitTransition(
+    from: previousPos,
+    to: movedWorld.player.pos,
+  );
+  if (exitBehavior != null) {
+    return PlacedElementInteracted(
+      movedWorld,
+      exitBehavior.element,
+      exitBehavior.behavior,
+      MapPlacedElementTriggerType.onExit,
+    );
+  }
+
+  final nearBehavior = movedWorld.placedElementBehaviorOnNearTransition(
+    from: previousPos,
+    to: movedWorld.player.pos,
+  );
+  if (nearBehavior != null) {
+    return PlacedElementInteracted(
+      movedWorld,
+      nearBehavior.element,
+      nearBehavior.behavior,
+      MapPlacedElementTriggerType.onNear,
     );
   }
 

@@ -38,7 +38,11 @@ class MapLayersComponent extends PositionComponent {
             bundle.map.size.width * bundle.cellWidth,
             bundle.map.size.height * bundle.cellHeight,
           ),
-        );
+        ) {
+    _animatedInstanceById = _buildAnimatedPlacedInstanceById(
+      _animatedPlacedCellsByLayerId,
+    );
+  }
 
   final RuntimeMapBundle bundle;
   final Map<String, ui.Image> tileImagesByTilesetId;
@@ -49,8 +53,11 @@ class MapLayersComponent extends PositionComponent {
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
+  late final Map<String, _AnimatedPlacedInstanceSpec> _animatedInstanceById;
   final Map<String, bool> _animationEnabledOverrideByInstanceId =
       <String, bool>{};
+  final Map<String, _ActiveOneShotAnimation> _activeOneShotByInstanceId =
+      <String, _ActiveOneShotAnimation>{};
 
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
@@ -73,6 +80,25 @@ class MapLayersComponent extends PositionComponent {
       return;
     }
     _animationEnabledOverrideByInstanceId[trimmedId] = enabled;
+  }
+
+  bool playPlacedElementAnimationOnce({
+    required String instanceId,
+  }) {
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return false;
+    }
+    final spec = _animatedInstanceById[trimmedId];
+    if (spec == null || spec.frameDurationsMs.length < 2) {
+      return false;
+    }
+    _activeOneShotByInstanceId[trimmedId] = _ActiveOneShotAnimation(
+      startedAtMs: _animElapsed * 1000,
+      frameDurationsMs: spec.frameDurationsMs,
+      speed: spec.speed,
+    );
+    return true;
   }
 
   @override
@@ -446,10 +472,7 @@ class MapLayersComponent extends PositionComponent {
       if (entry == null || entry.frames.length < 2) {
         continue;
       }
-      final animation = instance.animation;
-      if (animation == null) {
-        continue;
-      }
+      final animation = instance.animation ?? const MapPlacedElementAnimation();
       final frames = <_RuntimeAnimationFrame>[];
       for (final frame in entry.frames) {
         final source = frame.source;
@@ -473,6 +496,9 @@ class MapLayersComponent extends PositionComponent {
       if (frames.length < 2) {
         continue;
       }
+      final frameDurationsMs = normalizeElementFrameDurationsMs(
+        frames.map((frame) => frame.durationMs).toList(growable: false),
+      );
       final baseSource = frames.first.source;
       final width = baseSource.width <= 0 ? 1 : baseSource.width;
       final height = baseSource.height <= 0 ? 1 : baseSource.height;
@@ -495,10 +521,30 @@ class MapLayersComponent extends PositionComponent {
             localX: lx,
             localY: ly,
             frames: frames,
+            frameDurationsMs: frameDurationsMs,
             animation: animation,
             deterministicSeed: seed,
           );
         }
+      }
+    }
+    return out;
+  }
+
+  static Map<String, _AnimatedPlacedInstanceSpec>
+      _buildAnimatedPlacedInstanceById(
+    Map<String, Map<int, _AnimatedPlacedCell>> cellsByLayerId,
+  ) {
+    final out = <String, _AnimatedPlacedInstanceSpec>{};
+    for (final cellsByIndex in cellsByLayerId.values) {
+      for (final cell in cellsByIndex.values) {
+        out.putIfAbsent(
+          cell.instanceId,
+          () => _AnimatedPlacedInstanceSpec(
+            frameDurationsMs: cell.frameDurationsMs,
+            speed: cell.animation.speed <= 0 ? 1.0 : cell.animation.speed,
+          ),
+        );
       }
     }
     return out;
@@ -513,22 +559,31 @@ class MapLayersComponent extends PositionComponent {
     required double dstHeight,
     required Paint paint,
   }) {
-    final frameDurations = normalizeElementFrameDurationsMs(
-      animatedCell.frames
-          .map((frame) => frame.durationMs)
-          .toList(growable: false),
-    );
-    final enabledOverride =
-        _animationEnabledOverrideByInstanceId[animatedCell.instanceId];
-    final effectiveAnimation = enabledOverride == null
-        ? animatedCell.animation
-        : animatedCell.animation.copyWith(enabled: enabledOverride);
-    final frameIndex = resolvePlacedElementAnimationFrameIndex(
-      frameDurationsMs: frameDurations,
-      elapsedMs: _animElapsed * 1000,
-      animation: effectiveAnimation,
-      deterministicSeed: animatedCell.deterministicSeed,
-    );
+    final oneShot = _activeOneShotByInstanceId[animatedCell.instanceId];
+    int frameIndex;
+    if (oneShot != null) {
+      final resolution = resolvePlacedElementAnimationOneShotFrame(
+        frameDurationsMs: oneShot.frameDurationsMs,
+        elapsedMs: (_animElapsed * 1000) - oneShot.startedAtMs,
+        speed: oneShot.speed,
+      );
+      frameIndex = resolution.frameIndex;
+      if (resolution.completed) {
+        _activeOneShotByInstanceId.remove(animatedCell.instanceId);
+      }
+    } else {
+      final enabledOverride =
+          _animationEnabledOverrideByInstanceId[animatedCell.instanceId];
+      final effectiveAnimation = enabledOverride == null
+          ? animatedCell.animation
+          : animatedCell.animation.copyWith(enabled: enabledOverride);
+      frameIndex = resolvePlacedElementAnimationFrameIndex(
+        frameDurationsMs: animatedCell.frameDurationsMs,
+        elapsedMs: _animElapsed * 1000,
+        animation: effectiveAnimation,
+        deterministicSeed: animatedCell.deterministicSeed,
+      );
+    }
     if (frameIndex < 0 || frameIndex >= animatedCell.frames.length) {
       return false;
     }
@@ -927,6 +982,7 @@ class _AnimatedPlacedCell {
     required this.localX,
     required this.localY,
     required this.frames,
+    required this.frameDurationsMs,
     required this.animation,
     required this.deterministicSeed,
   });
@@ -935,8 +991,31 @@ class _AnimatedPlacedCell {
   final int localX;
   final int localY;
   final List<_RuntimeAnimationFrame> frames;
+  final List<int> frameDurationsMs;
   final MapPlacedElementAnimation animation;
   final int deterministicSeed;
+}
+
+class _AnimatedPlacedInstanceSpec {
+  const _AnimatedPlacedInstanceSpec({
+    required this.frameDurationsMs,
+    required this.speed,
+  });
+
+  final List<int> frameDurationsMs;
+  final double speed;
+}
+
+class _ActiveOneShotAnimation {
+  const _ActiveOneShotAnimation({
+    required this.startedAtMs,
+    required this.frameDurationsMs,
+    required this.speed,
+  });
+
+  final double startedAtMs;
+  final List<int> frameDurationsMs;
+  final double speed;
 }
 
 String? _resolveTilesetId(MapData map, String? layerTilesetId) {

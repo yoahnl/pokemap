@@ -56,6 +56,69 @@ int resolvePlacedElementAnimationFrameIndex({
   return _resolveFrameIndexAtOffset(sequence: sequence, offsetMs: offset);
 }
 
+PlacedElementAnimationOneShotFrame resolvePlacedElementAnimationOneShotFrame({
+  required List<int> frameDurationsMs,
+  required double elapsedMs,
+  double speed = 1.0,
+}) {
+  if (frameDurationsMs.isEmpty) {
+    return const PlacedElementAnimationOneShotFrame(
+      frameIndex: 0,
+      completed: true,
+    );
+  }
+  final normalizedDurations = frameDurationsMs
+      .map((value) =>
+          value > 0 ? value : defaultPlacedElementAnimationFrameDurationMs)
+      .toList(growable: false);
+  if (normalizedDurations.length == 1) {
+    return const PlacedElementAnimationOneShotFrame(
+      frameIndex: 0,
+      completed: true,
+    );
+  }
+  final safeSpeed = speed <= 0 ? 1.0 : speed;
+  final elapsed = elapsedMs <= 0 ? 0.0 : elapsedMs * safeSpeed;
+  final total = normalizedDurations.fold<int>(0, (sum, d) => sum + d);
+  if (total <= 0) {
+    return const PlacedElementAnimationOneShotFrame(
+      frameIndex: 0,
+      completed: true,
+    );
+  }
+  if (elapsed >= total) {
+    return PlacedElementAnimationOneShotFrame(
+      frameIndex: normalizedDurations.length - 1,
+      completed: true,
+    );
+  }
+  var cursor = elapsed;
+  for (var i = 0; i < normalizedDurations.length; i++) {
+    final duration = normalizedDurations[i];
+    if (cursor < duration) {
+      return PlacedElementAnimationOneShotFrame(
+        frameIndex: i,
+        completed: false,
+      );
+    }
+    cursor -= duration;
+  }
+  return PlacedElementAnimationOneShotFrame(
+    frameIndex: normalizedDurations.length - 1,
+    completed: true,
+  );
+}
+
+class PlacedElementAnimationOneShotFrame {
+  const PlacedElementAnimationOneShotFrame({
+    required this.frameIndex,
+    required this.completed,
+  });
+
+  final int frameIndex;
+  final bool completed;
+}
+
 List<int> normalizeElementFrameDurationsMs(List<int?> rawDurations) {
   if (rawDurations.isEmpty) {
     return const [defaultPlacedElementAnimationFrameDurationMs];

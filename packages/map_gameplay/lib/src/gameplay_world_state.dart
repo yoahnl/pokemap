@@ -16,6 +16,8 @@ class GameplayWorldState {
     required Map<int, PlacedElementBehaviorActivation> actionBehaviorByPos,
     required Map<int, PlacedElementBehaviorActivation> enterBehaviorByPos,
     required Map<int, PlacedElementBehaviorActivation> bumpBehaviorByPos,
+    required Map<int, PlacedElementBehaviorActivation> exitBehaviorByPos,
+    required Map<int, PlacedElementBehaviorActivation> nearBehaviorByPos,
     required int tileWidth,
     required int tileHeight,
   })  : _collisionCache = collisionCache,
@@ -25,6 +27,8 @@ class GameplayWorldState {
         _actionBehaviorByPos = actionBehaviorByPos,
         _enterBehaviorByPos = enterBehaviorByPos,
         _bumpBehaviorByPos = bumpBehaviorByPos,
+        _exitBehaviorByPos = exitBehaviorByPos,
+        _nearBehaviorByPos = nearBehaviorByPos,
         _tileWidth = tileWidth <= 0 ? 16 : tileWidth,
         _tileHeight = tileHeight <= 0 ? 16 : tileHeight;
 
@@ -58,6 +62,15 @@ class GameplayWorldState {
           map,
           project: project,
           trigger: MapPlacedElementTriggerType.onBump,
+        ),
+        exitBehaviorByPos: _buildPlacedElementBehaviorByPos(
+          map,
+          project: project,
+          trigger: MapPlacedElementTriggerType.onExit,
+        ),
+        nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
+          map,
+          project: project,
         ),
         tileWidth: tileWidth,
         tileHeight: tileHeight,
@@ -96,6 +109,15 @@ class GameplayWorldState {
         project: project,
         trigger: MapPlacedElementTriggerType.onBump,
       ),
+      exitBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onExit,
+      ),
+      nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
+        map,
+        project: project,
+      ),
       tileWidth: tileWidth,
       tileHeight: tileHeight,
     );
@@ -116,6 +138,8 @@ class GameplayWorldState {
   final Map<int, PlacedElementBehaviorActivation> _actionBehaviorByPos;
   final Map<int, PlacedElementBehaviorActivation> _enterBehaviorByPos;
   final Map<int, PlacedElementBehaviorActivation> _bumpBehaviorByPos;
+  final Map<int, PlacedElementBehaviorActivation> _exitBehaviorByPos;
+  final Map<int, PlacedElementBehaviorActivation> _nearBehaviorByPos;
   final int _tileWidth;
   final int _tileHeight;
 
@@ -184,6 +208,48 @@ class GameplayWorldState {
   ) =>
       _bumpBehaviorByPos[y * map.size.width + x];
 
+  PlacedElementBehaviorActivation? placedElementBehaviorOnExitAt(
+    int x,
+    int y,
+  ) =>
+      _exitBehaviorByPos[y * map.size.width + x];
+
+  PlacedElementBehaviorActivation? placedElementBehaviorOnNearAt(
+    int x,
+    int y,
+  ) =>
+      _nearBehaviorByPos[y * map.size.width + x];
+
+  PlacedElementBehaviorActivation? placedElementBehaviorOnExitTransition({
+    required GridPos from,
+    required GridPos to,
+  }) {
+    final fromActivation = placedElementBehaviorOnExitAt(from.x, from.y);
+    if (fromActivation == null) {
+      return null;
+    }
+    final toActivation = placedElementBehaviorOnExitAt(to.x, to.y);
+    if (_isSameBehaviorActivation(fromActivation, toActivation)) {
+      return null;
+    }
+    return fromActivation;
+  }
+
+  PlacedElementBehaviorActivation? placedElementBehaviorOnNearTransition({
+    required GridPos from,
+    required GridPos to,
+  }) {
+    final toActivation = placedElementBehaviorOnNearAt(to.x, to.y);
+    if (toActivation == null) {
+      return null;
+    }
+    final fromActivation = placedElementBehaviorOnNearAt(from.x, from.y);
+    if (_isSameBehaviorActivation(fromActivation, toActivation)) {
+      return null;
+    }
+    return toActivation;
+  }
+
   GameplayWorldState withPlayer(GameplayPlayerState player) =>
       GameplayWorldState._(
         map: map,
@@ -195,6 +261,8 @@ class GameplayWorldState {
         actionBehaviorByPos: _actionBehaviorByPos,
         enterBehaviorByPos: _enterBehaviorByPos,
         bumpBehaviorByPos: _bumpBehaviorByPos,
+        exitBehaviorByPos: _exitBehaviorByPos,
+        nearBehaviorByPos: _nearBehaviorByPos,
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
       );
@@ -244,6 +312,16 @@ class GameplayWorldState {
       Direction.west => EntityFacing.east,
     };
   }
+}
+
+bool _isSameBehaviorActivation(
+  PlacedElementBehaviorActivation? a,
+  PlacedElementBehaviorActivation? b,
+) {
+  if (a == null || b == null) {
+    return false;
+  }
+  return a.element.id == b.element.id && a.behavior == b.behavior;
 }
 
 List<bool> _buildCollisionCache(
@@ -403,6 +481,73 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
               behavior: behavior,
             ),
           );
+        }
+      }
+    }
+  }
+  return result;
+}
+
+Map<int, PlacedElementBehaviorActivation> _buildPlacedElementNearBehaviorByPos(
+  MapData map, {
+  required ProjectManifest? project,
+}) {
+  final w = map.size.width;
+  final h = map.size.height;
+  final result = <int, PlacedElementBehaviorActivation>{};
+  final elementById = project == null
+      ? const <String, ProjectElementEntry>{}
+      : {
+          for (final entry in project.elements) entry.id: entry,
+        };
+  for (final instance in map.placedElements) {
+    final behaviors = instance.behaviors;
+    if (behaviors.isEmpty) {
+      continue;
+    }
+    final entry = elementById[instance.elementId];
+    final source = entry?.frames.primarySource;
+    final width = source == null || source.width <= 0 ? 1 : source.width;
+    final height = source == null || source.height <= 0 ? 1 : source.height;
+    final minX = instance.pos.x;
+    final minY = instance.pos.y;
+    final maxX = minX + width - 1;
+    final maxY = minY + height - 1;
+    for (final behavior in behaviors) {
+      if (!behavior.enabled) {
+        continue;
+      }
+      if (behavior.trigger != MapPlacedElementTriggerType.onNear) {
+        continue;
+      }
+      for (var localY = 0; localY < height; localY++) {
+        for (var localX = 0; localX < width; localX++) {
+          final x = instance.pos.x + localX;
+          final y = instance.pos.y + localY;
+          final neighbors = <(int, int)>[
+            (x - 1, y),
+            (x + 1, y),
+            (x, y - 1),
+            (x, y + 1),
+          ];
+          for (final (nx, ny) in neighbors) {
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) {
+              continue;
+            }
+            final insideFootprint =
+                nx >= minX && nx <= maxX && ny >= minY && ny <= maxY;
+            if (insideFootprint) {
+              continue;
+            }
+            final index = ny * w + nx;
+            result.putIfAbsent(
+              index,
+              () => PlacedElementBehaviorActivation(
+                element: instance,
+                behavior: behavior,
+              ),
+            );
+          }
         }
       }
     }

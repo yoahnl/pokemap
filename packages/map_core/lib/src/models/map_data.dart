@@ -109,6 +109,10 @@ enum MapPlacedElementTriggerType {
   onEnter,
   @JsonValue('on_bump')
   onBump,
+  @JsonValue('on_exit')
+  onExit,
+  @JsonValue('on_near')
+  onNear,
 }
 
 @freezed

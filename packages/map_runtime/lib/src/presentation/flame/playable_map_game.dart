@@ -407,7 +407,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (result is PlacedElementInteracted) {
-      if (result.trigger == MapPlacedElementTriggerType.onEnter) {
+      final isMovementTrigger =
+          result.trigger == MapPlacedElementTriggerType.onEnter ||
+              result.trigger == MapPlacedElementTriggerType.onExit ||
+              result.trigger == MapPlacedElementTriggerType.onNear;
+      if (isMovementTrigger) {
         _player.startStep(
           _world.player,
           durationSeconds: PlayerComponent.kDefaultStepSeconds,
@@ -644,12 +648,37 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
         return;
       case MapPlacedElementEffectType.playAnimationOnce:
-        debugPrint(
-          '[placed_behavior] playAnimationOnce not implemented yet instance=${element.id}',
-        );
-        _showNotification('Animation one-shot: bientôt dispo');
+        final triggered =
+            _playPlacedElementAnimationOnce(instanceId: element.id);
+        if (!triggered) {
+          debugPrint(
+            '[placed_behavior] playAnimationOnce ignored instance=${element.id} reason=no_animatable_frames',
+          );
+        } else {
+          debugPrint(
+            '[placed_behavior] playAnimationOnce started instance=${element.id} strategy=restart',
+          );
+        }
         return;
     }
+  }
+
+  bool _playPlacedElementAnimationOnce({
+    required String instanceId,
+  }) {
+    final loaded = _loadedMapsById[_activeMapId];
+    if (loaded == null) {
+      return false;
+    }
+    final fromBackground =
+        loaded.backgroundLayers.playPlacedElementAnimationOnce(
+      instanceId: instanceId,
+    );
+    final fromForeground =
+        loaded.foregroundLayers.playPlacedElementAnimationOnce(
+      instanceId: instanceId,
+    );
+    return fromBackground || fromForeground;
   }
 
   void _applyPlacedElementAnimationEnabled({

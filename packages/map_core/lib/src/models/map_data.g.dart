@@ -176,6 +176,8 @@ const _$MapPlacedElementTriggerTypeEnumMap = {
   MapPlacedElementTriggerType.onAction: 'on_action',
   MapPlacedElementTriggerType.onEnter: 'on_enter',
   MapPlacedElementTriggerType.onBump: 'on_bump',
+  MapPlacedElementTriggerType.onExit: 'on_exit',
+  MapPlacedElementTriggerType.onNear: 'on_near',
 };
 
 _$MapPlacedElementEffectImpl _$$MapPlacedElementEffectImplFromJson(

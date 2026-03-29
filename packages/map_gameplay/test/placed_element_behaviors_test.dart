@@ -78,57 +78,161 @@ void main() {
       expect(interacted.trigger, MapPlacedElementTriggerType.onBump);
       expect(interacted.world.player.pos, const GridPos(x: 0, y: 1));
     });
+
+    test('onExit triggers when leaving covered cells', () {
+      final world = GameplayWorldState.initial(
+        map: _mapWithBehavior(
+          applyCollision: false,
+          elementPos: const GridPos(x: 1, y: 1),
+          elementSize: const GridSize(width: 2, height: 1),
+          playerPos: const GridPos(x: 2, y: 1),
+          behavior: const MapPlacedElementBehavior(
+            enabled: true,
+            trigger: MapPlacedElementTriggerType.onExit,
+            effect: MapPlacedElementEffect(
+              type: MapPlacedElementEffectType.showMessage,
+              message: 'exit',
+            ),
+          ),
+        ),
+        playerPos: const GridPos(x: 2, y: 1),
+        playerFacing: Direction.east,
+        project: _project(
+          includeCollisionProfile: false,
+          elementSize: const GridSize(width: 2, height: 1),
+        ),
+      );
+
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(result, isA<PlacedElementInteracted>());
+      final interacted = result as PlacedElementInteracted;
+      expect(interacted.trigger, MapPlacedElementTriggerType.onExit);
+      expect(interacted.world.player.pos, const GridPos(x: 3, y: 1));
+    });
+
+    test('onExit does not trigger while still inside covered area', () {
+      final world = GameplayWorldState.initial(
+        map: _mapWithBehavior(
+          applyCollision: false,
+          elementPos: const GridPos(x: 1, y: 1),
+          elementSize: const GridSize(width: 2, height: 1),
+          playerPos: const GridPos(x: 1, y: 1),
+          behavior: const MapPlacedElementBehavior(
+            enabled: true,
+            trigger: MapPlacedElementTriggerType.onExit,
+            effect: MapPlacedElementEffect(
+              type: MapPlacedElementEffectType.showMessage,
+              message: 'exit',
+            ),
+          ),
+        ),
+        playerPos: const GridPos(x: 1, y: 1),
+        playerFacing: Direction.east,
+        project: _project(
+          includeCollisionProfile: false,
+          elementSize: const GridSize(width: 2, height: 1),
+        ),
+      );
+
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(result, isA<Moved>());
+    });
+
+    test('onNear triggers only on outside->near transition', () {
+      final behavior = const MapPlacedElementBehavior(
+        enabled: true,
+        trigger: MapPlacedElementTriggerType.onNear,
+        effect: MapPlacedElementEffect(
+          type: MapPlacedElementEffectType.showMessage,
+          message: 'near',
+        ),
+      );
+      final world = GameplayWorldState.initial(
+        map: _mapWithBehavior(
+          applyCollision: false,
+          mapSize: const GridSize(width: 8, height: 6),
+          elementPos: const GridPos(x: 2, y: 2),
+          elementSize: const GridSize(width: 2, height: 2),
+          playerPos: const GridPos(x: 0, y: 2),
+          behavior: behavior,
+        ),
+        playerPos: const GridPos(x: 0, y: 2),
+        playerFacing: Direction.east,
+        project: _project(
+          includeCollisionProfile: false,
+          elementSize: const GridSize(width: 2, height: 2),
+        ),
+      );
+
+      final first = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(first, isA<PlacedElementInteracted>());
+      final firstInteracted = first as PlacedElementInteracted;
+      expect(firstInteracted.trigger, MapPlacedElementTriggerType.onNear);
+      expect(firstInteracted.world.player.pos, const GridPos(x: 1, y: 2));
+
+      final second = stepGameplayWorld(
+        firstInteracted.world,
+        const MoveIntent(Direction.south),
+      );
+      expect(second, isA<Moved>());
+      final secondMoved = second as Moved;
+      expect(secondMoved.world.player.pos, const GridPos(x: 1, y: 3));
+
+      final third = stepGameplayWorld(
+        secondMoved.world,
+        const MoveIntent(Direction.west),
+      );
+      expect(third, isA<Moved>());
+      final thirdMoved = third as Moved;
+      expect(thirdMoved.world.player.pos, const GridPos(x: 0, y: 3));
+
+      final fourth = stepGameplayWorld(
+        thirdMoved.world,
+        const MoveIntent(Direction.east),
+      );
+      expect(fourth, isA<PlacedElementInteracted>());
+      final fourthInteracted = fourth as PlacedElementInteracted;
+      expect(fourthInteracted.trigger, MapPlacedElementTriggerType.onNear);
+      expect(fourthInteracted.world.player.pos, const GridPos(x: 1, y: 3));
+    });
   });
 }
 
 MapData _mapWithBehavior({
   required bool applyCollision,
+  GridSize mapSize = const GridSize(width: 6, height: 4),
+  GridPos elementPos = const GridPos(x: 1, y: 1),
+  GridSize elementSize = const GridSize(width: 2, height: 1),
+  GridPos playerPos = const GridPos(x: 0, y: 1),
   required MapPlacedElementBehavior behavior,
 }) {
+  final tileCount = mapSize.width * mapSize.height;
   return MapData(
     id: 'map',
     name: 'Map',
-    size: const GridSize(width: 6, height: 4),
-    layers: const [
+    size: mapSize,
+    layers: [
       MapLayer.tile(
         id: 'layer',
         name: 'Layer',
-        tiles: [
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-        ],
+        tiles: List<int>.filled(tileCount, 0, growable: false),
       ),
     ],
     placedElements: [
       MapPlacedElement(
-        id: 'layer::1::1',
+        id: 'layer::${elementPos.x}::${elementPos.y}',
         layerId: 'layer',
         elementId: 'tree',
-        pos: const GridPos(x: 1, y: 1),
+        pos: elementPos,
         applyCollision: applyCollision,
         behaviors: [behavior],
+      ),
+    ],
+    entities: [
+      MapEntity(
+        id: 'spawn',
+        kind: MapEntityKind.spawn,
+        pos: playerPos,
       ),
     ],
   );
@@ -136,6 +240,7 @@ MapData _mapWithBehavior({
 
 ProjectManifest _project({
   bool includeCollisionProfile = true,
+  GridSize elementSize = const GridSize(width: 2, height: 1),
 }) {
   return ProjectManifest(
     name: 'project',
@@ -152,16 +257,22 @@ ProjectManifest _project({
         name: 'Tree',
         tilesetId: 'ts',
         categoryId: 'cat',
-        frames: const [
+        frames: [
           TilesetVisualFrame(
-            source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 1),
+            source: TilesetSourceRect(
+              x: 0,
+              y: 0,
+              width: elementSize.width,
+              height: elementSize.height,
+            ),
           ),
         ],
         collisionProfile: includeCollisionProfile
-            ? const ElementCollisionProfile(
+            ? ElementCollisionProfile(
                 cells: [
-                  GridPos(x: 0, y: 0),
-                  GridPos(x: 1, y: 0),
+                  for (var y = 0; y < elementSize.height; y++)
+                    for (var x = 0; x < elementSize.width; x++)
+                      GridPos(x: x, y: y),
                 ],
               )
             : null,
