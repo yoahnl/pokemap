@@ -27,17 +27,17 @@ fi
 
   echo "## GIT STATUS --SHORT"
   echo
-  git status --short
+  git status --short -- . ':(exclude).idea' ':(exclude).review'
   echo
 
   echo "## GIT DIFF --STAT"
   echo
-  git diff --stat "$DIFF_RANGE"
+  git diff --stat "$DIFF_RANGE" -- . ':(exclude).idea' ':(exclude).review'
   echo
 
   echo "## CHANGED FILES"
   echo
-  git diff --name-only "$DIFF_RANGE"
+  git diff --name-only "$DIFF_RANGE" -- . ':(exclude).idea' ':(exclude).review'
   echo
 
   echo "## RECENT COMMITS"
@@ -47,7 +47,7 @@ fi
 
   echo "## FULL DIFF"
   echo
-  git diff "$DIFF_RANGE"
+  git diff "$DIFF_RANGE" -- . ':(exclude).idea' ':(exclude).review'
   echo
 
   for file in AI_PROJECT_STATE.md PROJECT_STATUS.md; do

@@ -18,6 +18,7 @@ class GameplayWorldState {
     required Map<int, PlacedElementBehaviorActivation> bumpBehaviorByPos,
     required Map<int, PlacedElementBehaviorActivation> exitBehaviorByPos,
     required Map<int, PlacedElementBehaviorActivation> nearBehaviorByPos,
+    required Map<int, Set<String>> placedElementCoverageByPos,
     required int tileWidth,
     required int tileHeight,
   })  : _collisionCache = collisionCache,
@@ -29,6 +30,7 @@ class GameplayWorldState {
         _bumpBehaviorByPos = bumpBehaviorByPos,
         _exitBehaviorByPos = exitBehaviorByPos,
         _nearBehaviorByPos = nearBehaviorByPos,
+        _placedElementCoverageByPos = placedElementCoverageByPos,
         _tileWidth = tileWidth <= 0 ? 16 : tileWidth,
         _tileHeight = tileHeight <= 0 ? 16 : tileHeight;
 
@@ -69,6 +71,10 @@ class GameplayWorldState {
           trigger: MapPlacedElementTriggerType.onExit,
         ),
         nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
+          map,
+          project: project,
+        ),
+        placedElementCoverageByPos: _buildPlacedElementCoverageByPos(
           map,
           project: project,
         ),
@@ -118,6 +124,10 @@ class GameplayWorldState {
         map,
         project: project,
       ),
+      placedElementCoverageByPos: _buildPlacedElementCoverageByPos(
+        map,
+        project: project,
+      ),
       tileWidth: tileWidth,
       tileHeight: tileHeight,
     );
@@ -140,6 +150,7 @@ class GameplayWorldState {
   final Map<int, PlacedElementBehaviorActivation> _bumpBehaviorByPos;
   final Map<int, PlacedElementBehaviorActivation> _exitBehaviorByPos;
   final Map<int, PlacedElementBehaviorActivation> _nearBehaviorByPos;
+  final Map<int, Set<String>> _placedElementCoverageByPos;
   final int _tileWidth;
   final int _tileHeight;
 
@@ -220,6 +231,24 @@ class GameplayWorldState {
   ) =>
       _nearBehaviorByPos[y * map.size.width + x];
 
+  bool isFacingPlacedElement({
+    required GridPos playerPos,
+    required Direction facing,
+    required MapPlacedElement element,
+  }) {
+    final tx = playerPos.x + facing.dx;
+    final ty = playerPos.y + facing.dy;
+    if (tx < 0 || ty < 0 || tx >= map.size.width || ty >= map.size.height) {
+      return false;
+    }
+    final index = ty * map.size.width + tx;
+    final coveredInstances = _placedElementCoverageByPos[index];
+    if (coveredInstances == null || coveredInstances.isEmpty) {
+      return false;
+    }
+    return coveredInstances.contains(element.id);
+  }
+
   PlacedElementBehaviorActivation? placedElementBehaviorOnExitTransition({
     required GridPos from,
     required GridPos to,
@@ -263,6 +292,7 @@ class GameplayWorldState {
         bumpBehaviorByPos: _bumpBehaviorByPos,
         exitBehaviorByPos: _exitBehaviorByPos,
         nearBehaviorByPos: _nearBehaviorByPos,
+        placedElementCoverageByPos: _placedElementCoverageByPos,
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
       );
@@ -465,10 +495,9 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
     if (behaviors.isEmpty) {
       continue;
     }
-    final entry = elementById[instance.elementId];
-    final source = entry?.frames.primarySource;
-    final width = source == null || source.width <= 0 ? 1 : source.width;
-    final height = source == null || source.height <= 0 ? 1 : source.height;
+    final footprint = _resolvePlacedElementFootprintSize(instance, elementById);
+    final width = footprint.width;
+    final height = footprint.height;
     for (final behavior in behaviors) {
       if (!behavior.enabled) {
         continue;
@@ -515,10 +544,9 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementNearBehaviorByPos(
     if (behaviors.isEmpty) {
       continue;
     }
-    final entry = elementById[instance.elementId];
-    final source = entry?.frames.primarySource;
-    final width = source == null || source.width <= 0 ? 1 : source.width;
-    final height = source == null || source.height <= 0 ? 1 : source.height;
+    final footprint = _resolvePlacedElementFootprintSize(instance, elementById);
+    final width = footprint.width;
+    final height = footprint.height;
     final minX = instance.pos.x;
     final minY = instance.pos.y;
     final maxX = minX + width - 1;
@@ -563,6 +591,48 @@ Map<int, PlacedElementBehaviorActivation> _buildPlacedElementNearBehaviorByPos(
     }
   }
   return result;
+}
+
+Map<int, Set<String>> _buildPlacedElementCoverageByPos(
+  MapData map, {
+  required ProjectManifest? project,
+}) {
+  final w = map.size.width;
+  final h = map.size.height;
+  final result = <int, Set<String>>{};
+  final elementById = project == null
+      ? const <String, ProjectElementEntry>{}
+      : {
+          for (final entry in project.elements) entry.id: entry,
+        };
+  for (final instance in map.placedElements) {
+    final footprint = _resolvePlacedElementFootprintSize(instance, elementById);
+    final width = footprint.width;
+    final height = footprint.height;
+    for (var localY = 0; localY < height; localY++) {
+      for (var localX = 0; localX < width; localX++) {
+        final x = instance.pos.x + localX;
+        final y = instance.pos.y + localY;
+        if (x < 0 || y < 0 || x >= w || y >= h) {
+          continue;
+        }
+        final index = y * w + x;
+        result.putIfAbsent(index, () => <String>{}).add(instance.id);
+      }
+    }
+  }
+  return result;
+}
+
+GridSize _resolvePlacedElementFootprintSize(
+  MapPlacedElement instance,
+  Map<String, ProjectElementEntry> elementById,
+) {
+  final entry = elementById[instance.elementId];
+  final source = entry?.frames.primarySource;
+  final width = source == null || source.width <= 0 ? 1 : source.width;
+  final height = source == null || source.height <= 0 ? 1 : source.height;
+  return GridSize(width: width, height: height);
 }
 
 bool _isEntityBlockingCandidate(MapEntity entity) {

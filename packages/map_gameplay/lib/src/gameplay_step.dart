@@ -125,6 +125,14 @@ GameplayStepResult? _resolveMovementTriggeredBehavior({
     if (activation == null) {
       continue;
     }
+    if (!_passesBehaviorScopeForMovement(
+      world: world,
+      activation: activation,
+      trigger: trigger,
+      previousPos: previousPos,
+    )) {
+      continue;
+    }
     return PlacedElementInteracted(
       world,
       activation.element,
@@ -167,7 +175,11 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
   }
 
   final actionBehavior = world.placedElementBehaviorOnActionAt(tx, ty);
-  if (actionBehavior != null) {
+  if (actionBehavior != null &&
+      _passesBehaviorScopeForAction(
+        world: world,
+        activation: actionBehavior,
+      )) {
     return PlacedElementInteracted(
       world,
       actionBehavior.element,
@@ -177,4 +189,92 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
   }
 
   return NothingToInteract(world);
+}
+
+bool _passesBehaviorScopeForMovement({
+  required GameplayWorldState world,
+  required PlacedElementBehaviorActivation activation,
+  required MapPlacedElementTriggerType trigger,
+  required GridPos previousPos,
+}) {
+  final scope = activation.behavior.triggerScope;
+  switch (scope) {
+    case MapPlacedElementTriggerScope.defaultScope:
+      return true;
+    case MapPlacedElementTriggerScope.oncePerEnter:
+      if (trigger != MapPlacedElementTriggerType.onEnter) {
+        return true;
+      }
+      final previousActivation = world.placedElementBehaviorOnEnterAt(
+        previousPos.x,
+        previousPos.y,
+      );
+      return !_isSameBehaviorActivation(previousActivation, activation);
+    case MapPlacedElementTriggerScope.whileInsideSingleShot:
+      if (trigger == MapPlacedElementTriggerType.onEnter) {
+        final previousActivation = world.placedElementBehaviorOnEnterAt(
+          previousPos.x,
+          previousPos.y,
+        );
+        return !_isSameBehaviorActivation(previousActivation, activation);
+      }
+      if (trigger == MapPlacedElementTriggerType.onNear) {
+        final previousActivation = world.placedElementBehaviorOnNearAt(
+          previousPos.x,
+          previousPos.y,
+        );
+        return !_isSameBehaviorActivation(previousActivation, activation);
+      }
+      return true;
+    case MapPlacedElementTriggerScope.facingOnly:
+      if (trigger != MapPlacedElementTriggerType.onNear) {
+        return true;
+      }
+      return world.isFacingPlacedElement(
+        playerPos: world.player.pos,
+        facing: world.player.facing,
+        element: activation.element,
+      );
+    case MapPlacedElementTriggerScope.nearCardinalOnly:
+      return true;
+  }
+}
+
+bool _passesBehaviorScopeForAction({
+  required GameplayWorldState world,
+  required PlacedElementBehaviorActivation activation,
+}) {
+  final scope = activation.behavior.triggerScope;
+  switch (scope) {
+    case MapPlacedElementTriggerScope.defaultScope:
+    case MapPlacedElementTriggerScope.oncePerEnter:
+    case MapPlacedElementTriggerScope.whileInsideSingleShot:
+    case MapPlacedElementTriggerScope.nearCardinalOnly:
+      return true;
+    case MapPlacedElementTriggerScope.facingOnly:
+      return world.isFacingPlacedElement(
+        playerPos: world.player.pos,
+        facing: world.player.facing,
+        element: activation.element,
+      );
+  }
+}
+
+bool _isSameBehaviorActivation(
+  PlacedElementBehaviorActivation? a,
+  PlacedElementBehaviorActivation? b,
+) {
+  if (a == null || b == null) {
+    return false;
+  }
+  return a.element.id == b.element.id &&
+      _behaviorIdentity(a.behavior) == _behaviorIdentity(b.behavior);
+}
+
+String _behaviorIdentity(MapPlacedElementBehavior behavior) {
+  final behaviorId = behavior.id.trim();
+  if (behaviorId.isNotEmpty) {
+    return behaviorId;
+  }
+  return '${behavior.trigger.name}:${behavior.effect.type.name}';
 }

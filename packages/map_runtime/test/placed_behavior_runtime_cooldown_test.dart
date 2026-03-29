@@ -39,6 +39,28 @@ void main() {
       expect(gate.canTrigger(key: keyDialogue, nowMs: 950), isTrue);
     });
 
+    test('explicit cooldown override replaces effect default', () {
+      final gate = PlacedBehaviorCooldownGate();
+      gate.markTriggered(
+        key: keyDialogue,
+        nowMs: 0,
+        overrideDuration: const Duration(milliseconds: 250),
+      );
+      expect(gate.canTrigger(key: keyDialogue, nowMs: 200), isFalse);
+      expect(gate.canTrigger(key: keyDialogue, nowMs: 260), isTrue);
+    });
+
+    test('explicit zero cooldown disables blocking', () {
+      final gate = PlacedBehaviorCooldownGate();
+      gate.markTriggered(
+        key: keyShowMessage,
+        nowMs: 0,
+        overrideDuration: Duration.zero,
+      );
+      expect(gate.canTrigger(key: keyShowMessage, nowMs: 0), isTrue);
+      expect(gate.canTrigger(key: keyShowMessage, nowMs: 1), isTrue);
+    });
+
     test('setAnimationEnabled remains immediate and idempotent-friendly', () {
       final gate = PlacedBehaviorCooldownGate();
       gate.markTriggered(key: keyAnimationToggle, nowMs: 0);

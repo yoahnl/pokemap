@@ -115,12 +115,28 @@ enum MapPlacedElementTriggerType {
   onNear,
 }
 
+enum MapPlacedElementTriggerScope {
+  @JsonValue('default')
+  defaultScope,
+  @JsonValue('once_per_enter')
+  oncePerEnter,
+  @JsonValue('while_inside_single_shot')
+  whileInsideSingleShot,
+  @JsonValue('facing_only')
+  facingOnly,
+  @JsonValue('near_cardinal_only')
+  nearCardinalOnly,
+}
+
 @freezed
 class MapPlacedElementBehavior with _$MapPlacedElementBehavior {
   @JsonSerializable(explicitToJson: true)
   const factory MapPlacedElementBehavior({
     @Default('') String id,
     @Default(true) bool enabled,
+    @Default(MapPlacedElementTriggerScope.defaultScope)
+    MapPlacedElementTriggerScope triggerScope,
+    int? cooldownMs,
     @Default(MapPlacedElementTriggerType.onAction)
     MapPlacedElementTriggerType trigger,
     required MapPlacedElementEffect effect,

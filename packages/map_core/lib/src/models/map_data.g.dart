@@ -158,6 +158,10 @@ _$MapPlacedElementBehaviorImpl _$$MapPlacedElementBehaviorImplFromJson(
     _$MapPlacedElementBehaviorImpl(
       id: json['id'] as String? ?? '',
       enabled: json['enabled'] as bool? ?? true,
+      triggerScope: $enumDecodeNullable(
+              _$MapPlacedElementTriggerScopeEnumMap, json['triggerScope']) ??
+          MapPlacedElementTriggerScope.defaultScope,
+      cooldownMs: (json['cooldownMs'] as num?)?.toInt(),
       trigger: $enumDecodeNullable(
               _$MapPlacedElementTriggerTypeEnumMap, json['trigger']) ??
           MapPlacedElementTriggerType.onAction,
@@ -170,9 +174,21 @@ Map<String, dynamic> _$$MapPlacedElementBehaviorImplToJson(
     <String, dynamic>{
       'id': instance.id,
       'enabled': instance.enabled,
+      'triggerScope':
+          _$MapPlacedElementTriggerScopeEnumMap[instance.triggerScope]!,
+      'cooldownMs': instance.cooldownMs,
       'trigger': _$MapPlacedElementTriggerTypeEnumMap[instance.trigger]!,
       'effect': instance.effect.toJson(),
     };
+
+const _$MapPlacedElementTriggerScopeEnumMap = {
+  MapPlacedElementTriggerScope.defaultScope: 'default',
+  MapPlacedElementTriggerScope.oncePerEnter: 'once_per_enter',
+  MapPlacedElementTriggerScope.whileInsideSingleShot:
+      'while_inside_single_shot',
+  MapPlacedElementTriggerScope.facingOnly: 'facing_only',
+  MapPlacedElementTriggerScope.nearCardinalOnly: 'near_cardinal_only',
+};
 
 const _$MapPlacedElementTriggerTypeEnumMap = {
   MapPlacedElementTriggerType.onAction: 'on_action',

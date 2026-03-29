@@ -3972,6 +3972,64 @@ class _PlacedElementBehaviorsSectionState
     _replaceSelectedBehavior(behavior);
   }
 
+  int _defaultExplicitCooldownMs(MapPlacedElementEffectType effectType) {
+    switch (effectType) {
+      case MapPlacedElementEffectType.showMessage:
+        return 650;
+      case MapPlacedElementEffectType.openDialogue:
+        return 900;
+      case MapPlacedElementEffectType.setAnimationEnabled:
+        return 0;
+      case MapPlacedElementEffectType.playAnimationOnce:
+        return 180;
+    }
+  }
+
+  List<MapPlacedElementTriggerScope> _allowedScopesForTrigger(
+    MapPlacedElementTriggerType trigger,
+  ) {
+    switch (trigger) {
+      case MapPlacedElementTriggerType.onAction:
+        return const <MapPlacedElementTriggerScope>[
+          MapPlacedElementTriggerScope.defaultScope,
+          MapPlacedElementTriggerScope.facingOnly,
+        ];
+      case MapPlacedElementTriggerType.onEnter:
+        return const <MapPlacedElementTriggerScope>[
+          MapPlacedElementTriggerScope.defaultScope,
+          MapPlacedElementTriggerScope.oncePerEnter,
+          MapPlacedElementTriggerScope.whileInsideSingleShot,
+        ];
+      case MapPlacedElementTriggerType.onNear:
+        return const <MapPlacedElementTriggerScope>[
+          MapPlacedElementTriggerScope.defaultScope,
+          MapPlacedElementTriggerScope.whileInsideSingleShot,
+          MapPlacedElementTriggerScope.facingOnly,
+          MapPlacedElementTriggerScope.nearCardinalOnly,
+        ];
+      case MapPlacedElementTriggerType.onBump:
+      case MapPlacedElementTriggerType.onExit:
+        return const <MapPlacedElementTriggerScope>[
+          MapPlacedElementTriggerScope.defaultScope,
+        ];
+    }
+  }
+
+  String _scopeLabel(MapPlacedElementTriggerScope scope) {
+    switch (scope) {
+      case MapPlacedElementTriggerScope.defaultScope:
+        return 'Par défaut';
+      case MapPlacedElementTriggerScope.oncePerEnter:
+        return 'Une fois/entrée';
+      case MapPlacedElementTriggerScope.whileInsideSingleShot:
+        return 'Zone unique';
+      case MapPlacedElementTriggerScope.facingOnly:
+        return 'Regard uniquement';
+      case MapPlacedElementTriggerScope.nearCardinalOnly:
+        return 'Proche N/S/E/O';
+    }
+  }
+
   MapPlacedElementBehavior? get _selectedBehavior {
     if (widget.value.isEmpty) {
       return null;
@@ -4256,6 +4314,15 @@ class _PlacedElementBehaviorsSectionState
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     final selected = _selectedBehavior;
+    const maxBehaviorCooldownMs = 600000;
+    final allowedScopes = selected == null
+        ? const <MapPlacedElementTriggerScope>[]
+        : _allowedScopesForTrigger(selected.trigger);
+    final selectedScope = selected == null
+        ? MapPlacedElementTriggerScope.defaultScope
+        : allowedScopes.contains(selected.triggerScope)
+            ? selected.triggerScope
+            : MapPlacedElementTriggerScope.defaultScope;
 
     String triggerHelp(MapPlacedElementTriggerType trigger) {
       switch (trigger) {
@@ -4269,6 +4336,21 @@ class _PlacedElementBehaviorsSectionState
           return 'Sortie: déclenché quand le joueur quitte la zone couverte.';
         case MapPlacedElementTriggerType.onNear:
           return 'Proximité: déclenché quand le joueur devient adjacent (4 directions).';
+      }
+    }
+
+    String scopeHelp(MapPlacedElementTriggerScope scope) {
+      switch (scope) {
+        case MapPlacedElementTriggerScope.defaultScope:
+          return 'Default: comportement actuel sans filtre supplémentaire.';
+        case MapPlacedElementTriggerScope.oncePerEnter:
+          return 'Once per enter: déclenche une fois à l’entrée, puis réarme après sortie.';
+        case MapPlacedElementTriggerScope.whileInsideSingleShot:
+          return 'Single-shot: un déclenchement tant que le joueur reste dans la zone, puis réarmement après sortie.';
+        case MapPlacedElementTriggerScope.facingOnly:
+          return 'Facing only: déclenche seulement si le joueur regarde l’élément.';
+        case MapPlacedElementTriggerScope.nearCardinalOnly:
+          return 'Near cardinal: proximité limitée à N/S/E/W (pas de diagonales).';
       }
     }
 
@@ -4439,7 +4521,18 @@ class _PlacedElementBehaviorsSectionState
                           return;
                         }
                         _commitDrafts();
-                        _updateSelected(selected.copyWith(trigger: next));
+                        final allowedScopesForNext =
+                            _allowedScopesForTrigger(next);
+                        final nextScope =
+                            allowedScopesForNext.contains(selected.triggerScope)
+                                ? selected.triggerScope
+                                : MapPlacedElementTriggerScope.defaultScope;
+                        _updateSelected(
+                          selected.copyWith(
+                            trigger: next,
+                            triggerScope: nextScope,
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -4448,6 +4541,123 @@ class _PlacedElementBehaviorsSectionState
               const SizedBox(height: 4),
               Text(
                 triggerHelp(selected.trigger),
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Scope',
+                    style: TextStyle(color: secondary, fontSize: 10),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: PopupMenuButton<MapPlacedElementTriggerScope>(
+                        padding: EdgeInsets.zero,
+                        splashRadius: 20,
+                        offset: const Offset(0, 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: EditorChrome.inspectorJoyBlue
+                                .withValues(alpha: 0.35),
+                          ),
+                        ),
+                        color: EditorChrome.islandFillElevated(context),
+                        elevation: 3,
+                        initialValue: selectedScope,
+                        onSelected: (nextScope) {
+                          _commitDrafts();
+                          _updateSelected(
+                            selected.copyWith(triggerScope: nextScope),
+                          );
+                        },
+                        itemBuilder: (menuCtx) => [
+                          for (final scope in allowedScopes)
+                            PopupMenuItem<MapPlacedElementTriggerScope>(
+                              value: scope,
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 22,
+                                    child: scope == selectedScope
+                                        ? const Icon(
+                                            CupertinoIcons.checkmark,
+                                            size: 14,
+                                            color:
+                                                EditorChrome.inspectorJoyBlue,
+                                          )
+                                        : null,
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      _scopeLabel(scope),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: scope == selectedScope
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: label,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: EditorChrome.largeIslandSurfaceColor(
+                              context,
+                              tint: EditorChrome.inspectorJoyBlue
+                                  .withValues(alpha: 0.08),
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: EditorChrome.inspectorJoyBlue
+                                  .withValues(alpha: 0.35),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _scopeLabel(selectedScope),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: label,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                CupertinoIcons.chevron_down,
+                                size: 12,
+                                color: secondary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                scopeHelp(selectedScope),
                 style: TextStyle(
                   color: secondary,
                   fontSize: 10,
@@ -4530,6 +4740,77 @@ class _PlacedElementBehaviorsSectionState
                   fontSize: 10,
                 ),
               ),
+              const SizedBox(height: 8),
+              _CompactSwitchRow(
+                title: 'Cooldown explicite',
+                value: selected.cooldownMs != null,
+                onChanged: (next) {
+                  if (!next) {
+                    _updateSelected(selected.copyWith(cooldownMs: null));
+                    return;
+                  }
+                  _updateSelected(
+                    selected.copyWith(
+                      cooldownMs:
+                          _defaultExplicitCooldownMs(selected.effect.type),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 4),
+              Text(
+                selected.cooldownMs == null
+                    ? 'Utilise la valeur par défaut du runtime pour cet effet.'
+                    : 'Valeur forcée pour ce behavior. Le runtime ignore sa valeur par défaut.',
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 10,
+                ),
+              ),
+              if (selected.cooldownMs != null) ...[
+                const SizedBox(height: 6),
+                _CompactStepperRow(
+                  label: 'Cooldown',
+                  value: '${selected.cooldownMs} ms',
+                  onMinus: () {
+                    final current = selected.cooldownMs ?? 0;
+                    final next = math.max(0, current - 50);
+                    _updateSelected(selected.copyWith(cooldownMs: next));
+                  },
+                  onPlus: () {
+                    final current = selected.cooldownMs ?? 0;
+                    final next = math.min(maxBehaviorCooldownMs, current + 50);
+                    _updateSelected(selected.copyWith(cooldownMs: next));
+                  },
+                  onReset: () =>
+                      _updateSelected(selected.copyWith(cooldownMs: null)),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final preset in const [250, 500, 1000])
+                      CupertinoButton(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minSize: 0,
+                        color: selected.cooldownMs == preset
+                            ? EditorChrome.inspectorJoyBlue
+                                .withValues(alpha: 0.25)
+                            : EditorPaintColors.white12,
+                        onPressed: () => _updateSelected(
+                            selected.copyWith(cooldownMs: preset)),
+                        child: Text(
+                          '${preset}ms',
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
               if (selected.effect.type ==
                   MapPlacedElementEffectType.showMessage)
                 Padding(

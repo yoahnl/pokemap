@@ -73,6 +73,47 @@ void main() {
       expect(exitBehavior.toJson()['trigger'], 'on_exit');
       expect(nearBehavior.toJson()['trigger'], 'on_near');
     });
+
+    test('serializes and deserializes optional cooldownMs', () {
+      final behavior = MapPlacedElementBehavior.fromJson({
+        'id': 'b1',
+        'enabled': true,
+        'triggerScope': 'facing_only',
+        'cooldownMs': 750,
+        'trigger': 'on_action',
+        'effect': {
+          'type': 'show_message',
+          'message': 'hello',
+        },
+      });
+
+      expect(behavior.cooldownMs, 750);
+      expect(behavior.triggerScope, MapPlacedElementTriggerScope.facingOnly);
+      expect(behavior.toJson()['cooldownMs'], 750);
+      expect(behavior.toJson()['triggerScope'], 'facing_only');
+    });
+
+    test('legacy behavior json without cooldownMs/triggerScope keeps defaults',
+        () {
+      final behavior = MapPlacedElementBehavior.fromJson({
+        'id': 'b1',
+        'enabled': true,
+        'trigger': 'on_action',
+        'effect': {
+          'type': 'show_message',
+          'message': 'hello',
+        },
+      });
+
+      expect(behavior.cooldownMs, isNull);
+      expect(
+        behavior.triggerScope,
+        MapPlacedElementTriggerScope.defaultScope,
+      );
+      expect(behavior.toJson().containsKey('cooldownMs'), isTrue);
+      expect(behavior.toJson()['cooldownMs'], isNull);
+      expect(behavior.toJson()['triggerScope'], 'default');
+    });
   });
 
   group('MapPlacedElement behavior validation', () {
@@ -183,6 +224,86 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
     });
+
+    test('rejects behavior with negative cooldownMs', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'b1',
+          enabled: true,
+          cooldownMs: -1,
+          trigger: MapPlacedElementTriggerType.onAction,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.showMessage,
+            message: 'hello',
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects behavior with excessive cooldownMs', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'b1',
+          enabled: true,
+          cooldownMs: 600001,
+          trigger: MapPlacedElementTriggerType.onAction,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.showMessage,
+            message: 'hello',
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects facingOnly scope on unsupported trigger', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'b1',
+          enabled: true,
+          triggerScope: MapPlacedElementTriggerScope.facingOnly,
+          trigger: MapPlacedElementTriggerType.onExit,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.showMessage,
+            message: 'hello',
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects nearCardinalOnly scope on unsupported trigger', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'b1',
+          enabled: true,
+          triggerScope: MapPlacedElementTriggerScope.nearCardinalOnly,
+          trigger: MapPlacedElementTriggerType.onAction,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.showMessage,
+            message: 'hello',
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
   });
 
   group('MapPlacedElement behavior operations', () {
@@ -210,6 +331,8 @@ void main() {
         behaviorIndex: 0,
         behavior: const MapPlacedElementBehavior(
           enabled: true,
+          triggerScope: MapPlacedElementTriggerScope.oncePerEnter,
+          cooldownMs: 500,
           trigger: MapPlacedElementTriggerType.onEnter,
           effect: MapPlacedElementEffect(
             type: MapPlacedElementEffectType.showMessage,
@@ -223,6 +346,11 @@ void main() {
       );
       expect(updated.placedElements.first.behaviors.first.id, addedBehaviorId);
       expect(updated.placedElements.first.behaviors.first.effect.message, 'B');
+      expect(
+        updated.placedElements.first.behaviors.first.triggerScope,
+        MapPlacedElementTriggerScope.oncePerEnter,
+      );
+      expect(updated.placedElements.first.behaviors.first.cooldownMs, 500);
 
       final toggled = setMapPlacedElementBehaviorEnabledAt(
         updated,

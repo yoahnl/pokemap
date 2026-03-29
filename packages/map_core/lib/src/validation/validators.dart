@@ -1018,6 +1018,7 @@ class MapValidator {
           behaviorIndex++) {
         final behavior = instance.behaviors[behaviorIndex];
         final behaviorId = behavior.id.trim();
+        const maxBehaviorCooldownMs = 600000;
         if (behaviorId.isEmpty) {
           throw ValidationException(
             'Placed element instance $instanceId behavior[$behaviorIndex] has empty id',
@@ -1027,6 +1028,55 @@ class MapValidator {
           if (instance.behaviors[i].id.trim() == behaviorId) {
             throw ValidationException(
               'Placed element instance $instanceId has duplicate behavior id "$behaviorId"',
+            );
+          }
+        }
+        final trigger = behavior.trigger;
+        final triggerScope = behavior.triggerScope;
+        switch (triggerScope) {
+          case MapPlacedElementTriggerScope.defaultScope:
+            break;
+          case MapPlacedElementTriggerScope.oncePerEnter:
+            if (trigger != MapPlacedElementTriggerType.onEnter) {
+              throw ValidationException(
+                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope oncePerEnter requires trigger onEnter',
+              );
+            }
+            break;
+          case MapPlacedElementTriggerScope.whileInsideSingleShot:
+            if (trigger != MapPlacedElementTriggerType.onEnter &&
+                trigger != MapPlacedElementTriggerType.onNear) {
+              throw ValidationException(
+                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope whileInsideSingleShot requires trigger onEnter or onNear',
+              );
+            }
+            break;
+          case MapPlacedElementTriggerScope.facingOnly:
+            if (trigger != MapPlacedElementTriggerType.onAction &&
+                trigger != MapPlacedElementTriggerType.onNear) {
+              throw ValidationException(
+                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope facingOnly requires trigger onAction or onNear',
+              );
+            }
+            break;
+          case MapPlacedElementTriggerScope.nearCardinalOnly:
+            if (trigger != MapPlacedElementTriggerType.onNear) {
+              throw ValidationException(
+                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope nearCardinalOnly requires trigger onNear',
+              );
+            }
+            break;
+        }
+        final cooldownMs = behavior.cooldownMs;
+        if (cooldownMs != null) {
+          if (cooldownMs < 0) {
+            throw ValidationException(
+              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] has negative cooldownMs: $cooldownMs',
+            );
+          }
+          if (cooldownMs > maxBehaviorCooldownMs) {
+            throw ValidationException(
+              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] has excessive cooldownMs: $cooldownMs (max $maxBehaviorCooldownMs)',
             );
           }
         }

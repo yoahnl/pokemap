@@ -449,10 +449,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           ? 'legacy'
           : result.behavior.id.trim();
       debugPrint(
-        '[placed_behavior] queued trigger=${result.trigger.name} instance=${result.element.id} behavior=$behaviorId effect=${result.behavior.effect.type.name}',
+        '[placed_behavior] queued trigger=${result.trigger.name} scope=${result.behavior.triggerScope.name} instance=${result.element.id} behavior=$behaviorId effect=${result.behavior.effect.type.name}',
       );
       _updateBehaviorDebugLine(
-        'Queued ${result.trigger.name} · ${result.behavior.effect.type.name} · ${result.element.id}#$behaviorId',
+        'Queued ${result.trigger.name}/${result.behavior.triggerScope.name} · ${result.behavior.effect.type.name} · ${result.element.id}#$behaviorId',
       );
       return;
     }
@@ -653,6 +653,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       behavior: behavior,
       trigger: trigger,
     );
+    final cooldownOverride = _resolvePlacedBehaviorCooldownOverride(behavior);
     if (!_placedBehaviorCooldownGate.canTrigger(
       key: cooldownKey,
       nowMs: _runtimeClockMs,
@@ -662,15 +663,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         nowMs: _runtimeClockMs,
       );
       debugPrint(
-        '[placed_behavior] cooldown blocked trigger=${trigger.name} instance=${element.id} behavior=${cooldownKey.behaviorId} effect=${effect.type.name} remainingMs=${remainingMs.toStringAsFixed(0)}',
+        '[placed_behavior] cooldown blocked trigger=${trigger.name} scope=${behavior.triggerScope.name} instance=${element.id} behavior=${cooldownKey.behaviorId} effect=${effect.type.name} remainingMs=${remainingMs.toStringAsFixed(0)}',
       );
       _updateBehaviorDebugLine(
-        'Cooldown ${effect.type.name} (${remainingMs.toStringAsFixed(0)} ms) · ${element.id}#${cooldownKey.behaviorId}',
+        'Cooldown ${effect.type.name} (${remainingMs.toStringAsFixed(0)} ms) · ${element.id}#${cooldownKey.behaviorId} (${behavior.triggerScope.name})',
       );
       return;
     }
     debugPrint(
-      '[placed_behavior] trigger=${trigger.name} instance=${element.id} behavior=${cooldownKey.behaviorId} effect=${effect.type.name}',
+      '[placed_behavior] trigger=${trigger.name} scope=${behavior.triggerScope.name} instance=${element.id} behavior=${cooldownKey.behaviorId} effect=${effect.type.name}',
     );
     var effectApplied = false;
     switch (effect.type) {
@@ -740,9 +741,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _placedBehaviorCooldownGate.markTriggered(
       key: cooldownKey,
       nowMs: _runtimeClockMs,
+      overrideDuration: cooldownOverride,
     );
     _updateBehaviorDebugLine(
-      'Triggered ${trigger.name} -> ${effect.type.name} · ${element.id}#${cooldownKey.behaviorId}',
+      'Triggered ${trigger.name}/${behavior.triggerScope.name} -> ${effect.type.name} · ${element.id}#${cooldownKey.behaviorId}',
     );
   }
 
@@ -978,6 +980,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       trigger: trigger,
       effectType: behavior.effect.type,
     );
+  }
+
+  Duration? _resolvePlacedBehaviorCooldownOverride(
+    MapPlacedElementBehavior behavior,
+  ) {
+    final cooldownMs = behavior.cooldownMs;
+    if (cooldownMs == null) {
+      return null;
+    }
+    if (cooldownMs <= 0) {
+      return Duration.zero;
+    }
+    return Duration(milliseconds: cooldownMs);
   }
 
   bool _resolvePlacedElementAnimationEnabled(String instanceId) {

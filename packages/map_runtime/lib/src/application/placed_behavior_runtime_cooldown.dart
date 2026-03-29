@@ -96,8 +96,9 @@ class PlacedBehaviorCooldownGate {
   void markTriggered({
     required PlacedBehaviorRuntimeKey key,
     required double nowMs,
+    Duration? overrideDuration,
   }) {
-    final duration = _policy.durationFor(key.effectType);
+    final duration = overrideDuration ?? _policy.durationFor(key.effectType);
     if (duration <= Duration.zero) {
       _blockedUntilMs.remove(key);
       return;

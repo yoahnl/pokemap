@@ -196,6 +196,150 @@ void main() {
       expect(fourthInteracted.world.player.pos, const GridPos(x: 1, y: 3));
     });
 
+    test('oncePerEnter scope does not retrigger while still inside footprint',
+        () {
+      final behavior = const MapPlacedElementBehavior(
+        enabled: true,
+        triggerScope: MapPlacedElementTriggerScope.oncePerEnter,
+        trigger: MapPlacedElementTriggerType.onEnter,
+        effect: MapPlacedElementEffect(
+          type: MapPlacedElementEffectType.showMessage,
+          message: 'enter_once',
+        ),
+      );
+      final world = GameplayWorldState.initial(
+        map: _mapWithBehavior(
+          applyCollision: false,
+          mapSize: const GridSize(width: 7, height: 4),
+          elementPos: const GridPos(x: 1, y: 1),
+          elementSize: const GridSize(width: 2, height: 1),
+          playerPos: const GridPos(x: 0, y: 1),
+          behavior: behavior,
+        ),
+        playerPos: const GridPos(x: 0, y: 1),
+        playerFacing: Direction.east,
+        project: _project(
+          includeCollisionProfile: false,
+          elementSize: const GridSize(width: 2, height: 1),
+        ),
+      );
+
+      final first = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(first, isA<PlacedElementInteracted>());
+      final firstInteracted = first as PlacedElementInteracted;
+      expect(firstInteracted.world.player.pos, const GridPos(x: 1, y: 1));
+
+      final second = stepGameplayWorld(
+        firstInteracted.world,
+        const MoveIntent(Direction.east),
+      );
+      expect(second, isA<Moved>());
+      final secondMoved = second as Moved;
+      expect(secondMoved.world.player.pos, const GridPos(x: 2, y: 1));
+
+      final third = stepGameplayWorld(
+        secondMoved.world,
+        const MoveIntent(Direction.east),
+      );
+      expect(third, isA<Moved>());
+      final thirdMoved = third as Moved;
+      expect(thirdMoved.world.player.pos, const GridPos(x: 3, y: 1));
+
+      final fourth = stepGameplayWorld(
+        thirdMoved.world,
+        const MoveIntent(Direction.west),
+      );
+      expect(fourth, isA<PlacedElementInteracted>());
+      final fourthInteracted = fourth as PlacedElementInteracted;
+      expect(fourthInteracted.world.player.pos, const GridPos(x: 2, y: 1));
+      expect(fourthInteracted.trigger, MapPlacedElementTriggerType.onEnter);
+    });
+
+    test('facingOnly scope filters onNear by player facing', () {
+      final behavior = const MapPlacedElementBehavior(
+        enabled: true,
+        triggerScope: MapPlacedElementTriggerScope.facingOnly,
+        trigger: MapPlacedElementTriggerType.onNear,
+        effect: MapPlacedElementEffect(
+          type: MapPlacedElementEffectType.showMessage,
+          message: 'near_facing',
+        ),
+      );
+      final world = GameplayWorldState.initial(
+        map: _mapWithBehavior(
+          applyCollision: false,
+          mapSize: const GridSize(width: 6, height: 6),
+          elementPos: const GridPos(x: 2, y: 2),
+          elementSize: const GridSize(width: 1, height: 1),
+          playerPos: const GridPos(x: 1, y: 3),
+          behavior: behavior,
+        ),
+        playerPos: const GridPos(x: 1, y: 3),
+        playerFacing: Direction.east,
+        project: _project(
+          includeCollisionProfile: false,
+          elementSize: const GridSize(width: 1, height: 1),
+        ),
+      );
+
+      final first = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(first, isA<Moved>());
+      final firstMoved = first as Moved;
+      expect(firstMoved.world.player.pos, const GridPos(x: 2, y: 3));
+
+      final second = stepGameplayWorld(
+        firstMoved.world,
+        const MoveIntent(Direction.south),
+      );
+      expect(second, isA<Moved>());
+      final secondMoved = second as Moved;
+      expect(secondMoved.world.player.pos, const GridPos(x: 2, y: 4));
+
+      final third = stepGameplayWorld(
+        secondMoved.world,
+        const MoveIntent(Direction.north),
+      );
+      expect(third, isA<PlacedElementInteracted>());
+      final thirdInteracted = third as PlacedElementInteracted;
+      expect(thirdInteracted.trigger, MapPlacedElementTriggerType.onNear);
+      expect(thirdInteracted.world.player.pos, const GridPos(x: 2, y: 3));
+    });
+
+    test('nearCardinalOnly scope keeps cardinal near behavior deterministic',
+        () {
+      final behavior = const MapPlacedElementBehavior(
+        enabled: true,
+        triggerScope: MapPlacedElementTriggerScope.nearCardinalOnly,
+        trigger: MapPlacedElementTriggerType.onNear,
+        effect: MapPlacedElementEffect(
+          type: MapPlacedElementEffectType.showMessage,
+          message: 'near_cardinal',
+        ),
+      );
+      final world = GameplayWorldState.initial(
+        map: _mapWithBehavior(
+          applyCollision: false,
+          mapSize: const GridSize(width: 6, height: 6),
+          elementPos: const GridPos(x: 2, y: 2),
+          elementSize: const GridSize(width: 1, height: 1),
+          playerPos: const GridPos(x: 0, y: 2),
+          behavior: behavior,
+        ),
+        playerPos: const GridPos(x: 0, y: 2),
+        playerFacing: Direction.east,
+        project: _project(
+          includeCollisionProfile: false,
+          elementSize: const GridSize(width: 1, height: 1),
+        ),
+      );
+
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+      expect(result, isA<PlacedElementInteracted>());
+      final interacted = result as PlacedElementInteracted;
+      expect(interacted.trigger, MapPlacedElementTriggerType.onNear);
+      expect(interacted.world.player.pos, const GridPos(x: 1, y: 2));
+    });
+
     test('movement trigger priority resolves onExit before onNear', () {
       final map = MapData(
         id: 'map',

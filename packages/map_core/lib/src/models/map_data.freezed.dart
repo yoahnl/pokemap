@@ -1353,6 +1353,9 @@ MapPlacedElementBehavior _$MapPlacedElementBehaviorFromJson(
 mixin _$MapPlacedElementBehavior {
   String get id => throw _privateConstructorUsedError;
   bool get enabled => throw _privateConstructorUsedError;
+  MapPlacedElementTriggerScope get triggerScope =>
+      throw _privateConstructorUsedError;
+  int? get cooldownMs => throw _privateConstructorUsedError;
   MapPlacedElementTriggerType get trigger => throw _privateConstructorUsedError;
   MapPlacedElementEffect get effect => throw _privateConstructorUsedError;
 
@@ -1375,6 +1378,8 @@ abstract class $MapPlacedElementBehaviorCopyWith<$Res> {
   $Res call(
       {String id,
       bool enabled,
+      MapPlacedElementTriggerScope triggerScope,
+      int? cooldownMs,
       MapPlacedElementTriggerType trigger,
       MapPlacedElementEffect effect});
 
@@ -1399,6 +1404,8 @@ class _$MapPlacedElementBehaviorCopyWithImpl<$Res,
   $Res call({
     Object? id = null,
     Object? enabled = null,
+    Object? triggerScope = null,
+    Object? cooldownMs = freezed,
     Object? trigger = null,
     Object? effect = null,
   }) {
@@ -1411,6 +1418,14 @@ class _$MapPlacedElementBehaviorCopyWithImpl<$Res,
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      triggerScope: null == triggerScope
+          ? _value.triggerScope
+          : triggerScope // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementTriggerScope,
+      cooldownMs: freezed == cooldownMs
+          ? _value.cooldownMs
+          : cooldownMs // ignore: cast_nullable_to_non_nullable
+              as int?,
       trigger: null == trigger
           ? _value.trigger
           : trigger // ignore: cast_nullable_to_non_nullable
@@ -1445,6 +1460,8 @@ abstract class _$$MapPlacedElementBehaviorImplCopyWith<$Res>
   $Res call(
       {String id,
       bool enabled,
+      MapPlacedElementTriggerScope triggerScope,
+      int? cooldownMs,
       MapPlacedElementTriggerType trigger,
       MapPlacedElementEffect effect});
 
@@ -1469,6 +1486,8 @@ class __$$MapPlacedElementBehaviorImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? enabled = null,
+    Object? triggerScope = null,
+    Object? cooldownMs = freezed,
     Object? trigger = null,
     Object? effect = null,
   }) {
@@ -1481,6 +1500,14 @@ class __$$MapPlacedElementBehaviorImplCopyWithImpl<$Res>
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      triggerScope: null == triggerScope
+          ? _value.triggerScope
+          : triggerScope // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementTriggerScope,
+      cooldownMs: freezed == cooldownMs
+          ? _value.cooldownMs
+          : cooldownMs // ignore: cast_nullable_to_non_nullable
+              as int?,
       trigger: null == trigger
           ? _value.trigger
           : trigger // ignore: cast_nullable_to_non_nullable
@@ -1500,6 +1527,8 @@ class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
   const _$MapPlacedElementBehaviorImpl(
       {this.id = '',
       this.enabled = true,
+      this.triggerScope = MapPlacedElementTriggerScope.defaultScope,
+      this.cooldownMs,
       this.trigger = MapPlacedElementTriggerType.onAction,
       required this.effect});
 
@@ -1514,13 +1543,18 @@ class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
   final bool enabled;
   @override
   @JsonKey()
+  final MapPlacedElementTriggerScope triggerScope;
+  @override
+  final int? cooldownMs;
+  @override
+  @JsonKey()
   final MapPlacedElementTriggerType trigger;
   @override
   final MapPlacedElementEffect effect;
 
   @override
   String toString() {
-    return 'MapPlacedElementBehavior(id: $id, enabled: $enabled, trigger: $trigger, effect: $effect)';
+    return 'MapPlacedElementBehavior(id: $id, enabled: $enabled, triggerScope: $triggerScope, cooldownMs: $cooldownMs, trigger: $trigger, effect: $effect)';
   }
 
   @override
@@ -1530,13 +1564,18 @@ class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
             other is _$MapPlacedElementBehaviorImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.enabled, enabled) || other.enabled == enabled) &&
+            (identical(other.triggerScope, triggerScope) ||
+                other.triggerScope == triggerScope) &&
+            (identical(other.cooldownMs, cooldownMs) ||
+                other.cooldownMs == cooldownMs) &&
             (identical(other.trigger, trigger) || other.trigger == trigger) &&
             (identical(other.effect, effect) || other.effect == effect));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, enabled, trigger, effect);
+  int get hashCode => Object.hash(
+      runtimeType, id, enabled, triggerScope, cooldownMs, trigger, effect);
 
   /// Create a copy of MapPlacedElementBehavior
   /// with the given fields replaced by the non-null parameter values.
@@ -1559,6 +1598,8 @@ abstract class _MapPlacedElementBehavior implements MapPlacedElementBehavior {
   const factory _MapPlacedElementBehavior(
           {final String id,
           final bool enabled,
+          final MapPlacedElementTriggerScope triggerScope,
+          final int? cooldownMs,
           final MapPlacedElementTriggerType trigger,
           required final MapPlacedElementEffect effect}) =
       _$MapPlacedElementBehaviorImpl;
@@ -1570,6 +1611,10 @@ abstract class _MapPlacedElementBehavior implements MapPlacedElementBehavior {
   String get id;
   @override
   bool get enabled;
+  @override
+  MapPlacedElementTriggerScope get triggerScope;
+  @override
+  int? get cooldownMs;
   @override
   MapPlacedElementTriggerType get trigger;
   @override
