@@ -75,9 +75,16 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
         MapPlacedElementTriggerType.onBump,
       );
     }
+    final pathBumpSignal = _buildPathTriggerSignal(
+      activation: facingWorld.pathAnimationRuleOnBumpAt(tx, ty),
+      sourcePos: GridPos(x: tx, y: ty),
+    );
     return Blocked(
       facingWorld,
       reason: blockReason,
+      pathAnimationSignals: pathBumpSignal == null
+          ? const <PathAnimationSignal>[]
+          : <PathAnimationSignal>[pathBumpSignal],
     );
   }
 
@@ -85,6 +92,7 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
     facingWorld.player.copyWith(pos: GridPos(x: tx, y: ty)),
   );
   final previousPos = facingWorld.player.pos;
+  final targetPos = movedWorld.player.pos;
 
   final warp = movedWorld.warpOnEnterAt(tx, ty, direction);
   if (warp != null) {
@@ -99,17 +107,32 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
     );
   }
 
+  final pathSignals = _collectPathAnimationSignalsOnMove(
+    world: movedWorld,
+    previousPos: previousPos,
+    targetPos: targetPos,
+  );
+
   final movementBehavior = _resolveMovementTriggeredBehavior(
     world: movedWorld,
     targetX: tx,
     targetY: ty,
     previousPos: previousPos,
   );
-  if (movementBehavior != null) {
-    return movementBehavior;
+  if (movementBehavior != null && movementBehavior is PlacedElementInteracted) {
+    return PlacedElementInteracted(
+      movementBehavior.world,
+      movementBehavior.element,
+      movementBehavior.behavior,
+      movementBehavior.trigger,
+      pathAnimationSignals: pathSignals,
+    );
   }
 
-  return Moved(movedWorld);
+  return Moved(
+    movedWorld,
+    pathAnimationSignals: pathSignals,
+  );
 }
 
 GameplayStepResult? _resolveMovementTriggeredBehavior({
@@ -200,7 +223,134 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
     );
   }
 
-  return NothingToInteract(world);
+  final pathActionSignal = _buildPathTriggerSignal(
+    activation: world.pathAnimationRuleOnActionAt(tx, ty),
+    sourcePos: GridPos(x: tx, y: ty),
+  );
+  return NothingToInteract(
+    world,
+    pathAnimationSignals: pathActionSignal == null
+        ? const <PathAnimationSignal>[]
+        : <PathAnimationSignal>[pathActionSignal],
+  );
+}
+
+List<PathAnimationSignal> _collectPathAnimationSignalsOnMove({
+  required GameplayWorldState world,
+  required GridPos previousPos,
+  required GridPos targetPos,
+}) {
+  final signals = <PathAnimationSignal>[];
+
+  final enterActivation = world.pathAnimationRuleOnEnterAt(
+    targetPos.x,
+    targetPos.y,
+  );
+  final previousEnterActivation = world.pathAnimationRuleOnEnterAt(
+    previousPos.x,
+    previousPos.y,
+  );
+  if (!_isSamePathAnimationRuleActivation(
+    previousEnterActivation,
+    enterActivation,
+  )) {
+    final signal = _buildPathTriggerSignal(
+      activation: enterActivation,
+      sourcePos: targetPos,
+    );
+    if (signal != null) {
+      signals.add(signal);
+    }
+  }
+
+  final stepSignal = _buildPathTriggerSignal(
+    activation: world.pathAnimationRuleOnStepAt(targetPos.x, targetPos.y),
+    sourcePos: targetPos,
+  );
+  if (stepSignal != null) {
+    signals.add(stepSignal);
+  }
+
+  final nearActivation = world.pathAnimationRuleOnNearTransition(
+    from: previousPos,
+    to: targetPos,
+  );
+  final nearSignal = _buildPathTriggerSignal(
+    activation: nearActivation,
+    sourcePos: targetPos,
+  );
+  if (nearSignal != null) {
+    signals.add(nearSignal);
+  }
+
+  final previousInsideActivation = world.pathAnimationRuleWhileInsideAt(
+    previousPos.x,
+    previousPos.y,
+  );
+  final currentInsideActivation = world.pathAnimationRuleWhileInsideAt(
+    targetPos.x,
+    targetPos.y,
+  );
+  if (!_isSamePathAnimationRuleActivation(
+    previousInsideActivation,
+    currentInsideActivation,
+  )) {
+    if (previousInsideActivation != null) {
+      signals.add(
+        _buildPathSetActiveSignal(
+          activation: previousInsideActivation,
+          sourcePos: previousPos,
+          active: false,
+        ),
+      );
+    }
+    if (currentInsideActivation != null) {
+      signals.add(
+        _buildPathSetActiveSignal(
+          activation: currentInsideActivation,
+          sourcePos: targetPos,
+          active: true,
+        ),
+      );
+    }
+  }
+
+  return signals;
+}
+
+PathAnimationSignal? _buildPathTriggerSignal({
+  required PathAnimationRuleActivation? activation,
+  required GridPos sourcePos,
+}) {
+  if (activation == null) {
+    return null;
+  }
+  return PathAnimationSignal(
+    kind: PathAnimationSignalKind.trigger,
+    layerId: activation.layerId,
+    presetId: activation.presetId,
+    ruleId: activation.ruleId,
+    trigger: activation.rule.trigger,
+    mode: activation.rule.mode,
+    sourcePos: sourcePos,
+  );
+}
+
+PathAnimationSignal _buildPathSetActiveSignal({
+  required PathAnimationRuleActivation activation,
+  required GridPos sourcePos,
+  required bool active,
+}) {
+  return PathAnimationSignal(
+    kind: PathAnimationSignalKind.setActive,
+    layerId: activation.layerId,
+    presetId: activation.presetId,
+    ruleId: activation.ruleId,
+    trigger: activation.rule.trigger,
+    mode: activation.rule.mode,
+    sourcePos: sourcePos,
+    active: active,
+  );
 }
 
 bool _passesBehaviorScopeForMovement({
@@ -281,6 +431,16 @@ bool _isSameBehaviorActivation(
   }
   return a.element.id == b.element.id &&
       _behaviorIdentity(a.behavior) == _behaviorIdentity(b.behavior);
+}
+
+bool _isSamePathAnimationRuleActivation(
+  PathAnimationRuleActivation? a,
+  PathAnimationRuleActivation? b,
+) {
+  if (a == null || b == null) {
+    return false;
+  }
+  return a.layerId == b.layerId && a.ruleId == b.ruleId;
 }
 
 String _behaviorIdentity(MapPlacedElementBehavior behavior) {

@@ -19,6 +19,7 @@ export 'src/operations/map_collision.dart';
 export 'src/operations/map_path.dart';
 export 'src/operations/map_terrain.dart';
 export 'src/operations/map_terrain_autotile.dart';
+export 'src/operations/path_animation_rules.dart';
 export 'src/operations/map_layers.dart';
 export 'src/operations/map_connections.dart';
 export 'src/operations/map_entities.dart';

@@ -298,6 +298,7 @@ class ProjectPathPreset with _$ProjectPathPreset {
     String? categoryId,
     @Default('') String tilesetId,
     @Default([]) List<PathPresetVariantMapping> variants,
+    @Default([]) List<PathAnimationTriggerRule> animationTriggers,
     @Default(0) int sortOrder,
   }) = _ProjectPathPreset;
 
@@ -317,6 +318,21 @@ class PathPresetVariantMapping with _$PathPresetVariantMapping {
 
   factory PathPresetVariantMapping.fromJson(Map<String, dynamic> json) =>
       _$PathPresetVariantMappingFromJson(jsonCoerceLegacySourceToFrames(json));
+}
+
+@freezed
+class PathAnimationTriggerRule with _$PathAnimationTriggerRule {
+  @JsonSerializable(explicitToJson: true)
+  const factory PathAnimationTriggerRule({
+    @Default('') String id,
+    @Default(true) bool enabled,
+    @Default(PathAnimationTriggerType.onStep) PathAnimationTriggerType trigger,
+    @Default(PathAnimationPlaybackMode.restartOnTrigger)
+    PathAnimationPlaybackMode mode,
+  }) = _PathAnimationTriggerRule;
+
+  factory PathAnimationTriggerRule.fromJson(Map<String, dynamic> json) =>
+      _$PathAnimationTriggerRuleFromJson(json);
 }
 
 @freezed

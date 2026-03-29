@@ -4510,6 +4510,7 @@ class EditorNotifier extends _$EditorNotifier {
     String? categoryId,
     String tilesetId = '',
     List<PathPresetVariantMapping> variants = const [],
+    List<PathAnimationTriggerRule> animationTriggers = const [],
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -4524,6 +4525,7 @@ class EditorNotifier extends _$EditorNotifier {
         categoryId: categoryId,
         tilesetId: tilesetId,
         variants: variants,
+        animationTriggers: animationTriggers,
       );
       final selection =
           _terrainPresetSelectionCoordinator.afterPathPresetCreated(
@@ -4553,6 +4555,8 @@ class EditorNotifier extends _$EditorNotifier {
     bool clearTilesetId = false,
     List<PathPresetVariantMapping>? variants,
     bool clearVariants = false,
+    List<PathAnimationTriggerRule>? animationTriggers,
+    bool clearAnimationTriggers = false,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -4571,6 +4575,8 @@ class EditorNotifier extends _$EditorNotifier {
         clearTilesetId: clearTilesetId,
         variants: variants,
         clearVariants: clearVariants,
+        animationTriggers: animationTriggers,
+        clearAnimationTriggers: clearAnimationTriggers,
       );
       final selected = updated.pathPresets.firstWhere(
         (preset) => preset.id == presetId,

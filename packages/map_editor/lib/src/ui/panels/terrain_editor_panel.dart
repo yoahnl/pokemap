@@ -1441,6 +1441,10 @@ Future<void> _showPathPresetDialog(
           growable: false,
         ),
   };
+  final animationTriggers = List<PathAnimationTriggerRule>.from(
+    preset?.animationTriggers ?? const <PathAnimationTriggerRule>[],
+    growable: true,
+  );
   final categories = _flattenCategories(
     notifier,
     PresetLibraryKind.path,
@@ -1637,6 +1641,77 @@ Future<void> _showPathPresetDialog(
                     ),
                   ),
                 const SizedBox(height: 12),
+                Text(
+                  'Animation triggers',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: CupertinoColors.label.resolveFrom(ctx),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  animationTriggers.isEmpty
+                      ? 'No trigger configured. Path animation uses default loop.'
+                      : '${animationTriggers.length} trigger${animationTriggers.length > 1 ? 's' : ''} configured',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PushButton(
+                    controlSize: ControlSize.small,
+                    secondary: true,
+                    onPressed: () {
+                      setState(() {
+                        animationTriggers.add(
+                          _normalizePathAnimationTriggerRule(
+                            PathAnimationTriggerRule(
+                              id: 'path_trigger_${DateTime.now().microsecondsSinceEpoch}_${animationTriggers.length}',
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                    child: const Text('Add trigger'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (animationTriggers.isEmpty)
+                  Text(
+                    'Examples: onStep + restartOnTrigger, onNear + playOnce, whileInside + loopWhileActive.',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                    ),
+                  ),
+                if (animationTriggers.isNotEmpty)
+                  Column(
+                    children: [
+                      for (var index = 0;
+                          index < animationTriggers.length;
+                          index++)
+                        _PathAnimationTriggerRuleCard(
+                          rule: animationTriggers[index],
+                          index: index,
+                          onChanged: (next) {
+                            setState(() {
+                              animationTriggers[index] =
+                                  _normalizePathAnimationTriggerRule(next);
+                            });
+                          },
+                          onDelete: () {
+                            setState(() {
+                              animationTriggers.removeAt(index);
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -1686,6 +1761,7 @@ Future<void> _showPathPresetDialog(
                             categoryId: categoryId,
                             tilesetId: tilesetId,
                             variants: mappings,
+                            animationTriggers: animationTriggers,
                           );
                         } else {
                           await notifier.updatePathPreset(
@@ -1697,6 +1773,7 @@ Future<void> _showPathPresetDialog(
                             tilesetId: tilesetId,
                             clearTilesetId: tilesetId.isEmpty,
                             variants: mappings,
+                            animationTriggers: animationTriggers,
                           );
                         }
                         if (ctx.mounted) {
@@ -2888,6 +2965,67 @@ String _pathTraversalLabel(_PathTraversalType type) {
   };
 }
 
+PathAnimationTriggerRule _normalizePathAnimationTriggerRule(
+  PathAnimationTriggerRule rule,
+) {
+  if (rule.trigger == PathAnimationTriggerType.whileInside &&
+      rule.mode != PathAnimationPlaybackMode.loopWhileActive) {
+    return rule.copyWith(mode: PathAnimationPlaybackMode.loopWhileActive);
+  }
+  if (rule.mode == PathAnimationPlaybackMode.loopWhileActive &&
+      rule.trigger != PathAnimationTriggerType.whileInside) {
+    return rule.copyWith(trigger: PathAnimationTriggerType.whileInside);
+  }
+  return rule;
+}
+
+String _pathAnimationTriggerLabel(PathAnimationTriggerType trigger) {
+  return switch (trigger) {
+    PathAnimationTriggerType.onEnter => 'On enter',
+    PathAnimationTriggerType.onStep => 'On step',
+    PathAnimationTriggerType.onNear => 'On near',
+    PathAnimationTriggerType.onAction => 'On action',
+    PathAnimationTriggerType.whileInside => 'While inside',
+    PathAnimationTriggerType.onBump => 'On bump',
+  };
+}
+
+String _pathAnimationPlaybackModeLabel(PathAnimationPlaybackMode mode) {
+  return switch (mode) {
+    PathAnimationPlaybackMode.playOnce => 'Play once',
+    PathAnimationPlaybackMode.loopWhileActive => 'Loop while active',
+    PathAnimationPlaybackMode.restartOnTrigger => 'Restart on trigger',
+  };
+}
+
+String _pathAnimationTriggerHint(PathAnimationTriggerType trigger) {
+  return switch (trigger) {
+    PathAnimationTriggerType.onEnter =>
+      'Déclenché quand le joueur entre sur une cellule de ce path.',
+    PathAnimationTriggerType.onStep =>
+      'Déclenché à chaque pas du joueur sur ce path.',
+    PathAnimationTriggerType.onNear =>
+      'Déclenché quand le joueur devient adjacent (N/S/E/W).',
+    PathAnimationTriggerType.onAction =>
+      'Déclenché avec la touche action face à une cellule du path.',
+    PathAnimationTriggerType.whileInside =>
+      'Actif tant que le joueur reste sur une cellule du path.',
+    PathAnimationTriggerType.onBump =>
+      'Déclenché quand le joueur tente d’entrer dans une cellule bloquée du path.',
+  };
+}
+
+String _pathAnimationModeHint(PathAnimationPlaybackMode mode) {
+  return switch (mode) {
+    PathAnimationPlaybackMode.playOnce =>
+      'Joue l’animation une seule fois par trigger.',
+    PathAnimationPlaybackMode.loopWhileActive =>
+      'Boucle tant que la condition active est vraie.',
+    PathAnimationPlaybackMode.restartOnTrigger =>
+      'Relance depuis le début à chaque nouveau trigger.',
+  };
+}
+
 TilesetSourceRect? _pathMappingPrimarySource(List<TilesetVisualFrame>? frames) {
   if (frames == null || frames.isEmpty) {
     return null;
@@ -3524,6 +3662,133 @@ class _PathVariantFramesEditorState extends State<_PathVariantFramesEditor> {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PathAnimationTriggerRuleCard extends StatelessWidget {
+  const _PathAnimationTriggerRuleCard({
+    required this.rule,
+    required this.index,
+    required this.onChanged,
+    required this.onDelete,
+  });
+
+  final PathAnimationTriggerRule rule;
+  final int index;
+  final ValueChanged<PathAnimationTriggerRule> onChanged;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemFill.resolveFrom(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Rule ${index + 1}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: CupertinoColors.label.resolveFrom(context),
+                ),
+              ),
+              const Spacer(),
+              Transform.scale(
+                scale: 0.85,
+                child: CupertinoSwitch(
+                  value: rule.enabled,
+                  onChanged: (value) {
+                    onChanged(rule.copyWith(enabled: value));
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              EditorToolbarIconButton(
+                icon: CupertinoIcons.delete,
+                iconSize: 14,
+                onPressed: onDelete,
+                tooltip: 'Delete trigger',
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: () async {
+                  final picked =
+                      await showCupertinoListPicker<PathAnimationTriggerType>(
+                    context: context,
+                    title: 'Trigger',
+                    items: PathAnimationTriggerType.values.toList(),
+                    labelOf: _pathAnimationTriggerLabel,
+                  );
+                  if (picked == null) {
+                    return;
+                  }
+                  onChanged(
+                    _normalizePathAnimationTriggerRule(
+                      rule.copyWith(trigger: picked),
+                    ),
+                  );
+                },
+                child: Text(
+                    'Trigger: ${_pathAnimationTriggerLabel(rule.trigger)}'),
+              ),
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: () async {
+                  final picked =
+                      await showCupertinoListPicker<PathAnimationPlaybackMode>(
+                    context: context,
+                    title: 'Playback mode',
+                    items: PathAnimationPlaybackMode.values.toList(),
+                    labelOf: _pathAnimationPlaybackModeLabel,
+                  );
+                  if (picked == null) {
+                    return;
+                  }
+                  onChanged(
+                    _normalizePathAnimationTriggerRule(
+                      rule.copyWith(mode: picked),
+                    ),
+                  );
+                },
+                child:
+                    Text('Mode: ${_pathAnimationPlaybackModeLabel(rule.mode)}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _pathAnimationTriggerHint(rule.trigger),
+            style: TextStyle(fontSize: 10, color: secondary),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _pathAnimationModeHint(rule.mode),
+            style: TextStyle(fontSize: 10, color: secondary),
+          ),
         ],
       ),
     );

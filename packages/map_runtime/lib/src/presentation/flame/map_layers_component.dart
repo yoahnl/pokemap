@@ -23,10 +23,14 @@ class MapLayersComponent extends PositionComponent {
     this.renderPass = MapLayerRenderPass.background,
     this.showCollisionOverlay = false,
   })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
+        _pathPresetById = {
+          for (final p in bundle.manifest.pathPresets) p.id: p,
+        },
         _pathAutotileByPresetId = {
           for (final p in bundle.manifest.pathPresets)
             p.id: RuntimePathAutotileSet.fromPreset(p),
         },
+        _pathRulesByLayerId = _buildPathRulesByLayerId(bundle),
         _foregroundTileCellIndicesByLayerId =
             _buildForegroundTileCellIndicesByLayerId(bundle),
         _animatedPlacedCellsByLayerId =
@@ -49,7 +53,9 @@ class MapLayersComponent extends PositionComponent {
   final MapLayerRenderPass renderPass;
   bool showCollisionOverlay;
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
+  final Map<String, ProjectPathPreset> _pathPresetById;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
+  final Map<String, List<_PathRuleSpec>> _pathRulesByLayerId;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
@@ -58,6 +64,10 @@ class MapLayersComponent extends PositionComponent {
       <String, bool>{};
   final Map<String, _ActiveOneShotAnimation> _activeOneShotByInstanceId =
       <String, _ActiveOneShotAnimation>{};
+  final Map<_PathRuleKey, _ActivePathRuleOneShot> _activePathRuleOneShotByKey =
+      <_PathRuleKey, _ActivePathRuleOneShot>{};
+  final Map<_PathRuleKey, double> _activePathRuleLoopStartedAtMsByKey =
+      <_PathRuleKey, double>{};
 
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
@@ -69,6 +79,7 @@ class MapLayersComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _animElapsed += dt;
+    _pruneCompletedPathRuleOneShots();
   }
 
   void setPlacedElementAnimationEnabledOverride({
@@ -101,6 +112,74 @@ class MapLayersComponent extends PositionComponent {
     return true;
   }
 
+  bool triggerPathAnimationRule({
+    required String layerId,
+    required String ruleId,
+    required PathAnimationPlaybackMode mode,
+  }) {
+    final key = _PathRuleKey(
+      layerId: layerId.trim(),
+      ruleId: ruleId.trim(),
+    );
+    if (key.layerId.isEmpty || key.ruleId.isEmpty) {
+      return false;
+    }
+    final spec = _resolvePathRuleSpec(key);
+    if (spec == null || !spec.hasAnimatedFrames) {
+      return false;
+    }
+    switch (mode) {
+      case PathAnimationPlaybackMode.playOnce:
+        final existing = _activePathRuleOneShotByKey[key];
+        if (existing != null && !_isPathRuleOneShotCompleted(existing)) {
+          return false;
+        }
+        _activePathRuleOneShotByKey[key] = _ActivePathRuleOneShot(
+          startedAtMs: _animElapsed * 1000,
+          durationMs: spec.oneShotDurationMs,
+        );
+        return true;
+      case PathAnimationPlaybackMode.restartOnTrigger:
+        _activePathRuleOneShotByKey[key] = _ActivePathRuleOneShot(
+          startedAtMs: _animElapsed * 1000,
+          durationMs: spec.oneShotDurationMs,
+        );
+        return true;
+      case PathAnimationPlaybackMode.loopWhileActive:
+        return false;
+    }
+  }
+
+  bool setPathAnimationRuleActive({
+    required String layerId,
+    required String ruleId,
+    required bool active,
+  }) {
+    final key = _PathRuleKey(
+      layerId: layerId.trim(),
+      ruleId: ruleId.trim(),
+    );
+    if (key.layerId.isEmpty || key.ruleId.isEmpty) {
+      return false;
+    }
+    final spec = _resolvePathRuleSpec(key);
+    if (spec == null || !spec.hasAnimatedFrames) {
+      return false;
+    }
+    if (spec.rule.mode != PathAnimationPlaybackMode.loopWhileActive) {
+      return false;
+    }
+    if (active) {
+      _activePathRuleLoopStartedAtMsByKey.putIfAbsent(
+        key,
+        () => _animElapsed * 1000,
+      );
+    } else {
+      _activePathRuleLoopStartedAtMsByKey.remove(key);
+    }
+    return true;
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -129,7 +208,7 @@ class MapLayersComponent extends PositionComponent {
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
         path: (id, name, v, o, presetId, cells, properties) =>
-            _paintPathLayer(canvas, presetId, cells, o),
+            _paintPathLayer(canvas, id, presetId, cells, o),
       );
     }
     for (var i = visible.length - 1; i >= 0; i--) {
@@ -550,6 +629,83 @@ class MapLayersComponent extends PositionComponent {
     return out;
   }
 
+  static Map<String, List<_PathRuleSpec>> _buildPathRulesByLayerId(
+    RuntimeMapBundle bundle,
+  ) {
+    final pathPresetById = {
+      for (final preset in bundle.manifest.pathPresets) preset.id: preset,
+    };
+    final out = <String, List<_PathRuleSpec>>{};
+    for (final layer in bundle.map.layers.whereType<PathLayer>()) {
+      final presetId = layer.presetId.trim();
+      if (presetId.isEmpty) {
+        continue;
+      }
+      final preset = pathPresetById[presetId];
+      if (preset == null || preset.animationTriggers.isEmpty) {
+        continue;
+      }
+      final specs = <_PathRuleSpec>[];
+      for (var index = 0; index < preset.animationTriggers.length; index++) {
+        final rule = preset.animationTriggers[index];
+        if (!rule.enabled) {
+          continue;
+        }
+        final ruleId = resolvePathAnimationTriggerRuleId(
+          rule,
+          index: index,
+        );
+        final hasAnimatedFrames = _pathPresetHasAnimatedFrames(preset);
+        final oneShotDurationMs = _pathPresetMaxOneShotDurationMs(preset);
+        specs.add(
+          _PathRuleSpec(
+            ruleId: ruleId,
+            rule: rule,
+            hasAnimatedFrames: hasAnimatedFrames,
+            oneShotDurationMs: oneShotDurationMs,
+          ),
+        );
+      }
+      if (specs.isEmpty) {
+        continue;
+      }
+      out[layer.id] = specs;
+    }
+    return out;
+  }
+
+  static bool _pathPresetHasAnimatedFrames(ProjectPathPreset preset) {
+    for (final mapping in preset.variants) {
+      if (mapping.frames.length >= 2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static int _pathPresetMaxOneShotDurationMs(ProjectPathPreset preset) {
+    var maxDurationMs = 0;
+    for (final mapping in preset.variants) {
+      if (mapping.frames.length < 2) {
+        continue;
+      }
+      final durations = normalizeElementFrameDurationsMs(
+        mapping.frames.map((frame) => frame.durationMs).toList(growable: false),
+      );
+      var total = 0;
+      for (final duration in durations) {
+        total += duration;
+      }
+      if (total > maxDurationMs) {
+        maxDurationMs = total;
+      }
+    }
+    if (maxDurationMs <= 0) {
+      return defaultPlacedElementAnimationFrameDurationMs;
+    }
+    return maxDurationMs;
+  }
+
   bool _paintAnimatedPlacedCell(
     Canvas canvas, {
     required _AnimatedPlacedCell animatedCell,
@@ -856,8 +1012,154 @@ class MapLayersComponent extends PositionComponent {
     return raw & 0x7fffffff;
   }
 
+  _PathLayerPlayback _resolvePathLayerPlayback({
+    required String layerId,
+    required String presetId,
+  }) {
+    final rules = _pathRulesByLayerId[layerId];
+    if (rules == null || rules.isEmpty) {
+      return const _PathLayerPlayback.alwaysLoop();
+    }
+    var hasActiveLoop = false;
+    double? activeLoopStartedAtMs;
+    for (final rule in rules) {
+      final key = _PathRuleKey(
+        layerId: layerId,
+        ruleId: rule.ruleId,
+      );
+      final oneShot = _activePathRuleOneShotByKey[key];
+      if (oneShot != null) {
+        if (_isPathRuleOneShotCompleted(oneShot)) {
+          _activePathRuleOneShotByKey.remove(key);
+        } else {
+          return _PathLayerPlayback.oneShot(
+            startedAtMs: oneShot.startedAtMs,
+          );
+        }
+      }
+      final loopStartedAtMs = _activePathRuleLoopStartedAtMsByKey[key];
+      if (loopStartedAtMs != null && !hasActiveLoop) {
+        hasActiveLoop = true;
+        activeLoopStartedAtMs = loopStartedAtMs;
+      }
+    }
+    if (hasActiveLoop && activeLoopStartedAtMs != null) {
+      return _PathLayerPlayback.loopFrom(
+        startedAtMs: activeLoopStartedAtMs,
+      );
+    }
+    final preset = _pathPresetById[presetId];
+    if (preset == null || preset.animationTriggers.isEmpty) {
+      return const _PathLayerPlayback.alwaysLoop();
+    }
+    return const _PathLayerPlayback.staticFrame();
+  }
+
+  bool _isPathRuleOneShotCompleted(_ActivePathRuleOneShot state) {
+    final elapsed = (_animElapsed * 1000) - state.startedAtMs;
+    return elapsed >= state.durationMs;
+  }
+
+  _PathRuleSpec? _resolvePathRuleSpec(_PathRuleKey key) {
+    final rules = _pathRulesByLayerId[key.layerId];
+    if (rules == null || rules.isEmpty) {
+      return null;
+    }
+    for (final spec in rules) {
+      if (spec.ruleId == key.ruleId) {
+        return spec;
+      }
+    }
+    return null;
+  }
+
+  void _pruneCompletedPathRuleOneShots() {
+    if (_activePathRuleOneShotByKey.isEmpty) {
+      return;
+    }
+    final completedKeys = <_PathRuleKey>[];
+    for (final entry in _activePathRuleOneShotByKey.entries) {
+      if (_isPathRuleOneShotCompleted(entry.value)) {
+        completedKeys.add(entry.key);
+      }
+    }
+    for (final key in completedKeys) {
+      _activePathRuleOneShotByKey.remove(key);
+    }
+  }
+
+  _ResolvedPathVariantFrame? _resolvePathVariantFrame({
+    required RuntimePathAutotileSet autotileSet,
+    required _PathLayerPlayback playback,
+    required TerrainPathVariant variant,
+    required double elapsedMs,
+  }) {
+    switch (playback.kind) {
+      case _PathLayerPlaybackKind.alwaysLoop:
+        final frame = autotileSet.frameForVariantAt(
+          variant,
+          elapsedMs: elapsedMs,
+        );
+        if (frame == null) {
+          return null;
+        }
+        final tilesetId = autotileSet.resolvedTilesetId(
+          frame,
+        );
+        return _ResolvedPathVariantFrame(
+          source: frame.source,
+          tilesetId: tilesetId,
+        );
+      case _PathLayerPlaybackKind.staticFrame:
+        final frame = autotileSet.frameForVariantStatic(variant);
+        if (frame == null) {
+          return null;
+        }
+        final tilesetId = autotileSet.resolvedTilesetId(
+          frame,
+        );
+        return _ResolvedPathVariantFrame(
+          source: frame.source,
+          tilesetId: tilesetId,
+        );
+      case _PathLayerPlaybackKind.loopFrom:
+        final localElapsed = elapsedMs - playback.startedAtMs;
+        final frame = autotileSet.frameForVariantAt(
+          variant,
+          elapsedMs: localElapsed,
+        );
+        if (frame == null) {
+          return null;
+        }
+        final tilesetId = autotileSet.resolvedTilesetId(
+          frame,
+        );
+        return _ResolvedPathVariantFrame(
+          source: frame.source,
+          tilesetId: tilesetId,
+        );
+      case _PathLayerPlaybackKind.oneShot:
+        final localElapsed = elapsedMs - playback.startedAtMs;
+        final frame = autotileSet.frameForVariantOneShot(
+          variant,
+          elapsedMs: localElapsed,
+        );
+        if (frame == null) {
+          return null;
+        }
+        final tilesetId = autotileSet.resolvedTilesetId(
+          frame,
+        );
+        return _ResolvedPathVariantFrame(
+          source: frame.source,
+          tilesetId: tilesetId,
+        );
+    }
+  }
+
   void _paintPathLayer(
     Canvas canvas,
+    String layerId,
     String presetId,
     List<bool> cells,
     double opacity,
@@ -881,6 +1183,8 @@ class MapLayersComponent extends PositionComponent {
         final drawn = autotileSet != null &&
             _paintPathLayerCell(
               canvas,
+              layerId: layerId,
+              presetId: pid,
               autotileSet: autotileSet,
               cells: cells,
               x: x,
@@ -912,6 +1216,8 @@ class MapLayersComponent extends PositionComponent {
 
   bool _paintPathLayerCell(
     Canvas canvas, {
+    required String layerId,
+    required String presetId,
     required RuntimePathAutotileSet autotileSet,
     required List<bool> cells,
     required int x,
@@ -929,9 +1235,14 @@ class MapLayersComponent extends PositionComponent {
       mapSize: bundle.map.size,
       pos: GridPos(x: x, y: y),
     );
+    final playback = _resolvePathLayerPlayback(
+      layerId: layerId,
+      presetId: presetId,
+    );
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
+      playback: playback,
       variant: variant,
       tw: tw,
       th: th,
@@ -944,6 +1255,7 @@ class MapLayersComponent extends PositionComponent {
   bool _paintAutotileVariantCell(
     Canvas canvas, {
     required RuntimePathAutotileSet autotileSet,
+    required _PathLayerPlayback playback,
     required TerrainPathVariant variant,
     required int tw,
     required int th,
@@ -951,17 +1263,17 @@ class MapLayersComponent extends PositionComponent {
     required double alpha,
     required double elapsedMs,
   }) {
-    final source = autotileSet.sourceForVariantAt(
-      variant,
+    final resolved = _resolvePathVariantFrame(
+      autotileSet: autotileSet,
+      playback: playback,
+      variant: variant,
       elapsedMs: elapsedMs,
     );
-    if (source == null) {
+    if (resolved == null) {
       return false;
     }
-    final tilesetId = autotileSet.resolvedTilesetIdForVariantAt(
-      variant,
-      elapsedMs: elapsedMs,
-    );
+    final source = resolved.source;
+    final tilesetId = resolved.tilesetId.trim();
     if (tilesetId.isEmpty) {
       return false;
     }
@@ -1058,6 +1370,103 @@ class _ActiveOneShotAnimation {
   final double startedAtMs;
   final List<int> frameDurationsMs;
   final double speed;
+}
+
+class _PathRuleKey {
+  const _PathRuleKey({
+    required this.layerId,
+    required this.ruleId,
+  });
+
+  final String layerId;
+  final String ruleId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _PathRuleKey &&
+        other.layerId == layerId &&
+        other.ruleId == ruleId;
+  }
+
+  @override
+  int get hashCode => Object.hash(layerId, ruleId);
+}
+
+class _ActivePathRuleOneShot {
+  const _ActivePathRuleOneShot({
+    required this.startedAtMs,
+    required this.durationMs,
+  });
+
+  final double startedAtMs;
+  final int durationMs;
+}
+
+class _PathRuleSpec {
+  const _PathRuleSpec({
+    required this.ruleId,
+    required this.rule,
+    required this.hasAnimatedFrames,
+    required this.oneShotDurationMs,
+  });
+
+  final String ruleId;
+  final PathAnimationTriggerRule rule;
+  final bool hasAnimatedFrames;
+  final int oneShotDurationMs;
+}
+
+enum _PathLayerPlaybackKind {
+  alwaysLoop,
+  staticFrame,
+  loopFrom,
+  oneShot,
+}
+
+class _PathLayerPlayback {
+  const _PathLayerPlayback._({
+    required this.kind,
+    required this.startedAtMs,
+  });
+
+  const _PathLayerPlayback.alwaysLoop()
+      : this._(
+          kind: _PathLayerPlaybackKind.alwaysLoop,
+          startedAtMs: 0,
+        );
+
+  const _PathLayerPlayback.staticFrame()
+      : this._(
+          kind: _PathLayerPlaybackKind.staticFrame,
+          startedAtMs: 0,
+        );
+
+  const _PathLayerPlayback.loopFrom({
+    required double startedAtMs,
+  }) : this._(
+          kind: _PathLayerPlaybackKind.loopFrom,
+          startedAtMs: startedAtMs,
+        );
+
+  const _PathLayerPlayback.oneShot({
+    required double startedAtMs,
+  }) : this._(
+          kind: _PathLayerPlaybackKind.oneShot,
+          startedAtMs: startedAtMs,
+        );
+
+  final _PathLayerPlaybackKind kind;
+  final double startedAtMs;
+}
+
+class _ResolvedPathVariantFrame {
+  const _ResolvedPathVariantFrame({
+    required this.source,
+    required this.tilesetId,
+  });
+
+  final TilesetSourceRect source;
+  final String tilesetId;
 }
 
 String? _resolveTilesetId(MapData map, String? layerTilesetId) {

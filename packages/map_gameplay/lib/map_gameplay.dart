@@ -26,6 +26,8 @@ export 'src/gameplay_step_result.dart'
         ConnectionTriggered,
         TriggeredWarp,
         TriggeredConnection,
+        PathAnimationSignalKind,
+        PathAnimationSignal,
         NothingToInteract,
         NpcInteracted,
         SignInteracted,

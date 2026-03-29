@@ -557,6 +557,11 @@ _$ProjectPathPresetImpl _$$ProjectPathPresetImplFromJson(
                   PathPresetVariantMapping.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      animationTriggers: (json['animationTriggers'] as List<dynamic>?)
+              ?.map((e) =>
+                  PathAnimationTriggerRule.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
 
@@ -569,6 +574,7 @@ Map<String, dynamic> _$$ProjectPathPresetImplToJson(
       'categoryId': instance.categoryId,
       'tilesetId': instance.tilesetId,
       'variants': instance.variants,
+      'animationTriggers': instance.animationTriggers,
       'sortOrder': instance.sortOrder,
     };
 
@@ -623,6 +629,43 @@ const _$TerrainPathVariantEnumMap = {
   TerrainPathVariant.teeSouth: 'teeSouth',
   TerrainPathVariant.teeWest: 'teeWest',
   TerrainPathVariant.cross: 'cross',
+};
+
+_$PathAnimationTriggerRuleImpl _$$PathAnimationTriggerRuleImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PathAnimationTriggerRuleImpl(
+      id: json['id'] as String? ?? '',
+      enabled: json['enabled'] as bool? ?? true,
+      trigger: $enumDecodeNullable(
+              _$PathAnimationTriggerTypeEnumMap, json['trigger']) ??
+          PathAnimationTriggerType.onStep,
+      mode: $enumDecodeNullable(
+              _$PathAnimationPlaybackModeEnumMap, json['mode']) ??
+          PathAnimationPlaybackMode.restartOnTrigger,
+    );
+
+Map<String, dynamic> _$$PathAnimationTriggerRuleImplToJson(
+        _$PathAnimationTriggerRuleImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'enabled': instance.enabled,
+      'trigger': _$PathAnimationTriggerTypeEnumMap[instance.trigger]!,
+      'mode': _$PathAnimationPlaybackModeEnumMap[instance.mode]!,
+    };
+
+const _$PathAnimationTriggerTypeEnumMap = {
+  PathAnimationTriggerType.onEnter: 'on_enter',
+  PathAnimationTriggerType.onStep: 'on_step',
+  PathAnimationTriggerType.onNear: 'on_near',
+  PathAnimationTriggerType.onAction: 'on_action',
+  PathAnimationTriggerType.whileInside: 'while_inside',
+  PathAnimationTriggerType.onBump: 'on_bump',
+};
+
+const _$PathAnimationPlaybackModeEnumMap = {
+  PathAnimationPlaybackMode.playOnce: 'play_once',
+  PathAnimationPlaybackMode.loopWhileActive: 'loop_while_active',
+  PathAnimationPlaybackMode.restartOnTrigger: 'restart_on_trigger',
 };
 
 _$ProjectPresetCategoryImpl _$$ProjectPresetCategoryImplFromJson(

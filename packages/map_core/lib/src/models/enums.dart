@@ -230,6 +230,30 @@ enum PathSurfaceKind {
   custom,
 }
 
+enum PathAnimationTriggerType {
+  @JsonValue('on_enter')
+  onEnter,
+  @JsonValue('on_step')
+  onStep,
+  @JsonValue('on_near')
+  onNear,
+  @JsonValue('on_action')
+  onAction,
+  @JsonValue('while_inside')
+  whileInside,
+  @JsonValue('on_bump')
+  onBump,
+}
+
+enum PathAnimationPlaybackMode {
+  @JsonValue('play_once')
+  playOnce,
+  @JsonValue('loop_while_active')
+  loopWhileActive,
+  @JsonValue('restart_on_trigger')
+  restartOnTrigger,
+}
+
 /// Kind de zone gameplay posée sur une map.
 /// Sépare explicitement le visuel (PathSurfaceKind / TerrainType) du comportement.
 ///
