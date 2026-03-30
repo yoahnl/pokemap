@@ -715,6 +715,20 @@ Map<int, MapEntity> _buildEntityByPos(MapData map) {
   return result;
 }
 
+/// Construit un cache de behavior par cellule pour un trigger donné.
+///
+/// **Politique de résolution « single winner »** :
+/// Quand plusieurs behaviors sont valides sur la même cellule, un seul gagne.
+/// Le winner est déterminé par l'ordre de parcours :
+/// 1. ordre des instances dans `map.placedElements` (première instance gagne)
+/// 2. ordre des behaviors dans `instance.behaviors` (premier behavior gagne)
+///
+/// Cette politique est déterministe car l'ordre de `map.placedElements` est stable.
+/// Utilise `putIfAbsent` pour garantir que le premier behavior valide pour une cellule
+/// est conservé.
+///
+/// Pour les triggers de mouvement (`onEnter`, `onExit`, `onNear`), une priorité
+/// supplémentaire s'applique : `onEnter` > `onExit` > `onNear` (voir `_movementTriggerPriority`).
 Map<int, PlacedElementBehaviorActivation> _buildPlacedElementBehaviorByPos(
   MapData map, {
   required ProjectManifest? project,
