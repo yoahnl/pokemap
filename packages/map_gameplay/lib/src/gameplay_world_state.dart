@@ -100,31 +100,25 @@ class GameplayWorldState {
         ),
         pathRuleOnEnterByPos: _buildPathAnimationRuleByPos(
           map,
-          project: project,
           trigger: PathAnimationTriggerType.onEnter,
         ),
         pathRuleOnStepByPos: _buildPathAnimationRuleByPos(
           map,
-          project: project,
           trigger: PathAnimationTriggerType.onStep,
         ),
         pathRuleOnActionByPos: _buildPathAnimationRuleByPos(
           map,
-          project: project,
           trigger: PathAnimationTriggerType.onAction,
         ),
         pathRuleOnBumpByPos: _buildPathAnimationRuleByPos(
           map,
-          project: project,
           trigger: PathAnimationTriggerType.onBump,
         ),
         pathRuleOnNearByPos: _buildPathAnimationNearRuleByPos(
           map,
-          project: project,
         ),
         pathRuleWhileInsideByPos: _buildPathAnimationRuleByPos(
           map,
-          project: project,
           trigger: PathAnimationTriggerType.whileInside,
         ),
         waterCellCache: _buildWaterCellCache(map, project: project),
@@ -180,31 +174,25 @@ class GameplayWorldState {
       ),
       pathRuleOnEnterByPos: _buildPathAnimationRuleByPos(
         map,
-        project: project,
         trigger: PathAnimationTriggerType.onEnter,
       ),
       pathRuleOnStepByPos: _buildPathAnimationRuleByPos(
         map,
-        project: project,
         trigger: PathAnimationTriggerType.onStep,
       ),
       pathRuleOnActionByPos: _buildPathAnimationRuleByPos(
         map,
-        project: project,
         trigger: PathAnimationTriggerType.onAction,
       ),
       pathRuleOnBumpByPos: _buildPathAnimationRuleByPos(
         map,
-        project: project,
         trigger: PathAnimationTriggerType.onBump,
       ),
       pathRuleOnNearByPos: _buildPathAnimationNearRuleByPos(
         map,
-        project: project,
       ),
       pathRuleWhileInsideByPos: _buildPathAnimationRuleByPos(
         map,
-        project: project,
         trigger: PathAnimationTriggerType.whileInside,
       ),
       waterCellCache: _buildWaterCellCache(map, project: project),
@@ -876,7 +864,6 @@ Map<int, Set<String>> _buildPlacedElementCoverageByPos(
 
 Map<int, PathAnimationRuleActivation> _buildPathAnimationRuleByPos(
   MapData map, {
-  required ProjectManifest? project,
   required PathAnimationTriggerType trigger,
 }) {
   final size = map.size.width * map.size.height;
@@ -884,24 +871,14 @@ Map<int, PathAnimationRuleActivation> _buildPathAnimationRuleByPos(
     return const <int, PathAnimationRuleActivation>{};
   }
   final result = <int, PathAnimationRuleActivation>{};
-  final pathPresetById = project == null
-      ? const <String, ProjectPathPreset>{}
-      : {
-          for (final preset in project.pathPresets) preset.id: preset,
-        };
   for (final layer in map.layers.whereType<PathLayer>()) {
-    final presetId = layer.presetId.trim();
-    if (presetId.isEmpty) {
-      continue;
-    }
-    final preset = pathPresetById[presetId];
-    if (preset == null || preset.animationTriggers.isEmpty) {
+    if (layer.animationTriggers.isEmpty) {
       continue;
     }
     for (var ruleIndex = 0;
-        ruleIndex < preset.animationTriggers.length;
+        ruleIndex < layer.animationTriggers.length;
         ruleIndex++) {
-      final rule = preset.animationTriggers[ruleIndex];
+      final rule = layer.animationTriggers[ruleIndex];
       if (!rule.enabled) {
         continue;
       }
@@ -910,7 +887,7 @@ Map<int, PathAnimationRuleActivation> _buildPathAnimationRuleByPos(
       }
       final activation = PathAnimationRuleActivation(
         layerId: layer.id,
-        presetId: preset.id,
+        presetId: layer.presetId,
         ruleId: resolvePathAnimationTriggerRuleId(
           rule,
           index: ruleIndex,
@@ -929,9 +906,8 @@ Map<int, PathAnimationRuleActivation> _buildPathAnimationRuleByPos(
 }
 
 Map<int, PathAnimationRuleActivation> _buildPathAnimationNearRuleByPos(
-  MapData map, {
-  required ProjectManifest? project,
-}) {
+  MapData map,
+) {
   final width = map.size.width;
   final height = map.size.height;
   final size = width * height;
@@ -939,30 +915,20 @@ Map<int, PathAnimationRuleActivation> _buildPathAnimationNearRuleByPos(
     return const <int, PathAnimationRuleActivation>{};
   }
   final result = <int, PathAnimationRuleActivation>{};
-  final pathPresetById = project == null
-      ? const <String, ProjectPathPreset>{}
-      : {
-          for (final preset in project.pathPresets) preset.id: preset,
-        };
   for (final layer in map.layers.whereType<PathLayer>()) {
-    final presetId = layer.presetId.trim();
-    if (presetId.isEmpty) {
-      continue;
-    }
-    final preset = pathPresetById[presetId];
-    if (preset == null || preset.animationTriggers.isEmpty) {
+    if (layer.animationTriggers.isEmpty) {
       continue;
     }
     for (var ruleIndex = 0;
-        ruleIndex < preset.animationTriggers.length;
+        ruleIndex < layer.animationTriggers.length;
         ruleIndex++) {
-      final rule = preset.animationTriggers[ruleIndex];
+      final rule = layer.animationTriggers[ruleIndex];
       if (!rule.enabled || rule.trigger != PathAnimationTriggerType.onNear) {
         continue;
       }
       final activation = PathAnimationRuleActivation(
         layerId: layer.id,
-        presetId: preset.id,
+        presetId: layer.presetId,
         ruleId: resolvePathAnimationTriggerRuleId(
           rule,
           index: ruleIndex,

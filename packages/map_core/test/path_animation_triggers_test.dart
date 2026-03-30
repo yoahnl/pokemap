@@ -3,12 +3,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('Path animation triggers', () {
-    test('serializes and deserializes animationTriggers on path preset', () {
-      final preset = ProjectPathPreset.fromJson({
-        'id': 'water_path',
+    test('serializes and deserializes animationTriggers on PathLayer', () {
+      final layer = MapLayer.fromJson({
+        'runtimeType': 'path',
+        'id': 'water_layer',
         'name': 'Water',
-        'tilesetId': 'outdoor',
-        'surfaceKind': 'water',
+        'presetId': 'water_path',
+        'cells': <bool>[],
         'animationTriggers': [
           {
             'id': 'enter_once',
@@ -23,52 +24,51 @@ void main() {
             'mode': 'loop_while_active',
           },
         ],
-      });
+      }) as PathLayer;
 
-      expect(preset.animationTriggers.length, 2);
+      expect(layer.animationTriggers.length, 2);
       expect(
-        preset.animationTriggers.first.trigger,
+        layer.animationTriggers.first.trigger,
         PathAnimationTriggerType.onEnter,
       );
       expect(
-        preset.animationTriggers.first.mode,
+        layer.animationTriggers.first.mode,
         PathAnimationPlaybackMode.playOnce,
       );
       expect(
-        preset.animationTriggers.last.trigger,
+        layer.animationTriggers.last.trigger,
         PathAnimationTriggerType.whileInside,
       );
       expect(
-        preset.animationTriggers.last.mode,
+        layer.animationTriggers.last.mode,
         PathAnimationPlaybackMode.loopWhileActive,
       );
     });
 
-    test('legacy path preset without animationTriggers remains valid', () {
-      final preset = ProjectPathPreset.fromJson({
-        'id': 'road_path',
+    test('legacy PathLayer without animationTriggers remains valid', () {
+      final layer = MapLayer.fromJson({
+        'runtimeType': 'path',
+        'id': 'road_layer',
         'name': 'Road',
-        'tilesetId': 'outdoor',
-      });
-      expect(preset.animationTriggers, isEmpty);
+        'presetId': 'road_path',
+        'cells': <bool>[],
+      }) as PathLayer;
+      expect(layer.animationTriggers, isEmpty);
     });
 
-    test('validator rejects invalid whileInside/mode combinations', () {
-      const manifest = ProjectManifest(
-        name: 'project',
-        maps: [],
-        tilesets: [
-          ProjectTilesetEntry(
-            id: 'outdoor',
-            name: 'Outdoor',
-            relativePath: 'tilesets/outdoor.png',
-          ),
-        ],
-        pathPresets: [
-          ProjectPathPreset(
-            id: 'water_path',
+    test('validator rejects invalid whileInside/mode combinations on PathLayer',
+        () {
+      const map = MapData(
+        id: 'map1',
+        name: 'Map',
+        size: GridSize(width: 2, height: 1),
+        tilesetId: '',
+        layers: [
+          MapLayer.path(
+            id: 'water_layer',
             name: 'Water',
-            tilesetId: 'outdoor',
+            presetId: 'water_path',
+            cells: [true, false],
             animationTriggers: [
               PathAnimationTriggerRule(
                 id: 'invalid_loop',
@@ -81,9 +81,49 @@ void main() {
       );
 
       expect(
-        () => ProjectValidator.validate(manifest),
+        () => MapValidator.validate(map),
         throwsA(isA<ValidationException>()),
       );
+    });
+
+    test('scope defaults to wholeLayer', () {
+      const rule = PathAnimationTriggerRule(
+        id: 'step_rule',
+        trigger: PathAnimationTriggerType.onStep,
+        mode: PathAnimationPlaybackMode.restartOnTrigger,
+      );
+      expect(rule.scope, PathAnimationActivationScope.wholeLayer);
+    });
+
+    test('scope can be set to cellOnly', () {
+      const rule = PathAnimationTriggerRule(
+        id: 'step_rule',
+        trigger: PathAnimationTriggerType.onStep,
+        mode: PathAnimationPlaybackMode.restartOnTrigger,
+        scope: PathAnimationActivationScope.cellOnly,
+      );
+      expect(rule.scope, PathAnimationActivationScope.cellOnly);
+    });
+
+    test('scope serializes and deserializes', () {
+      final layer = MapLayer.fromJson({
+        'runtimeType': 'path',
+        'id': 'grass_layer',
+        'name': 'Grass',
+        'presetId': 'grass_path',
+        'cells': <bool>[],
+        'animationTriggers': [
+          {
+            'id': 'step_cell',
+            'trigger': 'on_step',
+            'mode': 'restart_on_trigger',
+            'scope': 'cell_only',
+          },
+        ],
+      }) as PathLayer;
+
+      expect(layer.animationTriggers.first.scope,
+          PathAnimationActivationScope.cellOnly);
     });
   });
 }

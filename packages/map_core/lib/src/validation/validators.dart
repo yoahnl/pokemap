@@ -683,32 +683,6 @@ class ProjectValidator {
           knownTilesetIds: tilesetIds,
         );
       }
-      final triggerIds = <String>{};
-      for (var triggerIndex = 0;
-          triggerIndex < preset.animationTriggers.length;
-          triggerIndex++) {
-        final trigger = preset.animationTriggers[triggerIndex];
-        final resolvedTriggerId = trigger.id.trim().isEmpty
-            ? 'rule_$triggerIndex'
-            : trigger.id.trim();
-        if (!triggerIds.add(resolvedTriggerId)) {
-          throw ValidationException(
-            'Path preset ${preset.id} has duplicate animation trigger id: $resolvedTriggerId',
-          );
-        }
-        if (trigger.mode == PathAnimationPlaybackMode.loopWhileActive &&
-            trigger.trigger != PathAnimationTriggerType.whileInside) {
-          throw ValidationException(
-            'Path preset ${preset.id} trigger[$resolvedTriggerId] mode loopWhileActive requires trigger whileInside',
-          );
-        }
-        if (trigger.trigger == PathAnimationTriggerType.whileInside &&
-            trigger.mode != PathAnimationPlaybackMode.loopWhileActive) {
-          throw ValidationException(
-            'Path preset ${preset.id} trigger[$resolvedTriggerId] trigger whileInside requires mode loopWhileActive',
-          );
-        }
-      }
     }
 
     final terrainTilesetIds = manifest.terrainPresets
@@ -1442,6 +1416,29 @@ class MapValidator {
           if (key.trim().isEmpty) {
             throw ValidationException(
                 'Path layer $layerId has an empty property key');
+          }
+        }
+        final triggerIds = <String>{};
+        for (var i = 0; i < pathLayer.animationTriggers.length; i++) {
+          final trigger = pathLayer.animationTriggers[i];
+          final resolvedId =
+              trigger.id.trim().isEmpty ? 'rule_$i' : trigger.id.trim();
+          if (!triggerIds.add(resolvedId)) {
+            throw ValidationException(
+              'Path layer $layerId has duplicate animation trigger id: $resolvedId',
+            );
+          }
+          if (trigger.mode == PathAnimationPlaybackMode.loopWhileActive &&
+              trigger.trigger != PathAnimationTriggerType.whileInside) {
+            throw ValidationException(
+              'Path layer $layerId trigger[$resolvedId] mode loopWhileActive requires trigger whileInside',
+            );
+          }
+          if (trigger.trigger == PathAnimationTriggerType.whileInside &&
+              trigger.mode != PathAnimationPlaybackMode.loopWhileActive) {
+            throw ValidationException(
+              'Path layer $layerId trigger[$resolvedId] trigger whileInside requires mode loopWhileActive',
+            );
           }
         }
       },

@@ -23,9 +23,6 @@ class MapLayersComponent extends PositionComponent {
     this.renderPass = MapLayerRenderPass.background,
     this.showCollisionOverlay = false,
   })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
-        _pathPresetById = {
-          for (final p in bundle.manifest.pathPresets) p.id: p,
-        },
         _pathAutotileByPresetId = {
           for (final p in bundle.manifest.pathPresets)
             p.id: RuntimePathAutotileSet.fromPreset(p),
@@ -53,7 +50,6 @@ class MapLayersComponent extends PositionComponent {
   final MapLayerRenderPass renderPass;
   bool showCollisionOverlay;
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
-  final Map<String, ProjectPathPreset> _pathPresetById;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
   final Map<String, List<_PathRuleSpec>> _pathRulesByLayerId;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
@@ -68,6 +64,12 @@ class MapLayersComponent extends PositionComponent {
       <_PathRuleKey, _ActivePathRuleOneShot>{};
   final Map<_PathRuleKey, double> _activePathRuleLoopStartedAtMsByKey =
       <_PathRuleKey, double>{};
+  final Map<_PathRuleCellKey, _ActivePathRuleOneShot>
+      _activePathRuleCellOneShotByKey =
+      <_PathRuleCellKey, _ActivePathRuleOneShot>{};
+  final Map<_PathRuleCellKey, double>
+      _activePathRuleCellLoopStartedAtMsByKey =
+      <_PathRuleCellKey, double>{};
 
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
@@ -116,17 +118,43 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String ruleId,
     required PathAnimationPlaybackMode mode,
+    PathAnimationActivationScope scope = PathAnimationActivationScope.wholeLayer,
+    int cellX = 0,
+    int cellY = 0,
   }) {
-    final key = _PathRuleKey(
-      layerId: layerId.trim(),
-      ruleId: ruleId.trim(),
-    );
-    if (key.layerId.isEmpty || key.ruleId.isEmpty) {
+    final trimmedLayerId = layerId.trim();
+    final trimmedRuleId = ruleId.trim();
+    if (trimmedLayerId.isEmpty || trimmedRuleId.isEmpty) {
       return false;
     }
+    final key = _PathRuleKey(layerId: trimmedLayerId, ruleId: trimmedRuleId);
     final spec = _resolvePathRuleSpec(key);
     if (spec == null || !spec.hasAnimatedFrames) {
       return false;
+    }
+    if (scope == PathAnimationActivationScope.cellOnly) {
+      final cellKey = _PathRuleCellKey(
+          layerId: trimmedLayerId, ruleId: trimmedRuleId, x: cellX, y: cellY);
+      switch (mode) {
+        case PathAnimationPlaybackMode.playOnce:
+          final existing = _activePathRuleCellOneShotByKey[cellKey];
+          if (existing != null && !_isPathRuleOneShotCompleted(existing)) {
+            return false;
+          }
+          _activePathRuleCellOneShotByKey[cellKey] = _ActivePathRuleOneShot(
+            startedAtMs: _animElapsed * 1000,
+            durationMs: spec.oneShotDurationMs,
+          );
+          return true;
+        case PathAnimationPlaybackMode.restartOnTrigger:
+          _activePathRuleCellOneShotByKey[cellKey] = _ActivePathRuleOneShot(
+            startedAtMs: _animElapsed * 1000,
+            durationMs: spec.oneShotDurationMs,
+          );
+          return true;
+        case PathAnimationPlaybackMode.loopWhileActive:
+          return false;
+      }
     }
     switch (mode) {
       case PathAnimationPlaybackMode.playOnce:
@@ -154,20 +182,33 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String ruleId,
     required bool active,
+    PathAnimationActivationScope scope = PathAnimationActivationScope.wholeLayer,
+    int cellX = 0,
+    int cellY = 0,
   }) {
-    final key = _PathRuleKey(
-      layerId: layerId.trim(),
-      ruleId: ruleId.trim(),
-    );
-    if (key.layerId.isEmpty || key.ruleId.isEmpty) {
+    final trimmedLayerId = layerId.trim();
+    final trimmedRuleId = ruleId.trim();
+    if (trimmedLayerId.isEmpty || trimmedRuleId.isEmpty) {
       return false;
     }
+    final key = _PathRuleKey(layerId: trimmedLayerId, ruleId: trimmedRuleId);
     final spec = _resolvePathRuleSpec(key);
     if (spec == null || !spec.hasAnimatedFrames) {
       return false;
     }
     if (spec.rule.mode != PathAnimationPlaybackMode.loopWhileActive) {
       return false;
+    }
+    if (scope == PathAnimationActivationScope.cellOnly) {
+      final cellKey = _PathRuleCellKey(
+          layerId: trimmedLayerId, ruleId: trimmedRuleId, x: cellX, y: cellY);
+      if (active) {
+        _activePathRuleCellLoopStartedAtMsByKey.putIfAbsent(
+            cellKey, () => _animElapsed * 1000);
+      } else {
+        _activePathRuleCellLoopStartedAtMsByKey.remove(cellKey);
+      }
+      return true;
     }
     if (active) {
       _activePathRuleLoopStartedAtMsByKey.putIfAbsent(
@@ -207,7 +248,7 @@ class MapLayersComponent extends PositionComponent {
     }
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
-        path: (id, name, v, o, presetId, cells, properties) =>
+        path: (id, name, v, o, presetId, cells, properties, animationTriggers) =>
             _paintPathLayer(canvas, id, presetId, cells, o),
       );
     }
@@ -637,17 +678,17 @@ class MapLayersComponent extends PositionComponent {
     };
     final out = <String, List<_PathRuleSpec>>{};
     for (final layer in bundle.map.layers.whereType<PathLayer>()) {
-      final presetId = layer.presetId.trim();
-      if (presetId.isEmpty) {
+      if (layer.animationTriggers.isEmpty) {
         continue;
       }
-      final preset = pathPresetById[presetId];
-      if (preset == null || preset.animationTriggers.isEmpty) {
-        continue;
-      }
+      final preset = pathPresetById[layer.presetId.trim()];
+      final hasAnimatedFrames =
+          preset != null && _pathPresetHasAnimatedFrames(preset);
+      final oneShotDurationMs =
+          preset != null ? _pathPresetMaxOneShotDurationMs(preset) : 0;
       final specs = <_PathRuleSpec>[];
-      for (var index = 0; index < preset.animationTriggers.length; index++) {
-        final rule = preset.animationTriggers[index];
+      for (var index = 0; index < layer.animationTriggers.length; index++) {
+        final rule = layer.animationTriggers[index];
         if (!rule.enabled) {
           continue;
         }
@@ -655,12 +696,11 @@ class MapLayersComponent extends PositionComponent {
           rule,
           index: index,
         );
-        final hasAnimatedFrames = _pathPresetHasAnimatedFrames(preset);
-        final oneShotDurationMs = _pathPresetMaxOneShotDurationMs(preset);
         specs.add(
           _PathRuleSpec(
             ruleId: ruleId,
             rule: rule,
+            scope: rule.scope,
             hasAnimatedFrames: hasAnimatedFrames,
             oneShotDurationMs: oneShotDurationMs,
           ),
@@ -1016,25 +1056,27 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String presetId,
   }) {
-    final rules = _pathRulesByLayerId[layerId];
-    if (rules == null || rules.isEmpty) {
+    final allRules = _pathRulesByLayerId[layerId];
+    if (allRules == null || allRules.isEmpty) {
       return const _PathLayerPlayback.alwaysLoop();
+    }
+    final wholeLayerRules = allRules
+        .where((r) => r.scope == PathAnimationActivationScope.wholeLayer)
+        .toList(growable: false);
+    if (wholeLayerRules.isEmpty) {
+      // Only cellOnly rules → layer stays static, cells animate individually.
+      return const _PathLayerPlayback.staticFrame();
     }
     var hasActiveLoop = false;
     double? activeLoopStartedAtMs;
-    for (final rule in rules) {
-      final key = _PathRuleKey(
-        layerId: layerId,
-        ruleId: rule.ruleId,
-      );
+    for (final rule in wholeLayerRules) {
+      final key = _PathRuleKey(layerId: layerId, ruleId: rule.ruleId);
       final oneShot = _activePathRuleOneShotByKey[key];
       if (oneShot != null) {
         if (_isPathRuleOneShotCompleted(oneShot)) {
           _activePathRuleOneShotByKey.remove(key);
         } else {
-          return _PathLayerPlayback.oneShot(
-            startedAtMs: oneShot.startedAtMs,
-          );
+          return _PathLayerPlayback.oneShot(startedAtMs: oneShot.startedAtMs);
         }
       }
       final loopStartedAtMs = _activePathRuleLoopStartedAtMsByKey[key];
@@ -1044,13 +1086,34 @@ class MapLayersComponent extends PositionComponent {
       }
     }
     if (hasActiveLoop && activeLoopStartedAtMs != null) {
-      return _PathLayerPlayback.loopFrom(
-        startedAtMs: activeLoopStartedAtMs,
-      );
+      return _PathLayerPlayback.loopFrom(startedAtMs: activeLoopStartedAtMs);
     }
-    final preset = _pathPresetById[presetId];
-    if (preset == null || preset.animationTriggers.isEmpty) {
-      return const _PathLayerPlayback.alwaysLoop();
+    return const _PathLayerPlayback.staticFrame();
+  }
+
+  _PathLayerPlayback _resolvePathCellPlayback({
+    required String layerId,
+    required int x,
+    required int y,
+  }) {
+    final rules = _pathRulesByLayerId[layerId];
+    if (rules == null) return const _PathLayerPlayback.staticFrame();
+    for (final rule in rules) {
+      if (rule.scope != PathAnimationActivationScope.cellOnly) continue;
+      final cellKey = _PathRuleCellKey(
+          layerId: layerId, ruleId: rule.ruleId, x: x, y: y);
+      final oneShot = _activePathRuleCellOneShotByKey[cellKey];
+      if (oneShot != null) {
+        if (_isPathRuleOneShotCompleted(oneShot)) {
+          _activePathRuleCellOneShotByKey.remove(cellKey);
+        } else {
+          return _PathLayerPlayback.oneShot(startedAtMs: oneShot.startedAtMs);
+        }
+      }
+      final loopStartedAtMs = _activePathRuleCellLoopStartedAtMsByKey[cellKey];
+      if (loopStartedAtMs != null) {
+        return _PathLayerPlayback.loopFrom(startedAtMs: loopStartedAtMs);
+      }
     }
     return const _PathLayerPlayback.staticFrame();
   }
@@ -1235,10 +1298,11 @@ class MapLayersComponent extends PositionComponent {
       mapSize: bundle.map.size,
       pos: GridPos(x: x, y: y),
     );
-    final playback = _resolvePathLayerPlayback(
-      layerId: layerId,
-      presetId: presetId,
-    );
+    final cellPlayback = _resolvePathCellPlayback(layerId: layerId, x: x, y: y);
+    final playback =
+        cellPlayback.kind != _PathLayerPlaybackKind.staticFrame
+            ? cellPlayback
+            : _resolvePathLayerPlayback(layerId: layerId, presetId: presetId);
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
@@ -1406,14 +1470,41 @@ class _PathRuleSpec {
   const _PathRuleSpec({
     required this.ruleId,
     required this.rule,
+    required this.scope,
     required this.hasAnimatedFrames,
     required this.oneShotDurationMs,
   });
 
   final String ruleId;
   final PathAnimationTriggerRule rule;
+  final PathAnimationActivationScope scope;
   final bool hasAnimatedFrames;
   final int oneShotDurationMs;
+}
+
+class _PathRuleCellKey {
+  const _PathRuleCellKey({
+    required this.layerId,
+    required this.ruleId,
+    required this.x,
+    required this.y,
+  });
+
+  final String layerId;
+  final String ruleId;
+  final int x;
+  final int y;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _PathRuleCellKey &&
+      other.layerId == layerId &&
+      other.ruleId == ruleId &&
+      other.x == x &&
+      other.y == y;
+
+  @override
+  int get hashCode => Object.hash(layerId, ruleId, x, y);
 }
 
 enum _PathLayerPlaybackKind {

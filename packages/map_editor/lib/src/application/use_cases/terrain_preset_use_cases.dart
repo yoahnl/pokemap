@@ -181,7 +181,6 @@ class CreatePathPresetUseCase {
     String? categoryId,
     String tilesetId = '',
     List<PathPresetVariantMapping> variants = const [],
-    List<PathAnimationTriggerRule> animationTriggers = const [],
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
@@ -200,7 +199,6 @@ class CreatePathPresetUseCase {
       PresetLibraryKind.path,
     );
     _validatePathPresetVariants(variants);
-    _validatePathAnimationTriggers(animationTriggers);
 
     final preset = ProjectPathPreset(
       id: generateUniquePathPresetId(project, trimmedName),
@@ -209,7 +207,6 @@ class CreatePathPresetUseCase {
       categoryId: _normalizeOptionalId(categoryId),
       tilesetId: normalizedTilesetId,
       variants: _normalizePathPresetVariants(variants),
-      animationTriggers: _normalizePathAnimationTriggers(animationTriggers),
       sortOrder: nextPathPresetSortOrder(project),
     );
     final updated =
@@ -236,8 +233,6 @@ class UpdatePathPresetUseCase {
     bool clearTilesetId = false,
     List<PathPresetVariantMapping>? variants,
     bool clearVariants = false,
-    List<PathAnimationTriggerRule>? animationTriggers,
-    bool clearAnimationTriggers = false,
     int? sortOrder,
   }) async {
     final current = project.pathPresets.firstWhere(
@@ -277,12 +272,6 @@ class UpdatePathPresetUseCase {
             ? _normalizePathPresetVariants(variants)
             : current.variants);
     _validatePathPresetVariants(nextVariants);
-    final nextAnimationTriggers = clearAnimationTriggers
-        ? const <PathAnimationTriggerRule>[]
-        : (animationTriggers != null
-            ? _normalizePathAnimationTriggers(animationTriggers)
-            : current.animationTriggers);
-    _validatePathAnimationTriggers(nextAnimationTriggers);
 
     final updatedPresets = project.pathPresets
         .map((preset) => preset.id != presetId
@@ -293,7 +282,6 @@ class UpdatePathPresetUseCase {
                 categoryId: nextCategoryId,
                 tilesetId: nextTilesetId,
                 variants: nextVariants,
-                animationTriggers: nextAnimationTriggers,
                 sortOrder: sortOrder ?? preset.sortOrder,
               ))
         .toList(growable: false);
@@ -516,60 +504,6 @@ List<PathPresetVariantMapping> _normalizePathPresetVariants(
       List<PathPresetVariantMapping>.from(variants, growable: false);
   ordered.sort((a, b) => a.variant.index.compareTo(b.variant.index));
   return ordered;
-}
-
-List<PathAnimationTriggerRule> _normalizePathAnimationTriggers(
-  List<PathAnimationTriggerRule> triggers,
-) {
-  final normalized = <PathAnimationTriggerRule>[];
-  final seen = <String>{};
-  for (var index = 0; index < triggers.length; index++) {
-    final trigger = triggers[index];
-    final resolvedId = resolvePathAnimationTriggerRuleId(
-      trigger,
-      index: index,
-    );
-    var candidate = resolvedId;
-    var duplicateSuffix = 1;
-    while (!seen.add(candidate)) {
-      candidate = '${resolvedId}_$duplicateSuffix';
-      duplicateSuffix += 1;
-    }
-    normalized.add(
-      trigger.copyWith(
-        id: candidate,
-      ),
-    );
-  }
-  return normalized;
-}
-
-void _validatePathAnimationTriggers(List<PathAnimationTriggerRule> triggers) {
-  final ids = <String>{};
-  for (var index = 0; index < triggers.length; index++) {
-    final trigger = triggers[index];
-    final resolvedId = resolvePathAnimationTriggerRuleId(
-      trigger,
-      index: index,
-    );
-    if (!ids.add(resolvedId)) {
-      throw EditorConflictException(
-        'Duplicate path animation trigger: $resolvedId',
-      );
-    }
-    if (trigger.mode == PathAnimationPlaybackMode.loopWhileActive &&
-        trigger.trigger != PathAnimationTriggerType.whileInside) {
-      throw const EditorValidationException(
-        'loopWhileActive requires trigger whileInside',
-      );
-    }
-    if (trigger.trigger == PathAnimationTriggerType.whileInside &&
-        trigger.mode != PathAnimationPlaybackMode.loopWhileActive) {
-      throw const EditorValidationException(
-        'whileInside requires mode loopWhileActive',
-      );
-    }
-  }
 }
 
 void _validatePathPresetVariants(List<PathPresetVariantMapping> variants) {

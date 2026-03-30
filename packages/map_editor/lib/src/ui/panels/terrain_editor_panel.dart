@@ -944,6 +944,13 @@ class _PresetDetailsCard extends ConsumerWidget {
                 ),
             ],
           ),
+          if (pathPreset != null) ...[
+            const SizedBox(height: 12),
+            _PathLayerAnimationTriggersSection(
+              presetId: pathPreset.id,
+              notifier: notifier,
+            ),
+          ],
         ],
       ),
     );
@@ -1441,10 +1448,6 @@ Future<void> _showPathPresetDialog(
           growable: false,
         ),
   };
-  final animationTriggers = List<PathAnimationTriggerRule>.from(
-    preset?.animationTriggers ?? const <PathAnimationTriggerRule>[],
-    growable: true,
-  );
   final categories = _flattenCategories(
     notifier,
     PresetLibraryKind.path,
@@ -1492,27 +1495,32 @@ Future<void> _showPathPresetDialog(
                   placeholder: 'Preset name',
                 ),
                 const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: PushButton(
-                    controlSize: ControlSize.regular,
-                    secondary: true,
-                    onPressed: () async {
-                      final picked =
-                          await showCupertinoListPicker<_PathTraversalType>(
-                        context: ctx,
-                        title: 'Surface type',
-                        items: _PathTraversalType.values.toList(),
-                        labelOf: _pathTraversalLabel,
-                      );
-                      if (picked != null) {
-                        setState(() => traversalType = picked);
-                      }
-                    },
-                    child: Text(
-                      'Surface type: ${_pathTraversalLabel(traversalType)}',
+                Row(
+                  children: [
+                    Text(
+                      'Surface type',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CupertinoColors.label.resolveFrom(ctx),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    CupertinoSlidingSegmentedControl<_PathTraversalType>(
+                      groupValue: traversalType,
+                      onValueChanged: (value) {
+                        if (value != null) {
+                          setState(() => traversalType = value);
+                        }
+                      },
+                      children: {
+                        for (final t in _PathTraversalType.values)
+                          t: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(_pathTraversalLabel(t)),
+                          ),
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Align(
@@ -1641,77 +1649,6 @@ Future<void> _showPathPresetDialog(
                     ),
                   ),
                 const SizedBox(height: 12),
-                Text(
-                  'Animation triggers',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: CupertinoColors.label.resolveFrom(ctx),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  animationTriggers.isEmpty
-                      ? 'No trigger configured. Path animation uses default loop.'
-                      : '${animationTriggers.length} trigger${animationTriggers.length > 1 ? 's' : ''} configured',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: PushButton(
-                    controlSize: ControlSize.small,
-                    secondary: true,
-                    onPressed: () {
-                      setState(() {
-                        animationTriggers.add(
-                          _normalizePathAnimationTriggerRule(
-                            PathAnimationTriggerRule(
-                              id: 'path_trigger_${DateTime.now().microsecondsSinceEpoch}_${animationTriggers.length}',
-                            ),
-                          ),
-                        );
-                      });
-                    },
-                    child: const Text('Add trigger'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (animationTriggers.isEmpty)
-                  Text(
-                    'Examples: onStep + restartOnTrigger, onNear + playOnce, whileInside + loopWhileActive.',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
-                    ),
-                  ),
-                if (animationTriggers.isNotEmpty)
-                  Column(
-                    children: [
-                      for (var index = 0;
-                          index < animationTriggers.length;
-                          index++)
-                        _PathAnimationTriggerRuleCard(
-                          rule: animationTriggers[index],
-                          index: index,
-                          onChanged: (next) {
-                            setState(() {
-                              animationTriggers[index] =
-                                  _normalizePathAnimationTriggerRule(next);
-                            });
-                          },
-                          onDelete: () {
-                            setState(() {
-                              animationTriggers.removeAt(index);
-                            });
-                          },
-                        ),
-                    ],
-                  ),
-                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -1761,7 +1698,6 @@ Future<void> _showPathPresetDialog(
                             categoryId: categoryId,
                             tilesetId: tilesetId,
                             variants: mappings,
-                            animationTriggers: animationTriggers,
                           );
                         } else {
                           await notifier.updatePathPreset(
@@ -1773,7 +1709,6 @@ Future<void> _showPathPresetDialog(
                             tilesetId: tilesetId,
                             clearTilesetId: tilesetId.isEmpty,
                             variants: mappings,
-                            animationTriggers: animationTriggers,
                           );
                         }
                         if (ctx.mounted) {
@@ -3018,11 +2953,27 @@ String _pathAnimationTriggerHint(PathAnimationTriggerType trigger) {
 String _pathAnimationModeHint(PathAnimationPlaybackMode mode) {
   return switch (mode) {
     PathAnimationPlaybackMode.playOnce =>
-      'Joue l’animation une seule fois par trigger.',
+      "Joue l’animation une seule fois par trigger.",
     PathAnimationPlaybackMode.loopWhileActive =>
-      'Boucle tant que la condition active est vraie.',
+      "Boucle tant que la condition active est vraie.",
     PathAnimationPlaybackMode.restartOnTrigger =>
-      'Relance depuis le début à chaque nouveau trigger.',
+      "Relance depuis le debut a chaque nouveau trigger.",
+  };
+}
+
+String _pathAnimationScopeLabel(PathAnimationActivationScope scope) {
+  return switch (scope) {
+    PathAnimationActivationScope.wholeLayer => "Whole layer",
+    PathAnimationActivationScope.cellOnly => "Cell only",
+  };
+}
+
+String _pathAnimationScopeHint(PathAnimationActivationScope scope) {
+  return switch (scope) {
+    PathAnimationActivationScope.wholeLayer =>
+      "Anime toutes les cellules du calque simultanement.",
+    PathAnimationActivationScope.cellOnly =>
+      "Anime uniquement la cellule declenchee (ex : hautes herbes).",
   };
 }
 
@@ -3668,6 +3619,155 @@ class _PathVariantFramesEditorState extends State<_PathVariantFramesEditor> {
   }
 }
 
+class _PathLayerAnimationTriggersSection extends StatefulWidget {
+  const _PathLayerAnimationTriggersSection({
+    required this.presetId,
+    required this.notifier,
+  });
+
+  final String presetId;
+  final EditorNotifier notifier;
+
+  @override
+  State<_PathLayerAnimationTriggersSection> createState() =>
+      _PathLayerAnimationTriggersSectionState();
+}
+
+class _PathLayerAnimationTriggersSectionState
+    extends State<_PathLayerAnimationTriggersSection> {
+  @override
+  Widget build(BuildContext context) {
+    final layers = widget.notifier.getPathLayersForPreset(widget.presetId);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Animation triggers',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: label,
+          ),
+        ),
+        const SizedBox(height: 4),
+        if (layers.isEmpty)
+          Text(
+            "Aucun calque n'utilise ce preset. Placez ce preset sur un calque Paths pour configurer les triggers.",
+            style: TextStyle(fontSize: 11, color: secondary),
+          )
+        else
+          for (final layer in layers)
+            _PathLayerTriggerEditor(
+              layer: layer,
+              notifier: widget.notifier,
+              onChanged: () => setState(() {}),
+            ),
+      ],
+    );
+  }
+}
+
+class _PathLayerTriggerEditor extends StatelessWidget {
+  const _PathLayerTriggerEditor({
+    required this.layer,
+    required this.notifier,
+    required this.onChanged,
+  });
+
+  final PathLayer layer;
+  final EditorNotifier notifier;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final triggers = layer.animationTriggers;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemFill.resolveFrom(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Calque : ${layer.name}',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: label,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (triggers.isEmpty)
+            Text(
+              'Aucun trigger — animation en boucle par défaut.',
+              style: TextStyle(fontSize: 10, color: secondary),
+            )
+          else
+            for (var i = 0; i < triggers.length; i++)
+              _PathAnimationTriggerRuleCard(
+                rule: triggers[i],
+                index: i,
+                onChanged: (next) {
+                  final updated = List<PathAnimationTriggerRule>.from(triggers);
+                  updated[i] = _normalizePathAnimationTriggerRule(next);
+                  notifier.applyPathLayerAnimationTriggers(
+                    layerId: layer.id,
+                    triggers: updated,
+                  );
+                  onChanged();
+                },
+                onDelete: () {
+                  final updated = List<PathAnimationTriggerRule>.from(triggers)
+                    ..removeAt(i);
+                  notifier.applyPathLayerAnimationTriggers(
+                    layerId: layer.id,
+                    triggers: updated,
+                  );
+                  onChanged();
+                },
+              ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PushButton(
+              controlSize: ControlSize.small,
+              secondary: true,
+              onPressed: () {
+                final updated = [
+                  ...triggers,
+                  _normalizePathAnimationTriggerRule(
+                    PathAnimationTriggerRule(
+                      id: 'rule_${DateTime.now().microsecondsSinceEpoch}_${triggers.length}',
+                    ),
+                  ),
+                ];
+                notifier.applyPathLayerAnimationTriggers(
+                  layerId: layer.id,
+                  triggers: updated,
+                );
+                onChanged();
+              },
+              child: const Text('Add trigger'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PathAnimationTriggerRuleCard extends StatelessWidget {
   const _PathAnimationTriggerRuleCard({
     required this.rule,
@@ -3777,6 +3877,24 @@ class _PathAnimationTriggerRuleCard extends StatelessWidget {
                 child:
                     Text('Mode: ${_pathAnimationPlaybackModeLabel(rule.mode)}'),
               ),
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: () async {
+                  final picked = await showCupertinoListPicker<
+                      PathAnimationActivationScope>(
+                    context: context,
+                    title: 'Activation scope',
+                    items: PathAnimationActivationScope.values.toList(),
+                    labelOf: _pathAnimationScopeLabel,
+                  );
+                  if (picked == null) {
+                    return;
+                  }
+                  onChanged(rule.copyWith(scope: picked));
+                },
+                child: Text('Scope: ${_pathAnimationScopeLabel(rule.scope)}'),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -3787,6 +3905,11 @@ class _PathAnimationTriggerRuleCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             _pathAnimationModeHint(rule.mode),
+            style: TextStyle(fontSize: 10, color: secondary),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _pathAnimationScopeHint(rule.scope),
             style: TextStyle(fontSize: 10, color: secondary),
           ),
         ],

@@ -35,7 +35,7 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
       tile: (id, name, tilesetId, isVisible, opacity, tiles) => add(tilesetId),
       collision: (id, name, isVisible, opacity, collisions) {},
       terrain: (id, name, isVisible, opacity, terrains) {},
-      path: (id, name, isVisible, opacity, presetId, cells, properties) {},
+      path: (id, name, isVisible, opacity, presetId, cells, properties, animationTriggers) {},
       object: (id, name, isVisible, opacity) {},
     );
   }
@@ -75,7 +75,7 @@ void addTerrainAndPathPresetTilesetIds(
           }
         }
       },
-      path: (id, name, isVisible, opacity, presetId, cells, properties) {
+      path: (id, name, isVisible, opacity, presetId, cells, properties, animationTriggers) {
         final pid = presetId.trim();
         if (pid.isEmpty) {
           return;

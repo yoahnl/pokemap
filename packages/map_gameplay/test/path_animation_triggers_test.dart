@@ -8,15 +8,16 @@ void main() {
       final world = GameplayWorldState.initial(
         map: _map(
           pathCells: const [false, true, false, false, false, false],
+          animationTriggers: const [
+            PathAnimationTriggerRule(
+              id: 'step_rule',
+              trigger: PathAnimationTriggerType.onStep,
+              mode: PathAnimationPlaybackMode.restartOnTrigger,
+            ),
+          ],
         ),
         playerPos: const GridPos(x: 0, y: 0),
-        project: _projectWithTrigger(
-          const PathAnimationTriggerRule(
-            id: 'step_rule',
-            trigger: PathAnimationTriggerType.onStep,
-            mode: PathAnimationPlaybackMode.restartOnTrigger,
-          ),
-        ),
+        project: _project,
       );
 
       final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
@@ -33,15 +34,16 @@ void main() {
       final world = GameplayWorldState.initial(
         map: _map(
           pathCells: const [false, true, true, false, false, false],
+          animationTriggers: const [
+            PathAnimationTriggerRule(
+              id: 'enter_rule',
+              trigger: PathAnimationTriggerType.onEnter,
+              mode: PathAnimationPlaybackMode.playOnce,
+            ),
+          ],
         ),
         playerPos: const GridPos(x: 0, y: 0),
-        project: _projectWithTrigger(
-          const PathAnimationTriggerRule(
-            id: 'enter_rule',
-            trigger: PathAnimationTriggerType.onEnter,
-            mode: PathAnimationPlaybackMode.playOnce,
-          ),
-        ),
+        project: _project,
       );
 
       final first = stepGameplayWorld(world, const MoveIntent(Direction.east));
@@ -57,35 +59,29 @@ void main() {
     });
 
     test('onNear triggers only on outside to near transition', () {
+      // Grid 5x3, path at (3,1). Near zone: (2,1),(4,1),(3,0),(3,2).
+      // Player starts at (0,1) — 3 steps from path, 2 steps from near zone.
+      // Step 1: (0,1)→(1,1) — not near, not near → no signal.
+      // Step 2: (1,1)→(2,1) — not near → near (adjacent to path) → fires.
+      // Step 3: (2,1)→(2,2) — near → not near → no signal (exiting, not entering).
       final world = GameplayWorldState.initial(
         map: _map(
           size: const GridSize(width: 5, height: 3),
           pathCells: const [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            true,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
+            false, false, false, false, false,
+            false, false, false, true,  false,
+            false, false, false, false, false,
+          ],
+          animationTriggers: const [
+            PathAnimationTriggerRule(
+              id: 'near_rule',
+              trigger: PathAnimationTriggerType.onNear,
+              mode: PathAnimationPlaybackMode.playOnce,
+            ),
           ],
         ),
         playerPos: const GridPos(x: 0, y: 1),
-        project: _projectWithTrigger(
-          const PathAnimationTriggerRule(
-            id: 'near_rule',
-            trigger: PathAnimationTriggerType.onNear,
-            mode: PathAnimationPlaybackMode.playOnce,
-          ),
-        ),
+        project: _project,
       );
 
       final first = stepGameplayWorld(world, const MoveIntent(Direction.east));
@@ -106,16 +102,17 @@ void main() {
       final world = GameplayWorldState.initial(
         map: _map(
           pathCells: const [false, true, false, false, false, false],
+          animationTriggers: const [
+            PathAnimationTriggerRule(
+              id: 'action_rule',
+              trigger: PathAnimationTriggerType.onAction,
+              mode: PathAnimationPlaybackMode.playOnce,
+            ),
+          ],
         ),
         playerPos: const GridPos(x: 0, y: 0),
         playerFacing: Direction.east,
-        project: _projectWithTrigger(
-          const PathAnimationTriggerRule(
-            id: 'action_rule',
-            trigger: PathAnimationTriggerType.onAction,
-            mode: PathAnimationPlaybackMode.playOnce,
-          ),
-        ),
+        project: _project,
       );
 
       final result = stepGameplayWorld(world, const InteractIntent());
@@ -128,15 +125,16 @@ void main() {
       final world = GameplayWorldState.initial(
         map: _map(
           pathCells: const [false, true, false, false, false, false],
+          animationTriggers: const [
+            PathAnimationTriggerRule(
+              id: 'inside_rule',
+              trigger: PathAnimationTriggerType.whileInside,
+              mode: PathAnimationPlaybackMode.loopWhileActive,
+            ),
+          ],
         ),
         playerPos: const GridPos(x: 0, y: 0),
-        project: _projectWithTrigger(
-          const PathAnimationTriggerRule(
-            id: 'inside_rule',
-            trigger: PathAnimationTriggerType.whileInside,
-            mode: PathAnimationPlaybackMode.loopWhileActive,
-          ),
-        ),
+        project: _project,
       );
 
       final enter = stepGameplayWorld(world, const MoveIntent(Direction.east));
@@ -160,15 +158,16 @@ void main() {
         map: _map(
           pathCells: const [false, true, false, false, false, false],
           collisionCells: const [false, true, false, false, false, false],
+          animationTriggers: const [
+            PathAnimationTriggerRule(
+              id: 'bump_rule',
+              trigger: PathAnimationTriggerType.onBump,
+              mode: PathAnimationPlaybackMode.playOnce,
+            ),
+          ],
         ),
         playerPos: const GridPos(x: 0, y: 0),
-        project: _projectWithTrigger(
-          const PathAnimationTriggerRule(
-            id: 'bump_rule',
-            trigger: PathAnimationTriggerType.onBump,
-            mode: PathAnimationPlaybackMode.playOnce,
-          ),
-        ),
+        project: _project,
       );
 
       final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
@@ -183,6 +182,7 @@ MapData _map({
   GridSize size = const GridSize(width: 3, height: 2),
   required List<bool> pathCells,
   List<bool>? collisionCells,
+  List<PathAnimationTriggerRule> animationTriggers = const [],
 }) {
   final cellCount = size.width * size.height;
   final paddedPaths = List<bool>.filled(cellCount, false, growable: false);
@@ -209,6 +209,7 @@ MapData _map({
         name: 'Path',
         presetId: 'water_path',
         cells: paddedPaths,
+        animationTriggers: animationTriggers,
       ),
       MapLayer.collision(
         id: 'collision',
@@ -219,39 +220,36 @@ MapData _map({
   );
 }
 
-ProjectManifest _projectWithTrigger(PathAnimationTriggerRule trigger) {
-  return ProjectManifest(
-    name: 'project',
-    maps: const [],
-    tilesets: const [
-      ProjectTilesetEntry(
-        id: 'outdoor',
-        name: 'Outdoor',
-        relativePath: 'tilesets/outdoor.png',
-      ),
-    ],
-    pathPresets: [
-      ProjectPathPreset(
-        id: 'water_path',
-        name: 'Water',
-        tilesetId: 'outdoor',
-        variants: const [
-          PathPresetVariantMapping(
-            variant: TerrainPathVariant.horizontal,
-            frames: [
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 0, y: 0),
-                durationMs: 100,
-              ),
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 1, y: 0),
-                durationMs: 100,
-              ),
-            ],
-          ),
-        ],
-        animationTriggers: [trigger],
-      ),
-    ],
-  );
-}
+const _project = ProjectManifest(
+  name: 'project',
+  maps: [],
+  tilesets: [
+    ProjectTilesetEntry(
+      id: 'outdoor',
+      name: 'Outdoor',
+      relativePath: 'tilesets/outdoor.png',
+    ),
+  ],
+  pathPresets: [
+    ProjectPathPreset(
+      id: 'water_path',
+      name: 'Water',
+      tilesetId: 'outdoor',
+      variants: [
+        PathPresetVariantMapping(
+          variant: TerrainPathVariant.horizontal,
+          frames: [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0),
+              durationMs: 100,
+            ),
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 1, y: 0),
+              durationMs: 100,
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);

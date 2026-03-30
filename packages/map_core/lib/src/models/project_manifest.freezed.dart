@@ -4748,8 +4748,6 @@ mixin _$ProjectPathPreset {
   String get tilesetId => throw _privateConstructorUsedError;
   List<PathPresetVariantMapping> get variants =>
       throw _privateConstructorUsedError;
-  List<PathAnimationTriggerRule> get animationTriggers =>
-      throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
 
   /// Serializes this ProjectPathPreset to a JSON map.
@@ -4775,7 +4773,6 @@ abstract class $ProjectPathPresetCopyWith<$Res> {
       String? categoryId,
       String tilesetId,
       List<PathPresetVariantMapping> variants,
-      List<PathAnimationTriggerRule> animationTriggers,
       int sortOrder});
 }
 
@@ -4800,7 +4797,6 @@ class _$ProjectPathPresetCopyWithImpl<$Res, $Val extends ProjectPathPreset>
     Object? categoryId = freezed,
     Object? tilesetId = null,
     Object? variants = null,
-    Object? animationTriggers = null,
     Object? sortOrder = null,
   }) {
     return _then(_value.copyWith(
@@ -4828,10 +4824,6 @@ class _$ProjectPathPresetCopyWithImpl<$Res, $Val extends ProjectPathPreset>
           ? _value.variants
           : variants // ignore: cast_nullable_to_non_nullable
               as List<PathPresetVariantMapping>,
-      animationTriggers: null == animationTriggers
-          ? _value.animationTriggers
-          : animationTriggers // ignore: cast_nullable_to_non_nullable
-              as List<PathAnimationTriggerRule>,
       sortOrder: null == sortOrder
           ? _value.sortOrder
           : sortOrder // ignore: cast_nullable_to_non_nullable
@@ -4855,7 +4847,6 @@ abstract class _$$ProjectPathPresetImplCopyWith<$Res>
       String? categoryId,
       String tilesetId,
       List<PathPresetVariantMapping> variants,
-      List<PathAnimationTriggerRule> animationTriggers,
       int sortOrder});
 }
 
@@ -4878,7 +4869,6 @@ class __$$ProjectPathPresetImplCopyWithImpl<$Res>
     Object? categoryId = freezed,
     Object? tilesetId = null,
     Object? variants = null,
-    Object? animationTriggers = null,
     Object? sortOrder = null,
   }) {
     return _then(_$ProjectPathPresetImpl(
@@ -4906,10 +4896,6 @@ class __$$ProjectPathPresetImplCopyWithImpl<$Res>
           ? _value._variants
           : variants // ignore: cast_nullable_to_non_nullable
               as List<PathPresetVariantMapping>,
-      animationTriggers: null == animationTriggers
-          ? _value._animationTriggers
-          : animationTriggers // ignore: cast_nullable_to_non_nullable
-              as List<PathAnimationTriggerRule>,
       sortOrder: null == sortOrder
           ? _value.sortOrder
           : sortOrder // ignore: cast_nullable_to_non_nullable
@@ -4928,10 +4914,8 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
       this.categoryId,
       this.tilesetId = '',
       final List<PathPresetVariantMapping> variants = const [],
-      final List<PathAnimationTriggerRule> animationTriggers = const [],
       this.sortOrder = 0})
-      : _variants = variants,
-        _animationTriggers = animationTriggers;
+      : _variants = variants;
 
   factory _$ProjectPathPresetImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectPathPresetImplFromJson(json);
@@ -4957,23 +4941,13 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
     return EqualUnmodifiableListView(_variants);
   }
 
-  final List<PathAnimationTriggerRule> _animationTriggers;
-  @override
-  @JsonKey()
-  List<PathAnimationTriggerRule> get animationTriggers {
-    if (_animationTriggers is EqualUnmodifiableListView)
-      return _animationTriggers;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_animationTriggers);
-  }
-
   @override
   @JsonKey()
   final int sortOrder;
 
   @override
   String toString() {
-    return 'ProjectPathPreset(id: $id, name: $name, surfaceKind: $surfaceKind, categoryId: $categoryId, tilesetId: $tilesetId, variants: $variants, animationTriggers: $animationTriggers, sortOrder: $sortOrder)';
+    return 'ProjectPathPreset(id: $id, name: $name, surfaceKind: $surfaceKind, categoryId: $categoryId, tilesetId: $tilesetId, variants: $variants, sortOrder: $sortOrder)';
   }
 
   @override
@@ -4990,8 +4964,6 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
             (identical(other.tilesetId, tilesetId) ||
                 other.tilesetId == tilesetId) &&
             const DeepCollectionEquality().equals(other._variants, _variants) &&
-            const DeepCollectionEquality()
-                .equals(other._animationTriggers, _animationTriggers) &&
             (identical(other.sortOrder, sortOrder) ||
                 other.sortOrder == sortOrder));
   }
@@ -5006,7 +4978,6 @@ class _$ProjectPathPresetImpl implements _ProjectPathPreset {
       categoryId,
       tilesetId,
       const DeepCollectionEquality().hash(_variants),
-      const DeepCollectionEquality().hash(_animationTriggers),
       sortOrder);
 
   /// Create a copy of ProjectPathPreset
@@ -5034,7 +5005,6 @@ abstract class _ProjectPathPreset implements ProjectPathPreset {
       final String? categoryId,
       final String tilesetId,
       final List<PathPresetVariantMapping> variants,
-      final List<PathAnimationTriggerRule> animationTriggers,
       final int sortOrder}) = _$ProjectPathPresetImpl;
 
   factory _ProjectPathPreset.fromJson(Map<String, dynamic> json) =
@@ -5052,8 +5022,6 @@ abstract class _ProjectPathPreset implements ProjectPathPreset {
   String get tilesetId;
   @override
   List<PathPresetVariantMapping> get variants;
-  @override
-  List<PathAnimationTriggerRule> get animationTriggers;
   @override
   int get sortOrder;
 
@@ -5267,6 +5235,7 @@ mixin _$PathAnimationTriggerRule {
   bool get enabled => throw _privateConstructorUsedError;
   PathAnimationTriggerType get trigger => throw _privateConstructorUsedError;
   PathAnimationPlaybackMode get mode => throw _privateConstructorUsedError;
+  PathAnimationActivationScope get scope => throw _privateConstructorUsedError;
 
   /// Serializes this PathAnimationTriggerRule to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -5288,7 +5257,8 @@ abstract class $PathAnimationTriggerRuleCopyWith<$Res> {
       {String id,
       bool enabled,
       PathAnimationTriggerType trigger,
-      PathAnimationPlaybackMode mode});
+      PathAnimationPlaybackMode mode,
+      PathAnimationActivationScope scope});
 }
 
 /// @nodoc
@@ -5311,6 +5281,7 @@ class _$PathAnimationTriggerRuleCopyWithImpl<$Res,
     Object? enabled = null,
     Object? trigger = null,
     Object? mode = null,
+    Object? scope = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -5329,6 +5300,10 @@ class _$PathAnimationTriggerRuleCopyWithImpl<$Res,
           ? _value.mode
           : mode // ignore: cast_nullable_to_non_nullable
               as PathAnimationPlaybackMode,
+      scope: null == scope
+          ? _value.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as PathAnimationActivationScope,
     ) as $Val);
   }
 }
@@ -5346,7 +5321,8 @@ abstract class _$$PathAnimationTriggerRuleImplCopyWith<$Res>
       {String id,
       bool enabled,
       PathAnimationTriggerType trigger,
-      PathAnimationPlaybackMode mode});
+      PathAnimationPlaybackMode mode,
+      PathAnimationActivationScope scope});
 }
 
 /// @nodoc
@@ -5368,6 +5344,7 @@ class __$$PathAnimationTriggerRuleImplCopyWithImpl<$Res>
     Object? enabled = null,
     Object? trigger = null,
     Object? mode = null,
+    Object? scope = null,
   }) {
     return _then(_$PathAnimationTriggerRuleImpl(
       id: null == id
@@ -5386,6 +5363,10 @@ class __$$PathAnimationTriggerRuleImplCopyWithImpl<$Res>
           ? _value.mode
           : mode // ignore: cast_nullable_to_non_nullable
               as PathAnimationPlaybackMode,
+      scope: null == scope
+          ? _value.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as PathAnimationActivationScope,
     ));
   }
 }
@@ -5398,7 +5379,8 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
       {this.id = '',
       this.enabled = true,
       this.trigger = PathAnimationTriggerType.onStep,
-      this.mode = PathAnimationPlaybackMode.restartOnTrigger});
+      this.mode = PathAnimationPlaybackMode.restartOnTrigger,
+      this.scope = PathAnimationActivationScope.wholeLayer});
 
   factory _$PathAnimationTriggerRuleImpl.fromJson(Map<String, dynamic> json) =>
       _$$PathAnimationTriggerRuleImplFromJson(json);
@@ -5415,10 +5397,13 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
   @override
   @JsonKey()
   final PathAnimationPlaybackMode mode;
+  @override
+  @JsonKey()
+  final PathAnimationActivationScope scope;
 
   @override
   String toString() {
-    return 'PathAnimationTriggerRule(id: $id, enabled: $enabled, trigger: $trigger, mode: $mode)';
+    return 'PathAnimationTriggerRule(id: $id, enabled: $enabled, trigger: $trigger, mode: $mode, scope: $scope)';
   }
 
   @override
@@ -5429,12 +5414,14 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.enabled, enabled) || other.enabled == enabled) &&
             (identical(other.trigger, trigger) || other.trigger == trigger) &&
-            (identical(other.mode, mode) || other.mode == mode));
+            (identical(other.mode, mode) || other.mode == mode) &&
+            (identical(other.scope, scope) || other.scope == scope));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, enabled, trigger, mode);
+  int get hashCode =>
+      Object.hash(runtimeType, id, enabled, trigger, mode, scope);
 
   /// Create a copy of PathAnimationTriggerRule
   /// with the given fields replaced by the non-null parameter values.
@@ -5455,10 +5442,12 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
 
 abstract class _PathAnimationTriggerRule implements PathAnimationTriggerRule {
   const factory _PathAnimationTriggerRule(
-      {final String id,
-      final bool enabled,
-      final PathAnimationTriggerType trigger,
-      final PathAnimationPlaybackMode mode}) = _$PathAnimationTriggerRuleImpl;
+          {final String id,
+          final bool enabled,
+          final PathAnimationTriggerType trigger,
+          final PathAnimationPlaybackMode mode,
+          final PathAnimationActivationScope scope}) =
+      _$PathAnimationTriggerRuleImpl;
 
   factory _PathAnimationTriggerRule.fromJson(Map<String, dynamic> json) =
       _$PathAnimationTriggerRuleImpl.fromJson;
@@ -5471,6 +5460,8 @@ abstract class _PathAnimationTriggerRule implements PathAnimationTriggerRule {
   PathAnimationTriggerType get trigger;
   @override
   PathAnimationPlaybackMode get mode;
+  @override
+  PathAnimationActivationScope get scope;
 
   /// Create a copy of PathAnimationTriggerRule
   /// with the given fields replaced by the non-null parameter values.

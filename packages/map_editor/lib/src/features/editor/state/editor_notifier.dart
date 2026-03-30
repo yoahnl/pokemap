@@ -4510,7 +4510,6 @@ class EditorNotifier extends _$EditorNotifier {
     String? categoryId,
     String tilesetId = '',
     List<PathPresetVariantMapping> variants = const [],
-    List<PathAnimationTriggerRule> animationTriggers = const [],
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -4525,7 +4524,6 @@ class EditorNotifier extends _$EditorNotifier {
         categoryId: categoryId,
         tilesetId: tilesetId,
         variants: variants,
-        animationTriggers: animationTriggers,
       );
       final selection =
           _terrainPresetSelectionCoordinator.afterPathPresetCreated(
@@ -4555,8 +4553,6 @@ class EditorNotifier extends _$EditorNotifier {
     bool clearTilesetId = false,
     List<PathPresetVariantMapping>? variants,
     bool clearVariants = false,
-    List<PathAnimationTriggerRule>? animationTriggers,
-    bool clearAnimationTriggers = false,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -4575,8 +4571,6 @@ class EditorNotifier extends _$EditorNotifier {
         clearTilesetId: clearTilesetId,
         variants: variants,
         clearVariants: clearVariants,
-        animationTriggers: animationTriggers,
-        clearAnimationTriggers: clearAnimationTriggers,
       );
       final selected = updated.pathPresets.firstWhere(
         (preset) => preset.id == presetId,
@@ -4598,6 +4592,39 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update path preset: $e');
+    }
+  }
+
+  List<PathLayer> getPathLayersForPreset(String presetId) {
+    final map = state.activeMap;
+    if (map == null) return const [];
+    return map.layers
+        .whereType<PathLayer>()
+        .where((l) => l.presetId.trim() == presetId.trim())
+        .toList(growable: false);
+  }
+
+  void applyPathLayerAnimationTriggers({
+    required String layerId,
+    required List<PathAnimationTriggerRule> triggers,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updatedMap = setPathLayerAnimationTriggers(
+        map,
+        layerId: layerId,
+        triggers: triggers,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Animation triggers updated',
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to update animation triggers: $e');
     }
   }
 

@@ -557,11 +557,6 @@ _$ProjectPathPresetImpl _$$ProjectPathPresetImplFromJson(
                   PathPresetVariantMapping.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      animationTriggers: (json['animationTriggers'] as List<dynamic>?)
-              ?.map((e) =>
-                  PathAnimationTriggerRule.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
 
@@ -574,7 +569,6 @@ Map<String, dynamic> _$$ProjectPathPresetImplToJson(
       'categoryId': instance.categoryId,
       'tilesetId': instance.tilesetId,
       'variants': instance.variants,
-      'animationTriggers': instance.animationTriggers,
       'sortOrder': instance.sortOrder,
     };
 
@@ -642,6 +636,9 @@ _$PathAnimationTriggerRuleImpl _$$PathAnimationTriggerRuleImplFromJson(
       mode: $enumDecodeNullable(
               _$PathAnimationPlaybackModeEnumMap, json['mode']) ??
           PathAnimationPlaybackMode.restartOnTrigger,
+      scope: $enumDecodeNullable(
+              _$PathAnimationActivationScopeEnumMap, json['scope']) ??
+          PathAnimationActivationScope.wholeLayer,
     );
 
 Map<String, dynamic> _$$PathAnimationTriggerRuleImplToJson(
@@ -651,6 +648,7 @@ Map<String, dynamic> _$$PathAnimationTriggerRuleImplToJson(
       'enabled': instance.enabled,
       'trigger': _$PathAnimationTriggerTypeEnumMap[instance.trigger]!,
       'mode': _$PathAnimationPlaybackModeEnumMap[instance.mode]!,
+      'scope': _$PathAnimationActivationScopeEnumMap[instance.scope]!,
     };
 
 const _$PathAnimationTriggerTypeEnumMap = {
@@ -666,6 +664,11 @@ const _$PathAnimationPlaybackModeEnumMap = {
   PathAnimationPlaybackMode.playOnce: 'play_once',
   PathAnimationPlaybackMode.loopWhileActive: 'loop_while_active',
   PathAnimationPlaybackMode.restartOnTrigger: 'restart_on_trigger',
+};
+
+const _$PathAnimationActivationScopeEnumMap = {
+  PathAnimationActivationScope.wholeLayer: 'whole_layer',
+  PathAnimationActivationScope.cellOnly: 'cell_only',
 };
 
 _$ProjectPresetCategoryImpl _$$ProjectPresetCategoryImplFromJson(

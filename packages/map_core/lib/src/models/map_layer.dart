@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
+import 'project_manifest.dart';
 
 part 'map_layer.freezed.dart';
 part 'map_layer.g.dart';
@@ -38,6 +39,7 @@ sealed class MapLayer with _$MapLayer {
   }) = TerrainLayer;
 
   @FreezedUnionValue('path')
+  @JsonSerializable(explicitToJson: true)
   const factory MapLayer.path({
     required String id,
     required String name,
@@ -46,6 +48,7 @@ sealed class MapLayer with _$MapLayer {
     @Default('') String presetId,
     @Default([]) List<bool> cells,
     @Default(<String, String>{}) Map<String, String> properties,
+    @Default([]) List<PathAnimationTriggerRule> animationTriggers,
   }) = PathLayer;
 
   @FreezedUnionValue('object')

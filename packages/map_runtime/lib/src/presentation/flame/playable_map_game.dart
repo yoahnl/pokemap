@@ -693,12 +693,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             layerId: signal.layerId,
             ruleId: signal.ruleId,
             mode: signal.mode,
+            scope: signal.scope,
+            cellX: signal.sourcePos.x,
+            cellY: signal.sourcePos.y,
           );
           final foregroundApplied =
               active.foregroundLayers.triggerPathAnimationRule(
             layerId: signal.layerId,
             ruleId: signal.ruleId,
             mode: signal.mode,
+            scope: signal.scope,
+            cellX: signal.sourcePos.x,
+            cellY: signal.sourcePos.y,
           );
           if (!backgroundApplied && !foregroundApplied) {
             debugPrint(
@@ -716,12 +722,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             layerId: signal.layerId,
             ruleId: signal.ruleId,
             active: activeValue,
+            scope: signal.scope,
+            cellX: signal.sourcePos.x,
+            cellY: signal.sourcePos.y,
           );
           final foregroundApplied =
               active.foregroundLayers.setPathAnimationRuleActive(
             layerId: signal.layerId,
             ruleId: signal.ruleId,
             active: activeValue,
+            scope: signal.scope,
+            cellX: signal.sourcePos.x,
+            cellY: signal.sourcePos.y,
           );
           if (!backgroundApplied && !foregroundApplied) {
             debugPrint(

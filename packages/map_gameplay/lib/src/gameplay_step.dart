@@ -333,6 +333,7 @@ PathAnimationSignal? _buildPathTriggerSignal({
     trigger: activation.rule.trigger,
     mode: activation.rule.mode,
     sourcePos: sourcePos,
+    scope: activation.rule.scope,
   );
 }
 
@@ -349,6 +350,7 @@ PathAnimationSignal _buildPathSetActiveSignal({
     trigger: activation.rule.trigger,
     mode: activation.rule.mode,
     sourcePos: sourcePos,
+    scope: activation.rule.scope,
     active: active,
   );
 }

@@ -254,6 +254,13 @@ enum PathAnimationPlaybackMode {
   restartOnTrigger,
 }
 
+enum PathAnimationActivationScope {
+  @JsonValue('whole_layer')
+  wholeLayer,
+  @JsonValue('cell_only')
+  cellOnly,
+}
+
 /// Kind de zone gameplay posée sur une map.
 /// Sépare explicitement le visuel (PathSurfaceKind / TerrainType) du comportement.
 ///

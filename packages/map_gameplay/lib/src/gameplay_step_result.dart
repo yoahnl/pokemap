@@ -45,6 +45,7 @@ class PathAnimationSignal {
     required this.trigger,
     required this.mode,
     required this.sourcePos,
+    this.scope = PathAnimationActivationScope.wholeLayer,
     this.active,
   });
 
@@ -55,6 +56,7 @@ class PathAnimationSignal {
   final PathAnimationTriggerType trigger;
   final PathAnimationPlaybackMode mode;
   final GridPos sourcePos;
+  final PathAnimationActivationScope scope;
   final bool? active;
 }
 

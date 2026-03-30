@@ -103,6 +103,11 @@ _$PathLayerImpl _$$PathLayerImplFromJson(Map<String, dynamic> json) =>
             (k, e) => MapEntry(k, e as String),
           ) ??
           const <String, String>{},
+      animationTriggers: (json['animationTriggers'] as List<dynamic>?)
+              ?.map((e) =>
+                  PathAnimationTriggerRule.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       $type: json['runtimeType'] as String?,
     );
 
@@ -115,6 +120,8 @@ Map<String, dynamic> _$$PathLayerImplToJson(_$PathLayerImpl instance) =>
       'presetId': instance.presetId,
       'cells': instance.cells,
       'properties': instance.properties,
+      'animationTriggers':
+          instance.animationTriggers.map((e) => e.toJson()).toList(),
       'runtimeType': instance.$type,
     };
 

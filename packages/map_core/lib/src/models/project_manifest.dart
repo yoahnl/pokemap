@@ -298,7 +298,6 @@ class ProjectPathPreset with _$ProjectPathPreset {
     String? categoryId,
     @Default('') String tilesetId,
     @Default([]) List<PathPresetVariantMapping> variants,
-    @Default([]) List<PathAnimationTriggerRule> animationTriggers,
     @Default(0) int sortOrder,
   }) = _ProjectPathPreset;
 
@@ -329,6 +328,8 @@ class PathAnimationTriggerRule with _$PathAnimationTriggerRule {
     @Default(PathAnimationTriggerType.onStep) PathAnimationTriggerType trigger,
     @Default(PathAnimationPlaybackMode.restartOnTrigger)
     PathAnimationPlaybackMode mode,
+    @Default(PathAnimationActivationScope.wholeLayer)
+    PathAnimationActivationScope scope,
   }) = _PathAnimationTriggerRule;
 
   factory PathAnimationTriggerRule.fromJson(Map<String, dynamic> json) =>
