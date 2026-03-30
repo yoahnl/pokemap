@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/resolve_dialogue.dart';
 
 void main() {
   group('Script System Runtime Integration', () {
@@ -191,6 +192,121 @@ void main() {
       }
 
       expect(gameState.storyFlags.activeFlags, contains('test_flag'));
+    });
+
+    test('Script controller is cleaned up after termination', () {
+      final script = ScriptAsset(
+        id: 'cleanup_test',
+        defaultStartNode: 'start',
+        nodes: [
+          ScriptNode(
+            id: 'start',
+            commands: [
+              ScriptCommand(
+                type: ScriptCommandType.setFlag,
+                params: {'flagName': 'cleanup_flag'},
+              ),
+              const ScriptCommand(type: ScriptCommandType.end),
+            ],
+          ),
+        ],
+      );
+
+      var gameState = GameState(saveId: 'test-save');
+      var controllerTerminated = false;
+
+      final context = ScriptExecutionContext(
+        gameState: gameState,
+        onGameStateUpdated: (state) {
+          gameState = state;
+        },
+        onDialogueOpened: (_) {},
+        onWarpRequested: (_, __, ___) {},
+      );
+
+      final controller = ScriptRuntimeController(
+        script: script,
+        context: context,
+      );
+
+      while (!controller.isTerminated) {
+        controller.step();
+      }
+
+      controllerTerminated = controller.isTerminated;
+
+      expect(controllerTerminated, isTrue);
+      expect(gameState.storyFlags.activeFlags, contains('cleanup_flag'));
+    });
+
+    test('Script throws StateError for missing script', () {
+      final manifest = ProjectManifest(
+        name: 'Test Project',
+        maps: [],
+        tilesets: [],
+        scripts: [],
+        dialogues: [],
+      );
+
+      expect(
+        () => manifest.scripts.firstWhere((s) => s.id == 'nonexistent'),
+        throwsStateError,
+      );
+    });
+
+    test('Dialogue resolution with scriptPathRelative', () {
+      final dialogueEntry = ProjectDialogueEntry(
+        id: 'test_dialogue',
+        name: 'Test Dialogue',
+        relativePath: 'dialogues/test.yarn',
+      );
+
+      final manifest = ProjectManifest(
+        name: 'Test Project',
+        maps: [],
+        tilesets: [],
+        scripts: [],
+        dialogues: [dialogueEntry],
+      );
+
+      final resolved = resolveDialogue(
+        entityId: 'test_event',
+        ref: DialogueRef(
+          dialogueId: '',
+          scriptPathRelative: 'dialogues/test.yarn',
+          startNode: 'start',
+        ),
+        projectRootDirectory: '/project',
+        dialogues: manifest.dialogues,
+      );
+
+      expect(resolved, isNotNull);
+      expect(resolved!.absoluteFilePath, equals('/project/dialogues/test.yarn'));
+      expect(resolved.startNode, equals('start'));
+    });
+
+    test('Dialogue resolution with missing file still resolves path', () {
+      final manifest = ProjectManifest(
+        name: 'Test Project',
+        maps: [],
+        tilesets: [],
+        scripts: [],
+        dialogues: [],
+      );
+
+      final resolved = resolveDialogue(
+        entityId: 'test_event',
+        ref: DialogueRef(
+          dialogueId: '',
+          scriptPathRelative: 'dialogues/missing.yarn',
+          startNode: 'start',
+        ),
+        projectRootDirectory: '/project',
+        dialogues: manifest.dialogues,
+      );
+
+      expect(resolved, isNotNull);
+      expect(resolved!.absoluteFilePath, equals('/project/dialogues/missing.yarn'));
     });
   });
 }

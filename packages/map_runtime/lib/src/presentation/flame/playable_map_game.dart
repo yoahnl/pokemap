@@ -104,8 +104,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String _lastBehaviorDebugLine = 'Aucun behavior déclenché';
 
   ScriptRuntimeController? _activeScriptController;
-  MapEventDefinition? _pendingEvent;
-  ActiveEventPage? _pendingEventPage;
   bool _isAwaitingScriptResume = false;
 
   bool get showCollisionOverlay => _showCollisionOverlay;
@@ -709,6 +707,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _tryInteractWithMapEvent() {
+    if (_activeScriptController != null && !_activeScriptController!.isTerminated) {
+      debugPrint('[interact] blocked: script is active');
+      return;
+    }
+
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      debugPrint('[interact] blocked: flow phase is $_flowPhase');
+      return;
+    }
+
     final facing = _world.player.facing;
     final tx = _world.player.pos.x + facing.dx;
     final ty = _world.player.pos.y + facing.dy;
@@ -785,8 +793,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       startNodeId: scriptRef.startNode,
     );
 
-    _pendingEvent = event;
-    _pendingEventPage = page;
     _isAwaitingScriptResume = false;
 
     _runScriptStep();
@@ -800,8 +806,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (controller.isTerminated) {
       _activeScriptController = null;
-      _pendingEvent = null;
-      _pendingEventPage = null;
       _isAwaitingScriptResume = false;
       return;
     }
@@ -828,8 +832,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final resolved = resolveDialogue(
       entityId: event.id,
       ref: DialogueRef(
-        dialogueId: dialogueRef.filePath,
-        scriptPathRelative: '',
+        dialogueId: '',
+        scriptPathRelative: dialogueRef.filePath,
         startNode: dialogueRef.startNode,
       ),
       projectRootDirectory: projectFilePath,
