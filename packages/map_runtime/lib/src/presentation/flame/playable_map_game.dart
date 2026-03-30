@@ -836,7 +836,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         scriptPathRelative: dialogueRef.filePath,
         startNode: dialogueRef.startNode,
       ),
-      projectRootDirectory: projectFilePath,
+      projectRootDirectory: _bundle.projectRootDirectory,
       dialogues: _bundle.manifest.dialogues,
     );
 
