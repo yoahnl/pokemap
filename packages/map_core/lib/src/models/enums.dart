@@ -230,6 +230,13 @@ enum PathSurfaceKind {
   custom,
 }
 
+enum PathAnimationMode {
+  @JsonValue('always_active')
+  alwaysActive,
+  @JsonValue('triggered')
+  triggered,
+}
+
 enum PathAnimationTriggerType {
   @JsonValue('on_enter')
   onEnter,

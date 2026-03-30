@@ -1150,6 +1150,20 @@ String _pathSurfaceLabel(PathSurfaceKind kind) {
   return 'Ground';
 }
 
+String _pathAnimationModeLabel(PathAnimationMode mode) {
+  return switch (mode) {
+    PathAnimationMode.alwaysActive => 'Always active',
+    PathAnimationMode.triggered => 'Triggered',
+  };
+}
+
+String _pathAnimationModeHint(PathAnimationMode mode) {
+  return switch (mode) {
+    PathAnimationMode.alwaysActive => 'Animation runs continuously without triggers',
+    PathAnimationMode.triggered => 'Animation requires specific triggers to activate',
+  };
+}
+
 class _PathLayerAnimationTriggersSection extends StatefulWidget {
   const _PathLayerAnimationTriggersSection({
     required this.layer,
@@ -1171,12 +1185,17 @@ class _PathLayerAnimationTriggersSectionState
     final triggers = widget.layer.animationTriggers;
     final label = CupertinoColors.label.resolveFrom(context);
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    
+    // Determine the current animation mode
+    final animationMode = triggers.isNotEmpty && triggers.any((t) => t.animationMode == PathAnimationMode.alwaysActive)
+      ? PathAnimationMode.alwaysActive
+      : PathAnimationMode.triggered;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Animation Triggers',
+          'Animation Mode',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -1184,43 +1203,94 @@ class _PathLayerAnimationTriggersSectionState
           ),
         ),
         const SizedBox(height: 4),
-        if (triggers.isEmpty)
-          Text(
-            'No triggers — animation loops by default.',
-            style: TextStyle(fontSize: 11, color: secondary),
-          )
-        else
-          for (var i = 0; i < triggers.length; i++)
-            _PathLayerTriggerEditor(
-              layer: widget.layer,
-              rule: triggers[i],
-              index: i,
-              notifier: widget.notifier,
-              onChanged: () => setState(() {}),
-            ),
-        const SizedBox(height: 6),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () {
-              final updated = [
-                ...triggers,
-                _normalizePathAnimationTriggerRule(
-                  PathAnimationTriggerRule(
-                    id: 'rule_${DateTime.now().microsecondsSinceEpoch}_${triggers.length}',
+        
+        // Animation Mode Selector
+        _PathTriggerField(
+          label: 'Mode',
+          value: _pathAnimationModeLabel(animationMode),
+          onChanged: (value) {
+            final newMode = PathAnimationMode.values.firstWhere((m) => _pathAnimationModeLabel(m) == value);
+            final updated = triggers.isNotEmpty
+              ? List<PathAnimationTriggerRule>.from(triggers)
+              : [
+                  _normalizePathAnimationTriggerRule(
+                    PathAnimationTriggerRule(
+                      id: 'rule_${DateTime.now().microsecondsSinceEpoch}',
+                    ),
                   ),
-                ),
-              ];
-              widget.notifier.applyPathLayerAnimationTriggers(
-                layerId: widget.layer.id,
-                triggers: updated,
-              );
-              setState(() {});
-            },
-            child: const Text('Add Trigger'),
-          ),
+                ];
+            
+            // Update all triggers with the new mode
+            for (var i = 0; i < updated.length; i++) {
+              updated[i] = updated[i].copyWith(animationMode: newMode);
+            }
+            
+            widget.notifier.applyPathLayerAnimationTriggers(
+              layerId: widget.layer.id,
+              triggers: updated,
+            );
+            setState(() {});
+          },
+          options: PathAnimationMode.values.map((m) => _pathAnimationModeLabel(m)).toList(),
         ),
+        const SizedBox(height: 4),
+        Text(
+          _pathAnimationModeHint(animationMode),
+          style: TextStyle(fontSize: 11, color: secondary),
+        ),
+        
+        // Only show triggers section if mode is "Triggered"
+        if (animationMode == PathAnimationMode.triggered) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Animation Triggers',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: label,
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (triggers.isEmpty || triggers.every((t) => !t.enabled))
+            Text(
+              'No active triggers configured.',
+              style: TextStyle(fontSize: 11, color: secondary),
+            )
+          else
+            for (var i = 0; i < triggers.length; i++)
+              if (triggers[i].enabled)
+                _PathLayerTriggerEditor(
+                  layer: widget.layer,
+                  rule: triggers[i],
+                  index: i,
+                  notifier: widget.notifier,
+                  onChanged: () => setState(() {}),
+                ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                final updated = [
+                  ...triggers,
+                  _normalizePathAnimationTriggerRule(
+                    PathAnimationTriggerRule(
+                      id: 'rule_${DateTime.now().microsecondsSinceEpoch}_${triggers.length}',
+                      animationMode: PathAnimationMode.triggered,
+                    ),
+                  ),
+                ];
+                widget.notifier.applyPathLayerAnimationTriggers(
+                  layerId: widget.layer.id,
+                  triggers: updated,
+                );
+                setState(() {});
+              },
+              child: const Text('Add Trigger'),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1298,6 +1368,7 @@ class _PathLayerTriggerEditor extends StatelessWidget {
               );
               onChanged();
             },
+            options: ['true', 'false'],
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
@@ -1312,6 +1383,7 @@ class _PathLayerTriggerEditor extends StatelessWidget {
               );
               onChanged();
             },
+            options: PathAnimationTriggerType.values.map((e) => e.name).toList(),
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
@@ -1326,6 +1398,7 @@ class _PathLayerTriggerEditor extends StatelessWidget {
               );
               onChanged();
             },
+            options: PathAnimationPlaybackMode.values.map((e) => e.name).toList(),
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
@@ -1340,6 +1413,7 @@ class _PathLayerTriggerEditor extends StatelessWidget {
               );
               onChanged();
             },
+            options: PathAnimationActivationScope.values.map((e) => e.name).toList(),
           ),
         ],
       ),
@@ -1352,28 +1426,66 @@ class _PathTriggerField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.options = const [],
   });
 
   final String label;
   final dynamic value;
   final ValueChanged<String> onChanged;
+  final List<String> options;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          '$label: ',
-          style: TextStyle(fontSize: 11, color: CupertinoColors.secondaryLabel.resolveFrom(context)),
-        ),
-        Expanded(
-          child: Text(
-            value.toString(),
-            style: TextStyle(fontSize: 11, color: CupertinoColors.label.resolveFrom(context)),
+    return GestureDetector(
+      onTap: options.isNotEmpty ? () => _showOptionsMenu(context) : null,
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(fontSize: 11, color: CupertinoColors.secondaryLabel.resolveFrom(context)),
           ),
-        ),
-      ],
+          Expanded(
+            child: Row(
+              children: [
+                Text(
+                  value.toString(),
+                  style: TextStyle(fontSize: 11, color: CupertinoColors.label.resolveFrom(context)),
+                ),
+                if (options.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    CupertinoIcons.chevron_down,
+                    size: 12,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _showOptionsMenu(BuildContext context) async {
+    final selected = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: Text('Select $label'),
+        actions: options.map((option) => CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context, option),
+          child: Text(option),
+        )).toList(),
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      onChanged(selected);
+    }
   }
 }
 

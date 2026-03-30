@@ -325,6 +325,7 @@ class PathAnimationTriggerRule with _$PathAnimationTriggerRule {
   const factory PathAnimationTriggerRule({
     @Default('') String id,
     @Default(true) bool enabled,
+    @Default(PathAnimationMode.triggered) PathAnimationMode animationMode,
     @Default(PathAnimationTriggerType.onStep) PathAnimationTriggerType trigger,
     @Default(PathAnimationPlaybackMode.restartOnTrigger)
     PathAnimationPlaybackMode mode,

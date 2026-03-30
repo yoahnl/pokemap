@@ -5233,6 +5233,7 @@ PathAnimationTriggerRule _$PathAnimationTriggerRuleFromJson(
 mixin _$PathAnimationTriggerRule {
   String get id => throw _privateConstructorUsedError;
   bool get enabled => throw _privateConstructorUsedError;
+  PathAnimationMode get animationMode => throw _privateConstructorUsedError;
   PathAnimationTriggerType get trigger => throw _privateConstructorUsedError;
   PathAnimationPlaybackMode get mode => throw _privateConstructorUsedError;
   PathAnimationActivationScope get scope => throw _privateConstructorUsedError;
@@ -5256,6 +5257,7 @@ abstract class $PathAnimationTriggerRuleCopyWith<$Res> {
   $Res call(
       {String id,
       bool enabled,
+      PathAnimationMode animationMode,
       PathAnimationTriggerType trigger,
       PathAnimationPlaybackMode mode,
       PathAnimationActivationScope scope});
@@ -5279,6 +5281,7 @@ class _$PathAnimationTriggerRuleCopyWithImpl<$Res,
   $Res call({
     Object? id = null,
     Object? enabled = null,
+    Object? animationMode = null,
     Object? trigger = null,
     Object? mode = null,
     Object? scope = null,
@@ -5292,6 +5295,10 @@ class _$PathAnimationTriggerRuleCopyWithImpl<$Res,
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      animationMode: null == animationMode
+          ? _value.animationMode
+          : animationMode // ignore: cast_nullable_to_non_nullable
+              as PathAnimationMode,
       trigger: null == trigger
           ? _value.trigger
           : trigger // ignore: cast_nullable_to_non_nullable
@@ -5320,6 +5327,7 @@ abstract class _$$PathAnimationTriggerRuleImplCopyWith<$Res>
   $Res call(
       {String id,
       bool enabled,
+      PathAnimationMode animationMode,
       PathAnimationTriggerType trigger,
       PathAnimationPlaybackMode mode,
       PathAnimationActivationScope scope});
@@ -5342,6 +5350,7 @@ class __$$PathAnimationTriggerRuleImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? enabled = null,
+    Object? animationMode = null,
     Object? trigger = null,
     Object? mode = null,
     Object? scope = null,
@@ -5355,6 +5364,10 @@ class __$$PathAnimationTriggerRuleImplCopyWithImpl<$Res>
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      animationMode: null == animationMode
+          ? _value.animationMode
+          : animationMode // ignore: cast_nullable_to_non_nullable
+              as PathAnimationMode,
       trigger: null == trigger
           ? _value.trigger
           : trigger // ignore: cast_nullable_to_non_nullable
@@ -5378,6 +5391,7 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
   const _$PathAnimationTriggerRuleImpl(
       {this.id = '',
       this.enabled = true,
+      this.animationMode = PathAnimationMode.triggered,
       this.trigger = PathAnimationTriggerType.onStep,
       this.mode = PathAnimationPlaybackMode.restartOnTrigger,
       this.scope = PathAnimationActivationScope.wholeLayer});
@@ -5393,6 +5407,9 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
   final bool enabled;
   @override
   @JsonKey()
+  final PathAnimationMode animationMode;
+  @override
+  @JsonKey()
   final PathAnimationTriggerType trigger;
   @override
   @JsonKey()
@@ -5403,7 +5420,7 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
 
   @override
   String toString() {
-    return 'PathAnimationTriggerRule(id: $id, enabled: $enabled, trigger: $trigger, mode: $mode, scope: $scope)';
+    return 'PathAnimationTriggerRule(id: $id, enabled: $enabled, animationMode: $animationMode, trigger: $trigger, mode: $mode, scope: $scope)';
   }
 
   @override
@@ -5413,6 +5430,8 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
             other is _$PathAnimationTriggerRuleImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.enabled, enabled) || other.enabled == enabled) &&
+            (identical(other.animationMode, animationMode) ||
+                other.animationMode == animationMode) &&
             (identical(other.trigger, trigger) || other.trigger == trigger) &&
             (identical(other.mode, mode) || other.mode == mode) &&
             (identical(other.scope, scope) || other.scope == scope));
@@ -5420,8 +5439,8 @@ class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, enabled, trigger, mode, scope);
+  int get hashCode => Object.hash(
+      runtimeType, id, enabled, animationMode, trigger, mode, scope);
 
   /// Create a copy of PathAnimationTriggerRule
   /// with the given fields replaced by the non-null parameter values.
@@ -5444,6 +5463,7 @@ abstract class _PathAnimationTriggerRule implements PathAnimationTriggerRule {
   const factory _PathAnimationTriggerRule(
           {final String id,
           final bool enabled,
+          final PathAnimationMode animationMode,
           final PathAnimationTriggerType trigger,
           final PathAnimationPlaybackMode mode,
           final PathAnimationActivationScope scope}) =
@@ -5456,6 +5476,8 @@ abstract class _PathAnimationTriggerRule implements PathAnimationTriggerRule {
   String get id;
   @override
   bool get enabled;
+  @override
+  PathAnimationMode get animationMode;
   @override
   PathAnimationTriggerType get trigger;
   @override

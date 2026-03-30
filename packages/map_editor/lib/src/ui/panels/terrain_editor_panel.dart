@@ -560,7 +560,7 @@ Future<void> _openTerrainPresetRowMenu({
   }
 }
 
-class _CategoryNode extends ConsumerWidget {
+class _CategoryNode extends ConsumerStatefulWidget {
   const _CategoryNode({
     required this.category,
     required this.kind,
@@ -580,90 +580,112 @@ class _CategoryNode extends ConsumerWidget {
   final String? selectedPresetId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CategoryNode> createState() => _CategoryNodeState();
+}
+
+class _CategoryNodeState extends ConsumerState<_CategoryNode> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final children =
-        notifier.getPresetCategories(kind: kind, parentCategoryId: category.id);
-    final presets = kind == PresetLibraryKind.terrain
+        notifier.getPresetCategories(kind: widget.kind, parentCategoryId: widget.category.id);
+    final presets = widget.kind == PresetLibraryKind.terrain
         ? notifier
             .getTerrainPresets()
-            .where((preset) => preset.categoryId == category.id)
+            .where((preset) => preset.categoryId == widget.category.id)
             .toList(growable: false)
         : notifier
             .getPathPresets()
-            .where((preset) => preset.categoryId == category.id)
+            .where((preset) => preset.categoryId == widget.category.id)
             .toList(growable: false);
 
-    return CupertinoDisclosureTile(
-      tilePadding: EdgeInsets.only(left: 12.0 + depth * 16.0, right: 4),
-      childrenPadding: EdgeInsets.zero,
-      leading: Icon(CupertinoIcons.folder, size: 16, color: color),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            category.name,
-            style: TextStyle(
-              fontSize: 12,
-              color: CupertinoColors.label.resolveFrom(context),
-            ),
-          ),
-          Text(
-            '${children.length} folders • ${presets.length} presets',
-            style: TextStyle(
-              fontSize: 10,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            ),
-          ),
-        ],
-      ),
-      trailing: Builder(
-        builder: (btnContext) => EditorToolbarIconButton(
-          icon: CupertinoIcons.ellipsis_vertical,
-          tooltip: 'Folder actions',
-          onPressed: () => _openTerrainCategoryFolderMenu(
-            context: context,
-            ref: ref,
-            anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
-            category: category,
-            kind: kind,
-            settings: settings,
-            tilesets: tilesets,
-          ),
-        ),
-      ),
-      onSecondaryTapDown: (d) => _openTerrainCategoryFolderMenu(
-        context: context,
-        ref: ref,
-        anchorGlobal: d.globalPosition,
-        category: category,
-        kind: kind,
-        settings: settings,
-        tilesets: tilesets,
-      ),
-      children: [
+    final childWidgets = [
+      if (_expanded) ...[
         ...children.map(
           (child) => _CategoryNode(
             category: child,
-            kind: kind,
-            depth: depth + 1,
-            color: color,
-            settings: settings,
-            tilesets: tilesets,
-            selectedPresetId: selectedPresetId,
+            kind: widget.kind,
+            depth: widget.depth + 1,
+            color: widget.color,
+            settings: widget.settings,
+            tilesets: widget.tilesets,
+            selectedPresetId: widget.selectedPresetId,
           ),
         ),
         ...presets.map(
           (preset) => _PresetNode(
-            kind: kind,
+            kind: widget.kind,
             preset: preset,
-            depth: depth + 1,
-            color: color,
-            settings: settings,
-            tilesets: tilesets,
-            selected: _presetId(preset) == selectedPresetId,
+            depth: widget.depth + 1,
+            color: widget.color,
+            settings: widget.settings,
+            tilesets: widget.tilesets,
+            selected: _presetId(preset) == widget.selectedPresetId,
           ),
         ),
+      ],
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CupertinoButton(
+          padding: EdgeInsets.only(left: 12.0 + widget.depth * 16.0, right: 4),
+          onPressed: () {
+            setState(() {
+              _expanded = !_expanded;
+            });
+          },
+          child: Row(
+            children: [
+              Icon(
+                _expanded ? CupertinoIcons.chevron_down : CupertinoIcons.chevron_right,
+                size: 16,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              ),
+              const SizedBox(width: 6),
+              Icon(CupertinoIcons.folder, size: 16, color: widget.color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.category.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CupertinoColors.label.resolveFrom(context),
+                      ),
+                    ),
+                    Text(
+                      '${children.length} folders • ${presets.length} presets',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              EditorToolbarIconButton(
+                icon: CupertinoIcons.ellipsis_vertical,
+                tooltip: 'Folder actions',
+                onPressed: () => _openTerrainCategoryFolderMenu(
+                  context: context,
+                  ref: ref,
+                  anchorGlobal: editorMenuAnchorBelowWidget(context),
+                  category: widget.category,
+                  kind: widget.kind,
+                  settings: widget.settings,
+                  tilesets: widget.tilesets,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...childWidgets,
       ],
     );
   }
