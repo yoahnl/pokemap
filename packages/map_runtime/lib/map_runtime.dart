@@ -14,3 +14,20 @@ export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;
 export 'src/presentation/flame/runtime_map_game.dart' show RuntimeMapGame;
+
+// Script system exports
+export 'src/application/script_runtime_state.dart'
+    show
+        ScriptExecutionState,
+        ScriptSuspendReason,
+        ScriptCommandResult,
+        ScriptCommandResultCompleted,
+        ScriptCommandResultSuspended,
+        ScriptCommandResultJumpToNode,
+        ScriptCommandResultTerminated,
+        ScriptCommandResultError,
+        ScriptExecutionContext;
+export 'src/application/script_runtime_controller.dart'
+    show ScriptRuntimeController;
+export 'src/application/script_command_executor.dart'
+    show ScriptCommandExecutor;

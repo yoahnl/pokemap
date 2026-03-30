@@ -45,3 +45,9 @@ export 'src/surf_evaluation.dart'
         CanPromptSurf,
         evaluateSurfAttempt,
         partyHasUsableFieldMove;
+
+// Script system exports
+export 'src/script_condition_evaluator.dart'
+    show ScriptConditionEvaluator, ScriptEvaluationContext;
+export 'src/event_page_resolver.dart' show EventPageResolver;
+export 'src/game_state_mutations.dart' show GameStateMutations;
