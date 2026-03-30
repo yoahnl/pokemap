@@ -1082,13 +1082,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     _lastWaterRequiresSurfMessageAtMs = _runtimeClockMs;
-    final message = runtimeMovementBlockedMessage(
-      GameplayMovementBlockReason.waterRequiresSurf,
+    
+    // Use Yarn dialogue for water traversal
+    final waterDialogueRef = DialogueRef(
+      dialogueId: 'water_traversal',
+      startNode: 'no_surf',
     );
-    if (message == null || message.isEmpty) {
-      return;
+    if (!_tryOpenDialogue('water', waterDialogueRef, 'On ne peut pas aller sur l’eau sans un Pokémon ayant Surf.')) {
+      _showNotification('On ne peut pas aller sur l’eau sans un Pokémon ayant Surf.');
     }
-    _showNotification(message);
   }
 
   PlacedBehaviorRuntimeKey _buildPlacedBehaviorCooldownKey({

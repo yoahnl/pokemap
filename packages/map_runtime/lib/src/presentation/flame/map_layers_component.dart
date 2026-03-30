@@ -1058,7 +1058,7 @@ class MapLayersComponent extends PositionComponent {
   }) {
     final allRules = _pathRulesByLayerId[layerId];
     if (allRules == null || allRules.isEmpty) {
-      return const _PathLayerPlayback.alwaysLoop();
+      return const _PathLayerPlayback.staticFrame();
     }
     final wholeLayerRules = allRules
         .where((r) => r.scope == PathAnimationActivationScope.wholeLayer)

@@ -1074,6 +1074,11 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
                 ),
               ),
             ),
+          const SizedBox(height: 12),
+          _PathLayerAnimationTriggersSection(
+            layer: layer!,
+            notifier: notifier,
+          ),
         ],
       ),
     );
@@ -1140,4 +1145,240 @@ String _pathSurfaceLabel(PathSurfaceKind kind) {
     return 'Water';
   }
   return 'Ground';
+}
+
+class _PathLayerAnimationTriggersSection extends StatefulWidget {
+  const _PathLayerAnimationTriggersSection({
+    required this.layer,
+    required this.notifier,
+  });
+
+  final PathLayer layer;
+  final EditorNotifier notifier;
+
+  @override
+  State<_PathLayerAnimationTriggersSection> createState() =>
+      _PathLayerAnimationTriggersSectionState();
+}
+
+class _PathLayerAnimationTriggersSectionState
+    extends State<_PathLayerAnimationTriggersSection> {
+  @override
+  Widget build(BuildContext context) {
+    final triggers = widget.layer.animationTriggers;
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Animation Triggers',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: label,
+          ),
+        ),
+        const SizedBox(height: 4),
+        if (triggers.isEmpty)
+          Text(
+            'No triggers — animation loops by default.',
+            style: TextStyle(fontSize: 11, color: secondary),
+          )
+        else
+          for (var i = 0; i < triggers.length; i++)
+            _PathLayerTriggerEditor(
+              layer: widget.layer,
+              rule: triggers[i],
+              index: i,
+              notifier: widget.notifier,
+              onChanged: () => setState(() {}),
+            ),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: PushButton(
+            controlSize: ControlSize.small,
+            secondary: true,
+            onPressed: () {
+              final updated = [
+                ...triggers,
+                _normalizePathAnimationTriggerRule(
+                  PathAnimationTriggerRule(
+                    id: 'rule_${DateTime.now().microsecondsSinceEpoch}_${triggers.length}',
+                  ),
+                ),
+              ];
+              widget.notifier.applyPathLayerAnimationTriggers(
+                layerId: widget.layer.id,
+                triggers: updated,
+              );
+              setState(() {});
+            },
+            child: const Text('Add Trigger'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PathLayerTriggerEditor extends StatelessWidget {
+  const _PathLayerTriggerEditor({
+    required this.layer,
+    required this.rule,
+    required this.index,
+    required this.notifier,
+    required this.onChanged,
+  });
+
+  final PathLayer layer;
+  final PathAnimationTriggerRule rule;
+  final int index;
+  final EditorNotifier notifier;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemFill.resolveFrom(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  rule.id,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: label,
+                  ),
+                ),
+              ),
+              PushButton(
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: () {
+                  final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers)
+                    ..removeAt(index);
+                  notifier.applyPathLayerAnimationTriggers(
+                    layerId: layer.id,
+                    triggers: updated,
+                  );
+                  onChanged();
+                },
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _PathTriggerField(
+            label: 'Enabled',
+            value: rule.enabled,
+            onChanged: (value) {
+              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              updated[index] = rule.copyWith(enabled: value);
+              notifier.applyPathLayerAnimationTriggers(
+                layerId: layer.id,
+                triggers: updated,
+              );
+              onChanged();
+            },
+          ),
+          const SizedBox(height: 6),
+          _PathTriggerField(
+            label: 'Trigger',
+            value: rule.trigger.name,
+            onChanged: (value) {
+              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              updated[index] = rule.copyWith(trigger: PathAnimationTriggerType.values.firstWhere((e) => e.name == value));
+              notifier.applyPathLayerAnimationTriggers(
+                layerId: layer.id,
+                triggers: updated,
+              );
+              onChanged();
+            },
+          ),
+          const SizedBox(height: 6),
+          _PathTriggerField(
+            label: 'Mode',
+            value: rule.mode.name,
+            onChanged: (value) {
+              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              updated[index] = rule.copyWith(mode: PathAnimationPlaybackMode.values.firstWhere((e) => e.name == value));
+              notifier.applyPathLayerAnimationTriggers(
+                layerId: layer.id,
+                triggers: updated,
+              );
+              onChanged();
+            },
+          ),
+          const SizedBox(height: 6),
+          _PathTriggerField(
+            label: 'Scope',
+            value: rule.scope.name,
+            onChanged: (value) {
+              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              updated[index] = rule.copyWith(scope: PathAnimationActivationScope.values.firstWhere((e) => e.name == value));
+              notifier.applyPathLayerAnimationTriggers(
+                layerId: layer.id,
+                triggers: updated,
+              );
+              onChanged();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PathTriggerField extends StatelessWidget {
+  const _PathTriggerField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final dynamic value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(fontSize: 11, color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+        ),
+        Expanded(
+          child: Text(
+            value.toString(),
+            style: TextStyle(fontSize: 11, color: CupertinoColors.label.resolveFrom(context)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+PathAnimationTriggerRule _normalizePathAnimationTriggerRule(PathAnimationTriggerRule rule) {
+  return rule.copyWith(
+    id: rule.id.trim().isEmpty ? 'rule_${DateTime.now().microsecondsSinceEpoch}' : rule.id,
+  );
 }
