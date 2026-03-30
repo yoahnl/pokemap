@@ -72,6 +72,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectDialogueEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      scripts: (json['scripts'] as List<dynamic>?)
+              ?.map(
+                  (e) => ProjectScriptEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       trainers: (json['trainers'] as List<dynamic>?)
               ?.map((e) =>
                   ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
@@ -111,6 +116,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'dialogueFolders':
           instance.dialogueFolders.map((e) => e.toJson()).toList(),
       'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
+      'scripts': instance.scripts.map((e) => e.toJson()).toList(),
       'trainers': instance.trainers.map((e) => e.toJson()).toList(),
       'characters': instance.characters.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
@@ -743,6 +749,26 @@ const _$EncounterKindEnumMap = {
   EncounterKind.gift: 'gift',
   EncounterKind.special: 'special',
 };
+
+_$ProjectScriptEntryImpl _$$ProjectScriptEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectScriptEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      asset: ScriptAsset.fromJson(json['asset'] as Map<String, dynamic>),
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+    );
+
+Map<String, dynamic> _$$ProjectScriptEntryImplToJson(
+        _$ProjectScriptEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'asset': instance.asset.toJson(),
+      'tags': instance.tags,
+    };
 
 _$ProjectCharacterEntryImpl _$$ProjectCharacterEntryImplFromJson(
         Map<String, dynamic> json) =>

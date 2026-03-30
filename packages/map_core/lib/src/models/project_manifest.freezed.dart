@@ -43,6 +43,7 @@ mixin _$ProjectManifest {
       throw _privateConstructorUsedError;
   List<ProjectDialogueEntry> get dialogues =>
       throw _privateConstructorUsedError;
+  List<ProjectScriptEntry> get scripts => throw _privateConstructorUsedError;
   List<ProjectTrainerEntry> get trainers => throw _privateConstructorUsedError;
   List<ProjectCharacterEntry> get characters =>
       throw _privateConstructorUsedError;
@@ -82,6 +83,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
+      List<ProjectScriptEntry> scripts,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -120,6 +122,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? encounterTables = null,
     Object? dialogueFolders = null,
     Object? dialogues = null,
+    Object? scripts = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -186,6 +189,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.dialogues
           : dialogues // ignore: cast_nullable_to_non_nullable
               as List<ProjectDialogueEntry>,
+      scripts: null == scripts
+          ? _value.scripts
+          : scripts // ignore: cast_nullable_to_non_nullable
+              as List<ProjectScriptEntry>,
       trainers: null == trainers
           ? _value.trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -240,6 +247,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
+      List<ProjectScriptEntry> scripts,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -277,6 +285,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? encounterTables = null,
     Object? dialogueFolders = null,
     Object? dialogues = null,
+    Object? scripts = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -343,6 +352,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._dialogues
           : dialogues // ignore: cast_nullable_to_non_nullable
               as List<ProjectDialogueEntry>,
+      scripts: null == scripts
+          ? _value._scripts
+          : scripts // ignore: cast_nullable_to_non_nullable
+              as List<ProjectScriptEntry>,
       trainers: null == trainers
           ? _value._trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -383,6 +396,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectEncounterTable> encounterTables = const [],
       final List<ProjectDialogueFolder> dialogueFolders = const [],
       final List<ProjectDialogueEntry> dialogues = const [],
+      final List<ProjectScriptEntry> scripts = const [],
       final List<ProjectTrainerEntry> trainers = const [],
       final List<ProjectCharacterEntry> characters = const [],
       this.settings = const ProjectSettings(),
@@ -400,6 +414,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _encounterTables = encounterTables,
         _dialogueFolders = dialogueFolders,
         _dialogues = dialogues,
+        _scripts = scripts,
         _trainers = trainers,
         _characters = characters,
         _globalProperties = globalProperties;
@@ -529,6 +544,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_dialogues);
   }
 
+  final List<ProjectScriptEntry> _scripts;
+  @override
+  @JsonKey()
+  List<ProjectScriptEntry> get scripts {
+    if (_scripts is EqualUnmodifiableListView) return _scripts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_scripts);
+  }
+
   final List<ProjectTrainerEntry> _trainers;
   @override
   @JsonKey()
@@ -561,7 +585,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, trainers: $trainers, characters: $characters, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, trainers: $trainers, characters: $characters, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -593,6 +617,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._dialogueFolders, _dialogueFolders) &&
             const DeepCollectionEquality()
                 .equals(other._dialogues, _dialogues) &&
+            const DeepCollectionEquality().equals(other._scripts, _scripts) &&
             const DeepCollectionEquality().equals(other._trainers, _trainers) &&
             const DeepCollectionEquality()
                 .equals(other._characters, _characters) &&
@@ -621,6 +646,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_encounterTables),
         const DeepCollectionEquality().hash(_dialogueFolders),
         const DeepCollectionEquality().hash(_dialogues),
+        const DeepCollectionEquality().hash(_scripts),
         const DeepCollectionEquality().hash(_trainers),
         const DeepCollectionEquality().hash(_characters),
         settings,
@@ -661,6 +687,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectEncounterTable> encounterTables,
       final List<ProjectDialogueFolder> dialogueFolders,
       final List<ProjectDialogueEntry> dialogues,
+      final List<ProjectScriptEntry> scripts,
       final List<ProjectTrainerEntry> trainers,
       final List<ProjectCharacterEntry> characters,
       final ProjectSettings settings,
@@ -699,6 +726,8 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectDialogueFolder> get dialogueFolders;
   @override
   List<ProjectDialogueEntry> get dialogues;
+  @override
+  List<ProjectScriptEntry> get scripts;
   @override
   List<ProjectTrainerEntry> get trainers;
   @override
@@ -6168,6 +6197,236 @@ abstract class _ProjectEncounterTable implements ProjectEncounterTable {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectEncounterTableImplCopyWith<_$ProjectEncounterTableImpl>
       get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectScriptEntry _$ProjectScriptEntryFromJson(Map<String, dynamic> json) {
+  return _ProjectScriptEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectScriptEntry {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  ScriptAsset get asset => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectScriptEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectScriptEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectScriptEntryCopyWith<ProjectScriptEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectScriptEntryCopyWith<$Res> {
+  factory $ProjectScriptEntryCopyWith(
+          ProjectScriptEntry value, $Res Function(ProjectScriptEntry) then) =
+      _$ProjectScriptEntryCopyWithImpl<$Res, ProjectScriptEntry>;
+  @useResult
+  $Res call({String id, String name, ScriptAsset asset, List<String> tags});
+
+  $ScriptAssetCopyWith<$Res> get asset;
+}
+
+/// @nodoc
+class _$ProjectScriptEntryCopyWithImpl<$Res, $Val extends ProjectScriptEntry>
+    implements $ProjectScriptEntryCopyWith<$Res> {
+  _$ProjectScriptEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectScriptEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? asset = null,
+    Object? tags = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      asset: null == asset
+          ? _value.asset
+          : asset // ignore: cast_nullable_to_non_nullable
+              as ScriptAsset,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ) as $Val);
+  }
+
+  /// Create a copy of ProjectScriptEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ScriptAssetCopyWith<$Res> get asset {
+    return $ScriptAssetCopyWith<$Res>(_value.asset, (value) {
+      return _then(_value.copyWith(asset: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectScriptEntryImplCopyWith<$Res>
+    implements $ProjectScriptEntryCopyWith<$Res> {
+  factory _$$ProjectScriptEntryImplCopyWith(_$ProjectScriptEntryImpl value,
+          $Res Function(_$ProjectScriptEntryImpl) then) =
+      __$$ProjectScriptEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, String name, ScriptAsset asset, List<String> tags});
+
+  @override
+  $ScriptAssetCopyWith<$Res> get asset;
+}
+
+/// @nodoc
+class __$$ProjectScriptEntryImplCopyWithImpl<$Res>
+    extends _$ProjectScriptEntryCopyWithImpl<$Res, _$ProjectScriptEntryImpl>
+    implements _$$ProjectScriptEntryImplCopyWith<$Res> {
+  __$$ProjectScriptEntryImplCopyWithImpl(_$ProjectScriptEntryImpl _value,
+      $Res Function(_$ProjectScriptEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectScriptEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? asset = null,
+    Object? tags = null,
+  }) {
+    return _then(_$ProjectScriptEntryImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      asset: null == asset
+          ? _value.asset
+          : asset // ignore: cast_nullable_to_non_nullable
+              as ScriptAsset,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectScriptEntryImpl implements _ProjectScriptEntry {
+  const _$ProjectScriptEntryImpl(
+      {required this.id,
+      required this.name,
+      required this.asset,
+      final List<String> tags = const []})
+      : _tags = tags;
+
+  factory _$ProjectScriptEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectScriptEntryImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  final ScriptAsset asset;
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  String toString() {
+    return 'ProjectScriptEntry(id: $id, name: $name, asset: $asset, tags: $tags)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectScriptEntryImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.asset, asset) || other.asset == asset) &&
+            const DeepCollectionEquality().equals(other._tags, _tags));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, id, name, asset, const DeepCollectionEquality().hash(_tags));
+
+  /// Create a copy of ProjectScriptEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectScriptEntryImplCopyWith<_$ProjectScriptEntryImpl> get copyWith =>
+      __$$ProjectScriptEntryImplCopyWithImpl<_$ProjectScriptEntryImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectScriptEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectScriptEntry implements ProjectScriptEntry {
+  const factory _ProjectScriptEntry(
+      {required final String id,
+      required final String name,
+      required final ScriptAsset asset,
+      final List<String> tags}) = _$ProjectScriptEntryImpl;
+
+  factory _ProjectScriptEntry.fromJson(Map<String, dynamic> json) =
+      _$ProjectScriptEntryImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  ScriptAsset get asset;
+  @override
+  List<String> get tags;
+
+  /// Create a copy of ProjectScriptEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectScriptEntryImplCopyWith<_$ProjectScriptEntryImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 ProjectCharacterEntry _$ProjectCharacterEntryFromJson(

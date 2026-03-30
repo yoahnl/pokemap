@@ -21,6 +21,8 @@ import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../application/script_runtime_state.dart';
+import '../../application/script_runtime_controller.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_transition_overlay_component.dart';
@@ -69,7 +71,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final String projectFilePath;
   RuntimeMapBundle _bundle;
   final SaveData _saveData;
-  final GameState _gameState;
+  GameState _gameState;
   late GameplayWorldState _world;
   late PlayerComponent _player;
   String _activeMapId = '';
@@ -100,6 +102,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _showBehaviorDebugOverlay = false;
   TextComponent? _behaviorDebugOverlay;
   String _lastBehaviorDebugLine = 'Aucun behavior déclenché';
+
+  ScriptRuntimeController? _activeScriptController;
+  MapEventDefinition? _pendingEvent;
+  ActiveEventPage? _pendingEventPage;
+  bool _isAwaitingScriptResume = false;
 
   bool get showCollisionOverlay => _showCollisionOverlay;
 
@@ -732,11 +739,126 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     MapEventDefinition event,
     ActiveEventPage page,
   ) {
-    if (page.page.message != null && page.page.message!.isNotEmpty) {
+    if (page.page.script != null) {
+      _executeEventScript(event, page, page.page.script!);
+    } else if (page.page.message != null && page.page.message!.isNotEmpty) {
       _showNotification(page.page.message!);
     } else {
       _showNotification('...');
     }
+  }
+
+  void _executeEventScript(
+    MapEventDefinition event,
+    ActiveEventPage page,
+    ScriptRef scriptRef,
+  ) {
+    final scriptAsset = _bundle.manifest.scripts
+        .firstWhere(
+          (s) => s.id == scriptRef.scriptId,
+          orElse: () =>
+              throw StateError('Script not found: ${scriptRef.scriptId}'),
+        )
+        .asset;
+
+    final context = ScriptExecutionContext(
+      gameState: _gameState,
+      onGameStateUpdated: (state) {
+        _gameState = state;
+      },
+      onDialogueOpened: (dialogue) {
+        _openDialogueForScript(event, dialogue);
+      },
+      onWarpRequested: (mapId, x, y) {
+        _pendingWarp = TriggeredWarp(
+          warpId: 'script_warp',
+          targetMapId: mapId,
+          targetPos: GridPos(x: x, y: y),
+          triggerMode: MapWarpTriggerMode.onEnter,
+        );
+      },
+    );
+
+    _activeScriptController = ScriptRuntimeController(
+      script: scriptAsset,
+      context: context,
+      startNodeId: scriptRef.startNode,
+    );
+
+    _pendingEvent = event;
+    _pendingEventPage = page;
+    _isAwaitingScriptResume = false;
+
+    _runScriptStep();
+  }
+
+  void _runScriptStep() {
+    final controller = _activeScriptController;
+    if (controller == null) {
+      return;
+    }
+
+    if (controller.isTerminated) {
+      _activeScriptController = null;
+      _pendingEvent = null;
+      _pendingEventPage = null;
+      _isAwaitingScriptResume = false;
+      return;
+    }
+
+    if (controller.isSuspended) {
+      _isAwaitingScriptResume = true;
+      return;
+    }
+
+    final result = controller.step();
+
+    if (result is ScriptCommandResultSuspended) {
+      _isAwaitingScriptResume = true;
+      if (result.reason == ScriptSuspendReason.waitingForDialogue) {
+        _flowPhase = _RuntimeFlowPhase.dialogue;
+      }
+      return;
+    }
+
+    _runScriptStep();
+  }
+
+  void _openDialogueForScript(MapEventDefinition event, YarnDialogueRef dialogueRef) {
+    final resolved = resolveDialogue(
+      entityId: event.id,
+      ref: DialogueRef(
+        dialogueId: dialogueRef.filePath,
+        scriptPathRelative: '',
+        startNode: dialogueRef.startNode,
+      ),
+      projectRootDirectory: projectFilePath,
+      dialogues: _bundle.manifest.dialogues,
+    );
+
+    if (resolved == null) {
+      debugPrint('[script] failed to resolve dialogue: ${dialogueRef.filePath}');
+      _runScriptStep();
+      return;
+    }
+
+    loadDialogueContent(resolved).then((session) {
+      if (session == null) {
+        debugPrint('[script] failed to load dialogue');
+        _runScriptStep();
+        return;
+      }
+
+      _pendingPostDialogueAction = () {
+        _flowPhase = _RuntimeFlowPhase.overworld;
+        if (_isAwaitingScriptResume) {
+          _isAwaitingScriptResume = false;
+          _runScriptStep();
+        }
+      };
+
+      _openDialogue(session);
+    });
   }
 
   void _consumePathAnimationSignals(List<PathAnimationSignal> signals) {

@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'element_collision_profile.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
+import 'script_asset.dart';
 import 'visual_frame_json.dart';
 
 part 'project_manifest.freezed.dart';
