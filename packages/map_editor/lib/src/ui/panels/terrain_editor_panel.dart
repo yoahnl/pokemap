@@ -4788,15 +4788,88 @@ class _TerrainLibraryContentState extends ConsumerState<_TerrainLibraryContent> 
               ),
             ),
           ),
-        if (selectedPreset != null && _detailsExpanded)
-          _buildPresetDetailsContent(
-            context: context,
-            ref: ref,
-            preset: selectedPreset,
-            kind: PresetLibraryKind.terrain,
-            settings: settings,
-            tilesets: tilesets,
+        ],
+      );
+
+    final treeColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_expanded) const EditorHorizontalDivider(),
+        if (_expanded && categories.isEmpty && uncategorizedPresets.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              'No terrain preset or folder yet',
+              style: TextStyle(
+                fontSize: 11,
+                color: secondary,
+              ),
+            ),
+          )
+        else if (_expanded)
+          Expanded(
+            child: SingleChildScrollView(
+              primary: false,
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (categories.isNotEmpty) ...[
+                    for (final category in categories)
+                      _PresetCategorySection(
+                        category: category,
+                        kind: PresetLibraryKind.terrain,
+                        settings: settings,
+                        tilesets: tilesets,
+                        selectedPresetId: selectedPresetId,
+                        notifier: notifier,
+                        onChanged: () => setState(() {}),
+                      ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (uncategorizedPresets.isNotEmpty) ...[
+                    _PresetCategorySection(
+                      category: null,
+                      kind: PresetLibraryKind.terrain,
+                      settings: settings,
+                      tilesets: tilesets,
+                      selectedPresetId: selectedPresetId,
+                      notifier: notifier,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
+      ],
+    );
+
+    final detailsSection = selectedPreset != null && _detailsExpanded
+      ? Column(
+          children: [
+            const EditorHorizontalDivider(),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: _buildPresetDetailsContent(
+                context: context,
+                ref: ref,
+                preset: selectedPreset,
+                kind: PresetLibraryKind.terrain,
+                settings: settings,
+                tilesets: tilesets,
+              ),
+            ),
+          ],
+        )
+      : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        treeColumn,
+        if (detailsSection != null) detailsSection,
       ],
     );
   }
@@ -4930,15 +5003,88 @@ class _PathLibraryContentState extends ConsumerState<_PathLibraryContent> {
               ),
             ),
           ),
-        if (selectedPreset != null && _detailsExpanded)
-          _buildPresetDetailsContent(
-            context: context,
-            ref: ref,
-            preset: selectedPreset,
-            kind: PresetLibraryKind.path,
-            settings: settings,
-            tilesets: tilesets,
+        ],
+      );
+
+    final treeColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_expanded) const EditorHorizontalDivider(),
+        if (_expanded && categories.isEmpty && uncategorizedPresets.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              'No path preset or folder yet',
+              style: TextStyle(
+                fontSize: 11,
+                color: secondary,
+              ),
+            ),
+          )
+        else if (_expanded)
+          Expanded(
+            child: SingleChildScrollView(
+              primary: false,
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (categories.isNotEmpty) ...[
+                    for (final category in categories)
+                      _PresetCategorySection(
+                        category: category,
+                        kind: PresetLibraryKind.path,
+                        settings: settings,
+                        tilesets: tilesets,
+                        selectedPresetId: selectedPresetId,
+                        notifier: notifier,
+                        onChanged: () => setState(() {}),
+                      ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (uncategorizedPresets.isNotEmpty) ...[
+                    _PresetCategorySection(
+                      category: null,
+                      kind: PresetLibraryKind.path,
+                      settings: settings,
+                      tilesets: tilesets,
+                      selectedPresetId: selectedPresetId,
+                      notifier: notifier,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
+      ],
+    );
+
+    final detailsSection = selectedPreset != null && _detailsExpanded
+      ? Column(
+          children: [
+            const EditorHorizontalDivider(),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: _buildPresetDetailsContent(
+                context: context,
+                ref: ref,
+                preset: selectedPreset,
+                kind: PresetLibraryKind.path,
+                settings: settings,
+                tilesets: tilesets,
+              ),
+            ),
+          ],
+        )
+      : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        treeColumn,
+        if (detailsSection != null) detailsSection,
       ],
     );
   }
