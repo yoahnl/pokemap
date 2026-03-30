@@ -23,6 +23,7 @@ import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/script_runtime_state.dart';
 import '../../application/script_runtime_controller.dart';
+import '../../application/trainer_battle_request.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_transition_overlay_component.dart';
@@ -674,8 +675,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       case NpcInteracted(:final entity):
         debugPrint('[interact] NPC: ${entity.id}');
         _faceNpcTowardPlayer(entity.id);
-        _tryOpenDialogue(
-            entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+        _handleNpcInteraction(entity);
       case SignInteracted(:final entity):
         debugPrint('[interact] Sign: ${entity.id}');
         _tryOpenDialogue(
@@ -1247,6 +1247,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
           '[dialogue] choice opened count=${newState.choices.length} selected=0');
     }
+  }
+
+  void _handleNpcInteraction(MapEntity entity) {
+    final trainerId = entity.npc?.trainerId?.trim();
+    if (trainerId != null && trainerId.isNotEmpty) {
+      final request = buildTrainerBattleRequestFromNpc(
+        entity: entity,
+        manifest: _bundle.manifest,
+        world: _world,
+      );
+      if (request != null) {
+        debugPrint(
+          '[battle] trainer battle triggered npc=${entity.id} trainer=$trainerId',
+        );
+        _pendingBattleRequest = request;
+        _startBattleHandoff(request);
+        return;
+      }
+      debugPrint(
+        '[battle] trainer not found: $trainerId for npc=${entity.id}, fallback to dialogue',
+      );
+      _showNotification('Dresseur introuvable.');
+    }
+    _tryOpenDialogue(
+        entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
   }
 
   void _showNotification(String text) {
