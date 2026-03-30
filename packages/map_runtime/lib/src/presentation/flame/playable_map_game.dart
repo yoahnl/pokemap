@@ -13,6 +13,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
 import '../../application/encounter_to_battle_request.dart';
+import '../../application/field_move_dialogue.dart';
 import '../../application/load_dialogue_content.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/movement_feedback.dart';
@@ -48,10 +49,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
     required RuntimeMapBundle bundle,
     required this.projectFilePath,
-  }) : _bundle = bundle;
+    SaveData? saveData,
+  })  : _bundle = bundle,
+        _saveData = saveData ?? const SaveData(saveId: 'default');
 
   final String projectFilePath;
   RuntimeMapBundle _bundle;
+  final SaveData _saveData;
   late GameplayWorldState _world;
   late PlayerComponent _player;
   String _activeMapId = '';
@@ -76,6 +80,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       PlacedBehaviorCooldownGate();
   double _runtimeClockMs = 0;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
+  // Action to run when the current dialogue closes. Set before opening a
+  // contextual dialogue; consumed and cleared in onFinished.
+  void Function()? _pendingPostDialogueAction;
+  // Set to true while a Yes_Surf prompt is open; cleared when the dialogue
+  // closes or a choice is confirmed. Used to capture surf confirmation by
+  // choice index (index 0 = confirm) without depending on the display label.
+  bool _awaitingSurfConfirmation = false;
   bool _showCollisionOverlay = false;
   bool _showBehaviorDebugOverlay = false;
   TextComponent? _behaviorDebugOverlay;
@@ -91,6 +102,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool get showBehaviorDebugOverlay => _showBehaviorDebugOverlay;
+
+  SaveData get saveData => _saveData;
 
   MovementMode get playerMovementMode => _world.player.movementMode;
 
@@ -408,7 +421,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (result is Blocked) {
       if (result.reason == GameplayMovementBlockReason.waterRequiresSurf) {
-        _showWaterRequiresSurfMessage();
+        _handleWaterBlocked();
       }
       if (attemptedOutOfBounds && attemptedDirection != null) {
         final direction = switch (attemptedDirection) {
@@ -445,7 +458,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
       _pendingWarp = result.warp;
       debugPrint(
-        '[warp] Triggered warp ${result.warp.warpId} mode=${result.warp.triggerMode.name} → map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
+        '[warp] Triggered warp ${result.warp.warpId} mode=${result.warp.triggerMode.name} -> map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
       );
       return;
     }
@@ -974,6 +987,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint('[dialogue] dialogue closed');
         _dialogueOverlay = null;
         _flowPhase = _RuntimeFlowPhase.overworld;
+        _awaitingSurfConfirmation = false;
+        final action = _pendingPostDialogueAction;
+        _pendingPostDialogueAction = null;
+        action?.call();
       },
     );
     camera.viewport.add(overlay);
@@ -1028,6 +1045,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final idx = state.selectedIndex;
       debugPrint(
           '[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"');
+      if (_awaitingSurfConfirmation) {
+        // Index 0 = first choice = "confirm surf" as defined in the system
+        // Yarn (Yes_Surf node). Does not depend on the displayed label.
+        if (idx == 0) {
+          _pendingPostDialogueAction = () {
+            setSurfingEnabled(true);
+            debugPrint('[surf] mode activated via dialogue choice');
+          };
+        }
+        _awaitingSurfConfirmation = false;
+      }
     }
     final prevNode = overlay.currentSession.currentNodeTitle;
     final stillOpen = overlay.confirmChoice();
@@ -1076,21 +1104,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     });
   }
 
-  void _showWaterRequiresSurfMessage() {
+  void _handleWaterBlocked() {
     final delta = _runtimeClockMs - _lastWaterRequiresSurfMessageAtMs;
     if (delta < _kWaterRequiresSurfMessageCooldownMs) {
       return;
     }
     _lastWaterRequiresSurfMessageAtMs = _runtimeClockMs;
-    
-    // Use Yarn dialogue for water traversal
-    final waterDialogueRef = DialogueRef(
-      dialogueId: 'water_traversal',
-      startNode: 'no_surf',
+
+    final evaluation = evaluateSurfAttempt(
+      saveData: _saveData,
+      isTargetWater: true,
+      currentMovementMode: _world.player.movementMode,
     );
-    if (!_tryOpenDialogue('water', waterDialogueRef, 'On ne peut pas aller sur l’eau sans un Pokémon ayant Surf.')) {
-      _showNotification('On ne peut pas aller sur l’eau sans un Pokémon ayant Surf.');
+    final yarnNode = surfEvaluationToYarnNode(evaluation);
+    if (yarnNode == null) {
+      return;
     }
+
+    final session = loadSurfDialogueSession(yarnNode);
+    if (session == null) {
+      debugPrint('[surf] failed to load dialogue node=$yarnNode');
+      _showNotification(waterRequiresSurfFeedbackMessage);
+      return;
+    }
+
+    debugPrint('[surf] evaluation=${evaluation.runtimeType} -> dialogue=$yarnNode');
+
+    if (evaluation is CanPromptSurf) {
+      _awaitingSurfConfirmation = true;
+    }
+    _openDialogue(session);
   }
 
   PlacedBehaviorRuntimeKey _buildPlacedBehaviorCooldownKey({
@@ -1510,7 +1553,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[connection] camera after transition focus=(${_player.focusPoint.x.toStringAsFixed(1)}, ${_player.focusPoint.y.toStringAsFixed(1)}) viewport=(${(visibleSize?.x ?? 0).toStringAsFixed(1)}, ${(visibleSize?.y ?? 0).toStringAsFixed(1)})',
       );
       debugPrint(
-        '[connection] transition complete → map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
+        '[connection] transition complete -> map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
       );
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();

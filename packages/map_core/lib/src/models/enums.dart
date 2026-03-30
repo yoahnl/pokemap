@@ -320,6 +320,24 @@ enum MovementMode {
   rockSmash,
 }
 
+/// Capacité de terrain débloquable par la progression du joueur.
+enum FieldAbility {
+  @JsonValue('surf')
+  surf,
+  @JsonValue('cut')
+  cut,
+  @JsonValue('strength')
+  strength,
+  @JsonValue('flash')
+  flash,
+  @JsonValue('rock_smash')
+  rockSmash,
+  @JsonValue('waterfall')
+  waterfall,
+  @JsonValue('dive')
+  dive,
+}
+
 /// Mode de déclenchement d'une rencontre Pokémon-like.
 enum EncounterKind {
   @JsonValue('walk')
