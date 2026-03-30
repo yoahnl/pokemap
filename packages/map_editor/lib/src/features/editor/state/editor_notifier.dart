@@ -4628,6 +4628,30 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void setPathLayerAnimationMode({
+    required String layerId,
+    required PathAnimationMode mode,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updatedMap = setPathLayerAnimationModeInMap(
+        map,
+        layerId: layerId,
+        mode: mode,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Animation mode updated',
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to update animation mode: $e');
+    }
+  }
+
   Future<void> deletePathPreset(String presetId) async {
     final fs = _projectWorkspace;
     final project = state.project;

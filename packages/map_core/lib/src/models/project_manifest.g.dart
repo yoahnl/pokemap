@@ -630,9 +630,6 @@ _$PathAnimationTriggerRuleImpl _$$PathAnimationTriggerRuleImplFromJson(
     _$PathAnimationTriggerRuleImpl(
       id: json['id'] as String? ?? '',
       enabled: json['enabled'] as bool? ?? true,
-      animationMode: $enumDecodeNullable(
-              _$PathAnimationModeEnumMap, json['animationMode']) ??
-          PathAnimationMode.triggered,
       trigger: $enumDecodeNullable(
               _$PathAnimationTriggerTypeEnumMap, json['trigger']) ??
           PathAnimationTriggerType.onStep,
@@ -649,16 +646,10 @@ Map<String, dynamic> _$$PathAnimationTriggerRuleImplToJson(
     <String, dynamic>{
       'id': instance.id,
       'enabled': instance.enabled,
-      'animationMode': _$PathAnimationModeEnumMap[instance.animationMode]!,
       'trigger': _$PathAnimationTriggerTypeEnumMap[instance.trigger]!,
       'mode': _$PathAnimationPlaybackModeEnumMap[instance.mode]!,
       'scope': _$PathAnimationActivationScopeEnumMap[instance.scope]!,
     };
-
-const _$PathAnimationModeEnumMap = {
-  PathAnimationMode.alwaysActive: 'always_active',
-  PathAnimationMode.triggered: 'triggered',
-};
 
 const _$PathAnimationTriggerTypeEnumMap = {
   PathAnimationTriggerType.onEnter: 'on_enter',

@@ -1,4 +1,5 @@
 import '../exceptions/map_exceptions.dart';
+import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
@@ -183,5 +184,27 @@ MapData setPathLayerAnimationTriggers(
   }
   final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
   updatedLayers[layerIndex] = target.copyWith(animationTriggers: triggers);
+  return map.copyWith(layers: updatedLayers);
+}
+
+MapData setPathLayerAnimationModeInMap(
+  MapData map, {
+  required String layerId,
+  required PathAnimationMode mode,
+}) {
+  final normalizedId = layerId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException('Layer id cannot be empty');
+  }
+  final layerIndex = map.layers.indexWhere((l) => l.id == normalizedId);
+  if (layerIndex < 0) {
+    throw ValidationException('Layer not found: $normalizedId');
+  }
+  final target = map.layers[layerIndex];
+  if (target is! PathLayer) {
+    throw ValidationException('Layer is not a path layer: $normalizedId');
+  }
+  final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
+  updatedLayers[layerIndex] = target.copyWith(animationMode: mode);
   return map.copyWith(layers: updatedLayers);
 }

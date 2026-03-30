@@ -48,6 +48,7 @@ sealed class MapLayer with _$MapLayer {
     @Default('') String presetId,
     @Default([]) List<bool> cells,
     @Default(<String, String>{}) Map<String, String> properties,
+    @Default(PathAnimationMode.triggered) PathAnimationMode animationMode,
     @Default([]) List<PathAnimationTriggerRule> animationTriggers,
   }) = PathLayer;
 

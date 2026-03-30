@@ -1183,13 +1183,9 @@ class _PathLayerAnimationTriggersSectionState
   @override
   Widget build(BuildContext context) {
     final triggers = widget.layer.animationTriggers;
+    final animationMode = widget.layer.animationMode;
     final label = CupertinoColors.label.resolveFrom(context);
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    
-    // Determine the current animation mode
-    final animationMode = triggers.isNotEmpty && triggers.any((t) => t.animationMode == PathAnimationMode.alwaysActive)
-      ? PathAnimationMode.alwaysActive
-      : PathAnimationMode.triggered;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1210,24 +1206,9 @@ class _PathLayerAnimationTriggersSectionState
           value: _pathAnimationModeLabel(animationMode),
           onChanged: (value) {
             final newMode = PathAnimationMode.values.firstWhere((m) => _pathAnimationModeLabel(m) == value);
-            final updated = triggers.isNotEmpty
-              ? List<PathAnimationTriggerRule>.from(triggers)
-              : [
-                  _normalizePathAnimationTriggerRule(
-                    PathAnimationTriggerRule(
-                      id: 'rule_${DateTime.now().microsecondsSinceEpoch}',
-                    ),
-                  ),
-                ];
-            
-            // Update all triggers with the new mode
-            for (var i = 0; i < updated.length; i++) {
-              updated[i] = updated[i].copyWith(animationMode: newMode);
-            }
-            
-            widget.notifier.applyPathLayerAnimationTriggers(
+            widget.notifier.setPathLayerAnimationMode(
               layerId: widget.layer.id,
-              triggers: updated,
+              mode: newMode,
             );
             setState(() {});
           },
@@ -1277,7 +1258,6 @@ class _PathLayerAnimationTriggersSectionState
                   _normalizePathAnimationTriggerRule(
                     PathAnimationTriggerRule(
                       id: 'rule_${DateTime.now().microsecondsSinceEpoch}_${triggers.length}',
-                      animationMode: PathAnimationMode.triggered,
                     ),
                   ),
                 ];

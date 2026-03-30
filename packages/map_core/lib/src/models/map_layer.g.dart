@@ -103,6 +103,9 @@ _$PathLayerImpl _$$PathLayerImplFromJson(Map<String, dynamic> json) =>
             (k, e) => MapEntry(k, e as String),
           ) ??
           const <String, String>{},
+      animationMode: $enumDecodeNullable(
+              _$PathAnimationModeEnumMap, json['animationMode']) ??
+          PathAnimationMode.triggered,
       animationTriggers: (json['animationTriggers'] as List<dynamic>?)
               ?.map((e) =>
                   PathAnimationTriggerRule.fromJson(e as Map<String, dynamic>))
@@ -120,10 +123,16 @@ Map<String, dynamic> _$$PathLayerImplToJson(_$PathLayerImpl instance) =>
       'presetId': instance.presetId,
       'cells': instance.cells,
       'properties': instance.properties,
+      'animationMode': _$PathAnimationModeEnumMap[instance.animationMode]!,
       'animationTriggers':
           instance.animationTriggers.map((e) => e.toJson()).toList(),
       'runtimeType': instance.$type,
     };
+
+const _$PathAnimationModeEnumMap = {
+  PathAnimationMode.alwaysActive: 'always_active',
+  PathAnimationMode.triggered: 'triggered',
+};
 
 _$ObjectLayerImpl _$$ObjectLayerImplFromJson(Map<String, dynamic> json) =>
     _$ObjectLayerImpl(

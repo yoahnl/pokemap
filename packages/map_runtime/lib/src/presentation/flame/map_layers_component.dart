@@ -248,7 +248,7 @@ class MapLayersComponent extends PositionComponent {
     }
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
-        path: (id, name, v, o, presetId, cells, properties, animationTriggers) =>
+        path: (id, name, v, o, presetId, cells, properties, animationMode, animationTriggers) =>
             _paintPathLayer(canvas, id, presetId, cells, o),
       );
     }
@@ -1056,6 +1056,17 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String presetId,
   }) {
+    // Check if the layer has alwaysActive mode
+    final layer = bundle.map.layers.firstWhere(
+      (l) => l.id == layerId,
+      orElse: () => throw StateError('Layer not found: $layerId'),
+    );
+    
+    if (layer is PathLayer && layer.animationMode == PathAnimationMode.alwaysActive) {
+      // Always active mode: loop animation continuously
+      return const _PathLayerPlayback.alwaysLoop();
+    }
+    
     final allRules = _pathRulesByLayerId[layerId];
     if (allRules == null || allRules.isEmpty) {
       return const _PathLayerPlayback.staticFrame();

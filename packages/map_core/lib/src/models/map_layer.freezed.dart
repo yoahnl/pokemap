@@ -58,6 +58,7 @@ mixin _$MapLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
@@ -84,6 +85,7 @@ mixin _$MapLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
@@ -109,6 +111,7 @@ mixin _$MapLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
@@ -365,6 +368,7 @@ class _$TileLayerImpl extends TileLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
@@ -394,6 +398,7 @@ class _$TileLayerImpl extends TileLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
@@ -422,6 +427,7 @@ class _$TileLayerImpl extends TileLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
@@ -666,6 +672,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
@@ -695,6 +702,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
@@ -723,6 +731,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
@@ -963,6 +972,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
@@ -992,6 +1002,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
@@ -1020,6 +1031,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
@@ -1126,6 +1138,7 @@ abstract class _$$PathLayerImplCopyWith<$Res>
       String presetId,
       List<bool> cells,
       Map<String, String> properties,
+      PathAnimationMode animationMode,
       List<PathAnimationTriggerRule> animationTriggers});
 }
 
@@ -1149,6 +1162,7 @@ class __$$PathLayerImplCopyWithImpl<$Res>
     Object? presetId = null,
     Object? cells = null,
     Object? properties = null,
+    Object? animationMode = null,
     Object? animationTriggers = null,
   }) {
     return _then(_$PathLayerImpl(
@@ -1180,6 +1194,10 @@ class __$$PathLayerImplCopyWithImpl<$Res>
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
+      animationMode: null == animationMode
+          ? _value.animationMode
+          : animationMode // ignore: cast_nullable_to_non_nullable
+              as PathAnimationMode,
       animationTriggers: null == animationTriggers
           ? _value._animationTriggers
           : animationTriggers // ignore: cast_nullable_to_non_nullable
@@ -1200,6 +1218,7 @@ class _$PathLayerImpl extends PathLayer {
       this.presetId = '',
       final List<bool> cells = const [],
       final Map<String, String> properties = const <String, String>{},
+      this.animationMode = PathAnimationMode.triggered,
       final List<PathAnimationTriggerRule> animationTriggers = const [],
       final String? $type})
       : _cells = cells,
@@ -1242,6 +1261,9 @@ class _$PathLayerImpl extends PathLayer {
     return EqualUnmodifiableMapView(_properties);
   }
 
+  @override
+  @JsonKey()
+  final PathAnimationMode animationMode;
   final List<PathAnimationTriggerRule> _animationTriggers;
   @override
   @JsonKey()
@@ -1257,7 +1279,7 @@ class _$PathLayerImpl extends PathLayer {
 
   @override
   String toString() {
-    return 'MapLayer.path(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, cells: $cells, properties: $properties, animationTriggers: $animationTriggers)';
+    return 'MapLayer.path(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, cells: $cells, properties: $properties, animationMode: $animationMode, animationTriggers: $animationTriggers)';
   }
 
   @override
@@ -1275,6 +1297,8 @@ class _$PathLayerImpl extends PathLayer {
             const DeepCollectionEquality().equals(other._cells, _cells) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties) &&
+            (identical(other.animationMode, animationMode) ||
+                other.animationMode == animationMode) &&
             const DeepCollectionEquality()
                 .equals(other._animationTriggers, _animationTriggers));
   }
@@ -1290,6 +1314,7 @@ class _$PathLayerImpl extends PathLayer {
       presetId,
       const DeepCollectionEquality().hash(_cells),
       const DeepCollectionEquality().hash(_properties),
+      animationMode,
       const DeepCollectionEquality().hash(_animationTriggers));
 
   /// Create a copy of MapLayer
@@ -1320,6 +1345,7 @@ class _$PathLayerImpl extends PathLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
@@ -1327,7 +1353,7 @@ class _$PathLayerImpl extends PathLayer {
         object,
   }) {
     return path(id, name, isVisible, opacity, presetId, cells, properties,
-        animationTriggers);
+        animationMode, animationTriggers);
   }
 
   @override
@@ -1350,13 +1376,14 @@ class _$PathLayerImpl extends PathLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
     return path?.call(id, name, isVisible, opacity, presetId, cells, properties,
-        animationTriggers);
+        animationMode, animationTriggers);
   }
 
   @override
@@ -1379,6 +1406,7 @@ class _$PathLayerImpl extends PathLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
@@ -1387,7 +1415,7 @@ class _$PathLayerImpl extends PathLayer {
   }) {
     if (path != null) {
       return path(id, name, isVisible, opacity, presetId, cells, properties,
-          animationTriggers);
+          animationMode, animationTriggers);
     }
     return orElse();
   }
@@ -1449,6 +1477,7 @@ abstract class PathLayer extends MapLayer {
           final String presetId,
           final List<bool> cells,
           final Map<String, String> properties,
+          final PathAnimationMode animationMode,
           final List<PathAnimationTriggerRule> animationTriggers}) =
       _$PathLayerImpl;
   const PathLayer._() : super._();
@@ -1467,6 +1496,7 @@ abstract class PathLayer extends MapLayer {
   String get presetId;
   List<bool> get cells;
   Map<String, String> get properties;
+  PathAnimationMode get animationMode;
   List<PathAnimationTriggerRule> get animationTriggers;
 
   /// Create a copy of MapLayer
@@ -1605,6 +1635,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
@@ -1634,6 +1665,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
@@ -1662,6 +1694,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             String presetId,
             List<bool> cells,
             Map<String, String> properties,
+            PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
     TResult Function(String id, String name, bool isVisible, double opacity)?
