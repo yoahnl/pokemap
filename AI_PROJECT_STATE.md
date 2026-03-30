@@ -518,8 +518,9 @@ ResolvedDialogue? resolveDialogue({
 //    c. sinon → null + log [dialogue] no startNode
 //
 // IMPORTANT : projectRootDirectory DOIT être le dossier racine du projet, PAS le chemin vers project.json.
-// Dans PlayableMapGame, utiliser `_bundle.projectRootDirectory` (déjà correct), PAS `projectFilePath`.
+// Dans PlayableMapGame, utiliser `_bundle.projectRootDirectory` (déjà correct).
 // Bug corrigé 2026-03-30 : `_openDialogueForScript()` utilisait erroneusement `projectFilePath` → chemins incorrects.
+// Preuve par test dédié mais pas encore de test E2E avec fichier `.yarn` réel chargé depuis une fixture runtime complète.
 //
 // startNode = title: d'un nœud Yarn (ex. "Intro", "fresh_start_house_01_mail_box")
 // Logs produits : [dialogue] interaction, resolved dialogueId, resolved file,
@@ -743,7 +744,6 @@ Offset panOffset
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
 - Pas de streaming profond multi-hop : le runtime garde surtout le voisinage immédiat (active + connexions directes + précédente), pas un graphe complet de maps lointaines.
-- **CORRIGÉ 2026-03-30** : Bug de résolution de dialogue scripté — `_openDialogueForScript()` utilise maintenant `_bundle.projectRootDirectory` au lieu de `projectFilePath`.
 
 ---
 
@@ -773,7 +773,7 @@ Offset panOffset
 
 12. **Entrée de connection invalidée** : si la case d'arrivée calculée est hors bornes ou bloquée sur la map cible, la transition est annulée côté runtime (log `[connection]` + notification), sans fallback heuristique.
 
-13. **CORRIGÉ 2026-03-30** : `_openDialogueForScript()` utilisait `projectFilePath` (chemin vers `project.json`) au lieu de `_bundle.projectRootDirectory` → chemins incorrects du type `/.../project.json/dialogues/test.yarn`. Corrigé pour utiliser `_bundle.projectRootDirectory`.
+13. **Résolution dialogue scripté — bug corrigé 2026-03-30** : `_openDialogueForScript()` utilisait `projectFilePath` (chemin vers `project.json`) au lieu de `_bundle.projectRootDirectory` → chemins incorrects du type `/.../project.json/dialogues/test.yarn`. Corrigé pour utiliser `_bundle.projectRootDirectory`. Preuve par test dédié (`Dialogue resolution uses dirname of projectFilePath`) mais pas encore de test E2E avec fichier `.yarn` réel chargé depuis une fixture runtime complète.
 
 ---
 

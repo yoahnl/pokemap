@@ -169,7 +169,7 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Caméra follow-player (~15×11 tuiles viewport) | **Fait** | |
 | Fallback spawn (0,0) si pas de spawn configuré | **Fait** | PlayableMapGame.onLoad catch GameplaySpawnResolutionException |
 | Barrel public runtime + handoff battle | **Fait** | Exporte `BattleStartRequest` (+ variantes), mapper encounter→battle, loadRuntimeMapBundle, RuntimeMapBundle, RuntimeMapGame, PlayableMapGame |
-| Résolution dialogue (`resolveDialogue`) | **Fait** | Résout fichier .yarn + startNode, logs [dialogue] ; **CORRIGÉ 2026-03-30** : `_openDialogueForScript()` utilise `_bundle.projectRootDirectory` au lieu de `projectFilePath` |
+| Résolution dialogue (`resolveDialogue`) | **Fait** | Résout fichier .yarn + startNode, logs [dialogue] ; utilise `_bundle.projectRootDirectory` (corrigé 2026-03-30) |
 | Parser Yarn (`parseYarnFile`) | **Fait** | `YarnStepLine`, `YarnStepJump`, `YarnStepChoiceBlock`, `YarnChoice` — détecte `<<jump X>>` et blocs `->` avec corps indentés |
 | Moteur dialogue (`DialogueSession`) | **Fait** | `advance()`, `moveChoiceCursor()`, `confirmChoice()` ; résolution automatique des `<<jump>>` via `_resolveStep()` |
 | Chargement dialogue (`loadDialogueContent`) | **Fait** | Lecture .yarn → parse → DialogueSession, fallback premier nœud |
@@ -180,7 +180,6 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Streaming multi-hop profond | **Non fait** | Le runtime ne garde pas un graphe large de maps lointaines, seulement le voisinage immédiat utile |
 | Comportements NPC (patrouille, LoS) | **Non fait** | |
 | Sauvegarde/chargement état jeu | **Non fait** | |
-| **CORRIGÉ 2026-03-30** : Bug résolution dialogue scripté | **Fait** | `_openDialogueForScript()` utilise `_bundle.projectRootDirectory` au lieu de `projectFilePath` |
 
 Convention runtime `MapConnection` appliquée :
 - `offset` est le décalage de la map cible par rapport à la source sur l’axe partagé.
