@@ -818,4 +818,5 @@ Offset panOffset
 
 1. Implémenter la boucle combat réelle sur `BattleStartRequest`/`BattleOverlayComponent` (commandes, tour par tour, résolution).
 2. Étendre les rencontres à `surf`/`rod` et aux conditions de contexte (mode de déplacement, tags de map/zone).
-3. Ajouter le handoff `TrainerBattleStartRequest` depuis un déclenchement trainer (LoS/interact) et brancher team/theme.
+3. État "trainer déjà battu" + persistance victoire + defeatDialogue runtime.
+4. Line of Sight (LoS) pour déclenchement automatique des trainers à distance.
