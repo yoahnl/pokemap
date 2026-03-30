@@ -737,7 +737,7 @@ Offset panOffset
 - **Dialogue Yarn avec branches** : `loadDialogueContent()` lit le fichier .yarn, le parse, démarre la session. `DialogueOverlayComponent` affiche lignes (E · Suite / E · Fermer) et blocs de choix (▶ curseur, ↑/↓ pour naviguer, E pour valider). `<<jump>>` exécuté automatiquement. Le mouvement est bloqué pendant tout le dialogue.
 - **Rencontres actives MVP (mode-aware)** : après un `Moved` accepté (hors `Blocked` / `WarpTriggered`), le runtime appelle `checkEncounterAtPlayerPosition()` (`map_gameplay`) avec `EncounterKind.walk` en mode `walk` et `EncounterKind.surf` en mode `surf`. Zone retenue = zone encounter de plus haute priorité contenant la cellule joueur et compatible avec le kind demandé. Tirage pondéré dans la table projet, niveau aléatoire `[minLevel..maxLevel]`, logs `[encounter]`.
 - **Battle handoff MVP** : une rencontre déclenchée est transformée via `buildBattleStartRequestFromEncounter()` en `WildBattleStartRequest` (avec `OverworldReturnContext`). Le runtime suspend l'overworld, lance `BattleTransitionOverlayComponent`, puis ouvre `BattleOverlayComponent` (shell battle minimal). La fermeture du battle overlay reprend proprement l'overworld.
-- **Battle trainer depuis NPC** : interaction avec un NPC ayant `trainerId` → `buildTrainerBattleRequestFromNpc()` → `TrainerBattleStartRequest` → handoff battle. Si `trainerId` invalide : log structuré + notification + fallback dialogue si présent.
+- **Battle trainer depuis NPC** : interaction avec un NPC ayant `trainerId` → vérification flag `trainer_defeated:{trainerId}` dans `storyFlags` → si battu : `defeatDialogueRef` (si présent) → fallback dialogue normal → fallback notification ; si non battu : `buildTrainerBattleRequestFromNpc()` → `TrainerBattleStartRequest` → handoff battle. Si `trainerId` invalide : log structuré + notification + fallback dialogue. **Marquage "battu"** : via `debugMarkTrainerAsDefeated(trainerId)` (debug-only, runtime-only, pas de persistance disque).
 - Logs structurés : `[runtime]`, `[warp]`, `[connection]`, `[interact]`, `[dialogue]`, `[encounter]`, `[battle]`, `[placed_behavior]` via `debugPrint`.
 - Logs battle : `[battle] battle request created`, `[battle] transition started`, `[battle] overlay opened`, `[battle] battle closed`, `[battle] overworld resumed`.
 - Warp failure robuste : logs `[warp]` détaillés (trigger/start/load/place/complete/fail/unlock), notification "Warp failed", et rollback best-effort pour éviter un runtime bloqué/écran noir.
@@ -816,7 +816,7 @@ Offset panOffset
 
 ## Prochaines priorités
 
-1. Implémenter la boucle combat réelle sur `BattleStartRequest`/`BattleOverlayComponent` (commandes, tour par tour, résolution).
+1. Implémenter la boucle combat réelle sur `BattleStartRequest`/`BattleOverlayComponent` (commandes, tour par tour, résolution) → permettra marquage automatique "trainer battu" après victoire.
 2. Étendre les rencontres à `surf`/`rod` et aux conditions de contexte (mode de déplacement, tags de map/zone).
-3. État "trainer déjà battu" + persistance victoire + defeatDialogue runtime.
+3. Persistance save/load end-to-end pour `storyFlags` (dont `trainer_defeated:{trainerId}`).
 4. Line of Sight (LoS) pour déclenchement automatique des trainers à distance.

@@ -1251,27 +1251,86 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _handleNpcInteraction(MapEntity entity) {
     final trainerId = entity.npc?.trainerId?.trim();
-    if (trainerId != null && trainerId.isNotEmpty) {
-      final request = buildTrainerBattleRequestFromNpc(
-        entity: entity,
-        manifest: _bundle.manifest,
-        world: _world,
+    
+    // Cas 1: pas de trainerId → dialogue normal
+    if (trainerId == null || trainerId.isEmpty) {
+      _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+      return;
+    }
+    
+    // Cas 2: trainer déjà battu → defeat dialogue ou fallback
+    final defeatedFlag = 'trainer_defeated:$trainerId';
+    if (_gameState.storyFlags.activeFlags.contains(defeatedFlag)) {
+      debugPrint(
+        '[interact] trainer already defeated trainer=$trainerId npc=${entity.id}',
       );
-      if (request != null) {
-        debugPrint(
-          '[battle] trainer battle triggered npc=${entity.id} trainer=$trainerId',
-        );
-        _pendingBattleRequest = request;
-        _startBattleHandoff(request);
-        return;
-      }
+      _openDefeatDialogue(entity);
+      return;
+    }
+    
+    // Cas 3: trainerId invalide → log + fallback dialogue
+    final trainer = _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
+      (t) => t?.id == trainerId,
+      orElse: () => null,
+    );
+    if (trainer == null) {
       debugPrint(
         '[battle] trainer not found: $trainerId for npc=${entity.id}, fallback to dialogue',
       );
       _showNotification('Dresseur introuvable.');
+      _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+      return;
     }
-    _tryOpenDialogue(
-        entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+    
+    // Cas 4: trainer non battu → battle normal
+    final request = buildTrainerBattleRequestFromNpc(
+      entity: entity,
+      manifest: _bundle.manifest,
+      world: _world,
+    );
+    if (request != null) {
+      debugPrint(
+        '[battle] trainer battle triggered npc=${entity.id} trainer=$trainerId',
+      );
+      _pendingBattleRequest = request;
+      _startBattleHandoff(request);
+    }
+  }
+
+  void _openDefeatDialogue(MapEntity entity) {
+    final defeatRef = entity.npc?.defeatDialogueRef;
+    if (defeatRef != null) {
+      debugPrint('[interact] opening defeat dialogue npc=${entity.id}');
+      _tryOpenDialogue(entity.id, defeatRef, entity.inspectorHeadline);
+    } else if (entity.npc?.dialogue != null) {
+      debugPrint('[interact] no defeat dialogue, fallback to normal dialogue npc=${entity.id}');
+      _tryOpenDialogue(entity.id, entity.npc!.dialogue, entity.inspectorHeadline);
+    } else {
+      debugPrint('[interact] no dialogue for defeated trainer npc=${entity.id}');
+      _showNotification('Le dresseur est déjà vaincu.');
+    }
+  }
+
+  /// DEBUG-ONLY: Marque un trainer comme battu.
+  ///
+  /// **À n'utiliser qu'en debug/dev pour tester le flux de défaite.**
+  /// Tant que le gameplay de combat n'est pas implémenté, ce mécanisme
+  /// permet de simuler une victoire pour vérifier le defeat dialogue.
+  ///
+  /// En production, ce flag devrait être positionné automatiquement
+  /// après une vraie victoire en combat.
+  void debugMarkTrainerAsDefeated(String trainerId) {
+    final trimmedId = trainerId.trim();
+    if (trimmedId.isEmpty) {
+      debugPrint('[debug] invalid trainerId, ignored');
+      return;
+    }
+    _gameState = _gameState.copyWith(
+      storyFlags: _gameState.storyFlags.copyWith(
+        activeFlags: {..._gameState.storyFlags.activeFlags, 'trainer_defeated:$trimmedId'},
+      ),
+    );
+    debugPrint('[debug] trainer $trimmedId marked as defeated');
   }
 
   void _showNotification(String text) {
