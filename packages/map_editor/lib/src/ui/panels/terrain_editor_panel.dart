@@ -2934,82 +2934,12 @@ String _pathTraversalLabel(_PathTraversalType type) {
   };
 }
 
-PathAnimationTriggerRule _normalizePathAnimationTriggerRule(
-  PathAnimationTriggerRule rule,
-) {
-  if (rule.trigger == PathAnimationTriggerType.whileInside &&
-      rule.mode != PathAnimationPlaybackMode.loopWhileActive) {
-    return rule.copyWith(mode: PathAnimationPlaybackMode.loopWhileActive);
-  }
-  if (rule.mode == PathAnimationPlaybackMode.loopWhileActive &&
-      rule.trigger != PathAnimationTriggerType.whileInside) {
-    return rule.copyWith(trigger: PathAnimationTriggerType.whileInside);
-  }
-  return rule;
-}
-
-String _pathAnimationTriggerLabel(PathAnimationTriggerType trigger) {
-  return switch (trigger) {
-    PathAnimationTriggerType.onEnter => 'On enter',
-    PathAnimationTriggerType.onStep => 'On step',
-    PathAnimationTriggerType.onNear => 'On near',
-    PathAnimationTriggerType.onAction => 'On action',
-    PathAnimationTriggerType.whileInside => 'While inside',
-    PathAnimationTriggerType.onBump => 'On bump',
-  };
-}
-
-String _pathAnimationPlaybackModeLabel(PathAnimationPlaybackMode mode) {
-  return switch (mode) {
-    PathAnimationPlaybackMode.playOnce => 'Play once',
-    PathAnimationPlaybackMode.loopWhileActive => 'Loop while active',
-    PathAnimationPlaybackMode.restartOnTrigger => 'Restart on trigger',
-  };
-}
-
-String _pathAnimationTriggerHint(PathAnimationTriggerType trigger) {
-  return switch (trigger) {
-    PathAnimationTriggerType.onEnter =>
-      'Déclenché quand le joueur entre sur une cellule de ce path.',
-    PathAnimationTriggerType.onStep =>
-      'Déclenché à chaque pas du joueur sur ce path.',
-    PathAnimationTriggerType.onNear =>
-      'Déclenché quand le joueur devient adjacent (N/S/E/W).',
-    PathAnimationTriggerType.onAction =>
-      'Déclenché avec la touche action face à une cellule du path.',
-    PathAnimationTriggerType.whileInside =>
-      'Actif tant que le joueur reste sur une cellule du path.',
-    PathAnimationTriggerType.onBump =>
-      'Déclenché quand le joueur tente d’entrer dans une cellule bloquée du path.',
-  };
-}
-
-String _pathAnimationModeHint(PathAnimationPlaybackMode mode) {
-  return switch (mode) {
-    PathAnimationPlaybackMode.playOnce =>
-      "Joue l’animation une seule fois par trigger.",
-    PathAnimationPlaybackMode.loopWhileActive =>
-      "Boucle tant que la condition active est vraie.",
-    PathAnimationPlaybackMode.restartOnTrigger =>
-      "Relance depuis le debut a chaque nouveau trigger.",
-  };
-}
-
-String _pathAnimationScopeLabel(PathAnimationActivationScope scope) {
-  return switch (scope) {
-    PathAnimationActivationScope.wholeLayer => "Whole layer",
-    PathAnimationActivationScope.cellOnly => "Cell only",
-  };
-}
-
-String _pathAnimationScopeHint(PathAnimationActivationScope scope) {
-  return switch (scope) {
-    PathAnimationActivationScope.wholeLayer =>
-      "Anime toutes les cellules du calque simultanement.",
-    PathAnimationActivationScope.cellOnly =>
-      "Anime uniquement la cellule declenchee (ex : hautes herbes).",
-  };
-}
+// ---------------------------------------------------------------------------
+// Path animation helpers (moved to terrain_map_panel.dart)
+// ---------------------------------------------------------------------------
+// The following helper functions are kept for backward compatibility
+// but are no longer used in this file. They were used by the old
+// _PathAnimationTriggerRuleCard widget which has been removed.
 
 TilesetSourceRect? _pathMappingPrimarySource(List<TilesetVisualFrame>? frames) {
   if (frames == null || frames.isEmpty) {
@@ -3653,158 +3583,13 @@ class _PathVariantFramesEditorState extends State<_PathVariantFramesEditor> {
   }
 }
 
-// The animation triggers section has been moved to terrain_map_panel.dart
+// ---------------------------------------------------------------------------
+// Animation trigger helpers (moved to terrain_map_panel.dart)
+// ---------------------------------------------------------------------------
+// The animation triggers UI has been moved to terrain_map_panel.dart
 // to be displayed in the right Paths tile.
-
-class _PathAnimationTriggerRuleCard extends StatelessWidget {
-  const _PathAnimationTriggerRuleCard({
-    required this.rule,
-    required this.index,
-    required this.onChanged,
-    required this.onDelete,
-  });
-
-  final PathAnimationTriggerRule rule;
-  final int index;
-  final ValueChanged<PathAnimationTriggerRule> onChanged;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemFill.resolveFrom(context),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Rule ${index + 1}',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: CupertinoColors.label.resolveFrom(context),
-                ),
-              ),
-              const Spacer(),
-              Transform.scale(
-                scale: 0.85,
-                child: CupertinoSwitch(
-                  value: rule.enabled,
-                  onChanged: (value) {
-                    onChanged(rule.copyWith(enabled: value));
-                  },
-                ),
-              ),
-              const SizedBox(width: 6),
-              EditorToolbarIconButton(
-                icon: CupertinoIcons.delete,
-                iconSize: 14,
-                onPressed: onDelete,
-                tooltip: 'Delete trigger',
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              PushButton(
-                controlSize: ControlSize.small,
-                secondary: true,
-                onPressed: () async {
-                  final picked =
-                      await showCupertinoListPicker<PathAnimationTriggerType>(
-                    context: context,
-                    title: 'Trigger',
-                    items: PathAnimationTriggerType.values.toList(),
-                    labelOf: _pathAnimationTriggerLabel,
-                  );
-                  if (picked == null) {
-                    return;
-                  }
-                  onChanged(
-                    _normalizePathAnimationTriggerRule(
-                      rule.copyWith(trigger: picked),
-                    ),
-                  );
-                },
-                child: Text(
-                    'Trigger: ${_pathAnimationTriggerLabel(rule.trigger)}'),
-              ),
-              PushButton(
-                controlSize: ControlSize.small,
-                secondary: true,
-                onPressed: () async {
-                  final picked =
-                      await showCupertinoListPicker<PathAnimationPlaybackMode>(
-                    context: context,
-                    title: 'Playback mode',
-                    items: PathAnimationPlaybackMode.values.toList(),
-                    labelOf: _pathAnimationPlaybackModeLabel,
-                  );
-                  if (picked == null) {
-                    return;
-                  }
-                  onChanged(
-                    _normalizePathAnimationTriggerRule(
-                      rule.copyWith(mode: picked),
-                    ),
-                  );
-                },
-                child:
-                    Text('Mode: ${_pathAnimationPlaybackModeLabel(rule.mode)}'),
-              ),
-              PushButton(
-                controlSize: ControlSize.small,
-                secondary: true,
-                onPressed: () async {
-                  final picked = await showCupertinoListPicker<
-                      PathAnimationActivationScope>(
-                    context: context,
-                    title: 'Activation scope',
-                    items: PathAnimationActivationScope.values.toList(),
-                    labelOf: _pathAnimationScopeLabel,
-                  );
-                  if (picked == null) {
-                    return;
-                  }
-                  onChanged(rule.copyWith(scope: picked));
-                },
-                child: Text('Scope: ${_pathAnimationScopeLabel(rule.scope)}'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _pathAnimationTriggerHint(rule.trigger),
-            style: TextStyle(fontSize: 10, color: secondary),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            _pathAnimationModeHint(rule.mode),
-            style: TextStyle(fontSize: 10, color: secondary),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            _pathAnimationScopeHint(rule.scope),
-            style: TextStyle(fontSize: 10, color: secondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// The following helper functions are kept for backward compatibility
+// but are no longer used in this file.
 
 class _PathSchemaCanvas extends StatelessWidget {
   const _PathSchemaCanvas({

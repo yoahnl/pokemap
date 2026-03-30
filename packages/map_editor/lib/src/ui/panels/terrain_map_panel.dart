@@ -1348,7 +1348,7 @@ class _PathLayerTriggerEditor extends StatelessWidget {
               );
               onChanged();
             },
-            options: ['true', 'false'],
+            options: const ['true', 'false'],
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
