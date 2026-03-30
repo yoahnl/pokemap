@@ -30,6 +30,7 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectEncounterTable> encounterTables,
     @Default([]) List<ProjectDialogueFolder> dialogueFolders,
     @Default([]) List<ProjectDialogueEntry> dialogues,
+    @Default([]) List<ProjectScriptEntry> scripts,
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectSettings()) ProjectSettings settings,
@@ -398,6 +399,20 @@ extension TilesetVisualFrameListX on List<TilesetVisualFrame> {
   }
 
   TilesetSourceRect get primarySource => primaryFrame.source;
+}
+
+@freezed
+class ProjectScriptEntry with _$ProjectScriptEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectScriptEntry({
+    required String id,
+    required String name,
+    required ScriptAsset asset,
+    @Default([]) List<String> tags,
+  }) = _ProjectScriptEntry;
+
+  factory ProjectScriptEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectScriptEntryFromJson(json);
 }
 
 @freezed

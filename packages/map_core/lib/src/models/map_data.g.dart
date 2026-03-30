@@ -46,6 +46,11 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
           ? const MapMetadata()
           : MapMetadata.fromJson(json['mapMetadata'] as Map<String, dynamic>),
       properties: json['properties'] as Map<String, dynamic>? ?? const {},
+      events: (json['events'] as List<dynamic>?)
+              ?.map(
+                  (e) => MapEventDefinition.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
@@ -64,6 +69,7 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'gameplayZones': instance.gameplayZones.map((e) => e.toJson()).toList(),
       'mapMetadata': instance.mapMetadata.toJson(),
       'properties': instance.properties,
+      'events': instance.events.map((e) => e.toJson()).toList(),
     };
 
 const _$ProjectVersionEnumMap = {

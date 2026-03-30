@@ -38,6 +38,7 @@ mixin _$MapData {
   List<MapGameplayZone> get gameplayZones => throw _privateConstructorUsedError;
   MapMetadata get mapMetadata => throw _privateConstructorUsedError;
   Map<String, dynamic> get properties => throw _privateConstructorUsedError;
+  List<MapEventDefinition> get events => throw _privateConstructorUsedError;
 
   /// Serializes this MapData to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -67,7 +68,8 @@ abstract class $MapDataCopyWith<$Res> {
       List<MapTrigger> triggers,
       List<MapGameplayZone> gameplayZones,
       MapMetadata mapMetadata,
-      Map<String, dynamic> properties});
+      Map<String, dynamic> properties,
+      List<MapEventDefinition> events});
 
   $GridSizeCopyWith<$Res> get size;
   $MapMetadataCopyWith<$Res> get mapMetadata;
@@ -102,6 +104,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
     Object? gameplayZones = null,
     Object? mapMetadata = null,
     Object? properties = null,
+    Object? events = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -160,6 +163,10 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      events: null == events
+          ? _value.events
+          : events // ignore: cast_nullable_to_non_nullable
+              as List<MapEventDefinition>,
     ) as $Val);
   }
 
@@ -205,7 +212,8 @@ abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
       List<MapTrigger> triggers,
       List<MapGameplayZone> gameplayZones,
       MapMetadata mapMetadata,
-      Map<String, dynamic> properties});
+      Map<String, dynamic> properties,
+      List<MapEventDefinition> events});
 
   @override
   $GridSizeCopyWith<$Res> get size;
@@ -240,6 +248,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
     Object? gameplayZones = null,
     Object? mapMetadata = null,
     Object? properties = null,
+    Object? events = null,
   }) {
     return _then(_$MapDataImpl(
       id: null == id
@@ -298,6 +307,10 @@ class __$$MapDataImplCopyWithImpl<$Res>
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      events: null == events
+          ? _value._events
+          : events // ignore: cast_nullable_to_non_nullable
+              as List<MapEventDefinition>,
     ));
   }
 }
@@ -320,7 +333,8 @@ class _$MapDataImpl implements _MapData {
       final List<MapTrigger> triggers = const [],
       final List<MapGameplayZone> gameplayZones = const [],
       this.mapMetadata = const MapMetadata(),
-      final Map<String, dynamic> properties = const {}})
+      final Map<String, dynamic> properties = const {},
+      final List<MapEventDefinition> events = const []})
       : _layers = layers,
         _placedElements = placedElements,
         _entities = entities,
@@ -328,7 +342,8 @@ class _$MapDataImpl implements _MapData {
         _warps = warps,
         _triggers = triggers,
         _gameplayZones = gameplayZones,
-        _properties = properties;
+        _properties = properties,
+        _events = events;
 
   factory _$MapDataImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapDataImplFromJson(json);
@@ -425,9 +440,18 @@ class _$MapDataImpl implements _MapData {
     return EqualUnmodifiableMapView(_properties);
   }
 
+  final List<MapEventDefinition> _events;
+  @override
+  @JsonKey()
+  List<MapEventDefinition> get events {
+    if (_events is EqualUnmodifiableListView) return _events;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_events);
+  }
+
   @override
   String toString() {
-    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties)';
+    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
   }
 
   @override
@@ -454,7 +478,8 @@ class _$MapDataImpl implements _MapData {
             (identical(other.mapMetadata, mapMetadata) ||
                 other.mapMetadata == mapMetadata) &&
             const DeepCollectionEquality()
-                .equals(other._properties, _properties));
+                .equals(other._properties, _properties) &&
+            const DeepCollectionEquality().equals(other._events, _events));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -474,7 +499,8 @@ class _$MapDataImpl implements _MapData {
       const DeepCollectionEquality().hash(_triggers),
       const DeepCollectionEquality().hash(_gameplayZones),
       mapMetadata,
-      const DeepCollectionEquality().hash(_properties));
+      const DeepCollectionEquality().hash(_properties),
+      const DeepCollectionEquality().hash(_events));
 
   /// Create a copy of MapData
   /// with the given fields replaced by the non-null parameter values.
@@ -507,7 +533,8 @@ abstract class _MapData implements MapData {
       final List<MapTrigger> triggers,
       final List<MapGameplayZone> gameplayZones,
       final MapMetadata mapMetadata,
-      final Map<String, dynamic> properties}) = _$MapDataImpl;
+      final Map<String, dynamic> properties,
+      final List<MapEventDefinition> events}) = _$MapDataImpl;
 
   factory _MapData.fromJson(Map<String, dynamic> json) = _$MapDataImpl.fromJson;
 
@@ -542,6 +569,8 @@ abstract class _MapData implements MapData {
   MapMetadata get mapMetadata;
   @override
   Map<String, dynamic> get properties;
+  @override
+  List<MapEventDefinition> get events;
 
   /// Create a copy of MapData
   /// with the given fields replaced by the non-null parameter values.

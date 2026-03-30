@@ -4,6 +4,7 @@ import 'enums.dart';
 import 'geometry.dart';
 import 'map_entity_editor_visual.dart';
 import 'map_entity_payloads.dart';
+import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 import 'map_metadata.dart';
@@ -32,6 +33,7 @@ class MapData with _$MapData {
     @Default([]) List<MapGameplayZone> gameplayZones,
     @Default(MapMetadata()) MapMetadata mapMetadata,
     @Default({}) Map<String, dynamic> properties,
+    @Default([]) List<MapEventDefinition> events,
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) =>

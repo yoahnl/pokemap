@@ -159,3 +159,14 @@ final class PlacedElementInteracted extends GameplayStepResult {
   final MapPlacedElementBehavior behavior;
   final MapPlacedElementTriggerType trigger;
 }
+
+final class MapEventInteracted extends GameplayStepResult {
+  const MapEventInteracted(
+    super.world,
+    this.event,
+    this.page, {
+    super.pathAnimationSignals,
+  });
+  final MapEventDefinition event;
+  final ActiveEventPage page;
+}

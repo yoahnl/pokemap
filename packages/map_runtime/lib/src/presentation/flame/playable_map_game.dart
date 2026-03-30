@@ -51,11 +51,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required this.projectFilePath,
     SaveData? saveData,
   })  : _bundle = bundle,
-        _saveData = saveData ?? const SaveData(saveId: 'default');
+        _saveData = saveData ?? const SaveData(saveId: 'default'),
+        _gameState = GameState(
+          saveId: saveData?.saveId ?? 'default',
+          currentMapId: '',
+          playerPosition: const GridPos(x: 0, y: 0),
+          playerFacing: EntityFacing.south,
+          playerMovementMode: MovementMode.walk,
+          party: const PlayerParty(),
+          progression: const PlayerProgression(),
+          scriptVariables: const ScriptVariables(),
+          storyFlags: const StoryFlags(),
+          consumedEventIds: const {},
+          metadata: const {},
+        );
 
   final String projectFilePath;
   RuntimeMapBundle _bundle;
   final SaveData _saveData;
+  final GameState _gameState;
   late GameplayWorldState _world;
   late PlayerComponent _player;
   String _activeMapId = '';
@@ -680,6 +694,48 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       default:
         break;
+    }
+
+    if (result is NothingToInteract || result is EntityInteracted) {
+      _tryInteractWithMapEvent();
+    }
+  }
+
+  void _tryInteractWithMapEvent() {
+    final facing = _world.player.facing;
+    final tx = _world.player.pos.x + facing.dx;
+    final ty = _world.player.pos.y + facing.dy;
+
+    final map = _bundle.map;
+    MapEventDefinition? event;
+    for (final e in map.events) {
+      if (e.position.x == tx && e.position.y == ty) {
+        event = e;
+        break;
+      }
+    }
+
+    if (event == null) return;
+
+    final pageResolver = EventPageResolver();
+    final activePage = pageResolver.resolve(event, _gameState);
+
+    if (activePage == null) return;
+
+    if (activePage.page.isDisabled) return;
+
+    debugPrint('[interact] MapEvent: ${event.id} page=${activePage.pageIndex}');
+    _handleMapEventInteraction(event, activePage);
+  }
+
+  void _handleMapEventInteraction(
+    MapEventDefinition event,
+    ActiveEventPage page,
+  ) {
+    if (page.page.message != null && page.page.message!.isNotEmpty) {
+      _showNotification(page.page.message!);
+    } else {
+      _showNotification('...');
     }
   }
 
