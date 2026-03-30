@@ -1617,13 +1617,19 @@ class MapGridPainter extends CustomPainter {
       tileWidth,
       tileHeight,
     );
+    
+    // Check if the layer has animation triggers
+    final hasAnimationTriggers = activePathLayer.animationTriggers.isNotEmpty;
+    // If there are animation triggers, do not animate in the editor
+    final elapsedMs = hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
+    
     final painted = _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
       variant: variant,
       dstRect: dstRect,
       alpha: 0.66,
-      elapsedMs: editorEntityAnimationMs.toDouble(),
+      elapsedMs: elapsedMs,
     );
     if (!painted) {
       return false;
@@ -1989,13 +1995,19 @@ class MapGridPainter extends CustomPainter {
       tileWidth,
       tileHeight,
     );
+    
+    // Check if the layer has animation triggers
+    final hasAnimationTriggers = layer.animationTriggers.isNotEmpty;
+    // If there are animation triggers, do not animate in the editor
+    final elapsedMs = hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
+    
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
       variant: variant,
       dstRect: dstRect,
       alpha: alpha,
-      elapsedMs: editorEntityAnimationMs.toDouble(),
+      elapsedMs: elapsedMs,
     );
   }
 

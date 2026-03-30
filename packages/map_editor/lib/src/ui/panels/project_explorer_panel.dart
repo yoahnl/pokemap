@@ -826,7 +826,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandTileLib = true;
   bool _expandScriptLib = true;
   bool _expandWorld = true;
-  bool _expandSurface = true;
+  bool _expandTerrains = true;
+  bool _expandPaths = true;
   bool _expandTrainers = false;
   bool _expandCharacters = false;
 
@@ -1012,14 +1013,13 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hTileset = (screenH * 0.30).clamp(240.0, 400.0);
     final hScript = (screenH * 0.28).clamp(220.0, 380.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
-    final hSurface = (screenH * 0.36).clamp(280.0, 500.0);
+    final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
+    final hPaths = (screenH * 0.36).clamp(280.0, 500.0);
     final hTrainers = (screenH * 0.35).clamp(260.0, 480.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
     const explorerTileRadius = 28.0;
     final actionIcon = CupertinoColors.white.withValues(alpha: 0.92);
     final actionHover = CupertinoColors.white.withValues(alpha: 0.16);
-    final presetCount =
-        project.terrainPresets.length + project.pathPresets.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1131,15 +1131,27 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
-          title: 'Surface Library',
-          subtitle: 'Terrains, paths and ground presets',
-          icon: CupertinoIcons.square_stack_3d_down_right_fill,
-          accentColor: EditorChrome.inspectorJoyMint,
-          badgeText: '$presetCount',
-          expanded: _expandSurface,
-          onToggle: () => setState(() => _expandSurface = !_expandSurface),
-          expandedHeight: hSurface,
-          child: const TerrainEditorPanel(omitOuterHeader: true),
+          title: 'Terrain Library',
+          subtitle: 'Base ground presets',
+          icon: CupertinoIcons.map,
+          accentColor: EditorChrome.accentJade,
+          badgeText: '${project.terrainPresets.length}',
+          expanded: _expandTerrains,
+          onToggle: () => setState(() => _expandTerrains = !_expandTerrains),
+          expandedHeight: hTerrains,
+          child: const TerrainLibraryPanel(embedded: true),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Path Library',
+          subtitle: 'Surface overlays: roads, water, tall grass...',
+          icon: CupertinoIcons.arrow_branch,
+          accentColor: EditorChrome.accentWarm,
+          badgeText: '${project.pathPresets.length}',
+          expanded: _expandPaths,
+          onToggle: () => setState(() => _expandPaths = !_expandPaths),
+          expandedHeight: hPaths,
+          child: const PathLibraryPanel(embedded: true),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,

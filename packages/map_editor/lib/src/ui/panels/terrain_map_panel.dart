@@ -298,7 +298,7 @@ class TerrainMapPanel extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 10),
-            _PathLayerPropertiesBlock(layer: activePathLayer),
+            _PathLayerPropertiesBlock(layer: activePathLayer, notifier: notifier),
             const SizedBox(height: 10),
             _InfoStrip(
               text: activePathLayer == null
@@ -697,6 +697,7 @@ List<Widget> _pathInspectorEmbeddedChildren({
     const SizedBox(height: 10),
     _PathLayerPropertiesBlock(
       layer: activePathLayer,
+      notifier: notifier,
       inspectorEmbedded: true,
       accent: accent,
     ),
@@ -984,11 +985,13 @@ class _LayerSelector<T extends MapLayer> extends StatelessWidget {
 class _PathLayerPropertiesBlock extends StatelessWidget {
   const _PathLayerPropertiesBlock({
     required this.layer,
+    required this.notifier,
     this.inspectorEmbedded = false,
     this.accent,
   });
 
   final PathLayer? layer;
+  final EditorNotifier notifier;
   final bool inspectorEmbedded;
   final Color? accent;
 
@@ -1198,9 +1201,8 @@ class _PathLayerAnimationTriggersSectionState
         const SizedBox(height: 6),
         Align(
           alignment: Alignment.centerLeft,
-          child: PushButton(
-            controlSize: ControlSize.small,
-            secondary: true,
+          child: CupertinoButton(
+            padding: EdgeInsets.zero,
             onPressed: () {
               final updated = [
                 ...triggers,
@@ -1242,7 +1244,6 @@ class _PathLayerTriggerEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = CupertinoColors.label.resolveFrom(context);
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -1269,9 +1270,8 @@ class _PathLayerTriggerEditor extends StatelessWidget {
                   ),
                 ),
               ),
-              PushButton(
-                controlSize: ControlSize.small,
-                secondary: true,
+              CupertinoButton(
+                padding: EdgeInsets.zero,
                 onPressed: () {
                   final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers)
                     ..removeAt(index);
@@ -1288,10 +1288,10 @@ class _PathLayerTriggerEditor extends StatelessWidget {
           const SizedBox(height: 8),
           _PathTriggerField(
             label: 'Enabled',
-            value: rule.enabled,
+            value: rule.enabled.toString(),
             onChanged: (value) {
               final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
-              updated[index] = rule.copyWith(enabled: value);
+              updated[index] = rule.copyWith(enabled: value == 'true');
               notifier.applyPathLayerAnimationTriggers(
                 layerId: layer.id,
                 triggers: updated,

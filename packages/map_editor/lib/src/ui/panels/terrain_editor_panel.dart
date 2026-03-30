@@ -944,13 +944,7 @@ class _PresetDetailsCard extends ConsumerWidget {
                 ),
             ],
           ),
-          if (pathPreset != null) ...[
-            const SizedBox(height: 12),
-            _PathLayerAnimationTriggersSection(
-              presetId: pathPreset.id,
-              notifier: notifier,
-            ),
-          ],
+
         ],
       ),
     );
@@ -3619,154 +3613,8 @@ class _PathVariantFramesEditorState extends State<_PathVariantFramesEditor> {
   }
 }
 
-class _PathLayerAnimationTriggersSection extends StatefulWidget {
-  const _PathLayerAnimationTriggersSection({
-    required this.presetId,
-    required this.notifier,
-  });
-
-  final String presetId;
-  final EditorNotifier notifier;
-
-  @override
-  State<_PathLayerAnimationTriggersSection> createState() =>
-      _PathLayerAnimationTriggersSectionState();
-}
-
-class _PathLayerAnimationTriggersSectionState
-    extends State<_PathLayerAnimationTriggersSection> {
-  @override
-  Widget build(BuildContext context) {
-    final layers = widget.notifier.getPathLayersForPreset(widget.presetId);
-    final label = CupertinoColors.label.resolveFrom(context);
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Animation triggers',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: label,
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (layers.isEmpty)
-          Text(
-            "Aucun calque n'utilise ce preset. Placez ce preset sur un calque Paths pour configurer les triggers.",
-            style: TextStyle(fontSize: 11, color: secondary),
-          )
-        else
-          for (final layer in layers)
-            _PathLayerTriggerEditor(
-              layer: layer,
-              notifier: widget.notifier,
-              onChanged: () => setState(() {}),
-            ),
-      ],
-    );
-  }
-}
-
-class _PathLayerTriggerEditor extends StatelessWidget {
-  const _PathLayerTriggerEditor({
-    required this.layer,
-    required this.notifier,
-    required this.onChanged,
-  });
-
-  final PathLayer layer;
-  final EditorNotifier notifier;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = CupertinoColors.label.resolveFrom(context);
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final triggers = layer.animationTriggers;
-
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemFill.resolveFrom(context),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Calque : ${layer.name}',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: label,
-            ),
-          ),
-          const SizedBox(height: 6),
-          if (triggers.isEmpty)
-            Text(
-              'Aucun trigger — animation en boucle par défaut.',
-              style: TextStyle(fontSize: 10, color: secondary),
-            )
-          else
-            for (var i = 0; i < triggers.length; i++)
-              _PathAnimationTriggerRuleCard(
-                rule: triggers[i],
-                index: i,
-                onChanged: (next) {
-                  final updated = List<PathAnimationTriggerRule>.from(triggers);
-                  updated[i] = _normalizePathAnimationTriggerRule(next);
-                  notifier.applyPathLayerAnimationTriggers(
-                    layerId: layer.id,
-                    triggers: updated,
-                  );
-                  onChanged();
-                },
-                onDelete: () {
-                  final updated = List<PathAnimationTriggerRule>.from(triggers)
-                    ..removeAt(i);
-                  notifier.applyPathLayerAnimationTriggers(
-                    layerId: layer.id,
-                    triggers: updated,
-                  );
-                  onChanged();
-                },
-              ),
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: PushButton(
-              controlSize: ControlSize.small,
-              secondary: true,
-              onPressed: () {
-                final updated = [
-                  ...triggers,
-                  _normalizePathAnimationTriggerRule(
-                    PathAnimationTriggerRule(
-                      id: 'rule_${DateTime.now().microsecondsSinceEpoch}_${triggers.length}',
-                    ),
-                  ),
-                ];
-                notifier.applyPathLayerAnimationTriggers(
-                  layerId: layer.id,
-                  triggers: updated,
-                );
-                onChanged();
-              },
-              child: const Text('Add trigger'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// The animation triggers section has been moved to terrain_map_panel.dart
+// to be displayed in the right Paths tile.
 
 class _PathAnimationTriggerRuleCard extends StatelessWidget {
   const _PathAnimationTriggerRuleCard({
@@ -4710,4 +4558,96 @@ class _CategoryOption {
 
   final String id;
   final String label;
+}
+
+class TerrainLibraryPanel extends ConsumerWidget {
+  const TerrainLibraryPanel({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(editorNotifierProvider);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final project = state.project;
+    final settings = project?.settings ?? const ProjectSettings();
+    final tilesets = project?.tilesets ?? const <ProjectTilesetEntry>[];
+    final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
+
+    return project == null
+        ? Center(
+            child: Text(
+              'Open a project to manage terrain presets',
+              style: TextStyle(color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+            ),
+          )
+        : SingleChildScrollView(
+            primary: false,
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _LibraryRoot(
+                  title: 'Terrains',
+                  subtitle: 'Base ground presets only',
+                  kind: PresetLibraryKind.terrain,
+                  color: EditorChrome.accentJade,
+                  icon: CupertinoIcons.map,
+                  settings: settings,
+                  tilesets: tilesets,
+                  selectedPresetId: selectedTerrainPreset?.id,
+                ),
+              ],
+            ),
+          );
+  }
+}
+
+class PathLibraryPanel extends ConsumerWidget {
+  const PathLibraryPanel({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(editorNotifierProvider);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final project = state.project;
+    final settings = project?.settings ?? const ProjectSettings();
+    final tilesets = project?.tilesets ?? const <ProjectTilesetEntry>[];
+    final selectedPathPreset = notifier.getSelectedPathPreset();
+
+    return project == null
+        ? Center(
+            child: Text(
+              'Open a project to manage path presets',
+              style: TextStyle(color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+            ),
+          )
+        : SingleChildScrollView(
+            primary: false,
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _LibraryRoot(
+                  title: 'Paths',
+                  subtitle: 'Surface overlays: roads, water, tall grass, ice, lava, rails...',
+                  kind: PresetLibraryKind.path,
+                  color: EditorChrome.accentWarm,
+                  icon: CupertinoIcons.arrow_branch,
+                  settings: settings,
+                  tilesets: tilesets,
+                  selectedPresetId: selectedPathPreset?.id,
+                ),
+              ],
+            ),
+          );
+  }
 }
