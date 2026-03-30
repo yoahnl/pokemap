@@ -335,7 +335,18 @@ enum FieldAbility {
   @JsonValue('waterfall')
   waterfall,
   @JsonValue('dive')
-  dive,
+  dive;
+
+  /// Identifiant canonique de la capacité, utilisé comme move ID dans [PlayerPokemon.knownMoveIds].
+  String get moveId => switch (this) {
+        FieldAbility.surf => 'surf',
+        FieldAbility.cut => 'cut',
+        FieldAbility.strength => 'strength',
+        FieldAbility.flash => 'flash',
+        FieldAbility.rockSmash => 'rock_smash',
+        FieldAbility.waterfall => 'waterfall',
+        FieldAbility.dive => 'dive',
+      };
 }
 
 /// Mode de déclenchement d'une rencontre Pokémon-like.

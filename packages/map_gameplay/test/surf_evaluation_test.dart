@@ -155,7 +155,7 @@ void main() {
           knownMoveIds: ['surf'],
         ),
       ]);
-      expect(partyHasUsableFieldMove(party, 'surf'), isTrue);
+      expect(partyHasUsableFieldMove(party, FieldAbility.surf), isTrue);
     });
 
     test('returns false when the member knowing the move is fainted', () {
@@ -167,7 +167,7 @@ void main() {
           isFainted: true,
         ),
       ]);
-      expect(partyHasUsableFieldMove(party, 'surf'), isFalse);
+      expect(partyHasUsableFieldMove(party, FieldAbility.surf), isFalse);
     });
 
     test('returns false when no member knows the move', () {
@@ -178,12 +178,12 @@ void main() {
           knownMoveIds: ['thunderbolt'],
         ),
       ]);
-      expect(partyHasUsableFieldMove(party, 'surf'), isFalse);
+      expect(partyHasUsableFieldMove(party, FieldAbility.surf), isFalse);
     });
 
     test('returns false for empty party', () {
       const party = PlayerParty();
-      expect(partyHasUsableFieldMove(party, 'surf'), isFalse);
+      expect(partyHasUsableFieldMove(party, FieldAbility.surf), isFalse);
     });
   });
 }

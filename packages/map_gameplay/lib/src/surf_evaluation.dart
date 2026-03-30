@@ -50,7 +50,7 @@ SurfAttemptEvaluation evaluateSurfAttempt({
   if (currentMovementMode == MovementMode.surf) {
     return const AlreadySurfing();
   }
-  if (!partyHasUsableFieldMove(saveData.party, 'surf')) {
+  if (!partyHasUsableFieldMove(saveData.party, FieldAbility.surf)) {
     return const MissingSurfCapablePokemon();
   }
   if (!saveData.progression.unlockedFieldAbilities
@@ -60,9 +60,9 @@ SurfAttemptEvaluation evaluateSurfAttempt({
   return const CanPromptSurf();
 }
 
-/// Vérifie si au moins un Pokémon de l'équipe connaît [moveId]
+/// Vérifie si au moins un Pokémon de l'équipe connaît [ability]
 /// et est en état de l'utiliser (non K.O.).
-bool partyHasUsableFieldMove(PlayerParty party, String moveId) {
+bool partyHasUsableFieldMove(PlayerParty party, FieldAbility ability) {
   return party.members
-      .any((pokemon) => !pokemon.isFainted && pokemon.knownMoveIds.contains(moveId));
+      .any((pokemon) => !pokemon.isFainted && pokemon.knownMoveIds.contains(ability.moveId));
 }

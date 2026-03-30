@@ -61,7 +61,6 @@ class SaveData with _$SaveData {
     @Default('') String currentMapId,
     @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
     @Default(EntityFacing.south) EntityFacing playerFacing,
-    @Default(MovementMode.walk) MovementMode playerMovementMode,
     @Default(PlayerParty()) PlayerParty party,
     @Default(PlayerProgression()) PlayerProgression progression,
     @Default({}) Map<String, String> properties,

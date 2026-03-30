@@ -648,7 +648,6 @@ mixin _$SaveData {
   String get currentMapId => throw _privateConstructorUsedError;
   GridPos get playerPosition => throw _privateConstructorUsedError;
   EntityFacing get playerFacing => throw _privateConstructorUsedError;
-  MovementMode get playerMovementMode => throw _privateConstructorUsedError;
   PlayerParty get party => throw _privateConstructorUsedError;
   PlayerProgression get progression => throw _privateConstructorUsedError;
   Map<String, String> get properties => throw _privateConstructorUsedError;
@@ -673,7 +672,6 @@ abstract class $SaveDataCopyWith<$Res> {
       String currentMapId,
       GridPos playerPosition,
       EntityFacing playerFacing,
-      MovementMode playerMovementMode,
       PlayerParty party,
       PlayerProgression progression,
       Map<String, String> properties});
@@ -702,7 +700,6 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
     Object? currentMapId = null,
     Object? playerPosition = null,
     Object? playerFacing = null,
-    Object? playerMovementMode = null,
     Object? party = null,
     Object? progression = null,
     Object? properties = null,
@@ -724,10 +721,6 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
           ? _value.playerFacing
           : playerFacing // ignore: cast_nullable_to_non_nullable
               as EntityFacing,
-      playerMovementMode: null == playerMovementMode
-          ? _value.playerMovementMode
-          : playerMovementMode // ignore: cast_nullable_to_non_nullable
-              as MovementMode,
       party: null == party
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
@@ -787,7 +780,6 @@ abstract class _$$SaveDataImplCopyWith<$Res>
       String currentMapId,
       GridPos playerPosition,
       EntityFacing playerFacing,
-      MovementMode playerMovementMode,
       PlayerParty party,
       PlayerProgression progression,
       Map<String, String> properties});
@@ -817,7 +809,6 @@ class __$$SaveDataImplCopyWithImpl<$Res>
     Object? currentMapId = null,
     Object? playerPosition = null,
     Object? playerFacing = null,
-    Object? playerMovementMode = null,
     Object? party = null,
     Object? progression = null,
     Object? properties = null,
@@ -839,10 +830,6 @@ class __$$SaveDataImplCopyWithImpl<$Res>
           ? _value.playerFacing
           : playerFacing // ignore: cast_nullable_to_non_nullable
               as EntityFacing,
-      playerMovementMode: null == playerMovementMode
-          ? _value.playerMovementMode
-          : playerMovementMode // ignore: cast_nullable_to_non_nullable
-              as MovementMode,
       party: null == party
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
@@ -868,7 +855,6 @@ class _$SaveDataImpl implements _SaveData {
       this.currentMapId = '',
       this.playerPosition = const GridPos(x: 0, y: 0),
       this.playerFacing = EntityFacing.south,
-      this.playerMovementMode = MovementMode.walk,
       this.party = const PlayerParty(),
       this.progression = const PlayerProgression(),
       final Map<String, String> properties = const {}})
@@ -890,9 +876,6 @@ class _$SaveDataImpl implements _SaveData {
   final EntityFacing playerFacing;
   @override
   @JsonKey()
-  final MovementMode playerMovementMode;
-  @override
-  @JsonKey()
   final PlayerParty party;
   @override
   @JsonKey()
@@ -908,7 +891,7 @@ class _$SaveDataImpl implements _SaveData {
 
   @override
   String toString() {
-    return 'SaveData(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, progression: $progression, properties: $properties)';
+    return 'SaveData(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, progression: $progression, properties: $properties)';
   }
 
   @override
@@ -923,8 +906,6 @@ class _$SaveDataImpl implements _SaveData {
                 other.playerPosition == playerPosition) &&
             (identical(other.playerFacing, playerFacing) ||
                 other.playerFacing == playerFacing) &&
-            (identical(other.playerMovementMode, playerMovementMode) ||
-                other.playerMovementMode == playerMovementMode) &&
             (identical(other.party, party) || other.party == party) &&
             (identical(other.progression, progression) ||
                 other.progression == progression) &&
@@ -940,7 +921,6 @@ class _$SaveDataImpl implements _SaveData {
       currentMapId,
       playerPosition,
       playerFacing,
-      playerMovementMode,
       party,
       progression,
       const DeepCollectionEquality().hash(_properties));
@@ -967,7 +947,6 @@ abstract class _SaveData implements SaveData {
       final String currentMapId,
       final GridPos playerPosition,
       final EntityFacing playerFacing,
-      final MovementMode playerMovementMode,
       final PlayerParty party,
       final PlayerProgression progression,
       final Map<String, String> properties}) = _$SaveDataImpl;
@@ -983,8 +962,6 @@ abstract class _SaveData implements SaveData {
   GridPos get playerPosition;
   @override
   EntityFacing get playerFacing;
-  @override
-  MovementMode get playerMovementMode;
   @override
   PlayerParty get party;
   @override

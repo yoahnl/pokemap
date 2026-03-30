@@ -98,8 +98,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool get showBehaviorDebugOverlay => _showBehaviorDebugOverlay;
 
-  SaveData get saveData => _saveData;
-
   MovementMode get playerMovementMode => _world.player.movementMode;
 
   bool get isSurfing => playerMovementMode == MovementMode.surf;

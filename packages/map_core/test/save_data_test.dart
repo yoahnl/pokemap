@@ -85,7 +85,6 @@ void main() {
         currentMapId: 'pallet_town',
         playerPosition: GridPos(x: 5, y: 3),
         playerFacing: EntityFacing.north,
-        playerMovementMode: MovementMode.walk,
         party: PlayerParty(members: [
           PlayerPokemon(
             id: 'p1',
@@ -110,7 +109,6 @@ void main() {
       expect(restored.currentMapId, 'pallet_town');
       expect(restored.playerPosition, const GridPos(x: 5, y: 3));
       expect(restored.playerFacing, EntityFacing.north);
-      expect(restored.playerMovementMode, MovementMode.walk);
       expect(restored.party.members.length, 1);
       expect(restored.party.members.first.speciesId, 'squirtle');
       expect(restored.progression.unlockedFieldAbilities,
@@ -123,7 +121,6 @@ void main() {
       expect(save.currentMapId, '');
       expect(save.playerPosition, const GridPos(x: 0, y: 0));
       expect(save.playerFacing, EntityFacing.south);
-      expect(save.playerMovementMode, MovementMode.walk);
       expect(save.party.members, isEmpty);
       expect(save.progression.unlockedFieldAbilities, isEmpty);
       expect(save.progression.storyFlags, isEmpty);
