@@ -80,12 +80,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       PlacedBehaviorCooldownGate();
   double _runtimeClockMs = 0;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
-  // Action to run when the current dialogue closes. Set before opening a
-  // contextual dialogue; consumed and cleared in onFinished.
   void Function()? _pendingPostDialogueAction;
-  // Set to true while a Yes_Surf prompt is open; cleared when the dialogue
-  // closes or a choice is confirmed. Used to capture surf confirmation by
-  // choice index (index 0 = confirm) without depending on the display label.
   bool _awaitingSurfConfirmation = false;
   bool _showCollisionOverlay = false;
   bool _showBehaviorDebugOverlay = false;
@@ -1046,8 +1041,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
           '[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"');
       if (_awaitingSurfConfirmation) {
-        // Index 0 = first choice = "confirm surf" as defined in the system
-        // Yarn (Yes_Surf node). Does not depend on the displayed label.
         if (idx == 0) {
           _pendingPostDialogueAction = () {
             setSurfingEnabled(true);
