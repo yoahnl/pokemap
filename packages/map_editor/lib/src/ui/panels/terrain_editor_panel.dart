@@ -4542,11 +4542,115 @@ class _TerrainLibraryContentState extends ConsumerState<_TerrainLibraryContent> 
     final selectedPreset = notifier.getTerrainPresetById(selectedPresetId);
     final presetCount = notifier.getTerrainPresets().length;
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final subtle = CupertinoColors.placeholderText.resolveFrom(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_expanded)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    minimumSize: Size.zero,
+                    onPressed: () {
+                      setState(() {
+                        _expanded = !_expanded;
+                      });
+                    },
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.map, size: 16, color: EditorChrome.accentJade),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Terrains',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: EditorChrome.primaryLabel(context),
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Base ground presets only',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: CupertinoColors.secondaryLabel
+                                      .resolveFrom(context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                CupertinoColors.systemFill.resolveFrom(context),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$presetCount',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(context),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                EditorToolbarIconButton(
+                  tooltip: 'New folder',
+                  onPressed: () => _showCreateCategoryDialog(
+                    context,
+                    notifier: notifier,
+                    kind: PresetLibraryKind.terrain,
+                  ),
+                  icon: CupertinoIcons.folder_badge_plus,
+                  iconSize: 18,
+                ),
+                EditorToolbarIconButton(
+                  tooltip: 'New preset',
+                  onPressed: () => _showCreatePresetDialog(
+                    context,
+                    notifier: notifier,
+                    kind: PresetLibraryKind.terrain,
+                    settings: settings,
+                    tilesets: tilesets,
+                  ),
+                  icon: CupertinoIcons.add_circled,
+                  iconSize: 18,
+                ),
+                EditorToolbarIconButton(
+                  tooltip: _expanded ? 'Collapse section' : 'Expand section',
+                  onPressed: () {
+                    setState(() {
+                      _expanded = !_expanded;
+                    });
+                  },
+                  icon: _expanded
+                      ? CupertinoIcons.chevron_up
+                      : CupertinoIcons.chevron_down,
+                  iconSize: 18,
+                ),
+              ],
+            ),
+          ),
         if (_expanded) const EditorHorizontalDivider(),
         if (_expanded && categories.isEmpty && uncategorizedPresets.isEmpty)
           Padding(
@@ -4757,11 +4861,115 @@ class _PathLibraryContentState extends ConsumerState<_PathLibraryContent> {
     final selectedPreset = notifier.getPathPresetById(selectedPresetId);
     final presetCount = notifier.getPathPresets().length;
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final subtle = CupertinoColors.placeholderText.resolveFrom(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_expanded)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    minimumSize: Size.zero,
+                    onPressed: () {
+                      setState(() {
+                        _expanded = !_expanded;
+                      });
+                    },
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.arrow_branch, size: 16, color: EditorChrome.accentWarm),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Paths',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: EditorChrome.primaryLabel(context),
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Surface overlays: roads, water, tall grass, ice, lava, rails...',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: CupertinoColors.secondaryLabel
+                                      .resolveFrom(context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                CupertinoColors.systemFill.resolveFrom(context),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$presetCount',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(context),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                EditorToolbarIconButton(
+                  tooltip: 'New folder',
+                  onPressed: () => _showCreateCategoryDialog(
+                    context,
+                    notifier: notifier,
+                    kind: PresetLibraryKind.path,
+                  ),
+                  icon: CupertinoIcons.folder_badge_plus,
+                  iconSize: 18,
+                ),
+                EditorToolbarIconButton(
+                  tooltip: 'New preset',
+                  onPressed: () => _showCreatePresetDialog(
+                    context,
+                    notifier: notifier,
+                    kind: PresetLibraryKind.path,
+                    settings: settings,
+                    tilesets: tilesets,
+                  ),
+                  icon: CupertinoIcons.add_circled,
+                  iconSize: 18,
+                ),
+                EditorToolbarIconButton(
+                  tooltip: _expanded ? 'Collapse section' : 'Expand section',
+                  onPressed: () {
+                    setState(() {
+                      _expanded = !_expanded;
+                    });
+                  },
+                  icon: _expanded
+                      ? CupertinoIcons.chevron_up
+                      : CupertinoIcons.chevron_down,
+                  iconSize: 18,
+                ),
+              ],
+            ),
+          ),
         if (_expanded) const EditorHorizontalDivider(),
         if (_expanded && categories.isEmpty && uncategorizedPresets.isEmpty)
           Padding(
