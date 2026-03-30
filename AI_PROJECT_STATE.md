@@ -1,7 +1,7 @@
 # AI_PROJECT_STATE — pokemonProject
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
-> Source : audit complet du code (2026-03-26), mis à jour 2026-03-29 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, streaming de maps adjacentes côté runtime, battle handoff MVP structuré encounter → transition → battle shell → retour overworld, pipeline warp runtime verrouillé avec transition fade + rollback, warps gameplay avancés `onEnter`/`onBump` + côtés actifs + padding d’activation, refonte `Tiles & Elements` côté éditeur en mode palette + navigateur d’instances posées, milestone collisions d’éléments (profil auto + padding + override par instance), milestone animation locale des instances posées `MapPlacedElement` (none/loop/pingPong, autoplay, speed, start offset, randomStart déterministe), authoring MVP des frames d’animation de bibliothèque d’éléments `ProjectElementEntry.frames`, extension du MVP `MapPlacedElement.behaviors` (triggers `onAction`/`onEnter`/`onBump`/`onExit`/`onNear`, effets `showMessage`/`openDialogue`/`setAnimationEnabled`/`playAnimationOnce`) et hardening runtime behaviors (id stable par behavior, priorité explicite `onEnter > onExit > onNear`, anti-spam/cooldown runtime, debug overlay léger des activations, cooldown configurable par behavior côté data via `cooldownMs`, trigger scope MVP via `triggerScope`), animation des surfaces terrain/path multi-frames (eau incluse), authoring des frames de `ProjectPathPreset` par variant dans l’éditeur, typage produit `Ground/Water` des paths en UI, et mode de déplacement joueur `walk|surf` avec blocage eau explicite).
+> Source : audit complet du code (2026-03-26), mis à jour 2026-03-30 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, streaming de maps adjacentes côté runtime, battle handoff MVP structuré encounter → transition → battle shell → retour overworld, pipeline warp runtime verrouillé avec transition fade + rollback, warps gameplay avancés `onEnter`/`onBump` + côtés actifs + padding d'activation, refonte `Tiles & Elements` côté éditeur en mode palette + navigateur d'instances posées, milestone collisions d'éléments (profil auto + padding + override par instance), milestone animation locale des instances posées `MapPlacedElement` (none/loop/pingPong, autoplay, speed, start offset, randomStart déterministe), authoring MVP des frames d'animation de bibliothèque d'éléments `ProjectElementEntry.frames`, extension du MVP `MapPlacedElement.behaviors` (triggers `onAction`/`onEnter`/`onBump`/`onExit`/`onNear`, effets `showMessage`/`openDialogue`/`setAnimationEnabled`/`playAnimationOnce`) et hardening runtime behaviors (id stable par behavior, priorité explicite `onEnter > onExit > onNear`, anti-spam/cooldown runtime, debug overlay léger des activations, cooldown configurable par behavior côté data via `cooldownMs`, trigger scope MVP via `triggerScope`), animation des surfaces terrain/path multi-frames (eau incluse), authoring des frames de `ProjectPathPreset` par variant dans l'éditeur, typage produit `Ground/Water` des paths en UI, et mode de déplacement joueur `walk|surf` avec blocage eau explicite + feedback runtime ; **correction bug résolution dialogue scripté** : `_openDialogueForScript()` utilise désormais `_bundle.projectRootDirectory` au lieu de `projectFilePath` pour éviter les chemins incorrects du type `/.../project.json/dialogues/test.yarn`).
 
 ---
 
@@ -504,18 +504,22 @@ class ResolvedDialogue {
 ResolvedDialogue? resolveDialogue({
   required String entityId,
   required DialogueRef? ref,           // null → log + return null
-  required String projectRootDirectory,
+  required String projectRootDirectory,  // RACINE du projet (PAS project.json)
   required List<ProjectDialogueEntry> dialogues,
 })
 // Règle de résolution (canonique, stable, documentée) :
 // 1. Si ref == null → log [dialogue] no dialogue configured
-// 2. Si ref.scriptPathRelative non vide → absPath = join(projectRoot, scriptPathRelative) [legacy/override]
+// 2. Si ref.scriptPathRelative non vide → absPath = join(projectRootDirectory, scriptPathRelative) [legacy/override]
 // 3. Sinon → chercher ProjectDialogueEntry par ref.dialogueId dans dialogues
 //    → si absent → log [dialogue] error unknown dialogueId=xxx
 // 4. startNode :
 //    a. ref.startNode non null/vide → utiliser [priorité entité]
 //    b. sinon entry.defaultStartNode non null/vide → utiliser [fallback bibliothèque]
 //    c. sinon → null + log [dialogue] no startNode
+//
+// IMPORTANT : projectRootDirectory DOIT être le dossier racine du projet, PAS le chemin vers project.json.
+// Dans PlayableMapGame, utiliser `_bundle.projectRootDirectory` (déjà correct), PAS `projectFilePath`.
+// Bug corrigé 2026-03-30 : `_openDialogueForScript()` utilisait erroneusement `projectFilePath` → chemins incorrects.
 //
 // startNode = title: d'un nœud Yarn (ex. "Intro", "fresh_start_house_01_mail_box")
 // Logs produits : [dialogue] interaction, resolved dialogueId, resolved file,
@@ -731,14 +735,15 @@ Offset panOffset
 ### Ne marche pas encore
 
 - Pas de variables/conditions Yarn : le moteur ne supporte que `<<jump>>` et `->` choix (pas `<<set>>`, `<<if>>`, expressions).
-- Les propriétés avancées d’instance restent partielles : collision + animation locale sont branchées; triggers/effects MVP sont livrés avec exécution runtime de `playAnimationOnce`, mais il n’y a pas encore de système de script/chaînage d’effets avancé.
+- Les propriétés avancées d'instance restent partielles : collision + animation locale sont branchées; triggers/effects MVP sont livrés avec exécution runtime de `playAnimationOnce`, mais il n'y a pas encore de système de script/chaînage d'effets avancé.
 - Les instances posées sont persistées dans `MapData.placedElements`, avec resynchronisation depuis les motifs tuiles du calque après peinture/effacement et au chargement de map.
-- Rencontres MVP encore incomplètes : `EncounterKind.surf` est demandé quand le joueur est en mode `surf`, mais il n’y a pas encore de transition automatique rive walk/surf ni de progression Surf ; pas de `rod`/`gift`/`special`.
-- Pas de transition automatique rive `walk <-> surf` ni de condition d’acquisition Surf : bascule de mode exposée en API runtime + toggle debug dans les apps exemple.
+- Rencontres MVP encore incomplètes : `EncounterKind.surf` est demandé quand le joueur est en mode `surf`, mais il n'y a pas encore de transition automatique rive walk/surf ni de progression Surf ; pas de `rod`/`gift`/`special`.
+- Pas de transition automatique rive `walk <-> surf` ni de condition d'acquisition Surf : bascule de mode exposée en API runtime + toggle debug dans les apps exemple.
 - Pas de logique de combat Pokémon complète : battle shell minimal sans tour par tour, HP, attaques, capture, IA.
 - LoS dresseur / comportement NPC.
 - Sauvegarde/chargement état de jeu.
 - Pas de streaming profond multi-hop : le runtime garde surtout le voisinage immédiat (active + connexions directes + précédente), pas un graphe complet de maps lointaines.
+- **CORRIGÉ 2026-03-30** : Bug de résolution de dialogue scripté — `_openDialogueForScript()` utilise maintenant `_bundle.projectRootDirectory` au lieu de `projectFilePath`.
 
 ---
 
@@ -767,6 +772,8 @@ Offset panOffset
 11. **Offsets de connexion à respecter** : l'éditeur et le runtime utilisent la même convention (`targetAxis = sourceAxis - offset`). Un inverse de connexion valide doit donc pointer en sens opposé avec `offset = -sourceOffset`.
 
 12. **Entrée de connection invalidée** : si la case d'arrivée calculée est hors bornes ou bloquée sur la map cible, la transition est annulée côté runtime (log `[connection]` + notification), sans fallback heuristique.
+
+13. **CORRIGÉ 2026-03-30** : `_openDialogueForScript()` utilisait `projectFilePath` (chemin vers `project.json`) au lieu de `_bundle.projectRootDirectory` → chemins incorrects du type `/.../project.json/dialogues/test.yarn`. Corrigé pour utiliser `_bundle.projectRootDirectory`.
 
 ---
 
