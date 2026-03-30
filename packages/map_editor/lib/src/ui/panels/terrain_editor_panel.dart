@@ -2787,6 +2787,24 @@ Widget _buildTilesetPreview({
   );
 }
 
+Widget _buildPresetDetailsContent({
+  required BuildContext context,
+  required WidgetRef ref,
+  required dynamic preset,
+  required PresetLibraryKind kind,
+  required ProjectSettings settings,
+  required List<ProjectTilesetEntry> tilesets,
+}) {
+  final color = kind == PresetLibraryKind.terrain ? EditorChrome.accentJade : EditorChrome.accentWarm;
+  return _PresetDetailsCard(
+    kind: kind,
+    preset: preset,
+    color: color,
+    settings: settings,
+    tilesets: tilesets,
+  );
+}
+
 List<ProjectTilesetEntry> _terrainTilesetCandidates({
   required List<ProjectTilesetEntry> tilesets,
   required List<ProjectPathPreset> pathPresets,
