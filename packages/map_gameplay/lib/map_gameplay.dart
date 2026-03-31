@@ -47,6 +47,9 @@ export 'src/surf_evaluation.dart'
         evaluateSurfAttempt,
         partyHasUsableFieldMove;
 
+// Line of Sight detection
+export 'src/los_detection.dart' show checkLineOfSight;
+
 // Script system exports
 export 'src/script_condition_evaluator.dart'
     show ScriptConditionEvaluator, ScriptEvaluationContext;

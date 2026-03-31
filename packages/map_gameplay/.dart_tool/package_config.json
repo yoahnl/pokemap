@@ -315,8 +315,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.11.4",
-  "flutterRoot": "file:///Users/karim/develop/flutter",
-  "flutterVersion": "3.41.6",
+  "generatorVersion": "3.10.3",
+  "flutterRoot": "file:///opt/homebrew/share/flutter",
+  "flutterVersion": "3.38.4",
   "pubCache": "file:///Users/karim/.pub-cache"
 }

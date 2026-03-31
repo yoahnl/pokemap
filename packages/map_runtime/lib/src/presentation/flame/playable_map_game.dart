@@ -121,6 +121,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late SaveGameUseCase _saveGameUseCase;
   late LoadGameUseCase _loadGameUseCase;
 
+  // Line of Sight (LoS) trainer detection
+  final Set<String> _triggeredTrainerBattles = {};  // Anti-retrigger lock
+
   bool get showCollisionOverlay => _showCollisionOverlay;
 
   void setCollisionOverlayVisible(bool visible) {
@@ -471,6 +474,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         durationSeconds: PlayerComponent.kDefaultStepSeconds,
       );
       _checkStepEncounter();
+      _checkTrainerLineOfSight();  // Check LoS only when player position changes
       return;
     }
 
@@ -1347,6 +1351,128 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint('[debug] trainer $trimmedId marked as defeated');
   }
 
+  /// Vérifie la Line of Sight (LoS) des trainers et déclenche automatiquement
+  /// le battle si le joueur est détecté.
+  ///
+  /// **Conditions de déclenchement :**
+  /// 1. Runtime stable : overworld, pas de dialogue, pas de battle pending
+  /// 2. Trainer avec trainerId valide et lineOfSightRange > 0
+  /// 3. Trainer non déjà battu (flag trainer_defeated:{id})
+  /// 4. Joueur dans la LoS du trainer (checkLineOfSight)
+  /// 5. Trainer pas déjà dans _triggeredTrainerBattles (anti-retrigger)
+  ///
+  /// **Réarmement :**
+  /// - Quand le joueur sort de la LoS → lock retirée
+  /// - Sur changement de map → toutes les locks retirées
+  ///
+  /// **Origine du calcul :**
+  /// - Depuis entity.pos du NPC
+  /// - Axe cardinal uniquement (nord/sud/est/ouest)
+  /// - Aucune diagonale
+  /// - Obstacles via world.isBlocked() sur les cases STRICTEMENT entre
+  ///   le NPC et le joueur (exclut case du NPC et case du joueur)
+  void _checkTrainerLineOfSight() {
+    // Condition de stabilité runtime stricte
+    if (_flowPhase != _RuntimeFlowPhase.overworld) return;
+    if (_dialogueOverlay != null) return;
+    if (_pendingBattleRequest != null) return;
+
+    for (final entity in _world.map.entities) {
+      if (entity.kind != MapEntityKind.npc) continue;
+
+      final trainerId = entity.npc?.trainerId;
+      if (trainerId == null || trainerId.isEmpty) continue;
+
+      final losRange = entity.npc?.lineOfSightRange ?? 0;
+      if (losRange <= 0) continue;
+
+      // Vérifier si déjà battu
+      final defeatedFlag = 'trainer_defeated:$trainerId';
+      if (_gameState.storyFlags.activeFlags.contains(defeatedFlag)) continue;
+
+      // Anti-retrigger : ignorer si déjà déclenché dans cette session
+      if (_triggeredTrainerBattles.contains(entity.id)) {
+        // Réarmement : si joueur sort de LoS, retirer le lock
+        final inLoS = checkLineOfSight(
+          npcPos: entity.pos,
+          npcFacing: entity.npc!.facing,
+          lineOfSightRange: losRange,
+          playerPos: _world.player.pos,
+          world: _world,
+        );
+        if (!inLoS) {
+          _triggeredTrainerBattles.remove(entity.id);
+        }
+        continue;
+      }
+
+      // Check LoS
+      final inLoS = checkLineOfSight(
+        npcPos: entity.pos,
+        npcFacing: entity.npc!.facing,
+        lineOfSightRange: losRange,
+        playerPos: _world.player.pos,
+        world: _world,
+      );
+
+      if (inLoS) {
+        // Lock anti-retrigger AVANT de déclencher
+        _triggeredTrainerBattles.add(entity.id);
+        _triggerTrainerBattle(entity);
+      }
+    }
+  }
+
+  /// Déclenche un battle trainer (appelé par interaction manuelle OU LoS auto).
+  ///
+  /// **Factorisation :** Cette méthode factorise UNIQUEMENT le démarrage du battle.
+  /// Elle ne gère PAS :
+  /// - La vérification trainer déjà battu (déjà fait par l'appelant)
+  /// - Le defeat dialogue (géré par _handleNpcInteraction pour interaction manuelle)
+  ///
+  /// **Gestion d'erreur :**
+  /// - trainerId invalide → log + notification + pas de crash
+  /// - Battle request null → log + pas de battle
+  void _triggerTrainerBattle(MapEntity entity) {
+    final trainerId = entity.npc?.trainerId;
+    if (trainerId == null || trainerId.isEmpty) {
+      debugPrint('[trainer] no trainerId for entity=${entity.id}');
+      return;
+    }
+
+    // Vérifier si déjà battu (pour LoS — interaction manuelle a déjà son check)
+    final defeatedFlag = 'trainer_defeated:$trainerId';
+    if (_gameState.storyFlags.activeFlags.contains(defeatedFlag)) {
+      debugPrint('[trainer] already defeated trainer=$trainerId');
+      return;
+    }
+
+    // Vérifier trainer valide
+    final trainer = _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
+      (t) => t?.id == trainerId,
+      orElse: () => null,
+    );
+    if (trainer == null) {
+      debugPrint('[trainer] not found trainer=$trainerId entity=${entity.id}');
+      _showNotification('Dresseur introuvable.');
+      return;
+    }
+
+    // Créer battle request
+    final request = buildTrainerBattleRequestFromNpc(
+      entity: entity,
+      manifest: _bundle.manifest,
+      world: _world,
+    );
+    if (request != null) {
+      debugPrint('[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
+      _pendingBattleRequest = request;
+      _startBattleHandoff(request);
+    } else {
+      debugPrint('[trainer] battle request failed trainer=$trainerId entity=${entity.id}');
+    }
+  }
+
   void _showNotification(String text) {
     _notification?.removeFromParent();
     final paint = TextPaint(
@@ -1664,6 +1790,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = newWorld;
       _activeMapId = newBundle.map.id;
       _previousMapId = null;
+      _triggeredTrainerBattles.clear();  // Reset LoS locks on map change
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
       swapCompleted = true;
