@@ -178,8 +178,8 @@ examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniqu
 | Rencontres `rod` / `special` | **Non fait** | `EncounterKind.surf` est désormais demandé quand le mode joueur est `surf`, mais les règles de progression/transition auto rive ne sont pas encore livrées |
 | Système de combat complet | **Non fait** | Battle shell uniquement : pas de tours, attaques, HP, capture, IA trainer |
 | Streaming multi-hop profond | **Non fait** | Le runtime ne garde pas un graphe large de maps lointaines, seulement le voisinage immédiat utile |
-| Comportements NPC (patrouille, LoS) | **Non fait** | |
-| Sauvegarde/chargement état jeu | **Non fait** | |
+| Comportements NPC (patrouille) | **Non fait** | LoS trainer implémenté (détection auto + battle si joueur dans axe cardinal + `lineOfSightRange > 0` + pas d'obstacle) |
+| Sauvegarde/chargement état jeu | **Fait (runtime-only)** | `GameState` sérialisable, `FileGameSaveRepository`, API `saveGame()`/`loadGame()` dans `PlayableMapGame` ; rollback non implémenté |
 
 Convention runtime `MapConnection` appliquée :
 - `offset` est le décalage de la map cible par rapport à la source sur l’axe partagé.
