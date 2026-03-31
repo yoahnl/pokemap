@@ -267,7 +267,8 @@ resolveConnectedMapTargetPos
 stepGameplayWorld
 GameplayStepResult, Moved, Blocked, WarpTriggered, ConnectionTriggered,
   TriggeredWarp, TriggeredConnection,
-  NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted
+  NothingToInteract, NpcInteracted, SignInteracted, ItemInteracted, EntityInteracted,
+  PlacedElementInteracted(element, behavior, trigger)
 GameplayWorldState
 ```
 
