@@ -299,6 +299,11 @@ final class NpcInteracted extends GameplayStepResult { final MapEntity entity; }
 final class SignInteracted extends GameplayStepResult { final MapEntity entity; }
 final class ItemInteracted extends GameplayStepResult { final MapEntity entity; }
 final class EntityInteracted extends GameplayStepResult { final MapEntity entity; }
+final class PlacedElementInteracted extends GameplayStepResult {
+  final MapPlacedElement element;
+  final MapPlacedElementBehavior behavior;
+  final MapPlacedElementTriggerType trigger;
+}
 
 class TriggeredWarp {
   final String warpId;
