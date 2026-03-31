@@ -336,17 +336,16 @@ La consommabilité est **réelle** pour du développement local. Pour une vraie 
 
 ## 7. Prochaine milestone recommandée
 
-**Prochaine recommandation : ajouter une politique de résolution de multi-effets sur un même trigger (MVP limité), sans transformer `MapPlacedElement` en moteur de script.**
+**Prochaine recommandation : boucle de combat réelle (tour par tour, attaques, HP, capture, IA trainer).**
 
 Justification :
-1. La chaîne data → édition → gameplay/runtime est maintenant en place pour l’identité (`behavior.id`), le cooldown (`cooldownMs`) et le scope (`triggerScope`).
-2. Le prochain gain produit utile est de clarifier l’exécution quand plusieurs effets/behaviors deviennent valides dans le même tick, pour éviter les ambiguïtés de priorités côté UX.
-3. Cette étape reste locale et déterministe, sans élargir prématurément le modèle vers un DSL.
+1. Le handoff battle trainer est en place (LoS + interaction manuelle) avec `TrainerBattleStartRequest`.
+2. Le prochain gain produit utile est d'avoir un combat jouable pour valider le flux complet battle → victoire/défaite → retour overworld.
+3. Cette étape débloquera le marquage automatique "trainer battu" après victoire (actuellement debug-only).
 
 **Ne pas faire maintenant** :
 - Couches haut niveau (no-code, framework abstrait) — trop tôt.
 - Publication pub.dev — les packages sont encore en `path:` local.
-- Persistance sauvegarde — dépend d'une boucle de jeu plus complète.
 
 **Déjà stabilisé (cette session)** :
 - Warp runtime robuste : pipeline verrouillé, logs `[warp]` structurés (trigger/start/load/place/complete/fail/unlock), validation `targetPos`, rollback best-effort vers la map source en cas d'échec pré-swap.
@@ -406,5 +405,8 @@ Justification :
 | map_core + map_gameplay + map_runtime — Behavior Runtime Hardening | 2026-03-29 | `MapPlacedElementBehavior.id` ajouté et normalisé (JSON + migration legacy + validation d’unicité par instance), résolution gameplay déterministe testée (priorité `onEnter > onExit > onNear`, chevauchements éléments/behaviors), cooldown anti-spam runtime par clé `(instanceId, behaviorId, trigger, effectType)`, `setAnimationEnabled` idempotent, debug overlay behaviors activable dans `PlayableMapGame` + toggle dans l’exemple runtime |
 | map_core + map_editor + map_runtime — Behavior Cooldown Data Override MVP | 2026-03-29 | `MapPlacedElementBehavior.cooldownMs` optionnel dans le modèle (JSON + compat legacy), validation map core (`0..600000`), UI éditeur de behavior (`Cooldown explicite` + presets 250/500/1000ms), et runtime gate qui garde la policy par défaut mais applique l’override par behavior quand présent |
 | map_core + map_gameplay + map_editor + map_runtime — Behavior Trigger Scope MVP | 2026-03-29 | `MapPlacedElementBehavior.triggerScope` optionnel avec défaut compatible legacy, validation core des couples trigger/scope, filtres gameplay (`oncePerEnter`, `whileInsideSingleShot`, `facingOnly`, `nearCardinalOnly`), logs runtime enrichis (`scope=...`) et UI éditeur avec menu scope dépendant du trigger |
-| map_editor + map_runtime + map_core — Element Library Animation Authoring MVP | 2026-03-28 | Édition des `ProjectElementEntry.frames` dans l’éditeur d’éléments (frame strip, preview animée, ajout visuel depuis tileset, duplication, suppression, réordonnancement, durée par frame) + persistance via `updateProjectElement(frames: ...)`; runtime inchangé sur le fond et consomme directement ces frames pour les instances animées |
+| map_editor + map_runtime + map_core — Element Library Animation Authoring MVP | 2026-03-28 | Édition des `ProjectElementEntry.frames` dans l'éditeur d'éléments (frame strip, preview animée, ajout visuel depuis tileset, duplication, suppression, réordonnancement, durée par frame) + persistance via `updateProjectElement(frames: ...)`; runtime inchangé sur le fond et consomme directement ces frames pour les instances animées |
 | map_gameplay + map_runtime + map_editor — Water Animation + Movement Mode `walk|surf` MVP | 2026-03-29 | Animation des frames de presets terrain/path (eau incluse) en runtime et canvas éditeur ; `GameplayPlayerState.movementMode` + `Blocked.reason` typé (`waterRequiresSurf`) ; eau traversable seulement en surf ; feedback runtime explicite sur tentative sans surf ; toggle surf debug dans les exemples runtime |
+| **Lot 38 — Trainer Defeated State + Defeat Dialogue** | 2026-03-31 | Flag `trainer_defeated:{trainerId}` dans `storyFlags`, vérification avant battle, `defeatDialogueRef` branché (fallback dialogue → notification), `debugMarkTrainerAsDefeated()` (debug-only) |
+| **Lot 39 — Persistance Save/Load End-to-End** | 2026-03-31 | `GameState` sérialisable, `GameSaveRepository` + `FileGameSaveRepository`, `SaveGameUseCase`/`LoadGameUseCase`, API `saveGame()`/`loadGame()` dans `PlayableMapGame` (runtime-only, rollback non implémenté) |
+| **Lot 40 — Line of Sight (LoS) Trainer** | 2026-03-31 | `checkLineOfSight()` (axe cardinal, distance, obstacles), `_checkTrainerLineOfSight()` (appelé sur changement de case), anti-retrigger lock + reset map, auto-battle trigger |
