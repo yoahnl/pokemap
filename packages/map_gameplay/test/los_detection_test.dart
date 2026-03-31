@@ -81,6 +81,42 @@ void main() {
       expect(result, isFalse);
     });
 
+    test('obstacle entre NPC et joueur → false', () {
+      // Map avec collision layer : case (5, 3) = index 35 bloquante (entre NPC à (5,5) et joueur à (5,2))
+      final map = MapData(
+        id: 'test',
+        name: 'Test',
+        size: const GridSize(width: 10, height: 10),
+        layers: [
+          const MapLayer.tile(
+            id: 'terrain',
+            name: 'Terrain',
+            tilesetId: 'ts',
+            tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+          MapLayer.collision(
+            id: 'collision',
+            name: 'Collision',
+            collisions: List.generate(100, (i) => i == 35),  // Index 35 = (5, 3)
+          ),
+        ],
+      );
+      final world = _createWorld(
+        map: map,
+        playerPos: const GridPos(x: 5, y: 2),
+      );
+
+      final result = checkLineOfSight(
+        npcPos: const GridPos(x: 5, y: 5),
+        npcFacing: EntityFacing.north,
+        lineOfSightRange: 5,
+        playerPos: const GridPos(x: 5, y: 2),
+        world: world,
+      );
+
+      expect(result, isFalse);
+    });
+
     test('joueur adjacent → true (pas d\'obstacle testé)', () {
       final map = MapData(
         id: 'test',
