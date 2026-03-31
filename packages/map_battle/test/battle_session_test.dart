@@ -157,11 +157,6 @@ void main() {
     });
 
     test('trainer battle victory outcome is compatible with marking', () {
-      final setup = createTestSetup(
-        isTrainerBattle: true,
-        trainerId: 'gym_leader_1',
-      );
-      
       // Créer un setup où le joueur gagne en 1 coup
       final oneHitSetup = BattleSetup(
         playerPokemon: BattleCombatantData(
