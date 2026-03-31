@@ -752,7 +752,6 @@ Offset panOffset
 - Rencontres MVP encore incomplètes : `EncounterKind.surf` est demandé quand le joueur est en mode `surf`, mais il n'y a pas encore de transition automatique rive walk/surf ni de progression Surf ; pas de `rod`/`gift`/`special`.
 - Pas de transition automatique rive `walk <-> surf` ni de condition d'acquisition Surf : bascule de mode exposée en API runtime + toggle debug dans les apps exemple.
 - Pas de logique de combat Pokémon complète : battle shell minimal sans tour par tour, HP, attaques, capture, IA.
-- LoS dresseur / comportement NPC.
 - Pas de streaming profond multi-hop : le runtime garde surtout le voisinage immédiat (active + connexions directes + précédente), pas un graphe complet de maps lointaines.
 
 ---
