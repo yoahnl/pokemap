@@ -273,25 +273,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (_flowPhase == _RuntimeFlowPhase.battle) {
       // Navigation dans les choix du combat
-      // ↑/↓ pour naviguer, E/Space pour valider
-      final overlay = _battleOverlay;
+      // ↑/↓ pour naviguer, E/Space/Enter pour valider, Escape pour fuir
+      final overlay = _battleOverlay as BattleOverlayComponent?;
       if (overlay != null) {
-        if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.arrowDown) {
-          // TODO: Implémenter navigation clavier dans BattleOverlayComponent
-          // Pour ce MVP, la navigation se fait à la souris/click
-          return KeyEventResult.ignored;
+        // ↑ : sélection précédente
+        if (key == LogicalKeyboardKey.arrowUp) {
+          overlay.moveSelectionUp();
+          return KeyEventResult.handled;
         }
+        // ↓ : sélection suivante
+        if (key == LogicalKeyboardKey.arrowDown) {
+          overlay.moveSelectionDown();
+          return KeyEventResult.handled;
+        }
+        // E / Space / Enter : validation du choix sélectionné
         if (event is KeyDownEvent &&
             (key == LogicalKeyboardKey.keyE ||
                 key == LogicalKeyboardKey.space ||
                 key == LogicalKeyboardKey.enter)) {
-          // TODO: Valider le choix sélectionné
-          // Pour ce MVP, la validation se fait à la souris/click
-          return KeyEventResult.ignored;
+          overlay.validateSelectedChoice();
+          return KeyEventResult.handled;
         }
+        // Escape : tentative de fuite (seulement si l'action est disponible)
         if (event is KeyDownEvent && key == LogicalKeyboardKey.escape) {
-          // Échap pour fuir (optionnel, pour debug)
-          // Dans un vrai jeu, il faudrait un bouton "Fuir" dans l'UI
+          // Vérifier si l'action "Fuir" est disponible dans les choix
+          final selectedChoice = overlay.getSelectedChoice();
+          if (selectedChoice is PlayerBattleChoiceRun) {
+            overlay.validateSelectedChoice();
+            return KeyEventResult.handled;
+          }
+          // Si "Fuir" n'est pas sélectionné, ne rien faire
           return KeyEventResult.ignored;
         }
       }

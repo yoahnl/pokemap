@@ -62,6 +62,19 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   /// Chaque composant est associé à un index de choix.
   final List<_ChoiceComponent> _choiceComponents = [];
 
+  /// Index du choix actuellement sélectionné.
+  ///
+  /// Utilisé pour la navigation clavier (↑/↓) et pour afficher visuellement
+  /// le choix sélectionné avec un style différent.
+  ///
+  /// Invariant : `_selectedIndex` est toujours entre 0 et `_choiceComponents.length - 1`.
+  int _selectedIndex = 0;
+
+  /// Composant de surbrillance pour le choix sélectionné.
+  ///
+  /// Affiché derrière le choix sélectionné pour le mettre en évidence visuellement.
+  RectangleComponent? _selectionHighlight;
+
   @override
   Future<void> onLoad() async {
     // Fond sombre
@@ -188,7 +201,9 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   /// **IMPORTANT** : Cette méthode met à jour [_session] pour que toutes les
   /// méthodes d'affichage (_getChoiceText, etc.) lisent le bon état.
   ///
-  /// À appeler après que le runtime a appliqué un choix.
+  /// Cette méthode gère aussi la cohérence de la sélection :
+  /// - Si le combat est fini, la sélection est désactivée
+  /// - Si la sélection est hors bornes (moins de choix), elle est clampée
   void updateState(BattleSession newSession) {
     // Mettre à jour la session interne — CRITIQUE pour la cohérence
     _session = newSession;
@@ -200,6 +215,18 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     // Si le combat est fini, afficher le résultat
     if (newSession.state.isFinished) {
       _showOutcome(newSession.state.outcome!);
+    } else {
+      // Combat toujours en cours — maintenir la sélection cohérente
+      // Clamper l'index si le nombre de choix a changé
+      final choices = newSession.getAvailableChoices();
+      if (_selectedIndex >= choices.length) {
+        _selectedIndex = choices.length - 1;
+      }
+      if (_selectedIndex < 0) {
+        _selectedIndex = 0;
+      }
+      // Re-render pour mettre à jour les choix et la surbrillance
+      _renderChoices();
     }
   }
 
@@ -228,10 +255,26 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   }
 
   /// Affiche les choix disponibles.
+  ///
+  /// Cette méthode :
+  /// 1. Récupère les choix disponibles depuis [_session]
+  /// 2. Crée un composant visuel pour chaque choix
+  /// 3. Ajoute un composant de surbrillance pour le choix sélectionné
+  /// 4. Met à jour [_selectionHighlight] pour le rendu visuel
   void _renderChoices() {
     // Lit [_session] qui est toujours à jour grâce à updateState()
     final choices = _session.getAvailableChoices();
     var y = 190.0;
+
+    // Nettoyer les anciens composants de choix
+    for (final component in _choiceComponents) {
+      component.removeFromParent();
+    }
+    _choiceComponents.clear();
+
+    // Nettoyer l'ancienne surbrillance
+    _selectionHighlight?.removeFromParent();
+    _selectionHighlight = null;
 
     for (var i = 0; i < choices.length; i++) {
       final choice = choices[i];
@@ -243,6 +286,21 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       );
       _choiceComponents.add(choiceComponent);
       _panel!.add(choiceComponent);
+
+      // Créer la surbrillance pour le choix sélectionné
+      if (i == _selectedIndex) {
+        _selectionHighlight = RectangleComponent(
+          size: Vector2(280, 28),
+          position: Vector2(24, y + 2),
+          anchor: Anchor.topLeft,
+          paint: Paint()
+            ..color = const Color(0x40FFFFFF)  // Blanc semi-transparent
+            ..style = PaintingStyle.fill,
+          priority: 2,
+        );
+        _panel!.add(_selectionHighlight!);
+      }
+
       y += 32;
     }
   }
@@ -285,12 +343,71 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     return 'Ennemi: ${_session.state.enemy.currentHp}/${_session.state.enemy.maxHp} PV';
   }
 
+  /// Déplace la sélection vers le haut (choix précédent).
+  ///
+  /// Si la sélection est déjà au premier choix, reste au premier choix (pas de wrap).
+  /// Met à jour visuellement la surbrillance.
+  ///
+  /// Retourne true si la sélection a changé, false sinon.
+  bool moveSelectionUp() {
+    if (_selectedIndex > 0) {
+      _selectedIndex--;
+      _renderChoices();  // Re-render pour mettre à jour la surbrillance
+      return true;
+    }
+    return false;
+  }
+
+  /// Déplace la sélection vers le bas (choix suivant).
+  ///
+  /// Si la sélection est déjà au dernier choix, reste au dernier choix (pas de wrap).
+  /// Met à jour visuellement la surbrillance.
+  ///
+  /// Retourne true si la sélection a changé, false sinon.
+  bool moveSelectionDown() {
+    if (_selectedIndex < _choiceComponents.length - 1) {
+      _selectedIndex++;
+      _renderChoices();  // Re-render pour mettre à jour la surbrillance
+      return true;
+    }
+    return false;
+  }
+
+  /// Retourne le choix actuellement sélectionné.
+  ///
+  /// Retourne null si aucun choix n'est disponible.
+  PlayerBattleChoice? getSelectedChoice() {
+    if (_choiceComponents.isEmpty || _selectedIndex < 0 || _selectedIndex >= _choiceComponents.length) {
+      return null;
+    }
+    return _choiceComponents[_selectedIndex].choice;
+  }
+
+  /// Valide le choix actuellement sélectionné.
+  ///
+  /// Appelle [onPlayerChoice] avec le choix sélectionné.
+  ///
+  /// Retourne true si un choix a été validé, false si aucun choix n'est disponible.
+  bool validateSelectedChoice() {
+    final selectedChoice = getSelectedChoice();
+    if (selectedChoice != null) {
+      onPlayerChoice(selectedChoice);
+      return true;
+    }
+    return false;
+  }
+
   @override
   void onTapDown(TapDownEvent event) {
     // Vérifier si un choix a été cliqué
     final tapPos = event.localPosition;
-    for (final choiceComponent in _choiceComponents) {
+    for (var i = 0; i < _choiceComponents.length; i++) {
+      final choiceComponent = _choiceComponents[i];
       if (choiceComponent.containsPoint(tapPos)) {
+        // Mettre à jour la sélection visuelle
+        _selectedIndex = i;
+        _renderChoices();
+        
         // Choix cliqué — notifier le runtime
         onPlayerChoice(choiceComponent.choice);
         return;
