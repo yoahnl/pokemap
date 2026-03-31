@@ -1,0 +1,19 @@
+name: map_battle
+description: >-
+  Pure Dart battle engine for Pokémon-like RPG combat.
+  Deterministic, testable, and independent of Flutter/Flame.
+version: 0.1.0
+
+repository: https://git.yoahn.me/yoahn/pokemonProject.git
+
+topics:
+  - game
+  - battle
+  - rpg
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0

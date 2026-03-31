@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_battle/map_battle.dart';
 
 import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
@@ -120,6 +121,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final GameSaveRepository _saveRepo;
   late SaveGameUseCase _saveGameUseCase;
   late LoadGameUseCase _loadGameUseCase;
+
+  // Battle system (map_battle integration)
+  BattleSession? _battleSession;
+  BattleStartRequest? _battleStartRequest;  // Pour mapping vers BattleSetup et marquage trainer
 
   // Line of Sight (LoS) trainer detection
   final Set<String> _triggeredTrainerBattles = {};  // Anti-retrigger lock
@@ -267,12 +272,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!isDown) return KeyEventResult.ignored;
 
     if (_flowPhase == _RuntimeFlowPhase.battle) {
+      // Pour ce MVP, E/Space/Enter/Esc ferme directement le combat (debug)
+      // Dans un vrai jeu, ces touches seraient utilisées pour naviguer dans les choix
       if (event is KeyDownEvent &&
           (key == LogicalKeyboardKey.keyE ||
               key == LogicalKeyboardKey.space ||
               key == LogicalKeyboardKey.enter ||
               key == LogicalKeyboardKey.escape)) {
-        _closeBattleOverlay();
+        _battleOverlay?.removeFromParent();
+        _battleOverlay = null;
+        _battleSession = null;
+        _battleStartRequest = null;
+        _flowPhase = _RuntimeFlowPhase.overworld;
+        debugPrint('[battle] battle closed via key press (debug)');
         return KeyEventResult.handled;
       }
       return KeyEventResult.ignored;
@@ -616,6 +628,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  /// Démarre le handoff de combat.
+  ///
+  /// [request] - La requête de combat (wild ou trainer).
+  ///
+  /// Cette méthode :
+  /// 1. Stocke la requête pour le mapping vers BattleSetup
+  /// 2. Passe en phase battleTransition
+  /// 3. Affiche l'overlay de transition
   void _startBattleHandoff(BattleStartRequest request) {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
@@ -639,6 +659,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = overlay;
   }
 
+  /// Ouvre l'overlay de combat après la transition.
+  ///
+  /// [request] - La requête de combat.
+  ///
+  /// Cette méthode :
+  /// 1. Mappe BattleStartRequest → BattleSetup
+  /// 2. Crée la BattleSession
+  /// 3. Affiche BattleOverlayComponent avec la session
   void _openBattleOverlay(BattleStartRequest request) {
     if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
       return;
@@ -646,10 +674,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _flowPhase = _RuntimeFlowPhase.battle;
+
+    // Mapper BattleStartRequest → BattleSetup
+    final setup = _toBattleSetup(request);
+
+    // Créer la session de combat
+    _battleSession = createBattleSession(setup);
+    _battleStartRequest = request;
+
+    // Afficher l'overlay de combat avec la session
     final overlay = BattleOverlayComponent(
-      request: request,
+      session: _battleSession!,
       viewportSize: camera.viewport.size,
-      onExitRequested: _onBattleClosed,
+      onPlayerChoice: _onPlayerBattleChoice,
     );
     camera.viewport.add(overlay);
     _battleOverlay = overlay;
@@ -658,22 +695,117 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
-  void _closeBattleOverlay() {
-    final overlay = _battleOverlay;
-    if (overlay == null) {
-      return;
+  /// Mappe BattleStartRequest → BattleSetup.
+  ///
+  /// [request] - La requête de combat depuis le runtime.
+  ///
+  /// Retourne un BattleSetup pur pour le moteur de combat.
+  BattleSetup _toBattleSetup(BattleStartRequest request) {
+    // Pour ce MVP, on utilise des données simplifiées
+    // Dans un vrai jeu, on récupérerait les données du Pokémon depuis une base de données
+
+    // Déterminer l'espèce et le niveau depuis la request
+    String playerSpeciesId = 'pikachu';  // Placeholder
+    int playerLevel = 5;
+    String enemySpeciesId;
+    int enemyLevel;
+
+    if (request is WildBattleStartRequest) {
+      enemySpeciesId = request.speciesId;
+      enemyLevel = request.level;
+    } else if (request is TrainerBattleStartRequest) {
+      // Pour un combat trainer, on utilise une espèce fixe (placeholder)
+      enemySpeciesId = 'lapras';
+      enemyLevel = 5;
+    } else {
+      enemySpeciesId = 'mew';
+      enemyLevel = 5;
     }
-    overlay.close();
+
+    return BattleSetup(
+      playerPokemon: BattleCombatantData(
+        speciesId: playerSpeciesId,
+        level: playerLevel,
+        maxHp: 20 + (playerLevel * 2),  // Formule simple : 20 + 2*level
+        moves: const [
+          BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          BattleMoveData(id: 'scratch', name: 'Griffe', power: 4),
+        ],
+      ),
+      enemyPokemon: BattleCombatantData(
+        speciesId: enemySpeciesId,
+        level: enemyLevel,
+        maxHp: 15 + (enemyLevel * 3),  // Formule simple : 15 + 3*level
+        moves: const [
+          BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+        ],
+      ),
+      isTrainerBattle: request is TrainerBattleStartRequest,
+      trainerId: request is TrainerBattleStartRequest ? request.trainerId : null,
+    );
   }
 
-  void _onBattleClosed() {
+  /// Gère le choix du joueur pendant le combat.
+  ///
+  /// [choice] - Le choix fait par le joueur.
+  ///
+  /// Cette méthode :
+  /// 1. Applique le choix via BattleSession.applyChoice()
+  /// 2. Met à jour l'UI
+  /// 3. Vérifie si le combat est fini
+  /// 4. Si fini, appelle _onBattleFinished()
+  void _onPlayerBattleChoice(PlayerBattleChoice choice) {
+    if (_battleSession == null) {
+      return;
+    }
+
+    // Appliquer le choix (retourne une nouvelle session immutable)
+    _battleSession = _battleSession!.applyChoice(choice);
+
+    // Mettre à jour l'UI avec le nouvel état
+    final overlay = _battleOverlay as BattleOverlayComponent?;
+    overlay?.updateState(_battleSession!);
+
+    // Vérifier si le combat est fini
+    if (_battleSession!.state.isFinished) {
+      _onBattleFinished(_battleSession!.state.outcome!);
+    }
+  }
+
+  /// Gère la fin du combat.
+  ///
+  /// [outcome] - Le résultat du combat.
+  ///
+  /// Cette méthode :
+  /// 1. Marque le trainer comme battu si victoire + trainer battle
+  /// 2. Nettoie l'overlay
+  /// 3. Retourne à l'overworld
+  void _onBattleFinished(BattleOutcome outcome) {
+    debugPrint('[battle] battle finished outcome=${outcome.type.name}');
+
+    // Marquer le trainer comme battu si victoire + trainer battle
+    final request = _battleStartRequest;
+    if (outcome.isVictory && request is TrainerBattleStartRequest) {
+      _gameState = _gameState.copyWith(
+        storyFlags: _gameState.storyFlags.copyWith(
+          activeFlags: {
+            ..._gameState.storyFlags.activeFlags,
+            'trainer_defeated:${request.trainerId}',
+          },
+        ),
+      );
+      debugPrint('[battle] trainer marked as defeated: ${request.trainerId}');
+    }
+
+    // Nettoyer et retourner à l'overworld
     _battleOverlay = null;
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
+    _battleSession = null;
+    _battleStartRequest = null;
     _flowPhase = _RuntimeFlowPhase.overworld;
     _pressedKeys.clear();
     _lastMoveKey = null;
-    debugPrint('[battle] battle closed');
     debugPrint('[battle] overworld resumed');
   }
 

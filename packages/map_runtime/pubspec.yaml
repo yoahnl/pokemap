@@ -27,6 +27,8 @@ dependencies:
     path: ../map_core
   map_gameplay:
     path: ../map_gameplay
+  map_battle:
+    path: ../map_battle
   freezed_annotation: ^2.4.1
 
 dev_dependencies:
