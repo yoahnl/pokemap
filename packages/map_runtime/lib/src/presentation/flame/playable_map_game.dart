@@ -24,6 +24,10 @@ import '../../application/runtime_map_bundle.dart';
 import '../../application/script_runtime_state.dart';
 import '../../application/script_runtime_controller.dart';
 import '../../application/trainer_battle_request.dart';
+import '../../../domain/repositories/game_save_repository.dart';
+import '../../../src/application/save_game_use_case.dart';
+import '../../../src/application/load_game_use_case.dart';
+import '../../../src/infrastructure/file_game_save_repository.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_transition_overlay_component.dart';
@@ -53,6 +57,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required RuntimeMapBundle bundle,
     required this.projectFilePath,
     SaveData? saveData,
+    GameSaveRepository? saveRepository,
   })  : _bundle = bundle,
         _saveData = saveData ?? const SaveData(saveId: 'default'),
         _gameState = GameState(
@@ -67,7 +72,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           storyFlags: const StoryFlags(),
           consumedEventIds: const {},
           metadata: const {},
-        );
+        ),
+        _saveRepo = saveRepository ?? FileGameSaveRepository() {
+    _saveGameUseCase = SaveGameUseCase(_saveRepo);
+    _loadGameUseCase = LoadGameUseCase(_saveRepo);
+  }
 
   final String projectFilePath;
   RuntimeMapBundle _bundle;
@@ -106,6 +115,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   ScriptRuntimeController? _activeScriptController;
   bool _isAwaitingScriptResume = false;
+
+  // Save/Load system
+  final GameSaveRepository _saveRepo;
+  late SaveGameUseCase _saveGameUseCase;
+  late LoadGameUseCase _loadGameUseCase;
 
   bool get showCollisionOverlay => _showCollisionOverlay;
 
@@ -1391,6 +1405,116 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _awaitingSurfConfirmation = true;
     }
     _openDialogue(session);
+  }
+
+  /// Sauvegarde l'état actuel de la partie.
+  ///
+  /// Retourne `true` si la sauvegarde a réussi.
+  Future<bool> saveGame() async {
+    return _saveGameUseCase.execute(_gameState);
+  }
+
+  /// Charge l'état de la partie et resync complètement le runtime.
+  ///
+  /// Retourne `true` si le chargement a réussi.
+  /// Retourne `false` si aucune sauvegarde n'existe ou en cas d'échec.
+  ///
+  /// Effets de bord :
+  /// - Modifie `_gameState`
+  /// - Modifie `_activeMapId`
+  /// - Recharge la map courante
+  /// - Reconstruit `_world` avec la position/facing du joueur
+  /// - Resync `_player` avec le nouveau `_world`
+  /// - Resync caméra / streaming / bounds
+  ///
+  /// **Note** : Cette méthode ne restaure pas les overlays actifs (dialogue,
+  /// battle transition) ni les états transitoires. Elle restaure uniquement
+  /// l'état principal du runtime.
+  ///
+  /// **Limitation** : La phase destructive (à partir de `_gameState = loadedState`)
+  /// n'est pas transactionnelle. En cas d'échec pendant le chargement de la map
+  /// ou le remontage des layers, le runtime peut rester dans un état partiellement
+  /// modifié. Aucun rollback n'est implémenté dans ce lot. Cette limitation sera
+  /// adressée dans un futur lot si nécessaire.
+  Future<bool> loadGame() async {
+    // 1. Charger loadedState
+    final loadedState = await _loadGameUseCase.execute();
+    if (loadedState == null) {
+      debugPrint('[load] no save found');
+      return false;
+    }
+
+    // 2. Charger newBundle (avec error handling)
+    RuntimeMapBundle newBundle;
+    try {
+      newBundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: loadedState.currentMapId,
+      );
+    } catch (e, st) {
+      debugPrint('[load] failed to load map: $e\n$st');
+      return false;
+    }
+
+    // 3. Charger newImages (avec error handling)
+    Map<String, ui.Image> newImages;
+    try {
+      newImages = await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
+    } catch (e, st) {
+      debugPrint('[load] failed to load tileset images: $e\n$st');
+      return false;
+    }
+
+    // 4-16. Phase destructive (protégée par try/catch)
+    try {
+      // 4. Restaurer GameState
+      _gameState = loadedState;
+
+      // 5. Nettoyer l'état transitoire
+      _clearTransientUiState();
+
+      // 6. Unmount anciennes maps
+      _unmountAllLoadedMaps();
+
+      // 7. Assigner _bundle = newBundle
+      _bundle = newBundle;
+
+      // 8. Monter nouvelle map
+      await _mountLoadedMap(
+        bundle: newBundle,
+        tileImagesById: newImages,
+        originCellX: 0,
+        originCellY: 0,
+      );
+
+      // 9. Reconstruire _world
+      _world = GameplayWorldState.initial(
+        map: newBundle.map,
+        project: newBundle.manifest,
+        playerPos: loadedState.playerPosition,
+        playerFacing: loadedState.playerFacing.asDirection,
+        playerMovementMode: loadedState.playerMovementMode,
+      );
+
+      // 10. Resync _player
+      _player.setMapOrigin(Vector2(0, 0), snapToGrid: false);
+      _player.syncState(_world.player, snapToGrid: true);
+
+      // 11. Mettre _activeMapId
+      _activeMapId = loadedState.currentMapId;
+
+      // 12-15. Resync caméra / streaming / bounds
+      _configureCameraViewport();
+      _syncCameraToPlayer();
+      _preloadActiveMapConnections();
+      _pruneLoadedMapsToActiveNeighborhood();
+
+      debugPrint('[load] game loaded from saveId=${loadedState.saveId}');
+      return true;
+    } catch (e, st) {
+      debugPrint('[load] failed during destructive phase: $e\n$st');
+      return false;
+    }
   }
 
   PlacedBehaviorRuntimeKey _buildPlacedBehaviorCooldownKey({

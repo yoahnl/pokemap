@@ -33,3 +33,11 @@ export 'src/application/script_runtime_controller.dart'
     show ScriptRuntimeController;
 export 'src/application/script_command_executor.dart'
     show ScriptCommandExecutor;
+
+// Save/Load system exports
+export 'domain/repositories/game_save_repository.dart'
+    show GameSaveRepository, GameSaveException;
+export 'src/infrastructure/file_game_save_repository.dart'
+    show FileGameSaveRepository;
+export 'src/application/save_game_use_case.dart' show SaveGameUseCase;
+export 'src/application/load_game_use_case.dart' show LoadGameUseCase;
