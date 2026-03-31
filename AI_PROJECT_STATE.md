@@ -743,6 +743,7 @@ Offset panOffset
 - Warp failure robuste : logs `[warp]` détaillés (trigger/start/load/place/complete/fail/unlock), notification "Warp failed", et rollback best-effort pour éviter un runtime bloqué/écran noir.
 - Résolution automatique du spawn joueur.
 - Consommation externe de `map_runtime` depuis un projet Flutter séparé.
+- **Persistance save/load** : `GameState` sérialisable, `FileGameSaveRepository`, use cases save/load, API `saveGame()`/`loadGame()` dans `PlayableMapGame` (runtime-only, rollback non implémenté).
 
 ### Ne marche pas encore
 
