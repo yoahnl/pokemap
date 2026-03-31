@@ -38,23 +38,26 @@ map_core          (pure Dart, freezed, json_serializable)
   ↑
   ├── map_gameplay  (pure Dart, aucune dépendance Flutter/Flame)
   │
-  ├── map_runtime   (Flutter + Flame, consomme map_core + map_gameplay)
+  ├── map_battle    (pure Dart, indépendant, moteur combat)
+  │
+  ├── map_runtime   (Flutter + Flame, consomme map_core + map_gameplay + map_battle)
   │     └── example/ (app Flutter interne, identique à playable_runtime_host)
   │
-  └── map_editor    (Flutter + Riverpod + macos_ui, NE dépend PAS de map_runtime ni map_gameplay)
+  └── map_editor    (Flutter + Riverpod + macos_ui, NE dépend PAS de map_runtime ni map_gameplay ni map_battle)
 
 examples/playable_runtime_host  (app Flutter externe, consomme map_runtime uniquement)
 ```
 
-**Point critique** : `map_editor` ignore totalement `map_gameplay` et `map_runtime`. Les trois packages sont indépendants sauf par `map_core`.
+**Point critique** : `map_editor` ignore totalement `map_gameplay`, `map_battle` et `map_runtime`. Les quatre packages sont indépendants sauf par `map_core`.
 
 ### Résumé par package
 
 | Package | Version | Type | Rôle réel |
 |---------|---------|------|-----------|
 | `map_core` | 0.1.0 | Dart pur | Schéma métier, validation, sérialisation JSON, migrations legacy, opérations pures sur les données |
-| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, connections, interactions entités + comportements d’éléments posés (`onAction`/`onEnter`/`onBump`/`onExit`/`onNear`), résolution spawn, check rencontres |
-| `map_runtime` | 0.1.0 | Flutter + Flame | Chargement projet depuis disque, rendu Flame (layers + entités animées), boucle jouable au clavier |
+| `map_gameplay` | 0.1.0 | Dart pur | Boucle d'exploration : mouvement, collision, warps, connections, interactions entités + comportements d'éléments posés (`onAction`/`onEnter`/`onBump`/`onExit`/`onNear`), résolution spawn, check rencontres |
+| `map_battle` | 0.1.0 | Dart pur | Moteur de combat : `BattleSession` immutable, choix joueur, résolution de tour, KO, victoire/défaite, marquage trainer defeated |
+| `map_runtime` | 0.1.0 | Flutter + Flame | Chargement projet depuis disque, rendu Flame (layers + entités animées), boucle jouable au clavier, intégration battle |
 | `map_editor` | 0.2.0 | Flutter desktop (macOS) | Éditeur GUI complet : maps, layers, entités, tilesets, terrains, paths, warps, triggers, zones, dialogues, dresseurs, rencontres |
 
 ---

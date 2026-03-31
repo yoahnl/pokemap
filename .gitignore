@@ -4,3 +4,16 @@
 /.qwen/settings.json.orig
 /docs/
 /project_overview.txt
+
+# Flutter/Dart build artifacts
+**/.dart_tool/
+**/build/
+**/pubspec.lock
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.dart_tool/
+build/
+pubspec.lock

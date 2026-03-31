@@ -8,7 +8,7 @@
 ## Résumé en 5 lignes
 
 Monorepo Dart/Flutter pour créer et jouer à des RPG Pokémon-like sur grille.
-4 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
+5 packages : `map_core` (schéma + validation), `map_gameplay` (boucle jeu pure Dart), `map_battle` (moteur combat pur Dart), `map_runtime` (Flame viewer + jouable), `map_editor` (GUI desktop macOS).
 Format de projet : `project.json` + `maps/*.json` + `assets/tilesets/*.png`.
 L'éditeur produit les données. Le runtime les consomme. Les deux ne se connaissent pas (sauf via `map_core`).
 Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec collisions, warps, interactions entités, dialogues Yarn avec branches (<<jump>>, choix ->, navigation ↑/↓, confirmation E), rencontres actives MVP en déplacement walk, navigation naturelle bord-à-bord via `MapConnection`, streaming visuel des maps adjacentes (map active + voisines directes), handoff battle MVP (transition + écran battle minimal + reprise overworld), et warps explicites avec pipeline runtime propre (verrouillage gameplay, fade out/in, validation cible, rollback en cas d'échec). Les warps supportent aussi un déclenchement avancé (`onEnter`/`onBump`, côtés actifs, padding d’activation) éditable visuellement. Côté éditeur, `Tiles & Elements` est en double mode (palette + instances posées sur layer actif) avec sélection centralisée, collision par instance, animation locale par instance (`enabled`, `mode`, `autoplay`, `speed`, `startOffsetMs`, `randomStart`) et comportements locaux typés (`trigger` + `effect`) sur `MapPlacedElement`. Les behaviors disposent désormais d’un identifiant stable (`behavior.id`), d’un `cooldownMs` optionnel (override data) et d’un `triggerScope` MVP (`defaultScope`, `oncePerEnter`, `whileInsideSingleShot`, `facingOnly`, `nearCardinalOnly`). Le runtime conserve un fallback anti-spam déterministe par `(instanceId, behaviorId, trigger, effectType)` quand `cooldownMs` est absent, et applique les filtres de scope côté gameplay (réarmement entrée/sortie + `facingOnly` + proximité cardinale explicite). L’éditeur d’éléments permet d’éditer réellement `ProjectElementEntry.frames` (ajout frame visuel depuis tileset, suppression, réordonnancement, duplication, durée par frame, preview animée). L’éditeur de path presets permet aussi l’authoring des frames par variante autotile (ajout/suppression/duplication/réordonnancement/durée + preview animée) et expose un type de surface produit `Ground/Water`. Les instances posées sont persistées dans `MapData.placedElements` et consommées par le runtime/gameplay pour le blocage, l’animation et les comportements trigger/effect MVP, y compris `playAnimationOnce` en exécution runtime réelle. Les presets terrain/path multi-frames sont aussi animés côté éditeur/runtime (eau incluse), et le joueur porte maintenant un mode de déplacement explicite `walk|surf` utilisé par `stepGameplayWorld` : l’eau est refusée en `walk` (raison typée + message runtime) et traversable en `surf` (toggle debug présent dans les apps exemple). Système personnages overworld complet (modèles, CRUD éditeur, rendu Flame, éditeur d'animations visuel), player animé (idle/walk) + interpolation de pas + tri de profondeur Y. Pas encore : logique de combat complète, rencontres surf/rod et NPC actifs avec IA.
@@ -20,14 +20,16 @@ Stade actuel : éditeur riche et fonctionnel, runtime jouable au clavier avec co
 ```
 map_core (pure Dart)
   ├── map_gameplay (pure Dart, consomme map_core)
-  ├── map_runtime (Flutter + Flame, consomme map_core + map_gameplay)
+  ├── map_battle (pure Dart, indépendant)
+  ├── map_runtime (Flutter + Flame, consomme map_core + map_gameplay + map_battle)
   └── map_editor (Flutter + Riverpod + macos_ui, consomme map_core uniquement)
 
 examples/playable_runtime_host (Flutter app, consomme map_runtime)
 packages/map_runtime/example/ (Flutter app, identique à l'externe)
 ```
 
-`map_editor` n'importe PAS `map_gameplay` ni `map_runtime`. C'est voulu.
+`map_editor` n'importe PAS `map_gameplay` ni `map_runtime` ni `map_battle`. C'est voulu.
+`map_battle` est indépendant de `map_gameplay` — séparation stricte exploration/combat.
 
 ---
 
@@ -418,11 +420,103 @@ Pour `InteractIntent()` :
 
 ---
 
+## map_battle — Moteur de combat pur Dart
+
+**Barrel** : `packages/map_battle/lib/map_battle.dart` — exports battle engine avec `show`.
+
+**Dépendances** : Aucune. Package Dart pur, indépendant de Flutter/Flame.
+
+### API publique
+
+```dart
+// Setup (input pur depuis runtime)
+class BattleSetup {
+  BattleCombatantData playerPokemon;
+  BattleCombatantData enemyPokemon;
+  bool isTrainerBattle;
+  String? trainerId;
+}
+class BattleCombatantData { speciesId, level, maxHp, moves: List<BattleMoveData> }
+class BattleMoveData { id, name, power }
+
+// Session (logique pure)
+BattleSession createBattleSession(BattleSetup setup);
+class BattleSession {
+  BattleState get state;
+  List<PlayerBattleChoice> getAvailableChoices();
+  BattleSession applyChoice(PlayerBattleChoice choice);  // immutable → nouvelle session
+}
+
+// État
+enum BattlePhase { playerChoice, resolving, finished }
+class BattleState {
+  BattlePhase phase;
+  BattleCombatant player;  // currentHp, maxHp, moves
+  BattleCombatant enemy;
+  BattleTurnResult? currentTurn;
+  BattleOutcome? outcome;
+  bool get isFinished;
+}
+class BattleCombatant { speciesId, level, currentHp, maxHp, moves: List<BattleMove> }
+class BattleMove { id, name, power }
+
+// Choix
+sealed class PlayerBattleChoice {}
+class PlayerBattleChoiceFight extends PlayerBattleChoice { moveIndex }
+class PlayerBattleChoiceRun extends PlayerBattleChoice {}
+
+// Résolution
+class BattleTurnResult {
+  BattleAction playerAction;
+  BattleAction enemyAction;
+  List<BattleMoveExecution> executions;
+}
+class BattleMoveExecution { attacker, move, target, damage }
+enum BattleOutcomeType { victory, defeat, runaway }
+class BattleOutcome {
+  BattleOutcomeType type;
+  BattleState finalState;
+  bool get isVictory;
+  bool get isDefeat;
+  bool get isRunaway;
+}
+```
+
+### Cycle de combat
+
+1. Runtime crée `BattleSetup` depuis `BattleStartRequest`
+2. `createBattleSession(setup)` → session initiale
+3. Boucle :
+   - `session.getAvailableChoices()` → choix disponibles
+   - Joueur choisit (UI clic/clavier)
+   - `session = session.applyChoice(choice)` → nouvelle session
+   - Si `session.state.isFinished` → sortir de la boucle
+4. Runtime récupère `session.state.outcome`
+5. Si victoire + trainer → marque `trainer_defeated:{trainerId}` dans `GameState.storyFlags`
+6. Retour overworld
+
+### Limites MVP
+
+- 1 Pokémon vs 1 Pokémon (pas d'équipe complète)
+- Pas de switch Pokémon
+- Pas d'objets
+- Pas de talents
+- Pas de statuts (poison, brûlure, etc.)
+- Pas de précision/esquive
+- Pas de critiques
+- Pas de capture
+- Pas de types/faiblesses
+- Dégâts = `move.power` (calcul simple)
+- Ordre de tour : joueur puis ennemi (déterministe)
+- Fuite toujours réussie (simplification MVP)
+
+---
+
 ## map_runtime — Viewer + Runtime jouable
 
 **Barrel** : `packages/map_runtime/lib/map_runtime.dart` — exports runtime + handoff battle avec `show`.
 
-**Dépendances** : `map_core`, `map_gameplay`, `flutter` (SDK), `flame ^1.36.0`, `path`.
+**Dépendances** : `map_core`, `map_gameplay`, `map_battle`, `flutter` (SDK), `flame ^1.36.0`, `path`.
 
 ### API publique
 
@@ -743,6 +837,7 @@ Offset panOffset
 - **Rencontres actives MVP (mode-aware)** : après un `Moved` accepté (hors `Blocked` / `WarpTriggered`), le runtime appelle `checkEncounterAtPlayerPosition()` (`map_gameplay`) avec `EncounterKind.walk` en mode `walk` et `EncounterKind.surf` en mode `surf`. Zone retenue = zone encounter de plus haute priorité contenant la cellule joueur et compatible avec le kind demandé. Tirage pondéré dans la table projet, niveau aléatoire `[minLevel..maxLevel]`, logs `[encounter]`.
 - **Battle handoff MVP** : une rencontre déclenchée est transformée via `buildBattleStartRequestFromEncounter()` en `WildBattleStartRequest` (avec `OverworldReturnContext`). Le runtime suspend l'overworld, lance `BattleTransitionOverlayComponent`, puis ouvre `BattleOverlayComponent` (shell battle minimal). La fermeture du battle overlay reprend proprement l'overworld.
 - **Battle trainer depuis NPC** : interaction avec un NPC ayant `trainerId` → vérification flag `trainer_defeated:{trainerId}` dans `storyFlags` → si battu : `defeatDialogueRef` (si présent) → fallback dialogue normal → fallback notification ; si non battu : `buildTrainerBattleRequestFromNpc()` → `TrainerBattleStartRequest` → handoff battle. Si `trainerId` invalide : log structuré + notification + fallback dialogue. **Marquage "battu"** : via `debugMarkTrainerAsDefeated(trainerId)` (debug-only, runtime-only, pas de persistance disque).
+- **Boucle de combat MVP (map_battle)** : package Dart pur indépendant, `BattleSession` immutable, `getAvailableChoices()` + `applyChoice(choice)`, résolution de tour déterministe (joueur puis ennemi), dégâts simples (`damage = move.power`), KO, victoire/défaite, marquage automatique `trainer_defeated:{trainerId}` dans `storyFlags` après victoire trainer. Interaction UI par clic (navigation clavier TODO).
 - Logs structurés : `[runtime]`, `[warp]`, `[connection]`, `[interact]`, `[dialogue]`, `[encounter]`, `[battle]`, `[placed_behavior]` via `debugPrint`.
 - Logs battle : `[battle] battle request created`, `[battle] transition started`, `[battle] overlay opened`, `[battle] battle closed`, `[battle] overworld resumed`.
 - Warp failure robuste : logs `[warp]` détaillés (trigger/start/load/place/complete/fail/unlock), notification "Warp failed", et rollback best-effort pour éviter un runtime bloqué/écran noir.
@@ -757,7 +852,7 @@ Offset panOffset
 - Les instances posées sont persistées dans `MapData.placedElements`, avec resynchronisation depuis les motifs tuiles du calque après peinture/effacement et au chargement de map.
 - Rencontres MVP encore incomplètes : `EncounterKind.surf` est demandé quand le joueur est en mode `surf`, mais il n'y a pas encore de transition automatique rive walk/surf ni de progression Surf ; pas de `rod`/`gift`/`special`.
 - Pas de transition automatique rive `walk <-> surf` ni de condition d'acquisition Surf : bascule de mode exposée en API runtime + toggle debug dans les apps exemple.
-- Pas de logique de combat Pokémon complète : battle shell minimal sans tour par tour, HP, attaques, capture, IA.
+- **Logique de combat partielle (MVP)** : boucle de combat fonctionnelle (1v1, attaques simples, KO, victoire/défaite) mais pas d'équipe complète, pas de switch, pas d'objets, pas de talents, pas de statuts, pas de précision/esquive, pas de critiques, pas de capture, pas de types/faiblesses, pas d'XP complexe.
 - Pas de streaming profond multi-hop : le runtime garde surtout le voisinage immédiat (active + connexions directes + précédente), pas un graphe complet de maps lointaines.
 
 ---
@@ -820,6 +915,7 @@ Offset panOffset
 
 ## Prochaines priorités
 
-1. Implémenter la boucle combat réelle sur `BattleStartRequest`/`BattleOverlayComponent` (commandes, tour par tour, résolution) → permettra marquage automatique "trainer battu" après victoire.
+1. Navigation clavier dans BattleOverlayComponent (↑/↓ pour naviguer, E pour valider) — actuellement interaction uniquement par clic.
 2. Étendre les rencontres à `surf`/`rod` et aux conditions de contexte (mode de déplacement, tags de map/zone).
 3. UI save/load (menu, boutons) — infrastructure déjà en place.
+4. Système de combat complet : équipe 6 Pokémon, switch, objets, talents, statuts, types/faiblesses, XP.
