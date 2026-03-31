@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
@@ -13,17 +14,26 @@ import 'package:map_battle/map_battle.dart';
 /// - Afficher les PV des combattants
 /// - Afficher les choix disponibles
 /// - Notifier le runtime du choix du joueur via [onPlayerChoice]
-class BattleOverlayComponent extends PositionComponent {
+///
+/// **Interaction** : L'utilisateur peut cliquer sur un choix pour le sélectionner.
+/// Le clic appelle [onPlayerChoice] avec le choix correspondant.
+///
+/// **IMPORTANT** : Ce composant stocke une référence mutable vers la session
+/// courante. Quand le runtime appelle [updateState()], la session interne
+/// est mise à jour pour refléter le nouvel état. Toutes les méthodes d'affichage
+/// lisent [session] qui est donc toujours à jour.
+class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   /// Crée un overlay de combat.
   ///
   /// [session] - La session de combat courante (état + API).
   /// [viewportSize] - La taille de la viewport pour centrer le panneau.
   /// [onPlayerChoice] - Callback appelé quand le joueur fait un choix.
   BattleOverlayComponent({
-    required this.session,
+    required BattleSession session,
     required Vector2 viewportSize,
     required this.onPlayerChoice,
-  }) : super(
+  })  : _session = session,
+        super(
           size: viewportSize,
           anchor: Anchor.topLeft,
           priority: 97,
@@ -31,8 +41,10 @@ class BattleOverlayComponent extends PositionComponent {
 
   /// La session de combat courante.
   ///
-  /// Contient l'état immutable et permet de récupérer les choix disponibles.
-  final BattleSession session;
+  /// **Mutable** : mise à jour par [updateState()] pour refléter le nouvel état.
+  /// Toutes les méthodes d'affichage lisent cette propriété, donc l'UI est
+  /// toujours synchronisée avec l'état réel du combat.
+  BattleSession _session;
 
   /// Callback appelé quand le joueur fait un choix.
   ///
@@ -47,7 +59,8 @@ class BattleOverlayComponent extends PositionComponent {
   TextComponent? _enemyHpText;
 
   /// Composants de choix (pour mise à jour dynamique).
-  final List<TextComponent> _choiceComponents = [];
+  /// Chaque composant est associé à un index de choix.
+  final List<_ChoiceComponent> _choiceComponents = [];
 
   @override
   Future<void> onLoad() async {
@@ -170,11 +183,19 @@ class BattleOverlayComponent extends PositionComponent {
 
   /// Met à jour l'affichage avec un nouvel état de session.
   ///
+  /// [newSession] - La nouvelle session avec l'état mis à jour.
+  ///
+  /// **IMPORTANT** : Cette méthode met à jour [_session] pour que toutes les
+  /// méthodes d'affichage (_getChoiceText, etc.) lisent le bon état.
+  ///
   /// À appeler après que le runtime a appliqué un choix.
   void updateState(BattleSession newSession) {
+    // Mettre à jour la session interne — CRITIQUE pour la cohérence
+    _session = newSession;
+
     // Mettre à jour les PV
-    _playerHpText?.text = _getPlayerHpTextFromSession(newSession);
-    _enemyHpText?.text = _getEnemyHpTextFromSession(newSession);
+    _playerHpText?.text = _getPlayerHpText();
+    _enemyHpText?.text = _getEnemyHpText();
 
     // Si le combat est fini, afficher le résultat
     if (newSession.state.isFinished) {
@@ -208,24 +229,17 @@ class BattleOverlayComponent extends PositionComponent {
 
   /// Affiche les choix disponibles.
   void _renderChoices() {
-    final choices = session.getAvailableChoices();
+    // Lit [_session] qui est toujours à jour grâce à updateState()
+    final choices = _session.getAvailableChoices();
     var y = 190.0;
 
     for (var i = 0; i < choices.length; i++) {
       final choice = choices[i];
       final text = _getChoiceText(choice);
-      final choiceComponent = TextComponent(
+      final choiceComponent = _ChoiceComponent(
+        choice: choice,
         text: text,
-        anchor: Anchor.topLeft,
         position: Vector2(22, y),
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Color(0xFFE5E9F2),
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        priority: 3,
       );
       _choiceComponents.add(choiceComponent);
       _panel!.add(choiceComponent);
@@ -234,9 +248,12 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   /// Retourne le texte à afficher pour un choix.
+  ///
+  /// Lit [_session] qui est toujours à jour grâce à updateState().
   String _getChoiceText(PlayerBattleChoice choice) {
     if (choice is PlayerBattleChoiceFight) {
-      final move = session.state.player.moves[choice.moveIndex];
+      // Lit les moves depuis _session.state.player.moves — toujours à jour
+      final move = _session.state.player.moves[choice.moveIndex];
       return '⚔ ${move.name} (Puissance: ${move.power})';
     } else if (choice is PlayerBattleChoiceRun) {
       return '🏃 Fuir';
@@ -245,30 +262,80 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   /// Retourne le titre pour la session.
+  ///
+  /// Lit [_session] qui est toujours à jour grâce à updateState().
   String _getTitleForSession() {
-    if (session.setup.isTrainerBattle) {
+    if (_session.setup.isTrainerBattle) {
       return 'Combat Dresseur';
     }
     return 'Combat Sauvage';
   }
 
   /// Retourne le texte des PV du joueur.
+  ///
+  /// Lit [_session] qui est toujours à jour grâce à updateState().
   String _getPlayerHpText() {
-    return 'Joueur: ${session.state.player.currentHp}/${session.state.player.maxHp} PV';
-  }
-
-  /// Retourne le texte des PV du joueur depuis une session.
-  String _getPlayerHpTextFromSession(BattleSession newSession) {
-    return 'Joueur: ${newSession.state.player.currentHp}/${newSession.state.player.maxHp} PV';
+    return 'Joueur: ${_session.state.player.currentHp}/${_session.state.player.maxHp} PV';
   }
 
   /// Retourne le texte des PV de l'ennemi.
+  ///
+  /// Lit [_session] qui est toujours à jour grâce à updateState().
   String _getEnemyHpText() {
-    return 'Ennemi: ${session.state.enemy.currentHp}/${session.state.enemy.maxHp} PV';
+    return 'Ennemi: ${_session.state.enemy.currentHp}/${_session.state.enemy.maxHp} PV';
   }
 
-  /// Retourne le texte des PV de l'ennemi depuis une session.
-  String _getEnemyHpTextFromSession(BattleSession newSession) {
-    return 'Ennemi: ${newSession.state.enemy.currentHp}/${newSession.state.enemy.maxHp} PV';
+  @override
+  void onTapDown(TapDownEvent event) {
+    // Vérifier si un choix a été cliqué
+    final tapPos = event.localPosition;
+    for (final choiceComponent in _choiceComponents) {
+      if (choiceComponent.containsPoint(tapPos)) {
+        // Choix cliqué — notifier le runtime
+        onPlayerChoice(choiceComponent.choice);
+        return;
+      }
+    }
+  }
+}
+
+/// Composant de choix avec référence au choix associé.
+///
+/// Permet de détecter les clics sur un choix spécifique et de notifier
+/// le runtime via [onPlayerChoice].
+class _ChoiceComponent extends PositionComponent {
+  _ChoiceComponent({
+    required this.choice,
+    required String text,
+    required Vector2 position,
+  }) : super(
+          size: Vector2(300, 32),
+          position: position,
+          anchor: Anchor.topLeft,
+        ) {
+    // Ajouter le texte du choix
+    add(TextComponent(
+      text: text,
+      anchor: Anchor.topLeft,
+      position: Vector2.zero(),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Color(0xFFE5E9F2),
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ));
+  }
+
+  /// Le choix associé à ce composant.
+  final PlayerBattleChoice choice;
+
+  /// Vérifie si un point est dans les bounds de ce composant.
+  bool containsPoint(Vector2 point) {
+    return point.x >= position.x &&
+        point.x <= position.x + size.x &&
+        point.y >= position.y &&
+        point.y <= position.y + size.y;
   }
 }

@@ -272,20 +272,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!isDown) return KeyEventResult.ignored;
 
     if (_flowPhase == _RuntimeFlowPhase.battle) {
-      // Pour ce MVP, E/Space/Enter/Esc ferme directement le combat (debug)
-      // Dans un vrai jeu, ces touches seraient utilisées pour naviguer dans les choix
-      if (event is KeyDownEvent &&
-          (key == LogicalKeyboardKey.keyE ||
-              key == LogicalKeyboardKey.space ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.escape)) {
-        _battleOverlay?.removeFromParent();
-        _battleOverlay = null;
-        _battleSession = null;
-        _battleStartRequest = null;
-        _flowPhase = _RuntimeFlowPhase.overworld;
-        debugPrint('[battle] battle closed via key press (debug)');
-        return KeyEventResult.handled;
+      // Navigation dans les choix du combat
+      // ↑/↓ pour naviguer, E/Space pour valider
+      final overlay = _battleOverlay;
+      if (overlay != null) {
+        if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.arrowDown) {
+          // TODO: Implémenter navigation clavier dans BattleOverlayComponent
+          // Pour ce MVP, la navigation se fait à la souris/click
+          return KeyEventResult.ignored;
+        }
+        if (event is KeyDownEvent &&
+            (key == LogicalKeyboardKey.keyE ||
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.enter)) {
+          // TODO: Valider le choix sélectionné
+          // Pour ce MVP, la validation se fait à la souris/click
+          return KeyEventResult.ignored;
+        }
+        if (event is KeyDownEvent && key == LogicalKeyboardKey.escape) {
+          // Échap pour fuir (optionnel, pour debug)
+          // Dans un vrai jeu, il faudrait un bouton "Fuir" dans l'UI
+          return KeyEventResult.ignored;
+        }
       }
       return KeyEventResult.ignored;
     }
