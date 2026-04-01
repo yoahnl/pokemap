@@ -143,6 +143,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool get isSurfing => playerMovementMode == MovementMode.surf;
 
+  ({String mapId, int playerX, int playerY, String facing, String movementMode})
+      get saveLoadInfo {
+    if (isLoaded) {
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+    }
+    return (
+      mapId: _gameState.currentMapId,
+      playerX: _gameState.playerPosition.x,
+      playerY: _gameState.playerPosition.y,
+      facing: _gameState.playerFacing.name,
+      movementMode: _gameState.playerMovementMode.name,
+    );
+  }
+
   void _syncGameStateFromWorld({String? mapIdOverride}) {
     final mapId = mapIdOverride ?? _activeMapId;
     _gameState = _gameState.copyWith(

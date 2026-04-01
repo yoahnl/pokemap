@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -25,11 +27,34 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   bool _loading = false;
   bool _showCollisionOverlay = false;
   bool _surfingEnabled = false;
+  bool _saveLoadBusy = false;
+  String? _saveLoadStatus;
+  String? _saveLoadError;
+  Timer? _runtimeInfoTicker;
 
   @override
   void dispose() {
+    _runtimeInfoTicker?.cancel();
     _mapIdController.dispose();
     super.dispose();
+  }
+
+  void _startRuntimeInfoTicker() {
+    _runtimeInfoTicker?.cancel();
+    _runtimeInfoTicker = Timer.periodic(
+      const Duration(milliseconds: 250),
+      (_) {
+        if (!mounted || _game == null) {
+          return;
+        }
+        setState(() {});
+      },
+    );
+  }
+
+  void _stopRuntimeInfoTicker() {
+    _runtimeInfoTicker?.cancel();
+    _runtimeInfoTicker = null;
   }
 
   Future<void> _pickProjectFile() async {
@@ -74,9 +99,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       setState(() {
         _game =
             PlayableMapGame(bundle: bundle, projectFilePath: projectFilePath);
+        _saveLoadStatus = null;
+        _saveLoadError = null;
       });
       _game?.setCollisionOverlayVisible(_showCollisionOverlay);
       _game?.setSurfingEnabled(_surfingEnabled);
+      _startRuntimeInfoTicker();
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -86,14 +114,86 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   }
 
   void _reset() => setState(() {
+        _stopRuntimeInfoTicker();
         _game = null;
         _error = null;
+        _saveLoadStatus = null;
+        _saveLoadError = null;
       });
+
+  Future<void> _saveGame() async {
+    final game = _game;
+    if (game == null || _saveLoadBusy) {
+      return;
+    }
+    setState(() {
+      _saveLoadBusy = true;
+      _saveLoadError = null;
+      _saveLoadStatus = null;
+    });
+    try {
+      final saved = await game.saveGame();
+      if (!mounted) return;
+      final info = game.saveLoadInfo;
+      setState(() {
+        _saveLoadStatus = saved
+            ? 'Sauvegarde OK · ${info.mapId} (${info.playerX}, ${info.playerY})'
+            : 'Sauvegarde impossible';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _saveLoadError = 'Erreur sauvegarde: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _saveLoadBusy = false);
+      }
+    }
+  }
+
+  Future<void> _loadGame() async {
+    final game = _game;
+    if (game == null || _saveLoadBusy) {
+      return;
+    }
+    setState(() {
+      _saveLoadBusy = true;
+      _saveLoadError = null;
+      _saveLoadStatus = null;
+    });
+    try {
+      final loaded = await game.loadGame();
+      if (!mounted) return;
+      if (loaded) {
+        final info = game.saveLoadInfo;
+        setState(() {
+          _surfingEnabled = game.isSurfing;
+          _saveLoadStatus =
+              'Chargement OK · ${info.mapId} (${info.playerX}, ${info.playerY})';
+        });
+      } else {
+        setState(() {
+          _saveLoadError = 'Aucune sauvegarde trouvée ou chargement impossible';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _saveLoadError = 'Erreur chargement: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _saveLoadBusy = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final game = _game;
     if (game != null) {
+      final info = game.saveLoadInfo;
       return Scaffold(
         appBar: AppBar(
           title: Text(_mapIdController.text.trim()),
@@ -112,35 +212,91 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 color: Colors.black.withValues(alpha: 0.55),
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Row(
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Collisions',
-                        style: TextStyle(color: Colors.white),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Collisions',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _showCollisionOverlay,
+                            onChanged: _saveLoadBusy
+                                ? null
+                                : (v) {
+                                    setState(() => _showCollisionOverlay = v);
+                                    game.setCollisionOverlayVisible(v);
+                                  },
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Switch(
-                        value: _showCollisionOverlay,
-                        onChanged: (v) {
-                          setState(() => _showCollisionOverlay = v);
-                          game.setCollisionOverlayVisible(v);
-                        },
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Surf',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _surfingEnabled,
+                            onChanged: _saveLoadBusy
+                                ? null
+                                : (v) {
+                                    setState(() => _surfingEnabled = v);
+                                    game.setSurfingEnabled(v);
+                                  },
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Surf',
-                        style: TextStyle(color: Colors.white),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Map: ${info.mapId}',
+                        style: const TextStyle(color: Colors.white),
                       ),
-                      const SizedBox(width: 8),
-                      Switch(
-                        value: _surfingEnabled,
-                        onChanged: (v) {
-                          setState(() => _surfingEnabled = v);
-                          game.setSurfingEnabled(v);
-                        },
+                      Text(
+                        'Pos: (${info.playerX}, ${info.playerY})  Face: ${info.facing}',
+                        style: const TextStyle(color: Colors.white),
                       ),
+                      Text(
+                        'Mode: ${info.movementMode}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FilledButton.tonal(
+                            onPressed: _saveLoadBusy ? null : _saveGame,
+                            child: const Text('Sauvegarder'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            onPressed: _saveLoadBusy ? null : _loadGame,
+                            child: const Text('Charger'),
+                          ),
+                        ],
+                      ),
+                      if (_saveLoadStatus != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _saveLoadStatus!,
+                          style: const TextStyle(color: Colors.greenAccent),
+                        ),
+                      ],
+                      if (_saveLoadError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _saveLoadError!,
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ],
                     ],
                   ),
                 ),
