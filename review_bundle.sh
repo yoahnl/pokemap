@@ -50,16 +50,6 @@ fi
   git diff "$DIFF_RANGE" -- . ':(exclude).idea' ':(exclude).review'
   echo
 
-  for file in AI_PROJECT_STATE.md PROJECT_STATUS.md; do
-    echo "## FILE: $file"
-    echo
-    if [ -f "$file" ]; then
-      cat "$file"
-    else
-      echo "[MISSING] $file"
-    fi
-    echo
-  done
 } > "$OUT_FILE"
 
 echo "$OUT_FILE"
