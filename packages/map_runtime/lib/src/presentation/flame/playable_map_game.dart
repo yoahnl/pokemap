@@ -61,6 +61,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required this.projectFilePath,
     SaveData? saveData,
     GameSaveRepository? saveRepository,
+    this.bundleTransformer,
   })  : _bundle = bundle,
         _gameState = normalizeLoadedGameState(
           saveData == null
@@ -68,11 +69,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               : gameStateFromSaveData(saveData),
         ),
         _saveRepo = saveRepository ?? FileGameSaveRepository() {
+    if (bundleTransformer != null) {
+      _bundle = bundleTransformer!(_bundle);
+    }
     _saveGameUseCase = SaveGameUseCase(_saveRepo);
     _loadGameUseCase = LoadGameUseCase(_saveRepo);
   }
 
   final String projectFilePath;
+  final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
   RuntimeMapBundle _bundle;
   GameState _gameState;
   late GameplayWorldState _world;
@@ -157,6 +162,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  GameState get gameStateSnapshot {
+    if (isLoaded) {
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+    }
+    return _gameState;
+  }
+
   void _syncGameStateFromWorld({String? mapIdOverride}) {
     final mapId = mapIdOverride ?? _activeMapId;
     _gameState = _gameState.copyWith(
@@ -165,6 +177,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       playerFacing: _world.player.facing.asFacing,
       playerMovementMode: _world.player.movementMode,
     );
+  }
+
+  RuntimeMapBundle _resolveRuntimeBundle(RuntimeMapBundle bundle) {
+    final transform = bundleTransformer;
+    if (transform == null) {
+      return bundle;
+    }
+    return transform(bundle);
   }
 
   void setPlayerMovementMode(MovementMode movementMode) {
@@ -1004,6 +1024,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     ActiveEventPage page,
   ) {
     if (page.page.script != null) {
+      final message = page.page.message?.trim();
+      if (message != null && message.isNotEmpty) {
+        _showNotification(message);
+      }
       _executeEventScript(event, page, page.page.script!);
     } else if (page.page.message != null && page.page.message!.isNotEmpty) {
       _showNotification(page.page.message!);
@@ -1833,10 +1857,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // 2. Charger newBundle (avec error handling)
     RuntimeMapBundle newBundle;
     try {
-      newBundle = await loadRuntimeMapBundle(
+      final loadedBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
         mapId: loadedState.currentMapId,
       );
+      newBundle = _resolveRuntimeBundle(loadedBundle);
     } catch (e, st) {
       debugPrint('[load] failed to load map: $e\n$st');
       return false;
@@ -2005,10 +2030,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[warp] start transition warp=${warp.warpId} map=$sourceMapId -> ${warp.targetMapId} target=(${warp.targetPos.x}, ${warp.targetPos.y})',
       );
-      final newBundle = await loadRuntimeMapBundle(
+      final loadedBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
         mapId: warp.targetMapId,
       );
+      final newBundle = _resolveRuntimeBundle(loadedBundle);
       debugPrint('[warp] target map loaded id=${newBundle.map.id}');
       final transitionSpec = _resolveWarpTransitionSpec(
         sourceMap: sourceBundle.map,
@@ -2141,10 +2167,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     try {
       _unmountAllLoadedMaps();
-      final fallbackBundle = await loadRuntimeMapBundle(
+      final loadedFallbackBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
         mapId: sourceMapId,
       );
+      final fallbackBundle = _resolveRuntimeBundle(loadedFallbackBundle);
       final fallbackWorld = _buildSafeWorldState(
         map: fallbackBundle.map,
         project: fallbackBundle.manifest,
@@ -2493,10 +2520,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     Future<_LoadedPlayableMap?> load() async {
       try {
-        final bundle = await loadRuntimeMapBundle(
+        final loadedBundle = await loadRuntimeMapBundle(
           projectFilePath: projectFilePath,
           mapId: targetMapId,
         );
+        final bundle = _resolveRuntimeBundle(loadedBundle);
         final origin = _computeConnectedOriginCells(
           source: source,
           connection: connection,

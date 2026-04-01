@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+
+import 'lot50_demo_scenario.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -30,6 +33,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   bool _saveLoadBusy = false;
   String? _saveLoadStatus;
   String? _saveLoadError;
+  bool _enableLot50DemoScenario = true;
+  Lot50ScenarioSetup? _lot50ScenarioSetup;
+  String? _lot50ScenarioWarning;
   Timer? _runtimeInfoTicker;
 
   @override
@@ -91,19 +97,29 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     });
 
     try {
-      final bundle = await loadRuntimeMapBundle(
+      final loadedBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
         mapId: mapId,
       );
+      final prepared = _enableLot50DemoScenario
+          ? injectLot50DemoScenario(loadedBundle)
+          : Lot50ScenarioResult(bundle: loadedBundle);
       if (!mounted) return;
+      final nextGame = PlayableMapGame(
+        bundle: prepared.bundle,
+        projectFilePath: projectFilePath,
+        bundleTransformer:
+            _enableLot50DemoScenario ? _lot50BundleTransformer : null,
+      );
       setState(() {
-        _game =
-            PlayableMapGame(bundle: bundle, projectFilePath: projectFilePath);
+        _game = nextGame;
+        _lot50ScenarioSetup = prepared.setup;
+        _lot50ScenarioWarning = prepared.warning;
         _saveLoadStatus = null;
         _saveLoadError = null;
       });
-      _game?.setCollisionOverlayVisible(_showCollisionOverlay);
-      _game?.setSurfingEnabled(_surfingEnabled);
+      nextGame.setCollisionOverlayVisible(_showCollisionOverlay);
+      nextGame.setSurfingEnabled(_surfingEnabled);
       _startRuntimeInfoTicker();
     } catch (e) {
       if (!mounted) return;
@@ -119,6 +135,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         _error = null;
         _saveLoadStatus = null;
         _saveLoadError = null;
+        _lot50ScenarioSetup = null;
+        _lot50ScenarioWarning = null;
       });
 
   Future<void> _saveGame() async {
@@ -189,11 +207,39 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
+  RuntimeMapBundle _lot50BundleTransformer(RuntimeMapBundle bundle) {
+    return injectLot50DemoScenario(bundle).bundle;
+  }
+
+  _ScenarioRuntimeState? _readScenarioRuntimeState(PlayableMapGame game) {
+    final setup = _lot50ScenarioSetup;
+    if (setup == null) {
+      return null;
+    }
+    final snapshot = game.gameStateSnapshot;
+    final value = snapshot.scriptVariables.values[setup.variableName];
+    String interactions = '0';
+    if (value is ScriptVariableValueBool) {
+      interactions = value.value ? 'true' : 'false';
+    } else if (value is ScriptVariableValueInt) {
+      interactions = value.value.toString();
+    } else if (value is ScriptVariableValueString) {
+      interactions = value.value;
+    }
+    return _ScenarioRuntimeState(
+      flagSet: snapshot.storyFlags.activeFlags.contains(setup.flagName),
+      consumed: snapshot.consumedEventIds.contains(setup.consumedEventId),
+      interactions: interactions,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final game = _game;
     if (game != null) {
       final info = game.saveLoadInfo;
+      final scenarioSetup = _lot50ScenarioSetup;
+      final scenarioState = _readScenarioRuntimeState(game);
       return Scaffold(
         appBar: AppBar(
           title: Text(_mapIdController.text.trim()),
@@ -297,6 +343,45 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                           style: const TextStyle(color: Colors.redAccent),
                         ),
                       ],
+                      if (_lot50ScenarioWarning != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _lot50ScenarioWarning!,
+                          style: const TextStyle(color: Colors.orangeAccent),
+                        ),
+                      ],
+                      if (scenarioSetup != null && scenarioState != null) ...[
+                        const SizedBox(height: 10),
+                        const Divider(height: 1, color: Colors.white24),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'LOT 50 Demo',
+                          style: TextStyle(
+                            color: Colors.lightBlueAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Event: (${scenarioSetup.eventPos.x}, ${scenarioSetup.eventPos.y})',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const Text(
+                          'Étapes: place-toi face à l’event puis E, sauvegarde, charge.',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        Text(
+                          'Flag set: ${scenarioState.flagSet}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Event consommé: ${scenarioState.consumed}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Interactions script: ${scenarioState.interactions}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -330,6 +415,22 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
               onSubmitted: (_) => _loading ? null : _load(),
             ),
             const SizedBox(height: 16),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Injecter scénario LOT 50 (démo)'),
+              subtitle: const Text(
+                'Ajoute un event scripté proche du spawn pour tester progression + save/load.',
+              ),
+              value: _enableLot50DemoScenario,
+              onChanged: _loading
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _enableLot50DemoScenario = value;
+                      });
+                    },
+            ),
+            const SizedBox(height: 8),
             FilledButton(
               onPressed: _loading ? null : _load,
               child: Text(_loading ? 'Chargement…' : 'Lancer'),
@@ -343,6 +444,18 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       ),
     );
   }
+}
+
+class _ScenarioRuntimeState {
+  const _ScenarioRuntimeState({
+    required this.flagSet,
+    required this.consumed,
+    required this.interactions,
+  });
+
+  final bool flagSet;
+  final bool consumed;
+  final String interactions;
 }
 
 class _ProjectFileField extends StatelessWidget {
