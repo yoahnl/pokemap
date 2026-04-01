@@ -1140,7 +1140,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
           title: 'World Maps',
-          subtitle: 'Regions, groups and playable maps',
+          subtitle:
+              'Maps jouables et contenu monde (events, entités, warps, triggers)',
           icon: CupertinoIcons.map_fill,
           accentColor: EditorChrome.inspectorJoyPlum,
           badgeText: '${project.maps.length}',

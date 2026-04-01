@@ -48,5 +48,14 @@ void main() {
       );
       expect(preset, isNull);
     });
+
+    test('all presets expose execution hints', () {
+      for (final preset in scenarioActionPresets) {
+        expect(preset.executionHint.trim(), isNotEmpty);
+      }
+      for (final preset in scenarioReferencePresets) {
+        expect(preset.executionHint.trim(), isNotEmpty);
+      }
+    });
   });
 }

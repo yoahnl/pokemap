@@ -16,6 +16,7 @@ enum _ScenarioConditionMode {
   flagSet,
   flagUnset,
   eventConsumed,
+  playerOnMap,
   variableEquals,
   rawJson,
 }
@@ -26,6 +27,7 @@ String _conditionModeLabel(_ScenarioConditionMode mode) {
     _ScenarioConditionMode.flagSet => 'Flag actif',
     _ScenarioConditionMode.flagUnset => 'Flag inactif',
     _ScenarioConditionMode.eventConsumed => 'Event consommé',
+    _ScenarioConditionMode.playerOnMap => 'Player sur map',
     _ScenarioConditionMode.variableEquals => 'Variable égale',
     _ScenarioConditionMode.rawJson => 'JSON brut (avancé)',
   };
@@ -40,6 +42,8 @@ String _conditionModeDescription(_ScenarioConditionMode mode) {
       'Passe sur cette branche si le flag est inactif.',
     _ScenarioConditionMode.eventConsumed =>
       'Passe sur cette branche si cet event a déjà été consommé.',
+    _ScenarioConditionMode.playerOnMap =>
+      'Passe sur cette branche si le joueur est sur la map ciblée.',
     _ScenarioConditionMode.variableEquals =>
       'Compare une variable persistante à une valeur.',
     _ScenarioConditionMode.rawJson =>
@@ -789,9 +793,52 @@ class _ScenarioInspectorPanelState
             _helpCard(
               context,
               title: actionPreset.label,
-              description: actionPreset.description,
+              description:
+                  '${actionPreset.description}\n${actionPreset.executionHint}',
               accent: EditorChrome.inspectorJoyCyan,
             ),
+          const SizedBox(height: 6),
+          _quickHelpCard(
+            context,
+            title: 'Usages courants',
+            lines: const <String>[
+              'Entrée zone -> dialogue : Action = Ouvrir un dialogue, puis choisis le dialogue.',
+              'Parler à un PNJ -> séquence : Action = Exécuter un script.',
+              'Combat dresseur : Action = Démarrer un combat dresseur + Trainer.',
+              'Activer quelque chose en map : Action = Trigger / Event / Warp + Map.',
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _tinyInsertButton(
+                context,
+                label: 'Preset entrée zone → dialogue',
+                onPressed: () {
+                  _nodeActionKindController.text = 'openDialogue';
+                  setState(() {});
+                },
+              ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset PNJ → script',
+                onPressed: () {
+                  _nodeActionKindController.text = 'runScript';
+                  setState(() {});
+                },
+              ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset combat dresseur',
+                onPressed: () {
+                  _nodeActionKindController.text = 'startTrainerBattle';
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
           if (actionPreset != null) ...[
             const SizedBox(height: 6),
             ..._buildFieldsForActionPreset(
@@ -822,6 +869,40 @@ class _ScenarioInspectorPanelState
             accent: EditorChrome.inspectorJoyAmber,
           ),
           const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _tinyInsertButton(
+                context,
+                label: 'Preset flag actif',
+                onPressed: () {
+                  setState(() {
+                    _conditionMode = _ScenarioConditionMode.flagSet;
+                  });
+                },
+              ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset event consommé',
+                onPressed: () {
+                  setState(() {
+                    _conditionMode = _ScenarioConditionMode.eventConsumed;
+                  });
+                },
+              ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset player sur map',
+                onPressed: () {
+                  setState(() {
+                    _conditionMode = _ScenarioConditionMode.playerOnMap;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
           ..._buildFieldsForConditionMode(
             context,
             state: state,
@@ -834,6 +915,7 @@ class _ScenarioInspectorPanelState
             lines: const <String>[
               'Start -> Condition -> branche A / branche B',
               'Flag actif -> branche progression ; flag inactif -> branche blocage',
+              'Entrée en zone -> vérifier un flag puis ouvrir un dialogue dans la branche vraie.',
             ],
           ),
         ];
@@ -861,9 +943,51 @@ class _ScenarioInspectorPanelState
             _helpCard(
               context,
               title: actionPreset.label,
-              description: actionPreset.description,
+              description:
+                  '${actionPreset.description}\n${actionPreset.executionHint}',
               accent: EditorChrome.inspectorJoyBlue,
             ),
+          const SizedBox(height: 6),
+          _quickHelpCard(
+            context,
+            title: 'Usages courants',
+            lines: const <String>[
+              'Parler à un PNJ : Référence entité + map.',
+              'Lier une entrée de bâtiment : Référence warp + map.',
+              'Lier un déclencheur de zone : Référence trigger + map.',
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _tinyInsertButton(
+                context,
+                label: 'Preset référence PNJ',
+                onPressed: () {
+                  _nodeActionKindController.text = 'referenceEntity';
+                  setState(() {});
+                },
+              ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset référence event',
+                onPressed: () {
+                  _nodeActionKindController.text = 'referenceEvent';
+                  setState(() {});
+                },
+              ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset référence trigger',
+                onPressed: () {
+                  _nodeActionKindController.text = 'referenceTrigger';
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
           if (actionPreset != null) ...[
             const SizedBox(height: 6),
             ..._buildFieldsForActionPreset(
@@ -1023,8 +1147,12 @@ class _ScenarioInspectorPanelState
     required String helper,
     required String? value,
     required VoidCallback onPick,
+    bool enabled = true,
+    String? disabledHelper,
   }) {
     final effective = value == null || value.trim().isEmpty ? 'Aucune' : value;
+    final effectiveHelper =
+        enabled ? helper : (disabledHelper ?? 'Champ indisponible');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1044,7 +1172,7 @@ class _ScenarioInspectorPanelState
             context,
             tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.12),
           ),
-          onPressed: onPick,
+          onPressed: enabled ? onPick : null,
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -1058,7 +1186,7 @@ class _ScenarioInspectorPanelState
         ),
         const SizedBox(height: 3),
         Text(
-          helper,
+          effectiveHelper,
           style: TextStyle(
             color: CupertinoColors.secondaryLabel.resolveFrom(context),
             fontSize: 10.5,
@@ -1110,6 +1238,149 @@ class _ScenarioInspectorPanelState
       ],
     );
   }
+
+  Widget _suggestedTextField(
+    BuildContext context, {
+    required String label,
+    required TextEditingController controller,
+    required String placeholder,
+    required String helper,
+    required List<String> suggestions,
+    required String pickerTitle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _labeledField(
+          context,
+          label: label,
+          controller: controller,
+          placeholder: placeholder,
+          helper: helper,
+        ),
+        if (suggestions.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            minimumSize: const Size(0, 24),
+            color: EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.1),
+            ),
+            onPressed: () => _pickSuggestedTextValue(
+              context,
+              title: pickerTitle,
+              suggestions: suggestions,
+              controller: controller,
+            ),
+            child: Text(
+              'Choisir une valeur existante (${suggestions.length})',
+              style: TextStyle(
+                fontSize: 10.5,
+                color: CupertinoColors.label.resolveFrom(context),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _pickSuggestedTextValue(
+    BuildContext context, {
+    required String title,
+    required List<String> suggestions,
+    required TextEditingController controller,
+  }) async {
+    final items = <String?>[null, ...suggestions];
+    final picked = await showCupertinoListPicker<String?>(
+      context: context,
+      title: title,
+      items: items,
+      labelOf: (value) => value ?? 'Effacer la valeur',
+    );
+    if (!mounted) return;
+    controller.text = picked ?? '';
+    setState(() {});
+  }
+
+  List<String> _knownFlagSuggestions(ProjectManifest project) {
+    final values = <String>{};
+    for (final scenario in project.scenarios) {
+      for (final node in scenario.nodes) {
+        final bindingFlag = node.binding.flagName?.trim() ?? '';
+        if (bindingFlag.isNotEmpty) {
+          values.add(bindingFlag);
+        }
+        final paramFlag =
+            node.payload.params[ScriptConditionParams.flagName]?.trim() ?? '';
+        if (paramFlag.isNotEmpty) {
+          values.add(paramFlag);
+        }
+        _collectConditionSuggestions(
+          node.payload.condition,
+          flags: values,
+          variables: <String>{},
+        );
+      }
+    }
+    final sorted = values.toList(growable: false)..sort();
+    return sorted;
+  }
+
+  List<String> _knownVariableSuggestions(ProjectManifest project) {
+    final values = <String>{};
+    for (final scenario in project.scenarios) {
+      for (final node in scenario.nodes) {
+        final bindingVariable = node.binding.variableName?.trim() ?? '';
+        if (bindingVariable.isNotEmpty) {
+          values.add(bindingVariable);
+        }
+        final paramVariable =
+            node.payload.params[ScriptConditionParams.variableName]?.trim() ??
+                '';
+        if (paramVariable.isNotEmpty) {
+          values.add(paramVariable);
+        }
+        _collectConditionSuggestions(
+          node.payload.condition,
+          flags: <String>{},
+          variables: values,
+        );
+      }
+    }
+    final sorted = values.toList(growable: false)..sort();
+    return sorted;
+  }
+
+  void _collectConditionSuggestions(
+    ScriptCondition? condition, {
+    required Set<String> flags,
+    required Set<String> variables,
+  }) {
+    if (condition == null) {
+      return;
+    }
+    final flag = condition.params[ScriptConditionParams.flagName]?.trim() ?? '';
+    if (flag.isNotEmpty) {
+      flags.add(flag);
+    }
+    final variable =
+        condition.params[ScriptConditionParams.variableName]?.trim() ?? '';
+    if (variable.isNotEmpty) {
+      variables.add(variable);
+    }
+    for (final child in condition.children) {
+      _collectConditionSuggestions(
+        child,
+        flags: flags,
+        variables: variables,
+      );
+    }
+  }
+
+  bool get _hasSelectedMapBinding =>
+      _nodeMapIdController.text.trim().isNotEmpty;
 
   Widget _helpCard(
     BuildContext context, {
@@ -1202,6 +1473,56 @@ class _ScenarioInspectorPanelState
     );
   }
 
+  Widget _mapContextCard(
+    BuildContext context, {
+    required EditorState state,
+    required ProjectManifest project,
+  }) {
+    final mapId = _nodeMapIdController.text.trim();
+    if (mapId.isEmpty) {
+      return _helpCard(
+        context,
+        title: 'Contexte map',
+        description:
+            'Choisis d’abord une map pour afficher les events, entités, warps et triggers disponibles.',
+        accent: EditorChrome.inspectorJoyBlue,
+      );
+    }
+    return FutureBuilder<MapData?>(
+      future: _loadMapById(state: state, project: project, mapId: mapId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return _helpCard(
+            context,
+            title: 'Contexte map',
+            description: 'Chargement de la map "$mapId"...',
+            accent: EditorChrome.inspectorJoyBlue,
+          );
+        }
+        final map = snapshot.data;
+        if (map == null) {
+          return _helpCard(
+            context,
+            title: 'Contexte map',
+            description:
+                'Impossible de charger "$mapId". Vérifie la map sélectionnée.',
+            accent: EditorChrome.inspectorJoyCoral,
+          );
+        }
+        return _quickHelpCard(
+          context,
+          title: 'Contenu de map : ${map.name} (${map.id})',
+          lines: <String>[
+            'Events : ${map.events.length}',
+            'Entités : ${map.entities.length}',
+            'Warps : ${map.warps.length}',
+            'Triggers : ${map.triggers.length}',
+          ],
+        );
+      },
+    );
+  }
+
   Widget _actionPickerField(
     BuildContext context, {
     required bool referenceMode,
@@ -1209,8 +1530,8 @@ class _ScenarioInspectorPanelState
   }) {
     final title = referenceMode ? 'Type de référence' : 'Action';
     final helper = referenceMode
-        ? 'Définit ce que ce node référence dans le projet.'
-        : 'Définit ce que fait ce node Action.';
+        ? 'Le node est de type Reference. Ce champ précise la ressource cible.'
+        : 'Le node est de type Action. Ce champ précise l’effet concret.';
     final value = selectedPreset?.label ??
         (_nodeActionKindController.text.trim().isEmpty
             ? 'Aucune'
@@ -1252,6 +1573,8 @@ class _ScenarioInspectorPanelState
     required ProjectManifest project,
     required ScenarioActionPreset preset,
   }) {
+    final knownFlags = _knownFlagSuggestions(project);
+    final knownVariables = _knownVariableSuggestions(project);
     final widgets = <Widget>[];
     if (preset.fields.contains(ScenarioActionField.message)) {
       widgets.add(
@@ -1322,6 +1645,8 @@ class _ScenarioInspectorPanelState
           context,
           title: 'Event ID',
           helper: 'Choisis un event existant sur la map sélectionnée.',
+          enabled: _hasSelectedMapBinding,
+          disabledHelper: 'Choisis d’abord une map.',
           value: _optionalValue(_nodeEventIdController.text),
           onPick: () => _pickMapEventBinding(context, state, project),
         ),
@@ -1334,6 +1659,8 @@ class _ScenarioInspectorPanelState
           context,
           title: 'Entity ID',
           helper: 'Choisis une entité existante sur la map sélectionnée.',
+          enabled: _hasSelectedMapBinding,
+          disabledHelper: 'Choisis d’abord une map.',
           value: _optionalValue(_nodeEntityIdController.text),
           onPick: () => _pickMapEntityBinding(context, state, project),
         ),
@@ -1346,6 +1673,8 @@ class _ScenarioInspectorPanelState
           context,
           title: 'Warp ID',
           helper: 'Choisis un warp existant sur la map sélectionnée.',
+          enabled: _hasSelectedMapBinding,
+          disabledHelper: 'Choisis d’abord une map.',
           value: _optionalValue(_nodeWarpIdController.text),
           onPick: () => _pickMapWarpBinding(context, state, project),
         ),
@@ -1358,6 +1687,8 @@ class _ScenarioInspectorPanelState
           context,
           title: 'Trigger ID',
           helper: 'Choisis un trigger existant sur la map sélectionnée.',
+          enabled: _hasSelectedMapBinding,
+          disabledHelper: 'Choisis d’abord une map.',
           value: _optionalValue(_nodeTriggerIdController.text),
           onPick: () => _pickMapTriggerBinding(context, state, project),
         ),
@@ -1366,23 +1697,28 @@ class _ScenarioInspectorPanelState
     if (preset.fields.contains(ScenarioActionField.flagName)) {
       if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
       widgets.add(
-        _labeledField(
+        _suggestedTextField(
           context,
           label: 'Flag Name',
           controller: _nodeFlagNameController,
           placeholder: 'story.got_starter',
           helper: 'Nom du flag persistant à modifier.',
+          suggestions: knownFlags,
+          pickerTitle: 'Flags connus (scénarios)',
         ),
       );
     }
     if (preset.fields.contains(ScenarioActionField.variableName)) {
       if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
       widgets.add(
-        _labeledField(
+        _suggestedTextField(
           context,
           label: 'Variable Name',
           controller: _nodeVariableNameController,
           placeholder: 'quest.professor.progress',
+          helper: 'Variable persistante liée à la progression.',
+          suggestions: knownVariables,
+          pickerTitle: 'Variables connues (scénarios)',
         ),
       );
     }
@@ -1397,6 +1733,16 @@ class _ScenarioInspectorPanelState
         ),
       );
     }
+    if (preset.fields.contains(ScenarioActionField.map)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _mapContextCard(
+          context,
+          state: state,
+          project: project,
+        ),
+      );
+    }
     return widgets;
   }
 
@@ -1405,6 +1751,8 @@ class _ScenarioInspectorPanelState
     required EditorState state,
     required ProjectManifest project,
   }) {
+    final knownFlags = _knownFlagSuggestions(project);
+    final knownVariables = _knownVariableSuggestions(project);
     switch (_conditionMode) {
       case _ScenarioConditionMode.none:
         return <Widget>[
@@ -1418,22 +1766,26 @@ class _ScenarioInspectorPanelState
         ];
       case _ScenarioConditionMode.flagSet:
         return <Widget>[
-          _labeledField(
+          _suggestedTextField(
             context,
             label: 'Flag Name',
             controller: _nodeConditionFlagNameController,
             placeholder: 'story.got_starter',
             helper: 'Ex: story.got_starter',
+            suggestions: knownFlags,
+            pickerTitle: 'Flags connus (scénarios)',
           ),
         ];
       case _ScenarioConditionMode.flagUnset:
         return <Widget>[
-          _labeledField(
+          _suggestedTextField(
             context,
             label: 'Flag Name',
             controller: _nodeConditionFlagNameController,
             placeholder: 'story.got_starter',
             helper: 'La condition sera vraie tant que ce flag n’est pas actif.',
+            suggestions: knownFlags,
+            pickerTitle: 'Flags connus (scénarios)',
           ),
         ];
       case _ScenarioConditionMode.eventConsumed:
@@ -1451,17 +1803,44 @@ class _ScenarioInspectorPanelState
             context,
             title: 'Event ID',
             helper: 'Event consommé à tester.',
+            enabled: _hasSelectedMapBinding,
+            disabledHelper: 'Choisis d’abord une map.',
             value: _optionalValue(_nodeEventIdController.text),
             onPick: () => _pickMapEventBinding(context, state, project),
+          ),
+          const SizedBox(height: 6),
+          _mapContextCard(
+            context,
+            state: state,
+            project: project,
+          ),
+        ];
+      case _ScenarioConditionMode.playerOnMap:
+        return <Widget>[
+          _bindingPickerField(
+            context,
+            title: 'Map',
+            helper: 'La condition est vraie si le joueur est sur cette map.',
+            value: _optionalValue(_nodeMapIdController.text),
+            onPick: () => _pickMapBinding(context, project),
+          ),
+          const SizedBox(height: 6),
+          _mapContextCard(
+            context,
+            state: state,
+            project: project,
           ),
         ];
       case _ScenarioConditionMode.variableEquals:
         return <Widget>[
-          _labeledField(
+          _suggestedTextField(
             context,
             label: 'Variable Name',
             controller: _nodeConditionVariableNameController,
             placeholder: 'quest.professor.progress',
+            helper: 'Variable persistante à comparer.',
+            suggestions: knownVariables,
+            pickerTitle: 'Variables connues (scénarios)',
           ),
           const SizedBox(height: 6),
           _labeledField(
@@ -1898,6 +2277,14 @@ class _ScenarioInspectorPanelState
       pickerLabel: 'event',
     );
     if (map == null || !context.mounted) return;
+    if (map.events.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Aucun event',
+        message: 'La map "${map.name}" ne contient aucun event.',
+      );
+      return;
+    }
     final options = <_ScenarioMapScopedOption?>[
       null,
       ...map.events.map(
@@ -1931,6 +2318,14 @@ class _ScenarioInspectorPanelState
       pickerLabel: 'entity',
     );
     if (map == null || !context.mounted) return;
+    if (map.entities.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Aucune entité',
+        message: 'La map "${map.name}" ne contient aucune entité.',
+      );
+      return;
+    }
     final options = <_ScenarioMapScopedOption?>[
       null,
       ...map.entities.map(
@@ -1964,6 +2359,14 @@ class _ScenarioInspectorPanelState
       pickerLabel: 'warp',
     );
     if (map == null || !context.mounted) return;
+    if (map.warps.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Aucun warp',
+        message: 'La map "${map.name}" ne contient aucun warp.',
+      );
+      return;
+    }
     final options = <_ScenarioMapScopedOption?>[
       null,
       ...map.warps.map(
@@ -1997,6 +2400,14 @@ class _ScenarioInspectorPanelState
       pickerLabel: 'trigger',
     );
     if (map == null || !context.mounted) return;
+    if (map.triggers.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Aucun trigger',
+        message: 'La map "${map.name}" ne contient aucun trigger.',
+      );
+      return;
+    }
     final options = <_ScenarioMapScopedOption?>[
       null,
       ...map.triggers.map(
@@ -2181,16 +2592,28 @@ class _ScenarioInspectorPanelState
           }
           parsedCondition = ScriptConditionFactory.flagIsUnset(flag);
         case _ScenarioConditionMode.eventConsumed:
+          final mapId = _nodeMapIdController.text.trim();
           final eventId = _nodeEventIdController.text.trim();
-          if (eventId.isEmpty) {
+          if (mapId.isEmpty || eventId.isEmpty) {
             await showCupertinoEditorAlert(
               context,
-              title: 'Event requis',
-              message: 'Choisis un Event ID.',
+              title: 'Map + event requis',
+              message: 'Choisis une map puis un Event ID.',
             );
             return;
           }
           parsedCondition = ScriptConditionFactory.eventIsConsumed(eventId);
+        case _ScenarioConditionMode.playerOnMap:
+          final mapId = _nodeMapIdController.text.trim();
+          if (mapId.isEmpty) {
+            await showCupertinoEditorAlert(
+              context,
+              title: 'Map requise',
+              message: 'Choisis une map pour ce test.',
+            );
+            return;
+          }
+          parsedCondition = ScriptConditionFactory.playerOnMap(mapId);
         case _ScenarioConditionMode.variableEquals:
           final variableName = _nodeConditionVariableNameController.text.trim();
           final value = _nodeConditionVariableValueController.text.trim();
@@ -2291,6 +2714,7 @@ class _ScenarioInspectorPanelState
       ScriptConditionType.flagIsUnset => _ScenarioConditionMode.flagUnset,
       ScriptConditionType.eventIsConsumed =>
         _ScenarioConditionMode.eventConsumed,
+      ScriptConditionType.playerOnMap => _ScenarioConditionMode.playerOnMap,
       ScriptConditionType.variableEquals =>
         _ScenarioConditionMode.variableEquals,
       _ => _ScenarioConditionMode.rawJson,
@@ -2379,6 +2803,12 @@ class _ScenarioInspectorPanelState
       final eventId = condition?.params[ScriptConditionParams.eventId] ?? '';
       if (eventId.isNotEmpty) {
         _nodeEventIdController.text = eventId;
+      }
+    }
+    if (_conditionMode == _ScenarioConditionMode.playerOnMap) {
+      final mapId = condition?.params[ScriptConditionParams.mapId] ?? '';
+      if (mapId.isNotEmpty) {
+        _nodeMapIdController.text = mapId;
       }
     }
   }
