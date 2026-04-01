@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
 import 'character_library_panel.dart';
+import 'script_library_panel.dart';
 import 'terrain_editor_panel.dart';
 import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
@@ -825,6 +826,7 @@ class ProjectExplorerPanel extends ConsumerStatefulWidget {
 class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandTileLib = true;
   bool _expandScriptLib = true;
+  bool _expandScenarioScripts = true;
   bool _expandWorld = true;
   bool _expandTerrains = true;
   bool _expandPaths = true;
@@ -936,7 +938,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Tilesets, scripts (.yarn), maps and surfaces',
+                  'Tilesets, dialogues, scenario scripts, maps and surfaces',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1062,7 +1064,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
-          title: 'Script Library',
+          title: 'Dialogue Library',
           subtitle: '.yarn under dialogues/ — drag folders to organize',
           icon: CupertinoIcons.doc_text_fill,
           accentColor: EditorChrome.inspectorJoyLilac,
@@ -1096,13 +1098,27 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 enabled: true,
                 icon: CupertinoIcons.square_arrow_down,
                 tooltip: 'Import .yarn or .txt',
-                onPressed: () => _importProjectDialoguePicker(context, notifier),
+                onPressed: () =>
+                    _importProjectDialoguePicker(context, notifier),
                 iconColor: actionIcon,
                 hoverFill: actionHover,
               ),
             ],
           ),
           child: _buildScriptLibraryIsland(context, project, state, notifier),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Scenario Scripts',
+          subtitle: 'Project scripts used by event pages (scriptId)',
+          icon: CupertinoIcons.chevron_left_slash_chevron_right,
+          accentColor: EditorChrome.inspectorJoyCyan,
+          badgeText: '${project.scripts.length}',
+          expanded: _expandScenarioScripts,
+          onToggle: () =>
+              setState(() => _expandScenarioScripts = !_expandScenarioScripts),
+          expandedHeight: hScript,
+          child: const ScriptLibraryPanel(embedded: true),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
@@ -1161,8 +1177,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           accentColor: EditorChrome.accentCoral,
           badgeText: '${project.trainers.length}',
           expanded: _expandTrainers,
-          onToggle: () =>
-              setState(() => _expandTrainers = !_expandTrainers),
+          onToggle: () => setState(() => _expandTrainers = !_expandTrainers),
           expandedHeight: hTrainers,
           child: const TrainerLibraryPanel(embedded: true),
         ),
@@ -1219,7 +1234,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     return SingleChildScrollView(
       primary: false,
       padding: const EdgeInsets.only(bottom: 8),
-      child: _buildScriptLibrarySection(context, project, state, notifier, tree),
+      child:
+          _buildScriptLibrarySection(context, project, state, notifier, tree),
     );
   }
 
@@ -1388,141 +1404,141 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           }
 
           return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Import Tileset',
-              style: editorMacosSheetTitleStyle(ctx),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              p.basename(sourcePath),
-              style: TextStyle(
-                fontSize: 12,
-                color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Import Tileset',
+                style: editorMacosSheetTitleStyle(ctx),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 10),
-            Text('Tileset Name', style: editorMacosFormLabelStyle(ctx)),
-            const SizedBox(height: 6),
-            MacosTextField(controller: nameController),
-            const SizedBox(height: 10),
-            Text('Library folder', style: editorMacosFormLabelStyle(ctx)),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PushButton(
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: () async {
-                  final options = <_ImportLibraryDest>[
-                    const _ImportLibraryDest('Library root', null),
-                    ...flattenTilesetFoldersForPicker(project)
-                        .map((r) => _ImportLibraryDest(r.label, r.id)),
-                  ];
-                  final p = await showCupertinoListPicker<_ImportLibraryDest>(
-                    context: ctx,
-                    title: 'Library folder',
-                    items: options,
-                    labelOf: (o) => o.label,
-                  );
-                  if (p != null) {
-                    setState(() => importLibraryFolderId = p.folderId);
-                  }
-                },
-                child: Text(libraryFolderButtonLabel()),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PushButton(
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: () async {
-                  final s = await showCupertinoListPicker<TilesetScope>(
-                    context: ctx,
-                    title: 'Scope',
-                    items: TilesetScope.values,
-                    labelOf: (v) =>
-                        v == TilesetScope.global ? 'Global' : 'Group',
-                  );
-                  if (s != null) setState(() => scope = s);
-                },
-                child: Text(
-                  'Scope: ${scope == TilesetScope.global ? 'Global' : 'Group'}',
+              const SizedBox(height: 12),
+              Text(
+                p.basename(sourcePath),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            if (scope == TilesetScope.group) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
+              Text('Tileset Name', style: editorMacosFormLabelStyle(ctx)),
+              const SizedBox(height: 6),
+              MacosTextField(controller: nameController),
+              const SizedBox(height: 10),
+              Text('Library folder', style: editorMacosFormLabelStyle(ctx)),
+              const SizedBox(height: 6),
               Align(
                 alignment: Alignment.centerLeft,
                 child: PushButton(
                   controlSize: ControlSize.regular,
                   secondary: true,
                   onPressed: () async {
-                    final g = await showCupertinoListPicker<ProjectMapGroup>(
+                    final options = <_ImportLibraryDest>[
+                      const _ImportLibraryDest('Library root', null),
+                      ...flattenTilesetFoldersForPicker(project)
+                          .map((r) => _ImportLibraryDest(r.label, r.id)),
+                    ];
+                    final p = await showCupertinoListPicker<_ImportLibraryDest>(
                       context: ctx,
-                      title: 'Group',
-                      items: project.groups,
-                      labelOf: (x) => x.name,
+                      title: 'Library folder',
+                      items: options,
+                      labelOf: (o) => o.label,
                     );
-                    if (g != null) {
-                      setState(() => selectedGroupId = g.id);
+                    if (p != null) {
+                      setState(() => importLibraryFolderId = p.folderId);
                     }
                   },
+                  child: Text(libraryFolderButtonLabel()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PushButton(
+                  controlSize: ControlSize.regular,
+                  secondary: true,
+                  onPressed: () async {
+                    final s = await showCupertinoListPicker<TilesetScope>(
+                      context: ctx,
+                      title: 'Scope',
+                      items: TilesetScope.values,
+                      labelOf: (v) =>
+                          v == TilesetScope.global ? 'Global' : 'Group',
+                    );
+                    if (s != null) setState(() => scope = s);
+                  },
                   child: Text(
-                    'Group: ${project.groups.firstWhere((g) => g.id == selectedGroupId, orElse: () => project.groups.first).name}',
+                    'Scope: ${scope == TilesetScope.global ? 'Global' : 'Group'}',
                   ),
                 ),
               ),
-            ],
-            if (scope == TilesetScope.global) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  MacosSwitch(
-                    value: isWorld,
-                    onChanged: (v) => setState(() => isWorld = v),
+              if (scope == TilesetScope.group) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PushButton(
+                    controlSize: ControlSize.regular,
+                    secondary: true,
+                    onPressed: () async {
+                      final g = await showCupertinoListPicker<ProjectMapGroup>(
+                        context: ctx,
+                        title: 'Group',
+                        items: project.groups,
+                        labelOf: (x) => x.name,
+                      );
+                      if (g != null) {
+                        setState(() => selectedGroupId = g.id);
+                      }
+                    },
+                    child: Text(
+                      'Group: ${project.groups.firstWhere((g) => g.id == selectedGroupId, orElse: () => project.groups.first).name}',
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text('Mark as world tileset'),
+                ),
+              ],
+              if (scope == TilesetScope.global) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    MacosSwitch(
+                      value: isWorld,
+                      onChanged: (v) => setState(() => isWorld = v),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text('Mark as world tileset'),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  PushButton(
+                    controlSize: ControlSize.large,
+                    secondary: true,
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 10),
+                  PushButton(
+                    controlSize: ControlSize.large,
+                    onPressed: () {
+                      if (nameController.text.trim().isEmpty) return;
+                      if (scope == TilesetScope.group &&
+                          selectedGroupId == null) {
+                        return;
+                      }
+                      shouldImport = true;
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('Import'),
                   ),
                 ],
               ),
             ],
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                PushButton(
-                  controlSize: ControlSize.large,
-                  secondary: true,
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 10),
-                PushButton(
-                  controlSize: ControlSize.large,
-                  onPressed: () {
-                    if (nameController.text.trim().isEmpty) return;
-                    if (scope == TilesetScope.group &&
-                        selectedGroupId == null) {
-                      return;
-                    }
-                    shouldImport = true;
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('Import'),
-                ),
-              ],
-            ),
-          ],
-        );
+          );
         },
       ),
     );
@@ -1666,8 +1682,7 @@ class _SidebarHeaderActionState extends State<_SidebarHeaderAction> {
               widget.icon,
               size: 16,
               color: enabled
-                  ? (widget.iconColor ??
-                      EditorChrome.primaryLabel(context))
+                  ? (widget.iconColor ?? EditorChrome.primaryLabel(context))
                   : CupertinoColors.inactiveGray.resolveFrom(context),
             ),
           ),
@@ -1714,7 +1729,8 @@ class _DialogueLibraryRootDropStrip extends StatelessWidget {
               border: Border.all(
                 color: hovering
                     ? plum.withValues(alpha: 0.75)
-                    : CupertinoColors.separator.resolveFrom(context)
+                    : CupertinoColors.separator
+                        .resolveFrom(context)
                         .withValues(alpha: 0.5),
               ),
             ),
@@ -1906,12 +1922,12 @@ class _DialogueScriptNode extends StatelessWidget {
       selected: selected,
       onTap: () => notifier.selectProjectDialogue(dialogue.id),
       onSecondaryTapDown: (d) => _showProjectDialogueContextMenu(
-            context,
-            d.globalPosition,
-            dialogue,
-            notifier,
-            project,
-          ),
+        context,
+        d.globalPosition,
+        dialogue,
+        notifier,
+        project,
+      ),
       leftIndent: leftIndent,
       leading: const MacosIcon(
         CupertinoIcons.doc_text_fill,
@@ -1934,12 +1950,12 @@ class _DialogueScriptNode extends StatelessWidget {
           iconSize: 16,
           color: selected ? MacosColors.white : null,
           onPressed: () => _showProjectDialogueContextMenu(
-                context,
-                editorMenuAnchorBelowWidget(btnContext),
-                dialogue,
-                notifier,
-                project,
-              ),
+            context,
+            editorMenuAnchorBelowWidget(btnContext),
+            dialogue,
+            notifier,
+            project,
+          ),
         ),
       ),
     );
@@ -2447,7 +2463,8 @@ class _TilesetLibraryRootDropStrip extends StatelessWidget {
               border: Border.all(
                 color: hovering
                     ? EditorChrome.accentWarm.withValues(alpha: 0.75)
-                    : CupertinoColors.separator.resolveFrom(context)
+                    : CupertinoColors.separator
+                        .resolveFrom(context)
                         .withValues(alpha: 0.5),
               ),
             ),
@@ -2456,9 +2473,7 @@ class _TilesetLibraryRootDropStrip extends StatelessWidget {
                 MacosIcon(
                   CupertinoIcons.square_stack_3d_up,
                   size: 14,
-                  color: hovering
-                      ? EditorChrome.accentWarm
-                      : subtle,
+                  color: hovering ? EditorChrome.accentWarm : subtle,
                 ),
                 const SizedBox(width: 8),
                 Expanded(

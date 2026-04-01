@@ -36,6 +36,7 @@ import '../../application/use_cases/project_management_use_cases.dart';
 import '../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../application/use_cases/project_dialogue_use_cases.dart';
 import '../../application/use_cases/project_dialogue_library_use_cases.dart';
+import '../../application/use_cases/project_script_use_cases.dart';
 import '../../application/use_cases/project_tileset_use_cases.dart';
 import '../../application/use_cases/terrain_preset_use_cases.dart';
 import '../../application/use_cases/terrain_use_cases.dart';
@@ -849,6 +850,57 @@ MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase(
   return MoveDialogueToLibraryRootUseCase(
     ref.watch(projectRepositoryProvider),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Project scenario scripts
+// ---------------------------------------------------------------------------
+
+@riverpod
+CreateProjectScriptUseCase createProjectScriptUseCase(
+    CreateProjectScriptUseCaseRef ref) {
+  return CreateProjectScriptUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+RenameProjectScriptUseCase renameProjectScriptUseCase(
+    RenameProjectScriptUseCaseRef ref) {
+  return RenameProjectScriptUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteProjectScriptUseCase deleteProjectScriptUseCase(
+    DeleteProjectScriptUseCaseRef ref) {
+  return DeleteProjectScriptUseCase(
+    ref.watch(projectRepositoryProvider),
+    ref.watch(mapRepositoryProvider),
+  );
+}
+
+@riverpod
+SetProjectScriptDefaultStartNodeUseCase setProjectScriptDefaultStartNodeUseCase(
+    SetProjectScriptDefaultStartNodeUseCaseRef ref) {
+  return SetProjectScriptDefaultStartNodeUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
+AddProjectScriptNodeUseCase addProjectScriptNodeUseCase(
+    AddProjectScriptNodeUseCaseRef ref) {
+  return AddProjectScriptNodeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+RenameProjectScriptNodeUseCase renameProjectScriptNodeUseCase(
+    RenameProjectScriptNodeUseCaseRef ref) {
+  return RenameProjectScriptNodeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteProjectScriptNodeUseCase deleteProjectScriptNodeUseCase(
+    DeleteProjectScriptNodeUseCaseRef ref) {
+  return DeleteProjectScriptNodeUseCase(ref.watch(projectRepositoryProvider));
 }
 
 // ---------------------------------------------------------------------------

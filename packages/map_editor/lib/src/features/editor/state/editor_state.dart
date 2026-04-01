@@ -86,6 +86,9 @@ class EditorState with _$EditorState {
     /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
     String? selectedProjectDialogueId,
 
+    /// Script scénario sélectionné dans l’explorateur (bibliothèque runtime).
+    String? selectedProjectScriptId,
+
     /// Dresseur sélectionné dans la bibliothèque dresseurs.
     String? selectedTrainerId,
 

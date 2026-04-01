@@ -139,6 +139,8 @@ class EditorNotifier extends _$EditorNotifier {
         selectedTilesetElementGroupId: null,
         selectedPlacedElementInstanceId: null,
         tilesElementsPanelMode: TilesElementsPanelMode.palette,
+        selectedProjectDialogueId: null,
+        selectedProjectScriptId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -189,6 +191,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedPlacedElementInstanceId: null,
         tilesElementsPanelMode: TilesElementsPanelMode.palette,
         selectedProjectDialogueId: null,
+        selectedProjectScriptId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -5300,6 +5303,193 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         errorMessage: 'Failed to move script to root: $e',
       );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project scenario scripts (bibliothèque runtime)
+  // ---------------------------------------------------------------------------
+
+  void selectProjectScript(String? scriptId) {
+    state = state.copyWith(selectedProjectScriptId: scriptId);
+  }
+
+  Future<void> createProjectScript({
+    required String name,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(createProjectScriptUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedProjectScriptId:
+            updated.scripts.isNotEmpty ? updated.scripts.last.id : null,
+        statusMessage: 'Script created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create script: $e');
+    }
+  }
+
+  Future<void> renameProjectScript({
+    required String scriptId,
+    required String name,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(renameProjectScriptUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scriptId: scriptId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to rename script: $e');
+    }
+  }
+
+  Future<void> deleteProjectScript(String scriptId) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteProjectScriptUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scriptId: scriptId,
+        alsoScanUnsavedMap: state.activeMap,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedProjectScriptId: state.selectedProjectScriptId == scriptId
+            ? null
+            : state.selectedProjectScriptId,
+        statusMessage: 'Script deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete script: $e');
+    }
+  }
+
+  Future<void> setProjectScriptDefaultStartNode({
+    required String scriptId,
+    required String nodeId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(setProjectScriptDefaultStartNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scriptId: scriptId,
+        nodeId: nodeId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Default start node updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to update default start node: $e',
+      );
+    }
+  }
+
+  Future<void> addProjectScriptNode({
+    required String scriptId,
+    required String title,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(addProjectScriptNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scriptId: scriptId,
+        title: title,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script node added',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to add script node: $e');
+    }
+  }
+
+  Future<void> renameProjectScriptNode({
+    required String scriptId,
+    required String nodeId,
+    required String title,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(renameProjectScriptNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scriptId: scriptId,
+        nodeId: nodeId,
+        title: title,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script node renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to rename script node: $e');
+    }
+  }
+
+  Future<void> deleteProjectScriptNode({
+    required String scriptId,
+    required String nodeId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteProjectScriptNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scriptId: scriptId,
+        nodeId: nodeId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Script node deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete script node: $e');
     }
   }
 

@@ -2396,6 +2396,146 @@ final moveDialogueToLibraryRootUseCaseProvider =
 // ignore: unused_element
 typedef MoveDialogueToLibraryRootUseCaseRef
     = AutoDisposeProviderRef<MoveDialogueToLibraryRootUseCase>;
+String _$createProjectScriptUseCaseHash() =>
+    r'ddcd48944dd8b63901efc5b1f801f05a189ae15d';
+
+/// See also [createProjectScriptUseCase].
+@ProviderFor(createProjectScriptUseCase)
+final createProjectScriptUseCaseProvider =
+    AutoDisposeProvider<CreateProjectScriptUseCase>.internal(
+  createProjectScriptUseCase,
+  name: r'createProjectScriptUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createProjectScriptUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateProjectScriptUseCaseRef
+    = AutoDisposeProviderRef<CreateProjectScriptUseCase>;
+String _$renameProjectScriptUseCaseHash() =>
+    r'4681ad5bed48f06d59b4cb737d9f904489fe81c6';
+
+/// See also [renameProjectScriptUseCase].
+@ProviderFor(renameProjectScriptUseCase)
+final renameProjectScriptUseCaseProvider =
+    AutoDisposeProvider<RenameProjectScriptUseCase>.internal(
+  renameProjectScriptUseCase,
+  name: r'renameProjectScriptUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameProjectScriptUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameProjectScriptUseCaseRef
+    = AutoDisposeProviderRef<RenameProjectScriptUseCase>;
+String _$deleteProjectScriptUseCaseHash() =>
+    r'a806814f798b09641514f200ac0ba255e9983c0b';
+
+/// See also [deleteProjectScriptUseCase].
+@ProviderFor(deleteProjectScriptUseCase)
+final deleteProjectScriptUseCaseProvider =
+    AutoDisposeProvider<DeleteProjectScriptUseCase>.internal(
+  deleteProjectScriptUseCase,
+  name: r'deleteProjectScriptUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteProjectScriptUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteProjectScriptUseCaseRef
+    = AutoDisposeProviderRef<DeleteProjectScriptUseCase>;
+String _$setProjectScriptDefaultStartNodeUseCaseHash() =>
+    r'654da188c403f909b08b366d04bfb244cbbd350b';
+
+/// See also [setProjectScriptDefaultStartNodeUseCase].
+@ProviderFor(setProjectScriptDefaultStartNodeUseCase)
+final setProjectScriptDefaultStartNodeUseCaseProvider =
+    AutoDisposeProvider<SetProjectScriptDefaultStartNodeUseCase>.internal(
+  setProjectScriptDefaultStartNodeUseCase,
+  name: r'setProjectScriptDefaultStartNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$setProjectScriptDefaultStartNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SetProjectScriptDefaultStartNodeUseCaseRef
+    = AutoDisposeProviderRef<SetProjectScriptDefaultStartNodeUseCase>;
+String _$addProjectScriptNodeUseCaseHash() =>
+    r'12d56800cb4cec28b1162f57400ae45821daf3f0';
+
+/// See also [addProjectScriptNodeUseCase].
+@ProviderFor(addProjectScriptNodeUseCase)
+final addProjectScriptNodeUseCaseProvider =
+    AutoDisposeProvider<AddProjectScriptNodeUseCase>.internal(
+  addProjectScriptNodeUseCase,
+  name: r'addProjectScriptNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addProjectScriptNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddProjectScriptNodeUseCaseRef
+    = AutoDisposeProviderRef<AddProjectScriptNodeUseCase>;
+String _$renameProjectScriptNodeUseCaseHash() =>
+    r'833b46a1398f2d3dff50ea2817b558472d06ba7c';
+
+/// See also [renameProjectScriptNodeUseCase].
+@ProviderFor(renameProjectScriptNodeUseCase)
+final renameProjectScriptNodeUseCaseProvider =
+    AutoDisposeProvider<RenameProjectScriptNodeUseCase>.internal(
+  renameProjectScriptNodeUseCase,
+  name: r'renameProjectScriptNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameProjectScriptNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameProjectScriptNodeUseCaseRef
+    = AutoDisposeProviderRef<RenameProjectScriptNodeUseCase>;
+String _$deleteProjectScriptNodeUseCaseHash() =>
+    r'0f5171f4490aa419d00f4db5deffd69e9982f5cc';
+
+/// See also [deleteProjectScriptNodeUseCase].
+@ProviderFor(deleteProjectScriptNodeUseCase)
+final deleteProjectScriptNodeUseCaseProvider =
+    AutoDisposeProvider<DeleteProjectScriptNodeUseCase>.internal(
+  deleteProjectScriptNodeUseCase,
+  name: r'deleteProjectScriptNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteProjectScriptNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteProjectScriptNodeUseCaseRef
+    = AutoDisposeProviderRef<DeleteProjectScriptNodeUseCase>;
 String _$createEncounterTableUseCaseHash() =>
     r'd97101b62faf54992523844b6d019b72db92c1f1';
 
