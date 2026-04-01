@@ -4,6 +4,8 @@
 /.qwen/settings.json.orig
 /docs/
 /project_overview.txt
+/review_bundle.sh
+/review_last_code.sh
 
 # Flutter/Dart build artifacts
 **/.dart_tool/
