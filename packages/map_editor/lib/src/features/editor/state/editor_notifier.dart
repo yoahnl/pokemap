@@ -134,6 +134,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedWarpId: null,
         selectedTriggerId: null,
         selectedEntityId: null,
+        selectedMapEventId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         selectedPlacedElementInstanceId: null,
@@ -182,6 +183,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedWarpId: null,
         selectedTriggerId: null,
         selectedEntityId: null,
+        selectedMapEventId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
         selectedPlacedElementInstanceId: null,
@@ -305,6 +307,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedWarpId: null,
         selectedTriggerId: null,
         selectedEntityId: null,
+        selectedMapEventId: null,
         selectedTilesetEditorId:
             _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
         selectedTilesetElementGroupId: null,
@@ -377,6 +380,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedWarpId: null,
         selectedTriggerId: null,
         selectedEntityId: null,
+        selectedMapEventId: null,
         selectedTilesetEditorId: nextSelectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
         selectedPlacedElementInstanceId: null,
@@ -543,6 +547,7 @@ class EditorNotifier extends _$EditorNotifier {
       String? selectedWarpId = state.selectedWarpId;
       String? selectedTriggerId = state.selectedTriggerId;
       String? selectedEntityId = state.selectedEntityId;
+      String? selectedMapEventId = state.selectedMapEventId;
       if (activeMap?.id == mapId) {
         activeMap = null;
         activePath = null;
@@ -550,6 +555,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedWarpId = null;
         selectedTriggerId = null;
         selectedEntityId = null;
+        selectedMapEventId = null;
         selectedTilesetEditorId = null;
         selectedTilesetElementGroupId = null;
         paletteCategoryFilter = null;
@@ -565,6 +571,7 @@ class EditorNotifier extends _$EditorNotifier {
             : _editorMapSessionCoordinator.resolveActiveLayerId(activeMap),
         activeBrush: activeBrush,
         selectedEntityId: selectedEntityId,
+        selectedMapEventId: selectedMapEventId,
         selectedWarpId: selectedWarpId,
         selectedTriggerId: selectedTriggerId,
         selectedTilesetEditorId: selectedTilesetEditorId,
@@ -2251,6 +2258,182 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  MapEventDefinition? getSelectedMapEvent() {
+    final map = state.activeMap;
+    final selectedMapEventId = state.selectedMapEventId;
+    if (map == null || selectedMapEventId == null) {
+      return null;
+    }
+    return findMapEventById(map, selectedMapEventId);
+  }
+
+  void placeOrSelectMapEventAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final existing = findMapEventAtPos(
+      map,
+      pos.x,
+      pos.y,
+      preferredLayerId: state.activeLayerId,
+    );
+    if (existing != null) {
+      selectMapEvent(existing.id);
+      return;
+    }
+    addMapEventAt(pos);
+  }
+
+  void addMapEventAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = _resolveEventPlacementLayerId(map);
+    if (layerId == null) {
+      state = state.copyWith(
+        errorMessage: 'No layer available to place a map event',
+      );
+      return;
+    }
+    final eventId = _generateUniqueMapEventId(map);
+    final created = MapEventDefinition(
+      id: eventId,
+      title: eventId,
+      position: EventPosition(layerId: layerId, x: pos.x, y: pos.y),
+      pages: const [
+        MapEventPage(
+          pageNumber: 0,
+          message: '',
+        ),
+      ],
+    );
+    try {
+      final updated = addMapEventToMap(map, event: created);
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: created.id,
+        statusMessage: 'Event "${created.id}" created',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create event: $e');
+    }
+  }
+
+  void selectMapEvent(String? eventId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    if (eventId == null) {
+      state = state.copyWith(
+        selectedMapEventId: null,
+        errorMessage: null,
+      );
+      return;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Event not found: $eventId');
+      return;
+    }
+    state = state.copyWith(
+      selectedMapEventId: event.id,
+      errorMessage: null,
+    );
+  }
+
+  void updateSelectedMapEvent({
+    required String id,
+    required String title,
+    required MapEventType type,
+    required String layerId,
+    required int x,
+    required int y,
+    required List<MapEventPage> pages,
+  }) {
+    final selectedMapEventId = state.selectedMapEventId;
+    if (selectedMapEventId == null) return;
+    updateMapEvent(
+      eventId: selectedMapEventId,
+      id: id,
+      title: title,
+      type: type,
+      position: EventPosition(layerId: layerId, x: x, y: y),
+      pages: pages,
+    );
+  }
+
+  void updateMapEvent({
+    required String eventId,
+    String? id,
+    String? title,
+    MapEventType? type,
+    EventPosition? position,
+    List<MapEventPage>? pages,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = updateMapEventOnMap(
+        map,
+        eventId: eventId,
+        id: id,
+        title: title,
+        type: type,
+        position: position,
+        pages: pages,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId:
+            id?.trim().isNotEmpty == true ? id!.trim() : eventId,
+        statusMessage: 'Event updated',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to update event: $e');
+    }
+  }
+
+  void deleteSelectedMapEvent() {
+    final selectedMapEventId = state.selectedMapEventId;
+    if (selectedMapEventId == null) return;
+    deleteMapEvent(selectedMapEventId);
+  }
+
+  void deleteMapEvent(String eventId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = removeMapEventFromMap(
+        map,
+        eventId: eventId,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: state.selectedMapEventId == eventId
+            ? null
+            : state.selectedMapEventId,
+        statusMessage: 'Event deleted',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete event: $e');
+    }
+  }
+
   void placeOrSelectEntityAt(GridPos pos) {
     final map = state.activeMap;
     if (map == null) return;
@@ -3221,10 +3404,16 @@ class EditorNotifier extends _$EditorNotifier {
       nextMap: restored.activeMap,
       nextActiveLayerId: restored.activeLayerId,
     );
+    final nextMapEventSelectionId = _resolveMapEventSelectionAfterMutation(
+      currentSelectionId: state.selectedMapEventId,
+      preferredSelectionId: null,
+      nextMap: restored.activeMap,
+    );
     state = state.copyWith(
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
       selectedEntityId: restored.selectedEntityId,
+      selectedMapEventId: nextMapEventSelectionId,
       selectedWarpId: restored.selectedWarpId,
       selectedTriggerId: restored.selectedTriggerId,
       selectedPlacedElementInstanceId: nextPlacedSelectionId,
@@ -3262,10 +3451,16 @@ class EditorNotifier extends _$EditorNotifier {
       nextMap: restored.activeMap,
       nextActiveLayerId: restored.activeLayerId,
     );
+    final nextMapEventSelectionId = _resolveMapEventSelectionAfterMutation(
+      currentSelectionId: state.selectedMapEventId,
+      preferredSelectionId: null,
+      nextMap: restored.activeMap,
+    );
     state = state.copyWith(
       activeMap: restored.activeMap,
       activeLayerId: restored.activeLayerId,
       selectedEntityId: restored.selectedEntityId,
+      selectedMapEventId: nextMapEventSelectionId,
       selectedWarpId: restored.selectedWarpId,
       selectedTriggerId: restored.selectedTriggerId,
       selectedPlacedElementInstanceId: nextPlacedSelectionId,
@@ -4623,8 +4818,8 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Animation triggers updated',
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to update animation triggers: $e');
+      state = state.copyWith(
+          errorMessage: 'Failed to update animation triggers: $e');
     }
   }
 
@@ -5552,6 +5747,7 @@ class EditorNotifier extends _$EditorNotifier {
     switch (tool) {
       case EditorToolType.selection:
       case EditorToolType.entityPlacement:
+      case EditorToolType.eventPlacement:
       case EditorToolType.triggerPlacement:
       case EditorToolType.warpPlacement:
       case EditorToolType.gameplayZonePlacement:
@@ -5590,6 +5786,7 @@ class EditorNotifier extends _$EditorNotifier {
     required MapData updatedMap,
     required String? preferredActiveLayerId,
     String? preferredSelectedEntityId,
+    String? preferredSelectedMapEventId,
     String? preferredSelectedWarpId,
     String? preferredSelectedTriggerId,
     bool partOfStroke = false,
@@ -5630,10 +5827,16 @@ class EditorNotifier extends _$EditorNotifier {
       nextMap: mutation.activeMap,
       nextActiveLayerId: mutation.activeLayerId,
     );
+    final nextMapEventSelectionId = _resolveMapEventSelectionAfterMutation(
+      currentSelectionId: state.selectedMapEventId,
+      preferredSelectionId: preferredSelectedMapEventId,
+      nextMap: mutation.activeMap,
+    );
     state = state.copyWith(
       activeMap: mutation.activeMap,
       activeLayerId: mutation.activeLayerId,
       selectedEntityId: mutation.selectedEntityId,
+      selectedMapEventId: nextMapEventSelectionId,
       selectedWarpId: mutation.selectedWarpId,
       selectedTriggerId: mutation.selectedTriggerId,
       selectedPlacedElementInstanceId: nextPlacedSelectionId,
@@ -5676,6 +5879,32 @@ class EditorNotifier extends _$EditorNotifier {
     return null;
   }
 
+  String? _resolveMapEventSelectionAfterMutation({
+    required String? currentSelectionId,
+    required String? preferredSelectionId,
+    required MapData nextMap,
+  }) {
+    final preferred = preferredSelectionId?.trim();
+    if (preferred != null && preferred.isNotEmpty) {
+      for (final event in nextMap.events) {
+        if (event.id == preferred) {
+          return preferred;
+        }
+      }
+      return null;
+    }
+    final current = currentSelectionId?.trim();
+    if (current == null || current.isEmpty) {
+      return null;
+    }
+    for (final event in nextMap.events) {
+      if (event.id == current) {
+        return current;
+      }
+    }
+    return null;
+  }
+
   int _findLayerIndexById(MapData map, String layerId) {
     return map.layers.indexWhere((layer) => layer.id == layerId);
   }
@@ -5687,6 +5916,31 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     return null;
+  }
+
+  String? _resolveEventPlacementLayerId(MapData map) {
+    final activeLayerId = state.activeLayerId?.trim();
+    if (activeLayerId != null &&
+        activeLayerId.isNotEmpty &&
+        map.layers.any((layer) => layer.id == activeLayerId)) {
+      return activeLayerId;
+    }
+    if (map.layers.isNotEmpty) {
+      return map.layers.first.id;
+    }
+    return null;
+  }
+
+  String _generateUniqueMapEventId(MapData map) {
+    final ids = map.events.map((event) => event.id).toSet();
+    if (!ids.contains('event')) {
+      return 'event';
+    }
+    var index = 1;
+    while (ids.contains('event_$index')) {
+      index++;
+    }
+    return 'event_$index';
   }
 
   // ---------------------------------------------------------------------------

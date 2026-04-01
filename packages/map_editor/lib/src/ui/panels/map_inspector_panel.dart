@@ -10,6 +10,7 @@ import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';
 import 'encounter_tables_panel.dart';
 import 'entity_properties_panel.dart';
+import 'event_properties_panel.dart';
 import 'gameplay_zone_properties_panel.dart';
 import 'layers_panel.dart';
 import 'map_connections_panel.dart';
@@ -26,6 +27,7 @@ enum _InspectorSectionId {
   ground,
   surfaces,
   entities,
+  events,
   connections,
   triggers,
   warps,
@@ -81,6 +83,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         state.activeTool == EditorToolType.entityPlacement ||
             state.selectedEntityId != null ||
             activeMap.entities.isNotEmpty;
+    final showEventSection =
+        state.activeTool == EditorToolType.eventPlacement ||
+            state.selectedMapEventId != null ||
+            activeMap.events.isNotEmpty;
     final showTriggerSection =
         state.activeTool == EditorToolType.triggerPlacement ||
             state.selectedTriggerId != null ||
@@ -229,6 +235,29 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                   ),
                   expandedHeight: 560,
                   child: const EntityPropertiesPanel(embedded: true),
+                ),
+              if (showEventSection)
+                InspectorSectionCard(
+                  title: 'Map Events',
+                  subtitle: state.selectedMapEventId != null
+                      ? 'Selected event ready for editing.'
+                      : 'Conditional event pages and script/message authoring.',
+                  icon: CupertinoIcons.flag,
+                  badgeText: '${activeMap.events.length}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.events,
+                    state.activeTool == EditorToolType.eventPlacement ||
+                        state.selectedMapEventId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.events,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.eventPlacement ||
+                            state.selectedMapEventId != null,
+                  ),
+                  expandedHeight: 620,
+                  child: const EventPropertiesPanel(embedded: true),
                 ),
               if (showConnectionsSection)
                 InspectorSectionCard(

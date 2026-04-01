@@ -154,6 +154,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 state.activeTool == EditorToolType.eraser;
         final isTapEditingTool = isStrokeEditingTool ||
             state.activeTool == EditorToolType.entityPlacement ||
+            state.activeTool == EditorToolType.eventPlacement ||
             state.activeTool == EditorToolType.warpPlacement ||
             state.activeTool == EditorToolType.triggerPlacement ||
             state.activeTool == EditorToolType.gameplayZonePlacement;
@@ -180,6 +181,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           }
           if (state.activeTool == EditorToolType.entityPlacement) {
             notifier.placeOrSelectEntityAt(gridPos);
+            return;
+          }
+          if (state.activeTool == EditorToolType.eventPlacement) {
+            notifier.placeOrSelectMapEventAt(gridPos);
             return;
           }
           if (state.activeTool == EditorToolType.warpPlacement) {
@@ -336,6 +341,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     gameplayZones: activeMap.gameplayZones,
                     gameplayZoneDraftArea: state.gameplayZoneDraftArea,
                     selectedEntityId: state.selectedEntityId,
+                    selectedMapEventId: state.selectedMapEventId,
                     selectedWarpId: state.selectedWarpId,
                     selectedTriggerId: state.selectedTriggerId,
                     selectedGameplayZoneId: state.selectedGameplayZoneId,
@@ -626,6 +632,7 @@ class MapGridPainter extends CustomPainter {
   final List<MapGameplayZone> gameplayZones;
   final MapRect? gameplayZoneDraftArea;
   final String? selectedEntityId;
+  final String? selectedMapEventId;
   final String? selectedWarpId;
   final String? selectedTriggerId;
   final String? selectedGameplayZoneId;
@@ -654,6 +661,7 @@ class MapGridPainter extends CustomPainter {
     required this.gameplayZones,
     this.gameplayZoneDraftArea,
     this.selectedEntityId,
+    this.selectedMapEventId,
     this.selectedWarpId,
     this.selectedTriggerId,
     this.selectedGameplayZoneId,
@@ -761,6 +769,7 @@ class MapGridPainter extends CustomPainter {
     _paintSelectedPlacedElementInstance(canvas);
     _paintToolPreview(canvas);
     _paintEntities(canvas);
+    _paintMapEvents(canvas);
     _paintTriggers(canvas);
     _paintWarps(canvas);
     _paintConnections(canvas, gridWidth, gridHeight);
@@ -1023,6 +1032,74 @@ class MapGridPainter extends CustomPainter {
         _paintEntityFallbackBody(canvas, entity, rect, isSelected);
       }
       _paintEntitySelectionAndChrome(canvas, entity, rect, isSelected);
+    }
+  }
+
+  void _paintMapEvents(Canvas canvas) {
+    if (map.events.isEmpty) return;
+    for (final event in map.events) {
+      final x = event.position.x;
+      final y = event.position.y;
+      if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+        continue;
+      }
+      final isSelected = event.id == selectedMapEventId;
+      final rect = Rect.fromLTWH(
+        x * tileWidth,
+        y * tileHeight,
+        tileWidth,
+        tileHeight,
+      );
+      final fill = Paint()
+        ..color = const Color(0xFF35E5D7).withValues(
+          alpha: isSelected ? 0.4 : 0.26,
+        )
+        ..style = PaintingStyle.fill;
+      final border = Paint()
+        ..color = isSelected
+            ? Colors.white
+            : const Color(0xFF35E5D7).withValues(alpha: 0.92)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
+      canvas.drawRect(rect, fill);
+      canvas.drawRect(rect, border);
+
+      final center = rect.center;
+      final radius = (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.17;
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()..color = isSelected ? Colors.white : const Color(0xFF0A4955),
+      );
+
+      if (rect.width < (34 / zoom) || rect.height < (20 / zoom)) {
+        continue;
+      }
+      final title = event.title.trim();
+      final label = title.isNotEmpty ? title : event.id;
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10 / zoom,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '...',
+      )..layout(maxWidth: rect.width - (8 / zoom));
+      if (textPainter.width <= 0 || textPainter.height <= 0) {
+        continue;
+      }
+      textPainter.paint(
+        canvas,
+        Offset(
+          rect.left + (4 / zoom),
+          rect.top + (3 / zoom),
+        ),
+      );
     }
   }
 
@@ -1617,12 +1694,13 @@ class MapGridPainter extends CustomPainter {
       tileWidth,
       tileHeight,
     );
-    
+
     // Check if the layer has animation triggers
     final hasAnimationTriggers = activePathLayer.animationTriggers.isNotEmpty;
     // If there are animation triggers, do not animate in the editor
-    final elapsedMs = hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
-    
+    final elapsedMs =
+        hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
+
     final painted = _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
@@ -1995,12 +2073,13 @@ class MapGridPainter extends CustomPainter {
       tileWidth,
       tileHeight,
     );
-    
+
     // Check if the layer has animation triggers
     final hasAnimationTriggers = layer.animationTriggers.isNotEmpty;
     // If there are animation triggers, do not animate in the editor
-    final elapsedMs = hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
-    
+    final elapsedMs =
+        hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
+
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,
@@ -2393,6 +2472,7 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.tileHeight != tileHeight ||
         !_sameToolPreview(oldDelegate.toolPreview, toolPreview) ||
         oldDelegate.selectedEntityId != selectedEntityId ||
+        oldDelegate.selectedMapEventId != selectedMapEventId ||
         oldDelegate.selectedWarpId != selectedWarpId ||
         oldDelegate.selectedTriggerId != selectedTriggerId ||
         oldDelegate.selectedGameplayZoneId != selectedGameplayZoneId ||

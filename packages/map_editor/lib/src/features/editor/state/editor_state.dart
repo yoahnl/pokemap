@@ -70,6 +70,7 @@ class EditorState with _$EditorState {
     @Default(CollisionBrushSizeMode.brushFootprint)
     CollisionBrushSizeMode collisionBrushSizeMode,
     String? selectedEntityId,
+    String? selectedMapEventId,
     String? selectedWarpId,
     String? selectedTriggerId,
     String? selectedGameplayZoneId,

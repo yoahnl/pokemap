@@ -78,10 +78,9 @@ class TopToolbar extends ConsumerWidget {
         activeLayer is TerrainLayer ||
         activeLayer is PathLayer;
 
-    final showTerrainTypePulldown =
-        activeLayer is TerrainLayer &&
-            state.activeTool == EditorToolType.terrainPaint &&
-            state.terrainSelectionMode == TerrainSelectionMode.terrain;
+    final showTerrainTypePulldown = activeLayer is TerrainLayer &&
+        state.activeTool == EditorToolType.terrainPaint &&
+        state.terrainSelectionMode == TerrainSelectionMode.terrain;
     final showEntityKindPulldown =
         state.activeTool == EditorToolType.entityPlacement;
     final showContextStrip =
@@ -202,16 +201,14 @@ class TopToolbar extends ConsumerWidget {
                 icon: CupertinoIcons.paintbrush,
                 tooltip: 'Tile Paint Tool',
                 selected: state.activeTool == EditorToolType.tilePaint,
-                onPressed: () =>
-                    notifier.selectTool(EditorToolType.tilePaint),
+                onPressed: () => notifier.selectTool(EditorToolType.tilePaint),
               ),
             if (activeLayer is TerrainLayer)
               _ToolbarCapsuleButton(
                 icon: CupertinoIcons.tree,
                 tooltip: 'Terrain Paint Tool',
                 selected: state.activeTool == EditorToolType.terrainPaint &&
-                    state.terrainSelectionMode ==
-                        TerrainSelectionMode.terrain,
+                    state.terrainSelectionMode == TerrainSelectionMode.terrain,
                 onPressed: () =>
                     notifier.selectTool(EditorToolType.terrainPaint),
               ),
@@ -229,8 +226,8 @@ class TopToolbar extends ConsumerWidget {
                 tooltip: 'Collision Paint Tool',
                 selected: state.activeTool == EditorToolType.collisionPaint,
                 onPressed: () => notifier.selectTool(
-                      EditorToolType.collisionPaint,
-                    ),
+                  EditorToolType.collisionPaint,
+                ),
               ),
               if (showCollisionBrushSize)
                 _ToolbarCapsuleButton(
@@ -242,9 +239,8 @@ class TopToolbar extends ConsumerWidget {
                           CollisionBrushSizeMode.singleTile
                       ? 'Collision Brush Size: 1x1'
                       : 'Collision Brush Size: Brush Footprint',
-                  selected:
-                      state.activeTool == EditorToolType.collisionPaint ||
-                          state.activeTool == EditorToolType.eraser,
+                  selected: state.activeTool == EditorToolType.collisionPaint ||
+                      state.activeTool == EditorToolType.eraser,
                   onPressed: notifier.toggleCollisionBrushSizeMode,
                 ),
             ],
@@ -253,8 +249,7 @@ class TopToolbar extends ConsumerWidget {
                 icon: CupertinoIcons.delete,
                 tooltip: 'Eraser Tool',
                 selected: state.activeTool == EditorToolType.eraser,
-                onPressed: () =>
-                    notifier.selectTool(EditorToolType.eraser),
+                onPressed: () => notifier.selectTool(EditorToolType.eraser),
               ),
           ],
         ),
@@ -269,6 +264,14 @@ class TopToolbar extends ConsumerWidget {
               selected: state.activeTool == EditorToolType.entityPlacement,
               onPressed: () => notifier.selectTool(
                 EditorToolType.entityPlacement,
+              ),
+            ),
+            _ToolbarCapsuleButton(
+              icon: CupertinoIcons.flag,
+              tooltip: 'Event Tool',
+              selected: state.activeTool == EditorToolType.eventPlacement,
+              onPressed: () => notifier.selectTool(
+                EditorToolType.eventPlacement,
               ),
             ),
             _ToolbarCapsuleButton(
@@ -596,8 +599,8 @@ class TopToolbar extends ConsumerWidget {
                         characters: characters,
                         selectedCharacterId: defaultPlayerCharacterId,
                         onPressed: () async {
-                          final picked =
-                              await showCupertinoListPicker<ProjectCharacterEntry?>(
+                          final picked = await showCupertinoListPicker<
+                              ProjectCharacterEntry?>(
                             context: ctx,
                             title: 'Default Player Character',
                             items: [null, ...characters],
@@ -628,15 +631,16 @@ class TopToolbar extends ConsumerWidget {
                         onPressed: () async {
                           final name = nameController.text.trim();
                           if (name.isEmpty) return;
-                          final e1 = validatePositiveInt(tileWidthController.text);
+                          final e1 =
+                              validatePositiveInt(tileWidthController.text);
                           final e2 =
                               validatePositiveInt(tileHeightController.text);
-                          final e3 =
-                              validatePositiveDouble(displayScaleController.text);
-                          final e4 =
-                              validatePositiveInt(defaultMapWidthController.text);
-                          final e5 =
-                              validatePositiveInt(defaultMapHeightController.text);
+                          final e3 = validatePositiveDouble(
+                              displayScaleController.text);
+                          final e4 = validatePositiveInt(
+                              defaultMapWidthController.text);
+                          final e5 = validatePositiveInt(
+                              defaultMapHeightController.text);
                           if (e1 != null ||
                               e2 != null ||
                               e3 != null ||
@@ -645,7 +649,8 @@ class TopToolbar extends ConsumerWidget {
                             return;
                           }
                           final updatedSettings = settings.copyWith(
-                            tileWidth: int.parse(tileWidthController.text.trim()),
+                            tileWidth:
+                                int.parse(tileWidthController.text.trim()),
                             tileHeight:
                                 int.parse(tileHeightController.text.trim()),
                             displayScale: double.parse(
@@ -808,7 +813,8 @@ class TopToolbar extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Default Player Character', style: editorMacosFormLabelStyle(context)),
+        Text('Default Player Character',
+            style: editorMacosFormLabelStyle(context)),
         const SizedBox(height: 6),
         PushButton(
           controlSize: ControlSize.large,
@@ -882,29 +888,29 @@ class _ToolbarBrand extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-              Text(
-                'RPG Map Editor',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: label,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.15,
+                Text(
+                  'RPG Map Editor',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.15,
+                  ),
                 ),
-              ),
-              Text(
-                projectName == null
-                    ? workspaceLabel
-                    : '$projectName  •  $workspaceLabel',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: subtle,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
+                Text(
+                  projectName == null
+                      ? workspaceLabel
+                      : '$projectName  •  $workspaceLabel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
               ],
             ),
           ),
@@ -923,7 +929,8 @@ class _ToolbarCapsuleGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleChildren = children.whereType<Widget>().toList(growable: false);
+    final visibleChildren =
+        children.whereType<Widget>().toList(growable: false);
     return SizedBox(
       height: 40,
       child: DecoratedBox(
@@ -992,9 +999,7 @@ class _ToolbarCapsuleButtonState extends State<_ToolbarCapsuleButton> {
       decoration: BoxDecoration(
         color: widget.selected
             ? selectedFill
-            : (_hovered
-                ? EditorChrome.toolbarMutedHoverFill(context)
-                : null),
+            : (_hovered ? EditorChrome.toolbarMutedHoverFill(context) : null),
         borderRadius: BorderRadius.circular(9),
       ),
       alignment: Alignment.center,

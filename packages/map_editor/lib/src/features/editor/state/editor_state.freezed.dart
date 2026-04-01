@@ -721,6 +721,7 @@ mixin _$EditorState {
   CollisionBrushSizeMode get collisionBrushSizeMode =>
       throw _privateConstructorUsedError;
   String? get selectedEntityId => throw _privateConstructorUsedError;
+  String? get selectedMapEventId => throw _privateConstructorUsedError;
   String? get selectedWarpId => throw _privateConstructorUsedError;
   String? get selectedTriggerId => throw _privateConstructorUsedError;
   String? get selectedGameplayZoneId => throw _privateConstructorUsedError;
@@ -791,6 +792,7 @@ abstract class $EditorStateCopyWith<$Res> {
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
+      String? selectedMapEventId,
       String? selectedWarpId,
       String? selectedTriggerId,
       String? selectedGameplayZoneId,
@@ -857,6 +859,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
+    Object? selectedMapEventId = freezed,
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
     Object? selectedGameplayZoneId = freezed,
@@ -950,6 +953,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedEntityId: freezed == selectedEntityId
           ? _value.selectedEntityId
           : selectedEntityId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedMapEventId: freezed == selectedMapEventId
+          ? _value.selectedMapEventId
+          : selectedMapEventId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedWarpId: freezed == selectedWarpId
           ? _value.selectedWarpId
@@ -1172,6 +1179,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
+      String? selectedMapEventId,
       String? selectedWarpId,
       String? selectedTriggerId,
       String? selectedGameplayZoneId,
@@ -1243,6 +1251,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
+    Object? selectedMapEventId = freezed,
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
     Object? selectedGameplayZoneId = freezed,
@@ -1336,6 +1345,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
       selectedEntityId: freezed == selectedEntityId
           ? _value.selectedEntityId
           : selectedEntityId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedMapEventId: freezed == selectedMapEventId
+          ? _value.selectedMapEventId
+          : selectedMapEventId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedWarpId: freezed == selectedWarpId
           ? _value.selectedWarpId
@@ -1459,6 +1472,7 @@ class _$EditorStateImpl implements _EditorState {
       final Map<TerrainType, String> selectedTerrainPresetByType = const {},
       this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
       this.selectedEntityId,
+      this.selectedMapEventId,
       this.selectedWarpId,
       this.selectedTriggerId,
       this.selectedGameplayZoneId,
@@ -1539,6 +1553,8 @@ class _$EditorStateImpl implements _EditorState {
   final CollisionBrushSizeMode collisionBrushSizeMode;
   @override
   final String? selectedEntityId;
+  @override
+  final String? selectedMapEventId;
   @override
   final String? selectedWarpId;
   @override
@@ -1622,7 +1638,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1664,6 +1680,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.collisionBrushSizeMode == collisionBrushSizeMode) &&
             (identical(other.selectedEntityId, selectedEntityId) ||
                 other.selectedEntityId == selectedEntityId) &&
+            (identical(other.selectedMapEventId, selectedMapEventId) ||
+                other.selectedMapEventId == selectedMapEventId) &&
             (identical(other.selectedWarpId, selectedWarpId) ||
                 other.selectedWarpId == selectedWarpId) &&
             (identical(other.selectedTriggerId, selectedTriggerId) ||
@@ -1679,8 +1697,7 @@ class _$EditorStateImpl implements _EditorState {
                     selectedTilesetElementGroupId) &&
             (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) ||
                 other.tilesElementsPanelMode == tilesElementsPanelMode) &&
-            (identical(other.selectedPlacedElementInstanceId,
-                    selectedPlacedElementInstanceId) ||
+            (identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) ||
                 other.selectedPlacedElementInstanceId ==
                     selectedPlacedElementInstanceId) &&
             (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) ||
@@ -1694,8 +1711,10 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
             (identical(other.panOffset, panOffset) ||
                 other.panOffset == panOffset) &&
-            const DeepCollectionEquality().equals(other._mapUndoStack, _mapUndoStack) &&
-            const DeepCollectionEquality().equals(other._mapRedoStack, _mapRedoStack) &&
+            const DeepCollectionEquality()
+                .equals(other._mapUndoStack, _mapUndoStack) &&
+            const DeepCollectionEquality()
+                .equals(other._mapRedoStack, _mapRedoStack) &&
             (identical(other.mapStrokeStart, mapStrokeStart) || other.mapStrokeStart == mapStrokeStart) &&
             (identical(other.savedMapSnapshot, savedMapSnapshot) || other.savedMapSnapshot == savedMapSnapshot) &&
             (identical(other.canUndoMap, canUndoMap) || other.canUndoMap == canUndoMap) &&
@@ -1726,6 +1745,7 @@ class _$EditorStateImpl implements _EditorState {
         const DeepCollectionEquality().hash(_selectedTerrainPresetByType),
         collisionBrushSizeMode,
         selectedEntityId,
+        selectedMapEventId,
         selectedWarpId,
         selectedTriggerId,
         selectedGameplayZoneId,
@@ -1780,6 +1800,7 @@ abstract class _EditorState implements EditorState {
       final Map<TerrainType, String> selectedTerrainPresetByType,
       final CollisionBrushSizeMode collisionBrushSizeMode,
       final String? selectedEntityId,
+      final String? selectedMapEventId,
       final String? selectedWarpId,
       final String? selectedTriggerId,
       final String? selectedGameplayZoneId,
@@ -1840,6 +1861,8 @@ abstract class _EditorState implements EditorState {
   CollisionBrushSizeMode get collisionBrushSizeMode;
   @override
   String? get selectedEntityId;
+  @override
+  String? get selectedMapEventId;
   @override
   String? get selectedWarpId;
   @override

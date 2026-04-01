@@ -28,6 +28,7 @@ export 'src/operations/path_animation_rules.dart';
 export 'src/operations/map_layers.dart';
 export 'src/operations/map_connections.dart';
 export 'src/operations/map_entities.dart';
+export 'src/operations/map_events.dart';
 export 'src/operations/map_placed_elements.dart';
 export 'src/operations/map_placed_element_animation.dart';
 export 'src/operations/map_entity_collision_footprint.dart';

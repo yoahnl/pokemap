@@ -2,8 +2,10 @@ import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import '../models/script_conditions.dart';
 import '../operations/map_entities.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
@@ -1198,6 +1200,26 @@ class MapValidator {
       }
     }
 
+    final scriptIds = projectDialogueContext == null
+        ? null
+        : {
+            for (final script in projectDialogueContext.scripts) script.id,
+          };
+    final layerIds = <String>{for (final layer in map.layers) layer.id};
+    for (final event in map.events) {
+      _validateMapEvent(
+        map,
+        event,
+        layerIds: layerIds,
+        knownScriptIds: scriptIds,
+      );
+    }
+    _validateUniqueIds(
+      map.events,
+      (event) => event.id,
+      duplicateMessagePrefix: 'Duplicate map event ID',
+    );
+
     for (final warp in map.warps) {
       final warpId = _requireNonBlank(warp.id, 'Warp ID cannot be empty');
       _requireNonBlank(warp.targetMapId, 'Warp $warpId has empty targetMapId');
@@ -1360,6 +1382,199 @@ class MapValidator {
           'Map metadata defaultSpawnId "$spawnId" does not match any spawn key or spawn entity id on this map',
         );
       }
+    }
+  }
+
+  static void _validateMapEvent(
+    MapData map,
+    MapEventDefinition event, {
+    required Set<String> layerIds,
+    required Set<String>? knownScriptIds,
+  }) {
+    final eventId = _requireNonBlank(event.id, 'Map event ID cannot be empty');
+    final layerId = _requireNonBlank(
+      event.position.layerId,
+      'Map event $eventId has empty layerId',
+    );
+    if (!layerIds.contains(layerId)) {
+      throw ValidationException(
+        'Map event $eventId references unknown layer: $layerId',
+      );
+    }
+    _validatePositionInBounds(
+      GridPos(x: event.position.x, y: event.position.y),
+      map.size,
+      errorLabel: 'Map event $eventId position',
+    );
+    if (event.pages.isEmpty) {
+      throw ValidationException(
+        'Map event $eventId must contain at least one page',
+      );
+    }
+    for (final key in event.metadata.keys) {
+      if (key.trim().isEmpty) {
+        throw ValidationException(
+          'Map event $eventId has an empty metadata key',
+        );
+      }
+    }
+
+    final pageNumbers = <int>{};
+    for (var pageIndex = 0; pageIndex < event.pages.length; pageIndex++) {
+      final page = event.pages[pageIndex];
+      if (page.pageNumber < 0) {
+        throw ValidationException(
+          'Map event $eventId page[$pageIndex] has negative pageNumber: ${page.pageNumber}',
+        );
+      }
+      if (!pageNumbers.add(page.pageNumber)) {
+        throw ValidationException(
+          'Map event $eventId has duplicate pageNumber: ${page.pageNumber}',
+        );
+      }
+      _validateMapEventPage(
+        eventId: eventId,
+        pageIndex: pageIndex,
+        page: page,
+        knownScriptIds: knownScriptIds,
+      );
+    }
+  }
+
+  static void _validateMapEventPage({
+    required String eventId,
+    required int pageIndex,
+    required MapEventPage page,
+    required Set<String>? knownScriptIds,
+  }) {
+    for (final key in page.metadata.keys) {
+      if (key.trim().isEmpty) {
+        throw ValidationException(
+          'Map event $eventId page[$pageIndex] has an empty metadata key',
+        );
+      }
+    }
+    final script = page.script;
+    if (script != null) {
+      final scriptId = _requireNonBlank(
+        script.scriptId,
+        'Map event $eventId page[$pageIndex] has empty scriptId',
+      );
+      if (knownScriptIds != null && !knownScriptIds.contains(scriptId)) {
+        throw ValidationException(
+          'Map event $eventId page[$pageIndex] references unknown script: $scriptId',
+        );
+      }
+      final startNode = script.startNode?.trim();
+      if (startNode != null && startNode.isEmpty) {
+        throw ValidationException(
+          'Map event $eventId page[$pageIndex] startNode must be null or non-empty',
+        );
+      }
+    }
+    final condition = page.condition;
+    if (condition != null) {
+      _validateScriptCondition(
+        condition,
+        contextLabel: 'Map event $eventId page[$pageIndex] condition',
+      );
+    }
+  }
+
+  static void _validateScriptCondition(
+    ScriptCondition condition, {
+    required String contextLabel,
+  }) {
+    for (final key in condition.params.keys) {
+      if (key.trim().isEmpty) {
+        throw ValidationException('$contextLabel has an empty param key');
+      }
+    }
+    switch (condition.type) {
+      case ScriptConditionType.allOf:
+      case ScriptConditionType.anyOf:
+        if (condition.children.isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires at least one child',
+          );
+        }
+        for (var i = 0; i < condition.children.length; i++) {
+          _validateScriptCondition(
+            condition.children[i],
+            contextLabel: '$contextLabel.children[$i]',
+          );
+        }
+        return;
+      case ScriptConditionType.not:
+        if (condition.children.length != 1) {
+          throw ValidationException(
+            '$contextLabel not requires exactly one child',
+          );
+        }
+        _validateScriptCondition(
+          condition.children.first,
+          contextLabel: '$contextLabel.children[0]',
+        );
+        return;
+      case ScriptConditionType.flagIsSet:
+      case ScriptConditionType.flagIsUnset:
+        final flagName = condition.params[ScriptConditionParams.flagName];
+        if (flagName == null || flagName.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty flagName',
+          );
+        }
+        return;
+      case ScriptConditionType.eventIsConsumed:
+        final eventId = condition.params[ScriptConditionParams.eventId];
+        if (eventId == null || eventId.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel eventIsConsumed requires a non-empty eventId',
+          );
+        }
+        return;
+      case ScriptConditionType.playerOnMap:
+        final mapId = condition.params[ScriptConditionParams.mapId];
+        if (mapId == null || mapId.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel playerOnMap requires a non-empty mapId',
+          );
+        }
+        return;
+      case ScriptConditionType.variableEquals:
+      case ScriptConditionType.variableGreaterThan:
+      case ScriptConditionType.variableLessThan:
+        final variableName =
+            condition.params[ScriptConditionParams.variableName];
+        final value = condition.params[ScriptConditionParams.value];
+        if (variableName == null || variableName.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty variableName',
+          );
+        }
+        if (value == null || value.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty value',
+          );
+        }
+        return;
+      case ScriptConditionType.fieldAbilityUnlocked:
+        final ability = condition.params[ScriptConditionParams.ability];
+        if (ability == null || ability.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel fieldAbilityUnlocked requires a non-empty ability',
+          );
+        }
+        return;
+      case ScriptConditionType.partyHasMove:
+      case ScriptConditionType.partyHasUsableMove:
+        final moveId = condition.params[ScriptConditionParams.moveId];
+        if (moveId == null || moveId.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty moveId',
+          );
+        }
+        return;
     }
   }
 
