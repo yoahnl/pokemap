@@ -186,7 +186,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       if (loaded) {
         final info = game.saveLoadInfo;
         setState(() {
-          _surfingEnabled = game.isSurfing;
+          _surfingEnabled = info.movementMode == MovementMode.surf.name;
           _saveLoadStatus =
               'Chargement OK · ${info.mapId} (${info.playerX}, ${info.playerY})';
         });
