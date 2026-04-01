@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/scenario/scenario_authoring_ux.dart';
+import '../../features/scenario/scenario_flow_diagnostics.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 const double _kScenarioCanvasWidth = 3800;
@@ -73,6 +74,10 @@ class _ScenarioGraphCanvasState extends ConsumerState<ScenarioGraphCanvas> {
     final pendingFromNodeId = state.pendingScenarioEdgeFromNodeId;
     final selectedNode =
         selectedNodeId == null ? null : nodesById[selectedNodeId];
+    final diagnostics = analyzeScenarioFlow(
+      scenario,
+      graphRuntimeConnected: kScenarioGraphRuntimeExecutionConnected,
+    );
 
     return Stack(
       children: [
@@ -156,6 +161,7 @@ class _ScenarioGraphCanvasState extends ConsumerState<ScenarioGraphCanvas> {
           top: 14,
           child: _ScenarioGraphToolbar(
             scenario: scenario,
+            diagnostics: diagnostics,
             pendingFromNodeId: pendingFromNodeId,
             onAddNode: () => _promptAddNode(context, notifier, scenario),
             onClearLinkDraft: pendingFromNodeId == null
@@ -372,6 +378,7 @@ class _ScenarioEmptyWorkspace extends StatelessWidget {
 class _ScenarioGraphToolbar extends StatelessWidget {
   const _ScenarioGraphToolbar({
     required this.scenario,
+    required this.diagnostics,
     required this.pendingFromNodeId,
     required this.onAddNode,
     required this.onClearLinkDraft,
@@ -380,6 +387,7 @@ class _ScenarioGraphToolbar extends StatelessWidget {
   });
 
   final ScenarioAsset scenario;
+  final ScenarioFlowReport diagnostics;
   final String? pendingFromNodeId;
   final VoidCallback onAddNode;
   final VoidCallback? onClearLinkDraft;
@@ -388,6 +396,12 @@ class _ScenarioGraphToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final errorCount = diagnostics.issues
+        .where((issue) => issue.severity == ScenarioFlowIssueSeverity.error)
+        .length;
+    final warningCount = diagnostics.issues
+        .where((issue) => issue.severity == ScenarioFlowIssueSeverity.warning)
+        .length;
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -410,6 +424,17 @@ class _ScenarioGraphToolbar extends StatelessWidget {
                 color: CupertinoColors.label.resolveFrom(context),
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Diag: $errorCount erreur(s) · $warningCount avertissement(s) · ${diagnostics.summary.unreachableNodes} non atteignable(s)',
+              style: TextStyle(
+                color: errorCount > 0
+                    ? EditorChrome.inspectorJoyCoral
+                    : CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 6),

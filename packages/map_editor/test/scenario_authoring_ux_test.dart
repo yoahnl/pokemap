@@ -75,5 +75,47 @@ void main() {
         expect(scenarioNodeHumanSummary(node).trim(), isNotEmpty);
       }
     });
+
+    test('node intent and execution labels stay defined', () {
+      for (final type in ScenarioNodeType.values) {
+        final node = ScenarioNode(id: 'n', type: type);
+        final intent = scenarioNodeIntent(node);
+        final intentLabel = scenarioNodeIntentLabel(intent);
+        expect(intentLabel.trim(), isNotEmpty);
+
+        final executionState = scenarioNodeExecutionState(
+          node,
+          graphRuntimeConnected: false,
+        );
+        expect(
+            scenarioNodeExecutionStateLabel(executionState).trim(), isNotEmpty);
+        expect(
+          scenarioNodeExecutionStateDescription(executionState).trim(),
+          isNotEmpty,
+        );
+      }
+    });
+
+    test('runtime-ready action is marked as runtime-capable when graph is off',
+        () {
+      const node = ScenarioNode(
+        id: 'action_1',
+        type: ScenarioNodeType.action,
+        payload: ScenarioNodePayload(actionKind: 'openDialogue'),
+      );
+      final preset = scenarioActionPresetById(
+        node.payload.actionKind,
+        referenceMode: false,
+      );
+      final executionState = scenarioNodeExecutionState(
+        node,
+        actionPreset: preset,
+        graphRuntimeConnected: false,
+      );
+      expect(
+        executionState,
+        ScenarioNodeExecutionState.runtimeCapableNotConnected,
+      );
+    });
   });
 }

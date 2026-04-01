@@ -1,5 +1,12 @@
 import 'package:map_core/map_core.dart';
 
+/// IMPORTANT:
+/// Le graphe scénario de l’éditeur est aujourd’hui une surface d’authoring.
+/// Le runtime ne consomme pas encore ce graphe comme source d’exécution
+/// automatique. On conserve cette constante centralisée pour éviter de
+/// disséminer un booléen magique dans les widgets.
+const bool kScenarioGraphRuntimeExecutionConnected = false;
+
 /// Niveau de support runtime d'un preset d'authoring.
 ///
 /// Cette information permet d'être honnête côté UX :
@@ -26,6 +33,33 @@ enum ScenarioActionField {
   flagName,
   variableName,
   variableValue,
+}
+
+/// Lecture "métier" d’un node pour guider l’interface utilisateur.
+///
+/// Cette catégorisation ne remplace pas [ScenarioNodeType] : elle fournit
+/// une intention lisible "Blueprint-like" dans l’inspecteur.
+enum ScenarioNodeIntent {
+  source,
+  condition,
+  effect,
+  dialogue,
+  choice,
+  end,
+}
+
+/// État d’exécution affiché dans l’UI.
+///
+/// - runtimeConnected: exécuté automatiquement par le runtime scénario.
+/// - runtimeCapableNotConnected: correspond à une capacité runtime connue
+///   (dialogue/script/combat/etc.) mais non branchée automatiquement au graphe.
+/// - authoringBridge: sert de pont d’authoring/documentation.
+/// - planned: intention future non finalisée.
+enum ScenarioNodeExecutionState {
+  runtimeConnected,
+  runtimeCapableNotConnected,
+  authoringBridge,
+  planned,
 }
 
 class ScenarioActionPreset {
@@ -291,6 +325,101 @@ String scenarioRuntimeSupportLabel(ScenarioPresetRuntimeSupport support) {
     ScenarioPresetRuntimeSupport.authoringBridge =>
       'Authoring/orchestration (pont monde)',
     ScenarioPresetRuntimeSupport.planned => 'Préparation future',
+  };
+}
+
+String scenarioNodeIntentLabel(ScenarioNodeIntent intent) {
+  return switch (intent) {
+    ScenarioNodeIntent.source => 'Source / déclencheur',
+    ScenarioNodeIntent.condition => 'Test / condition',
+    ScenarioNodeIntent.effect => 'Effet / action',
+    ScenarioNodeIntent.dialogue => 'Étape dialogue',
+    ScenarioNodeIntent.choice => 'Choix joueur',
+    ScenarioNodeIntent.end => 'Fin de branche',
+  };
+}
+
+ScenarioNodeIntent scenarioNodeIntent(
+  ScenarioNode node, {
+  ScenarioActionPreset? actionPreset,
+}) {
+  switch (node.type) {
+    case ScenarioNodeType.start:
+      return ScenarioNodeIntent.source;
+    case ScenarioNodeType.condition:
+      return ScenarioNodeIntent.condition;
+    case ScenarioNodeType.dialogue:
+      return ScenarioNodeIntent.dialogue;
+    case ScenarioNodeType.choice:
+      return ScenarioNodeIntent.choice;
+    case ScenarioNodeType.end:
+      return ScenarioNodeIntent.end;
+    case ScenarioNodeType.action:
+      return ScenarioNodeIntent.effect;
+    case ScenarioNodeType.reference:
+      if (scenarioPresetRepresentsTriggerSource(actionPreset?.id)) {
+        return ScenarioNodeIntent.source;
+      }
+      return ScenarioNodeIntent.effect;
+  }
+}
+
+ScenarioNodeExecutionState scenarioNodeExecutionState(
+  ScenarioNode node, {
+  ScenarioActionPreset? actionPreset,
+  bool graphRuntimeConnected = kScenarioGraphRuntimeExecutionConnected,
+}) {
+  // Tant que le graphe n’est pas branché au runtime, on distingue explicitement
+  // "capacité potentielle" et "exécution réelle".
+  if (!graphRuntimeConnected) {
+    if (actionPreset != null &&
+        actionPreset.runtimeSupport == ScenarioPresetRuntimeSupport.planned) {
+      return ScenarioNodeExecutionState.planned;
+    }
+    if (actionPreset != null &&
+        actionPreset.runtimeSupport ==
+            ScenarioPresetRuntimeSupport.runtimeReady) {
+      return ScenarioNodeExecutionState.runtimeCapableNotConnected;
+    }
+    if (node.type == ScenarioNodeType.dialogue ||
+        node.type == ScenarioNodeType.action) {
+      return ScenarioNodeExecutionState.runtimeCapableNotConnected;
+    }
+    return ScenarioNodeExecutionState.authoringBridge;
+  }
+
+  if (actionPreset != null &&
+      actionPreset.runtimeSupport == ScenarioPresetRuntimeSupport.planned) {
+    return ScenarioNodeExecutionState.planned;
+  }
+  if (actionPreset != null &&
+      actionPreset.runtimeSupport ==
+          ScenarioPresetRuntimeSupport.authoringBridge) {
+    return ScenarioNodeExecutionState.authoringBridge;
+  }
+  return ScenarioNodeExecutionState.runtimeConnected;
+}
+
+String scenarioNodeExecutionStateLabel(ScenarioNodeExecutionState state) {
+  return switch (state) {
+    ScenarioNodeExecutionState.runtimeConnected => 'Exécution réelle',
+    ScenarioNodeExecutionState.runtimeCapableNotConnected =>
+      'Capable runtime, non branché automatiquement',
+    ScenarioNodeExecutionState.authoringBridge => 'Pont d’authoring',
+    ScenarioNodeExecutionState.planned => 'Prévu plus tard',
+  };
+}
+
+String scenarioNodeExecutionStateDescription(ScenarioNodeExecutionState state) {
+  return switch (state) {
+    ScenarioNodeExecutionState.runtimeConnected =>
+      'Ce node participe à un flow effectivement exécuté par le runtime.',
+    ScenarioNodeExecutionState.runtimeCapableNotConnected =>
+      'Le contenu est compatible runtime, mais le graphe scénario n’est pas encore consommé automatiquement.',
+    ScenarioNodeExecutionState.authoringBridge =>
+      'Ce node sert à organiser/documenter le flow et ses liens monde.',
+    ScenarioNodeExecutionState.planned =>
+      'Ce node/preset représente une intention produit encore non finalisée.',
   };
 }
 
