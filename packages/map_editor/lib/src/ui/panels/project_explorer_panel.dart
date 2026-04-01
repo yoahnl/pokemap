@@ -231,7 +231,7 @@ Widget _dialogueLibraryScriptDragFeedback(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MacosIcon(
+          const MacosIcon(
             CupertinoIcons.doc_text_fill,
             size: 16,
             color: EditorChrome.inspectorJoyPlum,
@@ -271,7 +271,7 @@ Widget _dialogueLibraryFolderDragFeedback(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MacosIcon(
+          const MacosIcon(
             CupertinoIcons.folder_fill,
             size: 16,
             color: EditorChrome.inspectorJoyOrchid,
@@ -311,7 +311,7 @@ Widget _tilesetLibraryTilesetDragFeedback(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MacosIcon(
+          const MacosIcon(
             CupertinoIcons.square_stack_3d_up,
             size: 16,
             color: EditorChrome.accentWarm,
@@ -351,7 +351,7 @@ Widget _tilesetLibraryFolderDragFeedback(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MacosIcon(
+          const MacosIcon(
             CupertinoIcons.folder_fill,
             size: 16,
             color: EditorChrome.accentCyan,
@@ -1114,7 +1114,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           borderRadius: explorerTileRadius,
           title: 'Scenario Graphs',
           subtitle:
-              'Central narrative workspace with visual nodes and world links',
+              'Orchestration visuelle centrale: flux, branches, conditions, liens monde',
           icon: CupertinoIcons.share_solid,
           accentColor: EditorChrome.inspectorJoyMint,
           badgeText: '${project.scenarios.length}',
@@ -1126,7 +1126,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
           title: 'Scenario Scripts',
-          subtitle: 'Project scripts used by event pages (scriptId)',
+          subtitle:
+              'Scripts runtime réutilisables (procédures) référencés par events/nodes',
           icon: CupertinoIcons.chevron_left_slash_chevron_right,
           accentColor: EditorChrome.inspectorJoyCyan,
           badgeText: '${project.scripts.length}',

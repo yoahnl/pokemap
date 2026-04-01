@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/scenario/scenario_authoring_ux.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 const double _kScenarioCanvasWidth = 3800;
@@ -207,15 +208,15 @@ class _ScenarioGraphCanvasState extends ConsumerState<ScenarioGraphCanvas> {
       context: context,
       title: 'Node type',
       items: ScenarioNodeType.values,
-      labelOf: _scenarioNodeTypeLabel,
+      labelOf: scenarioNodeTypePickerLabel,
     );
     if (type == null || !context.mounted) return;
     final titleController = TextEditingController(
-      text: _defaultNodeTitle(type),
+      text: defaultScenarioNodeTitle(type),
     );
     final ok = await showMacosEditorPromptSheet(
       context,
-      title: 'New ${_scenarioNodeTypeLabel(type)} node',
+      title: 'New ${scenarioNodeTypeLabel(type)} node',
       controller: titleController,
       confirmLabel: 'Add',
       placeholder: 'Node title',
@@ -573,7 +574,7 @@ class _ScenarioNodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _colorForNodeType(node.type);
     final displayTitle = node.title.trim().isEmpty
-        ? _scenarioNodeTypeLabel(node.type)
+        ? scenarioNodeTypeLabel(node.type)
         : node.title.trim();
     return GestureDetector(
       onTap: onTap,
@@ -620,7 +621,7 @@ class _ScenarioNodeCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        _scenarioNodeTypeLabel(node.type),
+                        scenarioNodeTypeLabel(node.type),
                         style: TextStyle(
                           color: accent,
                           fontSize: 10,
@@ -822,30 +823,6 @@ class _ScenarioEdgesPainter extends CustomPainter {
     return oldDelegate.scenario != scenario ||
         oldDelegate.selectedNodeId != selectedNodeId;
   }
-}
-
-String _scenarioNodeTypeLabel(ScenarioNodeType type) {
-  return switch (type) {
-    ScenarioNodeType.start => 'Start',
-    ScenarioNodeType.dialogue => 'Dialogue',
-    ScenarioNodeType.action => 'Action',
-    ScenarioNodeType.condition => 'Condition',
-    ScenarioNodeType.choice => 'Choice',
-    ScenarioNodeType.reference => 'Reference',
-    ScenarioNodeType.end => 'End',
-  };
-}
-
-String _defaultNodeTitle(ScenarioNodeType type) {
-  return switch (type) {
-    ScenarioNodeType.start => 'Start',
-    ScenarioNodeType.dialogue => 'Dialogue Node',
-    ScenarioNodeType.action => 'Action Node',
-    ScenarioNodeType.condition => 'Condition Node',
-    ScenarioNodeType.choice => 'Choice Node',
-    ScenarioNodeType.reference => 'World Reference',
-    ScenarioNodeType.end => 'End',
-  };
 }
 
 Color _colorForNodeType(ScenarioNodeType type) {

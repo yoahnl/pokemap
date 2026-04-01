@@ -3,9 +3,59 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
+import '../../app/providers/core_providers.dart';
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
+import '../../features/scenario/scenario_authoring_ux.dart';
 import '../shared/cupertino_editor_widgets.dart';
+
+enum _ScenarioConditionMode {
+  none,
+  flagSet,
+  flagUnset,
+  eventConsumed,
+  variableEquals,
+  rawJson,
+}
+
+String _conditionModeLabel(_ScenarioConditionMode mode) {
+  return switch (mode) {
+    _ScenarioConditionMode.none => 'Aucune condition',
+    _ScenarioConditionMode.flagSet => 'Flag actif',
+    _ScenarioConditionMode.flagUnset => 'Flag inactif',
+    _ScenarioConditionMode.eventConsumed => 'Event consommé',
+    _ScenarioConditionMode.variableEquals => 'Variable égale',
+    _ScenarioConditionMode.rawJson => 'JSON brut (avancé)',
+  };
+}
+
+String _conditionModeDescription(_ScenarioConditionMode mode) {
+  return switch (mode) {
+    _ScenarioConditionMode.none => 'Le flux continue sans test conditionnel.',
+    _ScenarioConditionMode.flagSet =>
+      'Passe sur cette branche si le flag est actif.',
+    _ScenarioConditionMode.flagUnset =>
+      'Passe sur cette branche si le flag est inactif.',
+    _ScenarioConditionMode.eventConsumed =>
+      'Passe sur cette branche si cet event a déjà été consommé.',
+    _ScenarioConditionMode.variableEquals =>
+      'Compare une variable persistante à une valeur.',
+    _ScenarioConditionMode.rawJson =>
+      'Mode avancé pour allOf / anyOf / not et autres conditions composées.',
+  };
+}
+
+class _ScenarioMapScopedOption {
+  const _ScenarioMapScopedOption({
+    required this.id,
+    required this.label,
+  });
+
+  final String id;
+  final String label;
+}
 
 class ScenarioInspectorPanel extends ConsumerStatefulWidget {
   const ScenarioInspectorPanel({super.key});
@@ -24,6 +74,12 @@ class _ScenarioInspectorPanelState
   final _nodeActionKindController = TextEditingController();
   final _nodeMessageController = TextEditingController();
   final _nodeConditionJsonController = TextEditingController();
+  final _nodeConditionFlagNameController = TextEditingController();
+  final _nodeConditionVariableNameController = TextEditingController();
+  final _nodeConditionVariableValueController = TextEditingController();
+  final _nodeScriptIdController = TextEditingController();
+  final _nodeDialogueIdController = TextEditingController();
+  final _nodeMapIdController = TextEditingController();
   final _nodeEventIdController = TextEditingController();
   final _nodeEntityIdController = TextEditingController();
   final _nodeWarpIdController = TextEditingController();
@@ -32,8 +88,13 @@ class _ScenarioInspectorPanelState
   final _nodeFlagNameController = TextEditingController();
   final _nodeVariableNameController = TextEditingController();
 
+  final Map<String, MapData?> _mapCache = <String, MapData?>{};
+
   String? _boundScenarioFingerprint;
   String? _boundNodeFingerprint;
+  String? _boundProjectRoot;
+  _ScenarioConditionMode _conditionMode = _ScenarioConditionMode.none;
+  bool _showAdvancedNodeFields = false;
 
   @override
   void dispose() {
@@ -44,6 +105,12 @@ class _ScenarioInspectorPanelState
     _nodeActionKindController.dispose();
     _nodeMessageController.dispose();
     _nodeConditionJsonController.dispose();
+    _nodeConditionFlagNameController.dispose();
+    _nodeConditionVariableNameController.dispose();
+    _nodeConditionVariableValueController.dispose();
+    _nodeScriptIdController.dispose();
+    _nodeDialogueIdController.dispose();
+    _nodeMapIdController.dispose();
     _nodeEventIdController.dispose();
     _nodeEntityIdController.dispose();
     _nodeWarpIdController.dispose();
@@ -70,11 +137,16 @@ class _ScenarioInspectorPanelState
       );
     }
 
+    if (_boundProjectRoot != state.projectRootPath) {
+      _boundProjectRoot = state.projectRootPath;
+      _mapCache.clear();
+    }
+
     final scenario = notifier.getSelectedScenario();
     if (scenario == null) {
       return Center(
         child: Text(
-          'Create and select a scenario graph from the left panel.',
+          'Sélectionne un Scenario Graph dans la colonne de gauche.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: CupertinoColors.placeholderText.resolveFrom(context),
@@ -106,6 +178,8 @@ class _ScenarioInspectorPanelState
           notifier: notifier,
         ),
         const SizedBox(height: 10),
+        _buildScenarioSystemLegend(context),
+        const SizedBox(height: 10),
         _buildScenarioBasics(context, notifier, scenario),
         const SizedBox(height: 10),
         _buildScenarioNodesList(
@@ -120,6 +194,7 @@ class _ScenarioInspectorPanelState
         else ...[
           _buildNodeInspector(
             context,
+            state: state,
             notifier: notifier,
             project: project,
             scenario: scenario,
@@ -173,12 +248,12 @@ class _ScenarioInspectorPanelState
                 ),
                 EditorToolbarIconButton(
                   icon: CupertinoIcons.add,
-                  tooltip: 'Create scenario',
+                  tooltip: 'Créer un Scenario Graph',
                   onPressed: () => _promptCreateScenario(context, notifier),
                 ),
                 EditorToolbarIconButton(
                   icon: CupertinoIcons.pencil,
-                  tooltip: 'Rename scenario',
+                  tooltip: 'Renommer ce scénario',
                   onPressed: () => _promptRenameScenario(
                     context,
                     notifier,
@@ -187,7 +262,7 @@ class _ScenarioInspectorPanelState
                 ),
                 EditorToolbarIconButton(
                   icon: CupertinoIcons.delete,
-                  tooltip: 'Delete scenario',
+                  tooltip: 'Supprimer ce scénario',
                   onPressed: () => _confirmDeleteScenario(
                     context,
                     notifier,
@@ -198,7 +273,7 @@ class _ScenarioInspectorPanelState
             ),
             const SizedBox(height: 6),
             Text(
-              'Selected: ${scenario.name} (${scenario.id})',
+              'Sélectionné: ${scenario.name} (${scenario.id})',
               style: TextStyle(
                 color: CupertinoColors.secondaryLabel.resolveFrom(context),
                 fontSize: 11,
@@ -215,7 +290,7 @@ class _ScenarioInspectorPanelState
               onPressed: () async {
                 final picked = await showCupertinoListPicker<ScenarioAsset>(
                   context: context,
-                  title: 'Select scenario',
+                  title: 'Choisir un Scenario Graph',
                   items: project.scenarios,
                   labelOf: (value) => '${value.name} (${value.id})',
                 );
@@ -223,9 +298,82 @@ class _ScenarioInspectorPanelState
                 notifier.selectProjectScenario(picked.id);
                 notifier.selectScenarioWorkspace(picked.id);
               },
-              child: const Text('Switch scenario'),
+              child: const Text('Changer de scénario'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScenarioSystemLegend(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.06),
+        ),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.32),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Repères rapides',
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _legendLine(
+              context,
+              title: 'Scenario Graphs',
+              description:
+                  'Orchestration visuelle globale (flux, branches, liens monde).',
+            ),
+            _legendLine(
+              context,
+              title: 'Scenario Scripts',
+              description:
+                  'Procédures runtime réutilisables référencées par nodes/events.',
+            ),
+            _legendLine(
+              context,
+              title: 'Dialogue Library',
+              description: 'Contenu Yarn (texte, nœuds de dialogue, sauts).',
+            ),
+            _legendLine(
+              context,
+              title: 'World Maps',
+              description:
+                  'Contenu concret du monde (events, entités, warps, triggers).',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _legendLine(
+    BuildContext context, {
+    required String title,
+    required String description,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        '$title : $description',
+        style: TextStyle(
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          fontSize: 11,
+          height: 1.25,
         ),
       ),
     );
@@ -253,7 +401,7 @@ class _ScenarioInspectorPanelState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Scenario metadata',
+              'Métadonnées scénario',
               style: TextStyle(
                 color: CupertinoColors.secondaryLabel.resolveFrom(context),
                 fontSize: 11,
@@ -263,13 +411,14 @@ class _ScenarioInspectorPanelState
             const SizedBox(height: 6),
             CupertinoTextField(
               controller: _scenarioNameController,
-              placeholder: 'Scenario name',
+              placeholder: 'Nom lisible du scénario',
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             ),
             const SizedBox(height: 6),
             CupertinoTextField(
               controller: _scenarioDescriptionController,
-              placeholder: 'Scenario description',
+              placeholder:
+                  'Résumé auteur (ex: Intro professeur / choix starter)',
               minLines: 2,
               maxLines: 4,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
@@ -288,14 +437,14 @@ class _ScenarioInspectorPanelState
                       scenarioId: scenario.id,
                       name: _scenarioNameController.text.trim(),
                     ),
-                    child: const Text('Apply name'),
+                    child: const Text('Appliquer le nom'),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             Text(
-              'Entry node: ${scenario.entryNodeId}',
+              'Entry node : ${scenario.entryNodeId}',
               style: TextStyle(
                 color: CupertinoColors.secondaryLabel.resolveFrom(context),
                 fontSize: 11,
@@ -333,7 +482,7 @@ class _ScenarioInspectorPanelState
               children: [
                 Expanded(
                   child: Text(
-                    'Scenario nodes',
+                    'Nœuds du scénario',
                     style: TextStyle(
                       color:
                           CupertinoColors.secondaryLabel.resolveFrom(context),
@@ -344,7 +493,7 @@ class _ScenarioInspectorPanelState
                 ),
                 EditorToolbarIconButton(
                   icon: CupertinoIcons.plus_circle,
-                  tooltip: 'Add node',
+                  tooltip: 'Ajouter un nœud',
                   onPressed: () => _promptAddNode(context, notifier, scenario),
                 ),
               ],
@@ -352,7 +501,7 @@ class _ScenarioInspectorPanelState
             const SizedBox(height: 6),
             if (scenario.nodes.isEmpty)
               Text(
-                'No nodes',
+                'Aucun nœud.',
                 style: TextStyle(
                   color: CupertinoColors.secondaryLabel.resolveFrom(context),
                   fontSize: 11,
@@ -379,7 +528,7 @@ class _ScenarioInspectorPanelState
                             ),
                       onPressed: () => notifier.selectScenarioNode(node.id),
                       child: Text(
-                        '${_scenarioNodeTypeLabel(node.type)} · ${node.id}',
+                        '${scenarioNodeTypeLabel(node.type)} · ${node.id}',
                         style: TextStyle(
                           fontSize: 11,
                           color: CupertinoColors.label.resolveFrom(context),
@@ -409,7 +558,7 @@ class _ScenarioInspectorPanelState
       child: Padding(
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
         child: Text(
-          'Select a node in the graph or list to edit its payload and world bindings.',
+          'Sélectionne un nœud dans le graphe (ou dans la liste) pour afficher uniquement ses champs utiles.',
           style: TextStyle(
             color: CupertinoColors.secondaryLabel.resolveFrom(context),
             fontSize: 12,
@@ -421,11 +570,19 @@ class _ScenarioInspectorPanelState
 
   Widget _buildNodeInspector(
     BuildContext context, {
+    required EditorState state,
     required EditorNotifier notifier,
     required ProjectManifest project,
     required ScenarioAsset scenario,
     required ScenarioNode node,
   }) {
+    final isEntryNode = scenario.entryNodeId == node.id;
+    final referenceMode = node.type == ScenarioNodeType.reference;
+    final actionPreset = scenarioActionPresetById(
+      _nodeActionKindController.text.trim(),
+      referenceMode: referenceMode,
+    );
+
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
@@ -456,7 +613,7 @@ class _ScenarioInspectorPanelState
                 ),
                 EditorToolbarIconButton(
                   icon: CupertinoIcons.play_fill,
-                  tooltip: 'Set as entry node',
+                  tooltip: 'Définir comme entry node',
                   onPressed: () => notifier.setScenarioEntryNode(
                     scenarioId: scenario.id,
                     nodeId: node.id,
@@ -464,7 +621,7 @@ class _ScenarioInspectorPanelState
                 ),
                 EditorToolbarIconButton(
                   icon: CupertinoIcons.delete,
-                  tooltip: 'Delete node',
+                  tooltip: 'Supprimer ce nœud',
                   onPressed: () => notifier.deleteScenarioNode(
                     scenarioId: scenario.id,
                     nodeId: node.id,
@@ -473,8 +630,23 @@ class _ScenarioInspectorPanelState
               ],
             ),
             const SizedBox(height: 8),
+            _helpCard(
+              context,
+              title: scenarioNodeTypeLabel(node.type),
+              description: scenarioNodeTypeDescription(node.type),
+              accent: _colorForNodeType(node.type),
+            ),
+            const SizedBox(height: 6),
             _readonlyLine(
-                context, 'Node type', _scenarioNodeTypeLabel(node.type)),
+              context,
+              'Type',
+              scenarioNodeTypeLabel(node.type),
+            ),
+            _readonlyLine(
+              context,
+              'Entry',
+              isEntryNode ? 'Oui (point de départ)' : 'Non',
+            ),
             const SizedBox(height: 6),
             CupertinoButton(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -484,125 +656,37 @@ class _ScenarioInspectorPanelState
                 tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.1),
               ),
               onPressed: () => _pickNodeType(context, notifier, scenario, node),
-              child: const Text('Change node type'),
+              child: const Text('Changer le type de node'),
             ),
             const SizedBox(height: 8),
-            CupertinoTextField(
+            _labeledField(
+              context,
+              label: 'Titre',
               controller: _nodeTitleController,
-              placeholder: 'Node title',
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              placeholder: defaultScenarioNodeTitle(node.type),
             ),
             const SizedBox(height: 6),
-            CupertinoTextField(
+            _labeledField(
+              context,
+              label: 'Description',
               controller: _nodeDescriptionController,
-              placeholder: 'Node description',
-              minLines: 2,
-              maxLines: 4,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            ),
-            const SizedBox(height: 6),
-            _bindingPickerRow(
-              context,
-              title: 'Script',
-              value: node.binding.scriptId,
-              onPick: () => _pickScriptBinding(
-                  context, project, notifier, scenario, node),
-            ),
-            const SizedBox(height: 6),
-            _bindingPickerRow(
-              context,
-              title: 'Dialogue',
-              value: node.binding.dialogueId,
-              onPick: () => _pickDialogueBinding(
-                  context, project, notifier, scenario, node),
-            ),
-            const SizedBox(height: 6),
-            _bindingPickerRow(
-              context,
-              title: 'Map',
-              value: node.binding.mapId,
-              onPick: () =>
-                  _pickMapBinding(context, project, notifier, scenario, node),
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Event ID',
-              controller: _nodeEventIdController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Entity ID',
-              controller: _nodeEntityIdController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Warp ID',
-              controller: _nodeWarpIdController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Trigger ID',
-              controller: _nodeTriggerIdController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Trainer ID',
-              controller: _nodeTrainerIdController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Flag Name',
-              controller: _nodeFlagNameController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Variable Name',
-              controller: _nodeVariableNameController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Action Kind',
-              controller: _nodeActionKindController,
-            ),
-            const SizedBox(height: 6),
-            _labeledField(
-              context,
-              label: 'Message',
-              controller: _nodeMessageController,
+              placeholder: 'Décris le rôle narratif de ce node.',
               minLines: 2,
               maxLines: 4,
             ),
-            if (node.type == ScenarioNodeType.condition) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Condition JSON',
-                style: TextStyle(
-                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              CupertinoTextField(
-                controller: _nodeConditionJsonController,
-                placeholder:
-                    '{"type":"flagIsSet","params":{"flagName":"story.got_starter"}}',
-                minLines: 4,
-                maxLines: 8,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                inputFormatters: const [],
-              ),
-            ],
+            const SizedBox(height: 10),
+            ..._buildNodeTypeSpecificSections(
+              context,
+              state: state,
+              notifier: notifier,
+              project: project,
+              scenario: scenario,
+              node: node,
+              actionPreset: actionPreset,
+            ),
             const SizedBox(height: 8),
+            _buildAdvancedNodeSection(context, node),
+            const SizedBox(height: 10),
             CupertinoButton.filled(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               minimumSize: const Size(0, 34),
@@ -612,12 +696,194 @@ class _ScenarioInspectorPanelState
                 scenario: scenario,
                 node: node,
               ),
-              child: const Text('Apply node changes'),
+              child: const Text('Appliquer les modifications du node'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildNodeTypeSpecificSections(
+    BuildContext context, {
+    required EditorState state,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode node,
+    required ScenarioActionPreset? actionPreset,
+  }) {
+    switch (node.type) {
+      case ScenarioNodeType.start:
+        return <Widget>[
+          _quickHelpCard(
+            context,
+            title: 'How to use this node',
+            lines: const <String>[
+              'Le flux doit démarrer ici.',
+              'Relie Start vers le premier node réel (Dialogue, Action, Condition).',
+              'Un seul Start est autorisé par scénario.',
+            ],
+          ),
+        ];
+      case ScenarioNodeType.end:
+        return <Widget>[
+          _quickHelpCard(
+            context,
+            title: 'How to use this node',
+            lines: const <String>[
+              'Fin de séquence.',
+              'Évite d’ajouter des liens sortants depuis End.',
+              'Utilise plusieurs End si tu as plusieurs conclusions.',
+            ],
+          ),
+        ];
+      case ScenarioNodeType.dialogue:
+        return <Widget>[
+          _bindingPickerField(
+            context,
+            title: 'Dialogue Yarn',
+            helper:
+                'Sélectionne un dialogue existant dans la Dialogue Library.',
+            value: _optionalValue(_nodeDialogueIdController.text),
+            onPick: () => _pickDialogueBinding(context, project),
+          ),
+          const SizedBox(height: 6),
+          _bindingPickerField(
+            context,
+            title: 'Script scénario',
+            helper:
+                'Optionnel. Ajoute un script si tu veux une logique runtime après/avant le dialogue.',
+            value: _optionalValue(_nodeScriptIdController.text),
+            onPick: () => _pickScriptBinding(context, project),
+          ),
+          const SizedBox(height: 6),
+          _labeledField(
+            context,
+            label: 'Message inline (optionnel)',
+            helper:
+                'Utilise ce champ pour un texte rapide. Pour des conversations complètes, privilégie Dialogue Yarn.',
+            controller: _nodeMessageController,
+            placeholder: 'Le professeur n’est pas encore prêt.',
+            minLines: 2,
+            maxLines: 4,
+          ),
+          const SizedBox(height: 8),
+          _quickHelpCard(
+            context,
+            title: 'Common pattern',
+            lines: const <String>[
+              'Start -> Dialogue -> End',
+            ],
+          ),
+        ];
+      case ScenarioNodeType.action:
+        return <Widget>[
+          _actionPickerField(
+            context,
+            referenceMode: false,
+            selectedPreset: actionPreset,
+          ),
+          const SizedBox(height: 6),
+          if (actionPreset != null)
+            _helpCard(
+              context,
+              title: actionPreset.label,
+              description: actionPreset.description,
+              accent: EditorChrome.inspectorJoyCyan,
+            ),
+          if (actionPreset != null) ...[
+            const SizedBox(height: 6),
+            ..._buildFieldsForActionPreset(
+              context,
+              state: state,
+              project: project,
+              preset: actionPreset,
+            ),
+          ],
+          const SizedBox(height: 8),
+          _quickHelpCard(
+            context,
+            title: 'How to use this node',
+            lines: const <String>[
+              'Choisis une action claire puis remplis uniquement les champs affichés.',
+              'Les ressources sont proposées en dropdowns pour éviter la saisie manuelle d’IDs.',
+            ],
+          ),
+        ];
+      case ScenarioNodeType.condition:
+        return <Widget>[
+          _conditionModePicker(context),
+          const SizedBox(height: 6),
+          _helpCard(
+            context,
+            title: _conditionModeLabel(_conditionMode),
+            description: _conditionModeDescription(_conditionMode),
+            accent: EditorChrome.inspectorJoyAmber,
+          ),
+          const SizedBox(height: 6),
+          ..._buildFieldsForConditionMode(
+            context,
+            state: state,
+            project: project,
+          ),
+          const SizedBox(height: 8),
+          _quickHelpCard(
+            context,
+            title: 'Common patterns',
+            lines: const <String>[
+              'Start -> Condition -> branche A / branche B',
+              'Flag actif -> branche progression ; flag inactif -> branche blocage',
+            ],
+          ),
+        ];
+      case ScenarioNodeType.choice:
+        return <Widget>[
+          _quickHelpCard(
+            context,
+            title: 'How to use this node',
+            lines: const <String>[
+              'Ajoute plusieurs liens sortants.',
+              'Donne un label clair à chaque lien (ex: Oui, Non, Plus tard).',
+              'Le gameplay peut ensuite mapper ces labels à des choix joueur.',
+            ],
+          ),
+        ];
+      case ScenarioNodeType.reference:
+        return <Widget>[
+          _actionPickerField(
+            context,
+            referenceMode: true,
+            selectedPreset: actionPreset,
+          ),
+          const SizedBox(height: 6),
+          if (actionPreset != null)
+            _helpCard(
+              context,
+              title: actionPreset.label,
+              description: actionPreset.description,
+              accent: EditorChrome.inspectorJoyBlue,
+            ),
+          if (actionPreset != null) ...[
+            const SizedBox(height: 6),
+            ..._buildFieldsForActionPreset(
+              context,
+              state: state,
+              project: project,
+              preset: actionPreset,
+            ),
+          ],
+          const SizedBox(height: 8),
+          _quickHelpCard(
+            context,
+            title: 'How to use this node',
+            lines: const <String>[
+              'Reference sert à documenter ou relier explicitement le scénario au contenu du monde.',
+              'Choisis une map puis un event/entity/warp/trigger si nécessaire.',
+            ],
+          ),
+        ];
+    }
   }
 
   Widget _buildOutgoingEdges(
@@ -649,7 +915,7 @@ class _ScenarioInspectorPanelState
               children: [
                 Expanded(
                   child: Text(
-                    'Outgoing links',
+                    'Liens sortants',
                     style: TextStyle(
                       color: CupertinoColors.label.resolveFrom(context),
                       fontSize: 12,
@@ -659,7 +925,7 @@ class _ScenarioInspectorPanelState
                 ),
                 EditorToolbarIconButton(
                   icon: CupertinoIcons.link,
-                  tooltip: 'Create connection',
+                  tooltip: 'Créer une connexion',
                   onPressed: () =>
                       _pickTargetNodeForLink(context, notifier, scenario, node),
                 ),
@@ -668,7 +934,7 @@ class _ScenarioInspectorPanelState
             const SizedBox(height: 6),
             if (outgoing.isEmpty)
               Text(
-                'No outgoing links',
+                'Aucun lien sortant.',
                 style: TextStyle(
                   color: CupertinoColors.secondaryLabel.resolveFrom(context),
                   fontSize: 11,
@@ -706,7 +972,7 @@ class _ScenarioInspectorPanelState
                           ),
                           EditorToolbarIconButton(
                             icon: CupertinoIcons.delete,
-                            tooltip: 'Delete link',
+                            tooltip: 'Supprimer la connexion',
                             onPressed: () => notifier.deleteScenarioEdge(
                               scenarioId: scenario.id,
                               edgeId: edge.id,
@@ -728,7 +994,7 @@ class _ScenarioInspectorPanelState
     return Row(
       children: [
         SizedBox(
-          width: 90,
+          width: 92,
           child: Text(
             label,
             style: TextStyle(
@@ -751,44 +1017,51 @@ class _ScenarioInspectorPanelState
     );
   }
 
-  Widget _bindingPickerRow(
+  Widget _bindingPickerField(
     BuildContext context, {
     required String title,
+    required String helper,
     required String? value,
     required VoidCallback onPick,
   }) {
-    final effective = value == null || value.trim().isEmpty ? 'None' : value;
-    return Row(
+    final effective = value == null || value.trim().isEmpty ? 'Aucune' : value;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 90,
-          child: Text(
-            title,
-            style: TextStyle(
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-              fontSize: 11,
+        Text(
+          title,
+          style: TextStyle(
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          minimumSize: const Size(0, 30),
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.12),
+          ),
+          onPressed: onPick,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              effective,
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontSize: 11,
+              ),
             ),
           ),
         ),
-        Expanded(
-          child: CupertinoButton(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            minimumSize: const Size(0, 28),
-            color: EditorChrome.largeIslandSurfaceColor(
-              context,
-              tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.12),
-            ),
-            onPressed: onPick,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                effective,
-                style: TextStyle(
-                  color: CupertinoColors.label.resolveFrom(context),
-                  fontSize: 11,
-                ),
-              ),
-            ),
+        const SizedBox(height: 3),
+        Text(
+          helper,
+          style: TextStyle(
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            fontSize: 10.5,
           ),
         ),
       ],
@@ -799,6 +1072,8 @@ class _ScenarioInspectorPanelState
     BuildContext context, {
     required String label,
     required TextEditingController controller,
+    String? placeholder,
+    String? helper,
     int minLines = 1,
     int maxLines = 1,
   }) {
@@ -816,12 +1091,618 @@ class _ScenarioInspectorPanelState
         const SizedBox(height: 4),
         CupertinoTextField(
           controller: controller,
+          placeholder: placeholder,
           minLines: minLines,
           maxLines: maxLines,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           inputFormatters: const [],
         ),
+        if (helper != null && helper.trim().isNotEmpty) ...[
+          const SizedBox(height: 3),
+          Text(
+            helper,
+            style: TextStyle(
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontSize: 10.5,
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _helpCard(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required Color accent,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: accent.withValues(alpha: 0.09),
+        ),
+        border: Border.all(color: accent.withValues(alpha: 0.44)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              description,
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 11,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickHelpCard(
+    BuildContext context, {
+    required String title,
+    required List<String> lines,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.06),
+        ),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.28),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            for (final line in lines)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  '• $line',
+                  style: TextStyle(
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    fontSize: 11,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionPickerField(
+    BuildContext context, {
+    required bool referenceMode,
+    required ScenarioActionPreset? selectedPreset,
+  }) {
+    final title = referenceMode ? 'Type de référence' : 'Action';
+    final helper = referenceMode
+        ? 'Définit ce que ce node référence dans le projet.'
+        : 'Définit ce que fait ce node Action.';
+    final value = selectedPreset?.label ??
+        (_nodeActionKindController.text.trim().isEmpty
+            ? 'Aucune'
+            : _nodeActionKindController.text.trim());
+    return _bindingPickerField(
+      context,
+      title: title,
+      helper: helper,
+      value: value,
+      onPick: () => _pickActionPreset(context, referenceMode: referenceMode),
+    );
+  }
+
+  Widget _conditionModePicker(BuildContext context) {
+    return _bindingPickerField(
+      context,
+      title: 'Mode de condition',
+      helper: 'Choisis une condition simple ou passe en JSON brut avancé.',
+      value: _conditionModeLabel(_conditionMode),
+      onPick: () async {
+        final picked = await showCupertinoListPicker<_ScenarioConditionMode>(
+          context: context,
+          title: 'Mode de condition',
+          items: _ScenarioConditionMode.values,
+          labelOf: (value) =>
+              '${_conditionModeLabel(value)} — ${_conditionModeDescription(value)}',
+        );
+        if (picked == null || !mounted) return;
+        setState(() {
+          _conditionMode = picked;
+        });
+      },
+    );
+  }
+
+  List<Widget> _buildFieldsForActionPreset(
+    BuildContext context, {
+    required EditorState state,
+    required ProjectManifest project,
+    required ScenarioActionPreset preset,
+  }) {
+    final widgets = <Widget>[];
+    if (preset.fields.contains(ScenarioActionField.message)) {
+      widgets.add(
+        _labeledField(
+          context,
+          label: 'Message',
+          controller: _nodeMessageController,
+          placeholder: 'Le professeur n’est pas encore prêt.',
+          helper: 'Message court affiché en runtime.',
+          minLines: 2,
+          maxLines: 4,
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.dialogue)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Dialogue',
+          helper: 'Choisis un dialogue Yarn existant.',
+          value: _optionalValue(_nodeDialogueIdController.text),
+          onPick: () => _pickDialogueBinding(context, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.script)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Script',
+          helper: 'Choisis un script scénario/runtime existant.',
+          value: _optionalValue(_nodeScriptIdController.text),
+          onPick: () => _pickScriptBinding(context, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.trainer)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Trainer',
+          helper: 'Choisis le dresseur concerné.',
+          value: _optionalValue(_nodeTrainerIdController.text),
+          onPick: () => _pickTrainerBinding(context, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.map)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Map',
+          helper:
+              'Les sélecteurs Event / Entity / Warp / Trigger seront filtrés par cette map.',
+          value: _optionalValue(_nodeMapIdController.text),
+          onPick: () => _pickMapBinding(context, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.event)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Event ID',
+          helper: 'Choisis un event existant sur la map sélectionnée.',
+          value: _optionalValue(_nodeEventIdController.text),
+          onPick: () => _pickMapEventBinding(context, state, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.entity)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Entity ID',
+          helper: 'Choisis une entité existante sur la map sélectionnée.',
+          value: _optionalValue(_nodeEntityIdController.text),
+          onPick: () => _pickMapEntityBinding(context, state, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.warp)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Warp ID',
+          helper: 'Choisis un warp existant sur la map sélectionnée.',
+          value: _optionalValue(_nodeWarpIdController.text),
+          onPick: () => _pickMapWarpBinding(context, state, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.trigger)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _bindingPickerField(
+          context,
+          title: 'Trigger ID',
+          helper: 'Choisis un trigger existant sur la map sélectionnée.',
+          value: _optionalValue(_nodeTriggerIdController.text),
+          onPick: () => _pickMapTriggerBinding(context, state, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.flagName)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _labeledField(
+          context,
+          label: 'Flag Name',
+          controller: _nodeFlagNameController,
+          placeholder: 'story.got_starter',
+          helper: 'Nom du flag persistant à modifier.',
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.variableName)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _labeledField(
+          context,
+          label: 'Variable Name',
+          controller: _nodeVariableNameController,
+          placeholder: 'quest.professor.progress',
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.variableValue)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _labeledField(
+          context,
+          label: 'Variable Value',
+          controller: _nodeConditionVariableValueController,
+          placeholder: '1',
+        ),
+      );
+    }
+    return widgets;
+  }
+
+  List<Widget> _buildFieldsForConditionMode(
+    BuildContext context, {
+    required EditorState state,
+    required ProjectManifest project,
+  }) {
+    switch (_conditionMode) {
+      case _ScenarioConditionMode.none:
+        return <Widget>[
+          Text(
+            'Aucun champ requis.',
+            style: TextStyle(
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              fontSize: 11,
+            ),
+          ),
+        ];
+      case _ScenarioConditionMode.flagSet:
+        return <Widget>[
+          _labeledField(
+            context,
+            label: 'Flag Name',
+            controller: _nodeConditionFlagNameController,
+            placeholder: 'story.got_starter',
+            helper: 'Ex: story.got_starter',
+          ),
+        ];
+      case _ScenarioConditionMode.flagUnset:
+        return <Widget>[
+          _labeledField(
+            context,
+            label: 'Flag Name',
+            controller: _nodeConditionFlagNameController,
+            placeholder: 'story.got_starter',
+            helper: 'La condition sera vraie tant que ce flag n’est pas actif.',
+          ),
+        ];
+      case _ScenarioConditionMode.eventConsumed:
+        return <Widget>[
+          _bindingPickerField(
+            context,
+            title: 'Map',
+            helper:
+                'Choisis la map pour filtrer la liste des events existants.',
+            value: _optionalValue(_nodeMapIdController.text),
+            onPick: () => _pickMapBinding(context, project),
+          ),
+          const SizedBox(height: 6),
+          _bindingPickerField(
+            context,
+            title: 'Event ID',
+            helper: 'Event consommé à tester.',
+            value: _optionalValue(_nodeEventIdController.text),
+            onPick: () => _pickMapEventBinding(context, state, project),
+          ),
+        ];
+      case _ScenarioConditionMode.variableEquals:
+        return <Widget>[
+          _labeledField(
+            context,
+            label: 'Variable Name',
+            controller: _nodeConditionVariableNameController,
+            placeholder: 'quest.professor.progress',
+          ),
+          const SizedBox(height: 6),
+          _labeledField(
+            context,
+            label: 'Value',
+            controller: _nodeConditionVariableValueController,
+            placeholder: '2',
+            helper: 'Comparaison en string. Exemple courant: 0, 1, 2, done.',
+          ),
+        ];
+      case _ScenarioConditionMode.rawJson:
+        return <Widget>[
+          _labeledField(
+            context,
+            label: 'Condition JSON',
+            controller: _nodeConditionJsonController,
+            placeholder:
+                '{"type":"flagIsSet","params":{"flagName":"story.got_starter"}}',
+            helper:
+                'Mode avancé pour allOf / anyOf / not. Colle uniquement un objet ScriptCondition.',
+            minLines: 4,
+            maxLines: 9,
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _tinyInsertButton(
+                context,
+                label: 'Exemple flag set',
+                onPressed: () {
+                  _nodeConditionJsonController.text =
+                      const JsonEncoder.withIndent(
+                    '  ',
+                  ).convert(
+                    ScriptConditionFactory.flagIsSet('story.got_starter')
+                        .toJson(),
+                  );
+                  setState(() {});
+                },
+              ),
+              _tinyInsertButton(
+                context,
+                label: 'Exemple not(eventConsumed)',
+                onPressed: () {
+                  final condition = ScriptConditionFactory.not(
+                    ScriptConditionFactory.eventIsConsumed('event_intro'),
+                  );
+                  _nodeConditionJsonController.text =
+                      const JsonEncoder.withIndent(
+                    '  ',
+                  ).convert(condition.toJson());
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
+        ];
+    }
+  }
+
+  Widget _tinyInsertButton(
+    BuildContext context, {
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      minimumSize: const Size(0, 24),
+      color: EditorChrome.largeIslandSurfaceColor(
+        context,
+        tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.1),
+      ),
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: CupertinoColors.label.resolveFrom(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdvancedNodeSection(BuildContext context, ScenarioNode node) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.05),
+        ),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.32),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Advanced',
+                    style: TextStyle(
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: const Size(0, 24),
+                  color: EditorChrome.largeIslandSurfaceColor(
+                    context,
+                    tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.1),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showAdvancedNodeFields = !_showAdvancedNodeFields;
+                    });
+                  },
+                  child: Text(
+                    _showAdvancedNodeFields ? 'Masquer' : 'Afficher',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: CupertinoColors.label.resolveFrom(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Mode avancé pour éditer les IDs techniques et le payload brut.',
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 10.5,
+              ),
+            ),
+            if (_showAdvancedNodeFields) ...[
+              const SizedBox(height: 8),
+              _labeledField(
+                context,
+                label: 'Script ID (raw)',
+                controller: _nodeScriptIdController,
+                placeholder: 'script_intro_professor',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Dialogue ID (raw)',
+                controller: _nodeDialogueIdController,
+                placeholder: 'dialogue_intro_lab',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Map ID (raw)',
+                controller: _nodeMapIdController,
+                placeholder: 'vova_center',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Event ID (raw)',
+                controller: _nodeEventIdController,
+                placeholder: 'event_intro_lab',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Entity ID (raw)',
+                controller: _nodeEntityIdController,
+                placeholder: 'npc_professor',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Warp ID (raw)',
+                controller: _nodeWarpIdController,
+                placeholder: 'lab_entry',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Trigger ID (raw)',
+                controller: _nodeTriggerIdController,
+                placeholder: 'trigger_intro_start',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Trainer ID (raw)',
+                controller: _nodeTrainerIdController,
+                placeholder: 'trainer_rival_001',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Flag Name (raw)',
+                controller: _nodeFlagNameController,
+                placeholder: 'story.got_starter',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Variable Name (raw)',
+                controller: _nodeVariableNameController,
+                placeholder: 'quest.professor.progress',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
+                label: 'Action Kind (raw)',
+                controller: _nodeActionKindController,
+                placeholder: node.type == ScenarioNodeType.reference
+                    ? 'referenceEvent'
+                    : 'showMessage',
+              ),
+              if (node.type == ScenarioNodeType.condition) ...[
+                const SizedBox(height: 6),
+                _labeledField(
+                  context,
+                  label: 'Condition JSON (raw)',
+                  controller: _nodeConditionJsonController,
+                  placeholder: '{"type":"allOf","children":[...]}',
+                  minLines: 4,
+                  maxLines: 8,
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -832,10 +1713,10 @@ class _ScenarioInspectorPanelState
     final controller = TextEditingController();
     final ok = await showMacosEditorPromptSheet(
       context,
-      title: 'New scenario graph',
+      title: 'Nouveau Scenario Graph',
       controller: controller,
-      confirmLabel: 'Create',
-      placeholder: 'Display name',
+      confirmLabel: 'Créer',
+      placeholder: 'Nom du scénario',
     );
     if (!ok || !context.mounted) return;
     final name = controller.text.trim();
@@ -851,10 +1732,10 @@ class _ScenarioInspectorPanelState
     final controller = TextEditingController(text: scenario.name);
     final ok = await showMacosEditorPromptSheet(
       context,
-      title: 'Rename scenario',
+      title: 'Renommer le scénario',
       controller: controller,
-      confirmLabel: 'Save',
-      placeholder: 'Display name',
+      confirmLabel: 'Enregistrer',
+      placeholder: 'Nom',
     );
     if (!ok || !context.mounted) return;
     final name = controller.text.trim();
@@ -869,9 +1750,10 @@ class _ScenarioInspectorPanelState
   ) async {
     final confirm = await showMacosEditorTwoChoiceAlert(
       context,
-      title: 'Delete scenario?',
-      message: 'This will remove "${scenario.name}" and all its graph data.',
-      primaryLabel: 'Delete',
+      title: 'Supprimer ce scénario ?',
+      message:
+          'Cette action supprime "${scenario.name}" et tout son graphe (nœuds + connexions).',
+      primaryLabel: 'Supprimer',
       primaryIsDestructive: true,
     );
     if (!confirm || !context.mounted) return;
@@ -885,19 +1767,19 @@ class _ScenarioInspectorPanelState
   ) async {
     final type = await showCupertinoListPicker<ScenarioNodeType>(
       context: context,
-      title: 'Node type',
+      title: 'Type de node',
       items: ScenarioNodeType.values,
-      labelOf: _scenarioNodeTypeLabel,
+      labelOf: scenarioNodeTypePickerLabel,
     );
     if (type == null || !context.mounted) return;
     final titleController =
-        TextEditingController(text: _defaultNodeTitleForType(type));
+        TextEditingController(text: defaultScenarioNodeTitle(type));
     final ok = await showMacosEditorPromptSheet(
       context,
-      title: 'Add ${_scenarioNodeTypeLabel(type)} node',
+      title: 'Ajouter un node ${scenarioNodeTypeLabel(type)}',
       controller: titleController,
-      confirmLabel: 'Add',
-      placeholder: 'Node title',
+      confirmLabel: 'Ajouter',
+      placeholder: 'Titre du node',
     );
     if (!ok || !context.mounted) return;
     final title = titleController.text.trim();
@@ -917,9 +1799,9 @@ class _ScenarioInspectorPanelState
   ) async {
     final type = await showCupertinoListPicker<ScenarioNodeType>(
       context: context,
-      title: 'Node type',
+      title: 'Type de node',
       items: ScenarioNodeType.values,
-      labelOf: _scenarioNodeTypeLabel,
+      labelOf: scenarioNodeTypePickerLabel,
     );
     if (type == null || !context.mounted) return;
     await notifier.updateScenarioNode(
@@ -931,9 +1813,6 @@ class _ScenarioInspectorPanelState
   Future<void> _pickScriptBinding(
     BuildContext context,
     ProjectManifest project,
-    EditorNotifier notifier,
-    ScenarioAsset scenario,
-    ScenarioNode node,
   ) async {
     final items = <ProjectScriptEntry?>[null, ...project.scripts];
     final picked = await showCupertinoListPicker<ProjectScriptEntry?>(
@@ -941,23 +1820,16 @@ class _ScenarioInspectorPanelState
       title: 'Script binding',
       items: items,
       labelOf: (value) =>
-          value == null ? 'None' : '${value.name} (${value.id})',
+          value == null ? 'Aucun' : '${value.name} (${value.id})',
     );
-    if (!context.mounted) return;
-    await notifier.updateScenarioNode(
-      scenarioId: scenario.id,
-      node: node.copyWith(
-        binding: node.binding.copyWith(scriptId: picked?.id),
-      ),
-    );
+    if (!mounted) return;
+    _nodeScriptIdController.text = picked?.id ?? '';
+    setState(() {});
   }
 
   Future<void> _pickDialogueBinding(
     BuildContext context,
     ProjectManifest project,
-    EditorNotifier notifier,
-    ScenarioAsset scenario,
-    ScenarioNode node,
   ) async {
     final items = <ProjectDialogueEntry?>[null, ...project.dialogues];
     final picked = await showCupertinoListPicker<ProjectDialogueEntry?>(
@@ -965,23 +1837,33 @@ class _ScenarioInspectorPanelState
       title: 'Dialogue binding',
       items: items,
       labelOf: (value) =>
-          value == null ? 'None' : '${value.name} (${value.id})',
+          value == null ? 'Aucun' : '${value.name} (${value.id})',
     );
-    if (!context.mounted) return;
-    await notifier.updateScenarioNode(
-      scenarioId: scenario.id,
-      node: node.copyWith(
-        binding: node.binding.copyWith(dialogueId: picked?.id),
-      ),
+    if (!mounted) return;
+    _nodeDialogueIdController.text = picked?.id ?? '';
+    setState(() {});
+  }
+
+  Future<void> _pickTrainerBinding(
+    BuildContext context,
+    ProjectManifest project,
+  ) async {
+    final items = <ProjectTrainerEntry?>[null, ...project.trainers];
+    final picked = await showCupertinoListPicker<ProjectTrainerEntry?>(
+      context: context,
+      title: 'Trainer binding',
+      items: items,
+      labelOf: (value) =>
+          value == null ? 'Aucun' : '${value.name} (${value.id})',
     );
+    if (!mounted) return;
+    _nodeTrainerIdController.text = picked?.id ?? '';
+    setState(() {});
   }
 
   Future<void> _pickMapBinding(
     BuildContext context,
     ProjectManifest project,
-    EditorNotifier notifier,
-    ScenarioAsset scenario,
-    ScenarioNode node,
   ) async {
     final items = <ProjectMapEntry?>[null, ...project.maps];
     final picked = await showCupertinoListPicker<ProjectMapEntry?>(
@@ -989,15 +1871,243 @@ class _ScenarioInspectorPanelState
       title: 'Map binding',
       items: items,
       labelOf: (value) =>
-          value == null ? 'None' : '${value.name} (${value.id})',
+          value == null ? 'Aucune' : '${value.name} (${value.id})',
     );
-    if (!context.mounted) return;
-    await notifier.updateScenarioNode(
-      scenarioId: scenario.id,
-      node: node.copyWith(
-        binding: node.binding.copyWith(mapId: picked?.id),
+    if (!mounted) return;
+    final previousMapId = _nodeMapIdController.text.trim();
+    final nextMapId = picked?.id ?? '';
+    _nodeMapIdController.text = nextMapId;
+    if (previousMapId != nextMapId) {
+      _nodeEventIdController.clear();
+      _nodeEntityIdController.clear();
+      _nodeWarpIdController.clear();
+      _nodeTriggerIdController.clear();
+    }
+    setState(() {});
+  }
+
+  Future<void> _pickMapEventBinding(
+    BuildContext context,
+    EditorState state,
+    ProjectManifest project,
+  ) async {
+    final map = await _resolveMapFromCurrentMapBinding(
+      context,
+      state: state,
+      project: project,
+      pickerLabel: 'event',
+    );
+    if (map == null || !context.mounted) return;
+    final options = <_ScenarioMapScopedOption?>[
+      null,
+      ...map.events.map(
+        (event) => _ScenarioMapScopedOption(
+          id: event.id,
+          label:
+              '${event.id} — ${event.type.name} — (${event.position.x},${event.position.y})',
+        ),
       ),
+    ];
+    final picked = await showCupertinoListPicker<_ScenarioMapScopedOption?>(
+      context: context,
+      title: 'Event ID (${map.id})',
+      items: options,
+      labelOf: (value) => value?.label ?? 'Aucun',
     );
+    if (!mounted) return;
+    _nodeEventIdController.text = picked?.id ?? '';
+    setState(() {});
+  }
+
+  Future<void> _pickMapEntityBinding(
+    BuildContext context,
+    EditorState state,
+    ProjectManifest project,
+  ) async {
+    final map = await _resolveMapFromCurrentMapBinding(
+      context,
+      state: state,
+      project: project,
+      pickerLabel: 'entity',
+    );
+    if (map == null || !context.mounted) return;
+    final options = <_ScenarioMapScopedOption?>[
+      null,
+      ...map.entities.map(
+        (entity) => _ScenarioMapScopedOption(
+          id: entity.id,
+          label:
+              '${entity.id} — ${entity.kind.name} — (${entity.pos.x},${entity.pos.y})',
+        ),
+      ),
+    ];
+    final picked = await showCupertinoListPicker<_ScenarioMapScopedOption?>(
+      context: context,
+      title: 'Entity ID (${map.id})',
+      items: options,
+      labelOf: (value) => value?.label ?? 'Aucune',
+    );
+    if (!mounted) return;
+    _nodeEntityIdController.text = picked?.id ?? '';
+    setState(() {});
+  }
+
+  Future<void> _pickMapWarpBinding(
+    BuildContext context,
+    EditorState state,
+    ProjectManifest project,
+  ) async {
+    final map = await _resolveMapFromCurrentMapBinding(
+      context,
+      state: state,
+      project: project,
+      pickerLabel: 'warp',
+    );
+    if (map == null || !context.mounted) return;
+    final options = <_ScenarioMapScopedOption?>[
+      null,
+      ...map.warps.map(
+        (warp) => _ScenarioMapScopedOption(
+          id: warp.id,
+          label:
+              '${warp.id} — (${warp.pos.x},${warp.pos.y}) -> ${warp.targetMapId}',
+        ),
+      ),
+    ];
+    final picked = await showCupertinoListPicker<_ScenarioMapScopedOption?>(
+      context: context,
+      title: 'Warp ID (${map.id})',
+      items: options,
+      labelOf: (value) => value?.label ?? 'Aucun',
+    );
+    if (!mounted) return;
+    _nodeWarpIdController.text = picked?.id ?? '';
+    setState(() {});
+  }
+
+  Future<void> _pickMapTriggerBinding(
+    BuildContext context,
+    EditorState state,
+    ProjectManifest project,
+  ) async {
+    final map = await _resolveMapFromCurrentMapBinding(
+      context,
+      state: state,
+      project: project,
+      pickerLabel: 'trigger',
+    );
+    if (map == null || !context.mounted) return;
+    final options = <_ScenarioMapScopedOption?>[
+      null,
+      ...map.triggers.map(
+        (trigger) => _ScenarioMapScopedOption(
+          id: trigger.id,
+          label:
+              '${trigger.id} — ${trigger.type.name} — area (${trigger.area.pos.x},${trigger.area.pos.y},${trigger.area.size.width}x${trigger.area.size.height})',
+        ),
+      ),
+    ];
+    final picked = await showCupertinoListPicker<_ScenarioMapScopedOption?>(
+      context: context,
+      title: 'Trigger ID (${map.id})',
+      items: options,
+      labelOf: (value) => value?.label ?? 'Aucun',
+    );
+    if (!mounted) return;
+    _nodeTriggerIdController.text = picked?.id ?? '';
+    setState(() {});
+  }
+
+  Future<MapData?> _resolveMapFromCurrentMapBinding(
+    BuildContext context, {
+    required EditorState state,
+    required ProjectManifest project,
+    required String pickerLabel,
+  }) async {
+    final mapId = _nodeMapIdController.text.trim();
+    if (mapId.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Map requise',
+        message:
+            'Sélectionne d’abord une map avant de choisir un $pickerLabel.',
+      );
+      return null;
+    }
+    final map =
+        await _loadMapById(state: state, project: project, mapId: mapId);
+    if (map == null) {
+      if (!context.mounted) return null;
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Map introuvable',
+        message:
+            'Impossible de charger la map "$mapId". Vérifie que le projet est bien chargé et que la map existe.',
+      );
+      return null;
+    }
+    return map;
+  }
+
+  Future<MapData?> _loadMapById({
+    required EditorState state,
+    required ProjectManifest project,
+    required String mapId,
+  }) async {
+    final normalized = mapId.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    final activeMap = state.activeMap;
+    if (activeMap != null && activeMap.id == normalized) {
+      return activeMap;
+    }
+    if (_mapCache.containsKey(normalized)) {
+      return _mapCache[normalized];
+    }
+    ProjectMapEntry? mapEntry;
+    for (final entry in project.maps) {
+      if (entry.id == normalized) {
+        mapEntry = entry;
+        break;
+      }
+    }
+    if (mapEntry == null) {
+      _mapCache[normalized] = null;
+      return null;
+    }
+    final root = state.projectRootPath;
+    if (root == null || root.trim().isEmpty) {
+      _mapCache[normalized] = null;
+      return null;
+    }
+    final absolutePath = p.join(root, mapEntry.relativePath);
+    final repository = ref.read(mapRepositoryProvider);
+    try {
+      final map = await repository.loadMap(absolutePath);
+      _mapCache[normalized] = map;
+      return map;
+    } catch (_) {
+      _mapCache[normalized] = null;
+      return null;
+    }
+  }
+
+  Future<void> _pickActionPreset(
+    BuildContext context, {
+    required bool referenceMode,
+  }) async {
+    final source =
+        referenceMode ? scenarioReferencePresets : scenarioActionPresets;
+    final picked = await showCupertinoListPicker<ScenarioActionPreset>(
+      context: context,
+      title: referenceMode ? 'Type de référence' : 'Action',
+      items: source,
+      labelOf: (value) => '${value.label} — ${value.description}',
+    );
+    if (picked == null || !mounted) return;
+    _nodeActionKindController.text = picked.id;
+    setState(() {});
   }
 
   Future<void> _pickTargetNodeForLink(
@@ -1014,17 +2124,17 @@ class _ScenarioInspectorPanelState
     }
     final picked = await showCupertinoListPicker<ScenarioNode>(
       context: context,
-      title: 'Connect to node',
+      title: 'Connecter vers',
       items: targets,
-      labelOf: (value) => '${_scenarioNodeTypeLabel(value.type)} · ${value.id}',
+      labelOf: (value) => '${scenarioNodeTypeLabel(value.type)} · ${value.id}',
     );
     if (picked == null || !context.mounted) return;
     final labelController = TextEditingController();
     final ok = await showMacosEditorPromptSheet(
       context,
-      title: 'Link label (optional)',
+      title: 'Label de branche (optionnel)',
       controller: labelController,
-      confirmLabel: 'Create',
+      confirmLabel: 'Créer',
       placeholder: 'next / yes / no ...',
       compact: true,
     );
@@ -1043,22 +2153,84 @@ class _ScenarioInspectorPanelState
     required ScenarioAsset scenario,
     required ScenarioNode node,
   }) async {
-    ScriptCondition? parsedCondition;
-    final rawCondition = _nodeConditionJsonController.text.trim();
-    if (rawCondition.isNotEmpty) {
-      try {
-        final dynamic decoded = jsonDecode(rawCondition);
-        if (decoded is! Map<String, dynamic>) {
-          throw const FormatException('Condition JSON must be an object');
-        }
-        parsedCondition = ScriptCondition.fromJson(decoded);
-      } catch (e) {
-        await showCupertinoEditorAlert(
-          context,
-          title: 'Invalid condition JSON',
-          message: '$e',
-        );
-        return;
+    ScriptCondition? parsedCondition = node.payload.condition;
+    if (node.type == ScenarioNodeType.condition) {
+      switch (_conditionMode) {
+        case _ScenarioConditionMode.none:
+          parsedCondition = null;
+        case _ScenarioConditionMode.flagSet:
+          final flag = _nodeConditionFlagNameController.text.trim();
+          if (flag.isEmpty) {
+            await showCupertinoEditorAlert(
+              context,
+              title: 'Flag requis',
+              message: 'Renseigne un Flag Name.',
+            );
+            return;
+          }
+          parsedCondition = ScriptConditionFactory.flagIsSet(flag);
+        case _ScenarioConditionMode.flagUnset:
+          final flag = _nodeConditionFlagNameController.text.trim();
+          if (flag.isEmpty) {
+            await showCupertinoEditorAlert(
+              context,
+              title: 'Flag requis',
+              message: 'Renseigne un Flag Name.',
+            );
+            return;
+          }
+          parsedCondition = ScriptConditionFactory.flagIsUnset(flag);
+        case _ScenarioConditionMode.eventConsumed:
+          final eventId = _nodeEventIdController.text.trim();
+          if (eventId.isEmpty) {
+            await showCupertinoEditorAlert(
+              context,
+              title: 'Event requis',
+              message: 'Choisis un Event ID.',
+            );
+            return;
+          }
+          parsedCondition = ScriptConditionFactory.eventIsConsumed(eventId);
+        case _ScenarioConditionMode.variableEquals:
+          final variableName = _nodeConditionVariableNameController.text.trim();
+          final value = _nodeConditionVariableValueController.text.trim();
+          if (variableName.isEmpty || value.isEmpty) {
+            await showCupertinoEditorAlert(
+              context,
+              title: 'Variable requise',
+              message: 'Renseigne Variable Name et Value.',
+            );
+            return;
+          }
+          parsedCondition = ScriptCondition(
+            type: ScriptConditionType.variableEquals,
+            params: <String, String>{
+              ScriptConditionParams.variableName: variableName,
+              ScriptConditionParams.value: value,
+            },
+          );
+        case _ScenarioConditionMode.rawJson:
+          final rawCondition = _nodeConditionJsonController.text.trim();
+          if (rawCondition.isEmpty) {
+            parsedCondition = null;
+          } else {
+            try {
+              final dynamic decoded = jsonDecode(rawCondition);
+              if (decoded is! Map<String, dynamic>) {
+                throw const FormatException(
+                  'Condition JSON must be an object',
+                );
+              }
+              parsedCondition = ScriptCondition.fromJson(decoded);
+            } catch (e) {
+              await showCupertinoEditorAlert(
+                context,
+                title: 'JSON condition invalide',
+                message: '$e',
+              );
+              return;
+            }
+          }
       }
     }
 
@@ -1066,6 +2238,9 @@ class _ScenarioInspectorPanelState
       title: _nodeTitleController.text.trim(),
       description: _nodeDescriptionController.text.trim(),
       binding: node.binding.copyWith(
+        scriptId: _normalizeOptional(_nodeScriptIdController.text),
+        dialogueId: _normalizeOptional(_nodeDialogueIdController.text),
+        mapId: _normalizeOptional(_nodeMapIdController.text),
         eventId: _normalizeOptional(_nodeEventIdController.text),
         entityId: _normalizeOptional(_nodeEntityIdController.text),
         warpId: _normalizeOptional(_nodeWarpIdController.text),
@@ -1091,6 +2266,11 @@ class _ScenarioInspectorPanelState
     return trimmed.isEmpty ? null : trimmed;
   }
 
+  String? _optionalValue(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
   void _syncScenarioControllers(ScenarioAsset scenario) {
     final fingerprint =
         '${scenario.id}|${scenario.name}|${scenario.description}';
@@ -1102,6 +2282,21 @@ class _ScenarioInspectorPanelState
     _scenarioDescriptionController.text = scenario.description;
   }
 
+  _ScenarioConditionMode _deriveConditionMode(ScriptCondition? condition) {
+    if (condition == null) {
+      return _ScenarioConditionMode.none;
+    }
+    return switch (condition.type) {
+      ScriptConditionType.flagIsSet => _ScenarioConditionMode.flagSet,
+      ScriptConditionType.flagIsUnset => _ScenarioConditionMode.flagUnset,
+      ScriptConditionType.eventIsConsumed =>
+        _ScenarioConditionMode.eventConsumed,
+      ScriptConditionType.variableEquals =>
+        _ScenarioConditionMode.variableEquals,
+      _ => _ScenarioConditionMode.rawJson,
+    };
+  }
+
   void _syncNodeControllers(ScenarioNode? node) {
     if (node == null) {
       _boundNodeFingerprint = null;
@@ -1110,6 +2305,12 @@ class _ScenarioInspectorPanelState
       _nodeActionKindController.clear();
       _nodeMessageController.clear();
       _nodeConditionJsonController.clear();
+      _nodeConditionFlagNameController.clear();
+      _nodeConditionVariableNameController.clear();
+      _nodeConditionVariableValueController.clear();
+      _nodeScriptIdController.clear();
+      _nodeDialogueIdController.clear();
+      _nodeMapIdController.clear();
       _nodeEventIdController.clear();
       _nodeEntityIdController.clear();
       _nodeWarpIdController.clear();
@@ -1117,6 +2318,7 @@ class _ScenarioInspectorPanelState
       _nodeTrainerIdController.clear();
       _nodeFlagNameController.clear();
       _nodeVariableNameController.clear();
+      _conditionMode = _ScenarioConditionMode.none;
       return;
     }
     final fingerprint = [
@@ -1150,6 +2352,9 @@ class _ScenarioInspectorPanelState
         ? ''
         : const JsonEncoder.withIndent('  ')
             .convert(node.payload.condition!.toJson());
+    _nodeScriptIdController.text = node.binding.scriptId ?? '';
+    _nodeDialogueIdController.text = node.binding.dialogueId ?? '';
+    _nodeMapIdController.text = node.binding.mapId ?? '';
     _nodeEventIdController.text = node.binding.eventId ?? '';
     _nodeEntityIdController.text = node.binding.entityId ?? '';
     _nodeWarpIdController.text = node.binding.warpId ?? '';
@@ -1157,29 +2362,36 @@ class _ScenarioInspectorPanelState
     _nodeTrainerIdController.text = node.binding.trainerId ?? '';
     _nodeFlagNameController.text = node.binding.flagName ?? '';
     _nodeVariableNameController.text = node.binding.variableName ?? '';
+
+    final condition = node.payload.condition;
+    _conditionMode = _deriveConditionMode(condition);
+    _nodeConditionFlagNameController.text =
+        condition?.params[ScriptConditionParams.flagName] ??
+            node.binding.flagName ??
+            '';
+    _nodeConditionVariableNameController.text =
+        condition?.params[ScriptConditionParams.variableName] ??
+            node.binding.variableName ??
+            '';
+    _nodeConditionVariableValueController.text =
+        condition?.params[ScriptConditionParams.value] ?? '';
+    if (_conditionMode == _ScenarioConditionMode.eventConsumed) {
+      final eventId = condition?.params[ScriptConditionParams.eventId] ?? '';
+      if (eventId.isNotEmpty) {
+        _nodeEventIdController.text = eventId;
+      }
+    }
   }
 }
 
-String _scenarioNodeTypeLabel(ScenarioNodeType type) {
+Color _colorForNodeType(ScenarioNodeType type) {
   return switch (type) {
-    ScenarioNodeType.start => 'Start',
-    ScenarioNodeType.dialogue => 'Dialogue',
-    ScenarioNodeType.action => 'Action',
-    ScenarioNodeType.condition => 'Condition',
-    ScenarioNodeType.choice => 'Choice',
-    ScenarioNodeType.reference => 'World Link',
-    ScenarioNodeType.end => 'End',
-  };
-}
-
-String _defaultNodeTitleForType(ScenarioNodeType type) {
-  return switch (type) {
-    ScenarioNodeType.start => 'Start',
-    ScenarioNodeType.dialogue => 'Dialogue node',
-    ScenarioNodeType.action => 'Action node',
-    ScenarioNodeType.condition => 'Condition node',
-    ScenarioNodeType.choice => 'Choice node',
-    ScenarioNodeType.reference => 'World link node',
-    ScenarioNodeType.end => 'End',
+    ScenarioNodeType.start => EditorChrome.inspectorJoyMint,
+    ScenarioNodeType.dialogue => EditorChrome.inspectorJoyLilac,
+    ScenarioNodeType.action => EditorChrome.inspectorJoyCyan,
+    ScenarioNodeType.condition => EditorChrome.inspectorJoyAmber,
+    ScenarioNodeType.choice => EditorChrome.inspectorJoyHoney,
+    ScenarioNodeType.reference => EditorChrome.inspectorJoyBlue,
+    ScenarioNodeType.end => EditorChrome.inspectorJoyCoral,
   };
 }
