@@ -43,6 +43,9 @@ enum ScriptSuspendReason {
 
   /// En attente d'un événement externe.
   waitingForExternal,
+
+  /// En attente de la fin d'un combat (trainer ou wild).
+  waitingForBattle,
 }
 
 /// Résultat de l'exécution d'une commande.
