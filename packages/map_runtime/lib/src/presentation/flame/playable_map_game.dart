@@ -126,6 +126,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   BattleSession? _battleSession;
   BattleStartRequest? _battleStartRequest;  // Pour mapping vers BattleSetup et marquage trainer
 
+  // Battle flow hardening
+  bool _isBattleResolving = false;  // Lock pour empêcher spam clavier pendant résolution
+
   // Line of Sight (LoS) trainer detection
   final Set<String> _triggeredTrainerBattles = {};  // Anti-retrigger lock
 
@@ -800,21 +803,39 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// 2. Met à jour l'UI
   /// 3. Vérifie si le combat est fini
   /// 4. Si fini, appelle _onBattleFinished()
+  ///
+  /// **Lock anti-spam** : `_isBattleResolving` empêche le spam clavier
+  /// pendant la résolution d'un tour.
   void _onPlayerBattleChoice(PlayerBattleChoice choice) {
     if (_battleSession == null) {
       return;
     }
 
-    // Appliquer le choix (retourne une nouvelle session immutable)
-    _battleSession = _battleSession!.applyChoice(choice);
+    // Lock anti-spam : empêcher traitement multiple pendant résolution
+    if (_isBattleResolving) {
+      debugPrint('[battle] choice ignored: already resolving');
+      return;
+    }
+    _isBattleResolving = true;
 
-    // Mettre à jour l'UI avec le nouvel état
-    final overlay = _battleOverlay as BattleOverlayComponent?;
-    overlay?.updateState(_battleSession!);
+    try {
+      // Appliquer le choix (retourne une nouvelle session immutable)
+      _battleSession = _battleSession!.applyChoice(choice);
 
-    // Vérifier si le combat est fini
-    if (_battleSession!.state.isFinished) {
-      _onBattleFinished(_battleSession!.state.outcome!);
+      // Mettre à jour l'UI avec le nouvel état
+      final overlay = _battleOverlay as BattleOverlayComponent?;
+      overlay?.updateState(_battleSession!);
+
+      // Vérifier si le combat est fini
+      if (_battleSession!.state.isFinished) {
+        _onBattleFinished(_battleSession!.state.outcome!);
+      }
+    } finally {
+      // Unlock après résolution (ou après fin de combat)
+      // Si combat fini, _onBattleFinished() va reset l'état de toute façon
+      if (_flowPhase == _RuntimeFlowPhase.battle) {
+        _isBattleResolving = false;
+      }
     }
   }
 
@@ -851,6 +872,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = null;
     _battleSession = null;
     _battleStartRequest = null;
+    _isBattleResolving = false;  // Reset lock anti-spam
 
     // NOTE: NE PAS clear _triggeredTrainerBattles ici!
     // Le lock doit rester actif tant que le joueur est dans la LoS du trainer.
@@ -1517,10 +1539,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       // Lock ANTI-RETRIGGER avant de déclencher
       _triggeredTrainerBattles.add(entity.id);
-      // CRITICAL: Start handoff IMMEDIATELY, do NOT store in _pendingBattleRequest
-      // Storing in _pendingBattleRequest AND starting handoff causes double-trigger!
-      // The update() loop will re-consume _pendingBattleRequest and restart the battle.
-      _startBattleHandoff(request);
+      // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
+      // This is consistent with wild encounters and allows proper timing
+      _pendingBattleRequest = request;
     }
   }
 
@@ -1675,9 +1696,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     if (request != null) {
       debugPrint('[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
-      // CRITICAL: Start handoff IMMEDIATELY, do NOT store in _pendingBattleRequest
-      // Storing in _pendingBattleRequest AND starting handoff causes double-trigger!
-      _startBattleHandoff(request);
+      // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
+      // This is consistent with wild encounters and allows proper timing
+      _pendingBattleRequest = request;
     } else {
       debugPrint('[trainer] battle request failed trainer=$trainerId entity=${entity.id}');
     }
@@ -2287,7 +2308,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _clearTransientUiState() {
     _pendingWarp = null;
     _pendingConnection = null;
-    _pendingBattleRequest = null;
+    // CRITICAL: Do NOT clear _pendingBattleRequest if a battle is active!
+    // This would cancel a pending wild encounter battle.
+    // Only clear if we're in overworld phase (no battle in progress).
+    if (_flowPhase == _RuntimeFlowPhase.overworld) {
+      _pendingBattleRequest = null;
+    }
     _pendingPlacedElementBehavior = null;
     _notification?.removeFromParent();
     _notification = null;
