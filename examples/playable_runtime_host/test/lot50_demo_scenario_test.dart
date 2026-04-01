@@ -12,6 +12,7 @@ void main() {
 
       expect(result.setup, isNotNull);
       expect(result.warning, isNull);
+      expect(result.setup!.mapId, equals('test_map'));
       expect(
         result.bundle.map.events.any((event) => event.id == lot50DemoEventId),
         isTrue,
@@ -26,6 +27,10 @@ void main() {
           .firstWhere((event) => event.id == lot50DemoEventId);
       expect(injectedEvent.pages.length, equals(2));
       expect(injectedEvent.pages.first.script?.scriptId, lot50DemoScriptId);
+      expect(
+        injectedEvent.position.x == 0 && injectedEvent.position.y == 0,
+        isFalse,
+      );
 
       final injectedScript = result.bundle.manifest.scripts
           .firstWhere((script) => script.id == lot50DemoScriptId);

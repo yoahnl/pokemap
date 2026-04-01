@@ -112,6 +112,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _showBehaviorDebugOverlay = false;
   TextComponent? _behaviorDebugOverlay;
   String _lastBehaviorDebugLine = 'Aucun behavior déclenché';
+  GridPos? _debugTileMarkerPos;
+  String? _debugTileMarkerLabel;
+  RectangleComponent? _debugTileMarkerFill;
+  RectangleComponent? _debugTileMarkerBorder;
+  TextComponent? _debugTileMarkerText;
 
   ScriptRuntimeController? _activeScriptController;
   bool _isAwaitingScriptResume = false;
@@ -223,6 +228,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _ensureBehaviorDebugOverlay();
   }
 
+  void setDebugTileMarker({
+    required GridPos? position,
+    String? label,
+  }) {
+    _debugTileMarkerPos = position;
+    _debugTileMarkerLabel = label;
+    if (!isLoaded) {
+      return;
+    }
+    _applyDebugTileMarker();
+  }
+
   @override
   Future<void> onLoad() async {
     try {
@@ -269,6 +286,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _syncCameraToPlayer();
     _preloadActiveMapConnections();
     _ensureBehaviorDebugOverlay();
+    _applyDebugTileMarker();
     return super.onLoad();
   }
 
@@ -1926,6 +1944,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();
+      _applyDebugTileMarker();
 
       debugPrint('[load] game loaded from saveId=${loadedState.saveId}');
       return true;
@@ -2403,6 +2422,67 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _loadedMapsById.clear();
     _loadMapFutureById.clear();
+  }
+
+  void _applyDebugTileMarker() {
+    _debugTileMarkerFill?.removeFromParent();
+    _debugTileMarkerFill = null;
+    _debugTileMarkerBorder?.removeFromParent();
+    _debugTileMarkerBorder = null;
+    _debugTileMarkerText?.removeFromParent();
+    _debugTileMarkerText = null;
+
+    final pos = _debugTileMarkerPos;
+    if (pos == null) {
+      return;
+    }
+    final loaded = _loadedMapsById[_activeMapId];
+    if (loaded == null) {
+      return;
+    }
+    final origin = _originPixelsOf(loaded);
+    final x = origin.x + pos.x * _cellWidth;
+    final y = origin.y + pos.y * _cellHeight;
+    final size = Vector2(_cellWidth, _cellHeight);
+
+    final fill = RectangleComponent(
+      position: Vector2(x, y),
+      size: size,
+      paint: ui.Paint()..color = const ui.Color(0x66FF9800),
+      priority: 150000,
+    );
+    final border = RectangleComponent(
+      position: Vector2(x, y),
+      size: size,
+      paint: ui.Paint()
+        ..color = const ui.Color(0xFFFF6D00)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2,
+      priority: 150001,
+    );
+    world.add(fill);
+    world.add(border);
+    _debugTileMarkerFill = fill;
+    _debugTileMarkerBorder = border;
+
+    final label = _debugTileMarkerLabel?.trim();
+    if (label == null || label.isEmpty) {
+      return;
+    }
+    final text = TextComponent(
+      text: label,
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      position: Vector2(x + 2, y + 2),
+      priority: 150002,
+    );
+    world.add(text);
+    _debugTileMarkerText = text;
   }
 
   void _unmountLoadedMap(String mapId) {

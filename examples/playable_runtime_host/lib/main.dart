@@ -53,6 +53,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         if (!mounted || _game == null) {
           return;
         }
+        _syncLot50DebugMarker();
         setState(() {});
       },
     );
@@ -120,6 +121,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       });
       nextGame.setCollisionOverlayVisible(_showCollisionOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
+      _syncLot50DebugMarker();
       _startRuntimeInfoTicker();
     } catch (e) {
       if (!mounted) return;
@@ -185,6 +187,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       if (!mounted) return;
       if (loaded) {
         final info = game.saveLoadInfo;
+        _syncLot50DebugMarker();
         setState(() {
           _surfingEnabled = info.movementMode == MovementMode.surf.name;
           _saveLoadStatus =
@@ -211,6 +214,24 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     return injectLot50DemoScenario(bundle).bundle;
   }
 
+  void _syncLot50DebugMarker() {
+    final game = _game;
+    if (game == null) {
+      return;
+    }
+    final setup = _lot50ScenarioSetup;
+    if (setup == null) {
+      game.setDebugTileMarker(position: null);
+      return;
+    }
+    final info = game.saveLoadInfo;
+    if (info.mapId != setup.mapId) {
+      game.setDebugTileMarker(position: null);
+      return;
+    }
+    game.setDebugTileMarker(position: setup.eventPos, label: 'LOT50');
+  }
+
   _ScenarioRuntimeState? _readScenarioRuntimeState(PlayableMapGame game) {
     final setup = _lot50ScenarioSetup;
     if (setup == null) {
@@ -233,6 +254,38 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     );
   }
 
+  _ScenarioSpatialDebug? _readScenarioSpatialDebug(PlayableMapGame game) {
+    final setup = _lot50ScenarioSetup;
+    if (setup == null) {
+      return null;
+    }
+    final info = game.saveLoadInfo;
+    final sameMap = info.mapId == setup.mapId;
+    final dx = setup.eventPos.x - info.playerX;
+    final dy = setup.eventPos.y - info.playerY;
+    final distance = sameMap ? dx.abs() + dy.abs() : null;
+    final adjacent = distance == 1;
+    final sameCell = distance == 0;
+    final facingEvent = adjacent && _isFacingTowardTarget(info.facing, dx, dy);
+    return _ScenarioSpatialDebug(
+      sameMap: sameMap,
+      distanceManhattan: distance,
+      adjacent: adjacent,
+      sameCell: sameCell,
+      facingEvent: facingEvent,
+    );
+  }
+
+  bool _isFacingTowardTarget(String facing, int dx, int dy) {
+    return switch (facing) {
+      'north' => dx == 0 && dy == -1,
+      'south' => dx == 0 && dy == 1,
+      'east' => dx == 1 && dy == 0,
+      'west' => dx == -1 && dy == 0,
+      _ => false,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final game = _game;
@@ -240,6 +293,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       final info = game.saveLoadInfo;
       final scenarioSetup = _lot50ScenarioSetup;
       final scenarioState = _readScenarioRuntimeState(game);
+      final scenarioSpatial = _readScenarioSpatialDebug(game);
       return Scaffold(
         appBar: AppBar(
           title: Text(_mapIdController.text.trim()),
@@ -362,9 +416,31 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                           ),
                         ),
                         Text(
-                          'Event: (${scenarioSetup.eventPos.x}, ${scenarioSetup.eventPos.y})',
+                          'Event: ${scenarioSetup.mapId} (${scenarioSetup.eventPos.x}, ${scenarioSetup.eventPos.y})',
                           style: const TextStyle(color: Colors.white),
                         ),
+                        if (scenarioSpatial != null) ...[
+                          Text(
+                            'Même map: ${scenarioSpatial.sameMap}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          Text(
+                            'Distance Manhattan: ${scenarioSpatial.distanceManhattan?.toString() ?? 'n/a'}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          Text(
+                            'Adjacent: ${scenarioSpatial.adjacent}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          Text(
+                            'Face à l’event: ${scenarioSpatial.facingEvent}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          Text(
+                            'Même case: ${scenarioSpatial.sameCell}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ],
                         const Text(
                           'Étapes: place-toi face à l’event puis E, sauvegarde, charge.',
                           style: TextStyle(color: Colors.white70, fontSize: 12),
@@ -456,6 +532,22 @@ class _ScenarioRuntimeState {
   final bool flagSet;
   final bool consumed;
   final String interactions;
+}
+
+class _ScenarioSpatialDebug {
+  const _ScenarioSpatialDebug({
+    required this.sameMap,
+    required this.distanceManhattan,
+    required this.adjacent,
+    required this.facingEvent,
+    required this.sameCell,
+  });
+
+  final bool sameMap;
+  final int? distanceManhattan;
+  final bool adjacent;
+  final bool facingEvent;
+  final bool sameCell;
 }
 
 class _ProjectFileField extends StatelessWidget {
