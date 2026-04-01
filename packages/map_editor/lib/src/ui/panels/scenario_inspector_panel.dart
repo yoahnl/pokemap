@@ -586,6 +586,26 @@ class _ScenarioInspectorPanelState
       _nodeActionKindController.text.trim(),
       referenceMode: referenceMode,
     );
+    final summaryNode = node.copyWith(
+      title: _nodeTitleController.text.trim(),
+      description: _nodeDescriptionController.text.trim(),
+      binding: node.binding.copyWith(
+        scriptId: _normalizeOptional(_nodeScriptIdController.text),
+        dialogueId: _normalizeOptional(_nodeDialogueIdController.text),
+        mapId: _normalizeOptional(_nodeMapIdController.text),
+        eventId: _normalizeOptional(_nodeEventIdController.text),
+        entityId: _normalizeOptional(_nodeEntityIdController.text),
+        warpId: _normalizeOptional(_nodeWarpIdController.text),
+        triggerId: _normalizeOptional(_nodeTriggerIdController.text),
+        trainerId: _normalizeOptional(_nodeTrainerIdController.text),
+        flagName: _normalizeOptional(_nodeFlagNameController.text),
+        variableName: _normalizeOptional(_nodeVariableNameController.text),
+      ),
+      payload: node.payload.copyWith(
+        actionKind: _normalizeOptional(_nodeActionKindController.text),
+        message: _normalizeOptional(_nodeMessageController.text),
+      ),
+    );
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -641,6 +661,12 @@ class _ScenarioInspectorPanelState
               accent: _colorForNodeType(node.type),
             ),
             const SizedBox(height: 6),
+            _buildNodeSummaryCard(
+              context,
+              node: summaryNode,
+              actionPreset: actionPreset,
+            ),
+            const SizedBox(height: 6),
             _readonlyLine(
               context,
               'Type',
@@ -678,6 +704,15 @@ class _ScenarioInspectorPanelState
               minLines: 2,
               maxLines: 4,
             ),
+            const SizedBox(height: 8),
+            _buildScenarioRecipeSection(
+              context,
+              state: state,
+              notifier: notifier,
+              project: project,
+              scenario: scenario,
+              node: node,
+            ),
             const SizedBox(height: 10),
             ..._buildNodeTypeSpecificSections(
               context,
@@ -701,6 +736,215 @@ class _ScenarioInspectorPanelState
                 node: node,
               ),
               child: const Text('Appliquer les modifications du node'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNodeSummaryCard(
+    BuildContext context, {
+    required ScenarioNode node,
+    required ScenarioActionPreset? actionPreset,
+  }) {
+    final role = _nodeRoleLabel(node, actionPreset);
+    final summary = scenarioNodeHumanSummary(node);
+    final support = actionPreset == null
+        ? null
+        : scenarioRuntimeSupportLabel(actionPreset.runtimeSupport);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.08),
+        ),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.34),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Résumé du node',
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              role,
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              summary,
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 11,
+                height: 1.2,
+              ),
+            ),
+            if (support != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                support,
+                style: TextStyle(
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _nodeRoleLabel(
+    ScenarioNode node,
+    ScenarioActionPreset? actionPreset,
+  ) {
+    if (node.type == ScenarioNodeType.start) {
+      return 'Rôle : entrée principale';
+    }
+    if (node.type == ScenarioNodeType.end) {
+      return 'Rôle : sortie de branche';
+    }
+    if (node.type == ScenarioNodeType.dialogue) {
+      return 'Rôle : étape de dialogue';
+    }
+    if (node.type == ScenarioNodeType.condition) {
+      return 'Rôle : branche conditionnelle';
+    }
+    if (node.type == ScenarioNodeType.choice) {
+      return 'Rôle : embranchement joueur';
+    }
+    if (node.type == ScenarioNodeType.reference &&
+        scenarioPresetRepresentsTriggerSource(actionPreset?.id)) {
+      return 'Rôle : source / déclencheur de flow';
+    }
+    if (node.type == ScenarioNodeType.reference) {
+      return 'Rôle : référence monde/documentation';
+    }
+    return 'Rôle : action/effet';
+  }
+
+  Widget _buildScenarioRecipeSection(
+    BuildContext context, {
+    required EditorState state,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode node,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyHoney.withValues(alpha: 0.07),
+        ),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyHoney.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recettes Blueprint',
+              style: TextStyle(
+                color: CupertinoColors.label.resolveFrom(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Crée un mini-flow concret à partir du node courant.',
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 10.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _tinyInsertButton(
+                  context,
+                  label: 'Entrée map → dialogue',
+                  onPressed: () => _applyRecipeMapEnterDialogue(
+                    context,
+                    state: state,
+                    notifier: notifier,
+                    project: project,
+                    scenario: scenario,
+                    originNode: node,
+                  ),
+                ),
+                _tinyInsertButton(
+                  context,
+                  label: 'Entrée trigger → dialogue',
+                  onPressed: () => _applyRecipeTriggerEnterDialogue(
+                    context,
+                    state: state,
+                    notifier: notifier,
+                    project: project,
+                    scenario: scenario,
+                    originNode: node,
+                  ),
+                ),
+                _tinyInsertButton(
+                  context,
+                  label: 'Parler PNJ → script',
+                  onPressed: () => _applyRecipeEntityInteractScript(
+                    context,
+                    state: state,
+                    notifier: notifier,
+                    project: project,
+                    scenario: scenario,
+                    originNode: node,
+                  ),
+                ),
+                _tinyInsertButton(
+                  context,
+                  label: 'Combat dresseur',
+                  onPressed: () => _applyRecipeTrainerBattle(
+                    context,
+                    notifier: notifier,
+                    project: project,
+                    scenario: scenario,
+                    originNode: node,
+                  ),
+                ),
+                _tinyInsertButton(
+                  context,
+                  label: 'Condition flag A/B',
+                  onPressed: () => _applyRecipeFlagBranch(
+                    context,
+                    notifier: notifier,
+                    project: project,
+                    scenario: scenario,
+                    originNode: node,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -794,7 +1038,7 @@ class _ScenarioInspectorPanelState
               context,
               title: actionPreset.label,
               description:
-                  '${actionPreset.description}\n${actionPreset.executionHint}',
+                  '${actionPreset.description}\n${actionPreset.executionHint}\n${scenarioRuntimeSupportLabel(actionPreset.runtimeSupport)}',
               accent: EditorChrome.inspectorJoyCyan,
             ),
           const SizedBox(height: 6),
@@ -944,7 +1188,7 @@ class _ScenarioInspectorPanelState
               context,
               title: actionPreset.label,
               description:
-                  '${actionPreset.description}\n${actionPreset.executionHint}',
+                  '${actionPreset.description}\n${actionPreset.executionHint}\n${scenarioRuntimeSupportLabel(actionPreset.runtimeSupport)}',
               accent: EditorChrome.inspectorJoyBlue,
             ),
           const SizedBox(height: 6),
@@ -1002,7 +1246,8 @@ class _ScenarioInspectorPanelState
             context,
             title: 'How to use this node',
             lines: const <String>[
-              'Reference sert à documenter ou relier explicitement le scénario au contenu du monde.',
+              'Reference peut documenter une ressource monde OU jouer le rôle de source de déclenchement.',
+              'Pour un déclencheur explicite, utilise les presets "Déclencheur : ...".',
               'Choisis une map puis un event/entity/warp/trigger si nécessaire.',
             ],
           ),
@@ -2514,7 +2759,8 @@ class _ScenarioInspectorPanelState
       context: context,
       title: referenceMode ? 'Type de référence' : 'Action',
       items: source,
-      labelOf: (value) => '${value.label} — ${value.description}',
+      labelOf: (value) =>
+          '${value.label} — ${value.description} (${scenarioRuntimeSupportLabel(value.runtimeSupport)})',
     );
     if (picked == null || !mounted) return;
     _nodeActionKindController.text = picked.id;
@@ -2556,6 +2802,476 @@ class _ScenarioInspectorPanelState
       toNodeId: picked.id,
       label: labelController.text.trim(),
     );
+  }
+
+  // Ces helpers implémentent des "recettes" d'authoring.
+  // L'objectif est de matérialiser des cas d'usage fréquents sans demander
+  // à l'utilisateur de composer manuellement chaque node et chaque edge.
+  Future<String?> _addScenarioNodeAndResolveId({
+    required EditorNotifier notifier,
+    required String scenarioId,
+    required ScenarioNodeType type,
+    required String title,
+    required ScenarioNodePosition position,
+  }) async {
+    final beforeScenario = notifier.getSelectedScenario();
+    final beforeIds = <String>{
+      if (beforeScenario != null)
+        for (final node in beforeScenario.nodes) node.id,
+    };
+    await notifier.addScenarioNode(
+      scenarioId: scenarioId,
+      type: type,
+      title: title,
+      position: position,
+    );
+    final afterScenario = notifier.getSelectedScenario();
+    if (afterScenario != null) {
+      for (final node in afterScenario.nodes.reversed) {
+        if (!beforeIds.contains(node.id)) {
+          return node.id;
+        }
+      }
+    }
+    return null;
+  }
+
+  ScenarioNode? _findScenarioNodeById(EditorNotifier notifier, String nodeId) {
+    final scenario = notifier.getSelectedScenario();
+    if (scenario == null) {
+      return null;
+    }
+    for (final node in scenario.nodes) {
+      if (node.id == nodeId) {
+        return node;
+      }
+    }
+    return null;
+  }
+
+  ScenarioNodePosition _recipeNodePosition(ScenarioNode origin, int step) {
+    return ScenarioNodePosition(
+      x: origin.position.x + (250 * step),
+      y: origin.position.y + (14 * step),
+    );
+  }
+
+  Future<void> _applyRecipeMapEnterDialogue(
+    BuildContext context, {
+    required EditorState state,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode originNode,
+  }) async {
+    // Recette guidée : entrée sur map -> dialogue.
+    // Cette recette crée une source de déclenchement (reference/source),
+    // puis un node dialogue, puis relie automatiquement les edges.
+    final map = await showCupertinoListPicker<ProjectMapEntry>(
+      context: context,
+      title: 'Choisir la map source',
+      items: project.maps,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (map == null || !context.mounted) return;
+    final dialogue = await showCupertinoListPicker<ProjectDialogueEntry>(
+      context: context,
+      title: 'Choisir le dialogue',
+      items: project.dialogues,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (dialogue == null || !context.mounted) return;
+    final sourceId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.reference,
+      title: 'Entrée map ${map.name}',
+      position: _recipeNodePosition(originNode, 1),
+    );
+    if (sourceId == null) return;
+    final sourceNode = _findScenarioNodeById(notifier, sourceId);
+    if (sourceNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: sourceNode.copyWith(
+          payload: sourceNode.payload.copyWith(actionKind: 'sourceMapEnter'),
+          binding: sourceNode.binding.copyWith(mapId: map.id),
+        ),
+      );
+    }
+    final dialogueId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.dialogue,
+      title: 'Dialogue entrée map',
+      position: _recipeNodePosition(originNode, 2),
+    );
+    if (dialogueId != null) {
+      final dialogueNode = _findScenarioNodeById(notifier, dialogueId);
+      if (dialogueNode != null) {
+        await notifier.updateScenarioNode(
+          scenarioId: scenario.id,
+          node: dialogueNode.copyWith(
+            binding: dialogueNode.binding.copyWith(dialogueId: dialogue.id),
+          ),
+        );
+      }
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: originNode.id,
+        toNodeId: sourceId,
+        label: 'suite',
+      );
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: sourceId,
+        toNodeId: dialogueId,
+        label: 'onEnterMap',
+      );
+    }
+  }
+
+  Future<void> _applyRecipeTriggerEnterDialogue(
+    BuildContext context, {
+    required EditorState state,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode originNode,
+  }) async {
+    // Recette guidée : entrée trigger/zone -> dialogue.
+    // L'objectif est de rendre explicite la logique "source -> effet".
+    final mapEntry = await showCupertinoListPicker<ProjectMapEntry>(
+      context: context,
+      title: 'Choisir la map du trigger',
+      items: project.maps,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (mapEntry == null || !context.mounted) return;
+    final map = await _loadMapById(
+      state: state,
+      project: project,
+      mapId: mapEntry.id,
+    );
+    if (!context.mounted) return;
+    if (map == null || map.triggers.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Trigger indisponible',
+        message:
+            'La map "${mapEntry.name}" ne contient pas de trigger utilisable.',
+      );
+      return;
+    }
+    final trigger = await showCupertinoListPicker<MapTrigger>(
+      context: context,
+      title: 'Choisir le trigger',
+      items: map.triggers,
+      labelOf: (value) =>
+          '${value.id} — ${value.type.name} — (${value.area.pos.x},${value.area.pos.y})',
+    );
+    if (trigger == null || !context.mounted) return;
+    final dialogue = await showCupertinoListPicker<ProjectDialogueEntry>(
+      context: context,
+      title: 'Choisir le dialogue',
+      items: project.dialogues,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (dialogue == null || !context.mounted) return;
+    final sourceId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.reference,
+      title: 'Entrée trigger ${trigger.id}',
+      position: _recipeNodePosition(originNode, 1),
+    );
+    if (sourceId == null) return;
+    final sourceNode = _findScenarioNodeById(notifier, sourceId);
+    if (sourceNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: sourceNode.copyWith(
+          payload:
+              sourceNode.payload.copyWith(actionKind: 'sourceTriggerEnter'),
+          binding: sourceNode.binding.copyWith(
+            mapId: mapEntry.id,
+            triggerId: trigger.id,
+          ),
+        ),
+      );
+    }
+    final dialogueId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.dialogue,
+      title: 'Dialogue entrée zone',
+      position: _recipeNodePosition(originNode, 2),
+    );
+    if (dialogueId != null) {
+      final dialogueNode = _findScenarioNodeById(notifier, dialogueId);
+      if (dialogueNode != null) {
+        await notifier.updateScenarioNode(
+          scenarioId: scenario.id,
+          node: dialogueNode.copyWith(
+            binding: dialogueNode.binding.copyWith(dialogueId: dialogue.id),
+          ),
+        );
+      }
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: originNode.id,
+        toNodeId: sourceId,
+        label: 'suite',
+      );
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: sourceId,
+        toNodeId: dialogueId,
+        label: 'onTriggerEnter',
+      );
+    }
+  }
+
+  Future<void> _applyRecipeEntityInteractScript(
+    BuildContext context, {
+    required EditorState state,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode originNode,
+  }) async {
+    // Recette guidée : interaction PNJ/entité -> script.
+    // Ici la source (interaction) est séparée de l'action (runScript).
+    final mapEntry = await showCupertinoListPicker<ProjectMapEntry>(
+      context: context,
+      title: 'Choisir la map du PNJ',
+      items: project.maps,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (mapEntry == null || !context.mounted) return;
+    final map = await _loadMapById(
+      state: state,
+      project: project,
+      mapId: mapEntry.id,
+    );
+    if (!context.mounted) return;
+    if (map == null || map.entities.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Entité indisponible',
+        message:
+            'La map "${mapEntry.name}" ne contient pas d’entité utilisable.',
+      );
+      return;
+    }
+    final entity = await showCupertinoListPicker<MapEntity>(
+      context: context,
+      title: 'Choisir l’entité',
+      items: map.entities,
+      labelOf: (value) =>
+          '${value.id} — ${value.kind.name} — (${value.pos.x},${value.pos.y})',
+    );
+    if (entity == null || !context.mounted) return;
+    final script = await showCupertinoListPicker<ProjectScriptEntry>(
+      context: context,
+      title: 'Choisir le script',
+      items: project.scripts,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (script == null || !context.mounted) return;
+    final sourceId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.reference,
+      title: 'Interaction ${entity.id}',
+      position: _recipeNodePosition(originNode, 1),
+    );
+    if (sourceId == null) return;
+    final sourceNode = _findScenarioNodeById(notifier, sourceId);
+    if (sourceNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: sourceNode.copyWith(
+          payload:
+              sourceNode.payload.copyWith(actionKind: 'sourceEntityInteract'),
+          binding: sourceNode.binding.copyWith(
+            mapId: mapEntry.id,
+            entityId: entity.id,
+          ),
+        ),
+      );
+    }
+    final actionId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.action,
+      title: 'Script interaction PNJ',
+      position: _recipeNodePosition(originNode, 2),
+    );
+    if (actionId != null) {
+      final actionNode = _findScenarioNodeById(notifier, actionId);
+      if (actionNode != null) {
+        await notifier.updateScenarioNode(
+          scenarioId: scenario.id,
+          node: actionNode.copyWith(
+            payload: actionNode.payload.copyWith(actionKind: 'runScript'),
+            binding: actionNode.binding.copyWith(scriptId: script.id),
+          ),
+        );
+      }
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: originNode.id,
+        toNodeId: sourceId,
+        label: 'suite',
+      );
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: sourceId,
+        toNodeId: actionId,
+        label: 'onInteract',
+      );
+    }
+  }
+
+  Future<void> _applyRecipeTrainerBattle(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode originNode,
+  }) async {
+    // Recette guidée : insertion rapide d'un combat trainer.
+    final trainer = await showCupertinoListPicker<ProjectTrainerEntry>(
+      context: context,
+      title: 'Choisir le dresseur',
+      items: project.trainers,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (trainer == null || !context.mounted) return;
+    final actionId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.action,
+      title: 'Combat ${trainer.name}',
+      position: _recipeNodePosition(originNode, 1),
+    );
+    if (actionId == null) return;
+    final actionNode = _findScenarioNodeById(notifier, actionId);
+    if (actionNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: actionNode.copyWith(
+          payload:
+              actionNode.payload.copyWith(actionKind: 'startTrainerBattle'),
+          binding: actionNode.binding.copyWith(trainerId: trainer.id),
+        ),
+      );
+    }
+    await notifier.addScenarioEdge(
+      scenarioId: scenario.id,
+      fromNodeId: originNode.id,
+      toNodeId: actionId,
+      label: 'next',
+    );
+  }
+
+  Future<void> _applyRecipeFlagBranch(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode originNode,
+  }) async {
+    // Recette guidée : condition sur flag avec deux branches
+    // (Vrai/Faux) prêtes à remplir.
+    final flags = _knownFlagSuggestions(project);
+    final pickedFlag = await showCupertinoListPicker<String?>(
+      context: context,
+      title: 'Choisir un flag',
+      items: <String?>[null, ...flags],
+      labelOf: (value) => value ?? 'Saisie manuelle',
+    );
+    if (!context.mounted) return;
+    String flag = pickedFlag ?? '';
+    if (flag.isEmpty) {
+      final controller = TextEditingController();
+      final ok = await showMacosEditorPromptSheet(
+        context,
+        title: 'Nom du flag',
+        controller: controller,
+        confirmLabel: 'Valider',
+        placeholder: 'story.got_starter',
+        compact: true,
+      );
+      if (!ok || !context.mounted) return;
+      flag = controller.text.trim();
+    }
+    if (flag.isEmpty) return;
+    final conditionId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.condition,
+      title: 'Condition $flag',
+      position: _recipeNodePosition(originNode, 1),
+    );
+    if (conditionId == null) return;
+    final conditionNode = _findScenarioNodeById(notifier, conditionId);
+    if (conditionNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: conditionNode.copyWith(
+          payload: conditionNode.payload.copyWith(
+            condition: ScriptConditionFactory.flagIsSet(flag),
+          ),
+          binding: conditionNode.binding.copyWith(flagName: flag),
+        ),
+      );
+    }
+    final trueEndId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.end,
+      title: 'Branche vraie',
+      position: _recipeNodePosition(originNode, 2),
+    );
+    final falseEndId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.end,
+      title: 'Branche fausse',
+      position: _recipeNodePosition(
+        originNode.copyWith(
+          position: ScenarioNodePosition(
+            x: originNode.position.x,
+            y: originNode.position.y + 140,
+          ),
+        ),
+        2,
+      ),
+    );
+    await notifier.addScenarioEdge(
+      scenarioId: scenario.id,
+      fromNodeId: originNode.id,
+      toNodeId: conditionId,
+      label: 'next',
+    );
+    if (trueEndId != null) {
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: conditionId,
+        toNodeId: trueEndId,
+        label: 'Vrai',
+      );
+    }
+    if (falseEndId != null) {
+      await notifier.addScenarioEdge(
+        scenarioId: scenario.id,
+        fromNodeId: conditionId,
+        toNodeId: falseEndId,
+        label: 'Faux',
+      );
+    }
   }
 
   Future<void> _applyNodeChanges(

@@ -1,5 +1,18 @@
 import 'package:map_core/map_core.dart';
 
+/// Niveau de support runtime d'un preset d'authoring.
+///
+/// Cette information permet d'être honnête côté UX :
+/// - runtimeReady : exécuté réellement aujourd'hui.
+/// - authoringBridge : utile pour structurer/lier le flow, sans exécution
+///   directe garantie.
+/// - planned : intention produit non finalisée côté runtime.
+enum ScenarioPresetRuntimeSupport {
+  runtimeReady,
+  authoringBridge,
+  planned,
+}
+
 enum ScenarioActionField {
   message,
   script,
@@ -21,6 +34,7 @@ class ScenarioActionPreset {
     required this.label,
     required this.description,
     required this.executionHint,
+    this.runtimeSupport = ScenarioPresetRuntimeSupport.runtimeReady,
     this.fields = const <ScenarioActionField>{},
   });
 
@@ -28,6 +42,7 @@ class ScenarioActionPreset {
   final String label;
   final String description;
   final String executionHint;
+  final ScenarioPresetRuntimeSupport runtimeSupport;
   final Set<ScenarioActionField> fields;
 }
 
@@ -115,6 +130,7 @@ const List<ScenarioActionPreset> scenarioActionPresets = <ScenarioActionPreset>[
         'Liaison vers un event existant sur une map (jump/activation).',
     executionHint:
         'Authoring structurant : lie le scénario à un event monde existant.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.event},
   ),
   ScenarioActionPreset(
@@ -122,6 +138,7 @@ const List<ScenarioActionPreset> scenarioActionPresets = <ScenarioActionPreset>[
     label: 'Utiliser un warp',
     description: 'Cible un warp existant sur la map sélectionnée.',
     executionHint: 'Authoring structurant : lie le flux à un warp de map.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.warp},
   ),
   ScenarioActionPreset(
@@ -129,6 +146,7 @@ const List<ScenarioActionPreset> scenarioActionPresets = <ScenarioActionPreset>[
     label: 'Activer un trigger',
     description: 'Cible un trigger existant sur la map sélectionnée.',
     executionHint: 'Authoring structurant : lie le flux à un trigger existant.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.trigger},
   ),
   ScenarioActionPreset(
@@ -136,6 +154,7 @@ const List<ScenarioActionPreset> scenarioActionPresets = <ScenarioActionPreset>[
     label: 'Cibler une entité',
     description: 'Référence une entité existante sur la map sélectionnée.',
     executionHint: 'Authoring structurant : pointe vers une entité du monde.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.entity},
   ),
   ScenarioActionPreset(
@@ -158,6 +177,7 @@ const List<ScenarioActionPreset> scenarioActionPresets = <ScenarioActionPreset>[
     description:
         'Mode avancé. Permet de stocker un identifiant d’action personnalisé.',
     executionHint: 'À utiliser seulement si aucun preset standard ne convient.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.planned,
   ),
 ];
 
@@ -168,13 +188,43 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     label: 'Référence map',
     description: 'Pointe vers une map du projet.',
     executionHint: 'Documentation/lien explicite avec une map.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map},
+  ),
+  ScenarioActionPreset(
+    id: 'sourceMapEnter',
+    label: 'Déclencheur : entrée sur map',
+    description: 'Point d’entrée déclenché quand le joueur arrive sur une map.',
+    executionHint:
+        'Source de flow orientée authoring. À relier vers une action ou un dialogue.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
+    fields: {ScenarioActionField.map},
+  ),
+  ScenarioActionPreset(
+    id: 'sourceTriggerEnter',
+    label: 'Déclencheur : entrée dans zone/trigger',
+    description:
+        'Point d’entrée déclenché quand le joueur entre dans un trigger.',
+    executionHint:
+        'Source de flow orientée authoring. Choisis map + trigger existant.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
+    fields: {ScenarioActionField.map, ScenarioActionField.trigger},
+  ),
+  ScenarioActionPreset(
+    id: 'sourceEntityInteract',
+    label: 'Déclencheur : interaction PNJ/entité',
+    description: 'Point d’entrée déclenché lors d’une interaction avec entité.',
+    executionHint:
+        'Source de flow orientée authoring. Choisis map + entité cible.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
+    fields: {ScenarioActionField.map, ScenarioActionField.entity},
   ),
   ScenarioActionPreset(
     id: 'referenceEvent',
     label: 'Référence event',
     description: 'Pointe vers un event d’une map donnée.',
     executionHint: 'Documentation/lien explicite avec un event.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.event},
   ),
   ScenarioActionPreset(
@@ -182,6 +232,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     label: 'Référence entité',
     description: 'Pointe vers une entité d’une map donnée.',
     executionHint: 'Documentation/lien explicite avec une entité.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.entity},
   ),
   ScenarioActionPreset(
@@ -189,6 +240,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     label: 'Référence warp',
     description: 'Pointe vers un warp d’une map donnée.',
     executionHint: 'Documentation/lien explicite avec un warp.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.warp},
   ),
   ScenarioActionPreset(
@@ -196,6 +248,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     label: 'Référence trigger',
     description: 'Pointe vers un trigger d’une map donnée.',
     executionHint: 'Documentation/lien explicite avec un trigger.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.map, ScenarioActionField.trigger},
   ),
   ScenarioActionPreset(
@@ -203,6 +256,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     label: 'Référence dresseur',
     description: 'Pointe vers un dresseur du projet.',
     executionHint: 'Documentation/lien explicite avec un dresseur.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.trainer},
   ),
   ScenarioActionPreset(
@@ -210,6 +264,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     label: 'Référence dialogue',
     description: 'Pointe vers un dialogue Yarn du projet.',
     executionHint: 'Documentation/lien explicite avec un dialogue.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.dialogue},
   ),
   ScenarioActionPreset(
@@ -217,6 +272,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     label: 'Référence script',
     description: 'Pointe vers un script scénario/runtime du projet.',
     executionHint: 'Documentation/lien explicite avec un script.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.script},
   ),
   ScenarioActionPreset(
@@ -225,8 +281,72 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     description: 'Référence personnalisée pour des besoins avancés.',
     executionHint:
         'À utiliser seulement si aucun preset de référence ne suffit.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.planned,
   ),
 ];
+
+String scenarioRuntimeSupportLabel(ScenarioPresetRuntimeSupport support) {
+  return switch (support) {
+    ScenarioPresetRuntimeSupport.runtimeReady => 'Exécution runtime réelle',
+    ScenarioPresetRuntimeSupport.authoringBridge =>
+      'Authoring/orchestration (pont monde)',
+    ScenarioPresetRuntimeSupport.planned => 'Préparation future',
+  };
+}
+
+bool scenarioPresetRepresentsTriggerSource(String? presetId) {
+  final normalized = presetId?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return false;
+  }
+  return normalized == 'sourceMapEnter' ||
+      normalized == 'sourceTriggerEnter' ||
+      normalized == 'sourceEntityInteract';
+}
+
+String scenarioNodeHumanSummary(ScenarioNode node) {
+  final type = node.type;
+  final actionKind = node.payload.actionKind?.trim();
+  final binding = node.binding;
+  if (type == ScenarioNodeType.start) {
+    return 'Point de départ du flow.';
+  }
+  if (type == ScenarioNodeType.end) {
+    return 'Fin de branche.';
+  }
+  if (type == ScenarioNodeType.dialogue) {
+    final dialogue = binding.dialogueId?.trim();
+    final script = binding.scriptId?.trim();
+    if (dialogue != null && dialogue.isNotEmpty) {
+      return 'Ouvre le dialogue "$dialogue".';
+    }
+    if (script != null && script.isNotEmpty) {
+      return 'Dialogue/script lié via "$script".';
+    }
+    return 'Étape de dialogue (ressource non sélectionnée).';
+  }
+  if (type == ScenarioNodeType.condition) {
+    final condition = node.payload.condition;
+    if (condition == null) {
+      return 'Branche conditionnelle sans condition configurée.';
+    }
+    return 'Teste la condition "${condition.type.name}".';
+  }
+  if (type == ScenarioNodeType.choice) {
+    return 'Propose un choix joueur et redirige selon la branche.';
+  }
+  final preset = scenarioActionPresetById(
+    actionKind,
+    referenceMode: type == ScenarioNodeType.reference,
+  );
+  if (preset != null) {
+    return '${preset.label}.';
+  }
+  if (actionKind != null && actionKind.isNotEmpty) {
+    return 'Action/référence personnalisée "$actionKind".';
+  }
+  return 'Node ${scenarioNodeTypeLabel(type)} non configuré.';
+}
 
 ScenarioActionPreset? scenarioActionPresetById(
   String? id, {

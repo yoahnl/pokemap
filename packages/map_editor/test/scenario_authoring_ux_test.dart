@@ -52,9 +52,27 @@ void main() {
     test('all presets expose execution hints', () {
       for (final preset in scenarioActionPresets) {
         expect(preset.executionHint.trim(), isNotEmpty);
+        expect(scenarioRuntimeSupportLabel(preset.runtimeSupport), isNotEmpty);
       }
       for (final preset in scenarioReferencePresets) {
         expect(preset.executionHint.trim(), isNotEmpty);
+        expect(scenarioRuntimeSupportLabel(preset.runtimeSupport), isNotEmpty);
+      }
+    });
+
+    test('trigger source presets are detected', () {
+      expect(scenarioPresetRepresentsTriggerSource('sourceMapEnter'), isTrue);
+      expect(
+          scenarioPresetRepresentsTriggerSource('sourceTriggerEnter'), isTrue);
+      expect(scenarioPresetRepresentsTriggerSource('sourceEntityInteract'),
+          isTrue);
+      expect(scenarioPresetRepresentsTriggerSource('referenceEvent'), isFalse);
+    });
+
+    test('node human summary stays non-empty for all node types', () {
+      for (final type in ScenarioNodeType.values) {
+        final node = ScenarioNode(id: 'n', type: type);
+        expect(scenarioNodeHumanSummary(node).trim(), isNotEmpty);
       }
     });
   });
