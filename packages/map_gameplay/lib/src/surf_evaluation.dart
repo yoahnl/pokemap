@@ -40,20 +40,19 @@ class CanPromptSurf extends SurfAttemptEvaluation {
 /// Le résultat est un [SurfAttemptEvaluation] que le runtime mappera
 /// vers l'action UX appropriée.
 SurfAttemptEvaluation evaluateSurfAttempt({
-  required SaveData saveData,
+  required GameState gameState,
   required bool isTargetWater,
-  required MovementMode currentMovementMode,
 }) {
   if (!isTargetWater) {
     return const NotWater();
   }
-  if (currentMovementMode == MovementMode.surf) {
+  if (gameState.playerMovementMode == MovementMode.surf) {
     return const AlreadySurfing();
   }
-  if (!partyHasUsableFieldMove(saveData.party, FieldAbility.surf)) {
+  if (!partyHasUsableFieldMove(gameState.party, FieldAbility.surf)) {
     return const MissingSurfCapablePokemon();
   }
-  if (!saveData.progression.unlockedFieldAbilities
+  if (!gameState.progression.unlockedFieldAbilities
       .contains(FieldAbility.surf)) {
     return const SurfNotUnlocked();
   }
@@ -63,6 +62,6 @@ SurfAttemptEvaluation evaluateSurfAttempt({
 /// Vérifie si au moins un Pokémon de l'équipe connaît [ability]
 /// et est en état de l'utiliser (non K.O.).
 bool partyHasUsableFieldMove(PlayerParty party, FieldAbility ability) {
-  return party.members
-      .any((pokemon) => !pokemon.isFainted && pokemon.knownMoveIds.contains(ability.moveId));
+  return party.members.any((pokemon) =>
+      !pokemon.isFainted && pokemon.knownMoveIds.contains(ability.moveId));
 }

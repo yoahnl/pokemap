@@ -32,7 +32,8 @@ class FileGameSaveRepository implements GameSaveRepository {
       final filePath = await getSaveFilePath();
       final json = state.toJson();
       final file = File(filePath);
-      await file.writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+      await file
+          .writeAsString(const JsonEncoder.withIndent('  ').convert(json));
       debugPrint('[save] game saved to $filePath');
     } catch (e, st) {
       debugPrint('[save] failed: $e\n$st');
@@ -51,7 +52,7 @@ class FileGameSaveRepository implements GameSaveRepository {
       }
       final content = await file.readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
-      final state = GameState.fromJson(json);
+      final state = normalizeLoadedGameState(GameState.fromJson(json));
       debugPrint('[load] game loaded from $filePath');
       return state;
     } catch (e, st) {

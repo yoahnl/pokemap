@@ -6,25 +6,25 @@ void main() {
   group('evaluateSurfAttempt', () {
     test('returns NotWater when target cell is not water', () {
       final result = evaluateSurfAttempt(
-        saveData: _fullSurfSave(),
+        gameState: _fullSurfGameState(),
         isTargetWater: false,
-        currentMovementMode: MovementMode.walk,
       );
       expect(result, isA<NotWater>());
     });
 
     test('returns AlreadySurfing when player is already in surf mode', () {
       final result = evaluateSurfAttempt(
-        saveData: _fullSurfSave(),
+        gameState: _fullSurfGameState().copyWith(
+          playerMovementMode: MovementMode.surf,
+        ),
         isTargetWater: true,
-        currentMovementMode: MovementMode.surf,
       );
       expect(result, isA<AlreadySurfing>());
     });
 
     test('returns MissingSurfCapablePokemon when no party member knows surf',
         () {
-      const save = SaveData(
+      const gameState = GameState(
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
@@ -38,15 +38,14 @@ void main() {
         ),
       );
       final result = evaluateSurfAttempt(
-        saveData: save,
+        gameState: gameState,
         isTargetWater: true,
-        currentMovementMode: MovementMode.walk,
       );
       expect(result, isA<MissingSurfCapablePokemon>());
     });
 
     test('returns MissingSurfCapablePokemon when surf pokemon is fainted', () {
-      const save = SaveData(
+      const gameState = GameState(
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
@@ -61,24 +60,22 @@ void main() {
         ),
       );
       final result = evaluateSurfAttempt(
-        saveData: save,
+        gameState: gameState,
         isTargetWater: true,
-        currentMovementMode: MovementMode.walk,
       );
       expect(result, isA<MissingSurfCapablePokemon>());
     });
 
     test('returns MissingSurfCapablePokemon when party is empty', () {
-      const save = SaveData(
+      const gameState = GameState(
         saveId: 'test',
         progression: PlayerProgression(
           unlockedFieldAbilities: [FieldAbility.surf],
         ),
       );
       final result = evaluateSurfAttempt(
-        saveData: save,
+        gameState: gameState,
         isTargetWater: true,
-        currentMovementMode: MovementMode.walk,
       );
       expect(result, isA<MissingSurfCapablePokemon>());
     });
@@ -86,7 +83,7 @@ void main() {
     test(
         'returns SurfNotUnlocked when pokemon knows surf but ability is locked',
         () {
-      const save = SaveData(
+      const gameState = GameState(
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
@@ -100,18 +97,16 @@ void main() {
         ),
       );
       final result = evaluateSurfAttempt(
-        saveData: save,
+        gameState: gameState,
         isTargetWater: true,
-        currentMovementMode: MovementMode.walk,
       );
       expect(result, isA<SurfNotUnlocked>());
     });
 
     test('returns CanPromptSurf when all conditions are met', () {
       final result = evaluateSurfAttempt(
-        saveData: _fullSurfSave(),
+        gameState: _fullSurfGameState(),
         isTargetWater: true,
-        currentMovementMode: MovementMode.walk,
       );
       expect(result, isA<CanPromptSurf>());
     });
@@ -119,7 +114,7 @@ void main() {
     test(
         'returns CanPromptSurf with multiple party members (one capable, one not)',
         () {
-      const save = SaveData(
+      const gameState = GameState(
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
@@ -138,9 +133,8 @@ void main() {
         ),
       );
       final result = evaluateSurfAttempt(
-        saveData: save,
+        gameState: gameState,
         isTargetWater: true,
-        currentMovementMode: MovementMode.walk,
       );
       expect(result, isA<CanPromptSurf>());
     });
@@ -188,8 +182,8 @@ void main() {
   });
 }
 
-SaveData _fullSurfSave() {
-  return const SaveData(
+GameState _fullSurfGameState() {
+  return const GameState(
     saveId: 'test',
     party: PlayerParty(members: [
       PlayerPokemon(

@@ -35,6 +35,7 @@ export 'src/operations/map_triggers.dart';
 export 'src/operations/map_warps.dart';
 export 'src/operations/map_gameplay_zones.dart';
 export 'src/operations/map_map_metadata.dart';
+export 'src/operations/game_state_persistence.dart';
 export 'src/operations/tileset_library_tree.dart';
 export 'src/operations/dialogue_library_tree.dart';
 export 'src/operations/project_dialogue_refs.dart';

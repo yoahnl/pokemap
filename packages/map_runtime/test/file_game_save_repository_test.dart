@@ -66,11 +66,16 @@ void main() {
       expect(loadedState.currentMapId, equals(originalState.currentMapId));
       expect(loadedState.playerPosition, equals(originalState.playerPosition));
       expect(loadedState.playerFacing, equals(originalState.playerFacing));
-      expect(loadedState.playerMovementMode, equals(originalState.playerMovementMode));
-      expect(loadedState.party.members.length, equals(originalState.party.members.length));
-      expect(loadedState.progression.unlockedFieldAbilities, equals(originalState.progression.unlockedFieldAbilities));
-      expect(loadedState.storyFlags.activeFlags, equals(originalState.storyFlags.activeFlags));
-      expect(loadedState.consumedEventIds, equals(originalState.consumedEventIds));
+      expect(loadedState.playerMovementMode,
+          equals(originalState.playerMovementMode));
+      expect(loadedState.party.members.length,
+          equals(originalState.party.members.length));
+      expect(loadedState.progression.unlockedFieldAbilities,
+          equals(originalState.progression.unlockedFieldAbilities));
+      expect(loadedState.storyFlags.activeFlags,
+          equals(originalState.storyFlags.activeFlags));
+      expect(
+          loadedState.consumedEventIds, equals(originalState.consumedEventIds));
     });
 
     test('save → load → storyFlags contains trainer_defeated:{id}', () async {
@@ -91,7 +96,40 @@ void main() {
       final loadedState = await repository.load();
 
       expect(loadedState, isNotNull);
-      expect(loadedState!.storyFlags.activeFlags, contains('trainer_defeated:$trainerId'));
+      expect(loadedState!.storyFlags.activeFlags,
+          contains('trainer_defeated:$trainerId'));
+    });
+
+    test(
+        'load migrates legacy progression.storyFlags into storyFlags.activeFlags',
+        () async {
+      final filePath = await repository.getSaveFilePath();
+      final file = File(filePath);
+      final legacyJson = <String, dynamic>{
+        'saveId': 'legacy_save',
+        'currentMapId': 'vova_center',
+        'progression': <String, dynamic>{
+          'unlockedFieldAbilities': <String>[],
+          'storyFlags': <String>[
+            'met_professor',
+            'trainer_defeated:jean_michel'
+          ],
+        },
+        'storyFlags': <String, dynamic>{
+          'activeFlags': <String>[],
+        },
+      };
+      await file.writeAsString(
+          const JsonEncoder.withIndent('  ').convert(legacyJson));
+
+      final loadedState = await repository.load();
+
+      expect(loadedState, isNotNull);
+      expect(loadedState!.storyFlags.activeFlags, contains('met_professor'));
+      expect(
+        loadedState.storyFlags.activeFlags,
+        contains('trainer_defeated:jean_michel'),
+      );
     });
 
     test('load when no save exists → returns null', () async {
@@ -156,10 +194,13 @@ void main() {
       expect(json['playerFacing'], equals('east'));
       expect(json['playerMovementMode'], equals('walk'));
       expect(json['storyFlags'], isA<Map<String, dynamic>>());
-      
+
       final storyFlags = json['storyFlags'] as Map<String, dynamic>;
       expect(storyFlags['activeFlags'], isA<List>());
-      expect((storyFlags['activeFlags'] as List).contains('trainer_defeated:$trainerId'), isTrue);
+      expect(
+          (storyFlags['activeFlags'] as List)
+              .contains('trainer_defeated:$trainerId'),
+          isTrue);
     });
   });
 }

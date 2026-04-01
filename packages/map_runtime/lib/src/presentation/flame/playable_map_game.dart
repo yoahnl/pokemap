@@ -60,19 +60,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     SaveData? saveData,
     GameSaveRepository? saveRepository,
   })  : _bundle = bundle,
-        _saveData = saveData ?? const SaveData(saveId: 'default'),
-        _gameState = GameState(
-          saveId: saveData?.saveId ?? 'default',
-          currentMapId: '',
-          playerPosition: const GridPos(x: 0, y: 0),
-          playerFacing: EntityFacing.south,
-          playerMovementMode: MovementMode.walk,
-          party: const PlayerParty(),
-          progression: const PlayerProgression(),
-          scriptVariables: const ScriptVariables(),
-          storyFlags: const StoryFlags(),
-          consumedEventIds: const {},
-          metadata: const {},
+        _gameState = normalizeLoadedGameState(
+          saveData == null
+              ? const GameState(saveId: 'default')
+              : gameStateFromSaveData(saveData),
         ),
         _saveRepo = saveRepository ?? FileGameSaveRepository() {
     _saveGameUseCase = SaveGameUseCase(_saveRepo);
@@ -81,7 +72,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   final String projectFilePath;
   RuntimeMapBundle _bundle;
-  final SaveData _saveData;
   GameState _gameState;
   late GameplayWorldState _world;
   late PlayerComponent _player;
@@ -124,13 +114,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   // Battle system (map_battle integration)
   BattleSession? _battleSession;
-  BattleStartRequest? _battleStartRequest;  // Pour mapping vers BattleSetup et marquage trainer
+  BattleStartRequest?
+      _battleStartRequest; // Pour mapping vers BattleSetup et marquage trainer
 
   // Battle flow hardening
-  bool _isBattleResolving = false;  // Lock pour empêcher spam clavier pendant résolution
+  bool _isBattleResolving =
+      false; // Lock pour empêcher spam clavier pendant résolution
 
   // Line of Sight (LoS) trainer detection
-  final Set<String> _triggeredTrainerBattles = {};  // Anti-retrigger lock
+  final Set<String> _triggeredTrainerBattles = {}; // Anti-retrigger lock
 
   bool get showCollisionOverlay => _showCollisionOverlay;
 
@@ -147,6 +139,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool get isSurfing => playerMovementMode == MovementMode.surf;
 
+  void _syncGameStateFromWorld({String? mapIdOverride}) {
+    final mapId = mapIdOverride ?? _activeMapId;
+    _gameState = _gameState.copyWith(
+      currentMapId: mapId,
+      playerPosition: _world.player.pos,
+      playerFacing: _world.player.facing.asFacing,
+      playerMovementMode: _world.player.movementMode,
+    );
+  }
+
   void setPlayerMovementMode(MovementMode movementMode) {
     if (!isLoaded) {
       return;
@@ -157,6 +159,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _world = _world.withPlayer(
       _world.player.copyWith(movementMode: movementMode),
     );
+    _syncGameStateFromWorld();
     _player.syncState(_world.player);
   }
 
@@ -218,6 +221,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       mapOrigin: _originPixelsOf(rootMap),
     );
     await world.add(_player);
+    _syncGameStateFromWorld();
     _configureCameraViewport();
     _syncCameraToPlayer();
     _preloadActiveMapConnections();
@@ -264,16 +268,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           // Because the phase might have changed during this same key event processing
           // (e.g., last attack of the battle finished it)
           if (_flowPhase != _RuntimeFlowPhase.battle) {
-            debugPrint('[battle] Validate key pressed but phase changed to $_flowPhase, IGNORING');
+            debugPrint(
+                '[battle] Validate key pressed but phase changed to $_flowPhase, IGNORING');
             return KeyEventResult.ignored;
           }
           // Also check if overlay is still valid (might have been removed)
           if (_battleOverlay == null) {
-            debugPrint('[battle] Validate key pressed but overlay is null, IGNORING');
+            debugPrint(
+                '[battle] Validate key pressed but overlay is null, IGNORING');
             return KeyEventResult.ignored;
           }
           final selectedChoice = overlay.getSelectedChoice();
-          debugPrint('[battle] Validate key pressed (E/Space/Enter), selectedChoice=$selectedChoice');
+          debugPrint(
+              '[battle] Validate key pressed (E/Space/Enter), selectedChoice=$selectedChoice');
           final validated = overlay.validateSelectedChoice();
           debugPrint('[battle] validateSelectedChoice returned=$validated');
           return KeyEventResult.handled;
@@ -508,6 +515,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final result = stepGameplayWorld(_world, intent);
     _world = result.world;
+    _syncGameStateFromWorld();
     _consumePathAnimationSignals(result.pathAnimationSignals);
 
     if (result is Blocked) {
@@ -535,7 +543,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         durationSeconds: PlayerComponent.kDefaultStepSeconds,
       );
       _checkStepEncounter();
-      _checkTrainerLineOfSight();  // Check LoS only when player position changes
+      _checkTrainerLineOfSight(); // Check LoS only when player position changes
       return;
     }
 
@@ -754,7 +762,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Dans un vrai jeu, on récupérerait les données du Pokémon depuis une base de données
 
     // Déterminer l'espèce et le niveau depuis la request
-    String playerSpeciesId = 'pikachu';  // Placeholder
+    String playerSpeciesId = 'pikachu'; // Placeholder
     int playerLevel = 5;
     String enemySpeciesId;
     int enemyLevel;
@@ -775,7 +783,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       playerPokemon: BattleCombatantData(
         speciesId: playerSpeciesId,
         level: playerLevel,
-        maxHp: 20 + (playerLevel * 2),  // Formule simple : 20 + 2*level
+        maxHp: 20 + (playerLevel * 2), // Formule simple : 20 + 2*level
         moves: const [
           BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           BattleMoveData(id: 'scratch', name: 'Griffe', power: 4),
@@ -784,13 +792,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       enemyPokemon: BattleCombatantData(
         speciesId: enemySpeciesId,
         level: enemyLevel,
-        maxHp: 15 + (enemyLevel * 3),  // Formule simple : 15 + 3*level
+        maxHp: 15 + (enemyLevel * 3), // Formule simple : 15 + 3*level
         moves: const [
           BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
         ],
       ),
       isTrainerBattle: request is TrainerBattleStartRequest,
-      trainerId: request is TrainerBattleStartRequest ? request.trainerId : null,
+      trainerId:
+          request is TrainerBattleStartRequest ? request.trainerId : null,
     );
   }
 
@@ -872,7 +881,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = null;
     _battleSession = null;
     _battleStartRequest = null;
-    _isBattleResolving = false;  // Reset lock anti-spam
+    _isBattleResolving = false; // Reset lock anti-spam
 
     // NOTE: NE PAS clear _triggeredTrainerBattles ici!
     // Le lock doit rester actif tant que le joueur est dans la LoS du trainer.
@@ -942,7 +951,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _tryInteractWithMapEvent() {
-    if (_activeScriptController != null && !_activeScriptController!.isTerminated) {
+    if (_activeScriptController != null &&
+        !_activeScriptController!.isTerminated) {
       debugPrint('[interact] blocked: script is active');
       return;
     }
@@ -1063,7 +1073,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runScriptStep();
   }
 
-  void _openDialogueForScript(MapEventDefinition event, YarnDialogueRef dialogueRef) {
+  void _openDialogueForScript(
+      MapEventDefinition event, YarnDialogueRef dialogueRef) {
     final resolved = resolveDialogue(
       entityId: event.id,
       ref: DialogueRef(
@@ -1076,7 +1087,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
 
     if (resolved == null) {
-      debugPrint('[script] failed to resolve dialogue: ${dialogueRef.filePath}');
+      debugPrint(
+          '[script] failed to resolve dialogue: ${dialogueRef.filePath}');
       _runScriptStep();
       return;
     }
@@ -1489,7 +1501,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     // Cas 1: pas de trainerId → dialogue normal
     if (trainerId == null || trainerId.isEmpty) {
-      _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+      _tryOpenDialogue(
+          entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
       return;
     }
 
@@ -1504,16 +1517,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     // Cas 3: trainerId invalide → log + fallback dialogue
-    final trainer = _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
-      (t) => t?.id == trainerId,
-      orElse: () => null,
-    );
+    final trainer =
+        _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
+              (t) => t?.id == trainerId,
+              orElse: () => null,
+            );
     if (trainer == null) {
       debugPrint(
         '[battle] trainer not found: $trainerId for npc=${entity.id}, fallback to dialogue',
       );
       _showNotification('Dresseur introuvable.');
-      _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+      _tryOpenDialogue(
+          entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
       return;
     }
 
@@ -1551,10 +1566,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[interact] opening defeat dialogue npc=${entity.id}');
       _tryOpenDialogue(entity.id, defeatRef, entity.inspectorHeadline);
     } else if (entity.npc?.dialogue != null) {
-      debugPrint('[interact] no defeat dialogue, fallback to normal dialogue npc=${entity.id}');
-      _tryOpenDialogue(entity.id, entity.npc!.dialogue, entity.inspectorHeadline);
+      debugPrint(
+          '[interact] no defeat dialogue, fallback to normal dialogue npc=${entity.id}');
+      _tryOpenDialogue(
+          entity.id, entity.npc!.dialogue, entity.inspectorHeadline);
     } else {
-      debugPrint('[interact] no dialogue for defeated trainer npc=${entity.id}');
+      debugPrint(
+          '[interact] no dialogue for defeated trainer npc=${entity.id}');
       _showNotification('Le dresseur est déjà vaincu.');
     }
   }
@@ -1575,7 +1593,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _gameState = _gameState.copyWith(
       storyFlags: _gameState.storyFlags.copyWith(
-        activeFlags: {..._gameState.storyFlags.activeFlags, 'trainer_defeated:$trimmedId'},
+        activeFlags: {
+          ..._gameState.storyFlags.activeFlags,
+          'trainer_defeated:$trimmedId'
+        },
       ),
     );
     debugPrint('[debug] trainer $trimmedId marked as defeated');
@@ -1678,10 +1699,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     // Vérifier trainer valide
-    final trainer = _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
-      (t) => t?.id == trainerId,
-      orElse: () => null,
-    );
+    final trainer =
+        _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
+              (t) => t?.id == trainerId,
+              orElse: () => null,
+            );
     if (trainer == null) {
       debugPrint('[trainer] not found trainer=$trainerId entity=${entity.id}');
       _showNotification('Dresseur introuvable.');
@@ -1695,12 +1717,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       world: _world,
     );
     if (request != null) {
-      debugPrint('[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
+      debugPrint(
+          '[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
       // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
       // This is consistent with wild encounters and allows proper timing
       _pendingBattleRequest = request;
     } else {
-      debugPrint('[trainer] battle request failed trainer=$trainerId entity=${entity.id}');
+      debugPrint(
+          '[trainer] battle request failed trainer=$trainerId entity=${entity.id}');
     }
   }
 
@@ -1740,9 +1764,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _lastWaterRequiresSurfMessageAtMs = _runtimeClockMs;
 
     final evaluation = evaluateSurfAttempt(
-      saveData: _saveData,
+      gameState: _gameState,
       isTargetWater: true,
-      currentMovementMode: _world.player.movementMode,
     );
     final yarnNode = surfEvaluationToYarnNode(evaluation);
     if (yarnNode == null) {
@@ -1756,7 +1779,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    debugPrint('[surf] evaluation=${evaluation.runtimeType} -> dialogue=$yarnNode');
+    debugPrint(
+        '[surf] evaluation=${evaluation.runtimeType} -> dialogue=$yarnNode');
 
     if (evaluation is CanPromptSurf) {
       _awaitingSurfConfirmation = true;
@@ -1768,6 +1792,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///
   /// Retourne `true` si la sauvegarde a réussi.
   Future<bool> saveGame() async {
+    if (isLoaded) {
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+    }
     return _saveGameUseCase.execute(_gameState);
   }
 
@@ -1795,11 +1822,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// adressée dans un futur lot si nécessaire.
   Future<bool> loadGame() async {
     // 1. Charger loadedState
-    final loadedState = await _loadGameUseCase.execute();
-    if (loadedState == null) {
+    final rawLoadedState = await _loadGameUseCase.execute();
+    if (rawLoadedState == null) {
       debugPrint('[load] no save found');
       return false;
     }
+    final loadedState = normalizeLoadedGameState(rawLoadedState);
 
     // 2. Charger newBundle (avec error handling)
     RuntimeMapBundle newBundle;
@@ -1816,7 +1844,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // 3. Charger newImages (avec error handling)
     Map<String, ui.Image> newImages;
     try {
-      newImages = await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
+      newImages =
+          await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
     } catch (e, st) {
       debugPrint('[load] failed to load tileset images: $e\n$st');
       return false;
@@ -1859,6 +1888,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       // 11. Mettre _activeMapId
       _activeMapId = loadedState.currentMapId;
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
 
       // 12-15. Resync caméra / streaming / bounds
       _configureCameraViewport();
@@ -2021,9 +2051,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = newWorld;
       _activeMapId = newBundle.map.id;
       _previousMapId = null;
-      _triggeredTrainerBattles.clear();  // Reset LoS locks on map change
+      _triggeredTrainerBattles.clear(); // Reset LoS locks on map change
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       swapCompleted = true;
       debugPrint(
         '[warp] player placed at map=${newBundle.map.id} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
@@ -2099,6 +2130,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_loadedMapsById.isNotEmpty && _activeMapId == sourceMapId) {
       _bundle = sourceBundle;
       _world = sourceWorld;
+      _syncGameStateFromWorld(mapIdOverride: sourceMapId);
       _player.syncState(_world.player, snapToGrid: true);
       _configureCameraViewport();
       _syncCameraToPlayer();
@@ -2134,6 +2166,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _previousMapId = null;
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       _configureCameraViewport();
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
@@ -2272,6 +2305,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = newWorld;
       _previousMapId = _activeMapId;
       _activeMapId = target.bundle.map.id;
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       final fromPx = _player.position.clone();
       final targetOriginPx = _originPixelsOf(target);
       final toPx = Vector2(
