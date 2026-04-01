@@ -216,5 +216,53 @@ void main() {
       expect(pageAfter, isNotNull);
       expect(pageAfter!.pageIndex, equals(0));
     });
+
+    test('one-shot event has no active page after consumption', () {
+      final event = MapEventDefinition(
+        id: 'one_shot_event',
+        title: 'One Shot Event',
+        position: const EventPosition(layerId: 'objects', x: 2, y: 2),
+        pages: [
+          MapEventPage(
+            pageNumber: 0,
+            condition: ScenarioConditions.not(
+              ScenarioConditions.eventIsConsumed('event:one_shot'),
+            ),
+            script: const ScriptRef(scriptId: 'one_shot_script'),
+            message: 'First Interaction',
+          ),
+        ],
+      );
+
+      final script = ScriptAsset(
+        id: 'one_shot_script',
+        nodes: [
+          ScriptNode(
+            id: 'start',
+            commands: [
+              ScriptCommand(
+                type: ScriptCommandType.markEventConsumed,
+                params: {'eventId': 'event:one_shot'},
+              ),
+              const ScriptCommand(type: ScriptCommandType.end),
+            ],
+          ),
+        ],
+      );
+
+      const initialState = GameState(saveId: 'save');
+
+      final pageBefore = branching.resolveEventPage(event, initialState);
+      expect(pageBefore, isNotNull);
+      expect(pageBefore!.pageIndex, equals(0));
+
+      final updatedState = runEventScriptToCompletion(
+        script: script,
+        initialState: initialState,
+      );
+
+      final pageAfter = branching.resolveEventPage(event, updatedState);
+      expect(pageAfter, isNull);
+    });
   });
 }
