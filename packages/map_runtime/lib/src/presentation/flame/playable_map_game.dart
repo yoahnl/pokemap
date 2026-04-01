@@ -22,8 +22,10 @@ import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../application/runtime_story_branching.dart';
 import '../../application/script_runtime_state.dart';
 import '../../application/script_runtime_controller.dart';
+import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
 import '../../../domain/repositories/game_save_repository.dart';
 import '../../../src/application/save_game_use_case.dart';
@@ -95,6 +97,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final math.Random _encounterRandom = math.Random();
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
       PlacedBehaviorCooldownGate();
+  final StoryFlagsManager _storyFlags = const StoryFlagsManager();
+  final RuntimeStoryBranching _storyBranching = const RuntimeStoryBranching();
   double _runtimeClockMs = 0;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   void Function()? _pendingPostDialogueAction;
@@ -862,14 +866,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Marquer le trainer comme battu si victoire + trainer battle
     final request = _battleStartRequest;
     if (outcome.isVictory && request is TrainerBattleStartRequest) {
-      _gameState = _gameState.copyWith(
-        storyFlags: _gameState.storyFlags.copyWith(
-          activeFlags: {
-            ..._gameState.storyFlags.activeFlags,
-            'trainer_defeated:${request.trainerId}',
-          },
-        ),
-      );
+      _gameState =
+          _storyFlags.markTrainerDefeated(_gameState, request.trainerId);
       debugPrint('[battle] trainer marked as defeated: ${request.trainerId}');
     }
 
@@ -977,8 +975,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (event == null) return;
 
-    final pageResolver = EventPageResolver();
-    final activePage = pageResolver.resolve(event, _gameState);
+    final activePage = _storyBranching.resolveEventPage(event, _gameState);
 
     if (activePage == null) return;
 
@@ -1507,8 +1504,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     // Cas 2: trainer déjà battu → defeat dialogue ou fallback
-    final defeatedFlag = 'trainer_defeated:$trainerId';
-    if (_gameState.storyFlags.activeFlags.contains(defeatedFlag)) {
+    if (_storyBranching.isTrainerDefeated(_gameState, trainerId)) {
       debugPrint(
         '[interact] trainer already defeated trainer=$trainerId npc=${entity.id}',
       );
@@ -1591,14 +1587,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[debug] invalid trainerId, ignored');
       return;
     }
-    _gameState = _gameState.copyWith(
-      storyFlags: _gameState.storyFlags.copyWith(
-        activeFlags: {
-          ..._gameState.storyFlags.activeFlags,
-          'trainer_defeated:$trimmedId'
-        },
-      ),
-    );
+    _gameState = _storyFlags.markTrainerDefeated(_gameState, trimmedId);
     debugPrint('[debug] trainer $trimmedId marked as defeated');
   }
 
@@ -1638,8 +1627,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (losRange <= 0) continue;
 
       // Vérifier si déjà battu
-      final defeatedFlag = 'trainer_defeated:$trainerId';
-      if (_gameState.storyFlags.activeFlags.contains(defeatedFlag)) continue;
+      if (_storyBranching.isTrainerDefeated(_gameState, trainerId)) continue;
 
       // Anti-retrigger : ignorer si déjà déclenché dans cette session
       if (_triggeredTrainerBattles.contains(entity.id)) {
@@ -1692,8 +1680,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     // Vérifier si déjà battu (pour LoS — interaction manuelle a déjà son check)
-    final defeatedFlag = 'trainer_defeated:$trainerId';
-    if (_gameState.storyFlags.activeFlags.contains(defeatedFlag)) {
+    if (_storyBranching.isTrainerDefeated(_gameState, trainerId)) {
       debugPrint('[trainer] already defeated trainer=$trainerId');
       return;
     }

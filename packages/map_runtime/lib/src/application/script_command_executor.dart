@@ -15,6 +15,11 @@ class ScriptCommandExecutor {
   final ScriptExecutionContext _context;
   final GameStateMutations _mutations = const GameStateMutations();
 
+  void _commitGameState(GameState state) {
+    _context.gameState = state;
+    _context.onGameStateUpdated(state);
+  }
+
   /// Exécute une commande.
   ScriptCommandResult execute(
     ScriptCommand command,
@@ -70,7 +75,7 @@ class ScriptCommandExecutor {
     }
 
     final newState = _mutations.setFlag(state, flagName);
-    _context.onGameStateUpdated(newState);
+    _commitGameState(newState);
     return ScriptCommandResult.completed();
   }
 
@@ -84,7 +89,7 @@ class ScriptCommandExecutor {
     }
 
     final newState = _mutations.clearFlag(state, flagName);
-    _context.onGameStateUpdated(newState);
+    _commitGameState(newState);
     return ScriptCommandResult.completed();
   }
 
@@ -116,7 +121,7 @@ class ScriptCommandExecutor {
     }
 
     final newState = _mutations.setVariable(state, variableName, typedValue);
-    _context.onGameStateUpdated(newState);
+    _commitGameState(newState);
     return ScriptCommandResult.completed();
   }
 
@@ -133,7 +138,7 @@ class ScriptCommandExecutor {
 
     final delta = int.tryParse(deltaStr) ?? 1;
     final newState = _mutations.incrementVariable(state, variableName, delta);
-    _context.onGameStateUpdated(newState);
+    _commitGameState(newState);
     return ScriptCommandResult.completed();
   }
 
@@ -193,8 +198,9 @@ class ScriptCommandExecutor {
     }
 
     // Appliquer la mutation
-    final newState = _mutations.warpPlayer(state, mapId, x, y, facing: entityFacing);
-    _context.onGameStateUpdated(newState);
+    final newState =
+        _mutations.warpPlayer(state, mapId, x, y, facing: entityFacing);
+    _commitGameState(newState);
 
     // Notifier le runtime pour le warp effectif
     _context.onWarpRequested?.call(mapId, x, y);
@@ -215,7 +221,7 @@ class ScriptCommandExecutor {
 
     final quantity = int.tryParse(quantityStr) ?? 1;
     final newState = _mutations.giveItem(state, itemId, quantity);
-    _context.onGameStateUpdated(newState);
+    _commitGameState(newState);
     return ScriptCommandResult.completed();
   }
 
@@ -231,11 +237,12 @@ class ScriptCommandExecutor {
 
     final ability = FieldAbility.values.firstWhere(
       (a) => a.name == abilityName,
-      orElse: () => throw FormatException('Unknown field ability: $abilityName'),
+      orElse: () =>
+          throw FormatException('Unknown field ability: $abilityName'),
     );
 
     final newState = _mutations.unlockFieldAbility(state, ability);
-    _context.onGameStateUpdated(newState);
+    _commitGameState(newState);
     return ScriptCommandResult.completed();
   }
 
@@ -250,7 +257,7 @@ class ScriptCommandExecutor {
     }
 
     final newState = _mutations.markEventConsumed(state, eventId);
-    _context.onGameStateUpdated(newState);
+    _commitGameState(newState);
     return ScriptCommandResult.completed();
   }
 }

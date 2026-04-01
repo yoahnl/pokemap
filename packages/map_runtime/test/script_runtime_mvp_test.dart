@@ -56,7 +56,8 @@ void main() {
         final result = executor.execute(command, context.gameState);
 
         expect(result, isA<ScriptCommandResultJumpToNode>());
-        expect((result as ScriptCommandResultJumpToNode).nodeId, equals('node_2'));
+        expect(
+            (result as ScriptCommandResultJumpToNode).nodeId, equals('node_2'));
       });
 
       test('end command returns terminated result', () {
@@ -75,14 +76,18 @@ void main() {
 
         final command = ScriptCommand(
           type: ScriptCommandType.openDialogue,
-          params: {'filePath': 'scripts/professor.yarn', 'startNode': 'greeting'},
+          params: {
+            'filePath': 'scripts/professor.yarn',
+            'startNode': 'greeting'
+          },
         );
 
         final result = executor.execute(command, context.gameState);
 
         expect(result, isA<ScriptCommandResultSuspended>());
         final suspended = result as ScriptCommandResultSuspended;
-        expect(suspended.reason, equals(ScriptSuspendReason.waitingForDialogue));
+        expect(
+            suspended.reason, equals(ScriptSuspendReason.waitingForDialogue));
         expect(suspended.dialogue?.filePath, equals('scripts/professor.yarn'));
         expect(suspended.dialogue?.startNode, equals('greeting'));
         expect(executedCommands, contains('dialogue:scripts/professor.yarn'));
@@ -94,7 +99,12 @@ void main() {
 
         final command = ScriptCommand(
           type: ScriptCommandType.warpPlayer,
-          params: {'mapId': 'pallet_town', 'x': '10', 'y': '5', 'facing': 'south'},
+          params: {
+            'mapId': 'pallet_town',
+            'x': '10',
+            'y': '5',
+            'facing': 'south'
+          },
         );
 
         final result = executor.execute(command, context.gameState);
@@ -118,7 +128,8 @@ void main() {
         final result = executor.execute(command, context.gameState);
 
         expect(result, isA<ScriptCommandResultCompleted>());
-        expect(lastGameState.progression.unlockedFieldAbilities, contains(FieldAbility.surf));
+        expect(lastGameState.progression.unlockedFieldAbilities,
+            contains(FieldAbility.surf));
       });
     });
 
@@ -189,6 +200,51 @@ void main() {
         expect(executedCommands, contains('dialogue:test.yarn'));
       });
 
+      test('Script command chain uses latest GameState between steps', () {
+        final script = ScriptAsset(
+          id: 'state_chain_test',
+          defaultStartNode: 'start',
+          nodes: [
+            ScriptNode(
+              id: 'start',
+              commands: [
+                ScriptCommand(
+                  type: ScriptCommandType.setVariable,
+                  params: {
+                    'variableName': 'wins',
+                    'value': '1',
+                    'type': 'int',
+                  },
+                ),
+                ScriptCommand(
+                  type: ScriptCommandType.incrementVariable,
+                  params: {
+                    'variableName': 'wins',
+                    'delta': '1',
+                  },
+                ),
+                const ScriptCommand(type: ScriptCommandType.end),
+              ],
+            ),
+          ],
+        );
+
+        final context = createTestContext();
+        final controller = ScriptRuntimeController(
+          script: script,
+          context: context,
+        );
+
+        while (!controller.isTerminated) {
+          controller.step();
+        }
+
+        final winsValue = lastGameState.scriptVariables.values['wins'];
+        expect(winsValue, isA<ScriptVariableValueInt>());
+        final winsInt = winsValue as ScriptVariableValueInt;
+        expect(winsInt.value, equals(2));
+      });
+
       test('Complete MVP scenario: Page1 -> Script -> Flag -> Page2', () {
         final event = MapEventDefinition(
           id: 'professor_event',
@@ -201,7 +257,8 @@ void main() {
                 type: ScriptConditionType.flagIsUnset,
                 params: {ScriptConditionParams.flagName: 'professor_met'},
               ),
-              script: const ScriptRef(scriptId: 'professor_intro', startNode: 'start'),
+              script: const ScriptRef(
+                  scriptId: 'professor_intro', startNode: 'start'),
               message: 'Hello! I am Professor Oak!',
             ),
             MapEventPage(

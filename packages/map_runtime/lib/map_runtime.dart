@@ -33,6 +33,10 @@ export 'src/application/script_runtime_controller.dart'
     show ScriptRuntimeController;
 export 'src/application/script_command_executor.dart'
     show ScriptCommandExecutor;
+export 'src/application/story_flags_manager.dart' show StoryFlagsManager;
+export 'src/application/scenario_conditions.dart' show ScenarioConditions;
+export 'src/application/runtime_story_branching.dart'
+    show RuntimeStoryBranching;
 
 // Save/Load system exports
 export 'domain/repositories/game_save_repository.dart'
