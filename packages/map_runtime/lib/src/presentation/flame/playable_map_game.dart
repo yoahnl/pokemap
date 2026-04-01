@@ -231,6 +231,71 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final isUp = event is KeyUpEvent;
     final key = event.logicalKey;
 
+    // IMPORTANT: Handle battle phase FIRST before movement keys
+    // Otherwise arrow keys will be captured by movement handler
+    if (_flowPhase == _RuntimeFlowPhase.battle) {
+      // Navigation dans les choix du combat
+      // ↑/↓ pour naviguer, E/Space/Enter pour valider, Escape pour fuir
+      final overlay = _battleOverlay as BattleOverlayComponent?;
+      if (overlay != null) {
+        // ↑ : sélection précédente (KeyDownEvent ONLY, pas KeyRepeatEvent)
+        if (key == LogicalKeyboardKey.arrowUp && event is KeyDownEvent) {
+          final changed = overlay.moveSelectionUp();
+          debugPrint('[battle] ArrowUp pressed, selection changed=$changed');
+          return KeyEventResult.handled;
+        }
+        // ↓ : sélection suivante (KeyDownEvent ONLY, pas KeyRepeatEvent)
+        if (key == LogicalKeyboardKey.arrowDown && event is KeyDownEvent) {
+          final changed = overlay.moveSelectionDown();
+          debugPrint('[battle] ArrowDown pressed, selection changed=$changed');
+          return KeyEventResult.handled;
+        }
+        // E / Space / Enter : validation du choix sélectionné
+        // CRITICAL: Only process KeyDownEvent, NOT KeyRepeatEvent!
+        // KeyRepeatEvent is sent when key is held down, which causes multiple validations
+        if (event is KeyDownEvent &&
+            (key == LogicalKeyboardKey.keyE ||
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.enter)) {
+          // CRITICAL: Re-check phase AFTER getting into this block
+          // Because the phase might have changed during this same key event processing
+          // (e.g., last attack of the battle finished it)
+          if (_flowPhase != _RuntimeFlowPhase.battle) {
+            debugPrint('[battle] Validate key pressed but phase changed to $_flowPhase, IGNORING');
+            return KeyEventResult.ignored;
+          }
+          // Also check if overlay is still valid (might have been removed)
+          if (_battleOverlay == null) {
+            debugPrint('[battle] Validate key pressed but overlay is null, IGNORING');
+            return KeyEventResult.ignored;
+          }
+          final selectedChoice = overlay.getSelectedChoice();
+          debugPrint('[battle] Validate key pressed (E/Space/Enter), selectedChoice=$selectedChoice');
+          final validated = overlay.validateSelectedChoice();
+          debugPrint('[battle] validateSelectedChoice returned=$validated');
+          return KeyEventResult.handled;
+        }
+        // Escape : tentative de fuite (seulement si l'action est disponible)
+        if (event is KeyDownEvent && key == LogicalKeyboardKey.escape) {
+          // Vérifier si l'action "Fuir" est disponible dans les choix
+          final selectedChoice = overlay.getSelectedChoice();
+          debugPrint('[battle] Escape pressed, selectedChoice=$selectedChoice');
+          if (selectedChoice is PlayerBattleChoiceRun) {
+            overlay.validateSelectedChoice();
+            debugPrint('[battle] Escape validated (run selected)');
+            return KeyEventResult.handled;
+          }
+          // Si "Fuir" n'est pas sélectionné, ne rien faire
+          debugPrint('[battle] Escape ignored (run not selected)');
+          return KeyEventResult.ignored;
+        }
+      } else {
+        debugPrint('[battle] Keyboard event but overlay is null!');
+      }
+      return KeyEventResult.ignored;
+    }
+
+    // Handle movement keys (but NOT during battle)
     if (_isMovementKey(key)) {
       if (_flowPhase == _RuntimeFlowPhase.dialogue) {
         _pressedKeys.remove(key);
@@ -270,44 +335,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return KeyEventResult.ignored;
     }
     if (!isDown) return KeyEventResult.ignored;
-
-    if (_flowPhase == _RuntimeFlowPhase.battle) {
-      // Navigation dans les choix du combat
-      // ↑/↓ pour naviguer, E/Space/Enter pour valider, Escape pour fuir
-      final overlay = _battleOverlay as BattleOverlayComponent?;
-      if (overlay != null) {
-        // ↑ : sélection précédente
-        if (key == LogicalKeyboardKey.arrowUp) {
-          overlay.moveSelectionUp();
-          return KeyEventResult.handled;
-        }
-        // ↓ : sélection suivante
-        if (key == LogicalKeyboardKey.arrowDown) {
-          overlay.moveSelectionDown();
-          return KeyEventResult.handled;
-        }
-        // E / Space / Enter : validation du choix sélectionné
-        if (event is KeyDownEvent &&
-            (key == LogicalKeyboardKey.keyE ||
-                key == LogicalKeyboardKey.space ||
-                key == LogicalKeyboardKey.enter)) {
-          overlay.validateSelectedChoice();
-          return KeyEventResult.handled;
-        }
-        // Escape : tentative de fuite (seulement si l'action est disponible)
-        if (event is KeyDownEvent && key == LogicalKeyboardKey.escape) {
-          // Vérifier si l'action "Fuir" est disponible dans les choix
-          final selectedChoice = overlay.getSelectedChoice();
-          if (selectedChoice is PlayerBattleChoiceRun) {
-            overlay.validateSelectedChoice();
-            return KeyEventResult.handled;
-          }
-          // Si "Fuir" n'est pas sélectionné, ne rien faire
-          return KeyEventResult.ignored;
-        }
-      }
-      return KeyEventResult.ignored;
-    }
 
     if (_flowPhase == _RuntimeFlowPhase.dialogue) {
       final overlay = _dialogueOverlay!;
@@ -797,7 +824,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///
   /// Cette méthode :
   /// 1. Marque le trainer comme battu si victoire + trainer battle
-  /// 2. Nettoie l'overlay
+  /// 2. Nettoie l'overlay (SUPPRIME du parent)
   /// 3. Retourne à l'overworld
   void _onBattleFinished(BattleOutcome outcome) {
     debugPrint('[battle] battle finished outcome=${outcome.type.name}');
@@ -817,11 +844,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     // Nettoyer et retourner à l'overworld
+    // IMPORTANT: Il faut SUPPRIMER l'overlay du parent, pas juste mettre à null
+    _battleOverlay?.removeFromParent();
     _battleOverlay = null;
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleSession = null;
     _battleStartRequest = null;
+
+    // NOTE: NE PAS clear _triggeredTrainerBattles ici!
+    // Le lock doit rester actif tant que le joueur est dans la LoS du trainer.
+    // Si on clear le lock ici, le trainer sera re-déclenché immédiatement
+    // car le joueur est probablement encore dans sa zone de LoS.
+    //
+    // Le lock sera clear automatiquement quand le joueur quittera la LoS,
+    // via le mécanisme de réarmement dans _checkTrainerLineOfSight():
+    //   if (_triggeredTrainerBattles.contains(entity.id)) {
+    //     if (!inLoS) _triggeredTrainerBattles.remove(entity.id);
+    //   }
+    //
+    // Et même si le lock est encore actif, le trainer ne sera pas re-déclenché
+    // car il est marqué defeated dans storyFlags (guard dans _checkTrainerLineOfSight).
+
     _flowPhase = _RuntimeFlowPhase.overworld;
     _pressedKeys.clear();
     _lastMoveKey = null;
@@ -1420,13 +1464,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _handleNpcInteraction(MapEntity entity) {
     final trainerId = entity.npc?.trainerId?.trim();
-    
+
     // Cas 1: pas de trainerId → dialogue normal
     if (trainerId == null || trainerId.isEmpty) {
       _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
       return;
     }
-    
+
     // Cas 2: trainer déjà battu → defeat dialogue ou fallback
     final defeatedFlag = 'trainer_defeated:$trainerId';
     if (_gameState.storyFlags.activeFlags.contains(defeatedFlag)) {
@@ -1436,7 +1480,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _openDefeatDialogue(entity);
       return;
     }
-    
+
     // Cas 3: trainerId invalide → log + fallback dialogue
     final trainer = _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
       (t) => t?.id == trainerId,
@@ -1450,8 +1494,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _tryOpenDialogue(entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
       return;
     }
-    
+
     // Cas 4: trainer non battu → battle normal
+    // Vérifier aussi _triggeredTrainerBattles pour éviter double déclenchement
+    if (_triggeredTrainerBattles.contains(entity.id)) {
+      debugPrint(
+        '[interact] trainer battle already triggered (LoS lock) trainer=$trainerId npc=${entity.id}',
+      );
+      // Ne pas déclencher un autre battle, mais ne pas bloquer l'interaction non plus
+      // Juste ignorer silencieusement
+      return;
+    }
+
     final request = buildTrainerBattleRequestFromNpc(
       entity: entity,
       manifest: _bundle.manifest,
@@ -1461,7 +1515,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[battle] trainer battle triggered npc=${entity.id} trainer=$trainerId',
       );
-      _pendingBattleRequest = request;
+      // Lock ANTI-RETRIGGER avant de déclencher
+      _triggeredTrainerBattles.add(entity.id);
+      // CRITICAL: Start handoff IMMEDIATELY, do NOT store in _pendingBattleRequest
+      // Storing in _pendingBattleRequest AND starting handoff causes double-trigger!
+      // The update() loop will re-consume _pendingBattleRequest and restart the battle.
       _startBattleHandoff(request);
     }
   }
@@ -1617,7 +1675,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     if (request != null) {
       debugPrint('[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
-      _pendingBattleRequest = request;
+      // CRITICAL: Start handoff IMMEDIATELY, do NOT store in _pendingBattleRequest
+      // Storing in _pendingBattleRequest AND starting handoff causes double-trigger!
       _startBattleHandoff(request);
     } else {
       debugPrint('[trainer] battle request failed trainer=$trainerId entity=${entity.id}');

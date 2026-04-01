@@ -58,6 +58,11 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   TextComponent? _playerHpText;
   TextComponent? _enemyHpText;
 
+  /// Composant de texte pour afficher le résultat du tour en cours.
+  ///
+  /// Affiche les attaques du joueur et de l'ennemi, ainsi que les dégâts.
+  TextComponent? _turnResultText;
+
   /// Composants de choix (pour mise à jour dynamique).
   /// Chaque composant est associé à un index de choix.
   final List<_ChoiceComponent> _choiceComponents = [];
@@ -204,6 +209,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   /// Cette méthode gère aussi la cohérence de la sélection :
   /// - Si le combat est fini, la sélection est désactivée
   /// - Si la sélection est hors bornes (moins de choix), elle est clampée
+  /// - Si un tour est en cours, affiche le résultat du tour (attaques + dégâts)
   void updateState(BattleSession newSession) {
     // Mettre à jour la session interne — CRITIQUE pour la cohérence
     _session = newSession;
@@ -211,6 +217,9 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     // Mettre à jour les PV
     _playerHpText?.text = _getPlayerHpText();
     _enemyHpText?.text = _getEnemyHpText();
+
+    // Afficher le résultat du tour si disponible
+    _updateTurnResult();
 
     // Si le combat est fini, afficher le résultat
     if (newSession.state.isFinished) {
@@ -228,6 +237,47 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       // Re-render pour mettre à jour les choix et la surbrillance
       _renderChoices();
     }
+  }
+
+  /// Met à jour l'affichage du résultat du tour en cours.
+  ///
+  /// Affiche les attaques du joueur et de l'ennemi, ainsi que les dégâts infligés.
+  void _updateTurnResult() {
+    // Supprimer l'ancien texte de résultat du tour
+    _turnResultText?.removeFromParent();
+    _turnResultText = null;
+
+    final turnResult = _session.state.currentTurn;
+    if (turnResult == null) {
+      return;
+    }
+
+    // Construire le texte du résultat du tour
+    final lines = <String>[];
+    for (final execution in turnResult.executions) {
+      final attacker = execution.attacker == 'player' ? 'Joueur' : 'Ennemi';
+      lines.add('$attacker utilise ${execution.move.name} → ${execution.damage} dégâts');
+    }
+
+    if (lines.isEmpty) {
+      return;
+    }
+
+    // Afficher le résultat du tour
+    _turnResultText = TextComponent(
+      text: lines.join('\n'),
+      anchor: Anchor.topCenter,
+      position: Vector2(_panel!.size.x / 2, 130),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Color(0xFFE5E9F2),
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      priority: 3,
+    );
+    _panel!.add(_turnResultText!);
   }
 
   /// Affiche le résultat final du combat.
@@ -352,9 +402,11 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   bool moveSelectionUp() {
     if (_selectedIndex > 0) {
       _selectedIndex--;
+      debugPrint('[battle-overlay] moveSelectionUp: new index=$_selectedIndex');
       _renderChoices();  // Re-render pour mettre à jour la surbrillance
       return true;
     }
+    debugPrint('[battle-overlay] moveSelectionUp: already at first choice (index=$_selectedIndex)');
     return false;
   }
 
@@ -367,9 +419,11 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   bool moveSelectionDown() {
     if (_selectedIndex < _choiceComponents.length - 1) {
       _selectedIndex++;
+      debugPrint('[battle-overlay] moveSelectionDown: new index=$_selectedIndex');
       _renderChoices();  // Re-render pour mettre à jour la surbrillance
       return true;
     }
+    debugPrint('[battle-overlay] moveSelectionDown: already at last choice (index=$_selectedIndex, max=${_choiceComponents.length - 1})');
     return false;
   }
 
@@ -391,9 +445,11 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   bool validateSelectedChoice() {
     final selectedChoice = getSelectedChoice();
     if (selectedChoice != null) {
+      debugPrint('[battle-overlay] validateSelectedChoice: choice=$selectedChoice');
       onPlayerChoice(selectedChoice);
       return true;
     }
+    debugPrint('[battle-overlay] validateSelectedChoice: no choice selected');
     return false;
   }
 
