@@ -7,6 +7,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
+import 'package:map_editor/src/ui/panels/scenario_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
@@ -52,14 +53,20 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final workspaceMode = state.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final selectedTileset = notifier.getSelectedTilesetEntry();
+    final selectedScenario = notifier.getSelectedScenario();
     final workspaceTitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap?.name ?? 'Map Workspace',
+      EditorWorkspaceMode.scenario =>
+        selectedScenario?.name ?? 'Scenario Workspace',
       EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
     };
     final workspaceSubtitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap == null
           ? 'Open a map to start building your world.'
           : '${state.activeMap!.size.width} x ${state.activeMap!.size.height} tiles  •  ${state.activeMap!.layers.length} layers',
+      EditorWorkspaceMode.scenario => selectedScenario == null
+          ? 'Select or create a scenario graph from the explorer.'
+          : '${selectedScenario.nodes.length} nodes  •  ${selectedScenario.edges.length} links  •  entry: ${selectedScenario.entryNodeId}',
       EditorWorkspaceMode.tileset => selectedTileset == null
           ? 'Select a tileset to browse and curate your library.'
           : 'Visual library editing for tiles, elements and groups.',
@@ -232,7 +239,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                       BorderRadius.circular(26),
                                                   child: Padding(
                                                     padding:
-                                                        const EdgeInsets.all(14),
+                                                        const EdgeInsets.all(
+                                                            14),
                                                     child:
                                                         const EditorCanvasHost(),
                                                   ),
@@ -263,12 +271,22 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                   const EdgeInsets.fromLTRB(12, 18, 16, 18),
                               child: EditorIsland(
                                 radius: 32,
-                                tint: workspaceMode == EditorWorkspaceMode.map
-                                    ? EditorChrome.islandNeutralTint
-                                    : EditorChrome.islandWarmTint,
-                                child: workspaceMode == EditorWorkspaceMode.map
-                                    ? const MapInspectorPanel()
-                                    : const TilesetPalettePanel(),
+                                tint: switch (workspaceMode) {
+                                  EditorWorkspaceMode.map =>
+                                    EditorChrome.islandNeutralTint,
+                                  EditorWorkspaceMode.scenario =>
+                                    EditorChrome.islandCoolTint,
+                                  EditorWorkspaceMode.tileset =>
+                                    EditorChrome.islandWarmTint,
+                                },
+                                child: switch (workspaceMode) {
+                                  EditorWorkspaceMode.map =>
+                                    const MapInspectorPanel(),
+                                  EditorWorkspaceMode.scenario =>
+                                    const ScenarioInspectorPanel(),
+                                  EditorWorkspaceMode.tileset =>
+                                    const TilesetPalettePanel(),
+                                },
                               ),
                             ),
                           ),
@@ -384,12 +402,16 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     final chipFill = EditorChrome.chipFill(context);
-    final chipAccent = workspaceMode == EditorWorkspaceMode.map
-        ? EditorChrome.inspectorJoyHoney
-        : EditorChrome.inspectorJoyLilac;
-    final chipAccent2 = workspaceMode == EditorWorkspaceMode.map
-        ? EditorChrome.inspectorJoyApricot
-        : EditorChrome.inspectorJoyPlum;
+    final chipAccent = switch (workspaceMode) {
+      EditorWorkspaceMode.map => EditorChrome.inspectorJoyHoney,
+      EditorWorkspaceMode.scenario => EditorChrome.inspectorJoyMint,
+      EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyLilac,
+    };
+    final chipAccent2 = switch (workspaceMode) {
+      EditorWorkspaceMode.map => EditorChrome.inspectorJoyApricot,
+      EditorWorkspaceMode.scenario => EditorChrome.inspectorJoyCyan,
+      EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyPlum,
+    };
 
     return Row(
       children: [
@@ -413,9 +435,11 @@ class _WorkspaceStageHeader extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: MacosIcon(
-            workspaceMode == EditorWorkspaceMode.map
-                ? CupertinoIcons.map
-                : CupertinoIcons.square_grid_2x2,
+            switch (workspaceMode) {
+              EditorWorkspaceMode.map => CupertinoIcons.map,
+              EditorWorkspaceMode.scenario => CupertinoIcons.share_solid,
+              EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
+            },
             color: CupertinoColors.white,
             size: 22,
           ),
@@ -461,7 +485,11 @@ class _WorkspaceStageHeader extends StatelessWidget {
             ),
           ),
           child: Text(
-            workspaceMode == EditorWorkspaceMode.map ? 'Scene' : 'Library',
+            switch (workspaceMode) {
+              EditorWorkspaceMode.map => 'Scene',
+              EditorWorkspaceMode.scenario => 'Scenario',
+              EditorWorkspaceMode.tileset => 'Library',
+            },
             style: TextStyle(
               color: chipAccent,
               fontSize: 11,

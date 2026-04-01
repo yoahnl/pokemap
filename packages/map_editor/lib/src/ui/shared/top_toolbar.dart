@@ -60,6 +60,14 @@ class TopToolbar extends ConsumerWidget {
 
     final map = state.activeMap;
     final isMapWorkspace = state.workspaceMode == EditorWorkspaceMode.map;
+    final isScenarioWorkspace =
+        state.workspaceMode == EditorWorkspaceMode.scenario;
+    final hasScenarios = (state.project?.scenarios.isNotEmpty ?? false);
+    final firstScenarioId =
+        hasScenarios ? state.project!.scenarios.first.id : null;
+    final hasTilesets = (state.project?.tilesets.isNotEmpty ?? false);
+    final firstTilesetId =
+        hasTilesets ? state.project!.tilesets.first.id : null;
     final hasMapCanvas = map != null;
     final showWorldTools = isMapWorkspace && hasMapCanvas;
 
@@ -182,6 +190,38 @@ class TopToolbar extends ConsumerWidget {
             icon: CupertinoIcons.arrow_uturn_right,
             tooltip: 'Redo',
             onPressed: state.canRedoMap ? notifier.redoMap : null,
+          ),
+        ],
+      ),
+      _groupItem(
+        context,
+        overflowLabel: 'Workspace',
+        children: [
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.map,
+            tooltip: 'Switch to map workspace',
+            selected: isMapWorkspace,
+            onPressed: notifier.selectMapWorkspace,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.share_solid,
+            tooltip: 'Switch to scenario workspace',
+            selected: isScenarioWorkspace,
+            onPressed: hasScenarios
+                ? () => notifier.selectScenarioWorkspace(
+                      state.selectedScenarioId ?? firstScenarioId,
+                    )
+                : null,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.square_grid_2x2,
+            tooltip: 'Switch to tileset workspace',
+            selected: state.workspaceMode == EditorWorkspaceMode.tileset,
+            onPressed: hasTilesets
+                ? () => notifier.selectTilesetWorkspace(
+                      state.selectedTilesetEditorId ?? firstTilesetId,
+                    )
+                : null,
           ),
         ],
       ),
@@ -368,9 +408,11 @@ class TopToolbar extends ConsumerWidget {
     return ToolBar(
       title: _ToolbarBrand(
         projectName: state.project?.name,
-        workspaceLabel: state.workspaceMode == EditorWorkspaceMode.map
-            ? 'World Editor'
-            : 'Tileset Studio',
+        workspaceLabel: switch (state.workspaceMode) {
+          EditorWorkspaceMode.map => 'World Editor',
+          EditorWorkspaceMode.scenario => 'Scenario Graph',
+          EditorWorkspaceMode.tileset => 'Tileset Studio',
+        },
       ),
       titleWidth: 236,
       automaticallyImplyLeading: false,

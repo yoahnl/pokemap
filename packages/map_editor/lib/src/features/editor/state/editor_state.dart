@@ -9,6 +9,7 @@ part 'editor_state.freezed.dart';
 
 enum EditorWorkspaceMode {
   map,
+  scenario,
   tileset,
 }
 
@@ -88,6 +89,15 @@ class EditorState with _$EditorState {
 
     /// Script scénario sélectionné dans l’explorateur (bibliothèque runtime).
     String? selectedProjectScriptId,
+
+    /// Scénario sélectionné dans l’explorateur (workspace graphe).
+    String? selectedScenarioId,
+
+    /// Nœud sélectionné dans le graphe du scénario actif.
+    String? selectedScenarioNodeId,
+
+    /// Nœud source en attente lors de la création d’une connexion.
+    String? pendingScenarioEdgeFromNodeId,
 
     /// Dresseur sélectionné dans la bibliothèque dresseurs.
     String? selectedTrainerId,

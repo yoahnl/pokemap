@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../../features/editor/state/editor_notifier.dart';
 import 'character_library_panel.dart';
 import 'script_library_panel.dart';
+import 'scenario_library_panel.dart';
 import 'terrain_editor_panel.dart';
 import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
@@ -826,6 +827,7 @@ class ProjectExplorerPanel extends ConsumerStatefulWidget {
 class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandTileLib = true;
   bool _expandScriptLib = true;
+  bool _expandScenarios = true;
   bool _expandScenarioScripts = true;
   bool _expandWorld = true;
   bool _expandTerrains = true;
@@ -1014,6 +1016,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final screenH = MediaQuery.sizeOf(context).height;
     final hTileset = (screenH * 0.30).clamp(240.0, 400.0);
     final hScript = (screenH * 0.28).clamp(220.0, 380.0);
+    final hScenario = (screenH * 0.3).clamp(230.0, 420.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
     final hPaths = (screenH * 0.36).clamp(280.0, 500.0);
@@ -1106,6 +1109,19 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             ],
           ),
           child: _buildScriptLibraryIsland(context, project, state, notifier),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Scenario Graphs',
+          subtitle:
+              'Central narrative workspace with visual nodes and world links',
+          icon: CupertinoIcons.share_solid,
+          accentColor: EditorChrome.inspectorJoyMint,
+          badgeText: '${project.scenarios.length}',
+          expanded: _expandScenarios,
+          onToggle: () => setState(() => _expandScenarios = !_expandScenarios),
+          expandedHeight: hScenario,
+          child: const ScenarioLibraryPanel(embedded: true),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,

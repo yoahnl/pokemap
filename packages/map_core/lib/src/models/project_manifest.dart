@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'element_collision_profile.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
+import 'scenario_asset.dart';
 import 'script_asset.dart';
 import 'visual_frame_json.dart';
 
@@ -32,6 +33,7 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectDialogueFolder> dialogueFolders,
     @Default([]) List<ProjectDialogueEntry> dialogues,
     @Default([]) List<ProjectScriptEntry> scripts,
+    @Default([]) List<ScenarioAsset> scenarios,
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectSettings()) ProjectSettings settings,

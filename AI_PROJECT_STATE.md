@@ -2,6 +2,7 @@
 
 > Fichier pensé pour une IA. Dense, factuel, centré sur l'état réel du code.
 > Source : audit complet du code (2026-03-26), mis à jour 2026-04-01 (interactions runtime + clarification dialogue + dialogue Yarn MVP runtime + système personnages overworld + éditeur d'animations visuel ; consolidation `Character` comme abstraction canonique joueur / NPC / trainer ; player animé avec déplacement interpolé, NPC qui fait face au joueur, tri de profondeur, collisions entités par footprint, rencontres actives MVP walk, transitions naturelles inter-maps via `MapConnection`, streaming de maps adjacentes côté runtime, battle handoff MVP structuré encounter → transition → battle shell → retour overworld, **handoff battle trainer depuis interaction NPC** (`MapEntityNpcData.trainerId` → `TrainerBattleStartRequest` → battle), **état "trainer battu"** runtime via flag `trainer_defeated:{trainerId}` dans `storyFlags`, **defeatDialogue runtime branché** (`MapEntityNpcData.defeatDialogueRef` → dialogue de défaite si trainer battu), **Line of Sight (LoS) trainer** (détection auto + battle si joueur dans axe cardinal + lineOfSightRange > 0 + pas d'obstacle), pipeline warp runtime verrouillé avec transition fade + rollback, warps gameplay avancés `onEnter`/`onBump` + côtés actifs + padding d'activation, refonte `Tiles & Elements` côté éditeur en mode palette + navigateur d'instances posées, milestone collisions d'éléments (profil auto + padding + override par instance), milestone animation locale des instances posées `MapPlacedElement` (none/loop/pingPong, autoplay, speed, start offset, randomStart déterministe), authoring MVP des frames d'animation de bibliothèque d'éléments `ProjectElementEntry.frames`, extension du MVP `MapPlacedElement.behaviors` (triggers `onAction`/`onEnter`/`onBump`/`onExit`/`onNear`, effets `showMessage`/`openDialogue`/`setAnimationEnabled`/`playAnimationOnce`) et hardening runtime behaviors (id stable par behavior, priorité explicite `onEnter > onExit > onNear`, anti-spam/cooldown runtime, debug overlay léger des activations, cooldown configurable par behavior côté data via `cooldownMs`, trigger scope MVP via `triggerScope`, politique « single winner » documentée et testée), animation des surfaces terrain/path multi-frames (eau incluse), authoring des frames de `ProjectPathPreset` par variant dans l'éditeur, typage produit `Ground/Water` des paths en UI, et mode de déplacement joueur `walk|surf` avec blocage eau explicite + feedback runtime ; **correction bug résolution dialogue scripté** : `_openDialogueForScript()` utilise désormais `_bundle.projectRootDirectory` au lieu de `projectFilePath` pour éviter les chemins incorrects du type `/.../project.json/dialogues/test.yarn` ; **persistance save/load** : `GameState` sérialisable, repository fichier, use cases save/load, API `saveGame()`/`loadGame()` dans `PlayableMapGame` ; **boucle de combat MVP** : package `map_battle` pur, session immutable, choix joueur, résolution de tour, KO, victoire/défaite, marquage automatique `trainer_defeated` après victoire trainer ; **LOT 51 Event Authoring MVP** : events créables/sélectionnables/déplaçables/supprimables dans `map_editor`, marqueurs visibles sur canvas, inspecteur Event (id/title/type/layer/position/pages), édition de page (`message`, `scriptId/startNode`, condition MVP), persistance via `MapData.events`, opérations pures `map_events.dart` et validation map étendue).
+> Delta LOT 54 (implémenté localement) : `ScenarioAsset` persistant dans `ProjectManifest.scenarios` (modèles `ScenarioNode`/`ScenarioEdge`/bindings/payload), validation projet dédiée (entry node, unicité ids, cohérence edges, références script/dialogue/map/trainer), use cases scénario dans `map_editor`, nouveau mode workspace central `scenario`, canvas de graphe pannable/zoomable avec CRUD nodes/edges + auto-layout, panneau gauche `Scenario Graphs` et inspecteur de nœud à droite.
 
 ---
 
@@ -35,7 +36,7 @@ packages/map_runtime/example/ (Flutter app, identique à l'externe)
 
 ## map_core — Schéma métier
 
-**Barrel** : `packages/map_core/lib/map_core.dart` — 36 exports, aucune restriction `show`.
+**Barrel** : `packages/map_core/lib/map_core.dart` — 37 exports, aucune restriction `show`.
 
 **Dépendances** : `freezed_annotation`, `json_annotation`, `meta` uniquement. Aucune dépendance Flutter.
 
@@ -144,9 +145,14 @@ ProjectManifest(
   dialogues: List<ProjectDialogueEntry>,
   trainers: List<ProjectTrainerEntry>,
   characters: List<ProjectCharacterEntry>,  // personnages overworld (sprites animés)
+  scenarios: List<ScenarioAsset>,           // graphe de scénario auteur (LOT 54)
   settings: ProjectSettings,
   ...folders, categories,
 )
+
+ScenarioAsset(id, name, description, entryNodeId, nodes: List<ScenarioNode>, edges: List<ScenarioEdge>)
+ScenarioNode(id, type, title, description, position, binding, payload)
+ScenarioEdge(id, fromNodeId, toNodeId, kind, label, order)
 
 ProjectCharacterEntry(id, name, tilesetId, frameWidth: int, frameHeight: int, animations: List<CharacterAnimation>)
 ProjectTrainerEntry(id, name, trainerClass, characterId?, portraitElementId?, battleThemeId?, victoryThemeId?, team, tags)

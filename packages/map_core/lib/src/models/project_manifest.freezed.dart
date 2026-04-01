@@ -44,6 +44,7 @@ mixin _$ProjectManifest {
   List<ProjectDialogueEntry> get dialogues =>
       throw _privateConstructorUsedError;
   List<ProjectScriptEntry> get scripts => throw _privateConstructorUsedError;
+  List<ScenarioAsset> get scenarios => throw _privateConstructorUsedError;
   List<ProjectTrainerEntry> get trainers => throw _privateConstructorUsedError;
   List<ProjectCharacterEntry> get characters =>
       throw _privateConstructorUsedError;
@@ -84,6 +85,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
+      List<ScenarioAsset> scenarios,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -123,6 +125,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? dialogueFolders = null,
     Object? dialogues = null,
     Object? scripts = null,
+    Object? scenarios = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -193,6 +196,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.scripts
           : scripts // ignore: cast_nullable_to_non_nullable
               as List<ProjectScriptEntry>,
+      scenarios: null == scenarios
+          ? _value.scenarios
+          : scenarios // ignore: cast_nullable_to_non_nullable
+              as List<ScenarioAsset>,
       trainers: null == trainers
           ? _value.trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -248,6 +255,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
+      List<ScenarioAsset> scenarios,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -286,6 +294,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? dialogueFolders = null,
     Object? dialogues = null,
     Object? scripts = null,
+    Object? scenarios = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -356,6 +365,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._scripts
           : scripts // ignore: cast_nullable_to_non_nullable
               as List<ProjectScriptEntry>,
+      scenarios: null == scenarios
+          ? _value._scenarios
+          : scenarios // ignore: cast_nullable_to_non_nullable
+              as List<ScenarioAsset>,
       trainers: null == trainers
           ? _value._trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -397,6 +410,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectDialogueFolder> dialogueFolders = const [],
       final List<ProjectDialogueEntry> dialogues = const [],
       final List<ProjectScriptEntry> scripts = const [],
+      final List<ScenarioAsset> scenarios = const [],
       final List<ProjectTrainerEntry> trainers = const [],
       final List<ProjectCharacterEntry> characters = const [],
       this.settings = const ProjectSettings(),
@@ -415,6 +429,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _dialogueFolders = dialogueFolders,
         _dialogues = dialogues,
         _scripts = scripts,
+        _scenarios = scenarios,
         _trainers = trainers,
         _characters = characters,
         _globalProperties = globalProperties;
@@ -553,6 +568,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_scripts);
   }
 
+  final List<ScenarioAsset> _scenarios;
+  @override
+  @JsonKey()
+  List<ScenarioAsset> get scenarios {
+    if (_scenarios is EqualUnmodifiableListView) return _scenarios;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_scenarios);
+  }
+
   final List<ProjectTrainerEntry> _trainers;
   @override
   @JsonKey()
@@ -585,7 +609,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, trainers: $trainers, characters: $characters, settings: $settings, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, globalProperties: $globalProperties)';
   }
 
   @override
@@ -618,6 +642,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality()
                 .equals(other._dialogues, _dialogues) &&
             const DeepCollectionEquality().equals(other._scripts, _scripts) &&
+            const DeepCollectionEquality()
+                .equals(other._scenarios, _scenarios) &&
             const DeepCollectionEquality().equals(other._trainers, _trainers) &&
             const DeepCollectionEquality()
                 .equals(other._characters, _characters) &&
@@ -647,6 +673,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_dialogueFolders),
         const DeepCollectionEquality().hash(_dialogues),
         const DeepCollectionEquality().hash(_scripts),
+        const DeepCollectionEquality().hash(_scenarios),
         const DeepCollectionEquality().hash(_trainers),
         const DeepCollectionEquality().hash(_characters),
         settings,
@@ -688,6 +715,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectDialogueFolder> dialogueFolders,
       final List<ProjectDialogueEntry> dialogues,
       final List<ProjectScriptEntry> scripts,
+      final List<ScenarioAsset> scenarios,
       final List<ProjectTrainerEntry> trainers,
       final List<ProjectCharacterEntry> characters,
       final ProjectSettings settings,
@@ -728,6 +756,8 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectDialogueEntry> get dialogues;
   @override
   List<ProjectScriptEntry> get scripts;
+  @override
+  List<ScenarioAsset> get scenarios;
   @override
   List<ProjectTrainerEntry> get trainers;
   @override

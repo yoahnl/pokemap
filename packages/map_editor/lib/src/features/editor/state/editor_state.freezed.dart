@@ -742,6 +742,16 @@ mixin _$EditorState {
   /// Script scénario sélectionné dans l’explorateur (bibliothèque runtime).
   String? get selectedProjectScriptId => throw _privateConstructorUsedError;
 
+  /// Scénario sélectionné dans l’explorateur (workspace graphe).
+  String? get selectedScenarioId => throw _privateConstructorUsedError;
+
+  /// Nœud sélectionné dans le graphe du scénario actif.
+  String? get selectedScenarioNodeId => throw _privateConstructorUsedError;
+
+  /// Nœud source en attente lors de la création d’une connexion.
+  String? get pendingScenarioEdgeFromNodeId =>
+      throw _privateConstructorUsedError;
+
   /// Dresseur sélectionné dans la bibliothèque dresseurs.
   String? get selectedTrainerId => throw _privateConstructorUsedError;
 
@@ -806,6 +816,9 @@ abstract class $EditorStateCopyWith<$Res> {
       String? selectedPlacedElementInstanceId,
       String? selectedProjectDialogueId,
       String? selectedProjectScriptId,
+      String? selectedScenarioId,
+      String? selectedScenarioNodeId,
+      String? pendingScenarioEdgeFromNodeId,
       String? selectedTrainerId,
       String? selectedCharacterId,
       PaletteCategory? paletteCategoryFilter,
@@ -874,6 +887,9 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedPlacedElementInstanceId = freezed,
     Object? selectedProjectDialogueId = freezed,
     Object? selectedProjectScriptId = freezed,
+    Object? selectedScenarioId = freezed,
+    Object? selectedScenarioNodeId = freezed,
+    Object? pendingScenarioEdgeFromNodeId = freezed,
     Object? selectedTrainerId = freezed,
     Object? selectedCharacterId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -1003,6 +1019,18 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedProjectScriptId: freezed == selectedProjectScriptId
           ? _value.selectedProjectScriptId
           : selectedProjectScriptId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedScenarioId: freezed == selectedScenarioId
+          ? _value.selectedScenarioId
+          : selectedScenarioId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedScenarioNodeId: freezed == selectedScenarioNodeId
+          ? _value.selectedScenarioNodeId
+          : selectedScenarioNodeId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      pendingScenarioEdgeFromNodeId: freezed == pendingScenarioEdgeFromNodeId
+          ? _value.pendingScenarioEdgeFromNodeId
+          : pendingScenarioEdgeFromNodeId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedTrainerId: freezed == selectedTrainerId
           ? _value.selectedTrainerId
@@ -1199,6 +1227,9 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? selectedPlacedElementInstanceId,
       String? selectedProjectDialogueId,
       String? selectedProjectScriptId,
+      String? selectedScenarioId,
+      String? selectedScenarioNodeId,
+      String? pendingScenarioEdgeFromNodeId,
       String? selectedTrainerId,
       String? selectedCharacterId,
       PaletteCategory? paletteCategoryFilter,
@@ -1272,6 +1303,9 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedPlacedElementInstanceId = freezed,
     Object? selectedProjectDialogueId = freezed,
     Object? selectedProjectScriptId = freezed,
+    Object? selectedScenarioId = freezed,
+    Object? selectedScenarioNodeId = freezed,
+    Object? pendingScenarioEdgeFromNodeId = freezed,
     Object? selectedTrainerId = freezed,
     Object? selectedCharacterId = freezed,
     Object? paletteCategoryFilter = freezed,
@@ -1402,6 +1436,18 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedProjectScriptId
           : selectedProjectScriptId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedScenarioId: freezed == selectedScenarioId
+          ? _value.selectedScenarioId
+          : selectedScenarioId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedScenarioNodeId: freezed == selectedScenarioNodeId
+          ? _value.selectedScenarioNodeId
+          : selectedScenarioNodeId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      pendingScenarioEdgeFromNodeId: freezed == pendingScenarioEdgeFromNodeId
+          ? _value.pendingScenarioEdgeFromNodeId
+          : pendingScenarioEdgeFromNodeId // ignore: cast_nullable_to_non_nullable
+              as String?,
       selectedTrainerId: freezed == selectedTrainerId
           ? _value.selectedTrainerId
           : selectedTrainerId // ignore: cast_nullable_to_non_nullable
@@ -1498,6 +1544,9 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedPlacedElementInstanceId,
       this.selectedProjectDialogueId,
       this.selectedProjectScriptId,
+      this.selectedScenarioId,
+      this.selectedScenarioNodeId,
+      this.pendingScenarioEdgeFromNodeId,
       this.selectedTrainerId,
       this.selectedCharacterId,
       this.paletteCategoryFilter,
@@ -1599,6 +1648,18 @@ class _$EditorStateImpl implements _EditorState {
   @override
   final String? selectedProjectScriptId;
 
+  /// Scénario sélectionné dans l’explorateur (workspace graphe).
+  @override
+  final String? selectedScenarioId;
+
+  /// Nœud sélectionné dans le graphe du scénario actif.
+  @override
+  final String? selectedScenarioNodeId;
+
+  /// Nœud source en attente lors de la création d’une connexion.
+  @override
+  final String? pendingScenarioEdgeFromNodeId;
+
   /// Dresseur sélectionné dans la bibliothèque dresseurs.
   @override
   final String? selectedTrainerId;
@@ -1658,7 +1719,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedProjectScriptId: $selectedProjectScriptId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedProjectScriptId: $selectedProjectScriptId, selectedScenarioId: $selectedScenarioId, selectedScenarioNodeId: $selectedScenarioNodeId, pendingScenarioEdgeFromNodeId: $pendingScenarioEdgeFromNodeId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1724,17 +1785,20 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedProjectDialogueId == selectedProjectDialogueId) &&
             (identical(other.selectedProjectScriptId, selectedProjectScriptId) ||
                 other.selectedProjectScriptId == selectedProjectScriptId) &&
+            (identical(other.selectedScenarioId, selectedScenarioId) ||
+                other.selectedScenarioId == selectedScenarioId) &&
+            (identical(other.selectedScenarioNodeId, selectedScenarioNodeId) ||
+                other.selectedScenarioNodeId == selectedScenarioNodeId) &&
+            (identical(other.pendingScenarioEdgeFromNodeId, pendingScenarioEdgeFromNodeId) ||
+                other.pendingScenarioEdgeFromNodeId ==
+                    pendingScenarioEdgeFromNodeId) &&
             (identical(other.selectedTrainerId, selectedTrainerId) ||
                 other.selectedTrainerId == selectedTrainerId) &&
-            (identical(other.selectedCharacterId, selectedCharacterId) ||
-                other.selectedCharacterId == selectedCharacterId) &&
-            (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
-                other.paletteCategoryFilter == paletteCategoryFilter) &&
+            (identical(other.selectedCharacterId, selectedCharacterId) || other.selectedCharacterId == selectedCharacterId) &&
+            (identical(other.paletteCategoryFilter, paletteCategoryFilter) || other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
-            (identical(other.panOffset, panOffset) ||
-                other.panOffset == panOffset) &&
-            const DeepCollectionEquality()
-                .equals(other._mapUndoStack, _mapUndoStack) &&
+            (identical(other.panOffset, panOffset) || other.panOffset == panOffset) &&
+            const DeepCollectionEquality().equals(other._mapUndoStack, _mapUndoStack) &&
             const DeepCollectionEquality().equals(other._mapRedoStack, _mapRedoStack) &&
             (identical(other.mapStrokeStart, mapStrokeStart) || other.mapStrokeStart == mapStrokeStart) &&
             (identical(other.savedMapSnapshot, savedMapSnapshot) || other.savedMapSnapshot == savedMapSnapshot) &&
@@ -1777,6 +1841,9 @@ class _$EditorStateImpl implements _EditorState {
         selectedPlacedElementInstanceId,
         selectedProjectDialogueId,
         selectedProjectScriptId,
+        selectedScenarioId,
+        selectedScenarioNodeId,
+        pendingScenarioEdgeFromNodeId,
         selectedTrainerId,
         selectedCharacterId,
         paletteCategoryFilter,
@@ -1833,6 +1900,9 @@ abstract class _EditorState implements EditorState {
       final String? selectedPlacedElementInstanceId,
       final String? selectedProjectDialogueId,
       final String? selectedProjectScriptId,
+      final String? selectedScenarioId,
+      final String? selectedScenarioNodeId,
+      final String? pendingScenarioEdgeFromNodeId,
       final String? selectedTrainerId,
       final String? selectedCharacterId,
       final PaletteCategory? paletteCategoryFilter,
@@ -1912,6 +1982,18 @@ abstract class _EditorState implements EditorState {
   /// Script scénario sélectionné dans l’explorateur (bibliothèque runtime).
   @override
   String? get selectedProjectScriptId;
+
+  /// Scénario sélectionné dans l’explorateur (workspace graphe).
+  @override
+  String? get selectedScenarioId;
+
+  /// Nœud sélectionné dans le graphe du scénario actif.
+  @override
+  String? get selectedScenarioNodeId;
+
+  /// Nœud source en attente lors de la création d’une connexion.
+  @override
+  String? get pendingScenarioEdgeFromNodeId;
 
   /// Dresseur sélectionné dans la bibliothèque dresseurs.
   @override

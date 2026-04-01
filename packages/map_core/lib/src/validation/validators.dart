@@ -5,6 +5,7 @@ import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
 import '../operations/map_entities.dart';
 import 'dialogue_validation.dart';
@@ -136,6 +137,11 @@ class ProjectValidator {
       duplicateMessagePrefix: 'Duplicate dialogue ID',
     );
     _validateUniqueIds(
+      manifest.scenarios,
+      (s) => s.id,
+      duplicateMessagePrefix: 'Duplicate scenario ID',
+    );
+    _validateUniqueIds(
       manifest.trainers,
       (t) => t.id,
       duplicateMessagePrefix: 'Duplicate trainer ID',
@@ -225,6 +231,7 @@ class ProjectValidator {
     );
     _validateTerrainPresets(manifest);
     _validatePathPresets(manifest);
+    _validateScenarios(manifest);
   }
 
   static void _validateTilesetFolders(ProjectManifest manifest) {
@@ -699,6 +706,269 @@ class ProjectValidator {
         );
       }
     }
+  }
+
+  static void _validateScenarios(ProjectManifest manifest) {
+    final knownScriptIds = manifest.scripts.map((script) => script.id).toSet();
+    final knownDialogueIds =
+        manifest.dialogues.map((dialogue) => dialogue.id).toSet();
+    final knownMapIds = manifest.maps.map((map) => map.id).toSet();
+    final knownTrainerIds =
+        manifest.trainers.map((trainer) => trainer.id).toSet();
+
+    for (final scenario in manifest.scenarios) {
+      final scenarioId = _requireProjectNonBlank(
+        scenario.id,
+        'Scenario ID cannot be empty',
+      );
+      _requireProjectNonBlank(
+          scenario.name, 'Scenario $scenarioId has an empty name');
+      if (scenario.nodes.isEmpty) {
+        throw ValidationException('Scenario $scenarioId must contain nodes');
+      }
+      final nodeIds = <String>{};
+      var startNodesCount = 0;
+      for (final node in scenario.nodes) {
+        final nodeId = _requireProjectNonBlank(
+          node.id,
+          'Scenario $scenarioId has a node with empty id',
+        );
+        if (!nodeIds.add(nodeId)) {
+          throw ValidationException(
+            'Scenario $scenarioId has duplicate node id: $nodeId',
+          );
+        }
+        if (node.type == ScenarioNodeType.start) {
+          startNodesCount++;
+        }
+        final binding = node.binding;
+        final scriptId = binding.scriptId?.trim();
+        if (scriptId != null &&
+            scriptId.isNotEmpty &&
+            !knownScriptIds.contains(scriptId)) {
+          throw ValidationException(
+            'Scenario $scenarioId node $nodeId references unknown script: $scriptId',
+          );
+        }
+        final dialogueId = binding.dialogueId?.trim();
+        if (dialogueId != null &&
+            dialogueId.isNotEmpty &&
+            !knownDialogueIds.contains(dialogueId)) {
+          throw ValidationException(
+            'Scenario $scenarioId node $nodeId references unknown dialogue: $dialogueId',
+          );
+        }
+        final mapId = binding.mapId?.trim();
+        if (mapId != null && mapId.isNotEmpty && !knownMapIds.contains(mapId)) {
+          throw ValidationException(
+            'Scenario $scenarioId node $nodeId references unknown map: $mapId',
+          );
+        }
+        final trainerId = binding.trainerId?.trim();
+        if (trainerId != null &&
+            trainerId.isNotEmpty &&
+            !knownTrainerIds.contains(trainerId)) {
+          throw ValidationException(
+            'Scenario $scenarioId node $nodeId references unknown trainer: $trainerId',
+          );
+        }
+        final eventId = binding.eventId?.trim();
+        if (eventId != null &&
+            eventId.isNotEmpty &&
+            (mapId == null || mapId.isEmpty)) {
+          throw ValidationException(
+            'Scenario $scenarioId node $nodeId cannot define eventId without mapId',
+          );
+        }
+        final condition = node.payload.condition;
+        if (condition != null) {
+          _validateScriptCondition(
+            condition,
+            contextLabel: 'Scenario $scenarioId node $nodeId condition',
+          );
+        }
+      }
+      if (startNodesCount != 1) {
+        throw ValidationException(
+          'Scenario $scenarioId must contain exactly one start node',
+        );
+      }
+      final entryNodeId = _requireProjectNonBlank(
+        scenario.entryNodeId,
+        'Scenario $scenarioId has an empty entryNodeId',
+      );
+      if (!nodeIds.contains(entryNodeId)) {
+        throw ValidationException(
+          'Scenario $scenarioId entryNodeId references missing node: $entryNodeId',
+        );
+      }
+
+      final edgeIds = <String>{};
+      final outgoingByNode = <String, int>{};
+      for (final edge in scenario.edges) {
+        final edgeId = _requireProjectNonBlank(
+          edge.id,
+          'Scenario $scenarioId has an edge with empty id',
+        );
+        if (!edgeIds.add(edgeId)) {
+          throw ValidationException(
+            'Scenario $scenarioId has duplicate edge id: $edgeId',
+          );
+        }
+        final fromNodeId = _requireProjectNonBlank(
+          edge.fromNodeId,
+          'Scenario $scenarioId edge $edgeId has empty fromNodeId',
+        );
+        final toNodeId = _requireProjectNonBlank(
+          edge.toNodeId,
+          'Scenario $scenarioId edge $edgeId has empty toNodeId',
+        );
+        if (!nodeIds.contains(fromNodeId)) {
+          throw ValidationException(
+            'Scenario $scenarioId edge $edgeId references missing fromNodeId: $fromNodeId',
+          );
+        }
+        if (!nodeIds.contains(toNodeId)) {
+          throw ValidationException(
+            'Scenario $scenarioId edge $edgeId references missing toNodeId: $toNodeId',
+          );
+        }
+        if (fromNodeId == toNodeId) {
+          throw ValidationException(
+            'Scenario $scenarioId edge $edgeId cannot target the same node',
+          );
+        }
+        outgoingByNode[fromNodeId] = (outgoingByNode[fromNodeId] ?? 0) + 1;
+      }
+
+      final nodeById = <String, ScenarioNode>{
+        for (final node in scenario.nodes) node.id: node,
+      };
+      for (final entry in nodeById.entries) {
+        final node = entry.value;
+        final outgoing = outgoingByNode[node.id] ?? 0;
+        if (node.type == ScenarioNodeType.choice && outgoing < 2) {
+          throw ValidationException(
+            'Scenario $scenarioId choice node ${node.id} must have at least two outgoing edges',
+          );
+        }
+        if (node.type == ScenarioNodeType.condition && outgoing < 2) {
+          throw ValidationException(
+            'Scenario $scenarioId condition node ${node.id} must have at least two outgoing edges',
+          );
+        }
+        if (node.type == ScenarioNodeType.end && outgoing > 0) {
+          throw ValidationException(
+            'Scenario $scenarioId end node ${node.id} cannot have outgoing edges',
+          );
+        }
+      }
+    }
+  }
+
+  static void _validateScriptCondition(
+    ScriptCondition condition, {
+    required String contextLabel,
+  }) {
+    for (final key in condition.params.keys) {
+      if (key.trim().isEmpty) {
+        throw ValidationException('$contextLabel has an empty param key');
+      }
+    }
+    switch (condition.type) {
+      case ScriptConditionType.allOf:
+      case ScriptConditionType.anyOf:
+        if (condition.children.isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires at least one child',
+          );
+        }
+        for (var i = 0; i < condition.children.length; i++) {
+          _validateScriptCondition(
+            condition.children[i],
+            contextLabel: '$contextLabel.children[$i]',
+          );
+        }
+        return;
+      case ScriptConditionType.not:
+        if (condition.children.length != 1) {
+          throw ValidationException(
+            '$contextLabel not requires exactly one child',
+          );
+        }
+        _validateScriptCondition(
+          condition.children.first,
+          contextLabel: '$contextLabel.children[0]',
+        );
+        return;
+      case ScriptConditionType.flagIsSet:
+      case ScriptConditionType.flagIsUnset:
+        final flagName = condition.params[ScriptConditionParams.flagName];
+        if (flagName == null || flagName.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty flagName',
+          );
+        }
+        return;
+      case ScriptConditionType.eventIsConsumed:
+        final eventId = condition.params[ScriptConditionParams.eventId];
+        if (eventId == null || eventId.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel eventIsConsumed requires a non-empty eventId',
+          );
+        }
+        return;
+      case ScriptConditionType.playerOnMap:
+        final mapId = condition.params[ScriptConditionParams.mapId];
+        if (mapId == null || mapId.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel playerOnMap requires a non-empty mapId',
+          );
+        }
+        return;
+      case ScriptConditionType.variableEquals:
+      case ScriptConditionType.variableGreaterThan:
+      case ScriptConditionType.variableLessThan:
+        final variableName =
+            condition.params[ScriptConditionParams.variableName];
+        final value = condition.params[ScriptConditionParams.value];
+        if (variableName == null || variableName.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty variableName',
+          );
+        }
+        if (value == null || value.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty value',
+          );
+        }
+        return;
+      case ScriptConditionType.fieldAbilityUnlocked:
+        final ability = condition.params[ScriptConditionParams.ability];
+        if (ability == null || ability.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel fieldAbilityUnlocked requires a non-empty ability',
+          );
+        }
+        return;
+      case ScriptConditionType.partyHasMove:
+      case ScriptConditionType.partyHasUsableMove:
+        final moveId = condition.params[ScriptConditionParams.moveId];
+        if (moveId == null || moveId.trim().isEmpty) {
+          throw ValidationException(
+            '$contextLabel ${condition.type.name} requires a non-empty moveId',
+          );
+        }
+        return;
+    }
+  }
+
+  static String _requireProjectNonBlank(String value, String message) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      throw ValidationException(message);
+    }
+    return trimmed;
   }
 
   static void _validateRelativePath(String path, String label) {

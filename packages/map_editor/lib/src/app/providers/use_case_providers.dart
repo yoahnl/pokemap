@@ -33,6 +33,7 @@ import '../../application/use_cases/path_layer_use_cases.dart';
 import '../../application/use_cases/project_element_use_cases.dart';
 import '../../application/use_cases/project_group_use_cases.dart';
 import '../../application/use_cases/project_management_use_cases.dart';
+import '../../application/use_cases/project_scenario_use_cases.dart';
 import '../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../application/use_cases/project_dialogue_use_cases.dart';
 import '../../application/use_cases/project_dialogue_library_use_cases.dart';
@@ -850,6 +851,74 @@ MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase(
   return MoveDialogueToLibraryRootUseCase(
     ref.watch(projectRepositoryProvider),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Project scenarios
+// ---------------------------------------------------------------------------
+
+@riverpod
+CreateProjectScenarioUseCase createProjectScenarioUseCase(
+    CreateProjectScenarioUseCaseRef ref) {
+  return CreateProjectScenarioUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+RenameProjectScenarioUseCase renameProjectScenarioUseCase(
+    RenameProjectScenarioUseCaseRef ref) {
+  return RenameProjectScenarioUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteProjectScenarioUseCase deleteProjectScenarioUseCase(
+    DeleteProjectScenarioUseCaseRef ref) {
+  return DeleteProjectScenarioUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+AddScenarioNodeUseCase addScenarioNodeUseCase(AddScenarioNodeUseCaseRef ref) {
+  return AddScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateScenarioNodeUseCase updateScenarioNodeUseCase(
+    UpdateScenarioNodeUseCaseRef ref) {
+  return UpdateScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+MoveScenarioNodeUseCase moveScenarioNodeUseCase(
+    MoveScenarioNodeUseCaseRef ref) {
+  return MoveScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteScenarioNodeUseCase deleteScenarioNodeUseCase(
+    DeleteScenarioNodeUseCaseRef ref) {
+  return DeleteScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+SetScenarioEntryNodeUseCase setScenarioEntryNodeUseCase(
+    SetScenarioEntryNodeUseCaseRef ref) {
+  return SetScenarioEntryNodeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+AddScenarioEdgeUseCase addScenarioEdgeUseCase(AddScenarioEdgeUseCaseRef ref) {
+  return AddScenarioEdgeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+UpdateScenarioEdgeUseCase updateScenarioEdgeUseCase(
+    UpdateScenarioEdgeUseCaseRef ref) {
+  return UpdateScenarioEdgeUseCase(ref.watch(projectRepositoryProvider));
+}
+
+@riverpod
+DeleteScenarioEdgeUseCase deleteScenarioEdgeUseCase(
+    DeleteScenarioEdgeUseCaseRef ref) {
+  return DeleteScenarioEdgeUseCase(ref.watch(projectRepositoryProvider));
 }
 
 // ---------------------------------------------------------------------------

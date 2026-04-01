@@ -2396,6 +2396,226 @@ final moveDialogueToLibraryRootUseCaseProvider =
 // ignore: unused_element
 typedef MoveDialogueToLibraryRootUseCaseRef
     = AutoDisposeProviderRef<MoveDialogueToLibraryRootUseCase>;
+String _$createProjectScenarioUseCaseHash() =>
+    r'ba8c1285eaacf750a670accfcaae3a4c7ff1fae2';
+
+/// See also [createProjectScenarioUseCase].
+@ProviderFor(createProjectScenarioUseCase)
+final createProjectScenarioUseCaseProvider =
+    AutoDisposeProvider<CreateProjectScenarioUseCase>.internal(
+  createProjectScenarioUseCase,
+  name: r'createProjectScenarioUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createProjectScenarioUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CreateProjectScenarioUseCaseRef
+    = AutoDisposeProviderRef<CreateProjectScenarioUseCase>;
+String _$renameProjectScenarioUseCaseHash() =>
+    r'ccc63e31d95d415c8fb8f12cf97122dd592eb835';
+
+/// See also [renameProjectScenarioUseCase].
+@ProviderFor(renameProjectScenarioUseCase)
+final renameProjectScenarioUseCaseProvider =
+    AutoDisposeProvider<RenameProjectScenarioUseCase>.internal(
+  renameProjectScenarioUseCase,
+  name: r'renameProjectScenarioUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$renameProjectScenarioUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RenameProjectScenarioUseCaseRef
+    = AutoDisposeProviderRef<RenameProjectScenarioUseCase>;
+String _$deleteProjectScenarioUseCaseHash() =>
+    r'1d026be1c3b35f75607804cbe0c2d60871779d16';
+
+/// See also [deleteProjectScenarioUseCase].
+@ProviderFor(deleteProjectScenarioUseCase)
+final deleteProjectScenarioUseCaseProvider =
+    AutoDisposeProvider<DeleteProjectScenarioUseCase>.internal(
+  deleteProjectScenarioUseCase,
+  name: r'deleteProjectScenarioUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteProjectScenarioUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteProjectScenarioUseCaseRef
+    = AutoDisposeProviderRef<DeleteProjectScenarioUseCase>;
+String _$addScenarioNodeUseCaseHash() =>
+    r'cc6b5179ce22de54eb9c076b15fa0fd19da6a608';
+
+/// See also [addScenarioNodeUseCase].
+@ProviderFor(addScenarioNodeUseCase)
+final addScenarioNodeUseCaseProvider =
+    AutoDisposeProvider<AddScenarioNodeUseCase>.internal(
+  addScenarioNodeUseCase,
+  name: r'addScenarioNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addScenarioNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddScenarioNodeUseCaseRef
+    = AutoDisposeProviderRef<AddScenarioNodeUseCase>;
+String _$updateScenarioNodeUseCaseHash() =>
+    r'd32bb273fa53f3826018da85409c8e0d9b4eb5e9';
+
+/// See also [updateScenarioNodeUseCase].
+@ProviderFor(updateScenarioNodeUseCase)
+final updateScenarioNodeUseCaseProvider =
+    AutoDisposeProvider<UpdateScenarioNodeUseCase>.internal(
+  updateScenarioNodeUseCase,
+  name: r'updateScenarioNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateScenarioNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateScenarioNodeUseCaseRef
+    = AutoDisposeProviderRef<UpdateScenarioNodeUseCase>;
+String _$moveScenarioNodeUseCaseHash() =>
+    r'3515a96844fb6779ad8b6b16209b3d08cb439155';
+
+/// See also [moveScenarioNodeUseCase].
+@ProviderFor(moveScenarioNodeUseCase)
+final moveScenarioNodeUseCaseProvider =
+    AutoDisposeProvider<MoveScenarioNodeUseCase>.internal(
+  moveScenarioNodeUseCase,
+  name: r'moveScenarioNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$moveScenarioNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MoveScenarioNodeUseCaseRef
+    = AutoDisposeProviderRef<MoveScenarioNodeUseCase>;
+String _$deleteScenarioNodeUseCaseHash() =>
+    r'3401ffb36c354d95cd45122378737f579e6eeb8f';
+
+/// See also [deleteScenarioNodeUseCase].
+@ProviderFor(deleteScenarioNodeUseCase)
+final deleteScenarioNodeUseCaseProvider =
+    AutoDisposeProvider<DeleteScenarioNodeUseCase>.internal(
+  deleteScenarioNodeUseCase,
+  name: r'deleteScenarioNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteScenarioNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteScenarioNodeUseCaseRef
+    = AutoDisposeProviderRef<DeleteScenarioNodeUseCase>;
+String _$setScenarioEntryNodeUseCaseHash() =>
+    r'7928745ce9c90ba037bb0f0ea155a240eaa831d7';
+
+/// See also [setScenarioEntryNodeUseCase].
+@ProviderFor(setScenarioEntryNodeUseCase)
+final setScenarioEntryNodeUseCaseProvider =
+    AutoDisposeProvider<SetScenarioEntryNodeUseCase>.internal(
+  setScenarioEntryNodeUseCase,
+  name: r'setScenarioEntryNodeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$setScenarioEntryNodeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SetScenarioEntryNodeUseCaseRef
+    = AutoDisposeProviderRef<SetScenarioEntryNodeUseCase>;
+String _$addScenarioEdgeUseCaseHash() =>
+    r'8ae6ecfa2bd0acdd4e8fb2ff519890d66b6d6435';
+
+/// See also [addScenarioEdgeUseCase].
+@ProviderFor(addScenarioEdgeUseCase)
+final addScenarioEdgeUseCaseProvider =
+    AutoDisposeProvider<AddScenarioEdgeUseCase>.internal(
+  addScenarioEdgeUseCase,
+  name: r'addScenarioEdgeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$addScenarioEdgeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AddScenarioEdgeUseCaseRef
+    = AutoDisposeProviderRef<AddScenarioEdgeUseCase>;
+String _$updateScenarioEdgeUseCaseHash() =>
+    r'a407929ab850dfbb40faa4b0746d585073603247';
+
+/// See also [updateScenarioEdgeUseCase].
+@ProviderFor(updateScenarioEdgeUseCase)
+final updateScenarioEdgeUseCaseProvider =
+    AutoDisposeProvider<UpdateScenarioEdgeUseCase>.internal(
+  updateScenarioEdgeUseCase,
+  name: r'updateScenarioEdgeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateScenarioEdgeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateScenarioEdgeUseCaseRef
+    = AutoDisposeProviderRef<UpdateScenarioEdgeUseCase>;
+String _$deleteScenarioEdgeUseCaseHash() =>
+    r'3c0fc8f9484e593a84dcd1e4d67a2a370ccf4ae3';
+
+/// See also [deleteScenarioEdgeUseCase].
+@ProviderFor(deleteScenarioEdgeUseCase)
+final deleteScenarioEdgeUseCaseProvider =
+    AutoDisposeProvider<DeleteScenarioEdgeUseCase>.internal(
+  deleteScenarioEdgeUseCase,
+  name: r'deleteScenarioEdgeUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deleteScenarioEdgeUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DeleteScenarioEdgeUseCaseRef
+    = AutoDisposeProviderRef<DeleteScenarioEdgeUseCase>;
 String _$createProjectScriptUseCaseHash() =>
     r'ddcd48944dd8b63901efc5b1f801f05a189ae15d';
 

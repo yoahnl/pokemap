@@ -141,6 +141,9 @@ class EditorNotifier extends _$EditorNotifier {
         tilesElementsPanelMode: TilesElementsPanelMode.palette,
         selectedProjectDialogueId: null,
         selectedProjectScriptId: null,
+        selectedScenarioId: null,
+        selectedScenarioNodeId: null,
+        pendingScenarioEdgeFromNodeId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -192,6 +195,9 @@ class EditorNotifier extends _$EditorNotifier {
         tilesElementsPanelMode: TilesElementsPanelMode.palette,
         selectedProjectDialogueId: null,
         selectedProjectScriptId: null,
+        selectedScenarioId: null,
+        selectedScenarioNodeId: null,
+        pendingScenarioEdgeFromNodeId: null,
         paletteCategoryFilter: null,
         mapUndoStack: const [],
         mapRedoStack: const [],
@@ -1210,6 +1216,35 @@ class EditorNotifier extends _$EditorNotifier {
     return result;
   }
 
+  void selectMapWorkspace() {
+    state = state.copyWith(
+      workspaceMode: EditorWorkspaceMode.map,
+      pendingScenarioEdgeFromNodeId: null,
+    );
+  }
+
+  void selectScenarioWorkspace(String? scenarioId) {
+    final project = state.project;
+    if (project == null) return;
+    final normalizedId = scenarioId?.trim();
+    if (normalizedId != null &&
+        normalizedId.isNotEmpty &&
+        !project.scenarios.any((scenario) => scenario.id == normalizedId)) {
+      return;
+    }
+    final targetId =
+        (normalizedId == null || normalizedId.isEmpty) ? null : normalizedId;
+    state = state.copyWith(
+      workspaceMode: targetId == null
+          ? EditorWorkspaceMode.map
+          : EditorWorkspaceMode.scenario,
+      selectedScenarioId: targetId,
+      selectedScenarioNodeId: null,
+      pendingScenarioEdgeFromNodeId: null,
+      errorMessage: null,
+    );
+  }
+
   void selectTilesetWorkspace(String? tilesetId) {
     final project = state.project;
     if (project == null) return;
@@ -1222,6 +1257,7 @@ class EditorNotifier extends _$EditorNotifier {
           : EditorWorkspaceMode.tileset,
       selectedTilesetEditorId: tilesetId,
       selectedTilesetElementGroupId: null,
+      pendingScenarioEdgeFromNodeId: null,
     );
   }
 
@@ -5302,6 +5338,406 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to move script to root: $e',
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Project scenarios (workspace graph)
+  // ---------------------------------------------------------------------------
+
+  void selectProjectScenario(String? scenarioId) {
+    final project = state.project;
+    if (project == null) return;
+    final normalizedId = scenarioId?.trim();
+    if (normalizedId != null &&
+        normalizedId.isNotEmpty &&
+        !project.scenarios.any((scenario) => scenario.id == normalizedId)) {
+      return;
+    }
+    final targetId =
+        (normalizedId == null || normalizedId.isEmpty) ? null : normalizedId;
+    state = state.copyWith(
+      selectedScenarioId: targetId,
+      selectedScenarioNodeId: null,
+      pendingScenarioEdgeFromNodeId: null,
+    );
+  }
+
+  void selectScenarioNode(String? nodeId) {
+    state = state.copyWith(selectedScenarioNodeId: nodeId);
+  }
+
+  void beginScenarioEdgeFromNode(String? nodeId) {
+    state = state.copyWith(pendingScenarioEdgeFromNodeId: nodeId);
+  }
+
+  ScenarioAsset? getSelectedScenario() {
+    final project = state.project;
+    if (project == null) return null;
+    final selectedScenarioId = state.selectedScenarioId;
+    if (selectedScenarioId == null || selectedScenarioId.trim().isEmpty) {
+      return project.scenarios.isEmpty ? null : project.scenarios.first;
+    }
+    for (final scenario in project.scenarios) {
+      if (scenario.id == selectedScenarioId) {
+        return scenario;
+      }
+    }
+    return project.scenarios.isEmpty ? null : project.scenarios.first;
+  }
+
+  ScenarioNode? getSelectedScenarioNode() {
+    final scenario = getSelectedScenario();
+    if (scenario == null) return null;
+    final selectedNodeId = state.selectedScenarioNodeId;
+    if (selectedNodeId == null || selectedNodeId.trim().isEmpty) {
+      return null;
+    }
+    for (final node in scenario.nodes) {
+      if (node.id == selectedNodeId) {
+        return node;
+      }
+    }
+    return null;
+  }
+
+  Future<void> createProjectScenario({
+    required String name,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(createProjectScenarioUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        name: name,
+      );
+      final createdScenarioId =
+          updated.scenarios.isNotEmpty ? updated.scenarios.last.id : null;
+      state = state.copyWith(
+        project: updated,
+        workspaceMode: createdScenarioId == null
+            ? EditorWorkspaceMode.map
+            : EditorWorkspaceMode.scenario,
+        selectedScenarioId: createdScenarioId,
+        selectedScenarioNodeId: createdScenarioId == null
+            ? null
+            : updated.scenarios.last.entryNodeId,
+        pendingScenarioEdgeFromNodeId: null,
+        statusMessage: 'Scenario created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create scenario: $e');
+    }
+  }
+
+  Future<void> renameProjectScenario({
+    required String scenarioId,
+    required String name,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(renameProjectScenarioUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        name: name,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Scenario renamed',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to rename scenario: $e');
+    }
+  }
+
+  Future<void> deleteProjectScenario(String scenarioId) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteProjectScenarioUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+      );
+      final selectedScenarioId = state.selectedScenarioId == scenarioId
+          ? (updated.scenarios.isNotEmpty ? updated.scenarios.first.id : null)
+          : state.selectedScenarioId;
+      final workspaceMode = updated.scenarios.isEmpty &&
+              state.workspaceMode == EditorWorkspaceMode.scenario
+          ? EditorWorkspaceMode.map
+          : state.workspaceMode;
+      state = state.copyWith(
+        project: updated,
+        workspaceMode: workspaceMode,
+        selectedScenarioId: selectedScenarioId,
+        selectedScenarioNodeId: null,
+        pendingScenarioEdgeFromNodeId: null,
+        statusMessage: 'Scenario deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to delete scenario: $e');
+    }
+  }
+
+  Future<void> addScenarioNode({
+    required String scenarioId,
+    required ScenarioNodeType type,
+    String? title,
+    ScenarioNodePosition? position,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(addScenarioNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        type: type,
+        title: title,
+        position: position,
+      );
+      final scenario = updated.scenarios.firstWhere(
+        (candidate) => candidate.id == scenarioId,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenario.id,
+        selectedScenarioNodeId: scenario.nodes.last.id,
+        statusMessage: 'Scenario node added',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to add scenario node: $e');
+    }
+  }
+
+  Future<void> updateScenarioNode({
+    required String scenarioId,
+    required ScenarioNode node,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(updateScenarioNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        node: node,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenarioId,
+        selectedScenarioNodeId: node.id,
+        statusMessage: 'Scenario node updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to update scenario node: $e',
+      );
+    }
+  }
+
+  Future<void> moveScenarioNode({
+    required String scenarioId,
+    required String nodeId,
+    required ScenarioNodePosition position,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(moveScenarioNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        nodeId: nodeId,
+        position: position,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenarioId,
+        selectedScenarioNodeId: nodeId,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to move scenario node: $e');
+    }
+  }
+
+  Future<void> deleteScenarioNode({
+    required String scenarioId,
+    required String nodeId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteScenarioNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        nodeId: nodeId,
+      );
+      final scenario = updated.scenarios.firstWhere(
+        (candidate) => candidate.id == scenarioId,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenarioId,
+        selectedScenarioNodeId: scenario.entryNodeId,
+        pendingScenarioEdgeFromNodeId: null,
+        statusMessage: 'Scenario node deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to delete scenario node: $e',
+      );
+    }
+  }
+
+  Future<void> setScenarioEntryNode({
+    required String scenarioId,
+    required String nodeId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(setScenarioEntryNodeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        nodeId: nodeId,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenarioId,
+        selectedScenarioNodeId: nodeId,
+        statusMessage: 'Entry node updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to update entry node: $e',
+      );
+    }
+  }
+
+  Future<void> addScenarioEdge({
+    required String scenarioId,
+    required String fromNodeId,
+    required String toNodeId,
+    String? label,
+    ScenarioEdgeKind kind = ScenarioEdgeKind.next,
+    int order = 0,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(addScenarioEdgeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        fromNodeId: fromNodeId,
+        toNodeId: toNodeId,
+        label: label,
+        kind: kind,
+        order: order,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenarioId,
+        pendingScenarioEdgeFromNodeId: null,
+        statusMessage: 'Scenario edge added',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to add scenario edge: $e');
+    }
+  }
+
+  Future<void> updateScenarioEdge({
+    required String scenarioId,
+    required String edgeId,
+    String? label,
+    ScenarioEdgeKind? kind,
+    int? order,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(updateScenarioEdgeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        edgeId: edgeId,
+        label: label,
+        kind: kind,
+        order: order,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenarioId,
+        statusMessage: 'Scenario edge updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to update scenario edge: $e',
+      );
+    }
+  }
+
+  Future<void> deleteScenarioEdge({
+    required String scenarioId,
+    required String edgeId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(deleteScenarioEdgeUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        edgeId: edgeId,
+      );
+      state = state.copyWith(
+        project: updated,
+        selectedScenarioId: scenarioId,
+        statusMessage: 'Scenario edge deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to delete scenario edge: $e',
       );
     }
   }
