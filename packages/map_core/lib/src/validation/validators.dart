@@ -12,6 +12,17 @@ import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
 
 class ProjectValidator {
+  // Scenario action/source kinds partagés avec l'éditeur/runtime.
+  // On garde ces chaînes localisées ici pour valider de manière
+  // déterministe sans dépendre d'un package runtime.
+  static const Set<String> _scenarioWorldSourceKinds = <String>{
+    'sourceMapEnter',
+    'sourceTriggerEnter',
+    'sourceEntityInteract',
+  };
+  static const String _scenarioOutcomeSourceKind = 'sourceOutcome';
+  static const String _scenarioEmitOutcomeKind = 'emitOutcome';
+
   /// Rectangles sources valides, [durationMs] > 0 si présent, au moins une frame,
   /// tailles identiques si plusieurs frames (préparation animation).
   static void _validateVisualFrames(
@@ -723,6 +734,29 @@ class ProjectValidator {
       );
       _requireProjectNonBlank(
           scenario.name, 'Scenario $scenarioId has an empty name');
+
+      // Outcomes déclarés: non vides et sans doublons.
+      final declaredOutcomeIds = <String>{};
+      for (final rawOutcomeId in scenario.declaredOutcomes) {
+        final outcomeId = _requireProjectNonBlank(
+          rawOutcomeId,
+          'Scenario $scenarioId has an empty declared outcome',
+        );
+        if (!declaredOutcomeIds.add(outcomeId)) {
+          throw ValidationException(
+            'Scenario $scenarioId has duplicate declared outcome: $outcomeId',
+          );
+        }
+      }
+
+      // Condition d'activation scénario (gating global/local).
+      if (scenario.activationCondition != null) {
+        _validateScriptCondition(
+          scenario.activationCondition!,
+          contextLabel: 'Scenario $scenarioId activationCondition',
+        );
+      }
+
       if (scenario.nodes.isEmpty) {
         throw ValidationException('Scenario $scenarioId must contain nodes');
       }
@@ -741,6 +775,31 @@ class ProjectValidator {
         if (node.type == ScenarioNodeType.start) {
           startNodesCount++;
         }
+
+        final actionKind = node.payload.actionKind?.trim() ?? '';
+        final outcomeId = node.binding.outcomeId?.trim() ?? '';
+
+        if (actionKind == _scenarioEmitOutcomeKind ||
+            actionKind == _scenarioOutcomeSourceKind) {
+          if (outcomeId.isEmpty) {
+            throw ValidationException(
+              'Scenario $scenarioId node $nodeId kind "$actionKind" requires outcomeId',
+            );
+          }
+        }
+        if (scenario.scope == ScenarioScope.globalStory &&
+            _scenarioWorldSourceKinds.contains(actionKind)) {
+          throw ValidationException(
+            'Scenario $scenarioId is globalStory and cannot use world source kind: $actionKind',
+          );
+        }
+        if (scenario.scope == ScenarioScope.localEventFlow &&
+            actionKind == _scenarioOutcomeSourceKind) {
+          throw ValidationException(
+            'Scenario $scenarioId is localEventFlow and cannot use sourceOutcome',
+          );
+        }
+
         final binding = node.binding;
         final scriptId = binding.scriptId?.trim();
         if (scriptId != null &&

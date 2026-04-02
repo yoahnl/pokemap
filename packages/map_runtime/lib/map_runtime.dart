@@ -55,11 +55,14 @@ export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
         kScenarioSourceMapEnter,
         kScenarioSourceTriggerEnter,
         kScenarioSourceEntityInteract,
+        kScenarioSourceOutcome,
         kScenarioActionRunScript,
         kScenarioActionOpenDialogue,
         kScenarioActionShowMessage,
         kScenarioActionSetFlag,
-        kScenarioActionClearFlag;
+        kScenarioActionClearFlag,
+        kScenarioActionEmitOutcome,
+        scenarioOutcomeFlagName;
 
 // Save/Load system exports
 export 'domain/repositories/game_save_repository.dart'

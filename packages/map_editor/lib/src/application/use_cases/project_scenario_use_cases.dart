@@ -122,6 +122,10 @@ class CreateProjectScenarioUseCase {
     final scenario = ScenarioAsset(
       id: scenarioId,
       name: trimmedName,
+      // On privilégie désormais un scénario global par défaut.
+      // Les flows locaux (hooks monde) restent possibles via le champ scope
+      // éditable dans l'inspecteur scénario.
+      scope: ScenarioScope.globalStory,
       entryNodeId: startNode.id,
       nodes: const <ScenarioNode>[startNode, endNode],
       edges: const <ScenarioEdge>[
@@ -135,6 +139,57 @@ class CreateProjectScenarioUseCase {
     );
     final updated = project.copyWith(
       scenarios: <ScenarioAsset>[...project.scenarios, scenario],
+    );
+    ProjectValidator.validate(updated);
+    await _repository.saveProject(updated, workspace.projectManifestPath);
+    return updated;
+  }
+}
+
+class UpdateProjectScenarioMetadataUseCase {
+  UpdateProjectScenarioMetadataUseCase(this._repository);
+
+  final ProjectRepository _repository;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String scenarioId,
+    required String name,
+    required String description,
+    required ScenarioScope scope,
+    required List<String> declaredOutcomes,
+    ScriptCondition? activationCondition,
+  }) async {
+    final scenario = _requireScenarioById(project, scenarioId);
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw const EditorValidationException('Scenario name cannot be empty');
+    }
+    final normalizedDescription = description.trim();
+
+    // Nettoyage déterministe: trim + suppression des vides + dédoublonnage.
+    final dedupOutcomes = <String>{};
+    final normalizedOutcomes = <String>[];
+    for (final raw in declaredOutcomes) {
+      final value = raw.trim();
+      if (value.isEmpty) {
+        continue;
+      }
+      if (dedupOutcomes.add(value)) {
+        normalizedOutcomes.add(value);
+      }
+    }
+
+    final updated = _replaceScenario(
+      project,
+      scenario.copyWith(
+        name: normalizedName,
+        description: normalizedDescription,
+        scope: scope,
+        declaredOutcomes: normalizedOutcomes,
+        activationCondition: activationCondition,
+      ),
     );
     ProjectValidator.validate(updated);
     await _repository.saveProject(updated, workspace.projectManifestPath);

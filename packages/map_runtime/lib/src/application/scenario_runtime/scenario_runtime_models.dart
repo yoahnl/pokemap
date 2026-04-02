@@ -11,22 +11,26 @@ import 'package:map_core/map_core.dart';
 /// - `sourceMapEnter`
 /// - `sourceTriggerEnter`
 /// - `sourceEntityInteract`
+/// - `sourceOutcome`
 enum ScenarioRuntimeSourceType {
   mapEnter,
   triggerEnter,
   entityInteract,
+  outcomeReceived,
 }
 
 /// Événement source envoyé au runtime bridge pour tenter une exécution.
 ///
 /// On encode explicitement `mapId` + identifiants contextuels optionnels.
 /// Cela permet de matcher précisément les nodes "source*" du Scenario Graph.
+/// Pour `outcomeReceived`, seul `outcomeId` est utilisé.
 class ScenarioRuntimeSourceEvent {
   const ScenarioRuntimeSourceEvent._({
     required this.type,
     required this.mapId,
     this.triggerId,
     this.entityId,
+    this.outcomeId,
   });
 
   factory ScenarioRuntimeSourceEvent.mapEnter({
@@ -60,10 +64,21 @@ class ScenarioRuntimeSourceEvent {
     );
   }
 
+  factory ScenarioRuntimeSourceEvent.outcomeReceived({
+    required String outcomeId,
+  }) {
+    return ScenarioRuntimeSourceEvent._(
+      type: ScenarioRuntimeSourceType.outcomeReceived,
+      mapId: '',
+      outcomeId: outcomeId.trim(),
+    );
+  }
+
   final ScenarioRuntimeSourceType type;
   final String mapId;
   final String? triggerId;
   final String? entityId;
+  final String? outcomeId;
 }
 
 /// Type d'effet réellement déclenché par le bridge runtime.
@@ -120,6 +135,7 @@ class ScenarioRuntimeExecutionResult {
     this.scenarioId,
     this.sourceNodeId,
     this.stopNodeId,
+    this.emittedOutcomeId,
   });
 
   final ScenarioRuntimeExecutionStatus status;
@@ -128,6 +144,7 @@ class ScenarioRuntimeExecutionResult {
   final String? scenarioId;
   final String? sourceNodeId;
   final String? stopNodeId;
+  final String? emittedOutcomeId;
 
   bool get handled => status != ScenarioRuntimeExecutionStatus.noMatchingSource;
 

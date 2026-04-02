@@ -32,6 +32,7 @@ enum ScenarioActionField {
   warp,
   trigger,
   trainer,
+  outcomeId,
   flagName,
   variableName,
   variableValue,
@@ -80,6 +81,26 @@ class ScenarioActionPreset {
   final String executionHint;
   final ScenarioPresetRuntimeSupport runtimeSupport;
   final Set<ScenarioActionField> fields;
+}
+
+String scenarioScopeLabel(ScenarioScope scope) {
+  return switch (scope) {
+    ScenarioScope.globalStory => 'Global Story Graph',
+    ScenarioScope.localEventFlow => 'Local Event Flow',
+  };
+}
+
+String scenarioScopeDescription(ScenarioScope scope) {
+  return switch (scope) {
+    ScenarioScope.globalStory =>
+      'Progression centrale du jeu (arcs, milestones, branches globales).',
+    ScenarioScope.localEventFlow =>
+      'Hook monde local (entrée map/trigger/interact) connecté à l’histoire globale.',
+  };
+}
+
+String scenarioScopePickerLabel(ScenarioScope scope) {
+  return '${scenarioScopeLabel(scope)} — ${scenarioScopeDescription(scope)}';
 }
 
 String scenarioNodeTypeLabel(ScenarioNodeType type) {
@@ -195,6 +216,15 @@ const List<ScenarioActionPreset> scenarioActionPresets = <ScenarioActionPreset>[
     fields: {ScenarioActionField.map, ScenarioActionField.entity},
   ),
   ScenarioActionPreset(
+    id: 'emitOutcome',
+    label: 'Émettre un outcome',
+    description:
+        'Produit un résultat local explicite (ex: professor_intro.completed).',
+    executionHint:
+        'Runtime MVP: persiste l’outcome et peut déclencher une source globale "Outcome reçu".',
+    fields: {ScenarioActionField.outcomeId},
+  ),
+  ScenarioActionPreset(
     id: 'setFlag',
     label: 'Activer un flag',
     description: 'Passe un story flag à true.',
@@ -255,6 +285,16 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
         'Source de flow orientée authoring. Choisis map + entité cible.',
     runtimeSupport: ScenarioPresetRuntimeSupport.runtimeReady,
     fields: {ScenarioActionField.map, ScenarioActionField.entity},
+  ),
+  ScenarioActionPreset(
+    id: 'sourceOutcome',
+    label: 'Source : outcome reçu',
+    description:
+        'Point d’entrée global déclenché quand un flow local émet un outcome.',
+    executionHint:
+        'À utiliser surtout dans un Scenario global pour brancher la progression centrale.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.runtimeReady,
+    fields: {ScenarioActionField.outcomeId},
   ),
   ScenarioActionPreset(
     id: 'referenceEvent',
@@ -468,7 +508,8 @@ bool scenarioPresetRepresentsTriggerSource(String? presetId) {
   }
   return normalized == 'sourceMapEnter' ||
       normalized == 'sourceTriggerEnter' ||
-      normalized == 'sourceEntityInteract';
+      normalized == 'sourceEntityInteract' ||
+      normalized == 'sourceOutcome';
 }
 
 /// Action/preset réellement supporté par le bridge runtime MVP.
@@ -486,11 +527,13 @@ bool scenarioRuntimeMvpSupportsActionKind(
   if (referenceMode) {
     return normalized == 'sourceMapEnter' ||
         normalized == 'sourceTriggerEnter' ||
-        normalized == 'sourceEntityInteract';
+        normalized == 'sourceEntityInteract' ||
+        normalized == 'sourceOutcome';
   }
   return normalized == 'runScript' ||
       normalized == 'openDialogue' ||
       normalized == 'showMessage' ||
+      normalized == 'emitOutcome' ||
       normalized == 'setFlag' ||
       normalized == 'clearFlag';
 }
@@ -525,6 +568,20 @@ String scenarioNodeHumanSummary(ScenarioNode node) {
   }
   if (type == ScenarioNodeType.choice) {
     return 'Propose un choix joueur et redirige selon la branche.';
+  }
+  if (actionKind == 'emitOutcome') {
+    final outcomeId = binding.outcomeId?.trim();
+    if (outcomeId != null && outcomeId.isNotEmpty) {
+      return 'Émet l’outcome "$outcomeId".';
+    }
+    return 'Émet un outcome (identifiant manquant).';
+  }
+  if (actionKind == 'sourceOutcome') {
+    final outcomeId = binding.outcomeId?.trim();
+    if (outcomeId != null && outcomeId.isNotEmpty) {
+      return 'Source déclenchée par l’outcome "$outcomeId".';
+    }
+    return 'Source déclenchée par un outcome (identifiant manquant).';
   }
   final preset = scenarioActionPresetById(
     actionKind,

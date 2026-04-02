@@ -12,7 +12,30 @@ class ScenarioAsset with _$ScenarioAsset {
     required String id,
     required String name,
     @Default('') String description,
+
+    /// Couche fonctionnelle du scénario:
+    /// - globalStory: progression centrale
+    /// - localEventFlow: hooks monde locaux
+    ///
+    /// Cette séparation explicite est la base du modèle story-centric.
+    @Default(ScenarioScope.localEventFlow) ScenarioScope scope,
     required String entryNodeId,
+
+    /// Liste d'outcomes "métier" déclarés par ce scénario.
+    ///
+    /// Exemple:
+    /// - professor_intro.completed
+    /// - starter.selected.fire
+    ///
+    /// Objectif: rendre les transitions locales -> globales explicites.
+    @Default(<String>[]) List<String> declaredOutcomes,
+
+    /// Gating optionnel du scénario.
+    ///
+    /// Si défini, le runtime n'activera ce scénario que lorsque la condition
+    /// est vraie. Permet au graphe global de piloter l'activation des flows
+    /// locaux sans dupliquer les règles partout.
+    ScriptCondition? activationCondition,
     @Default(<ScenarioNode>[]) List<ScenarioNode> nodes,
     @Default(<ScenarioEdge>[]) List<ScenarioEdge> edges,
     @Default({}) Map<String, String> metadata,
@@ -62,6 +85,13 @@ class ScenarioNodeBinding with _$ScenarioNodeBinding {
     String? trainerId,
     String? dialogueId,
     String? scriptId,
+
+    /// Identifiant d'outcome explicite.
+    ///
+    /// Utilisé notamment par:
+    /// - sourceOutcome (consommation côté global)
+    /// - emitOutcome (production côté local)
+    String? outcomeId,
     String? flagName,
     String? variableName,
   }) = _ScenarioNodeBinding;
@@ -116,6 +146,22 @@ enum ScenarioNodeType {
   reference,
   @JsonValue('end')
   end,
+}
+
+/// Couche fonctionnelle d'un scénario.
+///
+/// Cette séparation est volontairement explicite:
+/// - `globalStory`: graphe de progression narrative globale.
+/// - `localEventFlow`: flow local branché sur des hooks monde.
+///
+/// Elle permet de passer d'un modèle purement "event-centric" vers un modèle
+/// "story-centric" où les events locaux deviennent des points d'entrée/sortie
+/// rattachés à une progression globale.
+enum ScenarioScope {
+  @JsonValue('globalStory')
+  globalStory,
+  @JsonValue('localEventFlow')
+  localEventFlow,
 }
 
 enum ScenarioEdgeKind {

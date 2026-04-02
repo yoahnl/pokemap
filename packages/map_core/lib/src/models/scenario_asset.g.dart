@@ -11,7 +11,17 @@ _$ScenarioAssetImpl _$$ScenarioAssetImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String? ?? '',
+      scope: $enumDecodeNullable(_$ScenarioScopeEnumMap, json['scope']) ??
+          ScenarioScope.localEventFlow,
       entryNodeId: json['entryNodeId'] as String,
+      declaredOutcomes: (json['declaredOutcomes'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      activationCondition: json['activationCondition'] == null
+          ? null
+          : ScriptCondition.fromJson(
+              json['activationCondition'] as Map<String, dynamic>),
       nodes: (json['nodes'] as List<dynamic>?)
               ?.map((e) => ScenarioNode.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -31,11 +41,19 @@ Map<String, dynamic> _$$ScenarioAssetImplToJson(_$ScenarioAssetImpl instance) =>
       'id': instance.id,
       'name': instance.name,
       'description': instance.description,
+      'scope': _$ScenarioScopeEnumMap[instance.scope]!,
       'entryNodeId': instance.entryNodeId,
+      'declaredOutcomes': instance.declaredOutcomes,
+      'activationCondition': instance.activationCondition?.toJson(),
       'nodes': instance.nodes.map((e) => e.toJson()).toList(),
       'edges': instance.edges.map((e) => e.toJson()).toList(),
       'metadata': instance.metadata,
     };
+
+const _$ScenarioScopeEnumMap = {
+  ScenarioScope.globalStory: 'globalStory',
+  ScenarioScope.localEventFlow: 'localEventFlow',
+};
 
 _$ScenarioNodeImpl _$$ScenarioNodeImplFromJson(Map<String, dynamic> json) =>
     _$ScenarioNodeImpl(
@@ -109,6 +127,7 @@ _$ScenarioNodeBindingImpl _$$ScenarioNodeBindingImplFromJson(
       trainerId: json['trainerId'] as String?,
       dialogueId: json['dialogueId'] as String?,
       scriptId: json['scriptId'] as String?,
+      outcomeId: json['outcomeId'] as String?,
       flagName: json['flagName'] as String?,
       variableName: json['variableName'] as String?,
     );
@@ -124,6 +143,7 @@ Map<String, dynamic> _$$ScenarioNodeBindingImplToJson(
       'trainerId': instance.trainerId,
       'dialogueId': instance.dialogueId,
       'scriptId': instance.scriptId,
+      'outcomeId': instance.outcomeId,
       'flagName': instance.flagName,
       'variableName': instance.variableName,
     };

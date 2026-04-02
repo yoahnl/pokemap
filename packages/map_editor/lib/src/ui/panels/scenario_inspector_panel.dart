@@ -114,6 +114,8 @@ class _ScenarioInspectorPanelState
     extends ConsumerState<ScenarioInspectorPanel> {
   final _scenarioNameController = TextEditingController();
   final _scenarioDescriptionController = TextEditingController();
+  final _scenarioDeclaredOutcomesController = TextEditingController();
+  final _scenarioActivationConditionController = TextEditingController();
   final _nodeTitleController = TextEditingController();
   final _nodeDescriptionController = TextEditingController();
   final _nodeActionKindController = TextEditingController();
@@ -130,6 +132,7 @@ class _ScenarioInspectorPanelState
   final _nodeWarpIdController = TextEditingController();
   final _nodeTriggerIdController = TextEditingController();
   final _nodeTrainerIdController = TextEditingController();
+  final _nodeOutcomeIdController = TextEditingController();
   final _nodeFlagNameController = TextEditingController();
   final _nodeVariableNameController = TextEditingController();
 
@@ -138,6 +141,7 @@ class _ScenarioInspectorPanelState
   String? _boundScenarioFingerprint;
   String? _boundNodeFingerprint;
   String? _boundProjectRoot;
+  ScenarioScope _scenarioScope = ScenarioScope.localEventFlow;
   _ScenarioConditionMode _conditionMode = _ScenarioConditionMode.none;
   bool _showAdvancedNodeFields = false;
 
@@ -145,6 +149,8 @@ class _ScenarioInspectorPanelState
   void dispose() {
     _scenarioNameController.dispose();
     _scenarioDescriptionController.dispose();
+    _scenarioDeclaredOutcomesController.dispose();
+    _scenarioActivationConditionController.dispose();
     _nodeTitleController.dispose();
     _nodeDescriptionController.dispose();
     _nodeActionKindController.dispose();
@@ -161,6 +167,7 @@ class _ScenarioInspectorPanelState
     _nodeWarpIdController.dispose();
     _nodeTriggerIdController.dispose();
     _nodeTrainerIdController.dispose();
+    _nodeOutcomeIdController.dispose();
     _nodeFlagNameController.dispose();
     _nodeVariableNameController.dispose();
     super.dispose();
@@ -486,6 +493,38 @@ class _ScenarioInspectorPanelState
               maxLines: 4,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             ),
+            const SizedBox(height: 6),
+            _bindingPickerField(
+              context,
+              title: 'Niveau de scénario',
+              helper:
+                  'Global Story Graph = progression centrale. Local Event Flow = hook monde local.',
+              value: scenarioScopeLabel(_scenarioScope),
+              onPick: () => _pickScenarioScope(context),
+            ),
+            const SizedBox(height: 6),
+            _labeledField(
+              context,
+              label: 'Outcomes déclarés',
+              controller: _scenarioDeclaredOutcomesController,
+              placeholder: 'professor_intro.completed, starter.selected.fire',
+              helper:
+                  'Liste des outcomes que ce scénario émet/consomme (virgules ou lignes séparées).',
+              minLines: 2,
+              maxLines: 4,
+            ),
+            const SizedBox(height: 6),
+            _labeledField(
+              context,
+              label: 'Condition d’activation (JSON, optionnel)',
+              controller: _scenarioActivationConditionController,
+              placeholder:
+                  '{"type":"flagIsSet","params":{"flagName":"story.chapter_1"}}',
+              helper:
+                  'Si définie, ce scénario ne réagit que lorsque cette condition est vraie.',
+              minLines: 2,
+              maxLines: 4,
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -496,11 +535,12 @@ class _ScenarioInspectorPanelState
                       vertical: 7,
                     ),
                     minimumSize: const Size(0, 32),
-                    onPressed: () => notifier.renameProjectScenario(
-                      scenarioId: scenario.id,
-                      name: _scenarioNameController.text.trim(),
+                    onPressed: () => _applyScenarioMetadataChanges(
+                      context,
+                      notifier: notifier,
+                      scenario: scenario,
                     ),
-                    child: const Text('Appliquer le nom'),
+                    child: const Text('Appliquer les métadonnées'),
                   ),
                 ),
               ],
@@ -574,6 +614,11 @@ class _ScenarioInspectorPanelState
               title: 'Qualité de flow',
               description:
                   '${summary.incompleteNodes} incomplets · ${summary.deadEndNodes} cul-de-sac · ${summary.isolatedNodes} isolés',
+            ),
+            _legendLine(
+              context,
+              title: 'Niveau',
+              description: scenarioScopeLabel(scenario.scope),
             ),
             _legendLine(
               context,
@@ -765,6 +810,7 @@ class _ScenarioInspectorPanelState
         warpId: _normalizeOptional(_nodeWarpIdController.text),
         triggerId: _normalizeOptional(_nodeTriggerIdController.text),
         trainerId: _normalizeOptional(_nodeTrainerIdController.text),
+        outcomeId: _normalizeOptional(_nodeOutcomeIdController.text),
         flagName: _normalizeOptional(_nodeFlagNameController.text),
         variableName: _normalizeOptional(_nodeVariableNameController.text),
       ),
@@ -1021,6 +1067,15 @@ class _ScenarioInspectorPanelState
                 fontSize: 10.5,
               ),
             ),
+            const SizedBox(height: 2),
+            Text(
+              'Contexte scénario: ${scenarioScopeLabel(scenario.scope)}',
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             if (errorCount > 0 || warningCount > 0) ...[
               const SizedBox(height: 4),
               Text(
@@ -1193,6 +1248,28 @@ class _ScenarioInspectorPanelState
                     originNode: node,
                   ),
                 ),
+                _tinyInsertButton(
+                  context,
+                  label: 'Entrée map → outcome',
+                  onPressed: () => _applyRecipeMapEnterOutcome(
+                    context,
+                    notifier: notifier,
+                    project: project,
+                    scenario: scenario,
+                    originNode: node,
+                  ),
+                ),
+                _tinyInsertButton(
+                  context,
+                  label: 'Outcome → dialogue global',
+                  onPressed: () => _applyRecipeOutcomeToDialogue(
+                    context,
+                    notifier: notifier,
+                    project: project,
+                    scenario: scenario,
+                    originNode: node,
+                  ),
+                ),
               ],
             ),
           ],
@@ -1330,6 +1407,14 @@ class _ScenarioInspectorPanelState
                   setState(() {});
                 },
               ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset émettre outcome',
+                onPressed: () {
+                  _nodeActionKindController.text = 'emitOutcome';
+                  setState(() {});
+                },
+              ),
             ],
           ),
           if (actionPreset != null) ...[
@@ -1348,6 +1433,7 @@ class _ScenarioInspectorPanelState
             lines: const <String>[
               'Choisis une action claire puis remplis uniquement les champs affichés.',
               'Les ressources sont proposées en dropdowns pour éviter la saisie manuelle d’IDs.',
+              'Pour relier un event local à l’histoire globale, utilise "Émettre un outcome".',
             ],
           ),
         ];
@@ -1479,6 +1565,14 @@ class _ScenarioInspectorPanelState
                   setState(() {});
                 },
               ),
+              _tinyInsertButton(
+                context,
+                label: 'Preset source outcome',
+                onPressed: () {
+                  _nodeActionKindController.text = 'sourceOutcome';
+                  setState(() {});
+                },
+              ),
             ],
           ),
           if (actionPreset != null) ...[
@@ -1497,6 +1591,7 @@ class _ScenarioInspectorPanelState
             lines: const <String>[
               'Reference peut documenter une ressource monde OU jouer le rôle de source de déclenchement.',
               'Pour un déclencheur explicite, utilise les presets "Déclencheur : ...".',
+              'Pour brancher un flow local vers le graphe global, utilise "Source : outcome reçu".',
               'Choisis une map puis un event/entity/warp/trigger si nécessaire.',
             ],
           ),
@@ -1798,6 +1893,42 @@ class _ScenarioInspectorPanelState
     setState(() {});
   }
 
+  List<String> _parseOutcomesInput(String raw) {
+    final candidates = raw
+        .replaceAll('\r', '\n')
+        .split(RegExp(r'[\n,;]+'))
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty);
+    final dedup = <String>{};
+    final ordered = <String>[];
+    for (final value in candidates) {
+      if (dedup.add(value)) {
+        ordered.add(value);
+      }
+    }
+    return ordered;
+  }
+
+  List<String> _knownOutcomeSuggestions(ProjectManifest project) {
+    final values = <String>{};
+    for (final scenario in project.scenarios) {
+      for (final outcome in scenario.declaredOutcomes) {
+        final normalized = outcome.trim();
+        if (normalized.isNotEmpty) {
+          values.add(normalized);
+        }
+      }
+      for (final node in scenario.nodes) {
+        final outcome = node.binding.outcomeId?.trim() ?? '';
+        if (outcome.isNotEmpty) {
+          values.add(outcome);
+        }
+      }
+    }
+    final sorted = values.toList(growable: false)..sort();
+    return sorted;
+  }
+
   List<String> _knownFlagSuggestions(ProjectManifest project) {
     final values = <String>{};
     for (final scenario in project.scenarios) {
@@ -2088,6 +2219,7 @@ class _ScenarioInspectorPanelState
   }) {
     final knownFlags = _knownFlagSuggestions(project);
     final knownVariables = _knownVariableSuggestions(project);
+    final knownOutcomes = _knownOutcomeSuggestions(project);
     final widgets = <Widget>[];
     if (preset.fields.contains(ScenarioActionField.message)) {
       widgets.add(
@@ -2135,6 +2267,21 @@ class _ScenarioInspectorPanelState
           helper: 'Choisis le dresseur concerné.',
           value: _optionalValue(_nodeTrainerIdController.text),
           onPick: () => _pickTrainerBinding(context, project),
+        ),
+      );
+    }
+    if (preset.fields.contains(ScenarioActionField.outcomeId)) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 6));
+      widgets.add(
+        _suggestedTextField(
+          context,
+          label: 'Outcome ID',
+          controller: _nodeOutcomeIdController,
+          placeholder: 'professor_intro.completed',
+          helper:
+              'Résultat local explicite qui peut alimenter la progression globale.',
+          suggestions: knownOutcomes,
+          pickerTitle: 'Outcomes connus',
         ),
       );
     }
@@ -2603,6 +2750,17 @@ class _ScenarioInspectorPanelState
               const SizedBox(height: 6),
               _suggestedTextField(
                 context,
+                label: 'Outcome ID (assisté)',
+                controller: _nodeOutcomeIdController,
+                placeholder: 'starter.selected.fire',
+                helper:
+                    'Outcome local explicite, réutilisable comme source globale.',
+                suggestions: _knownOutcomeSuggestions(project),
+                pickerTitle: 'Outcomes connus',
+              ),
+              const SizedBox(height: 6),
+              _suggestedTextField(
+                context,
                 label: 'Flag Name (assisté)',
                 controller: _nodeFlagNameController,
                 placeholder: 'story.got_starter',
@@ -2688,6 +2846,13 @@ class _ScenarioInspectorPanelState
               const SizedBox(height: 6),
               _labeledField(
                 context,
+                label: 'Outcome ID (raw)',
+                controller: _nodeOutcomeIdController,
+                placeholder: 'professor_intro.completed',
+              ),
+              const SizedBox(height: 6),
+              _labeledField(
+                context,
                 label: 'Flag Name (raw)',
                 controller: _nodeFlagNameController,
                 placeholder: 'story.got_starter',
@@ -2761,6 +2926,66 @@ class _ScenarioInspectorPanelState
     final name = controller.text.trim();
     if (name.isEmpty) return;
     await notifier.renameProjectScenario(scenarioId: scenario.id, name: name);
+  }
+
+  Future<void> _pickScenarioScope(BuildContext context) async {
+    final picked = await showCupertinoListPicker<ScenarioScope>(
+      context: context,
+      title: 'Niveau de scénario',
+      items: ScenarioScope.values,
+      labelOf: scenarioScopePickerLabel,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _scenarioScope = picked;
+    });
+  }
+
+  Future<void> _applyScenarioMetadataChanges(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required ScenarioAsset scenario,
+  }) async {
+    final name = _scenarioNameController.text.trim();
+    if (name.isEmpty) {
+      await showCupertinoEditorAlert(
+        context,
+        title: 'Nom requis',
+        message: 'Le scénario doit avoir un nom.',
+      );
+      return;
+    }
+    final declaredOutcomes = _parseOutcomesInput(
+      _scenarioDeclaredOutcomesController.text,
+    );
+
+    ScriptCondition? activationCondition;
+    final rawActivation = _scenarioActivationConditionController.text.trim();
+    if (rawActivation.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawActivation);
+        if (decoded is! Map<String, dynamic>) {
+          throw const FormatException('Activation JSON must be an object');
+        }
+        activationCondition = ScriptCondition.fromJson(decoded);
+      } catch (e) {
+        await showCupertinoEditorAlert(
+          context,
+          title: 'Condition d’activation invalide',
+          message: '$e',
+        );
+        return;
+      }
+    }
+
+    await notifier.updateProjectScenarioMetadata(
+      scenarioId: scenario.id,
+      name: name,
+      description: _scenarioDescriptionController.text,
+      scope: _scenarioScope,
+      declaredOutcomes: declaredOutcomes,
+      activationCondition: activationCondition,
+    );
   }
 
   Future<void> _confirmDeleteScenario(
@@ -3933,6 +4158,220 @@ class _ScenarioInspectorPanelState
     );
   }
 
+  Future<void> _applyRecipeMapEnterOutcome(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode originNode,
+  }) async {
+    // Recette story-centric:
+    // hook local (entrée map) -> émission outcome explicite.
+    final plan = await _pickRecipePlan(
+      context,
+      notifier: notifier,
+      scenario: scenario,
+      originNode: originNode,
+      allowChain: true,
+    );
+    if (plan == null) return;
+    if (!context.mounted) return;
+
+    final map = await showCupertinoListPicker<ProjectMapEntry>(
+      context: context,
+      title: 'Choisir la map source',
+      items: project.maps,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (map == null || !context.mounted) return;
+
+    final outcomeController = TextEditingController(
+      text: 'story.${map.id}.entered',
+    );
+    final outcomeOk = await showMacosEditorPromptSheet(
+      context,
+      title: 'Outcome à émettre',
+      controller: outcomeController,
+      confirmLabel: 'Valider',
+      placeholder: 'professor_intro.completed',
+      compact: true,
+    );
+    if (!outcomeOk || !context.mounted) return;
+    final outcomeId = outcomeController.text.trim();
+    if (outcomeId.isEmpty) return;
+
+    final sourceId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.reference,
+      title: 'Entrée map ${map.name}',
+      position: _recipeNodePosition(originNode, 1),
+    );
+    if (sourceId == null) return;
+    final sourceNode = _findScenarioNodeById(notifier, sourceId);
+    if (sourceNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: sourceNode.copyWith(
+          payload: sourceNode.payload.copyWith(actionKind: 'sourceMapEnter'),
+          binding: sourceNode.binding.copyWith(mapId: map.id),
+        ),
+      );
+    }
+
+    final emitId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.action,
+      title: 'Emit outcome $outcomeId',
+      position: _recipeNodePosition(originNode, 2),
+    );
+    if (emitId == null) return;
+    final emitNode = _findScenarioNodeById(notifier, emitId);
+    if (emitNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: emitNode.copyWith(
+          payload: emitNode.payload.copyWith(actionKind: 'emitOutcome'),
+          binding: emitNode.binding.copyWith(outcomeId: outcomeId),
+        ),
+      );
+    }
+
+    await _connectRecipeFlow(
+      notifier: notifier,
+      scenario: scenario,
+      originNode: originNode,
+      plan: plan,
+      recipeStartNodeId: sourceId,
+      recipeEndNodeId: emitId,
+      originLabel: 'suite',
+    );
+    await notifier.addScenarioEdge(
+      scenarioId: scenario.id,
+      fromNodeId: sourceId,
+      toNodeId: emitId,
+      label: 'onEnterMap',
+    );
+    if (!context.mounted) return;
+    await _showRecipeAppliedSummary(
+      context,
+      recipeName: 'Entrée map → outcome',
+      plan: plan,
+    );
+  }
+
+  Future<void> _applyRecipeOutcomeToDialogue(
+    BuildContext context, {
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required ScenarioAsset scenario,
+    required ScenarioNode originNode,
+  }) async {
+    // Recette story-centric:
+    // source outcome globale -> dialogue.
+    final plan = await _pickRecipePlan(
+      context,
+      notifier: notifier,
+      scenario: scenario,
+      originNode: originNode,
+      allowChain: true,
+    );
+    if (plan == null) return;
+    if (!context.mounted) return;
+
+    final knownOutcomes = _knownOutcomeSuggestions(project);
+    final pickedOutcome = await showCupertinoListPicker<String?>(
+      context: context,
+      title: 'Outcome source',
+      items: <String?>[null, ...knownOutcomes],
+      labelOf: (value) => value ?? 'Saisie manuelle',
+    );
+    if (!context.mounted) return;
+    var outcomeId = pickedOutcome?.trim() ?? '';
+    if (outcomeId.isEmpty) {
+      final controller = TextEditingController();
+      final ok = await showMacosEditorPromptSheet(
+        context,
+        title: 'Outcome source',
+        controller: controller,
+        confirmLabel: 'Valider',
+        placeholder: 'professor_intro.completed',
+        compact: true,
+      );
+      if (!ok || !context.mounted) return;
+      outcomeId = controller.text.trim();
+    }
+    if (outcomeId.isEmpty) return;
+
+    final dialogue = await showCupertinoListPicker<ProjectDialogueEntry>(
+      context: context,
+      title: 'Dialogue à ouvrir',
+      items: project.dialogues,
+      labelOf: (value) => '${value.name} (${value.id})',
+    );
+    if (dialogue == null || !context.mounted) return;
+
+    final sourceId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.reference,
+      title: 'Outcome $outcomeId',
+      position: _recipeNodePosition(originNode, 1),
+    );
+    if (sourceId == null) return;
+    final sourceNode = _findScenarioNodeById(notifier, sourceId);
+    if (sourceNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: sourceNode.copyWith(
+          payload: sourceNode.payload.copyWith(actionKind: 'sourceOutcome'),
+          binding: sourceNode.binding.copyWith(outcomeId: outcomeId),
+        ),
+      );
+    }
+
+    final dialogueId = await _addScenarioNodeAndResolveId(
+      notifier: notifier,
+      scenarioId: scenario.id,
+      type: ScenarioNodeType.dialogue,
+      title: 'Dialogue outcome',
+      position: _recipeNodePosition(originNode, 2),
+    );
+    if (dialogueId == null) return;
+    final dialogueNode = _findScenarioNodeById(notifier, dialogueId);
+    if (dialogueNode != null) {
+      await notifier.updateScenarioNode(
+        scenarioId: scenario.id,
+        node: dialogueNode.copyWith(
+          binding: dialogueNode.binding.copyWith(dialogueId: dialogue.id),
+        ),
+      );
+    }
+
+    await _connectRecipeFlow(
+      notifier: notifier,
+      scenario: scenario,
+      originNode: originNode,
+      plan: plan,
+      recipeStartNodeId: sourceId,
+      recipeEndNodeId: dialogueId,
+      originLabel: 'suite',
+    );
+    await notifier.addScenarioEdge(
+      scenarioId: scenario.id,
+      fromNodeId: sourceId,
+      toNodeId: dialogueId,
+      label: 'onOutcome',
+    );
+    if (!context.mounted) return;
+    await _showRecipeAppliedSummary(
+      context,
+      recipeName: 'Outcome → dialogue global',
+      plan: plan,
+    );
+  }
+
   Future<void> _applyNodeChanges(
     BuildContext context, {
     required EditorNotifier notifier,
@@ -4044,6 +4483,7 @@ class _ScenarioInspectorPanelState
         warpId: _normalizeOptional(_nodeWarpIdController.text),
         triggerId: _normalizeOptional(_nodeTriggerIdController.text),
         trainerId: _normalizeOptional(_nodeTrainerIdController.text),
+        outcomeId: _normalizeOptional(_nodeOutcomeIdController.text),
         flagName: _normalizeOptional(_nodeFlagNameController.text),
         variableName: _normalizeOptional(_nodeVariableNameController.text),
       ),
@@ -4070,14 +4510,30 @@ class _ScenarioInspectorPanelState
   }
 
   void _syncScenarioControllers(ScenarioAsset scenario) {
-    final fingerprint =
-        '${scenario.id}|${scenario.name}|${scenario.description}';
+    final fingerprint = [
+      scenario.id,
+      scenario.name,
+      scenario.description,
+      scenario.scope.name,
+      scenario.declaredOutcomes.join(','),
+      scenario.activationCondition?.toJson().toString() ?? '',
+    ].join('|');
     if (_boundScenarioFingerprint == fingerprint) {
       return;
     }
     _boundScenarioFingerprint = fingerprint;
     _scenarioNameController.text = scenario.name;
     _scenarioDescriptionController.text = scenario.description;
+    _scenarioScope = scenario.scope;
+    _scenarioDeclaredOutcomesController.text = scenario.declaredOutcomes
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .join(', ');
+    _scenarioActivationConditionController.text =
+        scenario.activationCondition == null
+            ? ''
+            : const JsonEncoder.withIndent('  ')
+                .convert(scenario.activationCondition!.toJson());
   }
 
   _ScenarioConditionMode _deriveConditionMode(ScriptCondition? condition) {
@@ -4115,6 +4571,7 @@ class _ScenarioInspectorPanelState
       _nodeWarpIdController.clear();
       _nodeTriggerIdController.clear();
       _nodeTrainerIdController.clear();
+      _nodeOutcomeIdController.clear();
       _nodeFlagNameController.clear();
       _nodeVariableNameController.clear();
       _conditionMode = _ScenarioConditionMode.none;
@@ -4133,6 +4590,7 @@ class _ScenarioInspectorPanelState
       node.binding.warpId ?? '',
       node.binding.triggerId ?? '',
       node.binding.trainerId ?? '',
+      node.binding.outcomeId ?? '',
       node.binding.flagName ?? '',
       node.binding.variableName ?? '',
       node.payload.actionKind ?? '',
@@ -4159,6 +4617,7 @@ class _ScenarioInspectorPanelState
     _nodeWarpIdController.text = node.binding.warpId ?? '';
     _nodeTriggerIdController.text = node.binding.triggerId ?? '';
     _nodeTrainerIdController.text = node.binding.trainerId ?? '';
+    _nodeOutcomeIdController.text = node.binding.outcomeId ?? '';
     _nodeFlagNameController.text = node.binding.flagName ?? '';
     _nodeVariableNameController.text = node.binding.variableName ?? '';
 

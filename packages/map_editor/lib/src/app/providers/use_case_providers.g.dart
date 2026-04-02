@@ -2436,6 +2436,26 @@ final renameProjectScenarioUseCaseProvider =
 // ignore: unused_element
 typedef RenameProjectScenarioUseCaseRef
     = AutoDisposeProviderRef<RenameProjectScenarioUseCase>;
+String _$updateProjectScenarioMetadataUseCaseHash() =>
+    r'b05cec184839ac85af9ce49fb6e223c9b494fe70';
+
+/// See also [updateProjectScenarioMetadataUseCase].
+@ProviderFor(updateProjectScenarioMetadataUseCase)
+final updateProjectScenarioMetadataUseCaseProvider =
+    AutoDisposeProvider<UpdateProjectScenarioMetadataUseCase>.internal(
+  updateProjectScenarioMetadataUseCase,
+  name: r'updateProjectScenarioMetadataUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$updateProjectScenarioMetadataUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UpdateProjectScenarioMetadataUseCaseRef
+    = AutoDisposeProviderRef<UpdateProjectScenarioMetadataUseCase>;
 String _$deleteProjectScenarioUseCaseHash() =>
     r'1d026be1c3b35f75607804cbe0c2d60871779d16';
 

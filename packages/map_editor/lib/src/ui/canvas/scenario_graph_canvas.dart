@@ -419,7 +419,7 @@ class _ScenarioGraphToolbar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${scenario.name} · ${scenario.nodes.length} nodes · ${scenario.edges.length} links',
+              '${scenario.name} · ${scenarioScopeLabel(scenario.scope)} · ${scenario.nodes.length} nodes · ${scenario.edges.length} links',
               style: TextStyle(
                 color: CupertinoColors.label.resolveFrom(context),
                 fontSize: 12,

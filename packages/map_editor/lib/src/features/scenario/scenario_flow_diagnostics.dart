@@ -154,6 +154,8 @@ ScenarioFlowReport analyzeScenarioFlow(
   var runtimeCapableNodes = 0;
   var authoringBridgeNodes = 0;
   var plannedNodes = 0;
+  var worldSourceNodes = 0;
+  var outcomeSourceNodes = 0;
 
   final incompleteNodeIds = <String>{};
   final deadEndNodeIds = <String>{};
@@ -169,6 +171,15 @@ ScenarioFlowReport analyzeScenarioFlow(
       node.payload.actionKind,
       referenceMode: node.type == ScenarioNodeType.reference,
     );
+    final actionKind = node.payload.actionKind?.trim() ?? '';
+    if (actionKind == 'sourceMapEnter' ||
+        actionKind == 'sourceTriggerEnter' ||
+        actionKind == 'sourceEntityInteract') {
+      worldSourceNodes++;
+    }
+    if (actionKind == 'sourceOutcome') {
+      outcomeSourceNodes++;
+    }
     final executionState = scenarioNodeExecutionState(
       node,
       actionPreset: preset,
@@ -212,6 +223,36 @@ ScenarioFlowReport analyzeScenarioFlow(
           severity: ScenarioFlowIssueSeverity.warning,
           message:
               'Le node Choice "${node.id}" n’est pas encore supporté par l’exécuteur runtime MVP.',
+          nodeId: node.id,
+        ),
+      );
+    }
+
+    // Cohérence d'architecture "story-centric":
+    // - globalStory: doit plutôt consommer des outcomes, pas des hooks monde.
+    // - localEventFlow: doit plutôt démarrer depuis des hooks monde.
+    if (scenario.scope == ScenarioScope.globalStory &&
+        (actionKind == 'sourceMapEnter' ||
+            actionKind == 'sourceTriggerEnter' ||
+            actionKind == 'sourceEntityInteract')) {
+      issues.add(
+        ScenarioFlowIssue(
+          code: 'global_uses_world_source',
+          severity: ScenarioFlowIssueSeverity.warning,
+          message:
+              'Le node "${node.id}" utilise une source monde dans un scénario global. Préfère un flow local + outcome.',
+          nodeId: node.id,
+        ),
+      );
+    }
+    if (scenario.scope == ScenarioScope.localEventFlow &&
+        actionKind == 'sourceOutcome') {
+      issues.add(
+        ScenarioFlowIssue(
+          code: 'local_uses_outcome_source',
+          severity: ScenarioFlowIssueSeverity.warning,
+          message:
+              'Le node "${node.id}" consomme un outcome dans un scénario local. Cette source est plutôt destinée au graphe global.',
           nodeId: node.id,
         ),
       );
@@ -326,6 +367,27 @@ ScenarioFlowReport analyzeScenarioFlow(
     );
   }
 
+  if (scenario.scope == ScenarioScope.globalStory && outcomeSourceNodes == 0) {
+    issues.add(
+      const ScenarioFlowIssue(
+        code: 'global_without_outcome_source',
+        severity: ScenarioFlowIssueSeverity.info,
+        message:
+            'Scénario global sans sourceOutcome: il ne recevra pas de transition locale explicite.',
+      ),
+    );
+  }
+  if (scenario.scope == ScenarioScope.localEventFlow && worldSourceNodes == 0) {
+    issues.add(
+      const ScenarioFlowIssue(
+        code: 'local_without_world_source',
+        severity: ScenarioFlowIssueSeverity.info,
+        message:
+            'Scénario local sans source monde: ajoute sourceMapEnter/sourceTriggerEnter/sourceEntityInteract.',
+      ),
+    );
+  }
+
   final summary = ScenarioFlowSummary(
     totalNodes: scenario.nodes.length,
     totalEdges: scenario.edges.length,
@@ -413,6 +475,8 @@ List<String> _missingNodeRequirements(
             if (!_hasText(node.binding.triggerId)) missing.add('trigger');
           case ScenarioActionField.trainer:
             if (!_hasText(node.binding.trainerId)) missing.add('trainer');
+          case ScenarioActionField.outcomeId:
+            if (!_hasText(node.binding.outcomeId)) missing.add('outcome id');
           case ScenarioActionField.flagName:
             if (!_hasText(node.binding.flagName)) missing.add('flag name');
           case ScenarioActionField.variableName:

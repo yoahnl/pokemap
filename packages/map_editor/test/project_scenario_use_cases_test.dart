@@ -166,6 +166,52 @@ void main() {
       );
     });
 
+    test('update scenario metadata updates scope and outcomes', () async {
+      final useCase = UpdateProjectScenarioMetadataUseCase(repository);
+      final project = _baseProject(
+        scenarios: const [
+          ScenarioAsset(
+            id: 'main',
+            name: 'Main',
+            scope: ScenarioScope.localEventFlow,
+            entryNodeId: 'start',
+            nodes: [
+              ScenarioNode(id: 'start', type: ScenarioNodeType.start),
+            ],
+          ),
+        ],
+      );
+
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: 'main',
+        name: 'Main Story',
+        description: 'Global progression graph',
+        scope: ScenarioScope.globalStory,
+        declaredOutcomes: const <String>[
+          'professor_intro.completed',
+          'professor_intro.completed',
+          'starter.selected.fire',
+        ],
+        activationCondition: ScriptConditionFactory.flagIsSet(
+          'story.chapter_1_started',
+        ),
+      );
+
+      final scenario = updated.scenarios.single;
+      expect(scenario.name, 'Main Story');
+      expect(scenario.scope, ScenarioScope.globalStory);
+      expect(
+        scenario.declaredOutcomes,
+        <String>['professor_intro.completed', 'starter.selected.fire'],
+      );
+      expect(
+        scenario.activationCondition?.type,
+        ScriptConditionType.flagIsSet,
+      );
+    });
+
     test('delete node removes related edges and updates entry node', () async {
       final deleteUseCase = DeleteScenarioNodeUseCase(repository);
       final project = _baseProject(

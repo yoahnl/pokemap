@@ -12,6 +12,7 @@ import 'scenario_runtime_models.dart';
 const String kScenarioSourceMapEnter = 'sourceMapEnter';
 const String kScenarioSourceTriggerEnter = 'sourceTriggerEnter';
 const String kScenarioSourceEntityInteract = 'sourceEntityInteract';
+const String kScenarioSourceOutcome = 'sourceOutcome';
 
 /// Action kinds réellement supportés par l'exécuteur runtime MVP.
 const String kScenarioActionRunScript = 'runScript';
@@ -19,6 +20,21 @@ const String kScenarioActionOpenDialogue = 'openDialogue';
 const String kScenarioActionShowMessage = 'showMessage';
 const String kScenarioActionSetFlag = 'setFlag';
 const String kScenarioActionClearFlag = 'clearFlag';
+const String kScenarioActionEmitOutcome = 'emitOutcome';
+
+/// Préfixe de flag persistant pour les outcomes scénario.
+///
+/// Le MVP reste volontairement simple: un outcome local est persisté en tant
+/// que story flag. Cela permet:
+/// - la persistance save/load immédiate,
+/// - la réutilisation des conditions existantes (flagIsSet / flagIsUnset),
+/// - un pont stable vers la progression globale.
+const String kScenarioOutcomeFlagPrefix = 'scenario.outcome.';
+
+String scenarioOutcomeFlagName(String outcomeId) {
+  final normalized = outcomeId.trim();
+  return '$kScenarioOutcomeFlagPrefix$normalized';
+}
 
 /// Bridge d'exécution runtime du Scenario Graph (MVP).
 ///
@@ -27,6 +43,7 @@ const String kScenarioActionClearFlag = 'clearFlag';
 ///
 /// Portée volontairement limitée du MVP :
 /// - sources supportées: map enter / trigger enter / entity interact
+///   + outcome reçu (pont local -> global),
 /// - nodes supportés: start, reference(source uniquement), dialogue, action,
 ///   condition simple (via ScriptConditionEvaluator), end
 /// - choice/reference non-source restent non supportés pour éviter de
@@ -74,7 +91,36 @@ class ScenarioRuntimeExecutor {
     required ScenarioRuntimeSourceEvent sourceEvent,
     required ScenarioRuntimeExecutionContext context,
   }) {
-    for (final scenario in scenarios) {
+    return _dispatchInternal(
+      scenarios: scenarios,
+      sourceEvent: sourceEvent,
+      context: context,
+      depth: 0,
+    );
+  }
+
+  ScenarioRuntimeExecutionResult _dispatchInternal({
+    required List<ScenarioAsset> scenarios,
+    required ScenarioRuntimeSourceEvent sourceEvent,
+    required ScenarioRuntimeExecutionContext context,
+    required int depth,
+  }) {
+    // Garde-fou de récursion: évite les boucles outcome -> outcome.
+    if (depth > 8) {
+      return const ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.blocked,
+        effect: ScenarioRuntimeEffect.none(),
+        message: 'Recursion limit reached while dispatching scenario outcomes.',
+      );
+    }
+
+    for (final scenario in _candidateScenarios(
+      scenarios: scenarios,
+      sourceEvent: sourceEvent,
+    )) {
+      if (!_scenarioActivationPasses(scenario, context.gameState)) {
+        continue;
+      }
       final sourceNode = _findMatchingSourceNode(
         scenario: scenario,
         sourceEvent: sourceEvent,
@@ -87,6 +133,8 @@ class ScenarioRuntimeExecutor {
         sourceNode: sourceNode,
         sourceEvent: sourceEvent,
         context: context,
+        scenarios: scenarios,
+        depth: depth,
       );
     }
     return const ScenarioRuntimeExecutionResult(
@@ -96,11 +144,44 @@ class ScenarioRuntimeExecutor {
     );
   }
 
+  Iterable<ScenarioAsset> _candidateScenarios({
+    required List<ScenarioAsset> scenarios,
+    required ScenarioRuntimeSourceEvent sourceEvent,
+  }) {
+    // Story-centric layering:
+    // - hooks monde => privilégier les scénarios locaux
+    // - outcomes => privilégier le graphe global
+    switch (sourceEvent.type) {
+      case ScenarioRuntimeSourceType.mapEnter:
+      case ScenarioRuntimeSourceType.triggerEnter:
+      case ScenarioRuntimeSourceType.entityInteract:
+        final locals = scenarios
+            .where((scenario) => scenario.scope == ScenarioScope.localEventFlow)
+            .toList(growable: false);
+        return locals.isEmpty ? scenarios : locals;
+      case ScenarioRuntimeSourceType.outcomeReceived:
+        final globals = scenarios
+            .where((scenario) => scenario.scope == ScenarioScope.globalStory)
+            .toList(growable: false);
+        return globals.isEmpty ? scenarios : globals;
+    }
+  }
+
+  bool _scenarioActivationPasses(ScenarioAsset scenario, GameState state) {
+    final activation = scenario.activationCondition;
+    if (activation == null) {
+      return true;
+    }
+    return conditionEvaluator.evaluate(activation, state);
+  }
+
   ScenarioRuntimeExecutionResult _executeScenarioFromSource({
+    required List<ScenarioAsset> scenarios,
     required ScenarioAsset scenario,
     required ScenarioNode sourceNode,
     required ScenarioRuntimeSourceEvent sourceEvent,
     required ScenarioRuntimeExecutionContext context,
+    required int depth,
   }) {
     final nodesById = <String, ScenarioNode>{
       for (final node in scenario.nodes) node.id: node,
@@ -439,6 +520,69 @@ class ScenarioRuntimeExecutor {
               }
               currentNodeId = nextAfterClear;
 
+            case kScenarioActionEmitOutcome:
+              final outcomeId = node.binding.outcomeId?.trim() ?? '';
+              if (outcomeId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action emitOutcome sans outcomeId dans "${node.id}".',
+                );
+              }
+
+              // 1) Persistance immédiate de l'outcome sous forme de flag.
+              final nextState = storyFlags.set(
+                  context.gameState, scenarioOutcomeFlagName(outcomeId));
+              context.gameState = nextState;
+              context.onGameStateUpdated(nextState);
+
+              // 2) Tentative de pont vers la couche globale:
+              // outcome local -> sourceOutcome global.
+              final outcomeDispatch = _dispatchInternal(
+                scenarios: scenarios,
+                sourceEvent: ScenarioRuntimeSourceEvent.outcomeReceived(
+                  outcomeId: outcomeId,
+                ),
+                context: context,
+                depth: depth + 1,
+              );
+              if (outcomeDispatch.handled) {
+                return ScenarioRuntimeExecutionResult(
+                  status: outcomeDispatch.status,
+                  effect: outcomeDispatch.effect,
+                  scenarioId: outcomeDispatch.scenarioId ?? scenario.id,
+                  sourceNodeId: outcomeDispatch.sourceNodeId ?? sourceId,
+                  stopNodeId: outcomeDispatch.stopNodeId,
+                  emittedOutcomeId: outcomeId,
+                  message:
+                      'Outcome "$outcomeId" émis. ${outcomeDispatch.message}',
+                );
+              }
+
+              // 3) Si aucun scénario global ne consomme l'outcome, on continue
+              // localement de manière linéaire.
+              final nextAfterOutcome = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterOutcome == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  emittedOutcomeId: outcomeId,
+                  message:
+                      'Outcome "$outcomeId" émis. Fin du flow local (aucune transition globale).',
+                );
+              }
+              currentNodeId = nextAfterOutcome;
+
             default:
               return ScenarioRuntimeExecutionResult(
                 status: ScenarioRuntimeExecutionStatus.blocked,
@@ -563,6 +707,15 @@ class ScenarioRuntimeExecutor {
           }
           final entityId = node.binding.entityId?.trim() ?? '';
           if (entityId.isEmpty || entityId != (sourceEvent.entityId ?? '')) {
+            continue;
+          }
+          return node;
+        case ScenarioRuntimeSourceType.outcomeReceived:
+          if (actionKind != kScenarioSourceOutcome) {
+            continue;
+          }
+          final outcomeId = node.binding.outcomeId?.trim() ?? '';
+          if (outcomeId.isEmpty || outcomeId != (sourceEvent.outcomeId ?? '')) {
             continue;
           }
           return node;

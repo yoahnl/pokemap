@@ -4,6 +4,15 @@ import 'package:map_editor/src/features/scenario/scenario_authoring_ux.dart';
 
 void main() {
   group('scenario_authoring_ux', () {
+    test('scenario scope labels are defined', () {
+      for (final scope in ScenarioScope.values) {
+        expect(scenarioScopeLabel(scope).trim(), isNotEmpty);
+        expect(scenarioScopeDescription(scope).trim(), isNotEmpty);
+        expect(scenarioScopePickerLabel(scope),
+            contains(scenarioScopeLabel(scope)));
+      }
+    });
+
     test('node labels and descriptions are defined for all types', () {
       for (final type in ScenarioNodeType.values) {
         final label = scenarioNodeTypeLabel(type);
@@ -137,6 +146,20 @@ void main() {
         scenarioRuntimeMvpSupportsActionKind(
           'runScript',
           referenceMode: false,
+        ),
+        isTrue,
+      );
+      expect(
+        scenarioRuntimeMvpSupportsActionKind(
+          'emitOutcome',
+          referenceMode: false,
+        ),
+        isTrue,
+      );
+      expect(
+        scenarioRuntimeMvpSupportsActionKind(
+          'sourceOutcome',
+          referenceMode: true,
         ),
         isTrue,
       );

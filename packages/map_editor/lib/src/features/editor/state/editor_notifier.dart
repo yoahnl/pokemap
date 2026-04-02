@@ -5460,6 +5460,41 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  Future<void> updateProjectScenarioMetadata({
+    required String scenarioId,
+    required String name,
+    required String description,
+    required ScenarioScope scope,
+    required List<String> declaredOutcomes,
+    ScriptCondition? activationCondition,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = ref.read(updateProjectScenarioMetadataUseCaseProvider);
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        name: name,
+        description: description,
+        scope: scope,
+        declaredOutcomes: declaredOutcomes,
+        activationCondition: activationCondition,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Scenario metadata updated',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to update scenario metadata: $e',
+      );
+    }
+  }
+
   Future<void> deleteProjectScenario(String scenarioId) async {
     final workspace = _projectWorkspace;
     final project = state.project;

@@ -23,7 +23,11 @@ mixin _$ScenarioAsset {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get description => throw _privateConstructorUsedError;
+  ScenarioScope get scope => throw _privateConstructorUsedError;
   String get entryNodeId => throw _privateConstructorUsedError;
+  List<String> get declaredOutcomes => throw _privateConstructorUsedError;
+  ScriptCondition? get activationCondition =>
+      throw _privateConstructorUsedError;
   List<ScenarioNode> get nodes => throw _privateConstructorUsedError;
   List<ScenarioEdge> get edges => throw _privateConstructorUsedError;
   Map<String, String> get metadata => throw _privateConstructorUsedError;
@@ -48,10 +52,15 @@ abstract class $ScenarioAssetCopyWith<$Res> {
       {String id,
       String name,
       String description,
+      ScenarioScope scope,
       String entryNodeId,
+      List<String> declaredOutcomes,
+      ScriptCondition? activationCondition,
       List<ScenarioNode> nodes,
       List<ScenarioEdge> edges,
       Map<String, String> metadata});
+
+  $ScriptConditionCopyWith<$Res>? get activationCondition;
 }
 
 /// @nodoc
@@ -72,7 +81,10 @@ class _$ScenarioAssetCopyWithImpl<$Res, $Val extends ScenarioAsset>
     Object? id = null,
     Object? name = null,
     Object? description = null,
+    Object? scope = null,
     Object? entryNodeId = null,
+    Object? declaredOutcomes = null,
+    Object? activationCondition = freezed,
     Object? nodes = null,
     Object? edges = null,
     Object? metadata = null,
@@ -90,10 +102,22 @@ class _$ScenarioAssetCopyWithImpl<$Res, $Val extends ScenarioAsset>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      scope: null == scope
+          ? _value.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as ScenarioScope,
       entryNodeId: null == entryNodeId
           ? _value.entryNodeId
           : entryNodeId // ignore: cast_nullable_to_non_nullable
               as String,
+      declaredOutcomes: null == declaredOutcomes
+          ? _value.declaredOutcomes
+          : declaredOutcomes // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      activationCondition: freezed == activationCondition
+          ? _value.activationCondition
+          : activationCondition // ignore: cast_nullable_to_non_nullable
+              as ScriptCondition?,
       nodes: null == nodes
           ? _value.nodes
           : nodes // ignore: cast_nullable_to_non_nullable
@@ -107,6 +131,20 @@ class _$ScenarioAssetCopyWithImpl<$Res, $Val extends ScenarioAsset>
           : metadata // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
     ) as $Val);
+  }
+
+  /// Create a copy of ScenarioAsset
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ScriptConditionCopyWith<$Res>? get activationCondition {
+    if (_value.activationCondition == null) {
+      return null;
+    }
+
+    return $ScriptConditionCopyWith<$Res>(_value.activationCondition!, (value) {
+      return _then(_value.copyWith(activationCondition: value) as $Val);
+    });
   }
 }
 
@@ -122,10 +160,16 @@ abstract class _$$ScenarioAssetImplCopyWith<$Res>
       {String id,
       String name,
       String description,
+      ScenarioScope scope,
       String entryNodeId,
+      List<String> declaredOutcomes,
+      ScriptCondition? activationCondition,
       List<ScenarioNode> nodes,
       List<ScenarioEdge> edges,
       Map<String, String> metadata});
+
+  @override
+  $ScriptConditionCopyWith<$Res>? get activationCondition;
 }
 
 /// @nodoc
@@ -144,7 +188,10 @@ class __$$ScenarioAssetImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? description = null,
+    Object? scope = null,
     Object? entryNodeId = null,
+    Object? declaredOutcomes = null,
+    Object? activationCondition = freezed,
     Object? nodes = null,
     Object? edges = null,
     Object? metadata = null,
@@ -162,10 +209,22 @@ class __$$ScenarioAssetImplCopyWithImpl<$Res>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      scope: null == scope
+          ? _value.scope
+          : scope // ignore: cast_nullable_to_non_nullable
+              as ScenarioScope,
       entryNodeId: null == entryNodeId
           ? _value.entryNodeId
           : entryNodeId // ignore: cast_nullable_to_non_nullable
               as String,
+      declaredOutcomes: null == declaredOutcomes
+          ? _value._declaredOutcomes
+          : declaredOutcomes // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      activationCondition: freezed == activationCondition
+          ? _value.activationCondition
+          : activationCondition // ignore: cast_nullable_to_non_nullable
+              as ScriptCondition?,
       nodes: null == nodes
           ? _value._nodes
           : nodes // ignore: cast_nullable_to_non_nullable
@@ -190,11 +249,15 @@ class _$ScenarioAssetImpl implements _ScenarioAsset {
       {required this.id,
       required this.name,
       this.description = '',
+      this.scope = ScenarioScope.localEventFlow,
       required this.entryNodeId,
+      final List<String> declaredOutcomes = const <String>[],
+      this.activationCondition,
       final List<ScenarioNode> nodes = const <ScenarioNode>[],
       final List<ScenarioEdge> edges = const <ScenarioEdge>[],
       final Map<String, String> metadata = const {}})
-      : _nodes = nodes,
+      : _declaredOutcomes = declaredOutcomes,
+        _nodes = nodes,
         _edges = edges,
         _metadata = metadata;
 
@@ -209,7 +272,22 @@ class _$ScenarioAssetImpl implements _ScenarioAsset {
   @JsonKey()
   final String description;
   @override
+  @JsonKey()
+  final ScenarioScope scope;
+  @override
   final String entryNodeId;
+  final List<String> _declaredOutcomes;
+  @override
+  @JsonKey()
+  List<String> get declaredOutcomes {
+    if (_declaredOutcomes is EqualUnmodifiableListView)
+      return _declaredOutcomes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_declaredOutcomes);
+  }
+
+  @override
+  final ScriptCondition? activationCondition;
   final List<ScenarioNode> _nodes;
   @override
   @JsonKey()
@@ -239,7 +317,7 @@ class _$ScenarioAssetImpl implements _ScenarioAsset {
 
   @override
   String toString() {
-    return 'ScenarioAsset(id: $id, name: $name, description: $description, entryNodeId: $entryNodeId, nodes: $nodes, edges: $edges, metadata: $metadata)';
+    return 'ScenarioAsset(id: $id, name: $name, description: $description, scope: $scope, entryNodeId: $entryNodeId, declaredOutcomes: $declaredOutcomes, activationCondition: $activationCondition, nodes: $nodes, edges: $edges, metadata: $metadata)';
   }
 
   @override
@@ -251,8 +329,13 @@ class _$ScenarioAssetImpl implements _ScenarioAsset {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.description, description) ||
                 other.description == description) &&
+            (identical(other.scope, scope) || other.scope == scope) &&
             (identical(other.entryNodeId, entryNodeId) ||
                 other.entryNodeId == entryNodeId) &&
+            const DeepCollectionEquality()
+                .equals(other._declaredOutcomes, _declaredOutcomes) &&
+            (identical(other.activationCondition, activationCondition) ||
+                other.activationCondition == activationCondition) &&
             const DeepCollectionEquality().equals(other._nodes, _nodes) &&
             const DeepCollectionEquality().equals(other._edges, _edges) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata));
@@ -265,7 +348,10 @@ class _$ScenarioAssetImpl implements _ScenarioAsset {
       id,
       name,
       description,
+      scope,
       entryNodeId,
+      const DeepCollectionEquality().hash(_declaredOutcomes),
+      activationCondition,
       const DeepCollectionEquality().hash(_nodes),
       const DeepCollectionEquality().hash(_edges),
       const DeepCollectionEquality().hash(_metadata));
@@ -291,7 +377,10 @@ abstract class _ScenarioAsset implements ScenarioAsset {
       {required final String id,
       required final String name,
       final String description,
+      final ScenarioScope scope,
       required final String entryNodeId,
+      final List<String> declaredOutcomes,
+      final ScriptCondition? activationCondition,
       final List<ScenarioNode> nodes,
       final List<ScenarioEdge> edges,
       final Map<String, String> metadata}) = _$ScenarioAssetImpl;
@@ -306,7 +395,13 @@ abstract class _ScenarioAsset implements ScenarioAsset {
   @override
   String get description;
   @override
+  ScenarioScope get scope;
+  @override
   String get entryNodeId;
+  @override
+  List<String> get declaredOutcomes;
+  @override
+  ScriptCondition? get activationCondition;
   @override
   List<ScenarioNode> get nodes;
   @override
@@ -865,6 +960,7 @@ mixin _$ScenarioNodeBinding {
   String? get trainerId => throw _privateConstructorUsedError;
   String? get dialogueId => throw _privateConstructorUsedError;
   String? get scriptId => throw _privateConstructorUsedError;
+  String? get outcomeId => throw _privateConstructorUsedError;
   String? get flagName => throw _privateConstructorUsedError;
   String? get variableName => throw _privateConstructorUsedError;
 
@@ -893,6 +989,7 @@ abstract class $ScenarioNodeBindingCopyWith<$Res> {
       String? trainerId,
       String? dialogueId,
       String? scriptId,
+      String? outcomeId,
       String? flagName,
       String? variableName});
 }
@@ -920,6 +1017,7 @@ class _$ScenarioNodeBindingCopyWithImpl<$Res, $Val extends ScenarioNodeBinding>
     Object? trainerId = freezed,
     Object? dialogueId = freezed,
     Object? scriptId = freezed,
+    Object? outcomeId = freezed,
     Object? flagName = freezed,
     Object? variableName = freezed,
   }) {
@@ -956,6 +1054,10 @@ class _$ScenarioNodeBindingCopyWithImpl<$Res, $Val extends ScenarioNodeBinding>
           ? _value.scriptId
           : scriptId // ignore: cast_nullable_to_non_nullable
               as String?,
+      outcomeId: freezed == outcomeId
+          ? _value.outcomeId
+          : outcomeId // ignore: cast_nullable_to_non_nullable
+              as String?,
       flagName: freezed == flagName
           ? _value.flagName
           : flagName // ignore: cast_nullable_to_non_nullable
@@ -985,6 +1087,7 @@ abstract class _$$ScenarioNodeBindingImplCopyWith<$Res>
       String? trainerId,
       String? dialogueId,
       String? scriptId,
+      String? outcomeId,
       String? flagName,
       String? variableName});
 }
@@ -1010,6 +1113,7 @@ class __$$ScenarioNodeBindingImplCopyWithImpl<$Res>
     Object? trainerId = freezed,
     Object? dialogueId = freezed,
     Object? scriptId = freezed,
+    Object? outcomeId = freezed,
     Object? flagName = freezed,
     Object? variableName = freezed,
   }) {
@@ -1046,6 +1150,10 @@ class __$$ScenarioNodeBindingImplCopyWithImpl<$Res>
           ? _value.scriptId
           : scriptId // ignore: cast_nullable_to_non_nullable
               as String?,
+      outcomeId: freezed == outcomeId
+          ? _value.outcomeId
+          : outcomeId // ignore: cast_nullable_to_non_nullable
+              as String?,
       flagName: freezed == flagName
           ? _value.flagName
           : flagName // ignore: cast_nullable_to_non_nullable
@@ -1070,6 +1178,7 @@ class _$ScenarioNodeBindingImpl implements _ScenarioNodeBinding {
       this.trainerId,
       this.dialogueId,
       this.scriptId,
+      this.outcomeId,
       this.flagName,
       this.variableName});
 
@@ -1093,13 +1202,15 @@ class _$ScenarioNodeBindingImpl implements _ScenarioNodeBinding {
   @override
   final String? scriptId;
   @override
+  final String? outcomeId;
+  @override
   final String? flagName;
   @override
   final String? variableName;
 
   @override
   String toString() {
-    return 'ScenarioNodeBinding(mapId: $mapId, eventId: $eventId, entityId: $entityId, warpId: $warpId, triggerId: $triggerId, trainerId: $trainerId, dialogueId: $dialogueId, scriptId: $scriptId, flagName: $flagName, variableName: $variableName)';
+    return 'ScenarioNodeBinding(mapId: $mapId, eventId: $eventId, entityId: $entityId, warpId: $warpId, triggerId: $triggerId, trainerId: $trainerId, dialogueId: $dialogueId, scriptId: $scriptId, outcomeId: $outcomeId, flagName: $flagName, variableName: $variableName)';
   }
 
   @override
@@ -1120,6 +1231,8 @@ class _$ScenarioNodeBindingImpl implements _ScenarioNodeBinding {
                 other.dialogueId == dialogueId) &&
             (identical(other.scriptId, scriptId) ||
                 other.scriptId == scriptId) &&
+            (identical(other.outcomeId, outcomeId) ||
+                other.outcomeId == outcomeId) &&
             (identical(other.flagName, flagName) ||
                 other.flagName == flagName) &&
             (identical(other.variableName, variableName) ||
@@ -1128,8 +1241,19 @@ class _$ScenarioNodeBindingImpl implements _ScenarioNodeBinding {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, mapId, eventId, entityId, warpId,
-      triggerId, trainerId, dialogueId, scriptId, flagName, variableName);
+  int get hashCode => Object.hash(
+      runtimeType,
+      mapId,
+      eventId,
+      entityId,
+      warpId,
+      triggerId,
+      trainerId,
+      dialogueId,
+      scriptId,
+      outcomeId,
+      flagName,
+      variableName);
 
   /// Create a copy of ScenarioNodeBinding
   /// with the given fields replaced by the non-null parameter values.
@@ -1158,6 +1282,7 @@ abstract class _ScenarioNodeBinding implements ScenarioNodeBinding {
       final String? trainerId,
       final String? dialogueId,
       final String? scriptId,
+      final String? outcomeId,
       final String? flagName,
       final String? variableName}) = _$ScenarioNodeBindingImpl;
 
@@ -1180,6 +1305,8 @@ abstract class _ScenarioNodeBinding implements ScenarioNodeBinding {
   String? get dialogueId;
   @override
   String? get scriptId;
+  @override
+  String? get outcomeId;
   @override
   String? get flagName;
   @override

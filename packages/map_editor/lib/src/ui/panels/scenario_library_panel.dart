@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/scenario/scenario_authoring_ux.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
@@ -320,7 +321,7 @@ class _ScenarioListRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${scenario.id} · ${scenario.nodes.length} nodes · ${scenario.edges.length} links',
+                    '${scenario.id} · ${scenarioScopeLabel(scenario.scope)} · ${scenario.nodes.length} nodes · ${scenario.edges.length} links',
                     style: TextStyle(
                       fontSize: 11,
                       color:

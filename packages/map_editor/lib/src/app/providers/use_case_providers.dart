@@ -870,6 +870,14 @@ RenameProjectScenarioUseCase renameProjectScenarioUseCase(
 }
 
 @riverpod
+UpdateProjectScenarioMetadataUseCase updateProjectScenarioMetadataUseCase(
+    UpdateProjectScenarioMetadataUseCaseRef ref) {
+  return UpdateProjectScenarioMetadataUseCase(
+    ref.watch(projectRepositoryProvider),
+  );
+}
+
+@riverpod
 DeleteProjectScenarioUseCase deleteProjectScenarioUseCase(
     DeleteProjectScenarioUseCaseRef ref) {
   return DeleteProjectScenarioUseCase(ref.watch(projectRepositoryProvider));

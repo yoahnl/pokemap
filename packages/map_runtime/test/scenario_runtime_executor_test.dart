@@ -309,5 +309,181 @@ void main() {
       expect(result.status, ScenarioRuntimeExecutionStatus.blocked);
       expect(result.message.toLowerCase(), contains('choice'));
     });
+
+    test('local outcome can route into global story sourceOutcome', () {
+      final localScenario = ScenarioAsset(
+        id: 'local_professor',
+        name: 'Local professor hook',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'source_entity',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_entity',
+            type: ScenarioNodeType.reference,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+            binding: ScenarioNodeBinding(
+              mapId: 'vova_east',
+              entityId: 'npc_professor',
+            ),
+          ),
+          ScenarioNode(
+            id: 'emit_outcome',
+            type: ScenarioNodeType.action,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioActionEmitOutcome),
+            binding: ScenarioNodeBinding(
+              outcomeId: 'professor_intro.completed',
+            ),
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e_local_1',
+            fromNodeId: 'source_entity',
+            toNodeId: 'emit_outcome',
+          ),
+        ],
+      );
+
+      final globalScenario = ScenarioAsset(
+        id: 'global_story',
+        name: 'Global story',
+        scope: ScenarioScope.globalStory,
+        entryNodeId: 'start',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
+          ScenarioNode(
+            id: 'source_outcome',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(actionKind: kScenarioSourceOutcome),
+            binding: ScenarioNodeBinding(
+              outcomeId: 'professor_intro.completed',
+            ),
+          ),
+          ScenarioNode(
+            id: 'dialogue_global',
+            type: ScenarioNodeType.dialogue,
+            binding: ScenarioNodeBinding(dialogueId: 'global_intro_step'),
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e_global_1',
+            fromNodeId: 'start',
+            toNodeId: 'source_outcome',
+          ),
+          ScenarioEdge(
+            id: 'e_global_2',
+            fromNodeId: 'source_outcome',
+            toNodeId: 'dialogue_global',
+          ),
+        ],
+      );
+
+      final openedDialogues = <String>[];
+      GameState state = const GameState(saveId: 'save');
+      final result = executor.dispatch(
+        scenarios: <ScenarioAsset>[globalScenario, localScenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'vova_east',
+          entityId: 'npc_professor',
+        ),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: state,
+          onGameStateUpdated: (next) => state = next,
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) {
+            openedDialogues.add(dialogueId);
+            return true;
+          },
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.executedEffect);
+      expect(result.effect.type, ScenarioRuntimeEffectType.dialogue);
+      expect(result.emittedOutcomeId, 'professor_intro.completed');
+      expect(openedDialogues, <String>['global_intro_step']);
+      expect(
+        state.storyFlags.activeFlags,
+        contains(scenarioOutcomeFlagName('professor_intro.completed')),
+      );
+    });
+
+    test('scenario activationCondition gates local source execution', () {
+      final scenario = ScenarioAsset(
+        id: 'local_gate',
+        name: 'Local gated',
+        scope: ScenarioScope.localEventFlow,
+        activationCondition: const ScriptCondition(
+          type: ScriptConditionType.flagIsSet,
+          params: <String, String>{
+            ScriptConditionParams.flagName: 'story.chapter_1_started',
+          },
+        ),
+        entryNodeId: 'source_map',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_map',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(actionKind: kScenarioSourceMapEnter),
+            binding: ScenarioNodeBinding(mapId: 'vova_east'),
+          ),
+          ScenarioNode(
+            id: 'dialogue_intro',
+            type: ScenarioNodeType.dialogue,
+            binding: ScenarioNodeBinding(dialogueId: 'intro'),
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_map',
+            toNodeId: 'dialogue_intro',
+          ),
+        ],
+      );
+
+      final blockedResult = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.mapEnter(mapId: 'vova_east'),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: const GameState(saveId: 'save'),
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) => true,
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+        ),
+      );
+      expect(
+        blockedResult.status,
+        ScenarioRuntimeExecutionStatus.noMatchingSource,
+      );
+
+      final allowedState = const GameState(saveId: 'save').copyWith(
+        storyFlags: const StoryFlags(
+          activeFlags: <String>{'story.chapter_1_started'},
+        ),
+      );
+      var dialogueOpened = false;
+      final allowedResult = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.mapEnter(mapId: 'vova_east'),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: allowedState,
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) {
+            dialogueOpened = true;
+            return true;
+          },
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+        ),
+      );
+      expect(
+          allowedResult.status, ScenarioRuntimeExecutionStatus.executedEffect);
+      expect(dialogueOpened, isTrue);
+    });
   });
 }
