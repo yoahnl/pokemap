@@ -49,16 +49,33 @@ Contenu monde concret:
 
 ---
 
-## 4) Honnêteté runtime: ce qui est exécuté vs authoring
+## 4) Honnêteté runtime: ce qui est réellement exécuté aujourd’hui
 
-Le graphe scénario est actuellement surtout une surface d’authoring/orchestration.
+Le graphe scénario est maintenant **partiellement branché au runtime** (MVP).
 
-- **Exécution réelle**: flow branché et exécuté automatiquement en runtime.
-- **Capable runtime, non branché automatiquement**: la logique est compatible runtime, mais le graphe n’est pas encore consommé automatiquement.
-- **Pont d’authoring**: structure/documentation/lien monde.
-- **Prévu plus tard**: intention produit non finalisée.
+### Exécuté en runtime (MVP)
+- source `sourceMapEnter` (entrée map) ;
+- source `sourceTriggerEnter` (entrée trigger) ;
+- source `sourceEntityInteract` (interaction entité/PNJ) ;
+- node `Dialogue` (dialogueId ou message inline) ;
+- node `Action` avec:
+  - `runScript`
+  - `openDialogue`
+  - `showMessage`
+  - `setFlag`
+  - `clearFlag`
+- node `Condition` (évaluation via `ScriptConditionEvaluator`) ;
+- node `End`.
 
-Lis toujours le statut affiché dans l’inspecteur du node.
+### Non exécuté automatiquement (pour l’instant)
+- `Choice` (authoring-only dans le bridge MVP) ;
+- `Reference` hors presets source ;
+- actions non supportées (ex: `startTrainerBattle`, `triggerWarp`, etc.).
+
+Lis toujours le statut affiché dans l’inspecteur et les diagnostics:
+- exécutable runtime,
+- authoring-only,
+- prévu plus tard.
 
 ---
 
@@ -185,6 +202,7 @@ Astuce: pour un graphe propre, “Remplacer” est souvent le meilleur choix.
    - Source `sourceMapEnter`
    - Dialogue
    - End
+7. Teste en runtime: l’entrée sur la map ciblée doit ouvrir le dialogue.
 
 ## Cas B — Entrée zone/trigger → dialogue
 
@@ -192,6 +210,7 @@ Astuce: pour un graphe propre, “Remplacer” est souvent le meilleur choix.
 2. Choisis map puis trigger.
 3. Choisis dialogue.
 4. Vérifie la source `sourceTriggerEnter`.
+5. Teste en runtime: en entrant dans la zone trigger, le dialogue s’ouvre.
 
 ## Cas C — Parler à un PNJ → script
 
@@ -202,12 +221,14 @@ Astuce: pour un graphe propre, “Remplacer” est souvent le meilleur choix.
    - source `sourceEntityInteract`
    - action `runScript`
    - end.
+5. Teste en runtime: interaction avec l’entité ciblée -> script lancé.
 
-## Cas D — Combat dresseur
+## Cas D — Combat dresseur (authoring aujourd’hui)
 
 1. Recette **Combat dresseur**.
 2. Choisis trainer.
 3. Vérifie le node Action `startTrainerBattle`.
+4. Note: ce preset reste un pont d’authoring tant qu’il n’est pas ajouté au bridge runtime scénario.
 
 ## Cas E — Condition flag
 
@@ -242,6 +263,7 @@ Le panneau diagnostic te donne:
 - cul-de-sac,
 - nodes isolés,
 - répartition runtime/authoring/planned.
+- alertes d’exécutabilité (node atteignable mais non exécutable dans le MVP).
 
 Et pour le node sélectionné:
 - erreurs,
@@ -258,6 +280,17 @@ Et pour le node sélectionné:
 - créer une Condition avec une seule sortie;
 - oublier un End final;
 - laisser des branches orphelines après plusieurs essais de recettes;
+- supposer qu’un `Choice` est déjà géré par le runtime scénario (ce n’est pas encore le cas).
+
+---
+
+## 13) Cheatsheet runtime MVP
+
+- Entrée map -> dialogue: `sourceMapEnter -> Dialogue -> End`
+- Entrée trigger -> dialogue: `sourceTriggerEnter -> Dialogue -> End`
+- Interaction PNJ/entité -> script: `sourceEntityInteract -> Action(runScript) -> End`
+- Brancher sur flag: `Condition(flagSet/flagUnset)` + edges vrai/faux
+- Si un node est marqué authoring-only: le flow visuel est valide, mais pas encore auto-exécuté en runtime.
 - penser qu’un flow authoring est forcément auto-exécuté en runtime.
 
 ---

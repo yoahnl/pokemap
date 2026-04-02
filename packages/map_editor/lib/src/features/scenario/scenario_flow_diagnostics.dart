@@ -185,6 +185,38 @@ ScenarioFlowReport analyzeScenarioFlow(
         plannedNodes++;
     }
 
+    // Nouveau diagnostic: exécution partielle réelle.
+    //
+    // Quand le bridge runtime est branché, on signale explicitement les nodes
+    // atteignables mais non exécutables par le runtime MVP.
+    if (graphRuntimeConnected &&
+        reachable.contains(node.id) &&
+        executionState != ScenarioNodeExecutionState.runtimeConnected) {
+      issues.add(
+        ScenarioFlowIssue(
+          code: 'runtime_not_executable_node',
+          severity: ScenarioFlowIssueSeverity.warning,
+          message:
+              'Le node "${node.id}" est atteignable mais non exécuté par le runtime MVP.',
+          nodeId: node.id,
+        ),
+      );
+    }
+
+    if (graphRuntimeConnected &&
+        reachable.contains(node.id) &&
+        node.type == ScenarioNodeType.choice) {
+      issues.add(
+        ScenarioFlowIssue(
+          code: 'runtime_choice_not_supported',
+          severity: ScenarioFlowIssueSeverity.warning,
+          message:
+              'Le node Choice "${node.id}" n’est pas encore supporté par l’exécuteur runtime MVP.',
+          nodeId: node.id,
+        ),
+      );
+    }
+
     if (node.type == ScenarioNodeType.start) {
       startNodes++;
       if (incoming > 0) {

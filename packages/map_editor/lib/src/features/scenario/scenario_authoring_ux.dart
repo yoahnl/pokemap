@@ -2,10 +2,12 @@ import 'package:map_core/map_core.dart';
 
 /// IMPORTANT:
 /// Le graphe scénario de l’éditeur est aujourd’hui une surface d’authoring.
-/// Le runtime ne consomme pas encore ce graphe comme source d’exécution
-/// automatique. On conserve cette constante centralisée pour éviter de
-/// disséminer un booléen magique dans les widgets.
-const bool kScenarioGraphRuntimeExecutionConnected = false;
+/// Depuis le bridge MVP, une partie du graphe est consommée en runtime
+/// (sources map/trigger/entity + exécution linéaire simple).
+///
+/// On conserve une constante centralisée pour éviter de disséminer des
+/// booléens magiques dans les widgets / diagnostics.
+const bool kScenarioGraphRuntimeExecutionConnected = true;
 
 /// Niveau de support runtime d'un preset d'authoring.
 ///
@@ -154,7 +156,8 @@ const List<ScenarioActionPreset> scenarioActionPresets = <ScenarioActionPreset>[
     label: 'Démarrer un combat dresseur',
     description: 'Référence un dresseur pour enclencher un combat.',
     executionHint:
-        'Réservé aux séquences de combat. Vérifie que le trainer existe.',
+        'Réservé aux séquences de combat. Runtime graphe MVP: non exécuté automatiquement.',
+    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
     fields: {ScenarioActionField.trainer},
   ),
   ScenarioActionPreset(
@@ -231,7 +234,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     description: 'Point d’entrée déclenché quand le joueur arrive sur une map.',
     executionHint:
         'Source de flow orientée authoring. À relier vers une action ou un dialogue.',
-    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
+    runtimeSupport: ScenarioPresetRuntimeSupport.runtimeReady,
     fields: {ScenarioActionField.map},
   ),
   ScenarioActionPreset(
@@ -241,7 +244,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
         'Point d’entrée déclenché quand le joueur entre dans un trigger.',
     executionHint:
         'Source de flow orientée authoring. Choisis map + trigger existant.',
-    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
+    runtimeSupport: ScenarioPresetRuntimeSupport.runtimeReady,
     fields: {ScenarioActionField.map, ScenarioActionField.trigger},
   ),
   ScenarioActionPreset(
@@ -250,7 +253,7 @@ const List<ScenarioActionPreset> scenarioReferencePresets =
     description: 'Point d’entrée déclenché lors d’une interaction avec entité.',
     executionHint:
         'Source de flow orientée authoring. Choisis map + entité cible.',
-    runtimeSupport: ScenarioPresetRuntimeSupport.authoringBridge,
+    runtimeSupport: ScenarioPresetRuntimeSupport.runtimeReady,
     fields: {ScenarioActionField.map, ScenarioActionField.entity},
   ),
   ScenarioActionPreset(
@@ -392,12 +395,47 @@ ScenarioNodeExecutionState scenarioNodeExecutionState(
       actionPreset.runtimeSupport == ScenarioPresetRuntimeSupport.planned) {
     return ScenarioNodeExecutionState.planned;
   }
-  if (actionPreset != null &&
-      actionPreset.runtimeSupport ==
-          ScenarioPresetRuntimeSupport.authoringBridge) {
-    return ScenarioNodeExecutionState.authoringBridge;
+  switch (node.type) {
+    case ScenarioNodeType.choice:
+      return ScenarioNodeExecutionState.authoringBridge;
+    case ScenarioNodeType.start:
+    case ScenarioNodeType.end:
+    case ScenarioNodeType.condition:
+      return ScenarioNodeExecutionState.runtimeConnected;
+    case ScenarioNodeType.dialogue:
+      final hasDialogue = (node.binding.dialogueId?.trim().isNotEmpty ?? false);
+      final hasScript = (node.binding.scriptId?.trim().isNotEmpty ?? false);
+      final hasMessage = (node.payload.message?.trim().isNotEmpty ?? false);
+      return (hasDialogue || hasScript || hasMessage)
+          ? ScenarioNodeExecutionState.runtimeConnected
+          : ScenarioNodeExecutionState.authoringBridge;
+    case ScenarioNodeType.action:
+      if (actionPreset != null &&
+          actionPreset.runtimeSupport ==
+              ScenarioPresetRuntimeSupport.authoringBridge) {
+        return ScenarioNodeExecutionState.authoringBridge;
+      }
+      final supports = scenarioRuntimeMvpSupportsActionKind(
+        node.payload.actionKind,
+        referenceMode: false,
+      );
+      return supports
+          ? ScenarioNodeExecutionState.runtimeConnected
+          : ScenarioNodeExecutionState.authoringBridge;
+    case ScenarioNodeType.reference:
+      if (actionPreset != null &&
+          actionPreset.runtimeSupport ==
+              ScenarioPresetRuntimeSupport.authoringBridge) {
+        return ScenarioNodeExecutionState.authoringBridge;
+      }
+      final supports = scenarioRuntimeMvpSupportsActionKind(
+        node.payload.actionKind,
+        referenceMode: true,
+      );
+      return supports
+          ? ScenarioNodeExecutionState.runtimeConnected
+          : ScenarioNodeExecutionState.authoringBridge;
   }
-  return ScenarioNodeExecutionState.runtimeConnected;
 }
 
 String scenarioNodeExecutionStateLabel(ScenarioNodeExecutionState state) {
@@ -431,6 +469,30 @@ bool scenarioPresetRepresentsTriggerSource(String? presetId) {
   return normalized == 'sourceMapEnter' ||
       normalized == 'sourceTriggerEnter' ||
       normalized == 'sourceEntityInteract';
+}
+
+/// Action/preset réellement supporté par le bridge runtime MVP.
+///
+/// Cette fonction sert d'unique source pour l'UI de vérité runtime
+/// (inspector, diagnostics, badges d'exécutabilité).
+bool scenarioRuntimeMvpSupportsActionKind(
+  String? actionKind, {
+  required bool referenceMode,
+}) {
+  final normalized = actionKind?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return false;
+  }
+  if (referenceMode) {
+    return normalized == 'sourceMapEnter' ||
+        normalized == 'sourceTriggerEnter' ||
+        normalized == 'sourceEntityInteract';
+  }
+  return normalized == 'runScript' ||
+      normalized == 'openDialogue' ||
+      normalized == 'showMessage' ||
+      normalized == 'setFlag' ||
+      normalized == 'clearFlag';
 }
 
 String scenarioNodeHumanSummary(ScenarioNode node) {

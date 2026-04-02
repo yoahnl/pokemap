@@ -101,5 +101,40 @@ void main() {
       expect(report.summary.runtimeCapableNodes, greaterThanOrEqualTo(1));
       expect(report.summary.authoringBridgeNodes, greaterThanOrEqualTo(1));
     });
+
+    test('reports reachable nodes that runtime MVP cannot execute', () {
+      const scenario = ScenarioAsset(
+        id: 'runtime_blocked',
+        name: 'Runtime blocked',
+        entryNodeId: 'start',
+        nodes: <ScenarioNode>[
+          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
+          ScenarioNode(id: 'choice', type: ScenarioNodeType.choice),
+          ScenarioNode(id: 'end', type: ScenarioNodeType.end),
+        ],
+        edges: <ScenarioEdge>[
+          ScenarioEdge(id: 's_to_c', fromNodeId: 'start', toNodeId: 'choice'),
+          ScenarioEdge(id: 'c_to_e', fromNodeId: 'choice', toNodeId: 'end'),
+        ],
+      );
+
+      final report = analyzeScenarioFlow(
+        scenario,
+        graphRuntimeConnected: true,
+      );
+
+      expect(
+        report.issues.any(
+          (issue) => issue.code == 'runtime_not_executable_node',
+        ),
+        isTrue,
+      );
+      expect(
+        report.issues.any(
+          (issue) => issue.code == 'runtime_choice_not_supported',
+        ),
+        isTrue,
+      );
+    });
   });
 }

@@ -37,6 +37,29 @@ export 'src/application/story_flags_manager.dart' show StoryFlagsManager;
 export 'src/application/scenario_conditions.dart' show ScenarioConditions;
 export 'src/application/runtime_story_branching.dart'
     show RuntimeStoryBranching;
+export 'src/application/scenario_runtime/scenario_runtime_models.dart'
+    show
+        ScenarioRuntimeSourceType,
+        ScenarioRuntimeSourceEvent,
+        ScenarioRuntimeEffectType,
+        ScenarioRuntimeEffect,
+        ScenarioRuntimeExecutionStatus,
+        ScenarioRuntimeExecutionResult,
+        ScenarioRuntimeExecutionContext,
+        ScenarioRuntimeOpenDialogue,
+        ScenarioRuntimeRunScript,
+        ScenarioRuntimeShowMessage;
+export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
+    show
+        ScenarioRuntimeExecutor,
+        kScenarioSourceMapEnter,
+        kScenarioSourceTriggerEnter,
+        kScenarioSourceEntityInteract,
+        kScenarioActionRunScript,
+        kScenarioActionOpenDialogue,
+        kScenarioActionShowMessage,
+        kScenarioActionSetFlag,
+        kScenarioActionClearFlag;
 
 // Save/Load system exports
 export 'domain/repositories/game_save_repository.dart'

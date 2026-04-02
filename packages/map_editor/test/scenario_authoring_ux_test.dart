@@ -117,5 +117,36 @@ void main() {
         ScenarioNodeExecutionState.runtimeCapableNotConnected,
       );
     });
+
+    test('runtime support helper reflects MVP bridge support matrix', () {
+      expect(
+        scenarioRuntimeMvpSupportsActionKind(
+          'sourceMapEnter',
+          referenceMode: true,
+        ),
+        isTrue,
+      );
+      expect(
+        scenarioRuntimeMvpSupportsActionKind(
+          'referenceEvent',
+          referenceMode: true,
+        ),
+        isFalse,
+      );
+      expect(
+        scenarioRuntimeMvpSupportsActionKind(
+          'runScript',
+          referenceMode: false,
+        ),
+        isTrue,
+      );
+      expect(
+        scenarioRuntimeMvpSupportsActionKind(
+          'startTrainerBattle',
+          referenceMode: false,
+        ),
+        isFalse,
+      );
+    });
   });
 }

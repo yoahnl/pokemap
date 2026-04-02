@@ -23,6 +23,8 @@ import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_story_branching.dart';
+import '../../application/scenario_runtime/scenario_runtime_executor.dart';
+import '../../application/scenario_runtime/scenario_runtime_models.dart';
 import '../../application/script_runtime_state.dart';
 import '../../application/script_runtime_controller.dart';
 import '../../application/story_flags_manager.dart';
@@ -104,6 +106,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       PlacedBehaviorCooldownGate();
   final StoryFlagsManager _storyFlags = const StoryFlagsManager();
   final RuntimeStoryBranching _storyBranching = const RuntimeStoryBranching();
+  final ScenarioRuntimeExecutor _scenarioRuntime =
+      const ScenarioRuntimeExecutor();
   double _runtimeClockMs = 0;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   void Function()? _pendingPostDialogueAction;
@@ -120,6 +124,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   ScriptRuntimeController? _activeScriptController;
   bool _isAwaitingScriptResume = false;
+  Set<String> _activeScenarioTriggerIds = <String>{};
 
   // Save/Load system
   final GameSaveRepository _saveRepo;
@@ -287,6 +292,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _preloadActiveMapConnections();
     _ensureBehaviorDebugOverlay();
     _applyDebugTileMarker();
+    _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
+      map: _bundle.map,
+      pos: _world.player.pos,
+    );
+    _dispatchScenarioRuntimeSource(
+      ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
+    );
     return super.onLoad();
   }
 
@@ -304,7 +316,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase == _RuntimeFlowPhase.battle) {
       // Navigation dans les choix du combat
       // ↑/↓ pour naviguer, E/Space/Enter pour valider, Escape pour fuir
-      final overlay = _battleOverlay as BattleOverlayComponent?;
+      final overlay = _battleOverlay;
       if (overlay != null) {
         // ↑ : sélection précédente (KeyDownEvent ONLY, pas KeyRepeatEvent)
         if (key == LogicalKeyboardKey.arrowUp && event is KeyDownEvent) {
@@ -574,6 +586,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             attemptedX >= _world.map.size.width ||
             attemptedY >= _world.map.size.height);
 
+    final previousPlayerPos = _world.player.pos;
     final result = stepGameplayWorld(_world, intent);
     _world = result.world;
     _syncGameStateFromWorld();
@@ -605,6 +618,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _checkStepEncounter();
       _checkTrainerLineOfSight(); // Check LoS only when player position changes
+      _dispatchScenarioTriggerEnterFromMovement(
+        previousPos: previousPlayerPos,
+        currentPos: _world.player.pos,
+      );
       return;
     }
 
@@ -694,6 +711,157 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint(
       '[battle] wild payload species=${encounter.speciesId} level=${encounter.level} map=${encounter.mapId} zone=${encounter.zoneId}',
     );
+  }
+
+  /// Détecte les entrées dans des triggers de map pour alimenter les sources
+  /// scénario `sourceTriggerEnter`.
+  ///
+  /// Le calcul est local et déterministe:
+  /// - on lit les triggers couvrant l'ancienne position,
+  /// - on lit les triggers couvrant la nouvelle position,
+  /// - on déclenche uniquement les IDs présents dans "nouvelle - ancienne".
+  void _dispatchScenarioTriggerEnterFromMovement({
+    required GridPos previousPos,
+    required GridPos currentPos,
+  }) {
+    // On privilégie l'état mémorisé pour éviter de recalculer l'ancienne
+    // couverture à chaque tick. Un fallback de sécurité reste possible.
+    final previousIds = _activeScenarioTriggerIds.isEmpty
+        ? _scenarioRuntime.triggerIdsAtPosition(
+            map: _bundle.map,
+            pos: previousPos,
+          )
+        : _activeScenarioTriggerIds;
+    final currentIds = _scenarioRuntime.triggerIdsAtPosition(
+      map: _bundle.map,
+      pos: currentPos,
+    );
+    _activeScenarioTriggerIds = currentIds;
+    final enteredIds =
+        currentIds.difference(previousIds).toList(growable: false)..sort();
+    for (final triggerId in enteredIds) {
+      _dispatchScenarioRuntimeSource(
+        ScenarioRuntimeSourceEvent.triggerEnter(
+          mapId: _activeMapId,
+          triggerId: triggerId,
+        ),
+      );
+    }
+  }
+
+  /// Point d'entrée unique pour les déclenchements runtime du Scenario Graph.
+  ///
+  /// Cette méthode centralise:
+  /// - le guard de phase (overworld/script actif),
+  /// - l'appel à l'exécuteur scénario,
+  /// - le branchement vers les effets runtime (dialogue/script/message),
+  /// - la synchronisation de GameState lorsque le flow mutera des flags.
+  ScenarioRuntimeExecutionResult _dispatchScenarioRuntimeSource(
+    ScenarioRuntimeSourceEvent sourceEvent,
+  ) {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      return const ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.noMatchingSource,
+        effect: ScenarioRuntimeEffect.none(),
+        message: 'Ignored: flow is not in overworld phase.',
+      );
+    }
+    final activeScript = _activeScriptController;
+    if (activeScript != null && !activeScript.isTerminated) {
+      return const ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.noMatchingSource,
+        effect: ScenarioRuntimeEffect.none(),
+        message: 'Ignored: a script is already running.',
+      );
+    }
+    final scenarios = _bundle.manifest.scenarios;
+    if (scenarios.isEmpty) {
+      return const ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.noMatchingSource,
+        effect: ScenarioRuntimeEffect.none(),
+        message: 'No scenario available in current manifest.',
+      );
+    }
+
+    final result = _scenarioRuntime.dispatch(
+      scenarios: scenarios,
+      sourceEvent: sourceEvent,
+      context: ScenarioRuntimeExecutionContext(
+        gameState: _gameState,
+        onGameStateUpdated: (state) {
+          _gameState = state;
+        },
+        openDialogue: _openScenarioDialogueById,
+        runScript: _runScenarioScriptById,
+        showMessage: (message) => _showNotification(message),
+      ),
+    );
+
+    // On maintient une trace explicite en logs pour faciliter le debug.
+    if (result.status == ScenarioRuntimeExecutionStatus.noMatchingSource) {
+      return result;
+    }
+    debugPrint(
+      '[scenario_runtime] source=${sourceEvent.type.name} map=${sourceEvent.mapId} trigger=${sourceEvent.triggerId ?? '-'} entity=${sourceEvent.entityId ?? '-'} status=${result.status.name} scenario=${result.scenarioId ?? '-'} sourceNode=${result.sourceNodeId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
+    );
+    return result;
+  }
+
+  /// Ouvre un dialogue projet à partir d'un `dialogueId`.
+  ///
+  /// Callback utilisé par le bridge scénario.
+  bool _openScenarioDialogueById(
+    String dialogueId, {
+    String? startNode,
+    String? runtimeSourceId,
+  }) {
+    final normalizedDialogueId = dialogueId.trim();
+    if (normalizedDialogueId.isEmpty) {
+      return false;
+    }
+    return _tryOpenDialogue(
+      runtimeSourceId ?? 'scenario',
+      DialogueRef(
+        dialogueId: normalizedDialogueId,
+        startNode: startNode,
+      ),
+      'Dialogue introuvable: $normalizedDialogueId',
+    );
+  }
+
+  /// Lance un script projet à partir d'un `scriptId`.
+  ///
+  /// Callback utilisé par le bridge scénario.
+  bool _runScenarioScriptById(
+    String scriptId, {
+    String? startNode,
+    String? runtimeSourceId,
+  }) {
+    final normalizedScriptId = scriptId.trim();
+    if (normalizedScriptId.isEmpty) {
+      return false;
+    }
+    if (_activeScriptController != null &&
+        !_activeScriptController!.isTerminated) {
+      return false;
+    }
+    ScriptAsset? scriptAsset;
+    for (final entry in _bundle.manifest.scripts) {
+      if (entry.id == normalizedScriptId) {
+        scriptAsset = entry.asset;
+        break;
+      }
+    }
+    if (scriptAsset == null) {
+      debugPrint('[scenario_runtime] script not found: $normalizedScriptId');
+      return false;
+    }
+    _startScriptExecution(
+      script: scriptAsset,
+      startNodeId: startNode,
+      runtimeSourceId: runtimeSourceId ?? 'scenario',
+    );
+    return true;
   }
 
   void _logEncounterCheck(GameplayEncounterCheckResult check) {
@@ -893,7 +1061,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _battleSession = _battleSession!.applyChoice(choice);
 
       // Mettre à jour l'UI avec le nouvel état
-      final overlay = _battleOverlay as BattleOverlayComponent?;
+      final overlay = _battleOverlay;
       overlay?.updateState(_battleSession!);
 
       // Vérifier si le combat est fini
@@ -962,6 +1130,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final result = stepGameplayWorld(_world, const InteractIntent());
     _world = result.world;
     _consumePathAnimationSignals(result.pathAnimationSignals);
+    var scenarioHandledEntityInteraction = false;
 
     switch (result) {
       case NothingToInteract():
@@ -974,17 +1143,35 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       case NpcInteracted(:final entity):
         debugPrint('[interact] NPC: ${entity.id}');
         _faceNpcTowardPlayer(entity.id);
-        _handleNpcInteraction(entity);
+        scenarioHandledEntityInteraction =
+            _tryDispatchScenarioEntityInteraction(
+          entity.id,
+        );
+        if (!scenarioHandledEntityInteraction) {
+          _handleNpcInteraction(entity);
+        }
       case SignInteracted(:final entity):
         debugPrint('[interact] Sign: ${entity.id}');
-        _tryOpenDialogue(
-            entity.id, entity.sign?.dialogue, entity.inspectorHeadline);
+        scenarioHandledEntityInteraction =
+            _tryDispatchScenarioEntityInteraction(
+          entity.id,
+        );
+        if (!scenarioHandledEntityInteraction) {
+          _tryOpenDialogue(
+              entity.id, entity.sign?.dialogue, entity.inspectorHeadline);
+        }
       case ItemInteracted(:final entity):
         debugPrint('[interact] Item: ${entity.id}');
         _showNotification(entity.inspectorHeadline);
       case EntityInteracted(:final entity):
         debugPrint('[interact] Entity: ${entity.id}');
-        _showNotification(entity.inspectorHeadline);
+        scenarioHandledEntityInteraction =
+            _tryDispatchScenarioEntityInteraction(
+          entity.id,
+        );
+        if (!scenarioHandledEntityInteraction) {
+          _showNotification(entity.inspectorHeadline);
+        }
       case PlacedElementInteracted(
           :final element,
           :final behavior,
@@ -1000,9 +1187,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         break;
     }
 
-    if (result is NothingToInteract || result is EntityInteracted) {
+    if (result is NothingToInteract ||
+        (result is EntityInteracted && !scenarioHandledEntityInteraction)) {
       _tryInteractWithMapEvent();
     }
+  }
+
+  bool _tryDispatchScenarioEntityInteraction(String entityId) {
+    final result = _dispatchScenarioRuntimeSource(
+      ScenarioRuntimeSourceEvent.entityInteract(
+        mapId: _activeMapId,
+        entityId: entityId,
+      ),
+    );
+    return result.handled;
   }
 
   void _tryInteractWithMapEvent() {
@@ -1071,14 +1269,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               throw StateError('Script not found: ${scriptRef.scriptId}'),
         )
         .asset;
+    _startScriptExecution(
+      script: scriptAsset,
+      startNodeId: scriptRef.startNode,
+      runtimeSourceId: event.id,
+    );
+  }
 
+  /// Démarrage générique d'exécution script.
+  ///
+  /// Cette méthode factorise le chemin script:
+  /// - scripts de pages d'event map,
+  /// - scripts déclenchés par le Scenario Runtime Bridge.
+  void _startScriptExecution({
+    required ScriptAsset script,
+    String? startNodeId,
+    required String runtimeSourceId,
+  }) {
     final context = ScriptExecutionContext(
       gameState: _gameState,
       onGameStateUpdated: (state) {
         _gameState = state;
       },
       onDialogueOpened: (dialogue) {
-        _openDialogueForScript(event, dialogue);
+        _openDialogueForScriptSource(runtimeSourceId, dialogue);
       },
       onWarpRequested: (mapId, x, y) {
         _pendingWarp = TriggeredWarp(
@@ -1091,13 +1305,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
 
     _activeScriptController = ScriptRuntimeController(
-      script: scriptAsset,
+      script: script,
       context: context,
-      startNodeId: scriptRef.startNode,
+      startNodeId: startNodeId,
     );
-
     _isAwaitingScriptResume = false;
-
     _runScriptStep();
   }
 
@@ -1131,10 +1343,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runScriptStep();
   }
 
-  void _openDialogueForScript(
-      MapEventDefinition event, YarnDialogueRef dialogueRef) {
+  void _openDialogueForScriptSource(
+      String runtimeSourceId, YarnDialogueRef dialogueRef) {
     final resolved = resolveDialogue(
-      entityId: event.id,
+      entityId: runtimeSourceId,
       ref: DialogueRef(
         dialogueId: '',
         scriptPathRelative: dialogueRef.filePath,
@@ -1945,6 +2157,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();
       _applyDebugTileMarker();
+      _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
+        map: _bundle.map,
+        pos: _world.player.pos,
+      );
 
       debugPrint('[load] game loaded from saveId=${loadedState.saveId}');
       return true;
@@ -2141,6 +2357,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[warp] gameplay unlocked map=$_activeMapId pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
       );
+      if (swapCompleted) {
+        _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
+          map: _bundle.map,
+          pos: _world.player.pos,
+        );
+        _dispatchScenarioRuntimeSource(
+          ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
+        );
+      }
       if (_activeMapId == sourceMapId &&
           _world.player.pos.x == sourcePos.x &&
           _world.player.pos.y == sourcePos.y) {
@@ -2296,6 +2521,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   Future<void> _handleConnection(TriggeredConnection connection) async {
     _flowPhase = _RuntimeFlowPhase.mapTransition;
+    var transitionCompleted = false;
     try {
       _clearTransientUiState();
       debugPrint(
@@ -2382,12 +2608,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();
+      transitionCompleted = true;
     } catch (e, st) {
       debugPrint('[connection] transition failed: $e\n$st');
       _player.syncState(_world.player, snapToGrid: true);
       _showNotification('Connection failed');
     } finally {
       _flowPhase = _RuntimeFlowPhase.overworld;
+      if (transitionCompleted) {
+        _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
+          map: _bundle.map,
+          pos: _world.player.pos,
+        );
+        _dispatchScenarioRuntimeSource(
+          ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
+        );
+      }
     }
   }
 
