@@ -60,11 +60,9 @@ class TopToolbar extends ConsumerWidget {
 
     final map = state.activeMap;
     final isMapWorkspace = state.workspaceMode == EditorWorkspaceMode.map;
-    final isScenarioWorkspace =
-        state.workspaceMode == EditorWorkspaceMode.scenario;
-    final hasScenarios = (state.project?.scenarios.isNotEmpty ?? false);
-    final firstScenarioId =
-        hasScenarios ? state.project!.scenarios.first.id : null;
+    // Rollback UI scénario:
+    // la barre d’outils ne propose plus de bascule vers un workspace scénario.
+    // On conserve uniquement les espaces réellement maintenus.
     final hasTilesets = (state.project?.tilesets.isNotEmpty ?? false);
     final firstTilesetId =
         hasTilesets ? state.project!.tilesets.first.id : null;
@@ -202,16 +200,6 @@ class TopToolbar extends ConsumerWidget {
             tooltip: 'Switch to map workspace',
             selected: isMapWorkspace,
             onPressed: notifier.selectMapWorkspace,
-          ),
-          _ToolbarCapsuleButton(
-            icon: CupertinoIcons.share_solid,
-            tooltip: 'Switch to scenario workspace',
-            selected: isScenarioWorkspace,
-            onPressed: hasScenarios
-                ? () => notifier.selectScenarioWorkspace(
-                      state.selectedScenarioId ?? firstScenarioId,
-                    )
-                : null,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.square_grid_2x2,
@@ -410,7 +398,6 @@ class TopToolbar extends ConsumerWidget {
         projectName: state.project?.name,
         workspaceLabel: switch (state.workspaceMode) {
           EditorWorkspaceMode.map => 'World Editor',
-          EditorWorkspaceMode.scenario => 'Scenario Graph',
           EditorWorkspaceMode.tileset => 'Tileset Studio',
         },
       ),

@@ -9,7 +9,10 @@ part 'editor_state.freezed.dart';
 
 enum EditorWorkspaceMode {
   map,
-  scenario,
+  // Rollback UI scénario:
+  // Le workspace "scenario" est volontairement retiré de l’éditeur pour
+  // revenir à une base stable. On conserve uniquement les workspaces qui
+  // restent officiellement supportés dans l’UI actuelle.
   tileset,
 }
 
@@ -86,18 +89,10 @@ class EditorState with _$EditorState {
 
     /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
     String? selectedProjectDialogueId,
-
-    /// Script scénario sélectionné dans l’explorateur (bibliothèque runtime).
-    String? selectedProjectScriptId,
-
-    /// Scénario sélectionné dans l’explorateur (workspace graphe).
-    String? selectedScenarioId,
-
-    /// Nœud sélectionné dans le graphe du scénario actif.
-    String? selectedScenarioNodeId,
-
-    /// Nœud source en attente lors de la création d’une connexion.
-    String? pendingScenarioEdgeFromNodeId,
+    // Rollback complet scénario/scripts:
+    // Les sélections dédiées au graphe scénario et à la bibliothèque de scripts
+    // runtime sont supprimées de l’état éditeur. Cela évite de conserver des
+    // états fantômes pour des surfaces UI désormais retirées.
 
     /// Dresseur sélectionné dans la bibliothèque dresseurs.
     String? selectedTrainerId,

@@ -4398,7 +4398,6 @@ class _PresetCategorySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categories = notifier.getPresetCategories(kind: kind, parentCategoryId: category?.id);
     final uncategorizedPresets = category == null
         ? _rootPresets(notifier, kind)
         : kind == PresetLibraryKind.terrain

@@ -1,7 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'script_conditions.dart';
-
 part 'script_asset.freezed.dart';
 part 'script_asset.g.dart';
 

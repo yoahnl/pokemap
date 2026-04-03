@@ -289,9 +289,7 @@ void main() {
           ],
         );
 
-        final evaluator = const ScriptConditionEvaluator();
         final pageResolver = const EventPageResolver();
-        final mutations = const GameStateMutations();
         var gameState = GameState(saveId: 'test-save');
 
         final pageBefore = pageResolver.resolve(event, gameState);

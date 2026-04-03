@@ -66,7 +66,6 @@ void main() {
       var gameState = GameState(saveId: 'test-save');
 
       final pageResolver = EventPageResolver();
-      final mutations = const GameStateMutations();
 
       final pageBefore = pageResolver.resolve(event, gameState);
       expect(pageBefore, isNotNull);
@@ -273,9 +272,6 @@ void main() {
         dialogues: [dialogueEntry],
       );
 
-      // Simulate the real scenario: projectFilePath points to project.json
-      final projectFilePath = '/Users/karim/Project/pokemonProject/project.json';
-      
       // The correct project root should be the dirname
       final projectRootDirectory = '/Users/karim/Project/pokemonProject';
 

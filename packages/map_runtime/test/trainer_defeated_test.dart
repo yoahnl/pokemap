@@ -19,11 +19,6 @@ void main() {
     });
 
     test('debugMarkTrainerAsDefeated ignores empty trainerId', () {
-      final initialState = GameState(
-        saveId: 'test-save',
-        storyFlags: const StoryFlags(activeFlags: {}),
-      );
-
       // Simuler la logique de debugMarkTrainerAsDefeated
       final trimmedId = ''.trim();
       final shouldMark = trimmedId.isNotEmpty;

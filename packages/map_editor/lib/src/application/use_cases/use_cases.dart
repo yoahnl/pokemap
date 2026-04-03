@@ -10,8 +10,6 @@ export 'path_layer_use_cases.dart';
 export 'project_element_use_cases.dart';
 export 'project_group_use_cases.dart';
 export 'project_management_use_cases.dart';
-export 'project_scenario_use_cases.dart';
-export 'project_script_use_cases.dart';
 export 'project_tileset_use_cases.dart';
 export 'terrain_preset_use_cases.dart';
 export 'terrain_use_cases.dart';

@@ -237,9 +237,6 @@ void main() {
       final movedWorld1 = world.withPlayer(
         world.player.copyWith(pos: const GridPos(x: 4, y: 5)),
       );
-      final movedWorld2 = movedWorld1.withPlayer(
-        movedWorld1.player.copyWith(pos: const GridPos(x: 5, y: 5)),
-      );
 
       final result = stepGameplayWorld(
         movedWorld1,

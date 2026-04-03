@@ -33,11 +33,9 @@ import '../../application/use_cases/path_layer_use_cases.dart';
 import '../../application/use_cases/project_element_use_cases.dart';
 import '../../application/use_cases/project_group_use_cases.dart';
 import '../../application/use_cases/project_management_use_cases.dart';
-import '../../application/use_cases/project_scenario_use_cases.dart';
 import '../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../application/use_cases/project_dialogue_use_cases.dart';
 import '../../application/use_cases/project_dialogue_library_use_cases.dart';
-import '../../application/use_cases/project_script_use_cases.dart';
 import '../../application/use_cases/project_tileset_use_cases.dart';
 import '../../application/use_cases/terrain_preset_use_cases.dart';
 import '../../application/use_cases/terrain_use_cases.dart';
@@ -854,131 +852,10 @@ MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase(
 }
 
 // ---------------------------------------------------------------------------
-// Project scenarios
+// Rollback UI/logic scénario:
+// Les providers scénario/scripts runtime sont retirés de map_editor pour
+// revenir à une base d’édition map/tileset/dialogues uniquement.
 // ---------------------------------------------------------------------------
-
-@riverpod
-CreateProjectScenarioUseCase createProjectScenarioUseCase(
-    CreateProjectScenarioUseCaseRef ref) {
-  return CreateProjectScenarioUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-RenameProjectScenarioUseCase renameProjectScenarioUseCase(
-    RenameProjectScenarioUseCaseRef ref) {
-  return RenameProjectScenarioUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-UpdateProjectScenarioMetadataUseCase updateProjectScenarioMetadataUseCase(
-    UpdateProjectScenarioMetadataUseCaseRef ref) {
-  return UpdateProjectScenarioMetadataUseCase(
-    ref.watch(projectRepositoryProvider),
-  );
-}
-
-@riverpod
-DeleteProjectScenarioUseCase deleteProjectScenarioUseCase(
-    DeleteProjectScenarioUseCaseRef ref) {
-  return DeleteProjectScenarioUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-AddScenarioNodeUseCase addScenarioNodeUseCase(AddScenarioNodeUseCaseRef ref) {
-  return AddScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-UpdateScenarioNodeUseCase updateScenarioNodeUseCase(
-    UpdateScenarioNodeUseCaseRef ref) {
-  return UpdateScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-MoveScenarioNodeUseCase moveScenarioNodeUseCase(
-    MoveScenarioNodeUseCaseRef ref) {
-  return MoveScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-DeleteScenarioNodeUseCase deleteScenarioNodeUseCase(
-    DeleteScenarioNodeUseCaseRef ref) {
-  return DeleteScenarioNodeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-SetScenarioEntryNodeUseCase setScenarioEntryNodeUseCase(
-    SetScenarioEntryNodeUseCaseRef ref) {
-  return SetScenarioEntryNodeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-AddScenarioEdgeUseCase addScenarioEdgeUseCase(AddScenarioEdgeUseCaseRef ref) {
-  return AddScenarioEdgeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-UpdateScenarioEdgeUseCase updateScenarioEdgeUseCase(
-    UpdateScenarioEdgeUseCaseRef ref) {
-  return UpdateScenarioEdgeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-DeleteScenarioEdgeUseCase deleteScenarioEdgeUseCase(
-    DeleteScenarioEdgeUseCaseRef ref) {
-  return DeleteScenarioEdgeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-// ---------------------------------------------------------------------------
-// Project scenario scripts
-// ---------------------------------------------------------------------------
-
-@riverpod
-CreateProjectScriptUseCase createProjectScriptUseCase(
-    CreateProjectScriptUseCaseRef ref) {
-  return CreateProjectScriptUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-RenameProjectScriptUseCase renameProjectScriptUseCase(
-    RenameProjectScriptUseCaseRef ref) {
-  return RenameProjectScriptUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-DeleteProjectScriptUseCase deleteProjectScriptUseCase(
-    DeleteProjectScriptUseCaseRef ref) {
-  return DeleteProjectScriptUseCase(
-    ref.watch(projectRepositoryProvider),
-    ref.watch(mapRepositoryProvider),
-  );
-}
-
-@riverpod
-SetProjectScriptDefaultStartNodeUseCase setProjectScriptDefaultStartNodeUseCase(
-    SetProjectScriptDefaultStartNodeUseCaseRef ref) {
-  return SetProjectScriptDefaultStartNodeUseCase(
-    ref.watch(projectRepositoryProvider),
-  );
-}
-
-@riverpod
-AddProjectScriptNodeUseCase addProjectScriptNodeUseCase(
-    AddProjectScriptNodeUseCaseRef ref) {
-  return AddProjectScriptNodeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-RenameProjectScriptNodeUseCase renameProjectScriptNodeUseCase(
-    RenameProjectScriptNodeUseCaseRef ref) {
-  return RenameProjectScriptNodeUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-DeleteProjectScriptNodeUseCase deleteProjectScriptNodeUseCase(
-    DeleteProjectScriptNodeUseCaseRef ref) {
-  return DeleteProjectScriptNodeUseCase(ref.watch(projectRepositoryProvider));
-}
 
 // ---------------------------------------------------------------------------
 // Encounter tables

@@ -50,6 +50,9 @@
       <excludeFolder url="file://$MODULE_DIR$/packages/map_gameplay/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/packages/map_gameplay/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/packages/map_gameplay/build" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/map_battle/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/map_battle/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/map_battle/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
