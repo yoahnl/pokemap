@@ -234,6 +234,7 @@ mixin _$MapEntityNpcData {
   int get lineOfSightRange => throw _privateConstructorUsedError;
   DialogueRef? get defeatDialogueRef => throw _privateConstructorUsedError;
   String? get characterId => throw _privateConstructorUsedError;
+  MapEntityNpcMovementConfig get movement => throw _privateConstructorUsedError;
 
   /// Serializes this MapEntityNpcData to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -259,10 +260,12 @@ abstract class $MapEntityNpcDataCopyWith<$Res> {
       String? trainerId,
       int lineOfSightRange,
       DialogueRef? defeatDialogueRef,
-      String? characterId});
+      String? characterId,
+      MapEntityNpcMovementConfig movement});
 
   $DialogueRefCopyWith<$Res>? get dialogue;
   $DialogueRefCopyWith<$Res>? get defeatDialogueRef;
+  $MapEntityNpcMovementConfigCopyWith<$Res> get movement;
 }
 
 /// @nodoc
@@ -288,6 +291,7 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
     Object? lineOfSightRange = null,
     Object? defeatDialogueRef = freezed,
     Object? characterId = freezed,
+    Object? movement = null,
   }) {
     return _then(_value.copyWith(
       displayName: null == displayName
@@ -322,6 +326,10 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
           ? _value.characterId
           : characterId // ignore: cast_nullable_to_non_nullable
               as String?,
+      movement: null == movement
+          ? _value.movement
+          : movement // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcMovementConfig,
     ) as $Val);
   }
 
@@ -352,6 +360,16 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
       return _then(_value.copyWith(defeatDialogueRef: value) as $Val);
     });
   }
+
+  /// Create a copy of MapEntityNpcData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntityNpcMovementConfigCopyWith<$Res> get movement {
+    return $MapEntityNpcMovementConfigCopyWith<$Res>(_value.movement, (value) {
+      return _then(_value.copyWith(movement: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -370,12 +388,15 @@ abstract class _$$MapEntityNpcDataImplCopyWith<$Res>
       String? trainerId,
       int lineOfSightRange,
       DialogueRef? defeatDialogueRef,
-      String? characterId});
+      String? characterId,
+      MapEntityNpcMovementConfig movement});
 
   @override
   $DialogueRefCopyWith<$Res>? get dialogue;
   @override
   $DialogueRefCopyWith<$Res>? get defeatDialogueRef;
+  @override
+  $MapEntityNpcMovementConfigCopyWith<$Res> get movement;
 }
 
 /// @nodoc
@@ -399,6 +420,7 @@ class __$$MapEntityNpcDataImplCopyWithImpl<$Res>
     Object? lineOfSightRange = null,
     Object? defeatDialogueRef = freezed,
     Object? characterId = freezed,
+    Object? movement = null,
   }) {
     return _then(_$MapEntityNpcDataImpl(
       displayName: null == displayName
@@ -433,6 +455,10 @@ class __$$MapEntityNpcDataImplCopyWithImpl<$Res>
           ? _value.characterId
           : characterId // ignore: cast_nullable_to_non_nullable
               as String?,
+      movement: null == movement
+          ? _value.movement
+          : movement // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcMovementConfig,
     ));
   }
 }
@@ -449,7 +475,8 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
       this.trainerId,
       this.lineOfSightRange = 0,
       this.defeatDialogueRef,
-      this.characterId});
+      this.characterId,
+      this.movement = const MapEntityNpcMovementConfig()});
 
   factory _$MapEntityNpcDataImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapEntityNpcDataImplFromJson(json);
@@ -474,10 +501,13 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
   final DialogueRef? defeatDialogueRef;
   @override
   final String? characterId;
+  @override
+  @JsonKey()
+  final MapEntityNpcMovementConfig movement;
 
   @override
   String toString() {
-    return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId)';
+    return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement)';
   }
 
   @override
@@ -499,7 +529,9 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
             (identical(other.defeatDialogueRef, defeatDialogueRef) ||
                 other.defeatDialogueRef == defeatDialogueRef) &&
             (identical(other.characterId, characterId) ||
-                other.characterId == characterId));
+                other.characterId == characterId) &&
+            (identical(other.movement, movement) ||
+                other.movement == movement));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -513,7 +545,8 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
       trainerId,
       lineOfSightRange,
       defeatDialogueRef,
-      characterId);
+      characterId,
+      movement);
 
   /// Create a copy of MapEntityNpcData
   /// with the given fields replaced by the non-null parameter values.
@@ -541,7 +574,8 @@ abstract class _MapEntityNpcData implements MapEntityNpcData {
       final String? trainerId,
       final int lineOfSightRange,
       final DialogueRef? defeatDialogueRef,
-      final String? characterId}) = _$MapEntityNpcDataImpl;
+      final String? characterId,
+      final MapEntityNpcMovementConfig movement}) = _$MapEntityNpcDataImpl;
 
   factory _MapEntityNpcData.fromJson(Map<String, dynamic> json) =
       _$MapEntityNpcDataImpl.fromJson;
@@ -562,6 +596,8 @@ abstract class _MapEntityNpcData implements MapEntityNpcData {
   DialogueRef? get defeatDialogueRef;
   @override
   String? get characterId;
+  @override
+  MapEntityNpcMovementConfig get movement;
 
   /// Create a copy of MapEntityNpcData
   /// with the given fields replaced by the non-null parameter values.
@@ -569,6 +605,270 @@ abstract class _MapEntityNpcData implements MapEntityNpcData {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$MapEntityNpcDataImplCopyWith<_$MapEntityNpcDataImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+MapEntityNpcMovementConfig _$MapEntityNpcMovementConfigFromJson(
+    Map<String, dynamic> json) {
+  return _MapEntityNpcMovementConfig.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapEntityNpcMovementConfig {
+  MapEntityNpcMovementMode get mode => throw _privateConstructorUsedError;
+  List<GridPos> get waypoints => throw _privateConstructorUsedError;
+  bool get loop => throw _privateConstructorUsedError;
+  int get pauseDurationMs => throw _privateConstructorUsedError;
+  int get stepDurationMs => throw _privateConstructorUsedError;
+
+  /// Serializes this MapEntityNpcMovementConfig to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapEntityNpcMovementConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapEntityNpcMovementConfigCopyWith<MapEntityNpcMovementConfig>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapEntityNpcMovementConfigCopyWith<$Res> {
+  factory $MapEntityNpcMovementConfigCopyWith(MapEntityNpcMovementConfig value,
+          $Res Function(MapEntityNpcMovementConfig) then) =
+      _$MapEntityNpcMovementConfigCopyWithImpl<$Res,
+          MapEntityNpcMovementConfig>;
+  @useResult
+  $Res call(
+      {MapEntityNpcMovementMode mode,
+      List<GridPos> waypoints,
+      bool loop,
+      int pauseDurationMs,
+      int stepDurationMs});
+}
+
+/// @nodoc
+class _$MapEntityNpcMovementConfigCopyWithImpl<$Res,
+        $Val extends MapEntityNpcMovementConfig>
+    implements $MapEntityNpcMovementConfigCopyWith<$Res> {
+  _$MapEntityNpcMovementConfigCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapEntityNpcMovementConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? mode = null,
+    Object? waypoints = null,
+    Object? loop = null,
+    Object? pauseDurationMs = null,
+    Object? stepDurationMs = null,
+  }) {
+    return _then(_value.copyWith(
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcMovementMode,
+      waypoints: null == waypoints
+          ? _value.waypoints
+          : waypoints // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
+      loop: null == loop
+          ? _value.loop
+          : loop // ignore: cast_nullable_to_non_nullable
+              as bool,
+      pauseDurationMs: null == pauseDurationMs
+          ? _value.pauseDurationMs
+          : pauseDurationMs // ignore: cast_nullable_to_non_nullable
+              as int,
+      stepDurationMs: null == stepDurationMs
+          ? _value.stepDurationMs
+          : stepDurationMs // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$MapEntityNpcMovementConfigImplCopyWith<$Res>
+    implements $MapEntityNpcMovementConfigCopyWith<$Res> {
+  factory _$$MapEntityNpcMovementConfigImplCopyWith(
+          _$MapEntityNpcMovementConfigImpl value,
+          $Res Function(_$MapEntityNpcMovementConfigImpl) then) =
+      __$$MapEntityNpcMovementConfigImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {MapEntityNpcMovementMode mode,
+      List<GridPos> waypoints,
+      bool loop,
+      int pauseDurationMs,
+      int stepDurationMs});
+}
+
+/// @nodoc
+class __$$MapEntityNpcMovementConfigImplCopyWithImpl<$Res>
+    extends _$MapEntityNpcMovementConfigCopyWithImpl<$Res,
+        _$MapEntityNpcMovementConfigImpl>
+    implements _$$MapEntityNpcMovementConfigImplCopyWith<$Res> {
+  __$$MapEntityNpcMovementConfigImplCopyWithImpl(
+      _$MapEntityNpcMovementConfigImpl _value,
+      $Res Function(_$MapEntityNpcMovementConfigImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapEntityNpcMovementConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? mode = null,
+    Object? waypoints = null,
+    Object? loop = null,
+    Object? pauseDurationMs = null,
+    Object? stepDurationMs = null,
+  }) {
+    return _then(_$MapEntityNpcMovementConfigImpl(
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcMovementMode,
+      waypoints: null == waypoints
+          ? _value._waypoints
+          : waypoints // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
+      loop: null == loop
+          ? _value.loop
+          : loop // ignore: cast_nullable_to_non_nullable
+              as bool,
+      pauseDurationMs: null == pauseDurationMs
+          ? _value.pauseDurationMs
+          : pauseDurationMs // ignore: cast_nullable_to_non_nullable
+              as int,
+      stepDurationMs: null == stepDurationMs
+          ? _value.stepDurationMs
+          : stepDurationMs // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapEntityNpcMovementConfigImpl implements _MapEntityNpcMovementConfig {
+  const _$MapEntityNpcMovementConfigImpl(
+      {this.mode = MapEntityNpcMovementMode.idle,
+      final List<GridPos> waypoints = const <GridPos>[],
+      this.loop = true,
+      this.pauseDurationMs = 0,
+      this.stepDurationMs = 200})
+      : _waypoints = waypoints;
+
+  factory _$MapEntityNpcMovementConfigImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$MapEntityNpcMovementConfigImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final MapEntityNpcMovementMode mode;
+  final List<GridPos> _waypoints;
+  @override
+  @JsonKey()
+  List<GridPos> get waypoints {
+    if (_waypoints is EqualUnmodifiableListView) return _waypoints;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_waypoints);
+  }
+
+  @override
+  @JsonKey()
+  final bool loop;
+  @override
+  @JsonKey()
+  final int pauseDurationMs;
+  @override
+  @JsonKey()
+  final int stepDurationMs;
+
+  @override
+  String toString() {
+    return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, loop: $loop, pauseDurationMs: $pauseDurationMs, stepDurationMs: $stepDurationMs)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapEntityNpcMovementConfigImpl &&
+            (identical(other.mode, mode) || other.mode == mode) &&
+            const DeepCollectionEquality()
+                .equals(other._waypoints, _waypoints) &&
+            (identical(other.loop, loop) || other.loop == loop) &&
+            (identical(other.pauseDurationMs, pauseDurationMs) ||
+                other.pauseDurationMs == pauseDurationMs) &&
+            (identical(other.stepDurationMs, stepDurationMs) ||
+                other.stepDurationMs == stepDurationMs));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      mode,
+      const DeepCollectionEquality().hash(_waypoints),
+      loop,
+      pauseDurationMs,
+      stepDurationMs);
+
+  /// Create a copy of MapEntityNpcMovementConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapEntityNpcMovementConfigImplCopyWith<_$MapEntityNpcMovementConfigImpl>
+      get copyWith => __$$MapEntityNpcMovementConfigImplCopyWithImpl<
+          _$MapEntityNpcMovementConfigImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapEntityNpcMovementConfigImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapEntityNpcMovementConfig
+    implements MapEntityNpcMovementConfig {
+  const factory _MapEntityNpcMovementConfig(
+      {final MapEntityNpcMovementMode mode,
+      final List<GridPos> waypoints,
+      final bool loop,
+      final int pauseDurationMs,
+      final int stepDurationMs}) = _$MapEntityNpcMovementConfigImpl;
+
+  factory _MapEntityNpcMovementConfig.fromJson(Map<String, dynamic> json) =
+      _$MapEntityNpcMovementConfigImpl.fromJson;
+
+  @override
+  MapEntityNpcMovementMode get mode;
+  @override
+  List<GridPos> get waypoints;
+  @override
+  bool get loop;
+  @override
+  int get pauseDurationMs;
+  @override
+  int get stepDurationMs;
+
+  /// Create a copy of MapEntityNpcMovementConfig
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapEntityNpcMovementConfigImplCopyWith<_$MapEntityNpcMovementConfigImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 MapEntitySignData _$MapEntitySignDataFromJson(Map<String, dynamic> json) {

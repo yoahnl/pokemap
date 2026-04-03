@@ -20,6 +20,7 @@ import '../../application/field_move_dialogue.dart';
 import '../../application/load_dialogue_content.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/movement_feedback.dart';
+import '../../application/npc_overworld_movement_defaults.dart';
 import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
@@ -262,6 +263,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String entityId,
     required List<GridPos> waypoints,
     bool loop = true,
+    int pauseDurationMs = 0,
+    int stepDurationMs = 200,
   }) {
     final controller = _scriptedEntityMovementController;
     if (controller == null) {
@@ -277,6 +280,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         entityId: entityId,
         waypoints: waypoints,
         loop: loop,
+        pauseDurationMs: pauseDurationMs,
+        stepDurationMs: stepDurationMs,
       ),
     );
   }
@@ -3315,6 +3320,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     controller.replaceTrackedEntities(_runtimeNpcPositions);
     _scriptedEntityMovementController = controller;
+    _applyNpcOverworldDefaultMovement();
+  }
+
+  void _applyNpcOverworldDefaultMovement() {
+    final controller = _scriptedEntityMovementController;
+    if (controller == null) {
+      return;
+    }
+    for (final entity in _world.map.entities) {
+      if (entity.kind != MapEntityKind.npc) {
+        continue;
+      }
+      final route = resolveNpcDefaultPatrolRoute(entity);
+      if (route == null) {
+        controller.stopPatrol(entity.id);
+        continue;
+      }
+      controller.startPatrol(route);
+    }
   }
 
   Map<String, GridPos> _collectCurrentNpcPositions() {
@@ -3356,6 +3380,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GridPos from,
     required GridPos to,
     required EntityFacing facing,
+    double? durationSeconds,
   }) {
     final loaded = _loadedMapsById[_activeMapId];
     final actor = loaded?.npcActorByEntityId[entityId];
@@ -3365,7 +3390,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return actor.startGridStep(
       to: to,
       facing: facing,
-      durationSeconds: PlayerComponent.kDefaultStepSeconds,
+      durationSeconds: durationSeconds ?? PlayerComponent.kDefaultStepSeconds,
     );
   }
 

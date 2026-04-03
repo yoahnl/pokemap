@@ -41,6 +41,7 @@ void main() {
           required from,
           required to,
           required facing,
+          double? durationSeconds,
         }) {
           startedSteps.add((from: from, to: to));
           return true;
@@ -108,6 +109,7 @@ void main() {
           required from,
           required to,
           required facing,
+          double? durationSeconds,
         }) =>
             true,
         isEntityStepping: (_) => false,
@@ -156,6 +158,7 @@ void main() {
           required from,
           required to,
           required facing,
+          double? durationSeconds,
         }) =>
             true,
         isEntityStepping: (_) => false,
@@ -190,6 +193,169 @@ void main() {
       expect(current, isNotNull);
       expect(current!.y, 1);
       expect(current.x, anyOf(1, 2, 3));
+    });
+
+    test('patrol with loop false stops at last waypoint', () {
+      final runtimePositions = <String, GridPos>{
+        'npc_1': const GridPos(x: 1, y: 1),
+      };
+
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 8, height: 8),
+        isCellBlocked: (x, y, {ignoreEntityId}) => false,
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) =>
+            true,
+        isEntityStepping: (_) => false,
+        onEntityPositionCommitted: (entityId, pos) {
+          runtimePositions[entityId] = pos;
+        },
+      );
+      controller.replaceTrackedEntities(runtimePositions);
+
+      controller.startPatrol(
+        const ScriptedEntityPatrolRoute(
+          entityId: 'npc_1',
+          waypoints: <GridPos>[
+            GridPos(x: 1, y: 1),
+            GridPos(x: 3, y: 1),
+          ],
+          loop: false,
+        ),
+      );
+
+      for (var i = 0; i < 10; i++) {
+        controller.update(0.016);
+      }
+
+      expect(runtimePositions['npc_1'], const GridPos(x: 3, y: 1));
+      expect(controller.isPatrolling('npc_1'), isFalse);
+    });
+
+    test('patrol pause delays the next segment start', () {
+      final runtimePositions = <String, GridPos>{
+        'npc_1': const GridPos(x: 1, y: 1),
+      };
+      var startedSteps = 0;
+
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 8, height: 8),
+        isCellBlocked: (x, y, {ignoreEntityId}) => false,
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) {
+          startedSteps += 1;
+          return true;
+        },
+        isEntityStepping: (_) => false,
+        onEntityPositionCommitted: (entityId, pos) {
+          runtimePositions[entityId] = pos;
+        },
+      );
+      controller.replaceTrackedEntities(runtimePositions);
+
+      controller.startPatrol(
+        const ScriptedEntityPatrolRoute(
+          entityId: 'npc_1',
+          waypoints: <GridPos>[
+            GridPos(x: 1, y: 1),
+            GridPos(x: 2, y: 1),
+          ],
+          loop: true,
+          pauseDurationMs: 500,
+        ),
+      );
+
+      // Tick 1: l'entité démarre déjà sur le waypoint initial, donc la pause
+      // configurée est consommée avant tout déplacement.
+      controller.update(0.016);
+      expect(startedSteps, 0);
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+
+      // Pendant la pause, aucun nouveau segment ne démarre.
+      controller.update(0.20);
+      controller.update(0.20);
+      expect(startedSteps, 0);
+
+      // Après la pause, la patrouille repart.
+      controller.update(0.20);
+      expect(startedSteps, 0);
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+
+      // Le segment est planifié à la fin de la pause; le pas est exécuté et
+      // commité au tick suivant (découplage planification/exécution).
+      controller.update(0.016);
+      expect(startedSteps, 1);
+      expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
+    });
+
+    test('scripted move temporarily overrides patrol then patrol resumes', () {
+      final runtimePositions = <String, GridPos>{
+        'npc_1': const GridPos(x: 1, y: 1),
+      };
+
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 10, height: 10),
+        isCellBlocked: (x, y, {ignoreEntityId}) => false,
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) =>
+            true,
+        isEntityStepping: (_) => false,
+        onEntityPositionCommitted: (entityId, pos) {
+          runtimePositions[entityId] = pos;
+        },
+      );
+      controller.replaceTrackedEntities(runtimePositions);
+
+      controller.startPatrol(
+        const ScriptedEntityPatrolRoute(
+          entityId: 'npc_1',
+          waypoints: <GridPos>[
+            GridPos(x: 1, y: 1),
+            GridPos(x: 3, y: 1),
+          ],
+          loop: true,
+        ),
+      );
+
+      // 1er tick: planification du segment de patrouille.
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+      // 2e tick: exécution du premier pas.
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
+
+      // Override cutscene/script: force une destination différente.
+      controller.moveEntityTo(
+        entityId: 'npc_1',
+        destination: const GridPos(x: 5, y: 1),
+      );
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], const GridPos(x: 3, y: 1));
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], const GridPos(x: 4, y: 1));
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], const GridPos(x: 5, y: 1));
+      controller.update(0.016); // completion
+
+      // Après completion, la patrouille reprend automatiquement.
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], isNot(const GridPos(x: 5, y: 1)));
+      expect(controller.isPatrolling('npc_1'), isTrue);
     });
   });
 }

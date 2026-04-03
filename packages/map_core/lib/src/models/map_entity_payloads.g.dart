@@ -37,6 +37,10 @@ _$MapEntityNpcDataImpl _$$MapEntityNpcDataImplFromJson(
           : DialogueRef.fromJson(
               json['defeatDialogueRef'] as Map<String, dynamic>),
       characterId: json['characterId'] as String?,
+      movement: json['movement'] == null
+          ? const MapEntityNpcMovementConfig()
+          : MapEntityNpcMovementConfig.fromJson(
+              json['movement'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
@@ -50,6 +54,7 @@ Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
       'lineOfSightRange': instance.lineOfSightRange,
       'defeatDialogueRef': instance.defeatDialogueRef?.toJson(),
       'characterId': instance.characterId,
+      'movement': instance.movement.toJson(),
     };
 
 const _$EntityFacingEnumMap = {
@@ -57,6 +62,37 @@ const _$EntityFacingEnumMap = {
   EntityFacing.south: 'south',
   EntityFacing.east: 'east',
   EntityFacing.west: 'west',
+};
+
+_$MapEntityNpcMovementConfigImpl _$$MapEntityNpcMovementConfigImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapEntityNpcMovementConfigImpl(
+      mode: $enumDecodeNullable(
+              _$MapEntityNpcMovementModeEnumMap, json['mode']) ??
+          MapEntityNpcMovementMode.idle,
+      waypoints: (json['waypoints'] as List<dynamic>?)
+              ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <GridPos>[],
+      loop: json['loop'] as bool? ?? true,
+      pauseDurationMs: (json['pauseDurationMs'] as num?)?.toInt() ?? 0,
+      stepDurationMs: (json['stepDurationMs'] as num?)?.toInt() ?? 200,
+    );
+
+Map<String, dynamic> _$$MapEntityNpcMovementConfigImplToJson(
+        _$MapEntityNpcMovementConfigImpl instance) =>
+    <String, dynamic>{
+      'mode': _$MapEntityNpcMovementModeEnumMap[instance.mode]!,
+      'waypoints': instance.waypoints.map((e) => e.toJson()).toList(),
+      'loop': instance.loop,
+      'pauseDurationMs': instance.pauseDurationMs,
+      'stepDurationMs': instance.stepDurationMs,
+    };
+
+const _$MapEntityNpcMovementModeEnumMap = {
+  MapEntityNpcMovementMode.idle: 'idle',
+  MapEntityNpcMovementMode.patrol: 'patrol',
+  MapEntityNpcMovementMode.scriptedOnly: 'scriptedOnly',
 };
 
 _$MapEntitySignDataImpl _$$MapEntitySignDataImplFromJson(

@@ -21,6 +21,7 @@ typedef ScriptedEntityStepStarter = bool Function({
   required GridPos from,
   required GridPos to,
   required EntityFacing facing,
+  double? durationSeconds,
 });
 
 /// Callback qui indique si l'acteur visuel est encore en mouvement.
@@ -137,6 +138,7 @@ class ScriptedEntityMovementController {
   ScriptedEntityMovementStatus moveEntityTo({
     required String entityId,
     required GridPos destination,
+    double? stepDurationSeconds,
   }) {
     final current = _trackedPositions[entityId];
     if (current == null) {
@@ -181,6 +183,7 @@ class ScriptedEntityMovementController {
       destination: destination,
       steps: steps,
       nextStepIndex: 0,
+      stepDurationSeconds: stepDurationSeconds,
     );
 
     final status = ScriptedEntityMovementStatus(
@@ -234,7 +237,7 @@ class ScriptedEntityMovementController {
     // configurables, waits, easing). Le MVP utilise un pas logique par tick.
     assert(dt >= 0);
     _tickActiveMoves();
-    _tickPatrols();
+    _tickPatrols(dt);
   }
 
   void _tickActiveMoves() {
@@ -331,6 +334,7 @@ class ScriptedEntityMovementController {
         from: current,
         to: next,
         facing: facing,
+        durationSeconds: task.stepDurationSeconds,
       );
       if (!started) {
         _activeTasks.remove(entityId);
@@ -359,7 +363,7 @@ class ScriptedEntityMovementController {
     }
   }
 
-  void _tickPatrols() {
+  void _tickPatrols(double dt) {
     final entityIds = _patrols.keys.toList(growable: false)..sort();
     for (final entityId in entityIds) {
       final patrol = _patrols[entityId];
@@ -381,12 +385,27 @@ class ScriptedEntityMovementController {
         continue;
       }
 
+      if (patrol.pauseRemainingMs > 0) {
+        patrol.pauseRemainingMs =
+            (patrol.pauseRemainingMs - (dt * 1000)).round();
+        if (patrol.pauseRemainingMs > 0) {
+          continue;
+        }
+        patrol.pauseRemainingMs = 0;
+      }
+
       // On avance l'index tant que l'entité est déjà sur le waypoint courant.
       var nextIndex = patrol.nextWaypointIndex;
       var guard = 0;
       while (guard < waypoints.length &&
           waypoints[nextIndex].x == current.x &&
           waypoints[nextIndex].y == current.y) {
+        if (!patrol.pauseConsumedAtWaypoint &&
+            patrol.route.pauseDurationMs > 0) {
+          patrol.pauseRemainingMs = patrol.route.pauseDurationMs;
+          patrol.pauseConsumedAtWaypoint = true;
+          break;
+        }
         nextIndex += 1;
         if (nextIndex >= waypoints.length) {
           if (!patrol.route.loop) {
@@ -395,12 +414,20 @@ class ScriptedEntityMovementController {
           }
           nextIndex = 0;
         }
+        patrol.pauseConsumedAtWaypoint = false;
         guard += 1;
+      }
+      if (patrol.pauseRemainingMs > 0) {
+        continue;
       }
       patrol.nextWaypointIndex = nextIndex;
 
       final target = waypoints[nextIndex];
-      moveEntityTo(entityId: entityId, destination: target);
+      moveEntityTo(
+        entityId: entityId,
+        destination: target,
+        stepDurationSeconds: patrol.route.stepDurationMs / 1000.0,
+      );
     }
   }
 
@@ -452,11 +479,13 @@ class _MoveTask {
     required this.destination,
     required this.steps,
     required this.nextStepIndex,
+    required this.stepDurationSeconds,
   });
 
   final GridPos destination;
   List<GridPos> steps;
   int nextStepIndex;
+  final double? stepDurationSeconds;
 }
 
 class _PatrolRuntime {
@@ -467,4 +496,6 @@ class _PatrolRuntime {
 
   final ScriptedEntityPatrolRoute route;
   int nextWaypointIndex;
+  int pauseRemainingMs = 0;
+  bool pauseConsumedAtWaypoint = false;
 }

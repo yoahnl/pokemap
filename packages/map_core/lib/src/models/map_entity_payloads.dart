@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
+import 'geometry.dart';
 
 part 'map_entity_payloads.freezed.dart';
 part 'map_entity_payloads.g.dart';
@@ -14,8 +15,10 @@ class DialogueRef with _$DialogueRef {
   const factory DialogueRef({
     /// Identifiant stable : typiquement [ProjectDialogueEntry.id] lorsque [scriptPathRelative] est vide.
     required String dialogueId,
+
     /// Vide = résolution via le registre projet ; non vide = script explicite (legacy ou override).
     @Default('') String scriptPathRelative,
+
     /// Nœud d’entrée optionnel (ex. titre de nœud Yarn).
     String? startNode,
   }) = _DialogueRef;
@@ -36,10 +39,35 @@ class MapEntityNpcData with _$MapEntityNpcData {
     @Default(0) int lineOfSightRange,
     DialogueRef? defeatDialogueRef,
     String? characterId,
+    @Default(MapEntityNpcMovementConfig()) MapEntityNpcMovementConfig movement,
   }) = _MapEntityNpcData;
 
   factory MapEntityNpcData.fromJson(Map<String, dynamic> json) =>
       _$MapEntityNpcDataFromJson(json);
+}
+
+enum MapEntityNpcMovementMode {
+  @JsonValue('idle')
+  idle,
+  @JsonValue('patrol')
+  patrol,
+  @JsonValue('scriptedOnly')
+  scriptedOnly,
+}
+
+@freezed
+class MapEntityNpcMovementConfig with _$MapEntityNpcMovementConfig {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapEntityNpcMovementConfig({
+    @Default(MapEntityNpcMovementMode.idle) MapEntityNpcMovementMode mode,
+    @Default(<GridPos>[]) List<GridPos> waypoints,
+    @Default(true) bool loop,
+    @Default(0) int pauseDurationMs,
+    @Default(200) int stepDurationMs,
+  }) = _MapEntityNpcMovementConfig;
+
+  factory MapEntityNpcMovementConfig.fromJson(Map<String, dynamic> json) =>
+      _$MapEntityNpcMovementConfigFromJson(json);
 }
 
 @freezed
@@ -48,6 +76,7 @@ class MapEntitySignData with _$MapEntitySignData {
   const factory MapEntitySignData({
     @Default('') String title,
     DialogueRef? dialogue,
+
     /// Texte affiché si pas de dialogue scripté (panneau simple).
     @Default('') String plainText,
   }) = _MapEntitySignData;
@@ -109,7 +138,8 @@ Map<String, dynamic> migrateMapEntityJson(Map<String, dynamic> json) {
 
   void takePropsIntoDialogue(List<String> idKeys, Map<String, dynamic> target) {
     final id = takeProp(idKeys);
-    final path = takeProp(['dialogueScript', 'scriptPath', 'scriptPathRelative']);
+    final path =
+        takeProp(['dialogueScript', 'scriptPath', 'scriptPathRelative']);
     final node = takeProp(['startNode', 'dialogueStartNode', 'yarnStart']);
     if (id != null && id.isNotEmpty) {
       target['dialogue'] = <String, dynamic>{
@@ -126,8 +156,7 @@ Map<String, dynamic> migrateMapEntityJson(Map<String, dynamic> json) {
         final npc = <String, dynamic>{};
         final dn = takeProp(['displayName', 'npcName', 'characterName']);
         if (dn != null) npc['displayName'] = dn;
-        takePropsIntoDialogue(
-            ['dialogueId', 'dialogue', 'yarnNode'], npc);
+        takePropsIntoDialogue(['dialogueId', 'dialogue', 'yarnNode'], npc);
         final facing = takeProp(['facing', 'direction', 'face']);
         if (facing != null) {
           final f = _parseFacing(facing);
@@ -142,7 +171,8 @@ Map<String, dynamic> migrateMapEntityJson(Map<String, dynamic> json) {
         if (charId != null) npc['characterId'] = charId;
         final trainerId = takeProp(['trainerId', 'trainerRef']);
         if (trainerId != null) npc['trainerId'] = trainerId;
-        final vid = takeProp(['visualElementId', 'elementRef', 'sprite', 'spriteRef']);
+        final vid =
+            takeProp(['visualElementId', 'elementRef', 'sprite', 'spriteRef']);
         if (vid != null) npc['visualElementId'] = vid;
         if (npc.isNotEmpty) {
           out['npc'] = npc;

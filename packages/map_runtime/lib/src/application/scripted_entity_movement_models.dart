@@ -55,15 +55,20 @@ class ScriptedEntityMovementStatus {
 /// MVP du lot:
 /// - waypoints ordonnés,
 /// - boucle optionnelle (`loop=true`),
-/// - pas de comportement avancé (pause, vitesse variable, ping-pong...).
+/// - pause optionnelle sur waypoint (`pauseDurationMs`),
+/// - durée de pas configurable (`stepDurationMs`).
 class ScriptedEntityPatrolRoute {
   const ScriptedEntityPatrolRoute({
     required this.entityId,
     required this.waypoints,
     this.loop = true,
+    this.pauseDurationMs = 0,
+    this.stepDurationMs = 200,
   });
 
   final String entityId;
   final List<GridPos> waypoints;
   final bool loop;
+  final int pauseDurationMs;
+  final int stepDurationMs;
 }

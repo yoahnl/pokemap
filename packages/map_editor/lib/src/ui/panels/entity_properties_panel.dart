@@ -69,8 +69,7 @@ class EntityPropertiesPanel extends ConsumerStatefulWidget {
       _EntityPropertiesPanelState();
 }
 
-class _EntityPropertiesPanelState
-    extends ConsumerState<EntityPropertiesPanel> {
+class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   final _idController = TextEditingController();
   final _nameController = TextEditingController();
   final _xController = TextEditingController();
@@ -89,6 +88,11 @@ class _EntityPropertiesPanelState
   final _npcDefeatDialogueId = TextEditingController();
   final _npcDefeatStartNode = TextEditingController();
   _DialogueRefSource _npcDefeatDialogueSource = _DialogueRefSource.none;
+  MapEntityNpcMovementMode _npcMovementMode = MapEntityNpcMovementMode.idle;
+  bool _npcMovementLoop = true;
+  final _npcMovementPauseMs = TextEditingController();
+  final _npcMovementStepMs = TextEditingController();
+  final _npcWaypointRows = <_NpcWaypointDraft>[];
 
   final _signTitle = TextEditingController();
   final _signDialogueId = TextEditingController();
@@ -131,6 +135,11 @@ class _EntityPropertiesPanelState
     _npcLineOfSight.dispose();
     _npcDefeatDialogueId.dispose();
     _npcDefeatStartNode.dispose();
+    _npcMovementPauseMs.dispose();
+    _npcMovementStepMs.dispose();
+    for (final row in _npcWaypointRows) {
+      row.dispose();
+    }
     _signTitle.dispose();
     _signDialogueId.dispose();
     _signScriptPath.dispose();
@@ -177,8 +186,7 @@ class _EntityPropertiesPanelState
                   accent: EditorChrome.inspectorJoyCyan,
                   fieldLabel: 'Type à placer',
                   valueLabel: _entityKindLabel(state.selectedEntityKind),
-                  orderedIds:
-                      MapEntityKind.values.map((k) => k.name).toList(),
+                  orderedIds: MapEntityKind.values.map((k) => k.name).toList(),
                   selectedMenuValue: state.selectedEntityKind.name,
                   selectedIdForCheck: state.selectedEntityKind.name,
                   idToLabel: (id) => _entityKindLabel(
@@ -233,7 +241,8 @@ class _EntityPropertiesPanelState
                   child: Text(
                     'No entities on this map yet.',
                     style: TextStyle(
-                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      color:
+                          CupertinoColors.placeholderText.resolveFrom(context),
                       fontSize: 12,
                     ),
                   ),
@@ -288,10 +297,10 @@ class _EntityPropertiesPanelState
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: labelColor,
-                                      fontWeight: entity.id ==
-                                              state.selectedEntityId
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
+                                      fontWeight:
+                                          entity.id == state.selectedEntityId
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -359,7 +368,8 @@ class _EntityPropertiesPanelState
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
@@ -387,8 +397,7 @@ class _EntityPropertiesPanelState
     List<TextInputFormatter>? inputFormatters,
     int? maxLines,
   }) {
-    final secondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -423,7 +432,8 @@ class _EntityPropertiesPanelState
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: secondary),
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600, color: secondary),
           ),
         ),
         CupertinoSwitch(
@@ -472,6 +482,203 @@ class _EntityPropertiesPanelState
       EntitySpawnRole.debug => 'Debug',
       EntitySpawnRole.other => 'Autre',
     };
+  }
+
+  String _npcMovementModeLabel(MapEntityNpcMovementMode mode) {
+    if (!widget.embedded) return mode.name;
+    return switch (mode) {
+      MapEntityNpcMovementMode.idle => 'Immobile',
+      MapEntityNpcMovementMode.patrol => 'Patrouille',
+      MapEntityNpcMovementMode.scriptedOnly => 'Scripted only',
+    };
+  }
+
+  void _addNpcWaypointRow({GridPos? seed}) {
+    final fallbackX = int.tryParse(_xController.text.trim()) ?? 0;
+    final fallbackY = int.tryParse(_yController.text.trim()) ?? 0;
+    setState(() {
+      _npcWaypointRows.add(
+        _NpcWaypointDraft(
+          xController: TextEditingController(
+            text: (seed?.x ?? fallbackX).toString(),
+          ),
+          yController: TextEditingController(
+            text: (seed?.y ?? fallbackY).toString(),
+          ),
+        ),
+      );
+    });
+  }
+
+  List<Widget> _npcMovementFields(BuildContext context) {
+    final modeIds = MapEntityNpcMovementMode.values
+        .map((mode) => mode.name)
+        .toList(growable: false);
+
+    final modePicker = widget.embedded
+        ? InspectorEmbeddedDropdown(
+            accent: EditorChrome.inspectorJoyMint,
+            fieldLabel: _l('Déplacement PNJ', 'NPC movement'),
+            valueLabel: _npcMovementModeLabel(_npcMovementMode),
+            orderedIds: modeIds,
+            selectedMenuValue: _npcMovementMode.name,
+            selectedIdForCheck: _npcMovementMode.name,
+            idToLabel: (id) => _npcMovementModeLabel(
+              MapEntityNpcMovementMode.values.firstWhere((e) => e.name == id),
+            ),
+            onSelected: (id) {
+              final mode = MapEntityNpcMovementMode.values.firstWhere(
+                (e) => e.name == id,
+              );
+              setState(() => _npcMovementMode = mode);
+            },
+            tooltip: _l(
+              'Comportement par défaut en overworld. Scripted only = aucun auto-move.',
+              'Default overworld behavior. Scripted only = no automatic movement.',
+            ),
+          )
+        : CupertinoButton(
+            padding: EdgeInsets.zero,
+            alignment: Alignment.centerLeft,
+            onPressed: () async {
+              final picked =
+                  await showCupertinoListPicker<MapEntityNpcMovementMode>(
+                context: context,
+                title: _l('Déplacement PNJ', 'NPC movement'),
+                items: MapEntityNpcMovementMode.values,
+                labelOf: _npcMovementModeLabel,
+              );
+              if (picked != null) {
+                setState(() => _npcMovementMode = picked);
+              }
+            },
+            child: Text(
+              '${_l('Déplacement PNJ', 'NPC movement')}: ${_npcMovementModeLabel(_npcMovementMode)}',
+            ),
+          );
+
+    final widgets = <Widget>[
+      modePicker,
+    ];
+
+    if (_npcMovementMode != MapEntityNpcMovementMode.patrol) {
+      return widgets;
+    }
+
+    widgets.addAll([
+      const SizedBox(height: 8),
+      _toggleField(
+        context,
+        label: _l('Patrouille en boucle', 'Patrol loop'),
+        value: _npcMovementLoop,
+        onChanged: (v) => setState(() => _npcMovementLoop = v),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          Expanded(
+            child: _labeledField(
+              context,
+              label: _l('Pause waypoint (ms)', 'Waypoint pause (ms)'),
+              controller: _npcMovementPauseMs,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _labeledField(
+              context,
+              label: _l('Durée d’un pas (ms)', 'Step duration (ms)'),
+              controller: _npcMovementStepMs,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Text(
+        _l(
+          'Waypoints (minimum 2 pour bouger)',
+          'Waypoints (minimum 2 to move)',
+        ),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        ),
+      ),
+      const SizedBox(height: 6),
+      if (_npcWaypointRows.isEmpty)
+        Text(
+          _l(
+            'Aucun waypoint. Le PNJ restera immobile.',
+            'No waypoints. NPC will stay still.',
+          ),
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        ),
+    ]);
+
+    for (var i = 0; i < _npcWaypointRows.length; i++) {
+      final row = _npcWaypointRows[i];
+      widgets.addAll([
+        const SizedBox(height: 6),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: _labeledField(
+                context,
+                label: 'X',
+                controller: row.xController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _labeledField(
+                context,
+                label: 'Y',
+                controller: row.yController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+            ),
+            const SizedBox(width: 8),
+            CupertinoButton(
+              padding: const EdgeInsets.all(0),
+              minimumSize: const Size(28, 28),
+              onPressed: () {
+                setState(() {
+                  final removed = _npcWaypointRows.removeAt(i);
+                  removed.dispose();
+                });
+              },
+              child: const Icon(
+                CupertinoIcons.minus_circle,
+                size: 18,
+              ),
+            ),
+          ],
+        ),
+      ]);
+    }
+
+    widgets.addAll([
+      const SizedBox(height: 8),
+      CupertinoButton(
+        padding: EdgeInsets.zero,
+        alignment: Alignment.centerLeft,
+        onPressed: _addNpcWaypointRow,
+        child: Text(_l('+ Ajouter waypoint', '+ Add waypoint')),
+      ),
+    ]);
+    return widgets;
   }
 
   Future<({DialogueRef? ref, bool invalid})> _parseDialogueRef(
@@ -799,7 +1006,8 @@ class _EntityPropertiesPanelState
         : _kCharacterNoneMenuId;
 
     return [
-      InspectorEmbeddedSectionLabel(_l('PERSONNAGE OVERWORLD', 'OVERWORLD CHARACTER')),
+      InspectorEmbeddedSectionLabel(
+          _l('PERSONNAGE OVERWORLD', 'OVERWORLD CHARACTER')),
       const SizedBox(height: 6),
       if (widget.embedded)
         InspectorEmbeddedDropdown(
@@ -810,8 +1018,7 @@ class _EntityPropertiesPanelState
           selectedMenuValue: selected,
           selectedIdForCheck: selected,
           idToLabel: labelOf,
-          onSelected: (id) =>
-              setState(() => _npcCharacterMenuId = id),
+          onSelected: (id) => setState(() => _npcCharacterMenuId = id),
           tooltip: _l(
             'Sprite de personnage utilisé pour ce PNJ sur l\'overworld',
             'Character sprite used for this NPC on the overworld',
@@ -860,7 +1067,8 @@ class _EntityPropertiesPanelState
     ProjectManifest? project,
   ) {
     const scriptAccent = EditorChrome.inspectorJoyLilac;
-    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final dialogueEntries =
+        project?.dialogues ?? const <ProjectDialogueEntry>[];
     final sorted = _sortedDialogueEntries(dialogueEntries);
 
     if (dialogueEntries.isEmpty) {
@@ -951,7 +1159,8 @@ class _EntityPropertiesPanelState
     ProjectManifest? project,
   ) {
     const battleAccent = EditorChrome.accentCoral;
-    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final dialogueEntries =
+        project?.dialogues ?? const <ProjectDialogueEntry>[];
     final sorted = _sortedDialogueEntries(dialogueEntries);
     final trainers = project?.trainers ?? const <ProjectTrainerEntry>[];
 
@@ -968,10 +1177,9 @@ class _EntityPropertiesPanelState
       return '${t.name} (${t.trainerClass})';
     }
 
-    final selectedTrainer =
-        trainerMenuIds.contains(_npcTrainerMenuId)
-            ? _npcTrainerMenuId
-            : _kTrainerNoneMenuId;
+    final selectedTrainer = trainerMenuIds.contains(_npcTrainerMenuId)
+        ? _npcTrainerMenuId
+        : _kTrainerNoneMenuId;
 
     return [
       InspectorEmbeddedSectionLabel(
@@ -1075,7 +1283,8 @@ class _EntityPropertiesPanelState
     ProjectManifest? project,
   ) {
     const scriptAccent = EditorChrome.inspectorJoyLilac;
-    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final dialogueEntries =
+        project?.dialogues ?? const <ProjectDialogueEntry>[];
     final sorted = _sortedDialogueEntries(dialogueEntries);
 
     if (dialogueEntries.isEmpty) {
@@ -1186,9 +1395,7 @@ class _EntityPropertiesPanelState
       ...sorted.map((e) => e.id),
     ];
     final c = currentId.trim();
-    if (c.isNotEmpty &&
-        c != _kElementNoneMenuId &&
-        !ids.contains(c)) {
+    if (c.isNotEmpty && c != _kElementNoneMenuId && !ids.contains(c)) {
       ids.add(c);
     }
     return ids;
@@ -1360,8 +1567,7 @@ class _EntityPropertiesPanelState
                   EntityFacing.values.firstWhere((f) => f.name == id),
                 ),
                 onSelected: (id) {
-                  final f =
-                      EntityFacing.values.firstWhere((e) => e.name == id);
+                  final f = EntityFacing.values.firstWhere((e) => e.name == id);
                   setState(() => _npcFacing = f);
                 },
                 tooltip: _l('Direction du PNJ', 'NPC facing'),
@@ -1385,6 +1591,8 @@ class _EntityPropertiesPanelState
                   '${_l('Orientation', 'Facing')}: ${_facingLabel(_npcFacing)}',
                 ),
               ),
+            const SizedBox(height: 8),
+            ..._npcMovementFields(context),
             const SizedBox(height: 8),
             ..._npcTrainerBattleFields(context, project),
             if (usesTrainerAppearance) ...[
@@ -1433,11 +1641,13 @@ class _EntityPropertiesPanelState
             const SizedBox(height: 12),
             if (widget.embedded)
               InspectorEmbeddedSectionLabel(
-                _l('Dialogue scripté (optionnel)', 'Scripted dialogue (optional)'),
+                _l('Dialogue scripté (optionnel)',
+                    'Scripted dialogue (optional)'),
               )
             else
               Text(
-                _l('Dialogue scripté (optionnel)', 'Scripted dialogue (optional)'),
+                _l('Dialogue scripté (optionnel)',
+                    'Scripted dialogue (optional)'),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1498,8 +1708,7 @@ class _EntityPropertiesPanelState
               padding: EdgeInsets.zero,
               alignment: Alignment.centerLeft,
               onPressed: () async {
-                final picked =
-                    await showCupertinoListPicker<ItemRespawnPolicy>(
+                final picked = await showCupertinoListPicker<ItemRespawnPolicy>(
                   context: context,
                   title: _l('Réapparition', 'Respawn'),
                   items: ItemRespawnPolicy.values,
@@ -1622,7 +1831,9 @@ class _EntityPropertiesPanelState
         const SizedBox(height: 8),
         Text(
           '${_l('Position', 'Position')}: (${selectedEntity.pos.x}, ${selectedEntity.pos.y}) | ${_l('Taille', 'Size')}: ${selectedEntity.size.width}x${selectedEntity.size.height}',
-          style: TextStyle(fontSize: 11, color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+          style: TextStyle(
+              fontSize: 11,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context)),
         ),
         const SizedBox(height: 8),
         _labeledField(
@@ -1708,7 +1919,8 @@ class _EntityPropertiesPanelState
                 context,
                 label: _l('X', 'X'),
                 controller: _xController,
-                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(signed: true),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
                 ],
@@ -1720,7 +1932,8 @@ class _EntityPropertiesPanelState
                 context,
                 label: _l('Y', 'Y'),
                 controller: _yController,
-                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(signed: true),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
                 ],
@@ -1874,13 +2087,15 @@ class _EntityPropertiesPanelState
     _boundFingerprint = fingerprint;
     Future.microtask(_reloadYarnNodes);
 
-    final dialogueEntries = project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final dialogueEntries =
+        project?.dialogues ?? const <ProjectDialogueEntry>[];
 
     _idController.text = entity?.id ?? '';
     if (entity != null && entity.kind == MapEntityKind.npc) {
       final dn = entity.npc?.displayName.trim() ?? '';
-      _nameController.text =
-          dn.isNotEmpty ? dn : (entity.name.trim().isNotEmpty ? entity.name : entity.id);
+      _nameController.text = dn.isNotEmpty
+          ? dn
+          : (entity.name.trim().isNotEmpty ? entity.name : entity.id);
     } else {
       _nameController.text = entity?.name ?? '';
     }
@@ -1923,6 +2138,26 @@ class _EntityPropertiesPanelState
     _npcTrainerMenuId =
         (tid == null || tid.isEmpty) ? _kTrainerNoneMenuId : tid;
     _npcLineOfSight.text = n.lineOfSightRange.toString();
+    final movement = n.movement;
+    _npcMovementMode = movement.mode;
+    _npcMovementLoop = movement.loop;
+    _npcMovementPauseMs.text = movement.pauseDurationMs.toString();
+    _npcMovementStepMs.text = movement.stepDurationMs.toString();
+    for (final row in _npcWaypointRows) {
+      row.dispose();
+    }
+    _npcWaypointRows
+      ..clear()
+      ..addAll(
+        movement.waypoints
+            .map(
+              (waypoint) => _NpcWaypointDraft(
+                xController: TextEditingController(text: waypoint.x.toString()),
+                yController: TextEditingController(text: waypoint.y.toString()),
+              ),
+            )
+            .toList(growable: false),
+      );
     final dd = n.defeatDialogueRef;
     if (dd == null) {
       _npcDefeatDialogueSource = _DialogueRefSource.none;
@@ -2110,12 +2345,11 @@ class _EntityPropertiesPanelState
           npcDlg = r.ref;
         }
         final trainerIdRaw = _npcTrainerMenuId.trim();
-        final trainerId = (trainerIdRaw.isEmpty ||
-                trainerIdRaw == _kTrainerNoneMenuId)
-            ? null
-            : trainerIdRaw;
-        final losRange =
-            int.tryParse(_npcLineOfSight.text.trim()) ?? 0;
+        final trainerId =
+            (trainerIdRaw.isEmpty || trainerIdRaw == _kTrainerNoneMenuId)
+                ? null
+                : trainerIdRaw;
+        final losRange = int.tryParse(_npcLineOfSight.text.trim()) ?? 0;
         DialogueRef? defeatDlgRef;
         if (_npcDefeatDialogueSource != _DialogueRefSource.none &&
             _npcDefeatDialogueId.text.trim().isNotEmpty) {
@@ -2137,6 +2371,28 @@ class _EntityPropertiesPanelState
         if (usesTrainerAppearance) {
           editorVisualPayload = null;
         }
+        final pauseMs = int.tryParse(_npcMovementPauseMs.text.trim()) ?? 0;
+        final stepMs = int.tryParse(_npcMovementStepMs.text.trim()) ?? 200;
+        final waypoints = <GridPos>[];
+        for (var i = 0; i < _npcWaypointRows.length; i++) {
+          final row = _npcWaypointRows[i];
+          final wx = int.tryParse(row.xController.text.trim());
+          final wy = int.tryParse(row.yController.text.trim());
+          if (wx == null || wy == null) {
+            if (!context.mounted) {
+              return;
+            }
+            await showCupertinoEditorAlert(
+              context,
+              message: _l(
+                'Waypoint ${i + 1} invalide. X et Y doivent être des entiers.',
+                'Invalid waypoint ${i + 1}. X and Y must be integers.',
+              ),
+            );
+            return;
+          }
+          waypoints.add(GridPos(x: wx, y: wy));
+        }
         npcPayload = MapEntityNpcData(
           displayName: _nameController.text.trim(),
           dialogue: npcDlg,
@@ -2146,6 +2402,13 @@ class _EntityPropertiesPanelState
           lineOfSightRange: losRange.clamp(0, 999),
           defeatDialogueRef: defeatDlgRef,
           characterId: charId,
+          movement: MapEntityNpcMovementConfig(
+            mode: _npcMovementMode,
+            waypoints: waypoints,
+            loop: _npcMovementLoop,
+            pauseDurationMs: pauseMs < 0 ? 0 : pauseMs,
+            stepDurationMs: stepMs <= 0 ? 200 : stepMs,
+          ),
         );
         break;
       case MapEntityKind.sign:
@@ -2330,5 +2593,20 @@ class _EntityPropertyDraft {
   void dispose() {
     keyController.dispose();
     valueController.dispose();
+  }
+}
+
+class _NpcWaypointDraft {
+  _NpcWaypointDraft({
+    required this.xController,
+    required this.yController,
+  });
+
+  final TextEditingController xController;
+  final TextEditingController yController;
+
+  void dispose() {
+    xController.dispose();
+    yController.dispose();
   }
 }

@@ -75,6 +75,8 @@ export 'src/application/scripted_entity_movement_controller.dart'
         ScriptedEntityStepStarter,
         ScriptedEntityStepInProgressReader,
         ScriptedEntityPositionCommitted;
+export 'src/application/npc_overworld_movement_defaults.dart'
+    show resolveNpcDefaultPatrolRoute;
 export 'src/application/cutscene_runtime_models.dart'
     show
         RuntimeCutsceneAsset,
