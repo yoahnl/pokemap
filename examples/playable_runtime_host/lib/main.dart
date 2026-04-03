@@ -32,6 +32,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   String? _error;
   bool _loading = false;
   bool _showCollisionOverlay = false;
+  bool _showNpcCollisionDebugOverlay = false;
   bool _surfingEnabled = false;
   bool _saveLoadBusy = false;
   String? _saveLoadStatus;
@@ -235,6 +236,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         _saveLoadError = null;
       });
       nextGame.setCollisionOverlayVisible(_showCollisionOverlay);
+      nextGame
+          .setNpcCollisionDebugOverlayVisible(_showNpcCollisionDebugOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
       _syncLot50DebugMarker();
       _startRuntimeInfoTicker();
@@ -467,6 +470,27 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                                 : (v) {
                                     setState(() => _surfingEnabled = v);
                                     game.setSurfingEnabled(v);
+                                  },
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'NPC hitbox',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _showNpcCollisionDebugOverlay,
+                            onChanged: _saveLoadBusy
+                                ? null
+                                : (v) {
+                                    setState(
+                                      () => _showNpcCollisionDebugOverlay = v,
+                                    );
+                                    game.setNpcCollisionDebugOverlayVisible(v);
                                   },
                           ),
                         ],

@@ -276,6 +276,14 @@ class ScriptedEntityMovementController {
         continue;
       }
 
+      // Une fois l'animation terminée, on commit la cellule atteinte dans la
+      // source de vérité runtime (GameplayWorldState). Ce commit différé évite
+      // les divergences "visuel vs interactif/collision" pendant un pas.
+      if (task.pendingRuntimeCommit != null) {
+        _onEntityPositionCommitted(entityId, task.pendingRuntimeCommit!);
+        task.pendingRuntimeCommit = null;
+      }
+
       final current = _trackedPositions[entityId];
       if (current == null) {
         _fail(
@@ -387,10 +395,13 @@ class ScriptedEntityMovementController {
       }
 
       // Commit logique immédiat de la nouvelle cellule.
-      // Le rendu termine l'animation visuelle, mais la simulation grille est
-      // déjà alignée, ce qui évite les collisions incohérentes.
+      // Note:
+      // - on met à jour la position interne du contrôleur tout de suite pour
+      //   enchaîner le chemin sans perdre l'état de progression;
+      // - le commit vers le monde runtime (interaction/collision canonique) est
+      //   différé à la fin du pas (tick suivant quand isEntityStepping=false).
       _trackedPositions[entityId] = next;
-      _onEntityPositionCommitted(entityId, next);
+      task.pendingRuntimeCommit = next;
       task.nextStepIndex += 1;
 
       _statusByEntityId[entityId] = ScriptedEntityMovementStatus(
@@ -534,6 +545,7 @@ class _MoveTask {
   List<GridPos> steps;
   int nextStepIndex;
   final double? stepDurationSeconds;
+  GridPos? pendingRuntimeCommit;
 }
 
 class _PatrolRuntime {

@@ -121,11 +121,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   CutsceneChoiceRequest? _pendingCutsceneChoiceRequest;
   ScriptedEntityMovementController? _scriptedEntityMovementController;
   final Map<String, GridPos> _runtimeNpcPositions = <String, GridPos>{};
+  // Réservations temporaires d'occupation pour PNJ scriptés en cours de pas.
+  //
+  // Frontière intentionnelle:
+  // - `GameplayWorldState` reste la source canonique des positions *commitées*.
+  // - pendant une interpolation visuelle d'un pas PNJ, on réserve aussi les
+  //   cellules de destination pour éviter les traversées joueur<->PNJ / PNJ<->PNJ.
+  final Map<String, Set<GridPos>> _scriptedNpcReservedOccupiedCellsByEntity =
+      <String, Set<GridPos>>{};
   double _runtimeClockMs = 0;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   void Function()? _pendingPostDialogueAction;
   bool _awaitingSurfConfirmation = false;
   bool _showCollisionOverlay = false;
+  bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
   TextComponent? _behaviorDebugOverlay;
   String _lastBehaviorDebugLine = 'Aucun behavior déclenché';
@@ -134,6 +143,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   RectangleComponent? _debugTileMarkerFill;
   RectangleComponent? _debugTileMarkerBorder;
   TextComponent? _debugTileMarkerText;
+  final Map<String, _NpcCollisionDebugVisual> _npcCollisionDebugByEntityId =
+      <String, _NpcCollisionDebugVisual>{};
 
   ScriptRuntimeController? _activeScriptController;
   bool _isAwaitingScriptResume = false;
@@ -163,6 +174,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     for (final loaded in _loadedMapsById.values) {
       loaded.backgroundLayers.showCollisionOverlay = visible;
     }
+  }
+
+  bool get showNpcCollisionDebugOverlay => _showNpcCollisionDebugOverlay;
+
+  void setNpcCollisionDebugOverlayVisible(bool visible) {
+    _showNpcCollisionDebugOverlay = visible;
+    if (!isLoaded) {
+      return;
+    }
+    _syncNpcCollisionDebugOverlay();
   }
 
   bool get showBehaviorDebugOverlay => _showBehaviorDebugOverlay;
@@ -639,6 +660,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
     _updateActorDepthOrdering();
     _syncCameraToPlayer();
+    _syncNpcCollisionDebugOverlay();
 
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
@@ -773,6 +795,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             attemptedY < 0 ||
             attemptedX >= _world.map.size.width ||
             attemptedY >= _world.map.size.height);
+
+    // Collision runtime stricte contre les destinations PNJ réservées.
+    //
+    // Sans ce garde-fou, un joueur peut entrer dans la case cible d'un PNJ en
+    // interpolation (avant commit canonique), créant un effet de traversée.
+    if (attemptedDirection != null &&
+        attemptedX != null &&
+        attemptedY != null &&
+        _isCellReservedByScriptedNpc(
+          GridPos(x: attemptedX, y: attemptedY),
+        )) {
+      _world =
+          _world.withPlayer(_world.player.copyWith(facing: attemptedDirection));
+      _player.syncState(_world.player);
+      return;
+    }
 
     final previousPlayerPos = _world.player.pos;
     final result = stepGameplayWorld(_world, intent);
@@ -2915,7 +2953,104 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _debugTileMarkerText = text;
   }
 
+  void _clearNpcCollisionDebugOverlay() {
+    final ids = _npcCollisionDebugByEntityId.keys.toList(growable: false);
+    for (final id in ids) {
+      final visual = _npcCollisionDebugByEntityId.remove(id);
+      visual?.spriteRect.removeFromParent();
+      visual?.collisionRect.removeFromParent();
+      visual?.anchorMarker.removeFromParent();
+    }
+  }
+
+  void _syncNpcCollisionDebugOverlay() {
+    if (!_showNpcCollisionDebugOverlay) {
+      _clearNpcCollisionDebugOverlay();
+      return;
+    }
+    final loaded = _loadedMapsById[_activeMapId];
+    if (loaded == null) {
+      _clearNpcCollisionDebugOverlay();
+      return;
+    }
+    final origin = _originPixelsOf(loaded);
+    final seen = <String>{};
+    for (final entity in _world.map.entities) {
+      if (entity.kind != MapEntityKind.npc) {
+        continue;
+      }
+      final actor = loaded.npcActorByEntityId[entity.id];
+      if (actor == null) {
+        continue;
+      }
+      seen.add(entity.id);
+      final visual = _npcCollisionDebugByEntityId.putIfAbsent(entity.id, () {
+        final spriteRect = RectangleComponent(
+          priority: 200000,
+          paint: ui.Paint()
+            ..color = const ui.Color(0xAA00E5FF)
+            ..style = ui.PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+        final collisionRect = RectangleComponent(
+          priority: 200001,
+          paint: ui.Paint()
+            ..color = const ui.Color(0xAAFF1744)
+            ..style = ui.PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+        final anchorMarker = CircleComponent(
+          radius: 3.0,
+          priority: 200002,
+          paint: ui.Paint()..color = const ui.Color(0xFFFFEA00),
+        );
+        world.add(spriteRect);
+        world.add(collisionRect);
+        world.add(anchorMarker);
+        return _NpcCollisionDebugVisual(
+          spriteRect: spriteRect,
+          collisionRect: collisionRect,
+          anchorMarker: anchorMarker,
+        );
+      });
+
+      // 1) Bounding box visuelle réelle du sprite.
+      visual.spriteRect
+        ..position = actor.position.clone()
+        ..size = actor.size.clone();
+
+      // 2) Footprint collision gameplay (grille -> pixels).
+      final footprint = resolveEntityCollisionFootprint(entity);
+      visual.collisionRect
+        ..position = Vector2(
+          origin.x + footprint.pos.x * _cellWidth,
+          origin.y + footprint.pos.y * _cellHeight,
+        )
+        ..size = Vector2(
+          footprint.size.width * _cellWidth,
+          footprint.size.height * _cellHeight,
+        );
+
+      // 3) Point d'ancrage logique MapEntity.pos (top-left cellule logique).
+      visual.anchorMarker.position = Vector2(
+        origin.x + entity.pos.x * _cellWidth + (_cellWidth / 2) - 3,
+        origin.y + entity.pos.y * _cellHeight + (_cellHeight / 2) - 3,
+      );
+    }
+
+    final stale = _npcCollisionDebugByEntityId.keys
+        .where((id) => !seen.contains(id))
+        .toList(growable: false);
+    for (final id in stale) {
+      final visual = _npcCollisionDebugByEntityId.remove(id);
+      visual?.spriteRect.removeFromParent();
+      visual?.collisionRect.removeFromParent();
+      visual?.anchorMarker.removeFromParent();
+    }
+  }
+
   void _unmountLoadedMap(String mapId) {
+    _clearNpcCollisionDebugOverlay();
     final loaded = _loadedMapsById.remove(mapId);
     if (loaded == null) {
       return;
@@ -3311,6 +3446,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runtimeNpcPositions
       ..clear()
       ..addAll(_collectCurrentNpcPositions());
+    _scriptedNpcReservedOccupiedCellsByEntity.clear();
 
     final controller = ScriptedEntityMovementController(
       mapSize: _world.map.size,
@@ -3380,9 +3516,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       world: _world,
       entityId: normalizedIgnore,
       anchorPos: GridPos(x: x, y: y),
-      dynamicBlockedCells: <GridPos>[
-        _world.player.pos,
-      ],
+      movementMode: MovementMode.walk,
+      dynamicBlockedCells: _scriptedNpcDynamicBlockedCells(
+        ignoreEntityId: normalizedIgnore,
+      ),
     );
     if (!probe.passable) {
       debugPrint(
@@ -3401,9 +3538,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       world: _world,
       entityId: entityId,
       anchorPos: to,
-      dynamicBlockedCells: <GridPos>[
-        _world.player.pos,
-      ],
+      movementMode: MovementMode.walk,
+      dynamicBlockedCells: _scriptedNpcDynamicBlockedCells(
+        ignoreEntityId: entityId,
+      ),
     );
     if (!probe.passable) {
       debugPrint(
@@ -3412,6 +3550,62 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return probe.reason;
     }
     return null;
+  }
+
+  /// Cellules dynamiques à bloquer pour un pas NPC scripté.
+  ///
+  /// Frontière conceptuelle:
+  /// - collision "statique" (layers + entités map) => via GameplayWorldState;
+  /// - collision "dynamique" hors map entities (joueur) => injectée ici.
+  ///
+  /// On inclut volontairement:
+  /// 1) la cellule logique canonique du joueur (`_world.player.pos`);
+  /// 2) la cellule visuelle actuelle au niveau des pieds du player pendant
+  ///    l'interpolation de pas.
+  ///
+  /// Le point (2) évite les traversées visuelles quand la simulation logique a
+  /// déjà commité un déplacement joueur mais que le sprite est encore en train
+  /// d'animer son pas.
+  Iterable<GridPos> _scriptedNpcDynamicBlockedCells({
+    String? ignoreEntityId,
+  }) sync* {
+    final canonical = _world.player.pos;
+    yield canonical;
+
+    final rendered = _renderedPlayerFootGridCell();
+    if (rendered == null) {
+      return;
+    }
+    if (rendered.x == canonical.x && rendered.y == canonical.y) {
+      // on continue pour inclure aussi les réservations PNJ.
+    } else {
+      yield rendered;
+    }
+
+    // Réservations de destination des autres PNJ en cours de pas.
+    for (final entry in _scriptedNpcReservedOccupiedCellsByEntity.entries) {
+      if (ignoreEntityId != null && entry.key == ignoreEntityId) {
+        continue;
+      }
+      yield* entry.value;
+    }
+  }
+
+  GridPos? _renderedPlayerFootGridCell() {
+    final origin = _player.mapOrigin;
+    if (_cellWidth <= 0 || _cellHeight <= 0) {
+      return null;
+    }
+    final foot = _player.footPoint;
+    final cellX = ((foot.x - origin.x) / _cellWidth).floor();
+    final cellY = ((foot.y - 1 - origin.y) / _cellHeight).floor();
+    if (cellX < 0 ||
+        cellY < 0 ||
+        cellX >= _world.map.size.width ||
+        cellY >= _world.map.size.height) {
+      return null;
+    }
+    return GridPos(x: cellX, y: cellY);
   }
 
   bool _startScriptedNpcStep({
@@ -3426,11 +3620,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (actor == null) {
       return false;
     }
-    return actor.startGridStep(
+    final started = actor.startGridStep(
       to: to,
       facing: facing,
       durationSeconds: durationSeconds ?? PlayerComponent.kDefaultStepSeconds,
     );
+    if (!started) {
+      _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
+      return false;
+    }
+    _reserveScriptedNpcStepOccupiedCells(
+      entityId: entityId,
+      fromAnchorPos: from,
+      toAnchorPos: to,
+    );
+    return true;
   }
 
   bool _isScriptedNpcStepping(String entityId) {
@@ -3441,7 +3645,80 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _commitScriptedNpcPosition(String entityId, GridPos position) {
     _runtimeNpcPositions[entityId] = position;
+    _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
     _world = _world.withEntityPosition(entityId, position);
+  }
+
+  bool _isCellReservedByScriptedNpc(GridPos cell) {
+    for (final cells in _scriptedNpcReservedOccupiedCellsByEntity.values) {
+      if (cells.contains(cell)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _reserveScriptedNpcStepOccupiedCells({
+    required String entityId,
+    required GridPos fromAnchorPos,
+    required GridPos toAnchorPos,
+  }) {
+    final entity = _world.map.entities
+        .where((candidate) => candidate.id == entityId)
+        .cast<MapEntity?>()
+        .firstWhere((candidate) => candidate != null, orElse: () => null);
+    if (entity == null) {
+      _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
+      return;
+    }
+
+    // Réservation "anti-traversée visuelle":
+    // - footprint collision de la destination (cohérence gameplay stricte),
+    // - footprint visuel grille du NPC sur source + destination (cohérence
+    //   perceptuelle pendant l'interpolation visuelle du sprite).
+    final reserved = <GridPos>{}
+      ..addAll(_resolveEntityCollisionCellsAtAnchor(entity, toAnchorPos))
+      ..addAll(_resolveEntityVisualCellsAtAnchor(entity, fromAnchorPos))
+      ..addAll(_resolveEntityVisualCellsAtAnchor(entity, toAnchorPos));
+    if (reserved.isEmpty) {
+      _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
+      return;
+    }
+    _scriptedNpcReservedOccupiedCellsByEntity[entityId] = reserved;
+  }
+
+  Set<GridPos> _resolveEntityCollisionCellsAtAnchor(
+    MapEntity entity,
+    GridPos anchorPos,
+  ) {
+    final moved = entity.copyWith(pos: anchorPos);
+    return resolveEntityCollisionCells(moved).where(_isInMapBounds).toSet();
+  }
+
+  Set<GridPos> _resolveEntityVisualCellsAtAnchor(
+    MapEntity entity,
+    GridPos anchorPos,
+  ) {
+    final cells = <GridPos>{};
+    for (var dy = 0; dy < entity.size.height; dy++) {
+      for (var dx = 0; dx < entity.size.width; dx++) {
+        final cell = GridPos(
+          x: anchorPos.x + dx,
+          y: anchorPos.y + dy,
+        );
+        if (_isInMapBounds(cell)) {
+          cells.add(cell);
+        }
+      }
+    }
+    return cells;
+  }
+
+  bool _isInMapBounds(GridPos cell) {
+    return cell.x >= 0 &&
+        cell.y >= 0 &&
+        cell.x < _world.map.size.width &&
+        cell.y < _world.map.size.height;
   }
 
   double get _cellWidth =>
@@ -3492,6 +3769,18 @@ class _LoadedPlayableMap {
   final MapLayersComponent foregroundLayers;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;
+}
+
+class _NpcCollisionDebugVisual {
+  _NpcCollisionDebugVisual({
+    required this.spriteRect,
+    required this.collisionRect,
+    required this.anchorMarker,
+  });
+
+  final RectangleComponent spriteRect;
+  final RectangleComponent collisionRect;
+  final CircleComponent anchorMarker;
 }
 
 class _GridCellPos {

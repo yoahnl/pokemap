@@ -64,13 +64,14 @@ void main() {
         controller.statusOf('npc_1').state,
         ScriptedEntityMovementState.moving,
       );
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+
+      controller.update(0.016);
       expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
 
       controller.update(0.016);
       expect(runtimePositions['npc_1'], const GridPos(x: 3, y: 1));
 
-      // Tick de finalisation (aucune étape restante -> completed).
-      controller.update(0.016);
       final done = controller.statusOf('npc_1');
       expect(done.state, ScriptedEntityMovementState.completed);
       expect(done.currentPos, const GridPos(x: 3, y: 1));
@@ -295,6 +296,8 @@ void main() {
       // commité au tick suivant (découplage planification/exécution).
       controller.update(0.016);
       expect(startedSteps, 1);
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+      controller.update(0.016);
       expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
     });
 
@@ -337,6 +340,9 @@ void main() {
       expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
       // 2e tick: exécution du premier pas.
       controller.update(0.016);
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+      // 3e tick: commit du premier pas.
+      controller.update(0.016);
       expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
 
       // Override cutscene/script: force une destination différente.
@@ -345,17 +351,17 @@ void main() {
         destination: const GridPos(x: 5, y: 1),
       );
       controller.update(0.016);
-      expect(runtimePositions['npc_1'], const GridPos(x: 3, y: 1));
+      expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
       controller.update(0.016);
       expect(runtimePositions['npc_1'], const GridPos(x: 4, y: 1));
       controller.update(0.016);
       expect(runtimePositions['npc_1'], const GridPos(x: 5, y: 1));
-      controller.update(0.016); // completion
 
       // Après completion, la patrouille reprend automatiquement.
       controller.update(0.016);
-      expect(runtimePositions['npc_1'], isNot(const GridPos(x: 5, y: 1)));
       expect(controller.isPatrolling('npc_1'), isTrue);
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], isNot(const GridPos(x: 5, y: 1)));
     });
 
     test('patrol stops explicitly when next waypoint is unreachable', () {

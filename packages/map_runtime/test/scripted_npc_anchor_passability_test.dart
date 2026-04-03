@@ -34,6 +34,8 @@ MapEntity _blockingNpc({
 GameplayWorldState _worldWithEntities(
   List<MapEntity> entities, {
   Set<GridPos> collisionBlocked = const <GridPos>{},
+  List<MapLayer> extraLayers = const <MapLayer>[],
+  ProjectManifest? project,
 }) {
   const mapSize = GridSize(width: 10, height: 10);
   final collisionCells = List<bool>.filled(
@@ -59,12 +61,14 @@ GameplayWorldState _worldWithEntities(
         name: 'Collision',
         collisions: collisionCells,
       ),
+      ...extraLayers,
     ],
     entities: entities,
   );
   return GameplayWorldState.initial(
     map: map,
     playerPos: const GridPos(x: 0, y: 0),
+    project: project,
   );
 }
 
@@ -83,6 +87,19 @@ void main() {
       );
       expect(blockedByPlayer.passable, isFalse);
       expect(blockedByPlayer.reason, contains('Dynamic blocker'));
+    });
+
+    test('self occupancy is ignored for current anchor (no self-block)', () {
+      final world = _worldWithEntities(<MapEntity>[
+        _npc(id: 'npc_1', pos: const GridPos(x: 4, y: 4)),
+      ]);
+
+      final sameAnchor = evaluateScriptedNpcAnchorPassability(
+        world: world,
+        entityId: 'npc_1',
+        anchorPos: const GridPos(x: 4, y: 4),
+      );
+      expect(sameAnchor.passable, isTrue);
     });
 
     test('scripted NPC cannot traverse another blocking NPC', () {
@@ -108,7 +125,7 @@ void main() {
     });
 
     test('scripted NPC 2x2 cannot traverse blocked obstacle cells', () {
-      // NPC 2x2 => collision default 1x1 sur les "pieds" (offset Y=+1).
+      // NPC 2x2 => collision par défaut alignée sur tout le footprint 2x2.
       final world = _worldWithEntities(<MapEntity>[
         _npc(
           id: 'npc_big',
@@ -116,8 +133,7 @@ void main() {
           size: const GridSize(width: 2, height: 2),
         ),
       ], collisionBlocked: <GridPos>{
-        // Bloque la cellule collision attendue pour l'ancrage (5,6):
-        // collision cell = (5,7).
+        // Pour l'ancrage (5,6), le footprint inclut (5,7).
         const GridPos(x: 5, y: 7),
       });
 
@@ -153,6 +169,52 @@ void main() {
       );
       expect(result.passable, isFalse);
       expect(result.reason, contains('out of bounds'));
+    });
+
+    test('walk movement blocks water surface cells for scripted NPC', () {
+      final waterCells = List<bool>.filled(10 * 10, false);
+      waterCells[1 * 10 + 2] = true;
+      final world = _worldWithEntities(
+        <MapEntity>[
+          _npc(id: 'npc_1', pos: const GridPos(x: 1, y: 1)),
+        ],
+        extraLayers: <MapLayer>[
+          MapLayer.path(
+            id: 'water_path_layer',
+            name: 'Water Path',
+            presetId: 'water_path',
+            cells: waterCells,
+          ),
+        ],
+        project: const ProjectManifest(
+          name: 'project',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'ts',
+              name: 'Tileset',
+              relativePath: 'tileset.png',
+            ),
+          ],
+          pathPresets: <ProjectPathPreset>[
+            ProjectPathPreset(
+              id: 'water_path',
+              name: 'Water',
+              surfaceKind: PathSurfaceKind.water,
+              tilesetId: 'ts',
+            ),
+          ],
+        ),
+      );
+
+      final result = evaluateScriptedNpcAnchorPassability(
+        world: world,
+        entityId: 'npc_1',
+        anchorPos: const GridPos(x: 2, y: 1),
+        movementMode: MovementMode.walk,
+      );
+      expect(result.passable, isFalse);
+      expect(result.reason, contains('waterRequiresSurf'));
     });
   });
 }

@@ -73,7 +73,18 @@ Iterable<GridPos> resolveEntityCollisionCells(MapEntity entity) sync* {
 
 GridSize _defaultCollisionSize(MapEntity entity) {
   if (entity.kind == MapEntityKind.npc) {
-    return const GridSize(width: 1, height: 1);
+    // NPC default collision:
+    // - on aligne désormais la hitbox sur toute la taille logique du sprite.
+    //
+    // Pourquoi:
+    // - une collision "feet only" pour les NPC 2x2 laissait des zones
+    //   traversables sur le haut du sprite (perçu comme traversée).
+    // - en pratique produit, la règle la plus sûre et lisible est:
+    //   hitbox par défaut = volume complet de l'entité.
+    //
+    // Les maps qui veulent un footprint plus fin peuvent toujours fournir des
+    // propriétés explicites `collision.width/height/offset`.
+    return entity.size;
   }
   return entity.size;
 }

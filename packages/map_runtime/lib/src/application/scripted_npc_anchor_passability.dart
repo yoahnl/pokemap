@@ -37,6 +37,7 @@ ScriptedNpcAnchorPassabilityResult evaluateScriptedNpcAnchorPassability({
   required String entityId,
   required GridPos anchorPos,
   Iterable<GridPos> dynamicBlockedCells = const <GridPos>[],
+  MovementMode movementMode = MovementMode.walk,
 }) {
   final normalizedId = entityId.trim();
   if (normalizedId.isEmpty) {
@@ -94,11 +95,16 @@ ScriptedNpcAnchorPassabilityResult evaluateScriptedNpcAnchorPassability({
       );
     }
 
-    if (world.isBlocked(cell.x, cell.y)) {
+    final movementBlockReason = world.movementBlockReasonAt(
+      x: cell.x,
+      y: cell.y,
+      movementMode: movementMode,
+    );
+    if (movementBlockReason != null) {
       return ScriptedNpcAnchorPassabilityResult(
         passable: false,
         reason:
-            'Blocked collision cell (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}).',
+            'Blocked collision cell (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}) reason=${movementBlockReason.name}.',
         evaluatedCollisionCells: collisionCells,
       );
     }
