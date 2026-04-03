@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import 'map_canvas.dart';
+import 'narrative_workspace_canvas.dart';
 import 'tileset_editor_canvas.dart';
 
 class EditorCanvasHost extends ConsumerWidget {
@@ -16,6 +17,10 @@ class EditorCanvasHost extends ConsumerWidget {
     return switch (state.workspaceMode) {
       EditorWorkspaceMode.map => const MapCanvas(),
       EditorWorkspaceMode.tileset => const TilesetEditorCanvas(),
+      EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.step ||
+      EditorWorkspaceMode.cutscene =>
+        const NarrativeWorkspaceCanvas(),
     };
   }
 }

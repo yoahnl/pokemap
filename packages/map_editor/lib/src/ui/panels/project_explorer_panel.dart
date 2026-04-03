@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
 import 'character_library_panel.dart';
+import 'narrative_library_panel.dart';
 import 'terrain_editor_panel.dart';
 import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
@@ -825,6 +826,7 @@ class ProjectExplorerPanel extends ConsumerStatefulWidget {
 class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandTileLib = true;
   bool _expandScriptLib = true;
+  bool _expandNarrative = true;
   bool _expandWorld = true;
   bool _expandTerrains = true;
   bool _expandPaths = true;
@@ -1015,6 +1017,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final screenH = MediaQuery.sizeOf(context).height;
     final hTileset = (screenH * 0.30).clamp(240.0, 400.0);
     final hScript = (screenH * 0.28).clamp(220.0, 380.0);
+    final hNarrative = (screenH * 0.34).clamp(260.0, 460.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
     final hPaths = (screenH * 0.36).clamp(280.0, 500.0);
@@ -1107,6 +1110,19 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             ],
           ),
           child: _buildScriptLibraryIsland(context, project, state, notifier),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Narrative Studio',
+          subtitle:
+              'Global Story, Steps, Cutscenes and outcomes (opens central workspaces)',
+          icon: CupertinoIcons.link_circle_fill,
+          accentColor: EditorChrome.inspectorJoyCyan,
+          badgeText: '${project.scenarios.length}',
+          expanded: _expandNarrative,
+          onToggle: () => setState(() => _expandNarrative = !_expandNarrative),
+          expandedHeight: hNarrative,
+          child: const NarrativeLibraryPanel(embedded: true),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,

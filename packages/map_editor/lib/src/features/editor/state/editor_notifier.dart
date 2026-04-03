@@ -1231,6 +1231,34 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  /// Ouvre le workspace central "Global Story".
+  ///
+  /// Ce changement est purement une navigation d'espace de travail:
+  /// - aucune mutation map/tileset n'est exécutée,
+  /// - aucune donnée narrative n'est modifiée ici.
+  void selectGlobalStoryWorkspace() {
+    state = state.copyWith(
+      workspaceMode: EditorWorkspaceMode.globalStory,
+      errorMessage: null,
+    );
+  }
+
+  /// Ouvre le workspace central "Step".
+  void selectStepWorkspace() {
+    state = state.copyWith(
+      workspaceMode: EditorWorkspaceMode.step,
+      errorMessage: null,
+    );
+  }
+
+  /// Ouvre le workspace central "Cutscene".
+  void selectCutsceneWorkspace() {
+    state = state.copyWith(
+      workspaceMode: EditorWorkspaceMode.cutscene,
+      errorMessage: null,
+    );
+  }
+
   void selectTilesetEditorContext(String? tilesetId) {
     final project = state.project;
     if (project == null) return;

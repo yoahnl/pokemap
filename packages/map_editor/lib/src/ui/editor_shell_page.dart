@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
+import 'package:map_editor/src/ui/panels/narrative_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
@@ -52,13 +53,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final workspaceMode = state.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final selectedTileset = notifier.getSelectedTilesetEntry();
-    // Rollback intention:
-    // Le shell ne propose plus de workspace "scenario". On revient à une
-    // surface d’édition concentrée sur map + tileset, sans navigation
-    // narrative expérimentale dans l’UI principale.
     final workspaceTitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap?.name ?? 'Map Workspace',
       EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
+      EditorWorkspaceMode.globalStory => 'Global Story Workspace',
+      EditorWorkspaceMode.step => 'Step Workspace',
+      EditorWorkspaceMode.cutscene => 'Cutscene Workspace',
     };
     final workspaceSubtitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap == null
@@ -67,6 +67,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.tileset => selectedTileset == null
           ? 'Select a tileset to browse and curate your library.'
           : 'Visual library editing for tiles, elements and groups.',
+      EditorWorkspaceMode.globalStory =>
+        'Macro narrative progression: arcs, milestones and high-level branches.',
+      EditorWorkspaceMode.step =>
+        'Step logic workspace: progression rules, expected outcomes, linked cutscenes.',
+      EditorWorkspaceMode.cutscene =>
+        'Scene execution workspace: dialogue, movement, waits, local branching.',
     };
 
     ref.listen(editorNotifierProvider.select((s) => s.errorMessage),
@@ -183,19 +189,18 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         backgroundColor: const Color(0x00000000),
                         toolBar: buildMapEditorToolbar(context, ref),
                         children: [
-                          ResizablePane.noScrollBar(
-                            key: const ValueKey('editor_left_pane'),
+                          const ResizablePane.noScrollBar(
+                            key: ValueKey('editor_left_pane'),
                             resizableSide: ResizableSide.right,
                             minSize: 240,
                             maxSize: 520,
                             startSize: 344,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: MacosColors.transparent,
                             ),
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 18, 12, 18),
-                              child: const ProjectExplorerPanel(),
+                              padding: EdgeInsets.fromLTRB(16, 18, 12, 18),
+                              child: ProjectExplorerPanel(),
                             ),
                           ),
                           ContentArea(
@@ -234,12 +239,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                 child: ClipRRect(
                                                   borderRadius:
                                                       BorderRadius.circular(26),
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            14),
-                                                    child:
-                                                        const EditorCanvasHost(),
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.all(14),
+                                                    child: EditorCanvasHost(),
                                                   ),
                                                 ),
                                               ),
@@ -273,12 +275,22 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                     EditorChrome.islandNeutralTint,
                                   EditorWorkspaceMode.tileset =>
                                     EditorChrome.islandWarmTint,
+                                  EditorWorkspaceMode.globalStory =>
+                                    EditorChrome.islandCoolTint,
+                                  EditorWorkspaceMode.step =>
+                                    EditorChrome.islandWarmTint,
+                                  EditorWorkspaceMode.cutscene =>
+                                    EditorChrome.islandNeutralTint,
                                 },
                                 child: switch (workspaceMode) {
                                   EditorWorkspaceMode.map =>
                                     const MapInspectorPanel(),
                                   EditorWorkspaceMode.tileset =>
                                     const TilesetPalettePanel(),
+                                  EditorWorkspaceMode.globalStory ||
+                                  EditorWorkspaceMode.step ||
+                                  EditorWorkspaceMode.cutscene =>
+                                    const NarrativeInspectorPanel(),
                                 },
                               ),
                             ),
@@ -398,10 +410,16 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final chipAccent = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyHoney,
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyLilac,
+      EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyCyan,
+      EditorWorkspaceMode.step => EditorChrome.inspectorJoyMint,
+      EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
     };
     final chipAccent2 = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyApricot,
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyPlum,
+      EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyBlue,
+      EditorWorkspaceMode.step => EditorChrome.accentJade,
+      EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
     };
 
     return Row(
@@ -429,6 +447,9 @@ class _WorkspaceStageHeader extends StatelessWidget {
             switch (workspaceMode) {
               EditorWorkspaceMode.map => CupertinoIcons.map,
               EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
+              EditorWorkspaceMode.globalStory => CupertinoIcons.link,
+              EditorWorkspaceMode.step => CupertinoIcons.flag,
+              EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
             },
             color: CupertinoColors.white,
             size: 22,
@@ -478,6 +499,9 @@ class _WorkspaceStageHeader extends StatelessWidget {
             switch (workspaceMode) {
               EditorWorkspaceMode.map => 'Scene',
               EditorWorkspaceMode.tileset => 'Library',
+              EditorWorkspaceMode.globalStory => 'Global',
+              EditorWorkspaceMode.step => 'Step',
+              EditorWorkspaceMode.cutscene => 'Cutscene',
             },
             style: TextStyle(
               color: chipAccent,

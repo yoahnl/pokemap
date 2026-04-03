@@ -9,11 +9,18 @@ part 'editor_state.freezed.dart';
 
 enum EditorWorkspaceMode {
   map,
-  // Rollback UI scénario:
-  // Le workspace "scenario" est volontairement retiré de l’éditeur pour
-  // revenir à une base stable. On conserve uniquement les workspaces qui
-  // restent officiellement supportés dans l’UI actuelle.
   tileset,
+
+  // Workspaces narratifs centraux.
+  //
+  // Intention produit (non négociable):
+  // - ces surfaces vivent dans l'îlot central, comme des workspaces de
+  //   premier plan (pas comme des "petits panneaux" latéraux).
+  // - la colonne gauche sert à naviguer/ouvrir.
+  // - la colonne droite sert à inspecter le contexte sélectionné.
+  globalStory,
+  step,
+  cutscene,
 }
 
 enum CollisionBrushSizeMode {

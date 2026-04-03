@@ -60,9 +60,6 @@ class TopToolbar extends ConsumerWidget {
 
     final map = state.activeMap;
     final isMapWorkspace = state.workspaceMode == EditorWorkspaceMode.map;
-    // Rollback UI scénario:
-    // la barre d’outils ne propose plus de bascule vers un workspace scénario.
-    // On conserve uniquement les espaces réellement maintenus.
     final hasTilesets = (state.project?.tilesets.isNotEmpty ?? false);
     final firstTilesetId =
         hasTilesets ? state.project!.tilesets.first.id : null;
@@ -210,6 +207,24 @@ class TopToolbar extends ConsumerWidget {
                       state.selectedTilesetEditorId ?? firstTilesetId,
                     )
                 : null,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.link,
+            tooltip: 'Switch to global story workspace',
+            selected: state.workspaceMode == EditorWorkspaceMode.globalStory,
+            onPressed: notifier.selectGlobalStoryWorkspace,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.flag,
+            tooltip: 'Switch to step workspace',
+            selected: state.workspaceMode == EditorWorkspaceMode.step,
+            onPressed: notifier.selectStepWorkspace,
+          ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.play_rectangle,
+            tooltip: 'Switch to cutscene workspace',
+            selected: state.workspaceMode == EditorWorkspaceMode.cutscene,
+            onPressed: notifier.selectCutsceneWorkspace,
           ),
         ],
       ),
@@ -399,6 +414,9 @@ class TopToolbar extends ConsumerWidget {
         workspaceLabel: switch (state.workspaceMode) {
           EditorWorkspaceMode.map => 'World Editor',
           EditorWorkspaceMode.tileset => 'Tileset Studio',
+          EditorWorkspaceMode.globalStory => 'Global Story',
+          EditorWorkspaceMode.step => 'Step Studio',
+          EditorWorkspaceMode.cutscene => 'Cutscene Studio',
         },
       ),
       titleWidth: 236,
@@ -1013,7 +1031,7 @@ class _ToolbarCapsuleButtonState extends State<_ToolbarCapsuleButton> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = EditorChrome.accentPrimary;
+    const accent = EditorChrome.accentPrimary;
     final enabled = widget.onPressed != null;
     final capsule = EditorChrome.toolbarCapsuleFill(context);
     final selectedFill = Color.lerp(capsule, accent, 0.26)!;
