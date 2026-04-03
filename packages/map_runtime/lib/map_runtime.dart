@@ -75,6 +75,30 @@ export 'src/application/scripted_entity_movement_controller.dart'
         ScriptedEntityStepStarter,
         ScriptedEntityStepInProgressReader,
         ScriptedEntityPositionCommitted;
+export 'src/application/cutscene_runtime_models.dart'
+    show
+        RuntimeCutsceneAsset,
+        RuntimeCutsceneStep,
+        CutsceneDialogueStep,
+        CutsceneMoveNpcToStep,
+        CutsceneWaitStep,
+        CutsceneFaceNpcStep,
+        CutsceneEmitOutcomeStep,
+        CutsceneSetFlagStep,
+        CutsceneClearFlagStep,
+        CutsceneRunnerState,
+        CutsceneRuntimeStatus;
+export 'src/application/cutscene_runtime_runner.dart'
+    show
+        CutsceneRuntimeContext,
+        CutsceneRuntimeRunner,
+        CutsceneOpenDialogue,
+        CutsceneMoveNpcTo,
+        CutsceneReadNpcMovementStatus,
+        CutsceneFaceNpc,
+        CutsceneEmitOutcome,
+        CutsceneSetFlag,
+        CutsceneClearFlag;
 
 // Save/Load system exports
 export 'domain/repositories/game_save_repository.dart'

@@ -13,6 +13,8 @@ import 'package:map_battle/map_battle.dart';
 
 import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
+import '../../application/cutscene_runtime_models.dart';
+import '../../application/cutscene_runtime_runner.dart';
 import '../../application/encounter_to_battle_request.dart';
 import '../../application/field_move_dialogue.dart';
 import '../../application/load_dialogue_content.dart';
@@ -66,6 +68,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     SaveData? saveData,
     GameSaveRepository? saveRepository,
     this.bundleTransformer,
+    this.runtimeCutscenes = const <RuntimeCutsceneAsset>[],
   })  : _bundle = bundle,
         _gameState = normalizeLoadedGameState(
           saveData == null
@@ -82,6 +85,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   final String projectFilePath;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
+  final List<RuntimeCutsceneAsset> runtimeCutscenes;
   RuntimeMapBundle _bundle;
   GameState _gameState;
   late GameplayWorldState _world;
@@ -110,6 +114,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeStoryBranching _storyBranching = const RuntimeStoryBranching();
   final ScenarioRuntimeExecutor _scenarioRuntime =
       const ScenarioRuntimeExecutor();
+  late final CutsceneRuntimeRunner _cutsceneRunner =
+      _buildCutsceneRuntimeRunner();
   ScriptedEntityMovementController? _scriptedEntityMovementController;
   final Map<String, GridPos> _runtimeNpcPositions = <String, GridPos>{};
   double _runtimeClockMs = 0;
@@ -291,6 +297,50 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return controller.statusOf(entityId);
   }
 
+  /// true si une cutscene runtime est en cours d'exécution.
+  bool get isCutsceneRunning => _cutsceneRunner.isRunning;
+
+  /// Identifiant de la cutscene active, `null` si aucune.
+  String? get activeCutsceneId => _cutsceneRunner.activeCutsceneId;
+
+  /// Snapshot détaillé du runner cutscene.
+  CutsceneRuntimeStatus get cutsceneStatus => _cutsceneRunner.status;
+
+  /// Démarre une cutscene fournie explicitement.
+  ///
+  /// Cette API est utile pour des déclenchements runtime directs (tests,
+  /// scripts d'initialisation, futur bridge Step -> Cutscene).
+  bool startCutscene(RuntimeCutsceneAsset cutscene) {
+    if (!isLoaded) {
+      return false;
+    }
+    return _cutsceneRunner.start(cutscene);
+  }
+
+  /// Démarre une cutscene depuis le registre runtime injecté au game host.
+  ///
+  /// Retourne `false` si l'ID est introuvable ou si une cutscene est déjà active.
+  bool startCutsceneById(String cutsceneId) {
+    if (!isLoaded) {
+      return false;
+    }
+    final normalized = cutsceneId.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    RuntimeCutsceneAsset? cutscene;
+    for (final candidate in runtimeCutscenes) {
+      if (candidate.id == normalized) {
+        cutscene = candidate;
+        break;
+      }
+    }
+    if (cutscene == null) {
+      return false;
+    }
+    return _cutsceneRunner.start(cutscene);
+  }
+
   void setBehaviorDebugOverlayVisible(bool visible) {
     _showBehaviorDebugOverlay = visible;
     if (!visible) {
@@ -450,6 +500,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return KeyEventResult.ignored;
     }
 
+    // Pendant une cutscene active en overworld, on bloque les entrées joueur
+    // directes (déplacement/interact) pour garder la scène déterministe.
+    if (isCutsceneRunning && _flowPhase == _RuntimeFlowPhase.overworld) {
+      if (_isMovementKey(key)) {
+        _pressedKeys.remove(key);
+        if (_lastMoveKey == key) {
+          _lastMoveKey = null;
+        }
+        return KeyEventResult.handled;
+      }
+      if (event is KeyDownEvent &&
+          (key == LogicalKeyboardKey.keyE ||
+              key == LogicalKeyboardKey.space ||
+              key == LogicalKeyboardKey.enter)) {
+        return KeyEventResult.handled;
+      }
+    }
+
     // Handle movement keys (but NOT during battle)
     if (_isMovementKey(key)) {
       if (_flowPhase == _RuntimeFlowPhase.dialogue) {
@@ -582,6 +650,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // - pas d'exécution pendant dialogue/battle transition;
     // - base propre pour un futur "wait movement" en cutscene.
     _scriptedEntityMovementController?.update(dt);
+
+    // Tick runner cutscene MVP (séquentiel).
+    _cutsceneRunner.update(dt);
+    if (isCutsceneRunning) {
+      // Tant que la cutscene n'est pas terminée, on ne laisse pas la boucle
+      // input joueur déplacer le player.
+      return;
+    }
 
     _driveMovement();
   }
@@ -3061,6 +3137,111 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       Direction.west => EntityFacing.east,
     };
     actor.setMotion(npcFacing, CharacterAnimationState.idle);
+  }
+
+  /// Construit le runner cutscene MVP avec callbacks runtime concrets.
+  ///
+  /// Le runner reste découplé de Flame; `PlayableMapGame` lui injecte juste
+  /// les opérations nécessaires.
+  CutsceneRuntimeRunner _buildCutsceneRuntimeRunner() {
+    return CutsceneRuntimeRunner(
+      context: CutsceneRuntimeContext(
+        openDialogue: (dialogueId, {startNode}) {
+          return _openScenarioDialogueById(
+            dialogueId,
+            startNode: startNode,
+            runtimeSourceId: 'cutscene',
+          );
+        },
+        moveNpcTo: ({required entityId, required destination}) {
+          return startScriptedNpcMove(
+            entityId: entityId,
+            destination: destination,
+          );
+        },
+        readNpcMovementStatus: (entityId) {
+          return scriptedNpcMovementStatus(entityId);
+        },
+        faceNpc: ({required entityId, required facing}) {
+          return _setNpcFacing(entityId, facing);
+        },
+        emitOutcome: (outcomeId) {
+          _emitCutsceneOutcome(outcomeId);
+        },
+        setFlag: (flagName) {
+          _gameState = _storyFlags.set(_gameState, flagName);
+        },
+        clearFlag: (flagName) {
+          _gameState = _storyFlags.clear(_gameState, flagName);
+        },
+      ),
+    );
+  }
+
+  /// Oriente explicitement un PNJ (étape `faceNpc` de cutscene).
+  ///
+  /// On met à jour:
+  /// - l'acteur visuel (immédiat),
+  /// - la map runtime en mémoire (facing npc), pour rester cohérent avec les
+  ///   futures logiques gameplay lisant l'orientation d'entité.
+  bool _setNpcFacing(String entityId, EntityFacing facing) {
+    final loaded = _loadedMapsById[_activeMapId];
+    final actor = loaded?.npcActorByEntityId[entityId];
+    if (actor == null) {
+      return false;
+    }
+    actor.setMotion(facing, CharacterAnimationState.idle);
+
+    final entities = _world.map.entities;
+    final index = entities.indexWhere((entity) => entity.id == entityId);
+    if (index < 0) {
+      return true;
+    }
+    final entity = entities[index];
+    final npc = entity.npc;
+    if (npc == null) {
+      return true;
+    }
+    final updatedEntities = List<MapEntity>.from(entities);
+    updatedEntities[index] = entity.copyWith(
+      npc: npc.copyWith(facing: facing),
+    );
+    final updatedMap = _world.map.copyWith(entities: updatedEntities);
+    _world = GameplayWorldState.initial(
+      map: updatedMap,
+      playerPos: _world.player.pos,
+      playerFacing: _world.player.facing,
+      playerMovementMode: _world.player.movementMode,
+      project: _bundle.manifest,
+      tileWidth: _bundle.manifest.settings.tileWidth,
+      tileHeight: _bundle.manifest.settings.tileHeight,
+    );
+    _bundle = RuntimeMapBundle(
+      manifest: _bundle.manifest,
+      map: updatedMap,
+      projectRootDirectory: _bundle.projectRootDirectory,
+      tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
+    );
+    return true;
+  }
+
+  /// Émet un outcome depuis une cutscene.
+  ///
+  /// MVP:
+  /// 1) on persiste l'outcome comme flag `scenario.outcome.*`,
+  /// 2) on tente une transition vers un scénario global via `sourceOutcome`.
+  void _emitCutsceneOutcome(String outcomeId) {
+    final normalized = outcomeId.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    _gameState =
+        _storyFlags.set(_gameState, scenarioOutcomeFlagName(normalized));
+    _dispatchScenarioRuntimeSource(
+      ScenarioRuntimeSourceEvent.outcomeReceived(
+        outcomeId: normalized,
+      ),
+    );
   }
 
   /// (Re)crée le contrôleur de déplacement scripté pour la map active.

@@ -36,6 +36,30 @@ void main() {
       expect(game.isSurfing, isFalse);
       expect(game.saveLoadInfo.movementMode, MovementMode.walk.name);
     });
+
+    test('cutscene public API is safe before onLoad', () {
+      final game = PlayableMapGame(
+        bundle: _baseBundle(),
+        projectFilePath: '/tmp/project.json',
+        runtimeCutscenes: const <RuntimeCutsceneAsset>[
+          RuntimeCutsceneAsset(
+            id: 'intro',
+            name: 'Intro',
+            steps: <RuntimeCutsceneStep>[
+              CutsceneDialogueStep(dialogueId: 'intro_dialogue'),
+            ],
+          ),
+        ],
+      );
+
+      expect(game.isCutsceneRunning, isFalse);
+      expect(game.activeCutsceneId, isNull);
+      expect(game.cutsceneStatus.state, CutsceneRunnerState.idle);
+
+      // Tant que onLoad n'a pas initialisé le runtime world, on refuse le start.
+      expect(game.startCutsceneById('intro'), isFalse);
+      expect(game.isCutsceneRunning, isFalse);
+    });
   });
 }
 
