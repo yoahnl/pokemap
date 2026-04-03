@@ -314,6 +314,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!isLoaded) {
       return false;
     }
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      return false;
+    }
     return _cutsceneRunner.start(cutscene);
   }
 
@@ -328,13 +331,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (normalized.isEmpty) {
       return false;
     }
-    RuntimeCutsceneAsset? cutscene;
-    for (final candidate in runtimeCutscenes) {
-      if (candidate.id == normalized) {
-        cutscene = candidate;
-        break;
-      }
-    }
+    final cutscene = _findRuntimeCutsceneById(normalized);
     if (cutscene == null) {
       return false;
     }
@@ -3153,6 +3150,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             runtimeSourceId: 'cutscene',
           );
         },
+        isDialogueOpen: () => _dialogueOverlay != null,
+        resolveCutsceneById: _findRuntimeCutsceneById,
         moveNpcTo: ({required entityId, required destination}) {
           return startScriptedNpcMove(
             entityId: entityId,
@@ -3174,8 +3173,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         clearFlag: (flagName) {
           _gameState = _storyFlags.clear(_gameState, flagName);
         },
+        isFlagSet: (flagName) => _storyFlags.isSet(_gameState, flagName),
+        isOutcomeSet: (outcomeId) =>
+            _storyFlags.isSet(_gameState, scenarioOutcomeFlagName(outcomeId)),
       ),
     );
+  }
+
+  RuntimeCutsceneAsset? _findRuntimeCutsceneById(String cutsceneId) {
+    final normalized = cutsceneId.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    for (final candidate in runtimeCutscenes) {
+      if (candidate.id == normalized) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   /// Oriente explicitement un PNJ (étape `faceNpc` de cutscene).

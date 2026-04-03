@@ -82,10 +82,15 @@ export 'src/application/cutscene_runtime_models.dart'
         CutsceneDialogueStep,
         CutsceneMoveNpcToStep,
         CutsceneWaitStep,
+        CutsceneWaitUntilDialogueClosedStep,
+        CutsceneWaitUntilNpcMoveCompletedStep,
         CutsceneFaceNpcStep,
         CutsceneEmitOutcomeStep,
+        CutsceneWaitUntilFlagStep,
+        CutsceneWaitUntilOutcomeStep,
         CutsceneSetFlagStep,
         CutsceneClearFlagStep,
+        CutsceneCallStep,
         CutsceneRunnerState,
         CutsceneRuntimeStatus;
 export 'src/application/cutscene_runtime_runner.dart'
@@ -93,12 +98,16 @@ export 'src/application/cutscene_runtime_runner.dart'
         CutsceneRuntimeContext,
         CutsceneRuntimeRunner,
         CutsceneOpenDialogue,
+        CutsceneIsDialogueOpen,
+        CutsceneResolveById,
         CutsceneMoveNpcTo,
         CutsceneReadNpcMovementStatus,
         CutsceneFaceNpc,
         CutsceneEmitOutcome,
         CutsceneSetFlag,
-        CutsceneClearFlag;
+        CutsceneClearFlag,
+        CutsceneIsFlagSet,
+        CutsceneIsOutcomeSet;
 
 // Save/Load system exports
 export 'domain/repositories/game_save_repository.dart'

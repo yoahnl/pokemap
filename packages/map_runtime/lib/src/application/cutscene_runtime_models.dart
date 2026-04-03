@@ -73,10 +73,12 @@ class CutsceneDialogueStep extends RuntimeCutsceneStep {
   const CutsceneDialogueStep({
     required this.dialogueId,
     this.startNode,
+    this.waitUntilClosed = true,
   });
 
   final String dialogueId;
   final String? startNode;
+  final bool waitUntilClosed;
 }
 
 /// Étape: déplacer un PNJ vers une destination grille.
@@ -99,6 +101,26 @@ class CutsceneWaitStep extends RuntimeCutsceneStep {
   final int durationMs;
 }
 
+/// Étape: attendre explicitement la fermeture du dialogue actif.
+class CutsceneWaitUntilDialogueClosedStep extends RuntimeCutsceneStep {
+  const CutsceneWaitUntilDialogueClosedStep({
+    this.timeoutMs,
+  });
+
+  final int? timeoutMs;
+}
+
+/// Étape: attendre explicitement qu'un PNJ termine son mouvement.
+class CutsceneWaitUntilNpcMoveCompletedStep extends RuntimeCutsceneStep {
+  const CutsceneWaitUntilNpcMoveCompletedStep({
+    required this.entityId,
+    this.timeoutMs,
+  });
+
+  final String entityId;
+  final int? timeoutMs;
+}
+
 /// Étape: orienter un PNJ.
 class CutsceneFaceNpcStep extends RuntimeCutsceneStep {
   const CutsceneFaceNpcStep({
@@ -119,6 +141,32 @@ class CutsceneEmitOutcomeStep extends RuntimeCutsceneStep {
   final String outcomeId;
 }
 
+/// Étape: attendre qu'un flag soit dans un état donné.
+class CutsceneWaitUntilFlagStep extends RuntimeCutsceneStep {
+  const CutsceneWaitUntilFlagStep({
+    required this.flagName,
+    this.expectedSet = true,
+    this.timeoutMs,
+  });
+
+  final String flagName;
+  final bool expectedSet;
+  final int? timeoutMs;
+}
+
+/// Étape: attendre qu'un outcome soit émis (persisté) ou non.
+class CutsceneWaitUntilOutcomeStep extends RuntimeCutsceneStep {
+  const CutsceneWaitUntilOutcomeStep({
+    required this.outcomeId,
+    this.expectedSet = true,
+    this.timeoutMs,
+  });
+
+  final String outcomeId;
+  final bool expectedSet;
+  final int? timeoutMs;
+}
+
 /// Étape: activer un flag runtime.
 class CutsceneSetFlagStep extends RuntimeCutsceneStep {
   const CutsceneSetFlagStep({
@@ -135,4 +183,13 @@ class CutsceneClearFlagStep extends RuntimeCutsceneStep {
   });
 
   final String flagName;
+}
+
+/// Étape: appeler une autre cutscene par ID.
+class CutsceneCallStep extends RuntimeCutsceneStep {
+  const CutsceneCallStep({
+    required this.cutsceneId,
+  });
+
+  final String cutsceneId;
 }
