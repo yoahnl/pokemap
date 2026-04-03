@@ -40,6 +40,8 @@ class CutsceneRuntimeStatus {
     this.activeCutsceneId,
     this.activeStepIndex,
     this.failureReason,
+    this.activeChoiceRequest,
+    this.lastChoiceResult,
   });
 
   const CutsceneRuntimeStatus.idle()
@@ -51,6 +53,8 @@ class CutsceneRuntimeStatus {
   final String? activeCutsceneId;
   final int? activeStepIndex;
   final String? failureReason;
+  final CutsceneChoiceRequest? activeChoiceRequest;
+  final CutsceneChoiceResult? lastChoiceResult;
 
   bool get isRunning => state == CutsceneRunnerState.running;
   bool get isTerminal =>
@@ -68,6 +72,42 @@ abstract class RuntimeCutsceneStep {
   const RuntimeCutsceneStep();
 }
 
+class CutsceneChoiceOption {
+  const CutsceneChoiceOption({
+    required this.value,
+    required this.label,
+  });
+
+  final String value;
+  final String label;
+}
+
+class CutsceneChoiceRequest {
+  const CutsceneChoiceRequest({
+    required this.choiceId,
+    required this.prompt,
+    required this.options,
+  });
+
+  final String choiceId;
+  final String prompt;
+  final List<CutsceneChoiceOption> options;
+}
+
+class CutsceneChoiceResult {
+  const CutsceneChoiceResult({
+    required this.choiceId,
+    required this.selectedIndex,
+    required this.selectedValue,
+    required this.selectedLabel,
+  });
+
+  final String choiceId;
+  final int selectedIndex;
+  final String selectedValue;
+  final String selectedLabel;
+}
+
 /// Étape: ouvrir un dialogue projet.
 class CutsceneDialogueStep extends RuntimeCutsceneStep {
   const CutsceneDialogueStep({
@@ -79,6 +119,83 @@ class CutsceneDialogueStep extends RuntimeCutsceneStep {
   final String dialogueId;
   final String? startNode;
   final bool waitUntilClosed;
+}
+
+/// Étape: demander un choix joueur.
+///
+/// Le runner:
+/// - émet une requête de choix via le host runtime,
+/// - attend la résolution explicite du choix,
+/// - stocke le résultat pour les étapes de branchement suivantes.
+class CutsceneChoiceStep extends RuntimeCutsceneStep {
+  const CutsceneChoiceStep({
+    required this.choiceId,
+    required this.prompt,
+    required this.options,
+  });
+
+  final String choiceId;
+  final String prompt;
+  final List<CutsceneChoiceOption> options;
+}
+
+/// Étape de marquage de position dans la cutscene.
+///
+/// No-op à l'exécution, utilisée comme cible de goto.
+class CutsceneLabelStep extends RuntimeCutsceneStep {
+  const CutsceneLabelStep({
+    required this.label,
+  });
+
+  final String label;
+}
+
+/// Étape de saut inconditionnel vers un label.
+class CutsceneGotoStep extends RuntimeCutsceneStep {
+  const CutsceneGotoStep({
+    required this.label,
+  });
+
+  final String label;
+}
+
+/// Saut vers label si le résultat du choix est égal à une valeur.
+class CutsceneGotoIfChoiceStep extends RuntimeCutsceneStep {
+  const CutsceneGotoIfChoiceStep({
+    required this.choiceId,
+    required this.expectedValue,
+    required this.label,
+  });
+
+  final String choiceId;
+  final String expectedValue;
+  final String label;
+}
+
+/// Saut vers label si un flag est dans l'état attendu.
+class CutsceneGotoIfFlagStep extends RuntimeCutsceneStep {
+  const CutsceneGotoIfFlagStep({
+    required this.flagName,
+    required this.label,
+    this.expectedSet = true,
+  });
+
+  final String flagName;
+  final String label;
+  final bool expectedSet;
+}
+
+/// Saut vers label si un outcome est dans l'état attendu.
+class CutsceneGotoIfOutcomeStep extends RuntimeCutsceneStep {
+  const CutsceneGotoIfOutcomeStep({
+    required this.outcomeId,
+    required this.label,
+    this.expectedSet = true,
+  });
+
+  final String outcomeId;
+  final String label;
+  final bool expectedSet;
 }
 
 /// Étape: déplacer un PNJ vers une destination grille.

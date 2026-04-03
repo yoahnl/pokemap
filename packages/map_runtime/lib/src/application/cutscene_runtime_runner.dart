@@ -10,6 +10,8 @@ typedef CutsceneOpenDialogue = bool Function(
 
 typedef CutsceneIsDialogueOpen = bool Function();
 
+typedef CutsceneRequestChoice = bool Function(CutsceneChoiceRequest request);
+
 typedef CutsceneResolveById = RuntimeCutsceneAsset? Function(String cutsceneId);
 
 typedef CutsceneMoveNpcTo = ScriptedEntityMovementStatus Function({
@@ -36,6 +38,7 @@ class CutsceneRuntimeContext {
   const CutsceneRuntimeContext({
     required this.openDialogue,
     required this.isDialogueOpen,
+    required this.requestChoice,
     required this.resolveCutsceneById,
     required this.moveNpcTo,
     required this.readNpcMovementStatus,
@@ -49,6 +52,7 @@ class CutsceneRuntimeContext {
 
   final CutsceneOpenDialogue openDialogue;
   final CutsceneIsDialogueOpen isDialogueOpen;
+  final CutsceneRequestChoice requestChoice;
   final CutsceneResolveById resolveCutsceneById;
   final CutsceneMoveNpcTo moveNpcTo;
   final CutsceneReadNpcMovementStatus readNpcMovementStatus;
@@ -64,13 +68,20 @@ class CutsceneRuntimeRunner {
   CutsceneRuntimeRunner({
     required CutsceneRuntimeContext context,
     this.maxCallDepth = 8,
+    this.maxStepTransitions = 10000,
   }) : _context = context;
 
   final CutsceneRuntimeContext _context;
   final int maxCallDepth;
+  final int maxStepTransitions;
 
   final List<_CutsceneFrame> _frames = <_CutsceneFrame>[];
+  final Map<String, CutsceneChoiceResult> _choiceResultsById =
+      <String, CutsceneChoiceResult>{};
   _PendingWait? _pendingWait;
+  CutsceneChoiceRequest? _activeChoiceRequest;
+  CutsceneChoiceResult? _lastChoiceResult;
+  int _transitionCount = 0;
   CutsceneRuntimeStatus _status = const CutsceneRuntimeStatus.idle();
   String? _lastStartError;
 
@@ -78,6 +89,9 @@ class CutsceneRuntimeRunner {
   bool get isRunning => _status.isRunning;
   String? get activeCutsceneId => _status.activeCutsceneId;
   String? get lastStartError => _lastStartError;
+  bool get hasActiveChoice => _activeChoiceRequest != null;
+  CutsceneChoiceRequest? get activeChoiceRequest => _activeChoiceRequest;
+  CutsceneChoiceResult? get lastChoiceResult => _lastChoiceResult;
 
   bool start(RuntimeCutsceneAsset cutscene) {
     if (isRunning) {
@@ -93,20 +107,64 @@ class CutsceneRuntimeRunner {
       _lastStartError = _status.failureReason;
       return false;
     }
+
+    final rootFrame = _tryBuildFrame(cutscene);
+    if (rootFrame == null) {
+      _lastStartError = _status.failureReason;
+      return false;
+    }
+
     _frames
       ..clear()
-      ..add(_CutsceneFrame(cutscene: cutscene));
+      ..add(rootFrame);
+    _choiceResultsById.clear();
     _pendingWait = null;
+    _activeChoiceRequest = null;
+    _lastChoiceResult = null;
+    _transitionCount = 0;
     _lastStartError = null;
-    _status = CutsceneRuntimeStatus(
-      state: CutsceneRunnerState.running,
-      activeCutsceneId: id,
-      activeStepIndex: 0,
-    );
+    _setRunningStatus(rootFrame);
     if (cutscene.steps.isEmpty) {
       _complete();
     }
     return true;
+  }
+
+  bool resolveActiveChoiceByIndex(int selectedIndex) {
+    final request = _activeChoiceRequest;
+    if (!isRunning || request == null) {
+      return false;
+    }
+    if (selectedIndex < 0 || selectedIndex >= request.options.length) {
+      return false;
+    }
+    final option = request.options[selectedIndex];
+    final result = CutsceneChoiceResult(
+      choiceId: request.choiceId,
+      selectedIndex: selectedIndex,
+      selectedValue: option.value,
+      selectedLabel: option.label,
+    );
+    _onChoiceResolved(result);
+    return true;
+  }
+
+  bool resolveActiveChoiceByValue(String selectedValue) {
+    final request = _activeChoiceRequest;
+    if (!isRunning || request == null) {
+      return false;
+    }
+    final normalized = selectedValue.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    final index = request.options.indexWhere(
+      (option) => option.value == normalized,
+    );
+    if (index < 0) {
+      return false;
+    }
+    return resolveActiveChoiceByIndex(index);
   }
 
   void update(double dtSeconds) {
@@ -120,11 +178,11 @@ class CutsceneRuntimeRunner {
       return;
     }
 
-    _status = CutsceneRuntimeStatus(
-      state: CutsceneRunnerState.running,
-      activeCutsceneId: top.cutscene.id,
-      activeStepIndex: top.stepIndex,
-    );
+    _setRunningStatus(top);
+
+    if (_activeChoiceRequest != null) {
+      return;
+    }
 
     if (_pendingWait != null) {
       _tickPendingWait(dtMs);
@@ -141,14 +199,46 @@ class CutsceneRuntimeRunner {
       _runDialogueStep(top, step);
       return;
     }
+    if (step is CutsceneChoiceStep) {
+      _runChoiceStep(step);
+      return;
+    }
+    if (step is CutsceneLabelStep) {
+      _advanceStepOnTopFrame();
+      return;
+    }
+    if (step is CutsceneGotoStep) {
+      _jumpToLabelOnTopFrame(step.label);
+      return;
+    }
+    if (step is CutsceneGotoIfChoiceStep) {
+      _runGotoIfChoiceStep(step);
+      return;
+    }
+    if (step is CutsceneGotoIfFlagStep) {
+      final isSet = _context.isFlagSet(step.flagName);
+      if (isSet == step.expectedSet) {
+        _jumpToLabelOnTopFrame(step.label);
+      } else {
+        _advanceStepOnTopFrame();
+      }
+      return;
+    }
+    if (step is CutsceneGotoIfOutcomeStep) {
+      final isSet = _context.isOutcomeSet(step.outcomeId);
+      if (isSet == step.expectedSet) {
+        _jumpToLabelOnTopFrame(step.label);
+      } else {
+        _advanceStepOnTopFrame();
+      }
+      return;
+    }
     if (step is CutsceneMoveNpcToStep) {
       _runMoveNpcStep(step);
       return;
     }
     if (step is CutsceneWaitStep) {
-      _pendingWait = _PendingWait.waitMs(
-        remainingMs: step.durationMs,
-      );
+      _pendingWait = _PendingWait.waitMs(remainingMs: step.durationMs);
       _tickPendingWait(dtMs);
       return;
     }
@@ -249,6 +339,75 @@ class CutsceneRuntimeRunner {
     _pendingWait = _PendingWait.dialogueClosed();
   }
 
+  void _runChoiceStep(CutsceneChoiceStep step) {
+    final choiceId = step.choiceId.trim();
+    if (choiceId.isEmpty) {
+      _fail('Choice step has empty choiceId.');
+      return;
+    }
+    if (step.options.isEmpty) {
+      _fail('Choice "$choiceId" has no options.');
+      return;
+    }
+    final options = <CutsceneChoiceOption>[];
+    final values = <String>{};
+    for (final option in step.options) {
+      final value = option.value.trim();
+      final label = option.label.trim();
+      if (value.isEmpty) {
+        _fail('Choice "$choiceId" contains an option with empty value.');
+        return;
+      }
+      if (!values.add(value)) {
+        _fail('Choice "$choiceId" contains duplicate option value "$value".');
+        return;
+      }
+      options.add(
+        CutsceneChoiceOption(
+          value: value,
+          label: label.isEmpty ? value : label,
+        ),
+      );
+    }
+    final request = CutsceneChoiceRequest(
+      choiceId: choiceId,
+      prompt: step.prompt.trim(),
+      options: options,
+    );
+    if (!_context.requestChoice(request)) {
+      _fail('Failed to request player choice "$choiceId".');
+      return;
+    }
+    _activeChoiceRequest = request;
+    final top = _topFrame;
+    if (top != null) {
+      _setRunningStatus(top);
+    }
+  }
+
+  void _runGotoIfChoiceStep(CutsceneGotoIfChoiceStep step) {
+    final choiceId = step.choiceId.trim();
+    if (choiceId.isEmpty) {
+      _fail('GotoIfChoice has empty choiceId.');
+      return;
+    }
+    final expected = step.expectedValue.trim();
+    if (expected.isEmpty) {
+      _fail('GotoIfChoice has empty expectedValue.');
+      return;
+    }
+    final result = _choiceResultsById[choiceId];
+    if (result == null) {
+      _fail('GotoIfChoice cannot find choice result for "$choiceId".');
+      return;
+    }
+    if (result.selectedValue == expected) {
+      _jumpToLabelOnTopFrame(step.label);
+    } else {
+      _advanceStepOnTopFrame();
+    }
+  }
+
   void _runMoveNpcStep(CutsceneMoveNpcToStep step) {
     final entityId = step.entityId.trim();
     if (entityId.isEmpty) {
@@ -259,16 +418,19 @@ class CutsceneRuntimeRunner {
       entityId: entityId,
       destination: step.destination,
     );
-    switch (startStatus.state) {
-      case ScriptedEntityMovementState.completed:
-        _advanceStepOnTopFrame();
-      case ScriptedEntityMovementState.moving:
-        _pendingWait = _PendingWait.npcMoveCompleted(entityId: entityId);
-      case ScriptedEntityMovementState.failed:
-        _fail(startStatus.failureReason ?? 'Failed to start movement.');
-      case ScriptedEntityMovementState.idle:
-        _fail('Move step returned idle for "$entityId".');
+    if (startStatus.state == ScriptedEntityMovementState.completed) {
+      _advanceStepOnTopFrame();
+      return;
     }
+    if (startStatus.state == ScriptedEntityMovementState.moving) {
+      _pendingWait = _PendingWait.npcMoveCompleted(entityId: entityId);
+      return;
+    }
+    if (startStatus.state == ScriptedEntityMovementState.failed) {
+      _fail(startStatus.failureReason ?? 'Failed to start movement.');
+      return;
+    }
+    _fail('Move step returned idle for "$entityId".');
   }
 
   void _runCallCutsceneStep(_CutsceneFrame frame, CutsceneCallStep step) {
@@ -298,14 +460,14 @@ class CutsceneRuntimeRunner {
         return;
       }
     }
+    final calledFrame = _tryBuildFrame(called);
+    if (calledFrame == null) {
+      return;
+    }
 
     frame.waitingForCalledCutscene = true;
-    _frames.add(_CutsceneFrame(cutscene: called));
-    _status = CutsceneRuntimeStatus(
-      state: CutsceneRunnerState.running,
-      activeCutsceneId: called.id,
-      activeStepIndex: 0,
-    );
+    _frames.add(calledFrame);
+    _setRunningStatus(calledFrame);
   }
 
   void _runFaceNpcStep(CutsceneFaceNpcStep step) {
@@ -370,51 +532,91 @@ class CutsceneRuntimeRunner {
       }
     }
 
-    switch (pending.kind) {
-      case _PendingWaitKind.waitMs:
-        pending.remainingMs = (pending.remainingMs! - dtMs).clamp(0, 1 << 30);
-        if (pending.remainingMs == 0) {
-          _pendingWait = null;
-          _advanceStepOnTopFrame();
-        }
-
-      case _PendingWaitKind.dialogueClosed:
-        if (!_context.isDialogueOpen()) {
-          _pendingWait = null;
-          _advanceStepOnTopFrame();
-        }
-
-      case _PendingWaitKind.npcMoveCompleted:
-        final entityId = pending.entityId!;
-        final status = _context.readNpcMovementStatus(entityId);
-        switch (status.state) {
-          case ScriptedEntityMovementState.moving:
-            return;
-          case ScriptedEntityMovementState.completed:
-            _pendingWait = null;
-            _advanceStepOnTopFrame();
-          case ScriptedEntityMovementState.failed:
-            _pendingWait = null;
-            _fail(status.failureReason ?? 'Movement failed for "$entityId".');
-          case ScriptedEntityMovementState.idle:
-            _pendingWait = null;
-            _fail('Movement idle while waiting completion for "$entityId".');
-        }
-
-      case _PendingWaitKind.flag:
-        final isSet = _context.isFlagSet(pending.flagName!);
-        if (isSet == pending.expectedSet) {
-          _pendingWait = null;
-          _advanceStepOnTopFrame();
-        }
-
-      case _PendingWaitKind.outcome:
-        final isSet = _context.isOutcomeSet(pending.outcomeId!);
-        if (isSet == pending.expectedSet) {
-          _pendingWait = null;
-          _advanceStepOnTopFrame();
-        }
+    if (pending.kind == _PendingWaitKind.waitMs) {
+      pending.remainingMs = (pending.remainingMs! - dtMs).clamp(0, 1 << 30);
+      if (pending.remainingMs == 0) {
+        _pendingWait = null;
+        _advanceStepOnTopFrame();
+      }
+      return;
     }
+    if (pending.kind == _PendingWaitKind.dialogueClosed) {
+      if (!_context.isDialogueOpen()) {
+        _pendingWait = null;
+        _advanceStepOnTopFrame();
+      }
+      return;
+    }
+    if (pending.kind == _PendingWaitKind.npcMoveCompleted) {
+      final entityId = pending.entityId!;
+      final status = _context.readNpcMovementStatus(entityId);
+      if (status.state == ScriptedEntityMovementState.moving) {
+        return;
+      }
+      if (status.state == ScriptedEntityMovementState.completed) {
+        _pendingWait = null;
+        _advanceStepOnTopFrame();
+        return;
+      }
+      if (status.state == ScriptedEntityMovementState.failed) {
+        _pendingWait = null;
+        _fail(status.failureReason ?? 'Movement failed for "$entityId".');
+        return;
+      }
+      _pendingWait = null;
+      _fail('Movement idle while waiting completion for "$entityId".');
+      return;
+    }
+    if (pending.kind == _PendingWaitKind.flag) {
+      final isSet = _context.isFlagSet(pending.flagName!);
+      if (isSet == pending.expectedSet) {
+        _pendingWait = null;
+        _advanceStepOnTopFrame();
+      }
+      return;
+    }
+    final isSet = _context.isOutcomeSet(pending.outcomeId!);
+    if (isSet == pending.expectedSet) {
+      _pendingWait = null;
+      _advanceStepOnTopFrame();
+    }
+  }
+
+  void _onChoiceResolved(CutsceneChoiceResult result) {
+    _choiceResultsById[result.choiceId] = result;
+    _lastChoiceResult = result;
+    _activeChoiceRequest = null;
+    _advanceStepOnTopFrame();
+  }
+
+  void _jumpToLabelOnTopFrame(String label) {
+    final top = _topFrame;
+    if (top == null) {
+      _fail('Cannot goto label: no active frame.');
+      return;
+    }
+    final normalized = label.trim();
+    if (normalized.isEmpty) {
+      _fail('Goto has empty label.');
+      return;
+    }
+    final targetStepIndex = top.labelIndexByName[normalized];
+    if (targetStepIndex == null) {
+      _fail(
+        'Goto target "$normalized" not found in cutscene "${top.cutscene.id}".',
+      );
+      return;
+    }
+    _recordTransitionOrFail();
+    if (!isRunning) {
+      return;
+    }
+    top.stepIndex = targetStepIndex + 1;
+    if (top.stepIndex >= top.cutscene.steps.length) {
+      _onFrameCompleted();
+      return;
+    }
+    _setRunningStatus(top);
   }
 
   void _advanceStepOnTopFrame() {
@@ -423,16 +625,26 @@ class CutsceneRuntimeRunner {
       _fail('Cannot advance: no active frame.');
       return;
     }
+    _recordTransitionOrFail();
+    if (!isRunning) {
+      return;
+    }
     top.stepIndex += 1;
     if (top.stepIndex >= top.cutscene.steps.length) {
       _onFrameCompleted();
       return;
     }
-    _status = CutsceneRuntimeStatus(
-      state: CutsceneRunnerState.running,
-      activeCutsceneId: top.cutscene.id,
-      activeStepIndex: top.stepIndex,
-    );
+    _setRunningStatus(top);
+  }
+
+  void _recordTransitionOrFail() {
+    _transitionCount += 1;
+    if (_transitionCount > maxStepTransitions) {
+      _fail(
+        'Cutscene exceeded step transition limit ($maxStepTransitions). '
+        'Possible infinite loop.',
+      );
+    }
   }
 
   void _onFrameCompleted() {
@@ -446,23 +658,56 @@ class CutsceneRuntimeRunner {
       return;
     }
     final parent = _frames.last;
-    _status = CutsceneRuntimeStatus(
-      state: CutsceneRunnerState.running,
-      activeCutsceneId: parent.cutscene.id,
-      activeStepIndex: parent.stepIndex,
-    );
+    _setRunningStatus(parent);
   }
 
   _CutsceneFrame? get _topFrame => _frames.isEmpty ? null : _frames.last;
+
+  _CutsceneFrame? _tryBuildFrame(RuntimeCutsceneAsset cutscene) {
+    final labels = <String, int>{};
+    for (var index = 0; index < cutscene.steps.length; index++) {
+      final step = cutscene.steps[index];
+      if (step is! CutsceneLabelStep) {
+        continue;
+      }
+      final label = step.label.trim();
+      if (label.isEmpty) {
+        _fail('Cutscene "${cutscene.id}" has a label with empty value.');
+        return null;
+      }
+      if (labels.containsKey(label)) {
+        _fail('Cutscene "${cutscene.id}" has duplicate label "$label".');
+        return null;
+      }
+      labels[label] = index;
+    }
+    return _CutsceneFrame(
+      cutscene: cutscene,
+      labelIndexByName: labels,
+    );
+  }
+
+  void _setRunningStatus(_CutsceneFrame frame) {
+    _status = CutsceneRuntimeStatus(
+      state: CutsceneRunnerState.running,
+      activeCutsceneId: frame.cutscene.id,
+      activeStepIndex: frame.stepIndex,
+      activeChoiceRequest: _activeChoiceRequest,
+      lastChoiceResult: _lastChoiceResult,
+    );
+  }
 
   void _complete() {
     final activeId = _status.activeCutsceneId;
     _status = CutsceneRuntimeStatus(
       state: CutsceneRunnerState.completed,
       activeCutsceneId: activeId,
+      activeChoiceRequest: null,
+      lastChoiceResult: _lastChoiceResult,
     );
     _frames.clear();
     _pendingWait = null;
+    _activeChoiceRequest = null;
   }
 
   void _fail(String reason) {
@@ -471,18 +716,23 @@ class CutsceneRuntimeRunner {
       activeCutsceneId: _topFrame?.cutscene.id ?? _status.activeCutsceneId,
       activeStepIndex: _topFrame?.stepIndex ?? _status.activeStepIndex,
       failureReason: reason,
+      activeChoiceRequest: _activeChoiceRequest,
+      lastChoiceResult: _lastChoiceResult,
     );
     _frames.clear();
     _pendingWait = null;
+    _activeChoiceRequest = null;
   }
 }
 
 class _CutsceneFrame {
   _CutsceneFrame({
     required this.cutscene,
+    required this.labelIndexByName,
   });
 
   final RuntimeCutsceneAsset cutscene;
+  final Map<String, int> labelIndexByName;
   int stepIndex = 0;
   bool waitingForCalledCutscene = false;
 }

@@ -116,6 +116,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       const ScenarioRuntimeExecutor();
   late final CutsceneRuntimeRunner _cutsceneRunner =
       _buildCutsceneRuntimeRunner();
+  CutsceneChoiceRequest? _pendingCutsceneChoiceRequest;
   ScriptedEntityMovementController? _scriptedEntityMovementController;
   final Map<String, GridPos> _runtimeNpcPositions = <String, GridPos>{};
   double _runtimeClockMs = 0;
@@ -306,6 +307,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Snapshot détaillé du runner cutscene.
   CutsceneRuntimeStatus get cutsceneStatus => _cutsceneRunner.status;
 
+  /// Requête de choix en attente (si la cutscene attend une décision joueur).
+  CutsceneChoiceRequest? get pendingCutsceneChoiceRequest =>
+      _pendingCutsceneChoiceRequest;
+
+  bool get hasPendingCutsceneChoice => _pendingCutsceneChoiceRequest != null;
+
+  /// Dernier choix résolu pendant la cutscene active.
+  CutsceneChoiceResult? get lastCutsceneChoiceResult =>
+      _cutsceneRunner.lastChoiceResult;
+
   /// Démarre une cutscene fournie explicitement.
   ///
   /// Cette API est utile pour des déclenchements runtime directs (tests,
@@ -317,6 +328,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return false;
     }
+    _pendingCutsceneChoiceRequest = null;
     return _cutsceneRunner.start(cutscene);
   }
 
@@ -335,7 +347,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (cutscene == null) {
       return false;
     }
+    _pendingCutsceneChoiceRequest = null;
     return _cutsceneRunner.start(cutscene);
+  }
+
+  bool resolvePendingCutsceneChoiceByIndex(int selectedIndex) {
+    final resolved = _cutsceneRunner.resolveActiveChoiceByIndex(selectedIndex);
+    if (resolved) {
+      _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
+    }
+    return resolved;
+  }
+
+  bool resolvePendingCutsceneChoiceByValue(String selectedValue) {
+    final resolved = _cutsceneRunner.resolveActiveChoiceByValue(selectedValue);
+    if (resolved) {
+      _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
+    }
+    return resolved;
   }
 
   void setBehaviorDebugOverlayVisible(bool visible) {
@@ -650,6 +679,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     // Tick runner cutscene MVP (séquentiel).
     _cutsceneRunner.update(dt);
+    _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
     if (isCutsceneRunning) {
       // Tant que la cutscene n'est pas terminée, on ne laisse pas la boucle
       // input joueur déplacer le player.
@@ -3151,6 +3181,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           );
         },
         isDialogueOpen: () => _dialogueOverlay != null,
+        requestChoice: (request) {
+          _pendingCutsceneChoiceRequest = request;
+          return true;
+        },
         resolveCutsceneById: _findRuntimeCutsceneById,
         moveNpcTo: ({required entityId, required destination}) {
           return startScriptedNpcMove(

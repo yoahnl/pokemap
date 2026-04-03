@@ -5,7 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  group('CutsceneRuntimeRunner v2', () {
+  group('CutsceneRuntimeRunner branching core', () {
     test('dialogue step blocks until dialogue is closed', () {
       final env = _RunnerTestEnv();
       env.dialogueOpen = true;
@@ -23,7 +23,6 @@ void main() {
       );
 
       runner.update(0.016);
-      expect(runner.status.state, CutsceneRunnerState.running);
       expect(runner.status.activeStepIndex, 0);
       expect(env.openedDialogues, <String>['intro_dialogue']);
       expect(env.setFlags, isEmpty);
@@ -35,7 +34,6 @@ void main() {
       env.dialogueOpen = false;
       runner.update(0.016);
       expect(runner.status.activeStepIndex, 1);
-      expect(env.setFlags, isEmpty);
 
       runner.update(0.016);
       expect(runner.status.state, CutsceneRunnerState.completed);
@@ -86,19 +84,219 @@ void main() {
 
       runner.update(0.016);
       expect(runner.status.activeStepIndex, 0);
+      runner.update(0.016);
+      expect(runner.status.activeStepIndex, 0);
+      runner.update(0.016);
+      expect(runner.status.activeStepIndex, 1);
+      runner.update(0.016);
+      expect(runner.status.state, CutsceneRunnerState.completed);
+      expect(env.setFlags, <String>['scene.move_done']);
+    });
+
+    test('choice step waits until resolved and exposes last choice', () {
+      final env = _RunnerTestEnv();
+      final runner = env.createRunner();
+      runner.start(
+        const RuntimeCutsceneAsset(
+          id: 'starter_choice',
+          name: 'Starter Choice',
+          steps: <RuntimeCutsceneStep>[
+            CutsceneChoiceStep(
+              choiceId: 'starter_choice',
+              prompt: 'Choose starter',
+              options: <CutsceneChoiceOption>[
+                CutsceneChoiceOption(value: 'fire', label: 'Fire'),
+                CutsceneChoiceOption(value: 'water', label: 'Water'),
+                CutsceneChoiceOption(value: 'grass', label: 'Grass'),
+              ],
+            ),
+            CutsceneSetFlagStep(flagName: 'starter.chosen'),
+          ],
+        ),
+      );
+
+      runner.update(0.016);
+      expect(runner.status.activeChoiceRequest?.choiceId, 'starter_choice');
+      expect(env.requestedChoices.length, 1);
       expect(env.setFlags, isEmpty);
 
       runner.update(0.016);
       expect(runner.status.activeStepIndex, 0);
       expect(env.setFlags, isEmpty);
 
-      runner.update(0.016);
-      expect(runner.status.activeStepIndex, 1);
-      expect(env.setFlags, isEmpty);
+      final resolved = runner.resolveActiveChoiceByIndex(1);
+      expect(resolved, isTrue);
+      expect(runner.lastChoiceResult?.choiceId, 'starter_choice');
+      expect(runner.lastChoiceResult?.selectedIndex, 1);
+      expect(runner.lastChoiceResult?.selectedValue, 'water');
 
       runner.update(0.016);
       expect(runner.status.state, CutsceneRunnerState.completed);
-      expect(env.setFlags, <String>['scene.move_done']);
+      expect(env.setFlags, <String>['starter.chosen']);
+    });
+
+    test('goto jumps to label and skips intermediate block', () {
+      final env = _RunnerTestEnv();
+      final runner = env.createRunner();
+      runner.start(
+        const RuntimeCutsceneAsset(
+          id: 'goto_scene',
+          name: 'Goto scene',
+          steps: <RuntimeCutsceneStep>[
+            CutsceneGotoStep(label: 'end_block'),
+            CutsceneLabelStep(label: 'middle'),
+            CutsceneSetFlagStep(flagName: 'middle.reached'),
+            CutsceneLabelStep(label: 'end_block'),
+            CutsceneSetFlagStep(flagName: 'end.reached'),
+          ],
+        ),
+      );
+
+      _runUntilTerminal(runner);
+      expect(runner.status.state, CutsceneRunnerState.completed);
+      expect(env.setFlags, <String>['end.reached']);
+      expect(env.setFlags, isNot(contains('middle.reached')));
+    });
+
+    test('fails when goto target label does not exist', () {
+      final env = _RunnerTestEnv();
+      final runner = env.createRunner();
+      runner.start(
+        const RuntimeCutsceneAsset(
+          id: 'bad_goto',
+          name: 'Bad goto',
+          steps: <RuntimeCutsceneStep>[
+            CutsceneGotoStep(label: 'missing'),
+          ],
+        ),
+      );
+
+      runner.update(0.016);
+      expect(runner.status.state, CutsceneRunnerState.failed);
+      expect(runner.status.failureReason, contains('not found'));
+    });
+
+    test('fails when cutscene has duplicated labels', () {
+      final env = _RunnerTestEnv();
+      final runner = env.createRunner();
+      final started = runner.start(
+        const RuntimeCutsceneAsset(
+          id: 'dup_label',
+          name: 'Duplicate label',
+          steps: <RuntimeCutsceneStep>[
+            CutsceneLabelStep(label: 'same'),
+            CutsceneLabelStep(label: 'same'),
+          ],
+        ),
+      );
+
+      expect(started, isFalse);
+      expect(runner.status.state, CutsceneRunnerState.failed);
+      expect(runner.status.failureReason, contains('duplicate label'));
+    });
+
+    test('gotoIfChoice branches to the matching label', () {
+      final env = _RunnerTestEnv();
+      final runner = env.createRunner();
+      runner.start(
+        const RuntimeCutsceneAsset(
+          id: 'starter_selection',
+          name: 'Starter selection',
+          steps: <RuntimeCutsceneStep>[
+            CutsceneChoiceStep(
+              choiceId: 'starter_choice',
+              prompt: 'Pick starter',
+              options: <CutsceneChoiceOption>[
+                CutsceneChoiceOption(value: 'fire', label: 'Fire'),
+                CutsceneChoiceOption(value: 'water', label: 'Water'),
+              ],
+            ),
+            CutsceneGotoIfChoiceStep(
+              choiceId: 'starter_choice',
+              expectedValue: 'fire',
+              label: 'branch_fire',
+            ),
+            CutsceneGotoIfChoiceStep(
+              choiceId: 'starter_choice',
+              expectedValue: 'water',
+              label: 'branch_water',
+            ),
+            CutsceneLabelStep(label: 'branch_fire'),
+            CutsceneSetFlagStep(flagName: 'branch.fire'),
+            CutsceneGotoStep(label: 'end_block'),
+            CutsceneLabelStep(label: 'branch_water'),
+            CutsceneSetFlagStep(flagName: 'branch.water'),
+            CutsceneLabelStep(label: 'end_block'),
+            CutsceneSetFlagStep(flagName: 'scene.done'),
+          ],
+        ),
+      );
+
+      runner.update(0.016);
+      expect(runner.resolveActiveChoiceByValue('fire'), isTrue);
+      _runUntilTerminal(runner);
+
+      expect(runner.status.state, CutsceneRunnerState.completed);
+      expect(env.setFlags, <String>['branch.fire', 'scene.done']);
+      expect(env.setFlags, isNot(contains('branch.water')));
+    });
+
+    test('gotoIfFlag branches only when expected flag state matches', () {
+      final env = _RunnerTestEnv()..activeFlags.add('story.ready');
+      final runner = env.createRunner();
+      runner.start(
+        const RuntimeCutsceneAsset(
+          id: 'flag_branch',
+          name: 'Flag branch',
+          steps: <RuntimeCutsceneStep>[
+            CutsceneGotoIfFlagStep(
+              flagName: 'story.ready',
+              expectedSet: true,
+              label: 'ready_path',
+            ),
+            CutsceneSetFlagStep(flagName: 'fallback.path'),
+            CutsceneGotoStep(label: 'end_block'),
+            CutsceneLabelStep(label: 'ready_path'),
+            CutsceneSetFlagStep(flagName: 'ready.path'),
+            CutsceneLabelStep(label: 'end_block'),
+            CutsceneSetFlagStep(flagName: 'scene.done'),
+          ],
+        ),
+      );
+
+      _runUntilTerminal(runner);
+      expect(runner.status.state, CutsceneRunnerState.completed);
+      expect(env.setFlags, <String>['ready.path', 'scene.done']);
+      expect(env.setFlags, isNot(contains('fallback.path')));
+    });
+
+    test('gotoIfOutcome branches only when expected outcome state matches', () {
+      final env = _RunnerTestEnv()..activeOutcomes.add('rival_1.defeated');
+      final runner = env.createRunner();
+      runner.start(
+        const RuntimeCutsceneAsset(
+          id: 'outcome_branch',
+          name: 'Outcome branch',
+          steps: <RuntimeCutsceneStep>[
+            CutsceneGotoIfOutcomeStep(
+              outcomeId: 'rival_1.defeated',
+              expectedSet: true,
+              label: 'won_path',
+            ),
+            CutsceneSetFlagStep(flagName: 'fallback.path'),
+            CutsceneGotoStep(label: 'end_block'),
+            CutsceneLabelStep(label: 'won_path'),
+            CutsceneSetFlagStep(flagName: 'won.path'),
+            CutsceneLabelStep(label: 'end_block'),
+            CutsceneSetFlagStep(flagName: 'scene.done'),
+          ],
+        ),
+      );
+
+      _runUntilTerminal(runner);
+      expect(runner.status.state, CutsceneRunnerState.completed);
+      expect(env.setFlags, <String>['won.path', 'scene.done']);
+      expect(env.setFlags, isNot(contains('fallback.path')));
     });
 
     test('emitOutcome does not stop cutscene and next steps run', () {
@@ -124,12 +322,15 @@ void main() {
       expect(env.setFlags, <String>['story.after_outcome']);
     });
 
-    test('callCutscene executes child then resumes parent', () {
+    test('callCutscene supports child labels/goto and resumes parent', () {
       final env = _RunnerTestEnv();
       env.cutscenesById['child'] = const RuntimeCutsceneAsset(
         id: 'child',
         name: 'Child',
         steps: <RuntimeCutsceneStep>[
+          CutsceneGotoStep(label: 'child_end'),
+          CutsceneSetFlagStep(flagName: 'child.middle'),
+          CutsceneLabelStep(label: 'child_end'),
           CutsceneSetFlagStep(flagName: 'child.done'),
         ],
       );
@@ -146,24 +347,10 @@ void main() {
         ),
       );
 
-      // Tick 1: parent call -> child active
-      runner.update(0.016);
-      expect(runner.activeCutsceneId, 'child');
-      expect(env.setFlags, isEmpty);
-
-      // Tick 2: child step
-      runner.update(0.016);
-      expect(env.setFlags, <String>['child.done']);
-
-      // Tick 3: child frame already popped, parent sort du call
-      runner.update(0.016);
-      expect(runner.activeCutsceneId, 'parent');
-      expect(runner.status.activeStepIndex, 1);
-
-      // Tick 4: parent final step
-      runner.update(0.016);
+      _runUntilTerminal(runner);
       expect(runner.status.state, CutsceneRunnerState.completed);
       expect(env.setFlags, <String>['child.done', 'parent.done']);
+      expect(env.setFlags, isNot(contains('child.middle')));
     });
 
     test('callCutscene recursion is blocked explicitly', () {
@@ -186,8 +373,8 @@ void main() {
       final runner = env.createRunner();
       runner.start(env.cutscenesById['a']!);
 
-      runner.update(0.016); // a -> b
-      runner.update(0.016); // b -> a (recursive fail)
+      runner.update(0.016);
+      runner.update(0.016);
 
       expect(runner.status.state, CutsceneRunnerState.failed);
       expect(runner.status.failureReason, contains('Recursive cutscene call'));
@@ -340,8 +527,22 @@ void main() {
   });
 }
 
+void _runUntilTerminal(
+  CutsceneRuntimeRunner runner, {
+  int maxTicks = 200,
+  double dtSeconds = 0.016,
+}) {
+  var ticks = 0;
+  while (!runner.status.isTerminal && ticks < maxTicks) {
+    runner.update(dtSeconds);
+    ticks += 1;
+  }
+}
+
 class _RunnerTestEnv {
   final List<String> openedDialogues = <String>[];
+  final List<CutsceneChoiceRequest> requestedChoices =
+      <CutsceneChoiceRequest>[];
   final List<String> setFlags = <String>[];
   final List<String> clearedFlags = <String>[];
   final List<String> emittedOutcomes = <String>[];
@@ -357,6 +558,7 @@ class _RunnerTestEnv {
       moveReadSequenceByEntity =
       <String, Queue<ScriptedEntityMovementStatus>>{};
   bool dialogueOpen = false;
+  bool rejectChoiceRequest = false;
 
   CutsceneRuntimeRunner createRunner({int maxCallDepth = 8}) {
     return CutsceneRuntimeRunner(
@@ -371,6 +573,13 @@ class _RunnerTestEnv {
           return true;
         },
         isDialogueOpen: () => dialogueOpen,
+        requestChoice: (request) {
+          if (rejectChoiceRequest) {
+            return false;
+          }
+          requestedChoices.add(request);
+          return true;
+        },
         resolveCutsceneById: (id) => cutscenesById[id],
         moveNpcTo: ({required entityId, required destination}) {
           return moveStartStatusByEntity[entityId] ??

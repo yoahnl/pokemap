@@ -55,6 +55,11 @@ void main() {
       expect(game.isCutsceneRunning, isFalse);
       expect(game.activeCutsceneId, isNull);
       expect(game.cutsceneStatus.state, CutsceneRunnerState.idle);
+      expect(game.hasPendingCutsceneChoice, isFalse);
+      expect(game.pendingCutsceneChoiceRequest, isNull);
+      expect(game.lastCutsceneChoiceResult, isNull);
+      expect(game.resolvePendingCutsceneChoiceByIndex(0), isFalse);
+      expect(game.resolvePendingCutsceneChoiceByValue('fire'), isFalse);
 
       // Tant que onLoad n'a pas initialisé le runtime world, on refuse le start.
       expect(game.startCutsceneById('intro'), isFalse);
