@@ -35,6 +35,16 @@ typedef ScriptedEntityPositionCommitted = void Function(
   GridPos position,
 );
 
+/// Validation runtime d'un pas juste avant son démarrage effectif.
+///
+/// Retourne `null` si le pas est valide.
+/// Retourne une raison d'échec explicite sinon.
+typedef ScriptedEntityStepValidation = String? Function({
+  required String entityId,
+  required GridPos from,
+  required GridPos to,
+});
+
 /// Contrôleur runtime de déplacement scripté d'entités.
 ///
 /// Objectifs:
@@ -54,11 +64,13 @@ class ScriptedEntityMovementController {
     required ScriptedEntityStepStarter startEntityStep,
     required ScriptedEntityStepInProgressReader isEntityStepping,
     required ScriptedEntityPositionCommitted onEntityPositionCommitted,
+    ScriptedEntityStepValidation? validateEntityStep,
     GridPathfinder pathfinder = const GridPathfinder(),
   })  : _isCellBlocked = isCellBlocked,
         _startEntityStep = startEntityStep,
         _isEntityStepping = isEntityStepping,
         _onEntityPositionCommitted = onEntityPositionCommitted,
+        _validateEntityStep = validateEntityStep,
         _pathfinder = pathfinder;
 
   final GridSize mapSize;
@@ -66,6 +78,7 @@ class ScriptedEntityMovementController {
   final ScriptedEntityStepStarter _startEntityStep;
   final ScriptedEntityStepInProgressReader _isEntityStepping;
   final ScriptedEntityPositionCommitted _onEntityPositionCommitted;
+  final ScriptedEntityStepValidation? _validateEntityStep;
   final GridPathfinder _pathfinder;
 
   // Source de vérité interne des positions entité->cellule pour ce contrôleur.
@@ -335,6 +348,22 @@ class ScriptedEntityMovementController {
           currentPos: current,
           targetPos: task.destination,
           reason: 'Non-cardinal or non-adjacent step detected.',
+        );
+        continue;
+      }
+
+      final runtimeStepValidationReason = _validateEntityStep?.call(
+        entityId: entityId,
+        from: current,
+        to: next,
+      );
+      if (runtimeStepValidationReason != null) {
+        _activeTasks.remove(entityId);
+        _fail(
+          entityId: entityId,
+          currentPos: current,
+          targetPos: task.destination,
+          reason: runtimeStepValidationReason,
         );
         continue;
       }

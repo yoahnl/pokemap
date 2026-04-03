@@ -74,6 +74,7 @@ export 'src/application/scripted_entity_movement_controller.dart'
         ScriptedMovementCellBlocked,
         ScriptedEntityStepStarter,
         ScriptedEntityStepInProgressReader,
+        ScriptedEntityStepValidation,
         ScriptedEntityPositionCommitted;
 export 'src/application/npc_overworld_movement_defaults.dart'
     show resolveNpcDefaultPatrolRoute;

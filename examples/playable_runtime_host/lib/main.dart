@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flame/game.dart';
@@ -23,8 +25,9 @@ class _ProjectLoaderPage extends StatefulWidget {
 }
 
 class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
-  final _mapIdController = TextEditingController();
   String _projectFilePath = '';
+  List<ProjectMapEntry> _availableMaps = const [];
+  String? _selectedMapId;
   PlayableMapGame? _game;
   String? _error;
   bool _loading = false;
@@ -38,11 +41,121 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   String? _lot50ScenarioWarning;
   Timer? _runtimeInfoTicker;
 
+  static const _prefsFileName = '.playable_runtime_host_prefs.json';
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreLastSession();
+  }
+
   @override
   void dispose() {
     _runtimeInfoTicker?.cancel();
-    _mapIdController.dispose();
     super.dispose();
+  }
+
+  String _prefsFilePath() {
+    final home = Platform.environment['HOME'];
+    if (home == null || home.isEmpty) {
+      return _prefsFileName;
+    }
+    return '$home/$_prefsFileName';
+  }
+
+  Future<void> _restoreLastSession() async {
+    try {
+      final file = File(_prefsFilePath());
+      if (!await file.exists()) {
+        return;
+      }
+      final raw = await file.readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return;
+      }
+      final savedProjectPath = (decoded['projectFilePath'] as String?)?.trim();
+      final savedMapId = (decoded['mapId'] as String?)?.trim();
+      if (savedProjectPath == null || savedProjectPath.isEmpty) {
+        return;
+      }
+      if (!await File(savedProjectPath).exists()) {
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _projectFilePath = savedProjectPath;
+        _selectedMapId = savedMapId != null && savedMapId.isNotEmpty
+            ? savedMapId
+            : _selectedMapId;
+      });
+      await _loadProjectMapsFromManifest(
+        savedProjectPath,
+        preferredMapId: savedMapId,
+      );
+    } catch (_) {
+      // Restauration best-effort: on ignore silencieusement les prefs invalides.
+    }
+  }
+
+  Future<void> _persistLastSession() async {
+    try {
+      final file = File(_prefsFilePath());
+      final payload = <String, dynamic>{
+        'projectFilePath': _projectFilePath,
+        'mapId': _selectedMapId,
+      };
+      await file.writeAsString(jsonEncode(payload));
+    } catch (_) {
+      // Persistance best-effort: ne bloque jamais le flux utilisateur.
+    }
+  }
+
+  Future<void> _loadProjectMapsFromManifest(
+    String projectFilePath, {
+    String? preferredMapId,
+  }) async {
+    try {
+      final raw = await File(projectFilePath).readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        if (!mounted) return;
+        setState(() {
+          _availableMaps = const [];
+        });
+        return;
+      }
+      final manifest = ProjectManifest.fromJson(decoded);
+      final maps = List<ProjectMapEntry>.of(manifest.maps)
+        ..sort((a, b) {
+          final byOrder = a.sortOrder.compareTo(b.sortOrder);
+          if (byOrder != 0) return byOrder;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
+      String? nextSelected = _selectedMapId;
+      final preferred = preferredMapId?.trim();
+      if (preferred != null &&
+          preferred.isNotEmpty &&
+          maps.any((m) => m.id == preferred)) {
+        nextSelected = preferred;
+      } else if (nextSelected == null ||
+          nextSelected.isEmpty ||
+          !maps.any((m) => m.id == nextSelected)) {
+        nextSelected = maps.isEmpty ? null : maps.first.id;
+      }
+      if (!mounted) return;
+      setState(() {
+        _availableMaps = maps;
+        _selectedMapId = nextSelected;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _availableMaps = const [];
+      });
+    }
   }
 
   void _startRuntimeInfoTicker() {
@@ -76,11 +189,13 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       _projectFilePath = path;
       _error = null;
     });
+    await _loadProjectMapsFromManifest(path);
+    await _persistLastSession();
   }
 
   Future<void> _load() async {
     final projectFilePath = _projectFilePath;
-    final mapId = _mapIdController.text.trim();
+    final mapId = (_selectedMapId ?? '').trim();
 
     if (projectFilePath.isEmpty) {
       setState(() => _error = 'Sélectionnez un fichier project.json.');
@@ -123,6 +238,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       nextGame.setSurfingEnabled(_surfingEnabled);
       _syncLot50DebugMarker();
       _startRuntimeInfoTicker();
+      await _persistLastSession();
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -296,7 +412,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       final scenarioSpatial = _readScenarioSpatialDebug(game);
       return Scaffold(
         appBar: AppBar(
-          title: Text(_mapIdController.text.trim()),
+          title: Text((_selectedMapId ?? '').trim()),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: _reset,
@@ -482,14 +598,39 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
               onPick: _loading ? null : _pickProjectFile,
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: _mapIdController,
-              decoration: const InputDecoration(
-                labelText: 'Map ID',
-                border: OutlineInputBorder(),
+            if (_availableMaps.isEmpty)
+              const TextField(
+                enabled: false,
+                decoration: InputDecoration(
+                  labelText: 'Map',
+                  hintText:
+                      'Chargez un project.json valide pour lister les maps',
+                  border: OutlineInputBorder(),
+                ),
+              )
+            else
+              DropdownButtonFormField<String>(
+                initialValue: _selectedMapId,
+                decoration: const InputDecoration(
+                  labelText: 'Map',
+                  border: OutlineInputBorder(),
+                ),
+                items: _availableMaps
+                    .map(
+                      (entry) => DropdownMenuItem<String>(
+                        value: entry.id,
+                        child: Text('${entry.name} (${entry.id})'),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: _loading
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        setState(() => _selectedMapId = value);
+                        _persistLastSession();
+                      },
               ),
-              onSubmitted: (_) => _loading ? null : _load(),
-            ),
             const SizedBox(height: 16),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,

@@ -31,11 +31,35 @@ MapEntity _blockingNpc({
   );
 }
 
-GameplayWorldState _worldWithEntities(List<MapEntity> entities) {
+GameplayWorldState _worldWithEntities(
+  List<MapEntity> entities, {
+  Set<GridPos> collisionBlocked = const <GridPos>{},
+}) {
+  const mapSize = GridSize(width: 10, height: 10);
+  final collisionCells = List<bool>.filled(
+    mapSize.width * mapSize.height,
+    false,
+  );
+  for (final pos in collisionBlocked) {
+    if (pos.x < 0 ||
+        pos.y < 0 ||
+        pos.x >= mapSize.width ||
+        pos.y >= mapSize.height) {
+      continue;
+    }
+    collisionCells[pos.y * mapSize.width + pos.x] = true;
+  }
   final map = MapData(
     id: 'map_test',
     name: 'Map Test',
-    size: const GridSize(width: 10, height: 10),
+    size: mapSize,
+    layers: <MapLayer>[
+      CollisionLayer(
+        id: 'collision',
+        name: 'Collision',
+        collisions: collisionCells,
+      ),
+    ],
     entities: entities,
   );
   return GameplayWorldState.initial(
@@ -46,18 +70,33 @@ GameplayWorldState _worldWithEntities(List<MapEntity> entities) {
 
 void main() {
   group('evaluateScriptedNpcAnchorPassability', () {
-    test('1x1 NPC: reachable and blocked anchors are distinguished', () {
+    test('scripted NPC cannot traverse player cell', () {
+      final world = _worldWithEntities(<MapEntity>[
+        _npc(id: 'npc_1', pos: const GridPos(x: 1, y: 1)),
+      ]);
+
+      final blockedByPlayer = evaluateScriptedNpcAnchorPassability(
+        world: world,
+        entityId: 'npc_1',
+        anchorPos: const GridPos(x: 0, y: 0),
+        dynamicBlockedCells: <GridPos>[world.player.pos],
+      );
+      expect(blockedByPlayer.passable, isFalse);
+      expect(blockedByPlayer.reason, contains('Dynamic blocker'));
+    });
+
+    test('scripted NPC cannot traverse another blocking NPC', () {
       final world = _worldWithEntities(<MapEntity>[
         _npc(id: 'npc_1', pos: const GridPos(x: 1, y: 1)),
         _blockingNpc(id: 'npc_block', pos: const GridPos(x: 3, y: 1)),
       ]);
 
-      final reachable = evaluateScriptedNpcAnchorPassability(
+      final reachableBeforeNpc = evaluateScriptedNpcAnchorPassability(
         world: world,
         entityId: 'npc_1',
         anchorPos: const GridPos(x: 2, y: 1),
       );
-      expect(reachable.passable, isTrue);
+      expect(reachableBeforeNpc.passable, isTrue);
 
       final blocked = evaluateScriptedNpcAnchorPassability(
         world: world,
@@ -68,7 +107,7 @@ void main() {
       expect(blocked.reason, contains('Blocked collision cell'));
     });
 
-    test('2x2 NPC: collision footprint is evaluated, not only top-left', () {
+    test('scripted NPC 2x2 cannot traverse blocked obstacle cells', () {
       // NPC 2x2 => collision default 1x1 sur les "pieds" (offset Y=+1).
       final world = _worldWithEntities(<MapEntity>[
         _npc(
@@ -76,10 +115,11 @@ void main() {
           pos: const GridPos(x: 5, y: 5),
           size: const GridSize(width: 2, height: 2),
         ),
+      ], collisionBlocked: <GridPos>{
         // Bloque la cellule collision attendue pour l'ancrage (5,6):
         // collision cell = (5,7).
-        _blockingNpc(id: 'npc_block', pos: const GridPos(x: 5, y: 7)),
-      ]);
+        const GridPos(x: 5, y: 7),
+      });
 
       final sameAnchor = evaluateScriptedNpcAnchorPassability(
         world: world,

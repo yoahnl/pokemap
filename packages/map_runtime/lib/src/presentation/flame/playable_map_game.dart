@@ -3314,10 +3314,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final controller = ScriptedEntityMovementController(
       mapSize: _world.map.size,
-      isCellBlocked: _isNpcCellBlockedForScriptedMovement,
+      isCellBlocked: _isNpcCellBlockedForRoutePlanning,
       startEntityStep: _startScriptedNpcStep,
       isEntityStepping: _isScriptedNpcStepping,
       onEntityPositionCommitted: _commitScriptedNpcPosition,
+      validateEntityStep: _validateScriptedNpcStepRuntimeCollision,
     );
     controller.replaceTrackedEntities(_runtimeNpcPositions);
     _scriptedEntityMovementController = controller;
@@ -3361,7 +3362,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return byId;
   }
 
-  bool _isNpcCellBlockedForScriptedMovement(
+  bool _isNpcCellBlockedForRoutePlanning(
     int x,
     int y, {
     String? ignoreEntityId,
@@ -3379,6 +3380,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       world: _world,
       entityId: normalizedIgnore,
       anchorPos: GridPos(x: x, y: y),
+      dynamicBlockedCells: <GridPos>[
+        _world.player.pos,
+      ],
     );
     if (!probe.passable) {
       debugPrint(
@@ -3386,6 +3390,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     }
     return !probe.passable;
+  }
+
+  String? _validateScriptedNpcStepRuntimeCollision({
+    required String entityId,
+    required GridPos from,
+    required GridPos to,
+  }) {
+    final probe = evaluateScriptedNpcAnchorPassability(
+      world: _world,
+      entityId: entityId,
+      anchorPos: to,
+      dynamicBlockedCells: <GridPos>[
+        _world.player.pos,
+      ],
+    );
+    if (!probe.passable) {
+      debugPrint(
+        '[npc_patrol] runtime step rejected entity=$entityId from=(${from.x},${from.y}) to=(${to.x},${to.y}) reason="${probe.reason}"',
+      );
+      return probe.reason;
+    }
+    return null;
   }
 
   bool _startScriptedNpcStep({
