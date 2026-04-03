@@ -134,6 +134,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedWarpId: null,
         selectedTriggerId: null,
         selectedEntityId: null,
+        npcWaypointPlacementEntityId: null,
         selectedMapEventId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -184,6 +185,7 @@ class EditorNotifier extends _$EditorNotifier {
         selectedWarpId: null,
         selectedTriggerId: null,
         selectedEntityId: null,
+        npcWaypointPlacementEntityId: null,
         selectedMapEventId: null,
         selectedTilesetEditorId: null,
         selectedTilesetElementGroupId: null,
@@ -2487,6 +2489,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (entityId == null) {
       state = state.copyWith(
         selectedEntityId: null,
+        npcWaypointPlacementEntityId: null,
         errorMessage: null,
       );
       return;
@@ -2499,8 +2502,111 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       selectedEntityId: entity.id,
       selectedEntityKind: entity.kind,
+      npcWaypointPlacementEntityId:
+          state.npcWaypointPlacementEntityId == entity.id
+              ? state.npcWaypointPlacementEntityId
+              : null,
       errorMessage: null,
     );
+  }
+
+  /// Active le mode "placement waypoint" sur l'entité NPC sélectionnée.
+  ///
+  /// Ce mode est volontairement porté par l'état éditeur (et non local panel),
+  /// afin que le canvas puisse router le clic map de manière explicite.
+  bool startNpcWaypointPlacementForSelectedEntity() {
+    final map = state.activeMap;
+    final selectedEntityId = state.selectedEntityId;
+    if (map == null || selectedEntityId == null || selectedEntityId.isEmpty) {
+      return false;
+    }
+    final entity =
+        _entityEditingService.findSelectedEntity(map, selectedEntityId);
+    if (entity == null || entity.kind != MapEntityKind.npc) {
+      state = state.copyWith(
+        npcWaypointPlacementEntityId: null,
+        errorMessage: 'Waypoint placement requires a selected NPC.',
+      );
+      return false;
+    }
+    final movement = entity.npc?.movement ?? const MapEntityNpcMovementConfig();
+    if (movement.mode != MapEntityNpcMovementMode.patrol) {
+      state = state.copyWith(
+        npcWaypointPlacementEntityId: null,
+        errorMessage: 'Waypoint placement requires NPC movement mode "patrol".',
+      );
+      return false;
+    }
+    state = state.copyWith(
+      npcWaypointPlacementEntityId: entity.id,
+      statusMessage: 'Waypoint placement enabled for "${entity.id}"',
+      errorMessage: null,
+    );
+    return true;
+  }
+
+  /// Désactive explicitement le mode placement waypoint.
+  void cancelNpcWaypointPlacement({String? statusMessage}) {
+    if (state.npcWaypointPlacementEntityId == null) {
+      return;
+    }
+    state = state.copyWith(
+      npcWaypointPlacementEntityId: null,
+      statusMessage: statusMessage ?? 'Waypoint placement disabled',
+      errorMessage: null,
+    );
+  }
+
+  /// Traite un clic map en mode placement waypoint.
+  ///
+  /// Retourne `true` si le clic a été consommé par ce mode.
+  /// Retourne `false` si aucun mode placement actif (ou session invalide).
+  bool addNpcWaypointAt(GridPos position) {
+    final placementEntityId = state.npcWaypointPlacementEntityId;
+    if (placementEntityId == null || placementEntityId.trim().isEmpty) {
+      return false;
+    }
+    final map = state.activeMap;
+    if (map == null) {
+      cancelNpcWaypointPlacement(statusMessage: 'Waypoint placement cancelled');
+      return false;
+    }
+    final entity = _entityEditingService.findSelectedEntity(
+      map,
+      placementEntityId,
+    );
+    if (entity == null || entity.kind != MapEntityKind.npc) {
+      cancelNpcWaypointPlacement(
+        statusMessage: 'Waypoint placement cancelled (NPC no longer valid)',
+      );
+      return false;
+    }
+    final npc = entity.npc ?? const MapEntityNpcData();
+    if (npc.movement.mode != MapEntityNpcMovementMode.patrol) {
+      cancelNpcWaypointPlacement(
+        statusMessage: 'Waypoint placement cancelled (NPC not in patrol mode)',
+      );
+      return false;
+    }
+
+    final nextWaypoints = <GridPos>[
+      ...npc.movement.waypoints,
+      position,
+    ];
+    final nextNpc = npc.copyWith(
+      movement: npc.movement.copyWith(waypoints: nextWaypoints),
+    );
+    updateEntity(
+      entityId: entity.id,
+      npc: nextNpc,
+    );
+    state = state.copyWith(
+      npcWaypointPlacementEntityId: entity.id,
+      statusMessage:
+          'Waypoint (${position.x}, ${position.y}) added to "${entity.id}"',
+      errorMessage: null,
+    );
+    return true;
   }
 
   void selectEntityKind(MapEntityKind kind) {
@@ -5847,10 +5953,16 @@ class EditorNotifier extends _$EditorNotifier {
       preferredSelectionId: preferredSelectedMapEventId,
       nextMap: mutation.activeMap,
     );
+    final nextNpcWaypointPlacementEntityId =
+        _resolveNpcWaypointPlacementAfterMutation(
+      nextMap: mutation.activeMap,
+      currentPlacementEntityId: state.npcWaypointPlacementEntityId,
+    );
     state = state.copyWith(
       activeMap: mutation.activeMap,
       activeLayerId: mutation.activeLayerId,
       selectedEntityId: mutation.selectedEntityId,
+      npcWaypointPlacementEntityId: nextNpcWaypointPlacementEntityId,
       selectedMapEventId: nextMapEventSelectionId,
       selectedWarpId: mutation.selectedWarpId,
       selectedTriggerId: mutation.selectedTriggerId,
@@ -5868,6 +5980,26 @@ class EditorNotifier extends _$EditorNotifier {
       errorMessage: null,
     );
     _coerceActiveToolIfIncompatibleWithLayer();
+  }
+
+  String? _resolveNpcWaypointPlacementAfterMutation({
+    required MapData nextMap,
+    required String? currentPlacementEntityId,
+  }) {
+    final normalized = currentPlacementEntityId?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    final entity =
+        _entityEditingService.findSelectedEntity(nextMap, normalized);
+    if (entity == null || entity.kind != MapEntityKind.npc) {
+      return null;
+    }
+    final movement = entity.npc?.movement ?? const MapEntityNpcMovementConfig();
+    if (movement.mode != MapEntityNpcMovementMode.patrol) {
+      return null;
+    }
+    return normalized;
   }
 
   String? _resolvePlacedElementSelectionAfterMutation({

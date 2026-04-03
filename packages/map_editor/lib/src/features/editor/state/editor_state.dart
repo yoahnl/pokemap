@@ -74,6 +74,15 @@ class EditorState with _$EditorState {
     @Default(CollisionBrushSizeMode.brushFootprint)
     CollisionBrushSizeMode collisionBrushSizeMode,
     String? selectedEntityId,
+
+    /// Session de placement visuel de waypoint NPC active.
+    ///
+    /// - `null` : aucun mode placement waypoint actif.
+    /// - non null : id de l'entité NPC ciblée par les clics map.
+    ///
+    /// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
+    /// d'outil normal (paint/place/select), tant que la session est valide.
+    String? npcWaypointPlacementEntityId,
     String? selectedMapEventId,
     String? selectedWarpId,
     String? selectedTriggerId,

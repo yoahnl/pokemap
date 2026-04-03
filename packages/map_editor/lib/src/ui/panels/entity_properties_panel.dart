@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
@@ -340,6 +341,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
               else
                 _buildSelectedEntityEditor(
                   context: context,
+                  state: state,
                   notifier: notifier,
                   project: state.project,
                   selectedEntity: selectedEntity,
@@ -510,7 +512,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     });
   }
 
-  List<Widget> _npcMovementFields(BuildContext context) {
+  List<Widget> _npcMovementFields(
+    BuildContext context,
+    EditorState state,
+    EditorNotifier notifier,
+  ) {
     final modeIds = MapEntityNpcMovementMode.values
         .map((mode) => mode.name)
         .toList(growable: false);
@@ -560,6 +566,43 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     final widgets = <Widget>[
       modePicker,
     ];
+
+    final selectedEntityId = state.selectedEntityId?.trim();
+    final placementEntityId = state.npcWaypointPlacementEntityId?.trim();
+    final placementActiveForSelection = selectedEntityId != null &&
+        selectedEntityId.isNotEmpty &&
+        placementEntityId == selectedEntityId;
+    if (_npcMovementMode == MapEntityNpcMovementMode.patrol ||
+        placementActiveForSelection) {
+      widgets.addAll([
+        const SizedBox(height: 8),
+        if (placementActiveForSelection)
+          InspectorEmbeddedFootnote(
+            text: _l(
+              'Mode placement actif : cliquez sur la map pour ajouter un waypoint.',
+              'Placement mode is active: click the map to add a waypoint.',
+            ),
+            accent: EditorChrome.inspectorJoyMint,
+          ),
+        const SizedBox(height: 6),
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: () {
+            if (placementActiveForSelection) {
+              notifier.cancelNpcWaypointPlacement();
+              return;
+            }
+            notifier.startNpcWaypointPlacementForSelectedEntity();
+          },
+          child: Text(
+            placementActiveForSelection
+                ? _l('Quitter mode placement', 'Exit placement mode')
+                : _l('Placer waypoint sur la map', 'Place waypoint on map'),
+          ),
+        ),
+      ]);
+    }
 
     if (_npcMovementMode != MapEntityNpcMovementMode.patrol) {
       return widgets;
@@ -1520,6 +1563,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   Widget _kindSpecificFields(
     BuildContext context,
     ProjectManifest? project,
+    EditorState state,
+    EditorNotifier notifier,
   ) {
     switch (_selectedKind) {
       case MapEntityKind.npc:
@@ -1592,7 +1637,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                 ),
               ),
             const SizedBox(height: 8),
-            ..._npcMovementFields(context),
+            ..._npcMovementFields(context, state, notifier),
             const SizedBox(height: 8),
             ..._npcTrainerBattleFields(context, project),
             if (usesTrainerAppearance) ...[
@@ -1808,6 +1853,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
 
   Widget _buildSelectedEntityEditor({
     required BuildContext context,
+    required EditorState state,
     required EditorNotifier notifier,
     required ProjectManifest? project,
     required MapEntity selectedEntity,
@@ -1979,7 +2025,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           ..._editorVisualFields(context, project),
         ],
         const SizedBox(height: 12),
-        _kindSpecificFields(context, project),
+        _kindSpecificFields(context, project, state, notifier),
         const SizedBox(height: 12),
         Row(
           children: [

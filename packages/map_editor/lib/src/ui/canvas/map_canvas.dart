@@ -152,6 +152,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 state.activeTool == EditorToolType.terrainPaint ||
                 state.activeTool == EditorToolType.collisionPaint ||
                 state.activeTool == EditorToolType.eraser;
+        final isNpcWaypointPlacementActive =
+            (state.npcWaypointPlacementEntityId?.trim().isNotEmpty ?? false);
         final isTapEditingTool = isStrokeEditingTool ||
             state.activeTool == EditorToolType.entityPlacement ||
             state.activeTool == EditorToolType.eventPlacement ||
@@ -209,7 +211,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           onPointerHover: (event) => _onMapPointerHover(event.localPosition),
           child: GestureDetector(
             onTapUp: (details) {
-              if (!isTapEditingTool) return;
               final gridPos = _screenToGrid(
                 details.localPosition,
                 state.panOffset,
@@ -219,6 +220,18 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 tileHeight,
               );
               if (gridPos == null) return;
+
+              // Mode secondaire explicite: placement visuel de waypoint NPC.
+              // Tant qu'il est actif, le clic map est routé vers l'ajout d'un
+              // waypoint, avant d'appliquer les outils classiques.
+              if (isNpcWaypointPlacementActive) {
+                final handled = notifier.addNpcWaypointAt(gridPos);
+                if (handled) {
+                  return;
+                }
+              }
+
+              if (!isTapEditingTool) return;
               if (isStrokeEditingTool) {
                 notifier.beginMapStroke();
               }
@@ -322,38 +335,75 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 }
               },
               child: ClipRect(
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: MapGridPainter(
-                    map: activeMap,
-                    zoom: state.zoom,
-                    offset: state.panOffset,
-                    hoveredTile: _hoveredTile,
-                    activeLayerId: state.activeLayerId,
-                    tileWidth: tileWidth,
-                    tileHeight: tileHeight,
-                    tilesetImagesById: tilesetImagesById,
-                    sourceTileWidth: settings.tileWidth,
-                    sourceTileHeight: settings.tileHeight,
-                    tilesPerRowById: tilesPerRowById,
-                    toolPreview: toolPreview,
-                    warps: activeMap.warps,
-                    gameplayZones: activeMap.gameplayZones,
-                    gameplayZoneDraftArea: state.gameplayZoneDraftArea,
-                    selectedEntityId: state.selectedEntityId,
-                    selectedMapEventId: state.selectedMapEventId,
-                    selectedWarpId: state.selectedWarpId,
-                    selectedTriggerId: state.selectedTriggerId,
-                    selectedGameplayZoneId: state.selectedGameplayZoneId,
-                    selectedPlacedElementInstanceId:
-                        state.selectedPlacedElementInstanceId,
-                    connectionLabelsByDirection: connectionLabelsByDirection,
-                    selectedPathAutotileSet: selectedPathAutotileSet,
-                    pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
-                    terrainPresetsByType: terrainPresetsByType,
-                    project: state.project,
-                    editorEntityAnimationMs: _editorEntityAnimationMs,
-                  ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CustomPaint(
+                        size: Size.infinite,
+                        painter: MapGridPainter(
+                          map: activeMap,
+                          zoom: state.zoom,
+                          offset: state.panOffset,
+                          hoveredTile: _hoveredTile,
+                          activeLayerId: state.activeLayerId,
+                          tileWidth: tileWidth,
+                          tileHeight: tileHeight,
+                          tilesetImagesById: tilesetImagesById,
+                          sourceTileWidth: settings.tileWidth,
+                          sourceTileHeight: settings.tileHeight,
+                          tilesPerRowById: tilesPerRowById,
+                          toolPreview: toolPreview,
+                          warps: activeMap.warps,
+                          gameplayZones: activeMap.gameplayZones,
+                          gameplayZoneDraftArea: state.gameplayZoneDraftArea,
+                          selectedEntityId: state.selectedEntityId,
+                          selectedMapEventId: state.selectedMapEventId,
+                          selectedWarpId: state.selectedWarpId,
+                          selectedTriggerId: state.selectedTriggerId,
+                          selectedGameplayZoneId: state.selectedGameplayZoneId,
+                          selectedPlacedElementInstanceId:
+                              state.selectedPlacedElementInstanceId,
+                          connectionLabelsByDirection:
+                              connectionLabelsByDirection,
+                          selectedPathAutotileSet: selectedPathAutotileSet,
+                          pathAutotileSetsByPresetId:
+                              pathAutotileSetsByPresetId,
+                          terrainPresetsByType: terrainPresetsByType,
+                          project: state.project,
+                          editorEntityAnimationMs: _editorEntityAnimationMs,
+                        ),
+                      ),
+                    ),
+                    if (isNpcWaypointPlacementActive)
+                      Positioned(
+                        left: 12,
+                        top: 12,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: const Color(0xCC1F2434),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF6ED6B5),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            child: Text(
+                              'Waypoint placement active • Click map to add',
+                              style: TextStyle(
+                                color: Color(0xFFEAF5F2),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

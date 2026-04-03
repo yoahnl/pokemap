@@ -721,6 +721,16 @@ mixin _$EditorState {
   CollisionBrushSizeMode get collisionBrushSizeMode =>
       throw _privateConstructorUsedError;
   String? get selectedEntityId => throw _privateConstructorUsedError;
+
+  /// Session de placement visuel de waypoint NPC active.
+  ///
+  /// - `null` : aucun mode placement waypoint actif.
+  /// - non null : id de l'entité NPC ciblée par les clics map.
+  ///
+  /// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
+  /// d'outil normal (paint/place/select), tant que la session est valide.
+  String? get npcWaypointPlacementEntityId =>
+      throw _privateConstructorUsedError;
   String? get selectedMapEventId => throw _privateConstructorUsedError;
   String? get selectedWarpId => throw _privateConstructorUsedError;
   String? get selectedTriggerId => throw _privateConstructorUsedError;
@@ -795,6 +805,7 @@ abstract class $EditorStateCopyWith<$Res> {
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
+      String? npcWaypointPlacementEntityId,
       String? selectedMapEventId,
       String? selectedWarpId,
       String? selectedTriggerId,
@@ -862,6 +873,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
+    Object? npcWaypointPlacementEntityId = freezed,
     Object? selectedMapEventId = freezed,
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
@@ -956,6 +968,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedEntityId: freezed == selectedEntityId
           ? _value.selectedEntityId
           : selectedEntityId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      npcWaypointPlacementEntityId: freezed == npcWaypointPlacementEntityId
+          ? _value.npcWaypointPlacementEntityId
+          : npcWaypointPlacementEntityId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedMapEventId: freezed == selectedMapEventId
           ? _value.selectedMapEventId
@@ -1182,6 +1198,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
+      String? npcWaypointPlacementEntityId,
       String? selectedMapEventId,
       String? selectedWarpId,
       String? selectedTriggerId,
@@ -1254,6 +1271,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
+    Object? npcWaypointPlacementEntityId = freezed,
     Object? selectedMapEventId = freezed,
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
@@ -1348,6 +1366,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
       selectedEntityId: freezed == selectedEntityId
           ? _value.selectedEntityId
           : selectedEntityId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      npcWaypointPlacementEntityId: freezed == npcWaypointPlacementEntityId
+          ? _value.npcWaypointPlacementEntityId
+          : npcWaypointPlacementEntityId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedMapEventId: freezed == selectedMapEventId
           ? _value.selectedMapEventId
@@ -1475,6 +1497,7 @@ class _$EditorStateImpl implements _EditorState {
       final Map<TerrainType, String> selectedTerrainPresetByType = const {},
       this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
       this.selectedEntityId,
+      this.npcWaypointPlacementEntityId,
       this.selectedMapEventId,
       this.selectedWarpId,
       this.selectedTriggerId,
@@ -1556,6 +1579,16 @@ class _$EditorStateImpl implements _EditorState {
   final CollisionBrushSizeMode collisionBrushSizeMode;
   @override
   final String? selectedEntityId;
+
+  /// Session de placement visuel de waypoint NPC active.
+  ///
+  /// - `null` : aucun mode placement waypoint actif.
+  /// - non null : id de l'entité NPC ciblée par les clics map.
+  ///
+  /// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
+  /// d'outil normal (paint/place/select), tant que la session est valide.
+  @override
+  final String? npcWaypointPlacementEntityId;
   @override
   final String? selectedMapEventId;
   @override
@@ -1644,7 +1677,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1686,6 +1719,9 @@ class _$EditorStateImpl implements _EditorState {
                 other.collisionBrushSizeMode == collisionBrushSizeMode) &&
             (identical(other.selectedEntityId, selectedEntityId) ||
                 other.selectedEntityId == selectedEntityId) &&
+            (identical(other.npcWaypointPlacementEntityId, npcWaypointPlacementEntityId) ||
+                other.npcWaypointPlacementEntityId ==
+                    npcWaypointPlacementEntityId) &&
             (identical(other.selectedMapEventId, selectedMapEventId) ||
                 other.selectedMapEventId == selectedMapEventId) &&
             (identical(other.selectedWarpId, selectedWarpId) ||
@@ -1712,15 +1748,11 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedTrainerId == selectedTrainerId) &&
             (identical(other.selectedCharacterId, selectedCharacterId) ||
                 other.selectedCharacterId == selectedCharacterId) &&
-            (identical(other.paletteCategoryFilter, paletteCategoryFilter) ||
-                other.paletteCategoryFilter == paletteCategoryFilter) &&
+            (identical(other.paletteCategoryFilter, paletteCategoryFilter) || other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
-            (identical(other.panOffset, panOffset) ||
-                other.panOffset == panOffset) &&
-            const DeepCollectionEquality()
-                .equals(other._mapUndoStack, _mapUndoStack) &&
-            const DeepCollectionEquality()
-                .equals(other._mapRedoStack, _mapRedoStack) &&
+            (identical(other.panOffset, panOffset) || other.panOffset == panOffset) &&
+            const DeepCollectionEquality().equals(other._mapUndoStack, _mapUndoStack) &&
+            const DeepCollectionEquality().equals(other._mapRedoStack, _mapRedoStack) &&
             (identical(other.mapStrokeStart, mapStrokeStart) || other.mapStrokeStart == mapStrokeStart) &&
             (identical(other.savedMapSnapshot, savedMapSnapshot) || other.savedMapSnapshot == savedMapSnapshot) &&
             (identical(other.canUndoMap, canUndoMap) || other.canUndoMap == canUndoMap) &&
@@ -1751,6 +1783,7 @@ class _$EditorStateImpl implements _EditorState {
         const DeepCollectionEquality().hash(_selectedTerrainPresetByType),
         collisionBrushSizeMode,
         selectedEntityId,
+        npcWaypointPlacementEntityId,
         selectedMapEventId,
         selectedWarpId,
         selectedTriggerId,
@@ -1806,6 +1839,7 @@ abstract class _EditorState implements EditorState {
       final Map<TerrainType, String> selectedTerrainPresetByType,
       final CollisionBrushSizeMode collisionBrushSizeMode,
       final String? selectedEntityId,
+      final String? npcWaypointPlacementEntityId,
       final String? selectedMapEventId,
       final String? selectedWarpId,
       final String? selectedTriggerId,
@@ -1867,6 +1901,16 @@ abstract class _EditorState implements EditorState {
   CollisionBrushSizeMode get collisionBrushSizeMode;
   @override
   String? get selectedEntityId;
+
+  /// Session de placement visuel de waypoint NPC active.
+  ///
+  /// - `null` : aucun mode placement waypoint actif.
+  /// - non null : id de l'entité NPC ciblée par les clics map.
+  ///
+  /// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
+  /// d'outil normal (paint/place/select), tant que la session est valide.
+  @override
+  String? get npcWaypointPlacementEntityId;
   @override
   String? get selectedMapEventId;
   @override
