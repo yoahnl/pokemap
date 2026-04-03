@@ -21,6 +21,7 @@ import '../../application/load_dialogue_content.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/movement_feedback.dart';
 import '../../application/npc_overworld_movement_defaults.dart';
+import '../../application/scripted_npc_anchor_passability.dart';
 import '../../application/load_runtime_map_bundle.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_character_refs.dart';
@@ -3365,14 +3366,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     int y, {
     String? ignoreEntityId,
   }) {
-    // La cellule courante du mover ne doit jamais s'auto-bloquer.
-    if (ignoreEntityId != null) {
-      final ignoredPos = _runtimeNpcPositions[ignoreEntityId];
-      if (ignoredPos != null && ignoredPos.x == x && ignoredPos.y == y) {
-        return false;
-      }
+    final normalizedIgnore = ignoreEntityId?.trim();
+    if (normalizedIgnore == null || normalizedIgnore.isEmpty) {
+      return _world.isBlocked(x, y);
     }
-    return _world.isBlocked(x, y);
+
+    // Pathfinding anchor validation:
+    // - `x,y` est la position logique MapEntity.pos (top-left),
+    // - on valide le footprint collision réel (important pour NPC 2x2),
+    // - on ignore l'auto-collision de l'entité courante.
+    final probe = evaluateScriptedNpcAnchorPassability(
+      world: _world,
+      entityId: normalizedIgnore,
+      anchorPos: GridPos(x: x, y: y),
+    );
+    if (!probe.passable) {
+      debugPrint(
+        '[npc_patrol] blocked anchor entity=$normalizedIgnore anchor=($x,$y) reason="${probe.reason}" footprint=${probe.evaluatedCollisionCells.map((c) => '(${c.x},${c.y})').join(',')}',
+      );
+    }
+    return !probe.passable;
   }
 
   bool _startScriptedNpcStep({

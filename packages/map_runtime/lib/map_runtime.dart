@@ -77,6 +77,10 @@ export 'src/application/scripted_entity_movement_controller.dart'
         ScriptedEntityPositionCommitted;
 export 'src/application/npc_overworld_movement_defaults.dart'
     show resolveNpcDefaultPatrolRoute;
+export 'src/application/scripted_npc_anchor_passability.dart'
+    show
+        ScriptedNpcAnchorPassabilityResult,
+        evaluateScriptedNpcAnchorPassability;
 export 'src/application/cutscene_runtime_models.dart'
     show
         RuntimeCutsceneAsset,

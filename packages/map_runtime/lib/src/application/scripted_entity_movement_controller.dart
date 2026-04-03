@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
@@ -141,6 +142,9 @@ class ScriptedEntityMovementController {
     double? stepDurationSeconds,
   }) {
     final current = _trackedPositions[entityId];
+    debugPrint(
+      '[npc_patrol] move request entity=$entityId from=${current == null ? '(unknown)' : '(${current.x},${current.y})'} to=(${destination.x},${destination.y})',
+    );
     if (current == null) {
       return _fail(
         entityId: entityId,
@@ -162,6 +166,9 @@ class ScriptedEntityMovementController {
       },
     );
     if (!pathResult.foundPath) {
+      debugPrint(
+        '[npc_patrol] path failed entity=$entityId target=(${destination.x},${destination.y}) reason="${pathResult.failureReason ?? 'No path found.'}"',
+      );
       return _fail(
         entityId: entityId,
         currentPos: current,
@@ -171,6 +178,9 @@ class ScriptedEntityMovementController {
     }
 
     final steps = pathResult.path.skip(1).toList(growable: false);
+    debugPrint(
+      '[npc_patrol] path result entity=$entityId target=(${destination.x},${destination.y}) nodes=${pathResult.path.length} steps=${steps.length}',
+    );
     if (steps.isEmpty) {
       return _complete(
         entityId: entityId,
@@ -423,11 +433,20 @@ class ScriptedEntityMovementController {
       patrol.nextWaypointIndex = nextIndex;
 
       final target = waypoints[nextIndex];
-      moveEntityTo(
+      final status = moveEntityTo(
         entityId: entityId,
         destination: target,
         stepDurationSeconds: patrol.route.stepDurationMs / 1000.0,
       );
+      if (status.state == ScriptedEntityMovementState.failed) {
+        // Contrat strict demandé:
+        // - pas de fallback implicite,
+        // - si waypoint invalide/inatteignable => arrêt patrouille + log explicite.
+        _patrols.remove(entityId);
+        debugPrint(
+          '[npc_patrol] patrol stopped entity=$entityId waypoint=(${target.x},${target.y}) reason="${status.failureReason ?? 'unknown failure'}"',
+        );
+      }
     }
   }
 

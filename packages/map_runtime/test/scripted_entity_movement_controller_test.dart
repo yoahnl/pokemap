@@ -357,5 +357,55 @@ void main() {
       expect(runtimePositions['npc_1'], isNot(const GridPos(x: 5, y: 1)));
       expect(controller.isPatrolling('npc_1'), isTrue);
     });
+
+    test('patrol stops explicitly when next waypoint is unreachable', () {
+      final runtimePositions = <String, GridPos>{
+        'npc_1': const GridPos(x: 1, y: 1),
+      };
+
+      final blocked = <GridPos>{
+        const GridPos(x: 2, y: 1),
+      };
+
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 8, height: 8),
+        isCellBlocked: (x, y, {ignoreEntityId}) =>
+            blocked.contains(GridPos(x: x, y: y)),
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) =>
+            true,
+        isEntityStepping: (_) => false,
+        onEntityPositionCommitted: (entityId, pos) {
+          runtimePositions[entityId] = pos;
+        },
+      );
+      controller.replaceTrackedEntities(runtimePositions);
+
+      controller.startPatrol(
+        const ScriptedEntityPatrolRoute(
+          entityId: 'npc_1',
+          waypoints: <GridPos>[
+            GridPos(x: 1, y: 1),
+            GridPos(x: 2, y: 1),
+          ],
+          loop: true,
+        ),
+      );
+
+      // Tick 1: waypoint courant = position actuelle, passe au suivant.
+      controller.update(0.016);
+      // Tick 2: tentative de move vers waypoint bloqué => échec explicite.
+      controller.update(0.016);
+
+      final status = controller.statusOf('npc_1');
+      expect(status.state, ScriptedEntityMovementState.failed);
+      expect(status.failureReason, isNotEmpty);
+      expect(controller.isPatrolling('npc_1'), isFalse);
+    });
   });
 }
