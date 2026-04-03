@@ -455,6 +455,68 @@ class GameplayWorldState {
         tileHeight: _tileHeight,
       );
 
+  /// Retourne un nouvel état monde où la position d'une entité est mise à jour.
+  ///
+  /// Cette méthode est la brique clé pour les déplacements PNJ scriptés:
+  /// - la map runtime reste la source de vérité des entités bloquantes;
+  /// - les caches collision/entity sont reconstruits proprement;
+  /// - le reste du runtime (interactions, LoS, blocage joueur) lit
+  ///   automatiquement la nouvelle position sans logique ad hoc.
+  ///
+  /// IMPORTANT:
+  /// - si l'entité n'existe pas, on retourne `this` (no-op sûr);
+  /// - on ne modifie pas les layers/collisions, uniquement la liste d'entités.
+  GameplayWorldState withEntityPosition(
+    String entityId,
+    GridPos newPos,
+  ) {
+    final normalizedId = entityId.trim();
+    if (normalizedId.isEmpty) {
+      return this;
+    }
+    final index =
+        map.entities.indexWhere((entity) => entity.id == normalizedId);
+    if (index < 0) {
+      return this;
+    }
+
+    final entity = map.entities[index];
+    if (entity.pos.x == newPos.x && entity.pos.y == newPos.y) {
+      return this;
+    }
+
+    final updatedEntities = List<MapEntity>.from(map.entities);
+    updatedEntities[index] = entity.copyWith(pos: newPos);
+    final updatedMap = map.copyWith(entities: updatedEntities);
+
+    return GameplayWorldState._(
+      map: updatedMap,
+      player: player,
+      collisionCache: _collisionCache,
+      // Les entités bloquantes et interactives doivent refléter la nouvelle map.
+      blockingEntityByPos: _buildBlockingEntityByPos(updatedMap),
+      entityByPos: _buildEntityByPos(updatedMap),
+      // Les warps/behaviors/path rules restent valides: ils ne dépendent pas
+      // de la position des entités map dans le modèle actuel.
+      warpCandidatesByPos: _warpCandidatesByPos,
+      actionBehaviorByPos: _actionBehaviorByPos,
+      enterBehaviorByPos: _enterBehaviorByPos,
+      bumpBehaviorByPos: _bumpBehaviorByPos,
+      exitBehaviorByPos: _exitBehaviorByPos,
+      nearBehaviorByPos: _nearBehaviorByPos,
+      placedElementCoverageByPos: _placedElementCoverageByPos,
+      pathRuleOnEnterByPos: _pathRuleOnEnterByPos,
+      pathRuleOnStepByPos: _pathRuleOnStepByPos,
+      pathRuleOnActionByPos: _pathRuleOnActionByPos,
+      pathRuleOnBumpByPos: _pathRuleOnBumpByPos,
+      pathRuleOnNearByPos: _pathRuleOnNearByPos,
+      pathRuleWhileInsideByPos: _pathRuleWhileInsideByPos,
+      waterCellCache: _waterCellCache,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+    );
+  }
+
   MapWarp? _resolveWarpCandidate({
     required int x,
     required int y,

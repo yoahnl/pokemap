@@ -63,6 +63,18 @@ export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
         kScenarioActionClearFlag,
         kScenarioActionEmitOutcome,
         scenarioOutcomeFlagName;
+export 'src/application/scripted_entity_movement_models.dart'
+    show
+        ScriptedEntityMovementState,
+        ScriptedEntityMovementStatus,
+        ScriptedEntityPatrolRoute;
+export 'src/application/scripted_entity_movement_controller.dart'
+    show
+        ScriptedEntityMovementController,
+        ScriptedMovementCellBlocked,
+        ScriptedEntityStepStarter,
+        ScriptedEntityStepInProgressReader,
+        ScriptedEntityPositionCommitted;
 
 // Save/Load system exports
 export 'domain/repositories/game_save_repository.dart'

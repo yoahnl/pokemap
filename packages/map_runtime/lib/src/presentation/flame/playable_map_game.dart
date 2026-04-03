@@ -25,6 +25,8 @@ import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
+import '../../application/scripted_entity_movement_controller.dart';
+import '../../application/scripted_entity_movement_models.dart';
 import '../../application/script_runtime_state.dart';
 import '../../application/script_runtime_controller.dart';
 import '../../application/story_flags_manager.dart';
@@ -108,6 +110,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeStoryBranching _storyBranching = const RuntimeStoryBranching();
   final ScenarioRuntimeExecutor _scenarioRuntime =
       const ScenarioRuntimeExecutor();
+  ScriptedEntityMovementController? _scriptedEntityMovementController;
+  final Map<String, GridPos> _runtimeNpcPositions = <String, GridPos>{};
   double _runtimeClockMs = 0;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   void Function()? _pendingPostDialogueAction;
@@ -220,6 +224,73 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     setPlayerMovementMode(enabled ? MovementMode.surf : MovementMode.walk);
   }
 
+  /// Lance un déplacement scripté ponctuel pour un PNJ.
+  ///
+  /// API runtime publique pensée pour une future orchestration cutscene:
+  /// - start movement
+  /// - poll status
+  /// - wait until completed/failed
+  ScriptedEntityMovementStatus startScriptedNpcMove({
+    required String entityId,
+    required GridPos destination,
+  }) {
+    final controller = _scriptedEntityMovementController;
+    if (controller == null) {
+      return ScriptedEntityMovementStatus(
+        entityId: entityId,
+        state: ScriptedEntityMovementState.failed,
+        currentPos: const GridPos(x: 0, y: 0),
+        targetPos: destination,
+        failureReason: 'Scripted movement controller is not initialized.',
+      );
+    }
+    return controller.moveEntityTo(
+      entityId: entityId,
+      destination: destination,
+    );
+  }
+
+  /// Active une patrouille simple (waypoints) pour un PNJ.
+  ScriptedEntityMovementStatus startScriptedNpcPatrol({
+    required String entityId,
+    required List<GridPos> waypoints,
+    bool loop = true,
+  }) {
+    final controller = _scriptedEntityMovementController;
+    if (controller == null) {
+      return ScriptedEntityMovementStatus(
+        entityId: entityId,
+        state: ScriptedEntityMovementState.failed,
+        currentPos: const GridPos(x: 0, y: 0),
+        failureReason: 'Scripted movement controller is not initialized.',
+      );
+    }
+    return controller.startPatrol(
+      ScriptedEntityPatrolRoute(
+        entityId: entityId,
+        waypoints: waypoints,
+        loop: loop,
+      ),
+    );
+  }
+
+  void stopScriptedNpcPatrol(String entityId) {
+    _scriptedEntityMovementController?.stopPatrol(entityId);
+  }
+
+  ScriptedEntityMovementStatus scriptedNpcMovementStatus(String entityId) {
+    final controller = _scriptedEntityMovementController;
+    if (controller == null) {
+      return ScriptedEntityMovementStatus(
+        entityId: entityId,
+        state: ScriptedEntityMovementState.failed,
+        currentPos: const GridPos(x: 0, y: 0),
+        failureReason: 'Scripted movement controller is not initialized.',
+      );
+    }
+    return controller.statusOf(entityId);
+  }
+
   void setBehaviorDebugOverlayVisible(bool visible) {
     _showBehaviorDebugOverlay = visible;
     if (!visible) {
@@ -292,6 +363,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _preloadActiveMapConnections();
     _ensureBehaviorDebugOverlay();
     _applyDebugTileMarker();
+    _resetScriptedNpcMovementController();
     _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
       map: _bundle.map,
       pos: _world.player.pos,
@@ -503,6 +575,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       return;
     }
+
+    // Tick du système de déplacement scripté PNJ.
+    //
+    // Ce tick reste dans le flux overworld pour ce MVP:
+    // - pas d'exécution pendant dialogue/battle transition;
+    // - base propre pour un futur "wait movement" en cutscene.
+    _scriptedEntityMovementController?.update(dt);
 
     _driveMovement();
   }
@@ -2143,12 +2222,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         playerMovementMode: loadedState.playerMovementMode,
       );
 
+      // 10. Mettre _activeMapId + reset contrôleur PNJ scripté
+      _activeMapId = loadedState.currentMapId;
+      _resetScriptedNpcMovementController();
+
       // 10. Resync _player
       _player.setMapOrigin(Vector2(0, 0), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
 
-      // 11. Mettre _activeMapId
-      _activeMapId = loadedState.currentMapId;
+      // 11. Synchroniser GameState
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
 
       // 12-15. Resync caméra / streaming / bounds
@@ -2319,6 +2401,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _activeMapId = newBundle.map.id;
       _previousMapId = null;
       _triggeredTrainerBattles.clear(); // Reset LoS locks on map change
+      _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
@@ -2441,6 +2524,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = fallbackWorld;
       _activeMapId = fallbackBundle.map.id;
       _previousMapId = null;
+      _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
@@ -2583,6 +2667,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = newWorld;
       _previousMapId = _activeMapId;
       _activeMapId = target.bundle.map.id;
+      _resetScriptedNpcMovementController();
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       final fromPx = _player.position.clone();
       final targetOriginPx = _originPixelsOf(target);
@@ -2787,13 +2872,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         cellHeight: ch,
         facing: entity.npc?.facing ?? EntityFacing.south,
       );
-      final topY = entity.pos.y + entity.size.height - actor.frameHeightTiles;
-      final extraWidthTiles =
-          math.max(0, actor.frameWidthTiles - entity.size.width);
-      final offsetX = -(extraWidthTiles * cw) / 2;
-      actor.position = Vector2(
-        originPx.x + entity.pos.x * cw + offsetX,
-        originPx.y + topY * ch,
+      actor.configureGridPlacement(
+        pos: entity.pos,
+        footprint: entity.size,
+        mapOrigin: originPx,
+        snapToGrid: true,
       );
       npcActors.add(actor);
       npcActorByEntityId[entity.id] = actor;
@@ -2978,6 +3061,93 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       Direction.west => EntityFacing.east,
     };
     actor.setMotion(npcFacing, CharacterAnimationState.idle);
+  }
+
+  /// (Re)crée le contrôleur de déplacement scripté pour la map active.
+  ///
+  /// Cette méthode est appelée:
+  /// - au chargement initial,
+  /// - après warp/connection/load game (changement de map).
+  ///
+  /// On repart à chaque fois d'un snapshot propre des PNJ actifs pour éviter
+  /// toute dérive d'état entre maps.
+  void _resetScriptedNpcMovementController() {
+    _runtimeNpcPositions
+      ..clear()
+      ..addAll(_collectCurrentNpcPositions());
+
+    final controller = ScriptedEntityMovementController(
+      mapSize: _world.map.size,
+      isCellBlocked: _isNpcCellBlockedForScriptedMovement,
+      startEntityStep: _startScriptedNpcStep,
+      isEntityStepping: _isScriptedNpcStepping,
+      onEntityPositionCommitted: _commitScriptedNpcPosition,
+    );
+    controller.replaceTrackedEntities(_runtimeNpcPositions);
+    _scriptedEntityMovementController = controller;
+  }
+
+  Map<String, GridPos> _collectCurrentNpcPositions() {
+    final loaded = _loadedMapsById[_activeMapId];
+    if (loaded == null) {
+      return const <String, GridPos>{};
+    }
+    final byId = <String, GridPos>{};
+    for (final entity in _world.map.entities) {
+      if (entity.kind != MapEntityKind.npc) {
+        continue;
+      }
+      // On ne suit que les PNJ effectivement montés visuellement.
+      if (!loaded.npcActorByEntityId.containsKey(entity.id)) {
+        continue;
+      }
+      byId[entity.id] = entity.pos;
+    }
+    return byId;
+  }
+
+  bool _isNpcCellBlockedForScriptedMovement(
+    int x,
+    int y, {
+    String? ignoreEntityId,
+  }) {
+    // La cellule courante du mover ne doit jamais s'auto-bloquer.
+    if (ignoreEntityId != null) {
+      final ignoredPos = _runtimeNpcPositions[ignoreEntityId];
+      if (ignoredPos != null && ignoredPos.x == x && ignoredPos.y == y) {
+        return false;
+      }
+    }
+    return _world.isBlocked(x, y);
+  }
+
+  bool _startScriptedNpcStep({
+    required String entityId,
+    required GridPos from,
+    required GridPos to,
+    required EntityFacing facing,
+  }) {
+    final loaded = _loadedMapsById[_activeMapId];
+    final actor = loaded?.npcActorByEntityId[entityId];
+    if (actor == null) {
+      return false;
+    }
+    return actor.startGridStep(
+      to: to,
+      facing: facing,
+      durationSeconds: PlayerComponent.kDefaultStepSeconds,
+    );
+  }
+
+  bool _isScriptedNpcStepping(String entityId) {
+    final loaded = _loadedMapsById[_activeMapId];
+    final actor = loaded?.npcActorByEntityId[entityId];
+    return actor?.isStepping ?? false;
+  }
+
+  void _commitScriptedNpcPosition(String entityId, GridPos position) {
+    _runtimeNpcPositions[entityId] = position;
+    _world = _world.withEntityPosition(entityId, position);
   }
 
   double get _cellWidth =>
