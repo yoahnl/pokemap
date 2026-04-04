@@ -1,142 +1,152 @@
-# Global Story Studio — correctifs round 2 (insertion même chapitre, hit zones, renommage)
+# Global Story Studio — correctifs (round 2 + compléments UX / tests)
 
 ## Résumé exécutif
 
-Trois volets ont été corrigés dans `packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart` :
+Ce document couvre :
 
-1. **Insertion d’une step existante dans le même chapitre** : après `_insertExistingStepAfter`, l’ordre global des `StepStudioStep` était à jour mais **`GlobalStoryChapter.stepIds` restait inchangé** si la step restait dans le même chapitre. Désormais, les `stepIds` du chapitre sont **réordonnés** (retirer la step, réinsérer après la step de référence).
-2. **Header chapitre** : le toggle d’accordéon n’englobe plus le **titre** (zone renommage). Deux zones dédiées au toggle : **chevron + pastille « CH. n »** et **badge nombre de steps**. Le titre occupe une **`Expanded`** intermédiaire : double-clic pour renommer **sans** premier tap qui replie le chapitre.
-3. **Renommage inline + qualité** : import `KeyEventResult` retiré de `services.dart` ; **Escape** traité sur **`KeyDownEvent` uniquement** ; validation avec **nom vide** = **annulation silencieuse** (équivalent `_cancelEdit`, restauration du nom) ; champ d’édition sans `GestureDetector` inutile ; titre en **pleine largeur** pour le double-clic.
+1. **Round 2 initial** : réordonnancement **`chapter.stepIds`** lors d’une insertion existante **dans le même chapitre** ; renommage inline robuste (clavier / import) ; premières hit zones header.
+2. **Compléments (post-validation produit)** :
+   - **Header / accordéon** : une **seule grande zone** visuelle (chevron + CH + titre + badge steps) partage le **même** comportement « ligne cliquable » pour le toggle, tout en gardant **double-clic sur le titre** pour le renommage et **actions hors zone**.
+   - **Insertion** : logique pure extraite dans **`global_story_studio_authoring.dart`** (testable) ; vérifications documentées pour ordre global vs `stepIds` (même chapitre / autre chapitre).
+   - **Tests** : fichier **`test/global_story_studio_behavior_test.dart`** (unitaires + widget ciblés).
 
 ---
 
-## Bugs confirmés (avant correctif)
+## Ce qui est maintenant garanti (code + tests)
+
+| Garantie | Détail |
+|----------|--------|
+| **Même chapitre** | `reorderChapterStepIdsAfterMovingWithinSameChapter` aligne `chapter.stepIds` sur l’intention « après la step de référence », cohérent avec l’ordre global simulé après `_insertExistingStepAfter`. |
+| **Autre chapitre** | `chapterStepIdsRemovingOnce` + `chapterStepIdsInsertingAfterReference` modélisent retrait / insertion sans doublon dans le chapitre cible (`null` si insert déjà présent). |
+| **Picker** | `eligibleStepIdsForGlobalStoryInsertPicker` + `_availableStepsFor` : toutes les steps du **`StepStudioDocument` courant** sauf la step courante ; tests unitaires + widget (libellé `#n.` de la première option). |
+| **Header** | `Expanded` → `GestureDetector` → `Row` (chevron, CH, titre, badge) : **simple tap** = toggle (sauf zone actions) ; **double tap** sur le titre = édition ; **`CupertinoButton`** d’actions **hors** du `GestureDetector` de ligne. |
+| **Renommage** | Enter / Escape (key down) / perte de focus / nom vide inchangés par rapport au round 2. |
+| **Tests automatisés** | Voir section « Tests ajoutés » ; `flutter test test/global_story_studio_behavior_test.dart test/global_story_studio_ux_test.dart` : **OK**. |
+
+---
+
+## Compromis UX restants
+
+| Compromis | Pourquoi |
+|-----------|----------|
+| **Délai sur simple clic titre** | `_ChapterNameDisplay` combine `onTap` (toggle) et `onDoubleTap` (renommage). Flutter **retarde** le `onTap` pour distinguer un futur double-clic : le toggle depuis le **texte du titre** peut être légèrement plus lent qu’un clic sur chevron / badge. |
+| **Deux recognizers sur la même ligne** | Le parent enveloppe toute la ligne ; l’enfant titre a son propre `GestureDetector` : les taps sur le titre sont traités par l’enfant (toggle + double-clic) ; chevron / badge passent par le parent. Comportement voulu, légère redondance des callbacks (`onAccordionToggle` ≈ `onExpansionTap`). |
+| **Feuille d’action Cupertino** | Le picker secondaire (`showCupertinoModalPopup`) n’est pas couvert en test widget sur VM (rendu plateforme) ; la présence des options est validée via le **bandeau** et `eligibleStepIdsForGlobalStoryInsertPicker`. |
+
+---
+
+## Bugs confirmés (historique round 2)
 
 | Bug | Cause racine |
 |-----|----------------|
-| Ordre visuel du chapitre incorrect après « Insérer » (même chapitre) | `_moveStepToChapterOfStep` faisait `return` immédiat quand `sourceChapterIdx == currentChapterIdx`, alors que l’UI liste les steps via **`chapter.stepIds`**, pas seulement via l’ordre du document Step Studio. |
-| Double-clic renommage déclenchait / perturbait le toggle | Un seul `GestureDetector(onTap: onExpansionTap)` enveloppait **chevron + nom + badge** : le **premier tap** du double-clic était interprété comme ouverture/fermeture d’accordéon. |
-| Import clavier incorrect | `KeyEventResult` était listé dans `import 'package:flutter/services.dart' show ...` alors qu’il **n’y est pas exporté** → avertissement d’analyse (`undefined_shown_name`). |
-| Nom vide après Enter | `_commitEdit` sortait du mode édition sans remettre le texte du contrôleur sur le nom d’origine si la chaîne était vide. |
+| Ordre chapitre après insert même chapitre | `stepIds` non réordonnés alors que `StepStudioDocument.steps` l’était. |
+| Double-clic vs toggle (première itération) | Toggle et titre dans le même `GestureDetector` sans `onDoubleTap` sur le titre. |
+| Import `KeyEventResult` | Mauvais `show` depuis `services.dart`. |
 
 ---
 
-## Fichiers modifiés
+## Fichiers concernés
 
-- `packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart` — logique insertion / header / renommage / imports.
-- `packages/map_editor/test/global_story_studio_ux_test.dart` — helper d’expansion des chapitres pour les tests widget (comportement accordéon par défaut replié).
+| Fichier | Rôle |
+|---------|------|
+| `packages/map_editor/lib/src/features/narrative/application/global_story_studio_authoring.dart` | Fonctions pures : `reorderChapterStepIdsAfterMovingWithinSameChapter`, `chapterStepIdsRemovingOnce`, `chapterStepIdsInsertingAfterReference`, `eligibleStepIdsForGlobalStoryInsertPicker`. |
+| `packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart` | Appelle les pures fonctions ; header unifié ; `_ChapterNameDisplay(onAccordionToggle)` ; `_availableStepsFor` branché sur `eligibleStepIds…`. |
+| `packages/map_editor/test/global_story_studio_behavior_test.dart` | Nouveaux tests (voir ci-dessous). |
+| `packages/map_editor/test/global_story_studio_ux_test.dart` | Helper `_expandAllGlobalStoryChapters` (chapitres repliés par défaut). |
 
-## Modifications effectuées (workspace)
+---
 
-### 1. `_moveStepToChapterOfStep` + `_stepIdsAfterMovingWithinChapter`
+## Vérification insertion (2 cas) — comportement réel
 
-- **Branche même chapitre** : copie des `stepIds`, `remove(stepIdToMove)`, `indexOf(referenceStepId)`, `insert(refIdx + 1, stepIdToMove)`, puis `_replaceDraftDocuments` avec le chapitre mis à jour.
-- **Branche inter-chapitres** : logique inchangée (retrait du chapitre source d’origine, insertion dans le chapitre cible après la référence).
-- **Helper** `_stepIdsAfterMovingWithinChapter` : centralise la réorganisation ; retourne `null` si `referenceStepId` ou `stepIdToMove` absent de la liste (garde-fou, pas de corruption silencieuse).
+### Cas A — Même chapitre
 
-**Propriétés** : pas de duplication d’ID ; un seul chapitre modifié dans le cas même chapitre ; pas de régression sur le chemin inter-chapitres déjà testé par la structure existante.
+1. **`_insertExistingStepAfter`** : liste `ordered` = `stepDoc.steps` triés par `order` ; `removeAt(existingIndex)` puis `insert(insertionIndex, existingStep)` après `afterStepId` ; re-numérotation `order` 0..n-1.
+2. **`_moveStepToChapterOfStep`** : `reorderChapterStepIdsAfterMovingWithinSameChapter(chapter.stepIds, …)` → même permutation d’ids que l’ordre global **si** le chapitre contenait exactement ces steps dans l’ordre visé (test : `globalIds == visual`).
 
-### 2. `_ChapterHeader` — hit zones
+**Duplication** : un seul `remove` + un seul `insert` par liste ; pas de `copyWith` de step.
 
-Structure du `Row` :
+### Cas B — Autre chapitre
 
-1. **`GestureDetector` (toggle)** — `Row` compact : chevron animé + badge `CH. n`.
-2. **`SizedBox(width: 10)`** — respiration.
-3. **`Expanded`** — **`_ChapterNameDisplay`** uniquement (pas de `onTap` toggle).
-4. **`SizedBox(width: 8)`**.
-5. **`GestureDetector` (toggle)** — badge « X step(s) ».
-6. **Actions** (`CupertinoButton`) — inchangées, hors des `GestureDetector` de toggle.
+1. Ordre global : **même** algorithme liste `ordered` (étape 1 ci-dessus).
+2. Chapitres : `chapterStepIdsRemovingOnce` sur le chapitre qui contenait la step ; `chapterStepIdsInsertingAfterReference` sur le chapitre de la step de référence (la step insérée **n’était pas** dans ce chapitre → pas de doublon).
 
-**Conséquence produit** : la « barre » n’est plus entièrement cliquable pour le toggle ; le **titre** est une zone dédiée au **double-clic** ; l’utilisateur peut encore replier/ouvrir via **chevron**, **indice de chapitre** ou **compteur de steps** (deux cibles larges et explicites).
+**Cohérence picker** : options = `eligibleStepIdsForGlobalStoryInsertPicker(allProjectSteps, currentStepId)` ; `allProjectSteps` = `stepDocument.steps` triés passés depuis `_buildNarrativeTree`.
 
-### 3. `_ChapterNameDisplay`
+---
 
-- **`_onEditKeyEvent`** : `if (event is! KeyDownEvent) return ignored` puis Escape → `_cancelEdit()`.
-- **`_commitEdit`** : si `trim()` vide → `_cancelEdit()` ; sinon `onRename` seulement si le nom a changé ; sortie d’édition.
-- **Affichage** : `Container(width: double.infinity, alignment: Alignment.centerLeft, …)` + `GestureDetector(onDoubleTap: …, behavior: HitTestBehavior.translucent)` pour capter le double-clic sur toute la zone du titre.
-- **Édition** : `CupertinoTextField` direct (sans `GestureDetector` parent vide).
+## Hit zones header (version actuelle)
 
-### 4. Imports
-
-```dart
-import 'package:flutter/services.dart'
-    show KeyDownEvent, LogicalKeyboardKey;
+```
+Row
+├── Expanded
+│   └── GestureDetector (onTap: toggle)     ← grande zone « ligne »
+│       └── Row
+│           ├── chevron + badge CH
+│           ├── Expanded
+│           │   └── _ChapterNameDisplay
+│           │         (onTap: toggle, onDoubleTap: rename)   ← titre
+│           └── badge « X steps »
+├── [actions] CupertinoButton…               ← hors GestureDetector ligne
 ```
 
-`KeyEventResult` reste résolu via l’export standard de `package:flutter/cupertino.dart`.
+- **Toggle** : tout tap sur chevron, CH, badge steps, ou **titre** (simple clic, avec délai si double-clic possible).
+- **Renommage** : double-clic sur le titre uniquement.
+- **Actions** : jamais dans le `GestureDetector` de la ligne.
 
 ---
 
-## Explication détaillée : cas « même chapitre »
-
-`_insertExistingStepAfter` met déjà à jour la liste **`stepDoc.steps`** (ordre global + `order`). La colonne des chapitres construit les steps affichées par :
-
-`chapter.stepIds.map((id) => … StepStudioStep …)`.
-
-Si `stepIds` n’est pas réordonné, l’ordre **affiché** reste l’ancien ordre du chapitre alors que le **document** Step Studio reflète la nouvelle position. La correction aligne **`stepIds`** sur l’intention « insérer après cette step » en répliquant l’idée déjà utilisée pour l’inter-chapitre : retirer la step déplacée, puis l’insérer à **`indexOf(reference) + 1`**.
-
----
-
-## Explication détaillée : hit zones du header
-
-- **Toggle** : uniquement les widgets explicitement enveloppés dans un `GestureDetector` avec `onTap: onExpansionTap`.
-- **Non-toggle** : titre (`Expanded` + `_ChapterNameDisplay`) et boutons d’action.
-- **Isolation** : les `CupertinoButton` consomment leurs propres taps ; ils ne sont pas descendants d’un `GestureDetector` de toggle.
-
----
-
-## Explication détaillée : renommage inline
+## Renommage inline (inchangé fonctionnellement depuis round 2)
 
 | Action | Comportement |
 |--------|----------------|
-| Double-clic sur la zone titre | `_startEditing`, focus + sélection du texte. |
-| Enter | `onSubmitted` → `_commitEdit`. |
-| Escape | `KeyDownEvent` + `LogicalKeyboardKey.escape` → `_cancelEdit`. |
-| Perte de focus | `FocusNode` listener → `_cancelEdit`. |
-| Nom vide (Enter) | `_cancelEdit` (silencieux, pas d’`onRename`). |
-| Modal / popup système | Aucun ajout. |
+| Double-clic zone titre | Édition inline. |
+| Enter | Validation. |
+| Escape (key down) | Annulation. |
+| Perte de focus | Annulation. |
+| Nom vide | Annulation silencieuse. |
+
+---
+
+## Tests ajoutés (`global_story_studio_behavior_test.dart`)
+
+| Test | Objectif |
+|------|----------|
+| `reorderChapterStepIdsAfterMovingWithinSameChapter moves after ref` | Réordonnancement intra-chapitre. |
+| `returns null if id missing` | Garde-fou. |
+| `cross-chapter: remove then insert after` | Pas de doublon dans le chapitre cible. |
+| `chapterStepIdsInsertingAfterReference rejects duplicate insert` | Anti-doublon. |
+| `same-chapter: global step id order and chapter.stepIds stay aligned` | Alignement liste globale vs `stepIds`. |
+| `cross-chapter: global order vs chapter membership` | Modèle retrait chapitre B + insertion chapitre A. |
+| `eligibleStepIdsForGlobalStoryInsertPicker lists all except current` | Picker = tout le projet sauf courant. |
+| `tap chevron toggles expansion; add chapter does not only collapse` | Toggle vs bouton « ajouter chapitre ». |
+| `double-tap chapter title opens field; enter commits rename` | Renommage inline widget. |
+| `Insérer opens sheet listing other project steps` | Picker inline : libellé `#2. …` + step courante visible. |
+
+**Commande** : `flutter test test/global_story_studio_behavior_test.dart test/global_story_studio_ux_test.dart`
 
 ---
 
 ## Risques restants
 
-- **UX toggle** : l’espace entre le badge « CH. n » et le titre, et entre le titre et le badge « X steps », **ne toggle plus** le chapitre. C’est le compromis volontaire pour séparer renommage / accordéon.
-- **Ordre `stepIds` vs ordre global** : d’autres opérations pourraient un jour désynchroniser chapitre et document Step Studio ; seul le chemin « insert existing same chapter » est renforcé ici.
-- **Tests widget** : les tests existants ne couvrent pas explicitement le réordonnancement `stepIds` ni les gestes header ; validation manuelle recommandée dans l’éditeur.
+- **Délai toggle** sur le titre (voir compromis).
+- **Autres opérations** (hors « insert existing ») pourraient théoriquement désynchroniser `stepIds` et ordre global — non couvertes ici.
+- **Picker** : borné au `StepStudioDocument` du scénario édité (pas « toutes les steps de tous les scénarios »).
 
 ---
 
 ## Limites connues
 
-- Pas de test unitaire isolé sur `_stepIdsAfterMovingWithinChapter` (uniquement couvert indirectement par les tests widget existants après expansion).
-- Nettoyage des warnings préexistants (`unused_element`, `minSize` déprécié ailleurs dans le fichier) non inclus pour rester minimal.
+- Pas d’assertion widget sur le contenu exact de `CupertinoActionSheet` sous test VM.
+- Warnings analyse préexistants dans `global_story_studio_workspace.dart` (code mort, `minSize` déprécié) non traités dans ce lot.
 
 ---
 
-## Tests effectués / à effectuer
+## Extraits / symboles utiles
 
-**Effectués (machine de dev)** :
-
-- `dart analyze lib/src/ui/canvas/global_story_studio_workspace.dart` — **0 erreur** (avertissements préexistants sur code mort / dépréciations).
-- `flutter test test/global_story_studio_ux_test.dart` — **tous passent** après adaptation : les chapitres sont **repliés par défaut**, donc les tests qui cherchaient les noms de steps appellent désormais `_expandAllGlobalStoryChapters` (développe chaque chevron de chapitre une fois) avant les assertions.
-
-**Fichier de test modifié** : `packages/map_editor/test/global_story_studio_ux_test.dart` (helper + trois `testWidgets` concernés).
-
-**Recommandés (manuel)** :
-
-1. Créer deux steps A et B dans le même chapitre ; insérer B après A (ou l’inverse) via « Insérer » : vérifier l’ordre visuel immédiat dans le chapitre.
-2. Insérer une step d’un autre chapitre après une step cible : comportement inchangé attendu.
-3. Double-clic sur le titre : édition sans mouvement d’accordéon ; clic sur chevron ou badge steps : toggle seul.
-4. Renommage : Enter avec texte valide ; Escape ; clic ailleurs pendant l’édition ; Enter avec champ vide.
+- `reorderChapterStepIdsAfterMovingWithinSameChapter` — `global_story_studio_authoring.dart`
+- `_ChapterHeader.build` — `global_story_studio_workspace.dart`
+- `_ChapterNameDisplay` — `onAccordionToggle` + `onDoubleTap`
 
 ---
 
-## Extraits de code utiles (références)
-
-- Réordonnancement même chapitre : méthodes `_moveStepToChapterOfStep` et `_stepIdsAfterMovingWithinChapter` dans `global_story_studio_workspace.dart`.
-- Header : widget `_ChapterHeader`, `Row` avec deux `GestureDetector` de toggle et `Expanded` pour `_ChapterNameDisplay`.
-- Clavier : `_ChapterNameDisplayState._onEditKeyEvent` et `_commitEdit`.
-
----
-
-*Document généré dans le cadre du correctif « round 2 » — pas d’opération Git associée.*
+*Mise à jour après compléments UX header, extraction logique pure, et tests ciblés — pas d’opération Git associée.*

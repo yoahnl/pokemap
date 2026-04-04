@@ -1344,7 +1344,7 @@ class _GlobalStoryStudioWorkspaceState
     // ── Même chapitre : réordonner stepIds (retirer puis réinsérer après la référence).
     if (sourceChapterIdx == currentChapterIdx) {
       final chapter = globalDoc.chapters[sourceChapterIdx];
-      final reordered = _stepIdsAfterMovingWithinChapter(
+      final reordered = reorderChapterStepIdsAfterMovingWithinSameChapter(
         chapter.stepIds,
         referenceStepId: referenceStepId,
         stepIdToMove: stepIdToMove,
@@ -1372,21 +1372,22 @@ class _GlobalStoryStudioWorkspaceState
         .entries
         .map((e) {
           if (e.key == currentChapterIdx) {
-            // Retirer la step de son chapitre actuel.
             return currentChapter.copyWith(
-              stepIds: currentChapter.stepIds
-                  .where((id) => id != stepIdToMove)
-                  .toList(growable: false),
+              stepIds: chapterStepIdsRemovingOnce(
+                currentChapter.stepIds,
+                stepIdToMove,
+              ),
             );
           }
           if (e.key == sourceChapterIdx) {
-            // Ajouter la step au chapitre cible.
-            // Insérer après la referenceStepId pour maintenir l'ordre visuel.
-            final refIndex = sourceChapter.stepIds
-                .indexWhere((id) => id == referenceStepId);
-            final newStepIds = <String>[...sourceChapter.stepIds];
-            final insertAt = refIndex >= 0 ? refIndex + 1 : newStepIds.length;
-            newStepIds.insert(insertAt, stepIdToMove);
+            final newStepIds = chapterStepIdsInsertingAfterReference(
+              sourceChapter.stepIds,
+              referenceStepId,
+              stepIdToMove,
+            );
+            if (newStepIds == null) {
+              return sourceChapter;
+            }
             return sourceChapter.copyWith(stepIds: newStepIds);
           }
           return e.value;
@@ -1398,25 +1399,6 @@ class _GlobalStoryStudioWorkspaceState
       nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
     );
   }
-
-  /// Réordonne les [stepIds] d'un chapitre après déplacement de [stepIdToMove]
-  /// juste après [referenceStepId]. Retourne `null` si les prérequis ne sont pas réunis.
-  List<String>? _stepIdsAfterMovingWithinChapter(
-    List<String> stepIds, {
-    required String referenceStepId,
-    required String stepIdToMove,
-  }) {
-    if (!stepIds.contains(referenceStepId) || !stepIds.contains(stepIdToMove)) {
-      return null;
-    }
-    final next = List<String>.from(stepIds, growable: true);
-    next.remove(stepIdToMove);
-    final refIdx = next.indexOf(referenceStepId);
-    if (refIdx < 0) return null;
-    next.insert(refIdx + 1, stepIdToMove);
-    return next;
-  }
-
 
   List<_SimpleOption> _stepOptions({String? excludeStepId}) {
     final stepDoc = _draftStepDocument;
@@ -3120,12 +3102,19 @@ class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
   ///
   /// Exclut la step courante pour éviter l'auto-insertion.
   List<_SimpleOption> _availableStepsFor(String currentStepId) {
-    return widget.allProjectSteps
-        .where((s) => s.id != currentStepId)
-        .map((s) => _SimpleOption(
-              id: s.id,
-              label: '#${s.order + 1}. ${s.name}',
-            ))
+    final byId = <String, StepStudioStep>{
+      for (final s in widget.allProjectSteps) s.id: s,
+    };
+    return eligibleStepIdsForGlobalStoryInsertPicker(
+      widget.allProjectSteps,
+      currentStepId,
+    )
+        .map((id) {
+          final s = byId[id];
+          final label =
+              s != null ? '#${s.order + 1}. ${s.name}' : id;
+          return _SimpleOption(id: id, label: label);
+        })
         .toList(growable: false);
   }
 
@@ -3330,80 +3319,76 @@ class _ChapterHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── ZONE TOGGLE (accordéon) : chevron + pastille CH uniquement.
-          // Le titre du chapitre est EXCLU pour permettre le double-clic renommage
-          // sans qu'un premier tap déclenche l'ouverture/fermeture.
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onExpansionTap,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showExpansionIcon) ...[
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0.0,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
-                    child: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 16,
-                      color: EditorChrome.primaryLabel(context),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                ],
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: EditorChrome.inspectorJoyPlum.withValues(
-                        alpha: 0.18),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'CH. ${chapterIndex + 1}',
-                    style: TextStyle(
-                      color: EditorChrome.inspectorJoyPlum,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          // ── ZONE NOM : double-clic = renommage inline ; pas de toggle parent.
+          // Une seule grande zone « ligne de chapitre » pour l’accordéon : chevron,
+          // pastille CH, titre (simple tap = toggle, double tap = renommage via enfant),
+          // badge steps. Les boutons d’action restent en dehors de ce GestureDetector.
           Expanded(
-            child: _ChapterNameDisplay(
-              name: chapter.name,
-              onRename: onRename,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onExpansionTap ?? () {},
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (showExpansionIcon) ...[
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      child: Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 16,
+                        color: EditorChrome.primaryLabel(context),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: EditorChrome.inspectorJoyPlum.withValues(
+                          alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'CH. ${chapterIndex + 1}',
+                      style: TextStyle(
+                        color: EditorChrome.inspectorJoyPlum,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ChapterNameDisplay(
+                      name: chapter.name,
+                      onRename: onRename,
+                      onAccordionToggle: onExpansionTap ?? () {},
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: EditorChrome.inspectorJoyMint.withValues(
+                          alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$stepCount step${stepCount > 1 ? 's' : ''}',
+                      style: TextStyle(
+                        color: EditorChrome.inspectorJoyMint,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          // ── ZONE TOGGLE (accordéon) : badge nombre de steps (même action que chevron).
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onExpansionTap,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: EditorChrome.inspectorJoyMint.withValues(
-                    alpha: 0.12),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                '$stepCount step${stepCount > 1 ? 's' : ''}',
-                style: TextStyle(
-                  color: EditorChrome.inspectorJoyMint,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          // ── ZONE ACTIONS : jamais propagée au toggle (hors GestureDetector ci-dessus).
           if (canEdit) ...[
             const SizedBox(width: 8),
             Row(
@@ -3606,23 +3591,25 @@ class _ChapterSummary extends StatelessWidget {
   }
 }
 
-/// Titre du chapitre : renommage inline (double-clic), sans modal.
+/// Titre du chapitre dans la ligne d’en-tête : accordéon + renommage.
 ///
-/// Le header parent place ce widget dans une [Expanded] dédiée : les zones
-/// « toggle accordéon » (chevron / badge steps) sont à côté, donc un simple
-/// clic sur le titre ne replie plus le chapitre pendant la préparation d’un
-/// double-clic.
+/// En affichage : [onAccordionToggle] est déclenché au **simple tap** (avec le
+/// délai standard si un double tap est en cours) ; le **double tap** lance
+/// l’édition inline. Le parent enveloppe aussi chevron / badges dans un
+/// [GestureDetector] pour une ligne visuellement homogène.
 ///
-/// Raccourcis : Enter valide, Escape annule, perte de focus annule, chaîne
-/// vide après validation = annulation silencieuse (restauration du nom).
+/// Raccourcis édition : Enter valide, Escape annule, perte de focus annule,
+/// chaîne vide = annulation silencieuse.
 class _ChapterNameDisplay extends StatefulWidget {
   const _ChapterNameDisplay({
     required this.name,
     required this.onRename,
+    required this.onAccordionToggle,
   });
 
   final String name;
   final ValueChanged<String> onRename;
+  final VoidCallback onAccordionToggle;
 
   @override
   State<_ChapterNameDisplay> createState() => _ChapterNameDisplayState();
@@ -3743,9 +3730,9 @@ class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
       );
     }
 
-    // Pleine largeur de la [Expanded] parente : double-clic n’importe où sur la ligne du titre.
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onAccordionToggle,
       onDoubleTap: _startEditing,
       child: Container(
         width: double.infinity,

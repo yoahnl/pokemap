@@ -193,6 +193,67 @@ class GlobalStoryChapter {
       Object.hash(id, name, description, Object.hashAll(stepIds), order);
 }
 
+/// Réordonne [chapterStepIds] quand [stepIdToMove] est déjà dans ce chapitre
+/// et doit apparaître juste après [referenceStepId] (insertion existante,
+/// même chapitre). Retourne `null` si un id requis est absent.
+List<String>? reorderChapterStepIdsAfterMovingWithinSameChapter(
+  List<String> chapterStepIds, {
+  required String referenceStepId,
+  required String stepIdToMove,
+}) {
+  if (!chapterStepIds.contains(referenceStepId) ||
+      !chapterStepIds.contains(stepIdToMove)) {
+    return null;
+  }
+  final next = List<String>.from(chapterStepIds, growable: true);
+  next.remove(stepIdToMove);
+  final refIdx = next.indexOf(referenceStepId);
+  if (refIdx < 0) return null;
+  next.insert(refIdx + 1, stepIdToMove);
+  return next;
+}
+
+/// Retire la première occurrence de [stepId] dans l’ordre du chapitre.
+List<String> chapterStepIdsRemovingOnce(
+  List<String> chapterStepIds,
+  String stepId,
+) {
+  final i = chapterStepIds.indexOf(stepId);
+  if (i < 0) return List<String>.from(chapterStepIds);
+  return [
+    ...chapterStepIds.sublist(0, i),
+    ...chapterStepIds.sublist(i + 1),
+  ];
+}
+
+/// Insère [stepIdToInsert] après [referenceStepId] dans le chapitre cible.
+/// Retourne `null` si la référence est absente ou si [stepIdToInsert] est déjà présent
+/// (garde-fou anti-doublon lors d’un déplacement inter-chapitres).
+List<String>? chapterStepIdsInsertingAfterReference(
+  List<String> chapterStepIds,
+  String referenceStepId,
+  String stepIdToInsert,
+) {
+  if (chapterStepIds.contains(stepIdToInsert)) return null;
+  final idx = chapterStepIds.indexOf(referenceStepId);
+  if (idx < 0) return null;
+  final next = List<String>.from(chapterStepIds);
+  next.insert(idx + 1, stepIdToInsert);
+  return next;
+}
+
+/// Ids des steps proposées dans le picker « insérer une existante » : toutes les steps
+/// du projet ([allProjectSteps] déjà dans l’ordre métier voulu), sauf la step courante.
+List<String> eligibleStepIdsForGlobalStoryInsertPicker(
+  List<StepStudioStep> allProjectSteps,
+  String currentStepId,
+) {
+  return allProjectSteps
+      .map((s) => s.id)
+      .where((id) => id != currentStepId)
+      .toList(growable: false);
+}
+
 /// Noeud macro du scénario global: une step + sa logique de sortie.
 @immutable
 class GlobalStoryStepNode {
