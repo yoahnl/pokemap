@@ -943,7 +943,6 @@ class _GlobalStoryStudioWorkspaceState
   ///
   /// Quand non null, le sélecteur de step existante est affiché sous forme
   /// d'un popup intégré au-dessus de la step concernée.
-  String? _insertTargetStepId;
 
   /// Renomme un chapitre existant.
   void _renameChapter(String chapterId, String newName) {
@@ -1372,18 +1371,6 @@ class _GlobalStoryStudioWorkspaceState
     );
   }
 
-  /// Ouvre/ferme le sélecteur de step existante pour insertion.
-  void _toggleInsertPicker(String stepId) {
-    setState(() {
-      _insertTargetStepId = _insertTargetStepId == stepId ? null : stepId;
-    });
-  }
-
-  void _cancelInsertPicker() {
-    setState(() {
-      _insertTargetStepId = null;
-    });
-  }
 
   List<_SimpleOption> _stepOptions({String? excludeStepId}) {
     final stepDoc = _draftStepDocument;
