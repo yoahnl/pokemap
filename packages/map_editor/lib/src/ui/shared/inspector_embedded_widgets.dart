@@ -12,8 +12,7 @@ import 'package:flutter/material.dart'
 import 'cupertino_editor_widgets.dart';
 
 /// Padding standard du corps des tuiles inspecteur (contenu sous l’en-tête).
-const EdgeInsets kInspectorTileBodyPadding =
-    EdgeInsets.fromLTRB(10, 8, 10, 10);
+const EdgeInsets kInspectorTileBodyPadding = EdgeInsets.fromLTRB(10, 8, 10, 10);
 
 class InspectorEmbeddedSectionLabel extends StatelessWidget {
   const InspectorEmbeddedSectionLabel(this.text, {super.key});
@@ -279,7 +278,7 @@ class InspectorEmbeddedPrimaryCapsule extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Icon(
               icon,
@@ -287,12 +286,19 @@ class InspectorEmbeddedPrimaryCapsule extends StatelessWidget {
               color: enabled ? (prominent ? accent : fg) : muted,
             ),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: enabled ? fg : muted,
+            // Défense overflow:
+            // en largeur contrainte, le label doit se compacter proprement
+            // (ellipsis) plutôt que forcer un RenderFlex overflow.
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: enabled ? fg : muted,
+                ),
               ),
             ),
           ],

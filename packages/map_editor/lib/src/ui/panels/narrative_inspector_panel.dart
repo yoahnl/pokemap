@@ -58,9 +58,19 @@ class NarrativeInspectorPanel extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         _InspectorSection(
-          title: 'Global Story Graphs',
-          content: '${projection.globalStories.length}',
+          title: 'Global Story (unique)',
+          content: projection.globalStories.isEmpty
+              ? 'Aucun'
+              : projection.globalStories.first.name,
         ),
+        if (projection.globalStories.length > 1) ...[
+          const SizedBox(height: 10),
+          _InspectorSection(
+            title: 'Global stories en trop',
+            content:
+                '${projection.globalStories.length - 1} (non utilisées par Step Studio)',
+          ),
+        ],
         const SizedBox(height: 10),
         _InspectorSection(
           title: 'Steps (projected)',

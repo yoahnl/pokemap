@@ -9,6 +9,7 @@ import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import 'cutscene_studio_workspace.dart';
+import 'step_studio_workspace.dart';
 
 /// Workspace central du studio narratif.
 ///
@@ -116,6 +117,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   );
                 },
                 onSelectOutcome: narrativeController.selectOutcome,
+                editorNotifier: editorNotifier,
+                project: editor.project,
+                activeMap: editor.activeMap,
               ),
             EditorWorkspaceMode.cutscene => _CutsceneWorkspaceBody(
                 editorNotifier: editorNotifier,
@@ -263,29 +267,35 @@ class _GlobalStoryWorkspaceBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryGlobalStory = projection.globalStories.isEmpty
+        ? null
+        : projection.globalStories.first;
+    final additionalGlobalStories = projection.globalStories.length > 1
+        ? projection.globalStories.length - 1
+        : 0;
+
     return Row(
       children: [
         SizedBox(
           width: 310,
           child: _NarrativeListCard(
-            title: 'Global Story Graphs',
-            subtitle: 'Macro progression structure',
-            emptyText: 'No global story graph yet.',
-            children: projection.globalStories
-                .map(
-                  (scenario) => EditorSidebarListRow(
-                    selected: selectedGlobal?.id == scenario.id,
-                    onTap: () => onSelectGlobal(scenario.id),
-                    leading: const Icon(CupertinoIcons.link),
-                    title: Text(scenario.name),
-                    subtitle: Text(
-                      '${scenario.nodeCount} nodes • ${scenario.edgeCount} links',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+            title: 'Global Story (unique)',
+            subtitle: 'Structure macro principale du jeu',
+            emptyText: 'Aucun scénario global.',
+            children: [
+              if (primaryGlobalStory != null)
+                EditorSidebarListRow(
+                  selected: selectedGlobal?.id == primaryGlobalStory.id,
+                  onTap: () => onSelectGlobal(primaryGlobalStory.id),
+                  leading: const Icon(CupertinoIcons.link),
+                  title: Text(primaryGlobalStory.name),
+                  subtitle: Text(
+                    '${primaryGlobalStory.nodeCount} nodes • ${primaryGlobalStory.edgeCount} links',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                )
-                .toList(growable: false),
+                ),
+            ],
           ),
         ),
         const SizedBox(width: 12),
@@ -293,7 +303,7 @@ class _GlobalStoryWorkspaceBody extends StatelessWidget {
           child: _NarrativeDetailCard(
             title: selectedGlobal?.name ?? 'No global story selected',
             subtitle: selectedGlobal == null
-                ? 'Select a global graph from the left list.'
+                ? 'Sélectionnez le scénario global.'
                 : 'Structure your arcs, milestones and major narrative transitions.',
             sections: [
               const _DetailSectionData(
@@ -321,6 +331,12 @@ class _GlobalStoryWorkspaceBody extends StatelessWidget {
                     ? '—'
                     : _joinOrDash(selectedGlobal!.consumedOutcomes),
               ),
+              if (additionalGlobalStories > 0)
+                _DetailSectionData(
+                  label: 'Warning',
+                  content:
+                      '$additionalGlobalStories additional global scenario(s) detected. Step Studio edits only the primary Global Story.',
+                ),
             ],
           ),
         ),
@@ -331,12 +347,18 @@ class _GlobalStoryWorkspaceBody extends StatelessWidget {
 
 class _StepWorkspaceBody extends StatelessWidget {
   const _StepWorkspaceBody({
+    required this.editorNotifier,
+    required this.project,
+    required this.activeMap,
     required this.projection,
     required this.selectedStep,
     required this.onSelectStep,
     required this.onSelectOutcome,
   });
 
+  final EditorNotifier editorNotifier;
+  final ProjectManifest? project;
+  final MapData? activeMap;
   final NarrativeWorkspaceProjection projection;
   final NarrativeStepSummary? selectedStep;
   final ValueChanged<String> onSelectStep;
@@ -344,70 +366,19 @@ class _StepWorkspaceBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 310,
-          child: _NarrativeListCard(
-            title: 'Steps',
-            subtitle: 'Progression units',
-            emptyText: 'No step projection yet.',
-            children: projection.steps
-                .map(
-                  (step) => EditorSidebarListRow(
-                    selected: selectedStep?.id == step.id,
-                    onTap: () => onSelectStep(step.id),
-                    leading: const Icon(CupertinoIcons.flag),
-                    title: Text(step.name),
-                    subtitle: Text(
-                      'Cutscenes: ${step.linkedCutsceneIds.length} • Outcomes: ${step.emittedOutcomeIds.length}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _NarrativeDetailCard(
-            title: selectedStep?.name ?? 'No step selected',
-            subtitle: selectedStep == null
-                ? 'Select a step from the left list.'
-                : selectedStep!.description,
-            sections: [
-              _DetailSectionData(
-                label: 'Linked global scenario',
-                content: selectedStep?.globalScenarioId ?? '—',
-              ),
-              _DetailSectionData(
-                label: 'Linked cutscenes',
-                content: selectedStep == null
-                    ? '—'
-                    : _joinOrDash(selectedStep!.linkedCutsceneIds),
-              ),
-              _DetailSectionData(
-                label: 'Expected outcomes',
-                content: selectedStep == null
-                    ? '—'
-                    : _joinOrDash(selectedStep!.expectedOutcomeIds),
-              ),
-              _DetailSectionData(
-                label: 'Emitted outcomes',
-                content: selectedStep == null
-                    ? '—'
-                    : _joinOrDash(selectedStep!.emittedOutcomeIds),
-                onTap: selectedStep == null ||
-                        selectedStep!.emittedOutcomeIds.isEmpty
-                    ? null
-                    : () =>
-                        onSelectOutcome(selectedStep!.emittedOutcomeIds.first),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return StepStudioWorkspace(
+      editorNotifier: editorNotifier,
+      project: project,
+      activeMap: activeMap,
+      projection: projection,
+      selectedStepId: selectedStep?.id,
+      onSelectStep: (stepId) {
+        if (stepId == null) {
+          return;
+        }
+        onSelectStep(stepId);
+      },
+      onSelectOutcome: onSelectOutcome,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
+import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 
 void main() {
   group('buildNarrativeWorkspaceProjection', () {
@@ -69,6 +70,94 @@ void main() {
       expect(globalOutcome.emittedByScenarioIds, contains('global_intro'));
       expect(globalOutcome.consumedByScenarioIds,
           contains('local_professor_scene'));
+    });
+
+    test('projects ordered steps from Step Studio v1 metadata document', () {
+      const stepStudioDocument = StepStudioDocument(
+        globalStoryScenarioId: 'global_story',
+        steps: <StepStudioStep>[
+          StepStudioStep(
+            id: 'step_intro',
+            name: 'Introduction',
+            description: 'Start',
+            order: 0,
+            activation: StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            ),
+            completion: StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.whenCutsceneEnds,
+              cutsceneId: 'cutscene_intro',
+            ),
+            cutscenes: <StepStudioCutsceneLink>[
+              StepStudioCutsceneLink(
+                cutsceneId: 'cutscene_intro',
+                role: StepStudioCutsceneRole.main,
+              ),
+            ],
+          ),
+          StepStudioStep(
+            id: 'step_follow_emma',
+            name: 'Suivre Emma',
+            description: 'Follow',
+            order: 1,
+            activation: StepStudioActivationRule(
+              mode: StepStudioActivationMode.afterStep,
+              stepId: 'step_intro',
+            ),
+            completion: StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.whenOutcomeEmitted,
+              outcomeId: 'progression.step_follow_emma.arrived_lab',
+            ),
+            outcomes: <StepStudioOutcomeDefinition>[
+              StepStudioOutcomeDefinition(
+                label: 'Arrivé au labo',
+                scope: StepStudioOutcomeScope.progression,
+                outcomeId: 'progression.step_follow_emma.arrived_lab',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final project = ProjectManifest(
+        name: 'test',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        scenarios: <ScenarioAsset>[
+          ScenarioAsset(
+            id: 'global_story',
+            name: 'Global Story',
+            scope: ScenarioScope.globalStory,
+            entryNodeId: 'start',
+            metadata: <String, String>{
+              kStepStudioSchemaMetadataKey: kStepStudioSchemaVersion,
+              kStepStudioDocumentMetadataKey:
+                  stepStudioDocument.toMetadataJson(),
+            },
+          ),
+          const ScenarioAsset(
+            id: 'cutscene_intro',
+            name: 'Intro Cutscene',
+            scope: ScenarioScope.localEventFlow,
+            entryNodeId: 'start',
+          ),
+        ],
+      );
+
+      final projection = buildNarrativeWorkspaceProjection(project);
+
+      expect(projection.steps, hasLength(2));
+      expect(projection.steps.first.id, 'step_intro');
+      expect(projection.steps.first.order, 0);
+      expect(projection.steps.last.id, 'step_follow_emma');
+      expect(
+        projection.steps.last.emittedOutcomeIds,
+        contains('progression.step_follow_emma.arrived_lab'),
+      );
+      expect(
+        projection.steps.last.activationSummary,
+        contains('step_intro'),
+      );
     });
   });
 }

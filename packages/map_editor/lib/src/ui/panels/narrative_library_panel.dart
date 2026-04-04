@@ -43,6 +43,13 @@ class NarrativeLibraryPanel extends ConsumerWidget {
       );
     }
 
+    final primaryGlobalStory = projection.globalStories.isEmpty
+        ? null
+        : projection.globalStories.first;
+    final additionalGlobalStories = projection.globalStories.length > 1
+        ? projection.globalStories.length - 1
+        : 0;
+
     return ListView(
       padding: embedded
           ? kInspectorTileBodyPadding
@@ -71,25 +78,42 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 10),
-        const EditorSidebarSectionTitle('GLOBAL STORY', leftInset: 2),
-        ...projection.globalStories.map(
-          (scenario) => EditorSidebarListRow(
-            selected: narrative.selectedGlobalStoryId == scenario.id &&
-                editor.workspaceMode == EditorWorkspaceMode.globalStory,
+        const EditorSidebarSectionTitle('GLOBAL STORY (UNIQUE)', leftInset: 2),
+        if (primaryGlobalStory == null)
+          EditorSidebarListRow(
+            selected: false,
+            onTap: () {},
+            leading: MacosIcon(CupertinoIcons.exclamationmark_triangle),
+            title: Text('Aucun scénario global'),
+          ),
+        if (primaryGlobalStory != null)
+          EditorSidebarListRow(
+            selected:
+                narrative.selectedGlobalStoryId == primaryGlobalStory.id &&
+                    editor.workspaceMode == EditorWorkspaceMode.globalStory,
             onTap: () {
-              narrativeController.selectGlobalStory(scenario.id);
-              narrativeController.openGlobalStory(scenarioId: scenario.id);
+              narrativeController.selectGlobalStory(primaryGlobalStory.id);
+              narrativeController.openGlobalStory(
+                scenarioId: primaryGlobalStory.id,
+              );
               notifier.selectGlobalStoryWorkspace();
             },
             leading: const MacosIcon(CupertinoIcons.link),
-            title: Text(scenario.name),
+            title: Text(primaryGlobalStory.name),
             subtitle: Text(
-              '${scenario.nodeCount} nodes',
+              '${primaryGlobalStory.nodeCount} nodes',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-        ),
+        if (additionalGlobalStories > 0) ...[
+          const SizedBox(height: 6),
+          const InspectorEmbeddedFootnote(
+            text:
+                'Plusieurs scénarios globaux détectés. L’éditeur fonctionne avec le premier pour respecter la règle métier "un seul Global Story".',
+            accent: EditorChrome.inspectorJoyCoral,
+          ),
+        ],
         const SizedBox(height: 8),
         const EditorSidebarSectionTitle('STEPS', leftInset: 2),
         ...projection.steps.map(

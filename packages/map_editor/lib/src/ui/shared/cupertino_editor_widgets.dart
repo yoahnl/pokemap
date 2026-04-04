@@ -19,14 +19,19 @@ abstract final class EditorChrome {
   static const Color accentCoral = Color(0xFFE8887A);
   static const Color accentPrune = Color(0xFF7A5A92);
   static const Color accentLilac = Color(0xFFC8B0F2);
+
   /// Rose chaud discret (halos, milieu de dégradé).
   static const Color accentRose = Color(0xFFD898B0);
+
   /// Magenta profond, usage rare (accents nobles).
   static const Color accentMagentaDeep = Color(0xFF6E4A78);
+
   /// World Explorer — sarcelle / bleu profond chaleureux (pas gris-bleu admin).
   static const Color islandCoolTint = Color(0xFF3A5A72);
+
   /// Inspector — violet prune rosé.
   static const Color islandNeutralTint = Color(0xFF5C4670);
+
   /// Surface Library — ambre / terre chaude.
   static const Color islandWarmTint = Color(0xFF6B5438);
 
@@ -59,7 +64,8 @@ abstract final class EditorChrome {
   static LinearGradient appBackgroundGradient(BuildContext context) {
     final g = EditorVisualTokens.appBackgroundGradient(context);
     if (g != null) return g;
-    return LinearGradient(colors: [appBackground(context), appBackground(context)]);
+    return LinearGradient(
+        colors: [appBackground(context), appBackground(context)]);
   }
 
   static Color islandFill(BuildContext context) =>
@@ -108,7 +114,8 @@ abstract final class EditorChrome {
       islandFillElevated(context);
 
   /// Compat : zones « liste » — aligné sur le fond global pour éviter le patchwork.
-  static Color scaffoldBackground(BuildContext context) => appBackground(context);
+  static Color scaffoldBackground(BuildContext context) =>
+      appBackground(context);
 
   /// Toujours transparent : le canvas laisse voir le même matériau que l’îlot parent.
   static Color mapCanvasViewportBackground(BuildContext context) =>
@@ -134,13 +141,11 @@ abstract final class EditorChrome {
   static Color activeAccent(BuildContext context) =>
       CupertinoTheme.of(context).primaryColor;
 
-  static Color statusTint(BuildContext context) => _isDark(context)
-      ? const Color(0xFF3A3A52)
-      : const Color(0xFFF2EBE6);
+  static Color statusTint(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF3A3A52) : const Color(0xFFF2EBE6);
 
-  static Color errorTint(BuildContext context) => _isDark(context)
-      ? const Color(0xFF32242A)
-      : const Color(0xFFF8E8EA);
+  static Color errorTint(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF32242A) : const Color(0xFFF8E8EA);
 
   /// Remplissage discret, **opaque** (pas de translucidité type verre).
   static Color chipFill(BuildContext context) => _isDark(context)
@@ -433,7 +438,20 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
     final spacing = 10.0 + theme.visualDensity.horizontal;
-    const rowHeight = 30.0;
+    final hasSubtitle = widget.subtitle != null;
+    // Hauteur cible:
+    // - ligne simple compacte pour titre seul;
+    // - ligne étendue pour titre + sous-titre.
+    //
+    // Cette distinction corrige une régression où la variante avec sous-titre
+    // gardait la même hauteur que la variante simple, provoquant un overflow
+    // vertical de la Column interne.
+    final baseRowHeight = hasSubtitle ? 42.0 : 30.0;
+    final minRowHeight = hasSubtitle ? 36.0 : 24.0;
+    final maxRowHeight = hasSubtitle ? 56.0 : 44.0;
+    final resolvedRowHeight = (baseRowHeight + theme.visualDensity.vertical)
+        .clamp(minRowHeight, maxRowHeight)
+        .toDouble();
     final fill = widget.selected
         ? editorSidebarSelectionColor(context)
         : (_hovered
@@ -457,51 +475,68 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
               vertical: 4 + theme.visualDensity.vertical * 0.5,
             ),
             child: SizedBox(
-              height: rowHeight + theme.visualDensity.vertical,
-              child: Row(
-                children: [
-                  if (widget.leading != null) ...[
-                    MacosIconTheme.merge(
-                      data: MacosIconThemeData(
-                        color: widget.selected
-                            ? MacosColors.white
-                            : (widget.leadingIconUnselectedColor ??
-                                theme.primaryColor),
-                        size: 16,
-                      ),
-                      child: widget.leading!,
-                    ),
-                    SizedBox(width: spacing),
-                  ],
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DefaultTextStyle(
-                          style: theme.typography.body.copyWith(
-                            color: widget.selected ? MacosColors.white : null,
-                            fontWeight: widget.selected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
+              height: resolvedRowHeight,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Fallback compact:
+                  // si la hauteur disponible devient trop basse, on masque le
+                  // sous-titre au lieu de laisser la Column déborder.
+                  final canShowSubtitle =
+                      widget.subtitle != null && constraints.maxHeight >= 36;
+
+                  return Row(
+                    children: [
+                      if (widget.leading != null) ...[
+                        MacosIconTheme.merge(
+                          data: MacosIconThemeData(
+                            color: widget.selected
+                                ? MacosColors.white
+                                : (widget.leadingIconUnselectedColor ??
+                                    theme.primaryColor),
+                            size: 16,
                           ),
-                          child: widget.title,
+                          child: widget.leading!,
                         ),
-                        if (widget.subtitle != null)
-                          DefaultTextStyle(
-                            style: theme.typography.caption1.copyWith(
-                              color: widget.selected
-                                  ? MacosColors.white.withValues(alpha: 0.72)
-                                  : CupertinoColors.secondaryLabel
-                                      .resolveFrom(context),
-                            ),
-                            child: widget.subtitle!,
-                          ),
+                        SizedBox(width: spacing),
                       ],
-                    ),
-                  ),
-                  if (widget.trailing != null) widget.trailing!,
-                ],
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DefaultTextStyle(
+                              style: theme.typography.body.copyWith(
+                                color:
+                                    widget.selected ? MacosColors.white : null,
+                                fontWeight: widget.selected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                              child: widget.title,
+                            ),
+                            if (canShowSubtitle) ...[
+                              const SizedBox(height: 2),
+                              Flexible(
+                                child: DefaultTextStyle(
+                                  style: theme.typography.caption1.copyWith(
+                                    color: widget.selected
+                                        ? MacosColors.white
+                                            .withValues(alpha: 0.72)
+                                        : CupertinoColors.secondaryLabel
+                                            .resolveFrom(context),
+                                  ),
+                                  child: widget.subtitle!,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (widget.trailing != null) widget.trailing!,
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -1233,8 +1268,7 @@ Future<bool> showMacosEditorPromptSheet(
                     child: PushButton(
                       controlSize: btnSize,
                       onPressed: () {
-                        if (requireNonEmpty &&
-                            controller.text.trim().isEmpty) {
+                        if (requireNonEmpty && controller.text.trim().isEmpty) {
                           return;
                         }
                         saved = true;

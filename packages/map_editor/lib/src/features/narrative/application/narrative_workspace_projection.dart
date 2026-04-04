@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'step_studio_authoring.dart';
+
 /// Type d'outcome exposé dans le workspace narratif.
 ///
 /// Cette classification est volontairement "produit" (pas purement technique):
@@ -52,19 +54,27 @@ class NarrativeStepSummary {
     required this.id,
     required this.name,
     required this.description,
+    required this.order,
     required this.globalScenarioId,
     required this.linkedCutsceneIds,
     required this.expectedOutcomeIds,
     required this.emittedOutcomeIds,
+    required this.activationSummary,
+    required this.completionSummary,
+    required this.worldChangeCount,
   });
 
   final String id;
   final String name;
   final String description;
+  final int order;
   final String globalScenarioId;
   final List<String> linkedCutsceneIds;
   final List<String> expectedOutcomeIds;
   final List<String> emittedOutcomeIds;
+  final String activationSummary;
+  final String completionSummary;
+  final int worldChangeCount;
 }
 
 /// Graphe relationnel outcome -> émetteurs / consommateurs.
@@ -166,13 +176,23 @@ NarrativeWorkspaceProjection buildNarrativeWorkspaceProjection(
             id: e.id,
             name: e.name,
             description: e.description,
+            order: e.order,
             globalScenarioId: e.globalScenarioId,
             linkedCutsceneIds: _dedupeAndSort(e.linkedCutsceneIds),
             expectedOutcomeIds: _dedupeAndSort(e.expectedOutcomeIds),
             emittedOutcomeIds: _dedupeAndSort(e.emittedOutcomeIds),
+            activationSummary: e.activationSummary,
+            completionSummary: e.completionSummary,
+            worldChangeCount: e.worldChangeCount,
           ))
       .toList(growable: false)
-    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    ..sort((a, b) {
+      final byOrder = a.order.compareTo(b.order);
+      if (byOrder != 0) {
+        return byOrder;
+      }
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
 
   final outcomes = outcomeById.values
       .map((e) => NarrativeOutcomeSummary(
@@ -229,30 +249,70 @@ void _registerStepProjection(
     return;
   }
 
-  final stepId = _readMetadata(rawScenario, 'step.id') ?? summary.id;
-  final stepName = _readMetadata(rawScenario, 'step.name') ?? summary.name;
-  final stepDescription = _readMetadata(rawScenario, 'step.description') ??
-      (summary.description.trim().isEmpty
-          ? 'No description yet.'
-          : summary.description);
-  final linkedCutsceneIds = _parseCsv(
-    _readMetadata(rawScenario, 'step.cutsceneIds'),
-  );
+  final parsed = parseStepStudioDocumentFromGlobalScenario(rawScenario);
+  final normalizedSteps = parsed.document.steps;
+  if (normalizedSteps.isEmpty) {
+    return;
+  }
 
-  final item = stepById.putIfAbsent(
-    stepId,
-    () => _MutableStep(
-      id: stepId,
-      name: stepName,
-      description: stepDescription,
-      globalScenarioId: summary.id,
-    ),
-  );
-  item.linkedCutsceneIds.addAll(linkedCutsceneIds);
-  item.expectedOutcomeIds.addAll(summary.consumedOutcomes);
-  item.emittedOutcomeIds.addAll(
-    <String>[...summary.declaredOutcomes, ...summary.emittedOutcomes],
-  );
+  for (final step in normalizedSteps) {
+    final stepId = step.id;
+    final stepName = step.name.trim().isEmpty ? summary.name : step.name;
+    final stepDescription = step.description.trim().isEmpty
+        ? (summary.description.trim().isEmpty
+            ? 'No description yet.'
+            : summary.description)
+        : step.description;
+    final linkedCutsceneIds = step.cutscenes
+        .map((entry) => entry.cutsceneId.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+
+    final item = stepById.putIfAbsent(
+      stepId,
+      () => _MutableStep(
+        id: stepId,
+        name: stepName,
+        description: stepDescription,
+        order: step.order,
+        globalScenarioId: summary.id,
+        activationSummary: summarizeStepActivation(step),
+        completionSummary: summarizeStepCompletion(step),
+        worldChangeCount: step.worldChanges.length,
+      ),
+    );
+    item.linkedCutsceneIds.addAll(linkedCutsceneIds);
+    item.expectedOutcomeIds.addAll(
+      <String>[
+        ...summary.consumedOutcomes,
+        ..._collectExpectedOutcomeIds(step),
+      ],
+    );
+    item.emittedOutcomeIds.addAll(
+      <String>[
+        ...summary.declaredOutcomes,
+        ...summary.emittedOutcomes,
+        ...step.outcomes
+            .map((outcome) => outcome.outcomeId.trim())
+            .where((entry) => entry.isNotEmpty),
+      ],
+    );
+  }
+}
+
+Iterable<String> _collectExpectedOutcomeIds(StepStudioStep step) sync* {
+  if (step.activation.mode == StepStudioActivationMode.afterOutcome) {
+    final value = (step.activation.outcomeId ?? '').trim();
+    if (value.isNotEmpty) {
+      yield value;
+    }
+  }
+  if (step.completion.mode == StepStudioCompletionMode.whenOutcomeEmitted) {
+    final value = (step.completion.outcomeId ?? '').trim();
+    if (value.isNotEmpty) {
+      yield value;
+    }
+  }
 }
 
 List<String> _collectOutcomesForActionKinds(
@@ -295,28 +355,6 @@ NarrativeOutcomeScope _classifyOutcomeScope(_MutableOutcome item) {
   return NarrativeOutcomeScope.unknown;
 }
 
-String? _readMetadata(ScenarioAsset scenario, String key) {
-  final raw = scenario.metadata[key];
-  if (raw == null) {
-    return null;
-  }
-  final value = raw.trim();
-  return value.isEmpty ? null : value;
-}
-
-List<String> _parseCsv(String? raw) {
-  if (raw == null) {
-    return const <String>[];
-  }
-  return _dedupeAndSort(
-    raw
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false),
-  );
-}
-
 List<String> _dedupeAndSort(List<String> source) {
   final set = <String>{...source};
   final out = set.toList(growable: false)
@@ -329,13 +367,21 @@ class _MutableStep {
     required this.id,
     required this.name,
     required this.description,
+    required this.order,
     required this.globalScenarioId,
+    required this.activationSummary,
+    required this.completionSummary,
+    required this.worldChangeCount,
   });
 
   final String id;
   final String name;
   final String description;
+  final int order;
   final String globalScenarioId;
+  final String activationSummary;
+  final String completionSummary;
+  final int worldChangeCount;
   final List<String> linkedCutsceneIds = <String>[];
   final List<String> expectedOutcomeIds = <String>[];
   final List<String> emittedOutcomeIds = <String>[];
