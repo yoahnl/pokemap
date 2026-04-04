@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
@@ -7,6 +8,7 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
+import 'cutscene_studio_workspace.dart';
 
 /// Workspace central du studio narratif.
 ///
@@ -116,6 +118,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 onSelectOutcome: narrativeController.selectOutcome,
               ),
             EditorWorkspaceMode.cutscene => _CutsceneWorkspaceBody(
+                editorNotifier: editorNotifier,
+                project: editor.project,
+                activeMap: editor.activeMap,
                 projection: projection,
                 selectedCutscene: selectedCutscene,
                 onSelectCutscene: (scenarioId) {
@@ -409,12 +414,18 @@ class _StepWorkspaceBody extends StatelessWidget {
 
 class _CutsceneWorkspaceBody extends StatelessWidget {
   const _CutsceneWorkspaceBody({
+    required this.editorNotifier,
+    required this.project,
+    required this.activeMap,
     required this.projection,
     required this.selectedCutscene,
     required this.onSelectCutscene,
     required this.onSelectOutcome,
   });
 
+  final EditorNotifier editorNotifier;
+  final ProjectManifest? project;
+  final MapData? activeMap;
   final NarrativeWorkspaceProjection projection;
   final NarrativeScenarioSummary? selectedCutscene;
   final ValueChanged<String> onSelectCutscene;
@@ -449,35 +460,23 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _NarrativeDetailCard(
-            title: selectedCutscene?.name ?? 'No cutscene selected',
-            subtitle: selectedCutscene == null
-                ? 'Select a cutscene / local event flow.'
-                : 'Cutscene = execution details (dialogue, movement, waits, local branching).',
-            sections: [
-              _DetailSectionData(
-                label: 'Entry node',
-                content: selectedCutscene?.entryNodeId ?? '—',
-              ),
-              _DetailSectionData(
-                label: 'Emits outcomes',
-                content: selectedCutscene == null
-                    ? '—'
-                    : _joinOrDash(selectedCutscene!.emittedOutcomes),
-                onTap: selectedCutscene == null ||
-                        selectedCutscene!.emittedOutcomes.isEmpty
-                    ? null
-                    : () => onSelectOutcome(
-                        selectedCutscene!.emittedOutcomes.first),
-              ),
-              _DetailSectionData(
-                label: 'Consumes outcomes',
-                content: selectedCutscene == null
-                    ? '—'
-                    : _joinOrDash(selectedCutscene!.consumedOutcomes),
-              ),
-            ],
-          ),
+          child: project == null
+              ? const EditorPaneSurface(
+                  radius: 20,
+                  tint: EditorChrome.islandWarmTint,
+                  child: Center(
+                    child: Text('Load a project to edit cutscenes.'),
+                  ),
+                )
+              : CutsceneStudioWorkspace(
+                  editorNotifier: editorNotifier,
+                  project: project!,
+                  activeMap: activeMap,
+                  projection: projection,
+                  selectedCutscene: selectedCutscene,
+                  onSelectCutscene: onSelectCutscene,
+                  onSelectOutcome: onSelectOutcome,
+                ),
         ),
       ],
     );

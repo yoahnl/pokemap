@@ -25,6 +25,7 @@ import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
+import '../../../application/use_cases/project_scenario_use_cases.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 
@@ -403,6 +404,59 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       debugPrint('EditorNotifier: Error loading map: $e');
       state = state.copyWith(errorMessage: 'Failed to load map: $e');
+    }
+  }
+
+  /// Charge une "snapshot" de map par id SANS changer la map active.
+  ///
+  /// Pourquoi cette API existe:
+  /// - certains workspaces (ex: Cutscene Studio) doivent proposer des
+  ///   dropdowns guidés (PNJ/triggers) pour n'importe quelle map du projet;
+  /// - on ne veut pas forcer un changement de contexte utilisateur vers cette
+  ///   map juste pour lire ses entités;
+  /// - on garde donc une lecture non destructive (read-only) côté éditeur.
+  ///
+  /// Contrat:
+  /// - retourne la `activeMap` si c'est déjà la bonne map (inclut les edits
+  ///   non sauvegardés en cours, utile pour une UX cohérente);
+  /// - sinon lit le fichier map depuis le disque;
+  /// - retourne `null` si le contexte projet est incomplet ou en cas d'erreur.
+  Future<MapData?> loadMapSnapshotById(String mapId) async {
+    final normalizedMapId = mapId.trim();
+    if (normalizedMapId.isEmpty) {
+      return null;
+    }
+    final project = state.project;
+    final workspace = _projectWorkspace;
+    if (project == null || workspace == null) {
+      return null;
+    }
+
+    final activeMap = state.activeMap;
+    if (activeMap != null && activeMap.id == normalizedMapId) {
+      return activeMap;
+    }
+
+    ProjectMapEntry? entry;
+    for (final mapEntry in project.maps) {
+      if (mapEntry.id == normalizedMapId) {
+        entry = mapEntry;
+        break;
+      }
+    }
+    if (entry == null) {
+      return null;
+    }
+
+    try {
+      final mapPath = workspace.resolveMapPath(entry.relativePath);
+      final repo = ref.read(mapRepositoryProvider);
+      return await repo.loadMap(mapPath);
+    } catch (error) {
+      debugPrint(
+        'EditorNotifier: loadMapSnapshotById($normalizedMapId) failed: $error',
+      );
+      return null;
     }
   }
 
@@ -5445,12 +5499,98 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Rollback UI scénario/scripts:
-  //
-  // Tout le bloc d’édition "Scenario Graph / Scenario Scripts" est retiré du
-  // notifier pour éviter de conserver des opérations actives sans surface UI
-  // cohérente. L’éditeur revient à une base map/tileset stable.
+  // Narrative Studio - scénarios
   // ---------------------------------------------------------------------------
+  //
+  // Ce bloc réintroduit des mutations scénario ciblées, mais dans un cadre
+  // beaucoup plus strict que l'ancien "Scenario Graph" générique:
+  // - surface d'édition centrale (Cutscene Studio v1 guidé),
+  // - opérations explicites create / update / delete,
+  // - persistance via use-cases dédiés + validation `ProjectValidator`.
+  //
+  // Frontière volontaire:
+  // - ce notifier orchestre la mutation et la UX (messages, sélection),
+  // - la logique métier de validation/persistance reste dans les use-cases.
+  // ---------------------------------------------------------------------------
+
+  Future<void> createProjectScenario(ScenarioAsset scenario) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = CreateProjectScenarioUseCase(
+        ref.read(projectRepositoryProvider),
+      );
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenario: scenario,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Cutscene "${scenario.name}" created',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to create cutscene: $e',
+      );
+    }
+  }
+
+  Future<void> updateProjectScenario({
+    required String scenarioId,
+    required ScenarioAsset scenario,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = UpdateProjectScenarioUseCase(
+        ref.read(projectRepositoryProvider),
+      );
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+        nextScenario: scenario,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Cutscene "${scenario.name}" saved',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to save cutscene: $e',
+      );
+    }
+  }
+
+  Future<void> deleteProjectScenario(String scenarioId) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return;
+    try {
+      final useCase = DeleteProjectScenarioUseCase(
+        ref.read(projectRepositoryProvider),
+      );
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        scenarioId: scenarioId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Cutscene "$scenarioId" deleted',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to delete cutscene: $e',
+      );
+    }
+  }
 
   Future<void> addEncounterEntry({
     required String tableId,
