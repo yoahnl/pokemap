@@ -64,6 +64,13 @@ class _GlobalStoryStudioWorkspaceState
   String? _selectedStepId;
   String? _selectedChapterId;
   bool _busy = false;
+  
+  // Ensemble des IDs des chapitres ouverts (fonctionnalité accordéon)
+  final Set<String> _expandedChapters = <String>{};
+  
+  // Constantes pour le chapitre par défaut
+  static const String _defaultChapterId = 'chapter_main';
+  static const String _defaultChapterName = 'Histoire principale';
 
   List<String> _loadWarnings = const <String>[];
   bool _usedStepLegacyFallback = false;
@@ -315,21 +322,120 @@ class _GlobalStoryStudioWorkspaceState
       (_savedStepDocument != _draftStepDocument ||
           _savedGlobalDocument != _draftGlobalDocument);
 
+  /// Réconcilie les documents Step Studio et Global Story Studio pour garantir
+  /// la cohérence entre steps, nodes et chapitres.
+  ///
+  /// Invariants garantis :
+  /// - chaque step existante a un node correspondant
+  /// - chaque step est assignée à exactement un chapitre
+  /// - aucune step orpheline (non assignée)
+  /// - entryStepId est valide
+  /// - les ordres sont cohérents
+  /// - pas de duplications ou incohérences
+  GlobalStoryStudioDocument _reconcileGlobalStoryDocument({
+    required StepStudioDocument stepDocument,
+    required GlobalStoryStudioDocument globalDocument,
+  }) {
+    // Créer un ensemble de tous les step IDs du Step Studio
+    final stepIds = stepDocument.steps.map((step) => step.id).toSet();
+    
+    // Normaliser les nodes - s'assurer que chaque step a un node
+    final nodeMap = <String, GlobalStoryStepNode>{};
+    for (final node in globalDocument.nodes) {
+      if (stepIds.contains(node.stepId)) {
+        nodeMap[node.stepId] = node;
+      }
+    }
+    
+    // Ajouter des nodes pour les steps sans node
+    for (final step in stepDocument.steps) {
+      if (!nodeMap.containsKey(step.id)) {
+        nodeMap[step.id] = GlobalStoryStepNode(
+          stepId: step.id,
+          exitMode: GlobalStoryStepExitMode.linear,
+          links: const [],
+        );
+      }
+    }
+    
+    // Normaliser les chapitres - s'assurer que chaque step est dans un chapitre
+    final allAssignedStepIds = <String>{};
+    final normalizedChapters = <GlobalStoryChapter>[];
+    
+    for (final chapter in globalDocument.chapters) {
+      final validStepIds = chapter.stepIds
+          .where((id) => stepIds.contains(id) && !allAssignedStepIds.contains(id))
+          .toList();
+      
+      // Marquer les steps assignées
+      allAssignedStepIds.addAll(validStepIds);
+      
+      normalizedChapters.add(chapter.copyWith(stepIds: validStepIds));
+    }
+    
+    // Trouver les steps non assignées
+    final unassignedStepIds = stepIds
+        .where((id) => !allAssignedStepIds.contains(id))
+        .toList();
+    
+    // Si des steps sont non assignées, les ajouter à un chapitre par défaut
+    if (unassignedStepIds.isNotEmpty) {
+      // Trouver ou créer le chapitre par défaut
+      final defaultChapterIndex = normalizedChapters.indexWhere(
+        (c) => c.id == _defaultChapterId,
+      );
+      
+      if (defaultChapterIndex >= 0) {
+        // Ajouter les steps non assignées au chapitre par défaut
+        final existingChapter = normalizedChapters[defaultChapterIndex];
+        normalizedChapters[defaultChapterIndex] = existingChapter.copyWith(
+          stepIds: [...existingChapter.stepIds, ...unassignedStepIds],
+        );
+      } else {
+        // Créer un nouveau chapitre par défaut
+        normalizedChapters.add(GlobalStoryChapter(
+          id: _defaultChapterId,
+          name: _defaultChapterName,
+          description: 'Chapitre par défaut pour les steps non assignées',
+          stepIds: unassignedStepIds,
+          order: normalizedChapters.length,
+        ));
+      }
+    }
+    
+    // S'assurer que l'entryStepId est valide
+    final entryStepId = stepIds.contains(globalDocument.entryStepId)
+        ? globalDocument.entryStepId
+        : (stepDocument.steps.isNotEmpty ? stepDocument.steps.first.id : '');
+    
+    // Retourner le document réconcilié
+    return globalDocument.copyWith(
+      entryStepId: entryStepId,
+      nodes: nodeMap.values.toList(),
+      chapters: normalizedChapters,
+    );
+  }
+
+  /// Méthode de remplacement des documents avec réconciliation garantie
+  /// pour assurer la cohérence entre Step Studio et Global Story Studio.
   void _replaceDraftDocuments({
     required StepStudioDocument nextStepDocument,
     required GlobalStoryStudioDocument nextGlobalDocument,
   }) {
-    final normalizedGlobal = normalizeGlobalStoryStudioDocument(
-      document: nextGlobalDocument,
+    // Appliquer la réconciliation pour garantir la cohérence complète
+    final reconciledGlobal = _reconcileGlobalStoryDocument(
       stepDocument: nextStepDocument,
+      globalDocument: nextGlobalDocument,
     );
+    
     if (_draftStepDocument == nextStepDocument &&
-        _draftGlobalDocument == normalizedGlobal) {
+        _draftGlobalDocument == reconciledGlobal) {
       return;
     }
+    
     setState(() {
       _draftStepDocument = nextStepDocument;
-      _draftGlobalDocument = normalizedGlobal;
+      _draftGlobalDocument = reconciledGlobal;
     });
   }
 
@@ -342,6 +448,17 @@ class _GlobalStoryStudioWorkspaceState
     });
     _lastDispatchedStepSelection = stepId;
     widget.onSelectStep(stepId);
+  }
+
+  /// Bascule l'état d'expansion d'un chapitre (accordéon).
+  void _toggleChapterExpansion(String chapterId) {
+    setState(() {
+      if (_expandedChapters.contains(chapterId)) {
+        _expandedChapters.remove(chapterId);
+      } else {
+        _expandedChapters.add(chapterId);
+      }
+    });
   }
 
   Future<void> _createGlobalStoryAndBootstrap() async {
@@ -1681,6 +1798,8 @@ class _GlobalStoryStudioWorkspaceState
                     onAddLink: _addLinkFromSelectedStep,
                     onRemoveLink: _removeLinkFromSelectedStep,
                     onUpdateLinkTarget: _updateLinkFromSelectedStepToStep,
+                    isExpanded: _expandedChapters.contains(entry.value.id),
+                    onToggleExpansion: () => _toggleChapterExpansion(entry.value.id),
                   ),
                 ],
                 // S'il n'y a aucun chapitre mais des steps existent,
@@ -2882,6 +3001,8 @@ class _NarrativeChapterSection extends StatefulWidget {
     required this.onAddLink,
     required this.onRemoveLink,
     required this.onUpdateLinkTarget,
+    required this.isExpanded,
+    required this.onToggleExpansion,
   });
 
   final GlobalStoryChapter chapter;
@@ -2913,6 +3034,8 @@ class _NarrativeChapterSection extends StatefulWidget {
   final VoidCallback onAddLink;
   final ValueChanged<int> onRemoveLink;
   final void Function(int, String?) onUpdateLinkTarget;
+  final bool isExpanded;
+  final VoidCallback onToggleExpansion;
 
   @override
   State<_NarrativeChapterSection> createState() =>
@@ -2968,6 +3091,7 @@ class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // HEADER DU CHAPITRE: très visible, sensation de section majeure.
+        // Le header inclut maintenant l'icône d'expansion
         _ChapterHeader(
           chapter: widget.chapter,
           chapterIndex: widget.chapterIndex,
@@ -2983,58 +3107,86 @@ class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
           onDelete: widget.chapter.stepIds.isEmpty
               ? widget.onDeleteChapter
               : null,
+          showExpansionIcon: true,
+          isExpanded: widget.isExpanded,
+          onExpansionTap: widget.onToggleExpansion,
         ),
         const SizedBox(height: 8),
-        // STEPS DU CHAPITRE: cartes compactes en flux vertical.
-        for (final entry in widget.steps.asMap().entries) ...[
-          if (entry.key > 0)
-            _StepFlowArrow(
-              sourceName: widget.steps[entry.key - 1].name,
-              destinationName: entry.value.name,
-              node: _nodeByStepId(widget.steps[entry.key - 1].id),
+        // AFFICHAGE CONDITIONNEL DES STEPS SELON L'ÉTAT D'EXPANSION
+        if (widget.isExpanded) ...[
+          // STEPS DU CHAPITRE: cartes compactes en flux vertical.
+          for (final entry in widget.steps.asMap().entries) ...[
+            if (entry.key > 0)
+              _StepFlowArrow(
+                sourceName: widget.steps[entry.key - 1].name,
+                destinationName: entry.value.name,
+                node: _nodeByStepId(widget.steps[entry.key - 1].id),
+              ),
+            _CompactStepCard(
+              step: entry.value,
+              node: _nodeByStepId(entry.value.id) ??
+                  GlobalStoryStepNode(stepId: entry.value.id),
+              isSelected: entry.value.id == widget.selectedStepId,
+              isEntryStep: widget.globalDocument.entryStepId == entry.value.id,
+              canEdit: widget.canEdit,
+              onTap: () => widget.onSelectStep(entry.value.id),
+              onOpenStepStudio: () => widget.onOpenStepStudio(entry.value.id),
+              onSetEntryStep: () => widget.onSetEntryStep(entry.value.id),
+              // Bouton "Nouvelle step" — crée explicitement une nouvelle step.
+              onCreateNewStep: () => widget.onCreateNewStep(entry.value.id),
+              // Bouton "Insérer" — ouvre le sélecteur de step existante.
+              onInsertExistingStep: () => _togglePicker(entry.value.id),
+              // État du picker pour cette step.
+              insertPickerVisible: _insertPickerStepId == entry.value.id,
+              onTogglePicker: () => _togglePicker(entry.value.id),
+              onPickExistingStep: (existingStepId) =>
+                  _pickExistingStep(entry.value.id, existingStepId),
+              availableSteps: _availableStepsFor(entry.value.id),
             ),
-          _CompactStepCard(
-            step: entry.value,
-            node: _nodeByStepId(entry.value.id) ??
-                GlobalStoryStepNode(stepId: entry.value.id),
-            isSelected: entry.value.id == widget.selectedStepId,
-            isEntryStep: widget.globalDocument.entryStepId == entry.value.id,
-            canEdit: widget.canEdit,
-            onTap: () => widget.onSelectStep(entry.value.id),
-            onOpenStepStudio: () => widget.onOpenStepStudio(entry.value.id),
-            onSetEntryStep: () => widget.onSetEntryStep(entry.value.id),
-            // Bouton "Nouvelle step" — crée explicitement une nouvelle step.
-            onCreateNewStep: () => widget.onCreateNewStep(entry.value.id),
-            // Bouton "Insérer" — ouvre le sélecteur de step existante.
-            onInsertExistingStep: () => _togglePicker(entry.value.id),
-            // État du picker pour cette step.
-            insertPickerVisible: _insertPickerStepId == entry.value.id,
-            onTogglePicker: () => _togglePicker(entry.value.id),
-            onPickExistingStep: (existingStepId) =>
-                _pickExistingStep(entry.value.id, existingStepId),
-            availableSteps: _availableStepsFor(entry.value.id),
-          ),
-        ],
-        // Si le chapitre est vide, afficher un message.
-        if (widget.steps.isEmpty)
+          ],
+          // Si le chapitre est vide, afficher un message.
+          if (widget.steps.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: EditorChrome.largeIslandSurfaceColor(
+                  context,
+                  tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
+                ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Text(
+                'Aucune step dans ce chapitre',
+                style: TextStyle(
+                  color: EditorChrome.subtleLabel(context),
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ] else
+          // LORSQUE LE CHAPITRE EST FERMÉ, AFFICHER UN RÉSUMÉ
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: EditorChrome.largeIslandSurfaceColor(
                 context,
-                tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
+                tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.06),
               ),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
-                style: BorderStyle.solid,
+                color: EditorChrome.subtleLabel(context).withValues(alpha: 0.12),
               ),
             ),
             child: Text(
-              'Aucune step dans ce chapitre',
+              '${widget.steps.length} step${widget.steps.length > 1 ? 's' : ''}',
               style: TextStyle(
                 color: EditorChrome.subtleLabel(context),
-                fontSize: 12,
+                fontSize: 11,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -3063,6 +3215,9 @@ class _ChapterHeader extends StatelessWidget {
     required this.onMoveDown,
     required this.onAddChapter,
     this.onDelete,
+    this.showExpansionIcon = false,
+    this.isExpanded = false,
+    this.onExpansionTap,
   });
 
   final GlobalStoryChapter chapter;
@@ -3077,6 +3232,9 @@ class _ChapterHeader extends StatelessWidget {
   final VoidCallback onMoveDown;
   final VoidCallback onAddChapter;
   final VoidCallback? onDelete;
+  final bool showExpansionIcon;
+  final bool isExpanded;
+  final VoidCallback? onExpansionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -3098,6 +3256,23 @@ class _ChapterHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         child: Row(
           children: [
+            // Icône d'expansion
+            if (showExpansionIcon) ...[
+              GestureDetector(
+                onTap: onExpansionTap,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    isExpanded 
+                      ? CupertinoIcons.chevron_down 
+                      : CupertinoIcons.chevron_right,
+                    size: 16,
+                    color: EditorChrome.primaryLabel(context),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
             // Numéro de chapitre.
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
