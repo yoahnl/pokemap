@@ -1579,34 +1579,48 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               text:
                   'Aucune cutscene liée. Vous pouvez ajouter une cutscene de démarrage, principale ou de validation.',
             ),
-          for (var index = 0; index < links.length; index) ...[
-            _CutsceneLinkRow(
-              link: links[index],
-              cutsceneOptions: cutsceneOptions,
-              enabled: _canEdit,
-              onRoleChanged: (role) {
-                final nextLinks = links.toList(growable: true);
-                nextLinks[index] = nextLinks[index].copyWith(role: role);
-                _replaceSelectedStep(
-                    selectedStep.copyWith(cutscenes: nextLinks));
-              },
-              onCutsceneChanged: (cutsceneId) {
-                if (cutsceneId == null) return;
-                final nextLinks = links.toList(growable: true);
-                nextLinks[index] =
-                    nextLinks[index].copyWith(cutsceneId: cutsceneId);
-                _replaceSelectedStep(
-                    selectedStep.copyWith(cutscenes: nextLinks));
-              },
-              onRemove: () {
-                if (!_canEdit) return;
-                final nextLinks = links.toList(growable: true)..removeAt(index);
-                _replaceSelectedStep(
-                    selectedStep.copyWith(cutscenes: nextLinks));
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          // NOTE BUG FIX (2026-04-04):
+          // Les trois boucles `for` ci-dessous utilisaient previously
+          // `for (var index = 0; index < X.length; index)` sans `index++`,
+          // ce qui provoquait une boucle infinie SYNCHRONE dans build().
+          // Quand la liste n'était pas vide, `index` restait à 0 indéfiniment,
+          // générant une infinité de widgets dans le spread `...[]`.
+          // Conséquence: freeze macOS, roue colorée, RAM qui explose (Go+).
+          //
+          // Garde: on utilise maintenant `.asMap().entries` qui est
+          // intrinsèquement protégé contre ce type d'erreur — chaque entrée
+          // est itérée exactement une fois, sans compteur manuel.
+          for (final entry in links.asMap().entries)
+            ...[
+              _CutsceneLinkRow(
+                link: entry.value,
+                cutsceneOptions: cutsceneOptions,
+                enabled: _canEdit,
+                onRoleChanged: (role) {
+                  final nextLinks = links.toList(growable: true);
+                  nextLinks[entry.key] =
+                      nextLinks[entry.key].copyWith(role: role);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(cutscenes: nextLinks));
+                },
+                onCutsceneChanged: (cutsceneId) {
+                  if (cutsceneId == null) return;
+                  final nextLinks = links.toList(growable: true);
+                  nextLinks[entry.key] =
+                      nextLinks[entry.key].copyWith(cutsceneId: cutsceneId);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(cutscenes: nextLinks));
+                },
+                onRemove: () {
+                  if (!_canEdit) return;
+                  final nextLinks = links.toList(growable: true)
+                    ..removeAt(entry.key);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(cutscenes: nextLinks));
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
           SizedBox(
             width: double.infinity,
             child: InspectorEmbeddedSecondaryCapsule(
@@ -1648,52 +1662,55 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               text:
                   'Aucun résultat pour cette step. Ajoutez un résultat pour débloquer d’autres steps / cutscenes.',
             ),
-          for (var index = 0; index < outcomes.length; index) ...[
-            _OutcomeRow(
-              outcome: outcomes[index],
-              enabled: _canEdit,
-              onLabelChanged: (label) {
-                final current = outcomes[index];
-                final generated = generateOutcomeIdFromLabel(
-                  stepId: selectedStep.id,
-                  label: label,
-                  scope: current.scope,
-                );
-                final nextOutcomes = outcomes.toList(growable: true);
-                nextOutcomes[index] = current.copyWith(
-                  label: label,
-                  outcomeId: generated,
-                );
-                _replaceSelectedStep(
-                    selectedStep.copyWith(outcomes: nextOutcomes));
-              },
-              onScopeChanged: (scope) {
-                final current = outcomes[index];
-                final generated = generateOutcomeIdFromLabel(
-                  stepId: selectedStep.id,
-                  label: current.label,
-                  scope: scope,
-                );
-                final nextOutcomes = outcomes.toList(growable: true);
-                nextOutcomes[index] = current.copyWith(
-                  scope: scope,
-                  outcomeId: generated,
-                );
-                _replaceSelectedStep(
-                    selectedStep.copyWith(outcomes: nextOutcomes));
-              },
-              onTapOutcomeId: () {
-                widget.onSelectOutcome(outcomes[index].outcomeId);
-              },
-              onRemove: () {
-                final nextOutcomes = outcomes.toList(growable: true)
-                  ..removeAt(index);
-                _replaceSelectedStep(
-                    selectedStep.copyWith(outcomes: nextOutcomes));
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          // GARDE anti-boucle: même motif que cutscenes — `.asMap().entries`
+          // au lieu d'un compteur manuel sujet aux oublis de `++`.
+          for (final entry in outcomes.asMap().entries)
+            ...[
+              _OutcomeRow(
+                outcome: entry.value,
+                enabled: _canEdit,
+                onLabelChanged: (label) {
+                  final current = outcomes[entry.key];
+                  final generated = generateOutcomeIdFromLabel(
+                    stepId: selectedStep.id,
+                    label: label,
+                    scope: current.scope,
+                  );
+                  final nextOutcomes = outcomes.toList(growable: true);
+                  nextOutcomes[entry.key] = current.copyWith(
+                    label: label,
+                    outcomeId: generated,
+                  );
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(outcomes: nextOutcomes));
+                },
+                onScopeChanged: (scope) {
+                  final current = outcomes[entry.key];
+                  final generated = generateOutcomeIdFromLabel(
+                    stepId: selectedStep.id,
+                    label: current.label,
+                    scope: scope,
+                  );
+                  final nextOutcomes = outcomes.toList(growable: true);
+                  nextOutcomes[entry.key] = current.copyWith(
+                    scope: scope,
+                    outcomeId: generated,
+                  );
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(outcomes: nextOutcomes));
+                },
+                onTapOutcomeId: () {
+                  widget.onSelectOutcome(outcomes[entry.key].outcomeId);
+                },
+                onRemove: () {
+                  final nextOutcomes = outcomes.toList(growable: true)
+                    ..removeAt(entry.key);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(outcomes: nextOutcomes));
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
           SizedBox(
             width: double.infinity,
             child: InspectorEmbeddedSecondaryCapsule(
@@ -1755,52 +1772,60 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               text:
                   'Aucun changement persistant. Exemple: Emma dehors invisible après la step, Emma labo visible.',
             ),
-          for (var index = 0; index < worldChanges.length; index) ...[
-            _WorldChangeRow(
-              change: worldChanges[index],
-              mapOptions: mapOptions,
-              entityOptions: _entitiesForMap(worldChanges[index].mapId)
-                  .map((entity) => _SimpleOption(
-                        id: entity.id,
-                        label: _entityLabel(entity),
-                      ))
-                  .toList(growable: false),
-              loadingEntities: _isLoadingEntities,
-              enabled: _canEdit,
-              onMapChanged: (mapId) {
-                if (mapId == null) return;
-                unawaited(_ensureEntitiesLoadedForMap(mapId));
-                final next = worldChanges.toList(growable: true);
-                next[index] = next[index].copyWith(
-                  mapId: mapId,
-                  entityId: '',
-                );
-                _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
-              },
-              onEntityChanged: (entityId) {
-                if (entityId == null) return;
-                final next = worldChanges.toList(growable: true);
-                next[index] = next[index].copyWith(entityId: entityId);
-                _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
-              },
-              onRuleChanged: (rule) {
-                final next = worldChanges.toList(growable: true);
-                next[index] = next[index].copyWith(presenceRule: rule);
-                _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
-              },
-              onNoteChanged: (note) {
-                final next = worldChanges.toList(growable: true);
-                next[index] = next[index].copyWith(note: note);
-                _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
-              },
-              onRemove: () {
-                final next = worldChanges.toList(growable: true)
-                  ..removeAt(index);
-                _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          // GARDE anti-boucle: même motif — `.asMap().entries` protège
+          // contre l'oubli de `++` qui causait la boucle infinie build().
+          for (final entry in worldChanges.asMap().entries)
+            ...[
+              _WorldChangeRow(
+                change: entry.value,
+                mapOptions: mapOptions,
+                entityOptions: _entitiesForMap(worldChanges[entry.key].mapId)
+                    .map((entity) => _SimpleOption(
+                          id: entity.id,
+                          label: _entityLabel(entity),
+                        ))
+                    .toList(growable: false),
+                loadingEntities: _isLoadingEntities,
+                enabled: _canEdit,
+                onMapChanged: (mapId) {
+                  if (mapId == null) return;
+                  unawaited(_ensureEntitiesLoadedForMap(mapId));
+                  final next = worldChanges.toList(growable: true);
+                  next[entry.key] = next[entry.key].copyWith(
+                    mapId: mapId,
+                    entityId: '',
+                  );
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(worldChanges: next));
+                },
+                onEntityChanged: (entityId) {
+                  if (entityId == null) return;
+                  final next = worldChanges.toList(growable: true);
+                  next[entry.key] = next[entry.key].copyWith(entityId: entityId);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(worldChanges: next));
+                },
+                onRuleChanged: (rule) {
+                  final next = worldChanges.toList(growable: true);
+                  next[entry.key] = next[entry.key].copyWith(presenceRule: rule);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(worldChanges: next));
+                },
+                onNoteChanged: (note) {
+                  final next = worldChanges.toList(growable: true);
+                  next[entry.key] = next[entry.key].copyWith(note: note);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(worldChanges: next));
+                },
+                onRemove: () {
+                  final next = worldChanges.toList(growable: true)
+                    ..removeAt(entry.key);
+                  _replaceSelectedStep(
+                      selectedStep.copyWith(worldChanges: next));
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
           SizedBox(
             width: double.infinity,
             child: InspectorEmbeddedSecondaryCapsule(

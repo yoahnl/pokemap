@@ -9,6 +9,7 @@ import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import 'cutscene_studio_workspace.dart';
+import 'global_story_studio_workspace.dart';
 import 'step_studio_workspace.dart';
 
 /// Workspace central du studio narratif.
@@ -93,14 +94,45 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         const SizedBox(height: 12),
         Expanded(
           child: switch (editor.workspaceMode) {
-            EditorWorkspaceMode.globalStory => _GlobalStoryWorkspaceBody(
+            EditorWorkspaceMode.globalStory => GlobalStoryStudioWorkspace(
+                editorNotifier: editorNotifier,
+                project: editor.project,
                 projection: projection,
-                selectedGlobal: selectedGlobal,
-                onSelectGlobal: (id) {
-                  narrativeController.selectGlobalStory(id);
-                  narrativeController.openGlobalStory(scenarioId: id);
+                selectedGlobalStoryId: narrative.selectedGlobalStoryId,
+                selectedStepId: narrative.selectedStepId,
+                onSelectGlobalStory: (scenarioId) {
+                  if (scenarioId == null || scenarioId.trim().isEmpty) {
+                    return;
+                  }
+                  narrativeController.selectGlobalStory(scenarioId);
+                  narrativeController.openGlobalStory(scenarioId: scenarioId);
                 },
-                onSelectOutcome: narrativeController.selectOutcome,
+                onSelectStep: (stepId) {
+                  if (stepId == null || stepId.trim().isEmpty) {
+                    return;
+                  }
+                  final step = projection.steps
+                      .where((item) => item.id == stepId)
+                      .cast<NarrativeStepSummary?>()
+                      .firstWhere((item) => item != null, orElse: () => null);
+                  narrativeController.selectStep(stepId);
+                  if (step != null) {
+                    narrativeController
+                        .selectGlobalStory(step.globalScenarioId);
+                  }
+                },
+                onOpenStepStudio: (stepId) {
+                  final step = projection.steps
+                      .where((item) => item.id == stepId)
+                      .cast<NarrativeStepSummary?>()
+                      .firstWhere((item) => item != null, orElse: () => null);
+                  narrativeController.selectStep(stepId);
+                  narrativeController.openStep(
+                    stepId: stepId,
+                    globalScenarioId: step?.globalScenarioId,
+                  );
+                  editorNotifier.selectStepWorkspace();
+                },
               ),
             EditorWorkspaceMode.step => _StepWorkspaceBody(
                 projection: projection,
@@ -248,99 +280,6 @@ class _ModeChip extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _GlobalStoryWorkspaceBody extends StatelessWidget {
-  const _GlobalStoryWorkspaceBody({
-    required this.projection,
-    required this.selectedGlobal,
-    required this.onSelectGlobal,
-    required this.onSelectOutcome,
-  });
-
-  final NarrativeWorkspaceProjection projection;
-  final NarrativeScenarioSummary? selectedGlobal;
-  final ValueChanged<String> onSelectGlobal;
-  final ValueChanged<String?> onSelectOutcome;
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryGlobalStory = projection.globalStories.isEmpty
-        ? null
-        : projection.globalStories.first;
-    final additionalGlobalStories = projection.globalStories.length > 1
-        ? projection.globalStories.length - 1
-        : 0;
-
-    return Row(
-      children: [
-        SizedBox(
-          width: 310,
-          child: _NarrativeListCard(
-            title: 'Global Story (unique)',
-            subtitle: 'Structure macro principale du jeu',
-            emptyText: 'Aucun scénario global.',
-            children: [
-              if (primaryGlobalStory != null)
-                EditorSidebarListRow(
-                  selected: selectedGlobal?.id == primaryGlobalStory.id,
-                  onTap: () => onSelectGlobal(primaryGlobalStory.id),
-                  leading: const Icon(CupertinoIcons.link),
-                  title: Text(primaryGlobalStory.name),
-                  subtitle: Text(
-                    '${primaryGlobalStory.nodeCount} nodes • ${primaryGlobalStory.edgeCount} links',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _NarrativeDetailCard(
-            title: selectedGlobal?.name ?? 'No global story selected',
-            subtitle: selectedGlobal == null
-                ? 'Sélectionnez le scénario global.'
-                : 'Structure your arcs, milestones and major narrative transitions.',
-            sections: [
-              const _DetailSectionData(
-                label: 'Role',
-                content:
-                    'Global Story defines macro progression. It should not carry scene execution details.',
-              ),
-              _DetailSectionData(
-                label: 'Declared outcomes',
-                content: selectedGlobal == null
-                    ? '—'
-                    : _joinOrDash(selectedGlobal!.declaredOutcomes),
-                onTap: selectedGlobal == null
-                    ? null
-                    : () {
-                        final first = selectedGlobal!.declaredOutcomes.isEmpty
-                            ? null
-                            : selectedGlobal!.declaredOutcomes.first;
-                        onSelectOutcome(first);
-                      },
-              ),
-              _DetailSectionData(
-                label: 'Consumes outcomes',
-                content: selectedGlobal == null
-                    ? '—'
-                    : _joinOrDash(selectedGlobal!.consumedOutcomes),
-              ),
-              if (additionalGlobalStories > 0)
-                _DetailSectionData(
-                  label: 'Warning',
-                  content:
-                      '$additionalGlobalStories additional global scenario(s) detected. Step Studio edits only the primary Global Story.',
-                ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -515,124 +454,4 @@ class _NarrativeListCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NarrativeDetailCard extends StatelessWidget {
-  const _NarrativeDetailCard({
-    required this.title,
-    required this.subtitle,
-    required this.sections,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<_DetailSectionData> sections;
-
-  @override
-  Widget build(BuildContext context) {
-    return EditorPaneSurface(
-      radius: 20,
-      tint: EditorChrome.islandWarmTint,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: ListView(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
-              fontWeight: FontWeight.w800,
-              fontSize: 17,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 14),
-          for (final section in sections) ...[
-            _DetailSection(section: section),
-            const SizedBox(height: 10),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailSectionData {
-  const _DetailSectionData({
-    required this.label,
-    required this.content,
-    this.onTap,
-  });
-
-  final String label;
-  final String content;
-  final VoidCallback? onTap;
-}
-
-class _DetailSection extends StatelessWidget {
-  const _DetailSection({
-    required this.section,
-  });
-
-  final _DetailSectionData section;
-
-  @override
-  Widget build(BuildContext context) {
-    final body = Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.06),
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.35),
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            section.label,
-            style: TextStyle(
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            section.content,
-            style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-    if (section.onTap == null) {
-      return body;
-    }
-    return GestureDetector(
-      onTap: section.onTap,
-      child: body,
-    );
-  }
-}
-
-String _joinOrDash(List<String> values) {
-  if (values.isEmpty) {
-    return '—';
-  }
-  return values.join(', ');
 }

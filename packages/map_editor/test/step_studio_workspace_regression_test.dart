@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
+import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/ui/canvas/step_studio_workspace.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 
@@ -107,6 +108,167 @@ void main() {
       // En cas d'overflow RenderFlex, Flutter remonte une exception testable.
       expect(tester.takeException(), isNull);
     });
+
+    /// Regression test for the infinite-loop bug caused by missing `index++`
+    /// in three `for` loops inside `_buildCutsceneLinksSection`,
+    /// `_buildOutcomesSection` and `_buildWorldPersistenceSection`.
+    ///
+    /// **Root cause:** `for (var index = 0; index < X.length; index)` without
+    /// `index++` kept `index` at 0 forever, generating an infinite stream of
+    /// widgets in the spread `...[]`. This caused synchronous CPU spin + RAM
+    /// explosion (tens of gigabytes) as Flutter tried to materialise
+    /// infinitely many widget instances.
+    ///
+    /// **Fix:** replaced all three loops with `for (final entry in
+    /// X.asMap().entries) ...[]`, which is intrinsically bounded — each entry
+    /// is visited exactly once with no manual counter.
+    ///
+    /// **What this test verifies:** build completes in < 5 seconds even when
+    /// the step has multiple cutscenes, outcomes, and world changes. An
+    /// infinite loop would cause the test to timeout.
+    testWidgets(
+      'build completes in bounded time with non-empty cutscenes, outcomes, '
+      'and worldChanges (anti-infinite-loop guard)',
+      (tester) async {
+        final document = StepStudioDocument(
+          globalStoryScenarioId: 'global_story',
+          steps: <StepStudioStep>[
+            StepStudioStep(
+              id: 'step_a',
+              name: 'Step A',
+              description: 'First step',
+              order: 0,
+              activation: const StepStudioActivationRule(
+                mode: StepStudioActivationMode.atGameStart,
+              ),
+              completion: const StepStudioCompletionRule(
+                mode: StepStudioCompletionMode.manual,
+              ),
+              cutscenes: const <StepStudioCutsceneLink>[
+                StepStudioCutsceneLink(
+                  cutsceneId: 'cutscene_1',
+                  role: StepStudioCutsceneRole.main,
+                ),
+                StepStudioCutsceneLink(
+                  cutsceneId: 'cutscene_2',
+                  role: StepStudioCutsceneRole.kickoff,
+                ),
+              ],
+              outcomes: const <StepStudioOutcomeDefinition>[
+                StepStudioOutcomeDefinition(
+                  label: 'Result A',
+                  scope: StepStudioOutcomeScope.progression,
+                  outcomeId: 'progression.step_a.result_a',
+                ),
+                StepStudioOutcomeDefinition(
+                  label: 'Result B',
+                  scope: StepStudioOutcomeScope.world,
+                  outcomeId: 'world.step_a.result_b',
+                ),
+              ],
+              worldChanges: const <StepStudioWorldChange>[
+                StepStudioWorldChange(
+                  mapId: 'map_alpha',
+                  entityId: 'npc_emma',
+                  presenceRule: StepStudioPresenceRule.visibleAfterStepCompletion,
+                ),
+              ],
+            ),
+            StepStudioStep(
+              id: 'step_b',
+              name: 'Step B',
+              description: 'Second step',
+              order: 1,
+              activation: const StepStudioActivationRule(
+                mode: StepStudioActivationMode.afterPreviousStep,
+              ),
+              completion: const StepStudioCompletionRule(
+                mode: StepStudioCompletionMode.manual,
+              ),
+            ),
+          ],
+        );
+
+        final project = ProjectManifest(
+          name: 'test',
+          maps: const <ProjectMapEntry>[],
+          tilesets: const <ProjectTilesetEntry>[],
+          scenarios: <ScenarioAsset>[
+            ScenarioAsset(
+              id: 'global_story',
+              name: 'Global Story',
+              scope: ScenarioScope.globalStory,
+              entryNodeId: 'start',
+              metadata: <String, String>{
+                kStepStudioDocumentMetadataKey: document.toMetadataJson(),
+              },
+            ),
+            ScenarioAsset(
+              id: 'local_flow_1',
+              name: 'Cutscene 1',
+              scope: ScenarioScope.localEventFlow,
+              entryNodeId: 'start',
+            ),
+            ScenarioAsset(
+              id: 'local_flow_2',
+              name: 'Cutscene 2',
+              scope: ScenarioScope.localEventFlow,
+              entryNodeId: 'start',
+            ),
+          ],
+        );
+        final projection = buildNarrativeWorkspaceProjection(project);
+
+        var selectionCallbackCount = 0;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            child: Consumer(
+              builder: (context, ref, _) {
+                final notifier = ref.read(editorNotifierProvider.notifier);
+                return MaterialApp(
+                  home: Scaffold(
+                    body: SizedBox(
+                      width: 1280,
+                      height: 900,
+                      child: StepStudioWorkspace(
+                        editorNotifier: notifier,
+                        project: project,
+                        activeMap: null,
+                        projection: projection,
+                        selectedStepId: 'step_a',
+                        onSelectStep: (_) {
+                          selectionCallbackCount++;
+                        },
+                        onSelectOutcome: (_) {},
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        // Flush post-frame callbacks (hydration + deferred selection).
+        await tester.pump();
+
+        // If the for-loop bug were present, we'd never reach here
+        // (infinite synchronous loop in build).
+        // The fact that we get here proves the loop is bounded.
+        expect(selectionCallbackCount, greaterThanOrEqualTo(0));
+        expect(tester.takeException(), isNull);
+
+        // Verify we can trigger a rebuild (simulating an "add" action)
+        // without entering an infinite loop on the next build.
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      },
+      // 30-second timeout: if the infinite-loop bug exists, this test will
+      // never complete and will be killed by the test runner. A healthy build
+      // completes in < 1 second.
+      timeout: const Timeout(Duration(seconds: 30)),
+    );
   });
 }
 

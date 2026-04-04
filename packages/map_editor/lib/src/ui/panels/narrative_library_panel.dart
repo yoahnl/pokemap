@@ -83,8 +83,8 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           EditorSidebarListRow(
             selected: false,
             onTap: () {},
-            leading: MacosIcon(CupertinoIcons.exclamationmark_triangle),
-            title: Text('Aucun scénario global'),
+            leading: const MacosIcon(CupertinoIcons.exclamationmark_triangle),
+            title: const Text('Aucun scénario global'),
           ),
         if (primaryGlobalStory != null)
           EditorSidebarListRow(
