@@ -3077,8 +3077,13 @@ class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // HEADER DU CHAPITRE: très visible, sensation de section majeure.
-        // Le header inclut maintenant l'icône d'expansion
+        // ============================================
+        // ZONE 1: HEADER FIXE (toujours visible)
+        // ============================================
+        // Le header contient:
+        // - le chevron animé (toggle expansion)
+        // - le nom du chapitre (sélection)
+        // - les badges et actions
         _ChapterHeader(
           chapter: widget.chapter,
           chapterIndex: widget.chapterIndex,
@@ -3098,82 +3103,111 @@ class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
           isExpanded: widget.isExpanded,
           onExpansionTap: widget.onToggleExpansion,
         ),
-        const SizedBox(height: 8),
-        // AFFICHAGE CONDITIONNEL DES STEPS SELON L'ÉTAT D'EXPANSION
-        if (widget.isExpanded) ...[
-          // STEPS DU CHAPITRE: cartes compactes en flux vertical.
-          for (final entry in widget.steps.asMap().entries) ...[
-            if (entry.key > 0)
-              _StepFlowArrow(
-                sourceName: widget.steps[entry.key - 1].name,
-                destinationName: entry.value.name,
-                node: _nodeByStepId(widget.steps[entry.key - 1].id),
-              ),
-            _CompactStepCard(
-              step: entry.value,
-              node: _nodeByStepId(entry.value.id) ??
-                  GlobalStoryStepNode(stepId: entry.value.id),
-              isSelected: entry.value.id == widget.selectedStepId,
-              isEntryStep: widget.globalDocument.entryStepId == entry.value.id,
-              canEdit: widget.canEdit,
-              onTap: () => widget.onSelectStep(entry.value.id),
-              onOpenStepStudio: () => widget.onOpenStepStudio(entry.value.id),
-              onSetEntryStep: () => widget.onSetEntryStep(entry.value.id),
-              // Bouton "Nouvelle step" — crée explicitement une nouvelle step.
-              onCreateNewStep: () => widget.onCreateNewStep(entry.value.id),
-              // Bouton "Insérer" — ouvre le sélecteur de step existante.
-              onInsertExistingStep: () => _togglePicker(entry.value.id),
-              // État du picker pour cette step.
-              insertPickerVisible: _insertPickerStepId == entry.value.id,
-              onTogglePicker: () => _togglePicker(entry.value.id),
-              onPickExistingStep: (existingStepId) =>
-                  _pickExistingStep(entry.value.id, existingStepId),
-              availableSteps: _availableStepsFor(entry.value.id),
+        
+        // ============================================
+        // ZONE 2: RÉSUMÉ STABLE (toujours visible)
+        // ============================================
+        // Affiche un résumé compact du chapitre:
+        // - nombre de steps
+        // - description si disponible
+        // Opacité légèrement réduite quand le chapitre est ouvert
+        // pour laisser la place visuelle aux steps.
+        _ChapterSummary(
+          stepCount: widget.steps.length,
+          chapter: widget.chapter,
+          isExpanded: widget.isExpanded,
+        ),
+        
+        const SizedBox(height: 6),
+        
+        // ============================================
+        // ZONE 3: CONTENU DES STEPS (ANIMÉ)
+        // ============================================
+        // Cette zone s'ouvre et se ferme avec une animation fluide.
+        // Utilise ClipRect + AnimatedSize pour:
+        // - une transition de hauteur douce et naturelle
+        // - pas de débordement visuel pendant l'animation
+        // - alignment par le haut (lecture top-down)
+        ClipRect(
+          child: AnimatedSize(
+            // Duration: 300ms pour une animation fluide mais réactive
+            duration: const Duration(milliseconds: 300),
+            // Curve: easeInOut pour un mouvement naturel
+            curve: Curves.easeInOut,
+            // Alignment: topCenter pour que l'animation parte du haut
+            // (cohérent avec la lecture top-down du Global Story)
+            alignment: Alignment.topCenter,
+            // Si le chapitre est ouvert: affiche les steps
+            // Si le chapitre est fermé: SizedBox.shrink() (hauteur 0)
+            child: widget.isExpanded
+              ? _buildStepsContent(context)
+              : const SizedBox.shrink(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Construit le contenu des steps du chapitre.
+  ///
+  /// Cette méthode est séparée du build() principal pour:
+  /// - clarifier la responsabilité (zone animée vs structure)
+  /// - faciliter la maintenance
+  /// - garder le build() lisible
+  Widget _buildStepsContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // STEPS DU CHAPITRE: cartes compactes en flux vertical.
+        for (final entry in widget.steps.asMap().entries) ...[
+          if (entry.key > 0)
+            _StepFlowArrow(
+              sourceName: widget.steps[entry.key - 1].name,
+              destinationName: entry.value.name,
+              node: _nodeByStepId(widget.steps[entry.key - 1].id),
             ),
-          ],
-          // Si le chapitre est vide, afficher un message.
-          if (widget.steps.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: EditorChrome.largeIslandSurfaceColor(
-                  context,
-                  tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
-                ),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
-                  style: BorderStyle.solid,
-                ),
-              ),
-              child: Text(
-                'Aucune step dans ce chapitre',
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-        ] else
-          // LORSQUE LE CHAPITRE EST FERMÉ, AFFICHER UN RÉSUMÉ
+          _CompactStepCard(
+            step: entry.value,
+            node: _nodeByStepId(entry.value.id) ??
+                GlobalStoryStepNode(stepId: entry.value.id),
+            isSelected: entry.value.id == widget.selectedStepId,
+            isEntryStep: widget.globalDocument.entryStepId == entry.value.id,
+            canEdit: widget.canEdit,
+            onTap: () => widget.onSelectStep(entry.value.id),
+            onOpenStepStudio: () => widget.onOpenStepStudio(entry.value.id),
+            onSetEntryStep: () => widget.onSetEntryStep(entry.value.id),
+            // Bouton "Nouvelle step" — crée explicitement une nouvelle step.
+            onCreateNewStep: () => widget.onCreateNewStep(entry.value.id),
+            // Bouton "Insérer" — ouvre le sélecteur de step existante.
+            onInsertExistingStep: () => _togglePicker(entry.value.id),
+            // État du picker pour cette step.
+            insertPickerVisible: _insertPickerStepId == entry.value.id,
+            onTogglePicker: () => _togglePicker(entry.value.id),
+            onPickExistingStep: (existingStepId) =>
+                _pickExistingStep(entry.value.id, existingStepId),
+            availableSteps: _availableStepsFor(entry.value.id),
+          ),
+        ],
+        // Si le chapitre est vide, afficher un message.
+        if (widget.steps.isEmpty)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: EditorChrome.largeIslandSurfaceColor(
                 context,
-                tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.06),
+                tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
               ),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: EditorChrome.subtleLabel(context).withValues(alpha: 0.12),
+                color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
+                style: BorderStyle.solid,
               ),
             ),
             child: Text(
-              '${widget.steps.length} step${widget.steps.length > 1 ? 's' : ''}',
+              'Aucune step dans ce chapitre',
               style: TextStyle(
                 color: EditorChrome.subtleLabel(context),
-                fontSize: 11,
+                fontSize: 12,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -3243,18 +3277,22 @@ class _ChapterHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         child: Row(
           children: [
-            // Icône d'expansion
+            // Icône d'expansion avec animation fluide
             if (showExpansionIcon) ...[
               GestureDetector(
                 onTap: onExpansionTap,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  child: Icon(
-                    isExpanded 
-                      ? CupertinoIcons.chevron_down 
-                      : CupertinoIcons.chevron_right,
-                    size: 16,
-                    color: EditorChrome.primaryLabel(context),
+                  child: AnimatedRotation(
+                    // turns: 0.5 = 90° (chevron_down), 0.0 = 0° (chevron_right)
+                    turns: isExpanded ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    child: Icon(
+                      CupertinoIcons.chevron_right,
+                      size: 16,
+                      color: EditorChrome.primaryLabel(context),
+                    ),
                   ),
                 ),
               ),
@@ -3390,6 +3428,85 @@ class _StepFlowArrow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Résumé compact d'un chapitre, toujours visible sous le header.
+///
+/// Ce widget affiche un résumé stable du chapitre (nombre de steps, etc.)
+/// et reste visible que le chapitre soit ouvert ou fermé.
+/// Quand le chapitre est ouvert, l'opacité est légèrement réduite pour
+/// laisser la place aux steps tout en restant lisible.
+///
+/// Rôle produit:
+/// - donner une information immédiate sur le contenu du chapitre
+/// - rester stable visuellement (pas de swap brutal)
+/// - renforcer la lecture macro (Global Story ≠ Step Studio)
+class _ChapterSummary extends StatelessWidget {
+  const _ChapterSummary({
+    required this.stepCount,
+    required this.chapter,
+    this.isExpanded = false,
+  });
+
+  /// Nombre de steps dans le chapitre
+  final int stepCount;
+
+  /// Chapitre concerné
+  final GlobalStoryChapter chapter;
+
+  /// État d'expansion (pour ajuster l'opacité)
+  final bool isExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    // Opacité réduite quand le chapitre est ouvert pour laisser la place aux steps
+    final summaryOpacity = isExpanded ? 0.6 : 1.0;
+
+    return AnimatedOpacity(
+      opacity: summaryOpacity,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: Row(
+          children: [
+            // Badge du nombre de steps
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$stepCount step${stepCount > 1 ? 's' : ''}',
+                style: TextStyle(
+                  color: EditorChrome.inspectorJoyMint,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            // Séparateur visuel si le chapitre a une description
+            if (chapter.description.trim().isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  chapter.description,
+                  style: TextStyle(
+                    color: EditorChrome.subtleLabel(context),
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
