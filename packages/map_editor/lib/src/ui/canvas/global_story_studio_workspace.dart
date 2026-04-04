@@ -822,6 +822,12 @@ class _GlobalStoryStudioWorkspaceState
     });
   }
 
+  /// État pour le sélecteur de step existante à insérer.
+  ///
+  /// Quand non null, le sélecteur de step existante est affiché sous forme
+  /// d'un popup intégré au-dessus de la step concernée.
+  String? _insertTargetStepId;
+
   /// Renomme un chapitre existant.
   void _renameChapter(String chapterId, String newName) {
     final globalDoc = _draftGlobalDocument;
@@ -939,6 +945,327 @@ class _GlobalStoryStudioWorkspaceState
       linkIndex: linkIndex,
       toStepId: toStepId,
     );
+  }
+
+  // ===========================================================================
+  // CRÉATION / INSERTION DE STEPS (séparation explicite)
+  // ===========================================================================
+  //
+  // Le bouton "Insérer" de l'ancienne UX faisait DEUX choses à la fois:
+  // 1) créer une nouvelle step
+  // 2) l'insérer dans le flux
+  //
+  // C'était trompeur: le texte disait "Insérer" mais le code faisait "Créer".
+  //
+  // Maintenant on sépare explicitement:
+  // - _createNewStepAfter : crée une NOUVELLE step après une step donnée
+  // - _insertExistingStepAfter : insère une step EXISTANTE après une step donnée
+  //   (pas de création, pas de duplication)
+
+  /// Crée une NOUVELLE step après la step spécifiée.
+  ///
+  /// C'est l'action "Créer une nouvelle step" — elle crée une step vierge
+  /// et l'insère dans le flux global après `afterStepId`.
+  void _createNewStepAfter(String afterStepId) {
+    final stepDoc = _draftStepDocument;
+    final globalDoc = _draftGlobalDocument;
+    if (stepDoc == null || globalDoc == null) return;
+
+    final ordered = stepDoc.steps.toList(growable: true)
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final selectedIndex =
+        ordered.indexWhere((entry) => entry.id == afterStepId);
+    final insertionIndex =
+        selectedIndex < 0 ? ordered.length : selectedIndex + 1;
+
+    final nextStepId = generateUniqueStepId(
+      'step_${ordered.length + 1}',
+      existingIds: ordered.map((entry) => entry.id),
+    );
+    final newStep = StepStudioStep(
+      id: nextStepId,
+      name: 'Nouvelle step ${ordered.length + 1}',
+      description: '',
+      order: insertionIndex,
+      activation: insertionIndex == 0
+          ? const StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            )
+          : const StepStudioActivationRule(
+              mode: StepStudioActivationMode.afterPreviousStep,
+            ),
+      completion: const StepStudioCompletionRule(
+        mode: StepStudioCompletionMode.manual,
+      ),
+    );
+
+    ordered.insert(insertionIndex, newStep);
+    final normalizedSteps = <StepStudioStep>[];
+    for (var index = 0; index < ordered.length; index++) {
+      normalizedSteps.add(ordered[index].copyWith(order: index));
+    }
+    final nextStepDocument = stepDoc.copyWith(steps: normalizedSteps);
+
+    // Mise à jour des noeuds macro (flux global).
+    final nodeByStepId = <String, GlobalStoryStepNode>{
+      for (final node in globalDoc.nodes) node.stepId: node,
+    };
+    final selectedNode = nodeByStepId[afterStepId];
+    final createdNode = const GlobalStoryStepNode(
+      stepId: '',
+      exitMode: GlobalStoryStepExitMode.linear,
+      links: <GlobalStoryStepLink>[],
+    ).copyWith(stepId: nextStepId);
+    nodeByStepId[nextStepId] = createdNode;
+
+    if (selectedNode != null) {
+      if (selectedNode.exitMode == GlobalStoryStepExitMode.linear) {
+        final previousLinks = selectedNode.links;
+        nodeByStepId[selectedNode.stepId] = selectedNode.copyWith(
+          links: <GlobalStoryStepLink>[
+            GlobalStoryStepLink(toStepId: nextStepId),
+          ],
+        );
+        nodeByStepId[nextStepId] = createdNode.copyWith(links: previousLinks);
+      } else if (selectedNode.links.isEmpty) {
+        nodeByStepId[selectedNode.stepId] = selectedNode.copyWith(
+          links: <GlobalStoryStepLink>[
+            GlobalStoryStepLink(toStepId: nextStepId),
+          ],
+        );
+      }
+    }
+
+    final nextGlobalDocument = globalDoc.copyWith(
+      nodes: normalizedSteps
+          .map(
+            (step) =>
+                nodeByStepId[step.id] ?? GlobalStoryStepNode(stepId: step.id),
+          )
+          .toList(growable: false),
+    );
+
+    _replaceDraftDocuments(
+      nextStepDocument: nextStepDocument,
+      nextGlobalDocument: nextGlobalDocument,
+    );
+
+    // Ajout de la nouvelle step au chapitre de la step source.
+    _addStepToChapterOfStep(afterStepId, nextStepId);
+
+    _selectStep(nextStepId);
+  }
+
+  /// Insère une step EXISTANTE après la step spécifiée dans le flux global.
+  ///
+  /// Cette méthode NE CRÉE PAS de nouvelle step.
+  /// Elle prend une step existante (`existingStepId`) et la repositionne
+  /// dans le flux global après `afterStepId`.
+  ///
+  /// Comportement précis:
+  /// - la step existante est retirée de sa position actuelle (ordre + chapitre)
+  /// - elle est réinsérée après `afterStepId`
+  /// - les ordres sont re-normalisés
+  /// - les liens globaux sont mis à jour
+  /// - la step reste unique (pas de duplication)
+  void _insertExistingStepAfter(String afterStepId, String existingStepId) {
+    final stepDoc = _draftStepDocument;
+    final globalDoc = _draftGlobalDocument;
+    if (stepDoc == null || globalDoc == null) return;
+    // Garde de sécurité: on n'insère pas une step après elle-même.
+    if (afterStepId == existingStepId) return;
+
+    final ordered = stepDoc.steps.toList(growable: true)
+      ..sort((a, b) => a.order.compareTo(b.order));
+
+    // Vérifier que les deux steps existent.
+    final afterIndex = ordered.indexWhere((s) => s.id == afterStepId);
+    final existingIndex = ordered.indexWhere((s) => s.id == existingStepId);
+    if (afterIndex < 0 || existingIndex < 0) return;
+
+    // Retirer la step existante de sa position actuelle.
+    final existingStep = ordered.removeAt(existingIndex);
+
+    // Recalculer l'index d'insertion (peut avoir changé après le remove).
+    final newAfterIndex =
+        ordered.indexWhere((s) => s.id == afterStepId);
+    final insertionIndex =
+        newAfterIndex < 0 ? ordered.length : newAfterIndex + 1;
+
+    // Insérer la step existante après la step cible.
+    ordered.insert(insertionIndex, existingStep);
+
+    // Re-normaliser les ordres.
+    final normalizedSteps = <StepStudioStep>[];
+    for (var index = 0; index < ordered.length; index++) {
+      normalizedSteps.add(ordered[index].copyWith(order: index));
+    }
+
+    final nextStepDocument = stepDoc.copyWith(steps: normalizedSteps);
+
+    // --- Mise à jour des noeuds macro (flux global) ---
+    final nodeByStepId = <String, GlobalStoryStepNode>{
+      for (final node in globalDoc.nodes) node.stepId: node,
+    };
+
+    final afterNode = nodeByStepId[afterStepId];
+    final existingNode = nodeByStepId[existingStepId];
+
+    if (afterNode != null && existingNode != null) {
+      // La step existante prend les liens de la step source (en mode linéaire)
+      // ou s'ajoute comme nouvelle destination.
+      if (afterNode.exitMode == GlobalStoryStepExitMode.linear) {
+        final previousLinks = afterNode.links;
+        nodeByStepId[afterNode.stepId] = afterNode.copyWith(
+          links: <GlobalStoryStepLink>[
+            GlobalStoryStepLink(toStepId: existingStepId),
+          ],
+        );
+        // La step insérée hérite des liens précédents.
+        nodeByStepId[existingStepId] = existingNode.copyWith(
+          links: previousLinks,
+        );
+      } else if (afterNode.links.isEmpty) {
+        // Mode branching avec aucun lien: on ajoute simplement le lien.
+        nodeByStepId[afterNode.stepId] = afterNode.copyWith(
+          links: <GlobalStoryStepLink>[
+            GlobalStoryStepLink(toStepId: existingStepId),
+          ],
+        );
+      }
+    }
+
+    // Supprimer les liens pointant vers la step insérée depuis d'autres noeuds
+    // pour éviter les références circulaires involontaires.
+    for (final entry in nodeByStepId.entries) {
+      if (entry.key == existingStepId) continue;
+      final cleanedLinks = entry.value.links
+          .where((link) => link.toStepId != existingStepId)
+          .toList(growable: false);
+      if (cleanedLinks.length != entry.value.links.length) {
+        nodeByStepId[entry.key] = entry.value.copyWith(links: cleanedLinks);
+      }
+    }
+
+    final nextGlobalDocument = globalDoc.copyWith(
+      nodes: normalizedSteps
+          .map(
+            (step) =>
+                nodeByStepId[step.id] ?? GlobalStoryStepNode(stepId: step.id),
+          )
+          .toList(growable: false),
+    );
+
+    _replaceDraftDocuments(
+      nextStepDocument: nextStepDocument,
+      nextGlobalDocument: nextGlobalDocument,
+    );
+
+    // --- Mise à jour des chapitres ---
+    // Déplacer la step insérée dans le même chapitre que la step source.
+    _moveStepToChapterOfStep(afterStepId, existingStepId);
+
+    _selectStep(existingStepId);
+  }
+
+  /// Ajoute une step (`newStepId`) au même chapitre que `referenceStepId`.
+  ///
+  /// Utilisé après la création d'une nouvelle step pour qu'elle apparaisse
+  /// dans le bon chapitre immédiatement.
+  void _addStepToChapterOfStep(String referenceStepId, String newStepId) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+
+    final chapterIdx = globalDoc.chapters.indexWhere(
+      (c) => c.stepIds.contains(referenceStepId),
+    );
+    if (chapterIdx < 0) return;
+
+    final chapter = globalDoc.chapters[chapterIdx];
+    final nextChapters = globalDoc.chapters
+        .asMap()
+        .entries
+        .map((e) => e.key == chapterIdx
+            ? chapter.copyWith(
+                stepIds: <String>[...chapter.stepIds, newStepId])
+            : e.value)
+        .toList(growable: false);
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
+    );
+  }
+
+  /// Déplace une step (`stepIdToMove`) dans le même chapitre que `referenceStepId`.
+  ///
+  /// Utilisé après l'insertion d'une step existante pour mettre à jour
+  /// l'appartenance au chapitre.
+  void _moveStepToChapterOfStep(String referenceStepId, String stepIdToMove) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+
+    // Trouver le chapitre source (contenant referenceStepId).
+    final sourceChapterIdx = globalDoc.chapters.indexWhere(
+      (c) => c.stepIds.contains(referenceStepId),
+    );
+    // Trouver le chapitre actuel de la step à déplacer.
+    final currentChapterIdx = globalDoc.chapters.indexWhere(
+      (c) => c.stepIds.contains(stepIdToMove),
+    );
+
+    if (sourceChapterIdx < 0 || currentChapterIdx < 0) return;
+    // Même chapitre: rien à faire.
+    if (sourceChapterIdx == currentChapterIdx) return;
+
+    final sourceChapter = globalDoc.chapters[sourceChapterIdx];
+    final currentChapter = globalDoc.chapters[currentChapterIdx];
+
+    final nextChapters = globalDoc.chapters
+        .asMap()
+        .entries
+        .map((e) {
+          if (e.key == currentChapterIdx) {
+            // Retirer la step de son chapitre actuel.
+            return currentChapter.copyWith(
+              stepIds: currentChapter.stepIds
+                  .where((id) => id != stepIdToMove)
+                  .toList(growable: false),
+            );
+          }
+          if (e.key == sourceChapterIdx) {
+            // Ajouter la step au chapitre cible.
+            // Insérer après la referenceStepId pour maintenir l'ordre visuel.
+            final refIndex = sourceChapter.stepIds
+                .indexWhere((id) => id == referenceStepId);
+            final newStepIds = <String>[...sourceChapter.stepIds];
+            final insertAt = refIndex >= 0 ? refIndex + 1 : newStepIds.length;
+            newStepIds.insert(insertAt, stepIdToMove);
+            return sourceChapter.copyWith(stepIds: newStepIds);
+          }
+          return e.value;
+        })
+        .toList(growable: false);
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
+    );
+  }
+
+  /// Ouvre/ferme le sélecteur de step existante pour insertion.
+  void _toggleInsertPicker(String stepId) {
+    setState(() {
+      _insertTargetStepId = _insertTargetStepId == stepId ? null : stepId;
+    });
+  }
+
+  void _cancelInsertPicker() {
+    setState(() {
+      _insertTargetStepId = null;
+    });
   }
 
   List<_SimpleOption> _stepOptions({String? excludeStepId}) {
@@ -1348,7 +1675,8 @@ class _GlobalStoryStudioWorkspaceState
                     onSelectStep: _selectStep,
                     onOpenStepStudio: widget.onOpenStepStudio,
                     onSetEntryStep: _setEntryStep,
-                    onInsertStepAfter: _addStepAfterSelection,
+                    onCreateNewStep: _createNewStepAfter,
+                    onInsertExistingStep: _insertExistingStepAfter,
                     onChangeStepExitMode: _updateSelectedNodeExitMode,
                     onAddLink: _addLinkFromSelectedStep,
                     onRemoveLink: _removeLinkFromSelectedStep,
@@ -2527,7 +2855,10 @@ class _NoChaptersHint extends StatelessWidget {
 /// - les indicateurs de flux entre les steps.
 ///
 /// C'est le widget CENTRAL de la nouvelle UX Global Story Studio.
-class _NarrativeChapterSection extends StatelessWidget {
+///
+/// Converti en StatefulWidget pour gérer l'état du sélecteur d'insertion
+/// de step existante (quel step affiche le picker en ce moment).
+class _NarrativeChapterSection extends StatefulWidget {
   const _NarrativeChapterSection({
     required this.chapter,
     required this.chapterIndex,
@@ -2545,7 +2876,8 @@ class _NarrativeChapterSection extends StatelessWidget {
     required this.onSelectStep,
     required this.onOpenStepStudio,
     required this.onSetEntryStep,
-    required this.onInsertStepAfter,
+    required this.onCreateNewStep,
+    required this.onInsertExistingStep,
     required this.onChangeStepExitMode,
     required this.onAddLink,
     required this.onRemoveLink,
@@ -2568,18 +2900,66 @@ class _NarrativeChapterSection extends StatelessWidget {
   final ValueChanged<String?> onSelectStep;
   final ValueChanged<String> onOpenStepStudio;
   final ValueChanged<String> onSetEntryStep;
-  final VoidCallback onInsertStepAfter;
+
+  // Callback pour CRÉER une nouvelle step après une step donnée.
+  final ValueChanged<String> onCreateNewStep;
+
+  // Callback pour INSÉRER une step existante après une step donnée
+  // (l'ID de la step à insérer est passée via le picker).
+  final void Function(String afterStepId, String existingStepId)
+      onInsertExistingStep;
+
   final ValueChanged<GlobalStoryStepExitMode> onChangeStepExitMode;
   final VoidCallback onAddLink;
   final ValueChanged<int> onRemoveLink;
   final void Function(int, String?) onUpdateLinkTarget;
 
+  @override
+  State<_NarrativeChapterSection> createState() =>
+      _NarrativeChapterSectionState();
+}
+
+class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
+  // ID de la step qui affiche actuellement le sélecteur de step existante.
+  // Une seule step à la fois peut avoir le picker ouvert.
+  String? _insertPickerStepId;
+
   GlobalStoryStepNode? _nodeByStepId(String? stepId) {
     if (stepId == null) return null;
-    for (final node in globalDocument.nodes) {
+    for (final node in widget.globalDocument.nodes) {
       if (node.stepId == stepId) return node;
     }
     return null;
+  }
+
+  void _togglePicker(String stepId) {
+    setState(() {
+      _insertPickerStepId = _insertPickerStepId == stepId ? null : stepId;
+    });
+  }
+
+  void _cancelPicker() {
+    setState(() {
+      _insertPickerStepId = null;
+    });
+  }
+
+  void _pickExistingStep(String afterStepId, String existingStepId) {
+    widget.onInsertExistingStep(afterStepId, existingStepId);
+    _cancelPicker();
+  }
+
+  /// Génère la liste des steps existantes disponibles pour insertion
+  /// (exclut la step courante).
+  List<_SimpleOption> _availableStepsFor(String currentStepId) {
+    final stepIds = widget.steps.map((s) => s.id).toList();
+    return widget.steps
+        .where((s) => s.id != currentStepId)
+        .map((s) => _SimpleOption(
+              id: s.id,
+              label: '#${s.order + 1}. ${s.name}',
+            ))
+        .toList(growable: false);
   }
 
   @override
@@ -2589,43 +2969,54 @@ class _NarrativeChapterSection extends StatelessWidget {
       children: [
         // HEADER DU CHAPITRE: très visible, sensation de section majeure.
         _ChapterHeader(
-          chapter: chapter,
-          chapterIndex: chapterIndex,
-          totalChapters: totalChapters,
-          stepCount: steps.length,
-          isSelected: false, // On peut ajouter la sélection plus tard
-          canEdit: canEdit,
-          onTap: () => onTapChapter(chapter.id),
-          onRename: (name) => onRenameChapter(chapter.id, name),
-          onMoveUp: onMoveChapterUp,
-          onMoveDown: onMoveChapterDown,
-          onAddChapter: onAddChapter,
-          onDelete: chapter.stepIds.isEmpty ? onDeleteChapter : null,
+          chapter: widget.chapter,
+          chapterIndex: widget.chapterIndex,
+          totalChapters: widget.totalChapters,
+          stepCount: widget.steps.length,
+          isSelected: false,
+          canEdit: widget.canEdit,
+          onTap: () => widget.onTapChapter(widget.chapter.id),
+          onRename: (name) => widget.onRenameChapter(widget.chapter.id, name),
+          onMoveUp: widget.onMoveChapterUp,
+          onMoveDown: widget.onMoveChapterDown,
+          onAddChapter: widget.onAddChapter,
+          onDelete: widget.chapter.stepIds.isEmpty
+              ? widget.onDeleteChapter
+              : null,
         ),
         const SizedBox(height: 8),
         // STEPS DU CHAPITRE: cartes compactes en flux vertical.
-        for (final entry in steps.asMap().entries) ...[
+        for (final entry in widget.steps.asMap().entries) ...[
           if (entry.key > 0)
             _StepFlowArrow(
-              sourceName: steps[entry.key - 1].name,
+              sourceName: widget.steps[entry.key - 1].name,
               destinationName: entry.value.name,
-              node: _nodeByStepId(steps[entry.key - 1].id),
+              node: _nodeByStepId(widget.steps[entry.key - 1].id),
             ),
           _CompactStepCard(
             step: entry.value,
             node: _nodeByStepId(entry.value.id) ??
                 GlobalStoryStepNode(stepId: entry.value.id),
-            isSelected: entry.value.id == selectedStepId,
-            isEntryStep: globalDocument.entryStepId == entry.value.id,
-            canEdit: canEdit,
-            onTap: () => onSelectStep(entry.value.id),
-            onOpenStepStudio: () => onOpenStepStudio(entry.value.id),
-            onSetEntryStep: () => onSetEntryStep(entry.value.id),
-            onInsertAfter: onInsertStepAfter,
+            isSelected: entry.value.id == widget.selectedStepId,
+            isEntryStep: widget.globalDocument.entryStepId == entry.value.id,
+            canEdit: widget.canEdit,
+            onTap: () => widget.onSelectStep(entry.value.id),
+            onOpenStepStudio: () => widget.onOpenStepStudio(entry.value.id),
+            onSetEntryStep: () => widget.onSetEntryStep(entry.value.id),
+            // Bouton "Nouvelle step" — crée explicitement une nouvelle step.
+            onCreateNewStep: () => widget.onCreateNewStep(entry.value.id),
+            // Bouton "Insérer" — ouvre le sélecteur de step existante.
+            onInsertExistingStep: () => _togglePicker(entry.value.id),
+            // État du picker pour cette step.
+            insertPickerVisible: _insertPickerStepId == entry.value.id,
+            onTogglePicker: () => _togglePicker(entry.value.id),
+            onPickExistingStep: (existingStepId) =>
+                _pickExistingStep(entry.value.id, existingStepId),
+            availableSteps: _availableStepsFor(entry.value.id),
           ),
         ],
         // Si le chapitre est vide, afficher un message.
-        if (steps.isEmpty)
+        if (widget.steps.isEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
@@ -2863,7 +3254,12 @@ class _CompactStepCard extends StatelessWidget {
     required this.onTap,
     required this.onOpenStepStudio,
     required this.onSetEntryStep,
-    required this.onInsertAfter,
+    required this.onCreateNewStep,
+    required this.onInsertExistingStep,
+    required this.insertPickerVisible,
+    required this.onTogglePicker,
+    required this.onPickExistingStep,
+    required this.availableSteps,
   });
 
   final StepStudioStep step;
@@ -2874,7 +3270,24 @@ class _CompactStepCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onOpenStepStudio;
   final VoidCallback onSetEntryStep;
-  final VoidCallback onInsertAfter;
+
+  // Callback pour "Créer une nouvelle step" — action explicite de création.
+  final VoidCallback onCreateNewStep;
+
+  // Callback pour "Insérer une step existante" — ouvre le sélecteur.
+  final VoidCallback onInsertExistingStep;
+
+  // État du sélecteur de step existante (affiché ou non).
+  final bool insertPickerVisible;
+
+  // Toggle du sélecteur.
+  final VoidCallback onTogglePicker;
+
+  // Callback quand l'utilisateur choisit une step existante dans le picker.
+  final ValueChanged<String> onPickExistingStep;
+
+  // Liste des steps existantes disponibles pour insertion (exclut la step courante).
+  final List<_SimpleOption> availableSteps;
 
   @override
   Widget build(BuildContext context) {
@@ -3013,30 +3426,238 @@ class _CompactStepCard extends StatelessWidget {
                 Expanded(
                   child: InspectorEmbeddedSecondaryCapsule(
                     accent: EditorChrome.inspectorJoyMint,
-                    icon: CupertinoIcons.plus_circle,
-                    label: 'Insérer',
+                    icon: CupertinoIcons.plus_app,
+                    // Libellé EXPLICITE: ce bouton CRÉE une nouvelle step.
+                    label: 'Nouvelle',
                     enabled: canEdit,
-                    onPressed: onInsertAfter,
+                    onPressed: onCreateNewStep,
                   ),
                 ),
                 const SizedBox(width: 4),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minSize: 28,
-                  onPressed: isEntryStep ? null : onSetEntryStep,
-                  child: Icon(
-                    CupertinoIcons.location,
-                    size: 16,
-                    color: isEntryStep
-                        ? EditorChrome.inspectorJoyMint
-                        : EditorChrome.subtleLabel(context),
+                Expanded(
+                  child: InspectorEmbeddedSecondaryCapsule(
+                    accent: EditorChrome.inspectorJoyBlue,
+                    icon: CupertinoIcons.arrow_down_right,
+                    // Libellé EXPLICITE: ce bouton insère une step EXISTANTE.
+                    label: 'Insérer',
+                    enabled: canEdit,
+                    onPressed: onInsertExistingStep,
                   ),
                 ),
               ],
             ),
+            // Sélecteur de step existante (affiché quand l'utilisateur clique
+            // sur "Insérer" pour choisir quelle step existante insérer).
+            if (insertPickerVisible) ...[
+              const SizedBox(height: 6),
+              _InsertStepPicker(
+                availableSteps: availableSteps,
+                onPickStep: onPickExistingStep,
+                onCancel: onTogglePicker,
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+}
+
+/// Sélecteur de step existante pour insertion.
+///
+/// Ce widget est affiché INLINE sous la carte de step quand l'utilisateur
+/// clique sur "Insérer". Il propose une liste de steps existantes
+/// (excluant la step courante) dans un menu déroulant simple.
+///
+/// Design:
+/// - compact, intégré au style actuel (pas de popup/modale agressive)
+/// - dropdown + bouton confirmer + bouton annuler
+/// - clairement orienté "structure macro"
+class _InsertStepPicker extends StatefulWidget {
+  const _InsertStepPicker({
+    required this.availableSteps,
+    required this.onPickStep,
+    required this.onCancel,
+  });
+
+  final List<_SimpleOption> availableSteps;
+  final ValueChanged<String> onPickStep;
+  final VoidCallback onCancel;
+
+  @override
+  State<_InsertStepPicker> createState() => _InsertStepPickerState();
+}
+
+class _InsertStepPickerState extends State<_InsertStepPicker> {
+  String? _selectedStepId;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.availableSteps.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
+          ),
+        ),
+        child: Text(
+          'Aucune step disponible pour insertion.',
+          style: TextStyle(
+            color: EditorChrome.subtleLabel(context),
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      );
+    }
+
+    // Pré-sélectionner la première option par défaut.
+    _selectedStepId ??= widget.availableSteps.first.id;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Insérer une step existante après celle-ci',
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Dropdown de sélection de step.
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minSize: 32,
+            onPressed: () => _showStepPickerMenu(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: EditorChrome.largeIslandSurfaceColor(
+                  context,
+                  tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.08),
+                ),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _selectedStepLabel,
+                      style: TextStyle(
+                        color: EditorChrome.primaryLabel(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(
+                    CupertinoIcons.chevron_down,
+                    size: 12,
+                    color: EditorChrome.subtleLabel(context),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: InspectorEmbeddedPrimaryCapsule(
+                  accent: EditorChrome.inspectorJoyBlue,
+                  icon: CupertinoIcons.arrow_down_right,
+                  label: 'Insérer',
+                  enabled: true,
+                  onPressed: _confirmSelection,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: InspectorEmbeddedSecondaryCapsule(
+                  accent: EditorChrome.inspectorJoyCoral,
+                  icon: CupertinoIcons.xmark,
+                  label: 'Annuler',
+                  enabled: true,
+                  onPressed: widget.onCancel,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String get _selectedStepLabel {
+    final selected = widget.availableSteps
+        .where((s) => s.id == _selectedStepId)
+        .cast<_SimpleOption?>()
+        .firstWhere((s) => s != null, orElse: () => null);
+    return selected?.label ?? '—';
+  }
+
+  void _showStepPickerMenu(BuildContext context) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Choisir une step à insérer'),
+        message: Text(
+          'Sélectionnez la step existante à insérer après cette step.',
+          style: TextStyle(
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            fontSize: 12,
+          ),
+        ),
+        actions: widget.availableSteps
+            .map(
+              (option) => CupertinoActionSheetAction(
+                onPressed: () {
+                  setState(() {
+                    _selectedStepId = option.id;
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: Text(option.label),
+              ),
+            )
+            .toList(growable: false),
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+      ),
+    );
+  }
+
+  void _confirmSelection() {
+    final selected = _selectedStepId;
+    if (selected != null) {
+      widget.onPickStep(selected);
+    }
   }
 }

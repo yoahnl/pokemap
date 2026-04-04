@@ -446,5 +446,107 @@ void main() {
       expect(normalized.chapters.first.id, 'chapter_main');
       expect(normalized.chapters.first.stepIds, ['step_a', 'step_b']);
     });
+
+    test('createDefaultGlobalStoryStudioDocument creates default chapter', () {
+      final stepDoc = StepStudioDocument(
+        globalStoryScenarioId: 'gs',
+        steps: <StepStudioStep>[
+          StepStudioStep(
+            id: 's1',
+            name: 'S1',
+            description: '',
+            order: 0,
+            activation: const StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            ),
+            completion: const StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.manual,
+            ),
+          ),
+        ],
+      );
+
+      final doc = createDefaultGlobalStoryStudioDocument(
+        globalStoryScenarioId: 'gs',
+        stepDocument: stepDoc,
+      );
+
+      expect(doc.chapters, hasLength(1));
+      expect(doc.chapters.first.id, 'chapter_main');
+      expect(doc.chapters.first.stepIds, ['s1']);
+    });
+
+    test('normalizeGlobalStoryStudioDocument assigns unassigned steps to default chapter', () {
+      final stepDoc = StepStudioDocument(
+        globalStoryScenarioId: 'gs',
+        steps: <StepStudioStep>[
+          StepStudioStep(
+            id: 's1',
+            name: 'S1',
+            description: '',
+            order: 0,
+            activation: const StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            ),
+            completion: const StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.manual,
+            ),
+          ),
+          StepStudioStep(
+            id: 's2',
+            name: 'S2',
+            description: '',
+            order: 1,
+            activation: const StepStudioActivationRule(
+              mode: StepStudioActivationMode.afterPreviousStep,
+            ),
+            completion: const StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.manual,
+            ),
+          ),
+        ],
+      );
+
+      // Document with a chapter that only has s1 — s2 is unassigned.
+      final doc = GlobalStoryStudioDocument(
+        globalStoryScenarioId: 'gs',
+        entryStepId: 's1',
+        nodes: <GlobalStoryStepNode>[
+          GlobalStoryStepNode(
+            stepId: 's1',
+            exitMode: GlobalStoryStepExitMode.linear,
+            links: const <GlobalStoryStepLink>[
+              GlobalStoryStepLink(toStepId: 's2'),
+            ],
+          ),
+          GlobalStoryStepNode(
+            stepId: 's2',
+            exitMode: GlobalStoryStepExitMode.linear,
+            links: const <GlobalStoryStepLink>[],
+          ),
+        ],
+        chapters: <GlobalStoryChapter>[
+          GlobalStoryChapter(
+            id: 'ch1',
+            name: 'Ch1',
+            description: '',
+            stepIds: const <String>['s1'],
+            order: 0,
+          ),
+        ],
+      );
+
+      final normalized = normalizeGlobalStoryStudioDocument(
+        document: doc,
+        stepDocument: stepDoc,
+      );
+
+      // s2 should have been assigned to the default chapter.
+      final allStepIds = normalized.chapters
+          .expand((c) => c.stepIds)
+          .toSet();
+      expect(allStepIds, contains('s1'));
+      expect(allStepIds, contains('s2'));
+    });
   });
 }
