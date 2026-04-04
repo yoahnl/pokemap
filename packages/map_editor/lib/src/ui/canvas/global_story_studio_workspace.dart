@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyEventResult;
 import 'package:map_core/map_core.dart';
 
 import '../../application/use_cases/project_scenario_use_cases.dart';
@@ -3644,7 +3645,8 @@ class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
   /// Gère les événements clavier quand le champ a le focus.
   /// Retourne [KeyEventResult.handled] si l'événement est consommé.
   KeyEventResult _onEditKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+    // Vérifie si c'est la touche Escape (sans vérifier le type d'événement)
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
       _cancelEdit();
       return KeyEventResult.handled;
     }
