@@ -251,6 +251,20 @@ class ScriptedEntityMovementController {
 
   bool isPatrolling(String entityId) => _patrols.containsKey(entityId);
 
+  /// Retire une entité du contrôleur sans impacter les autres mouvements.
+  ///
+  /// Utilisé quand un PNJ est retiré de la map active (ex: entrée bâtiment).
+  void untrackEntity(String entityId) {
+    final normalized = entityId.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    _trackedPositions.remove(normalized);
+    _activeTasks.remove(normalized);
+    _statusByEntityId.remove(normalized);
+    _patrols.remove(normalized);
+  }
+
   /// Tick principal du contrôleur.
   ///
   /// `dt` n'est pas utilisé dans ce MVP (pas de vitesse variable côté logique),

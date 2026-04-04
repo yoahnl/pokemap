@@ -55,7 +55,7 @@ void main() {
           parsed.document.blocks.first.kind, CutsceneStudioBlockKind.dialogue);
       expect(parsed.document.blocks.first.dialogueId, 'emma_intro');
       expect(parsed.document.blocks.last.kind,
-          CutsceneStudioBlockKind.emitOutcome);
+          CutsceneStudioBlockKind.sceneResult);
       expect(parsed.document.blocks.last.outcomeId, 'emma.intro.completed');
     });
 
@@ -152,6 +152,66 @@ void main() {
       final hasEnd =
           compiled.nodes.any((node) => node.type == ScenarioNodeType.end);
       expect(hasEnd, isTrue);
+    });
+
+    test('builds sceneResult with generated internal outcome id', () {
+      const document = CutsceneStudioDocument(
+        id: 'emma_intro_scene',
+        name: 'Emma Intro',
+        description: '',
+        source: CutsceneStudioSourceConfig(
+          kind: CutsceneStudioSourceKind.entityInteract,
+          mapId: 'bourivka_center',
+          entityId: 'emma',
+        ),
+        blocks: <CutsceneStudioBlock>[
+          CutsceneStudioBlock(
+            id: 'result_1',
+            kind: CutsceneStudioBlockKind.sceneResult,
+            resultLabel: 'Emma rencontrée',
+            resultScope: kCutsceneStudioResultScopeProgression,
+          ),
+        ],
+      );
+
+      final compiled = buildScenarioFromCutsceneStudioDocument(document);
+      expect(
+          compiled.declaredOutcomes, contains('progression.emma_rencontr_e'));
+      final resultNode =
+          compiled.nodes.firstWhere((node) => node.id == 'result_1');
+      expect(resultNode.payload.actionKind, kCutsceneStudioActionEmitOutcome);
+      expect(resultNode.binding.outcomeId, 'progression.emma_rencontr_e');
+    });
+
+    test('builds moveCharacter block runtime payload', () {
+      const document = CutsceneStudioDocument(
+        id: 'move_scene',
+        name: 'Move Scene',
+        description: '',
+        source: CutsceneStudioSourceConfig(
+          kind: CutsceneStudioSourceKind.mapEnter,
+          mapId: 'bourivka_center',
+        ),
+        blocks: <CutsceneStudioBlock>[
+          CutsceneStudioBlock(
+            id: 'move_1',
+            kind: CutsceneStudioBlockKind.moveCharacter,
+            actorId: 'emma',
+            destinationTargetKind: kCutsceneStudioMoveTargetWarp,
+            destinationTargetId: 'lab_entry',
+            waitForCompletion: true,
+          ),
+        ],
+      );
+
+      final compiled = buildScenarioFromCutsceneStudioDocument(document);
+      final moveNode = compiled.nodes.firstWhere((node) => node.id == 'move_1');
+      expect(moveNode.payload.actionKind, kCutsceneStudioActionMoveCharacter);
+      expect(moveNode.binding.entityId, 'emma');
+      expect(
+          moveNode.payload.params['targetKind'], kCutsceneStudioMoveTargetWarp);
+      expect(moveNode.payload.params['targetId'], 'lab_entry');
+      expect(moveNode.payload.params['waitForCompletion'], 'true');
     });
   });
 }

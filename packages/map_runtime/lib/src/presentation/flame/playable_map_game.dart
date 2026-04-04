@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -110,6 +111,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final math.Random _encounterRandom = math.Random();
+  final GridPathfinder _followPathfinder = const GridPathfinder();
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
       PlacedBehaviorCooldownGate();
   final StoryFlagsManager _storyFlags = const StoryFlagsManager();
@@ -149,6 +151,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ScriptRuntimeController? _activeScriptController;
   bool _isAwaitingScriptResume = false;
   Set<String> _activeScenarioTriggerIds = <String>{};
+  _PendingScenarioFollowRequest? _pendingScenarioFollowRequest;
+  _PendingScenarioTransitionMapRequest? _pendingScenarioTransitionMapRequest;
+  final Map<String, _PendingScenarioNpcWarpEntry>
+      _pendingScenarioNpcWarpEntries = <String, _PendingScenarioNpcWarpEntry>{};
 
   // Save/Load system
   final GameSaveRepository _saveRepo;
@@ -704,6 +710,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // - pas d'exécution pendant dialogue/battle transition;
     // - base propre pour un futur "wait movement" en cutscene.
     _scriptedEntityMovementController?.update(dt);
+    _processPendingScenarioNpcWarpEntries();
+    _processPendingScenarioFollowRequest();
+    _processPendingScenarioTransitionMapRequest();
 
     // Tick runner cutscene MVP (séquentiel).
     _cutsceneRunner.update(dt);
@@ -1020,6 +1029,42 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         openDialogue: _openScenarioDialogueById,
         runScript: _runScenarioScriptById,
         showMessage: (message) => _showNotification(message),
+        moveCharacter: ({
+          required entityId,
+          required targetKind,
+          required targetId,
+          required waitForCompletion,
+        }) {
+          return _runScenarioMoveCharacter(
+            entityId: entityId,
+            targetKind: targetKind,
+            targetId: targetId,
+            waitForCompletion: waitForCompletion,
+          );
+        },
+        followCharacter: ({
+          required leaderEntityId,
+        }) {
+          return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
+        },
+        faceCharacter: ({
+          required entityId,
+          required direction,
+        }) {
+          return _runScenarioFaceCharacter(
+            entityId: entityId,
+            direction: direction,
+          );
+        },
+        transitionMap: ({
+          required mapId,
+          required warpId,
+        }) {
+          return _runScenarioTransitionMap(
+            mapId: mapId,
+            warpId: warpId,
+          );
+        },
       ),
     );
 
@@ -1045,7 +1090,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (normalizedDialogueId.isEmpty) {
       return false;
     }
-    return _tryOpenDialogue(
+    final opened = _tryOpenDialogue(
       runtimeSourceId ?? 'scenario',
       DialogueRef(
         dialogueId: normalizedDialogueId,
@@ -1053,6 +1098,1111 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ),
       'Dialogue introuvable: $normalizedDialogueId',
     );
+    if (opened && runtimeSourceId != null && runtimeSourceId.isNotEmpty) {
+      _scheduleScenarioContinuationAfterDialogue(runtimeSourceId);
+    }
+    return opened;
+  }
+
+  void _scheduleScenarioContinuationAfterDialogue(String runtimeSourceId) {
+    if (!runtimeSourceId.startsWith('scenario:')) {
+      return;
+    }
+    final previous = _pendingPostDialogueAction;
+    _pendingPostDialogueAction = () {
+      previous?.call();
+      _resumeScenarioAfterRuntimeSource(runtimeSourceId);
+    };
+  }
+
+  void _resumeScenarioAfterRuntimeSource(String runtimeSourceId) {
+    final parts = runtimeSourceId.split(':');
+    if (parts.length != 4) {
+      return;
+    }
+    final scenarioId = parts[1].trim();
+    final sourceNodeId = parts[2].trim();
+    final resumeAfterNodeId = parts[3].trim();
+    if (scenarioId.isEmpty ||
+        sourceNodeId.isEmpty ||
+        resumeAfterNodeId.isEmpty) {
+      return;
+    }
+    final result = _scenarioRuntime.dispatchContinuation(
+      scenarios: _bundle.manifest.scenarios,
+      scenarioId: scenarioId,
+      sourceNodeId: sourceNodeId,
+      resumeAfterNodeId: resumeAfterNodeId,
+      context: ScenarioRuntimeExecutionContext(
+        gameState: _gameState,
+        onGameStateUpdated: (state) {
+          _gameState = state;
+        },
+        openDialogue: _openScenarioDialogueById,
+        runScript: _runScenarioScriptById,
+        showMessage: (message) => _showNotification(message),
+        moveCharacter: ({
+          required entityId,
+          required targetKind,
+          required targetId,
+          required waitForCompletion,
+        }) {
+          return _runScenarioMoveCharacter(
+            entityId: entityId,
+            targetKind: targetKind,
+            targetId: targetId,
+            waitForCompletion: waitForCompletion,
+          );
+        },
+        followCharacter: ({
+          required leaderEntityId,
+        }) {
+          return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
+        },
+        faceCharacter: ({
+          required entityId,
+          required direction,
+        }) {
+          return _runScenarioFaceCharacter(
+            entityId: entityId,
+            direction: direction,
+          );
+        },
+        transitionMap: ({
+          required mapId,
+          required warpId,
+        }) {
+          return _runScenarioTransitionMap(
+            mapId: mapId,
+            warpId: warpId,
+          );
+        },
+      ),
+    );
+    debugPrint(
+      '[scenario_runtime] continuation source=$runtimeSourceId status=${result.status.name} scenario=${result.scenarioId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
+    );
+  }
+
+  bool _runScenarioMoveCharacter({
+    required String entityId,
+    required String targetKind,
+    required String targetId,
+    required bool waitForCompletion,
+  }) {
+    final destination = _resolveScenarioMoveTarget(
+      targetKind: targetKind,
+      targetId: targetId,
+    );
+    if (destination == null) {
+      debugPrint(
+        '[scenario_runtime] moveCharacter target unresolved kind=$targetKind targetId=$targetId',
+      );
+      return false;
+    }
+    var resolvedDestination = destination;
+    var started = startScriptedNpcMove(
+      entityId: entityId,
+      destination: resolvedDestination,
+    );
+    if (started.state == ScriptedEntityMovementState.failed &&
+        targetKind == 'warp') {
+      final warp = _findMapWarpById(targetId);
+      if (warp != null) {
+        final fallbackCandidates = _resolveScenarioWarpApproachCandidates(
+          entityId: entityId,
+          warp: warp,
+          primaryDestination: destination,
+        );
+        for (final candidate in fallbackCandidates) {
+          final fallbackStarted = startScriptedNpcMove(
+            entityId: entityId,
+            destination: candidate,
+          );
+          if (fallbackStarted.state != ScriptedEntityMovementState.failed) {
+            resolvedDestination = candidate;
+            started = fallbackStarted;
+            debugPrint(
+              '[scenario_runtime] moveCharacter warp fallback entity=$entityId warp=${warp.id} destination=(${candidate.x},${candidate.y})',
+            );
+            break;
+          }
+        }
+      }
+    }
+    if (started.state == ScriptedEntityMovementState.failed) {
+      debugPrint(
+        '[scenario_runtime] moveCharacter failed entity=$entityId destination=(${resolvedDestination.x},${resolvedDestination.y})',
+      );
+      return false;
+    }
+    if (targetKind == 'warp') {
+      final warp = _findMapWarpById(targetId);
+      if (warp != null) {
+        _pendingScenarioNpcWarpEntries[entityId] = _PendingScenarioNpcWarpEntry(
+          entityId: entityId,
+          warpId: warp.id,
+          warpPos: warp.pos,
+          approachPos: resolvedDestination,
+        );
+      }
+    } else {
+      _pendingScenarioNpcWarpEntries.remove(entityId);
+    }
+    if (waitForCompletion) {
+      debugPrint(
+        '[scenario_runtime] moveCharacter started entity=$entityId destination=(${resolvedDestination.x},${resolvedDestination.y}) waitForCompletion=true (non-blocking bridge)',
+      );
+    }
+    return true;
+  }
+
+  bool _runScenarioTransitionMap({
+    required String mapId,
+    required String warpId,
+  }) {
+    final normalizedMapId = mapId.trim();
+    final normalizedWarpId = warpId.trim();
+    if (normalizedMapId.isEmpty || normalizedWarpId.isEmpty) {
+      debugPrint(
+        '[scenario_runtime] transitionMap invalid mapId="$mapId" warpId="$warpId"',
+      );
+      return false;
+    }
+    _pendingScenarioTransitionMapRequest = _PendingScenarioTransitionMapRequest(
+      mapId: normalizedMapId,
+      warpId: normalizedWarpId,
+    );
+    debugPrint(
+      '[scenario_runtime] transitionMap scheduled map=$normalizedMapId warp=$normalizedWarpId',
+    );
+    return true;
+  }
+
+  void _processPendingScenarioTransitionMapRequest() {
+    final pending = _pendingScenarioTransitionMapRequest;
+    if (pending == null) {
+      return;
+    }
+
+    // On attend la fin du suivi (followCharacter) pour ne pas couper la scène.
+    if (_pendingScenarioFollowRequest != null) {
+      return;
+    }
+    if (_player.isStepping) {
+      return;
+    }
+
+    _pendingScenarioTransitionMapRequest = null;
+    unawaited(_executeScenarioTransitionMapRequest(pending));
+  }
+
+  Future<void> _executeScenarioTransitionMapRequest(
+    _PendingScenarioTransitionMapRequest request,
+  ) async {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      debugPrint(
+        '[scenario_runtime] transitionMap ignored: flow=${_flowPhase.name}',
+      );
+      return;
+    }
+    try {
+      final loadedBundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: request.mapId,
+      );
+      final targetBundle = _resolveRuntimeBundle(loadedBundle);
+      MapWarp? targetWarp;
+      for (final candidate in targetBundle.map.warps) {
+        if (candidate.id == request.warpId) {
+          targetWarp = candidate;
+          break;
+        }
+      }
+      if (targetWarp == null) {
+        debugPrint(
+          '[scenario_runtime] transitionMap failed: warp "${request.warpId}" not found on map "${request.mapId}"',
+        );
+        _showNotification('Transition impossible (warp introuvable)');
+        return;
+      }
+
+      final transition = TriggeredWarp(
+        warpId: 'scenario:${request.warpId}',
+        targetMapId: targetBundle.map.id,
+        targetPos: targetWarp.pos,
+        triggerMode: MapWarpTriggerMode.onEnter,
+      );
+      debugPrint(
+        '[scenario_runtime] transitionMap start map=${transition.targetMapId} warp=${request.warpId} pos=(${transition.targetPos.x},${transition.targetPos.y})',
+      );
+      await _handleWarp(transition);
+    } catch (e, st) {
+      debugPrint(
+        '[scenario_runtime] transitionMap failed map=${request.mapId} warp=${request.warpId}: $e\n$st',
+      );
+      _showNotification('Transition impossible');
+    }
+  }
+
+  MapWarp? _findMapWarpById(String warpId) {
+    final normalized = warpId.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    for (final warp in _world.map.warps) {
+      if (warp.id == normalized) {
+        return warp;
+      }
+    }
+    return null;
+  }
+
+  List<GridPos> _resolveScenarioWarpApproachCandidates({
+    required String entityId,
+    required MapWarp warp,
+    required GridPos primaryDestination,
+  }) {
+    final currentPos = _resolveScenarioEntityPosition(entityId) ?? warp.pos;
+    final candidates = <GridPos>[];
+    final seen = <GridPos>{primaryDestination};
+
+    // Anneaux autour du warp: on essaie de rester proche de la porte tout en
+    // respectant le footprint collision réel du PNJ (souvent 2x2).
+    const maxRadius = 4;
+    for (var radius = 1; radius <= maxRadius; radius++) {
+      for (var dx = -radius; dx <= radius; dx++) {
+        final top = GridPos(x: warp.pos.x + dx, y: warp.pos.y - radius);
+        if (_addWarpApproachCandidate(
+          seen: seen,
+          out: candidates,
+          candidate: top,
+          entityId: entityId,
+        )) {
+          // no-op
+        }
+        final bottom = GridPos(x: warp.pos.x + dx, y: warp.pos.y + radius);
+        _addWarpApproachCandidate(
+          seen: seen,
+          out: candidates,
+          candidate: bottom,
+          entityId: entityId,
+        );
+      }
+      for (var dy = -radius + 1; dy <= radius - 1; dy++) {
+        final left = GridPos(x: warp.pos.x - radius, y: warp.pos.y + dy);
+        _addWarpApproachCandidate(
+          seen: seen,
+          out: candidates,
+          candidate: left,
+          entityId: entityId,
+        );
+        final right = GridPos(x: warp.pos.x + radius, y: warp.pos.y + dy);
+        _addWarpApproachCandidate(
+          seen: seen,
+          out: candidates,
+          candidate: right,
+          entityId: entityId,
+        );
+      }
+    }
+
+    candidates.sort((a, b) {
+      final aDoor = (a.x - warp.pos.x).abs() + (a.y - warp.pos.y).abs();
+      final bDoor = (b.x - warp.pos.x).abs() + (b.y - warp.pos.y).abs();
+      if (aDoor != bDoor) {
+        return aDoor.compareTo(bDoor);
+      }
+      final aCurrent = (a.x - currentPos.x).abs() + (a.y - currentPos.y).abs();
+      final bCurrent = (b.x - currentPos.x).abs() + (b.y - currentPos.y).abs();
+      return aCurrent.compareTo(bCurrent);
+    });
+    return candidates;
+  }
+
+  bool _addWarpApproachCandidate({
+    required Set<GridPos> seen,
+    required List<GridPos> out,
+    required GridPos candidate,
+    required String entityId,
+  }) {
+    if (!seen.add(candidate)) {
+      return false;
+    }
+    if (!_isWithinMapBounds(_world.map, candidate)) {
+      return false;
+    }
+    if (!_isScenarioNpcAnchorPassable(entityId: entityId, anchor: candidate)) {
+      return false;
+    }
+    out.add(candidate);
+    return true;
+  }
+
+  bool _isScenarioNpcAnchorPassable({
+    required String entityId,
+    required GridPos anchor,
+  }) {
+    final probe = evaluateScriptedNpcAnchorPassability(
+      world: _world,
+      entityId: entityId,
+      anchorPos: anchor,
+      movementMode: MovementMode.walk,
+      dynamicBlockedCells: _scriptedNpcDynamicBlockedCells(
+        ignoreEntityId: entityId,
+      ),
+    );
+    return probe.passable;
+  }
+
+  GridPos? _resolveScenarioEntityPosition(String entityId) {
+    if (entityId == 'player') {
+      return _world.player.pos;
+    }
+    final runtimePos = _runtimeNpcPositions[entityId];
+    if (runtimePos != null) {
+      return runtimePos;
+    }
+    for (final entity in _world.map.entities) {
+      if (entity.id == entityId) {
+        return entity.pos;
+      }
+    }
+    return null;
+  }
+
+  GridPos? _resolveScenarioMoveTarget({
+    required String targetKind,
+    required String targetId,
+  }) {
+    final map = _world.map;
+    switch (targetKind) {
+      case 'warp':
+        for (final warp in map.warps) {
+          if (warp.id == targetId) {
+            return warp.pos;
+          }
+        }
+        return null;
+      case 'spawn':
+        for (final entity in map.entities) {
+          if (entity.kind == MapEntityKind.spawn && entity.id == targetId) {
+            return entity.pos;
+          }
+        }
+        return null;
+      case 'entity':
+        if (targetId == 'player') {
+          return _world.player.pos;
+        }
+        for (final entity in map.entities) {
+          if (entity.id == targetId) {
+            return entity.pos;
+          }
+        }
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  void _processPendingScenarioNpcWarpEntries() {
+    if (_pendingScenarioNpcWarpEntries.isEmpty) {
+      return;
+    }
+    final entityIds =
+        _pendingScenarioNpcWarpEntries.keys.toList(growable: false)..sort();
+    for (final entityId in entityIds) {
+      final pending = _pendingScenarioNpcWarpEntries[entityId];
+      if (pending == null) {
+        continue;
+      }
+      final status = scriptedNpcMovementStatus(entityId);
+      if (status.state == ScriptedEntityMovementState.moving) {
+        continue;
+      }
+      if (status.state == ScriptedEntityMovementState.failed) {
+        debugPrint(
+          '[scenario_runtime] npc warp canceled entity=$entityId warp=${pending.warpId} reason="${status.failureReason ?? 'move failed'}"',
+        );
+        _pendingScenarioNpcWarpEntries.remove(entityId);
+        continue;
+      }
+      if (status.state != ScriptedEntityMovementState.completed) {
+        final stillPresent = _resolveScenarioEntityPosition(entityId) != null;
+        if (!stillPresent) {
+          _pendingScenarioNpcWarpEntries.remove(entityId);
+        }
+        continue;
+      }
+      _pendingScenarioNpcWarpEntries.remove(entityId);
+      _completeScenarioNpcWarpEntry(pending);
+    }
+  }
+
+  void _completeScenarioNpcWarpEntry(_PendingScenarioNpcWarpEntry pending) {
+    final removed = _despawnNpcFromActiveMap(pending.entityId);
+    if (!removed) {
+      debugPrint(
+        '[scenario_runtime] npc warp failed to remove entity=${pending.entityId} warp=${pending.warpId}',
+      );
+      return;
+    }
+    debugPrint(
+      '[scenario_runtime] npc entered warp entity=${pending.entityId} warp=${pending.warpId} approach=(${pending.approachPos.x},${pending.approachPos.y})',
+    );
+  }
+
+  bool _despawnNpcFromActiveMap(String entityId) {
+    final normalized = entityId.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    final entities = _world.map.entities;
+    final index = entities.indexWhere((entity) => entity.id == normalized);
+    if (index < 0) {
+      return false;
+    }
+
+    final updatedEntities = List<MapEntity>.from(entities)..removeAt(index);
+    final updatedMap = _world.map.copyWith(entities: updatedEntities);
+    final playerState = _world.player;
+    _world = GameplayWorldState.initial(
+      map: updatedMap,
+      playerPos: playerState.pos,
+      playerFacing: playerState.facing,
+      playerMovementMode: playerState.movementMode,
+      project: _bundle.manifest,
+      tileWidth: _bundle.manifest.settings.tileWidth,
+      tileHeight: _bundle.manifest.settings.tileHeight,
+    );
+    _bundle = RuntimeMapBundle(
+      manifest: _bundle.manifest,
+      map: updatedMap,
+      projectRootDirectory: _bundle.projectRootDirectory,
+      tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
+    );
+
+    final loaded = _loadedMapsById[_activeMapId];
+    final actor = loaded?.npcActorByEntityId.remove(normalized);
+    if (actor != null) {
+      loaded?.npcActors.remove(actor);
+      _npcActors.remove(actor);
+      actor.removeFromParent();
+    }
+    final visual = _npcCollisionDebugByEntityId.remove(normalized);
+    visual?.spriteRect.removeFromParent();
+    visual?.collisionRect.removeFromParent();
+    visual?.anchorMarker.removeFromParent();
+
+    _scriptedNpcReservedOccupiedCellsByEntity.remove(normalized);
+    _runtimeNpcPositions.remove(normalized);
+    _triggeredTrainerBattles.remove(normalized);
+    if (_pendingScenarioFollowRequest?.leaderEntityId == normalized) {
+      _pendingScenarioFollowRequest = null;
+    }
+    _pendingScenarioNpcWarpEntries.remove(normalized);
+    _scriptedEntityMovementController?.untrackEntity(normalized);
+    _syncGameStateFromWorld();
+    return true;
+  }
+
+  bool _runScenarioFollowCharacter({
+    required String leaderEntityId,
+  }) {
+    _pendingScenarioFollowRequest = _PendingScenarioFollowRequest(
+      leaderEntityId: leaderEntityId,
+      requestedAtMs: _runtimeClockMs,
+    );
+    debugPrint(
+      '[scenario_runtime] followCharacter activated leader=$leaderEntityId',
+    );
+    // On traite la première itération immédiatement pour éviter un frame de latence.
+    _processPendingScenarioFollowRequest();
+    return true;
+  }
+
+  void _processPendingScenarioFollowRequest() {
+    final pending = _pendingScenarioFollowRequest;
+    if (pending == null) {
+      return;
+    }
+    final leaderPos = _resolveScenarioLeaderPosition(pending.leaderEntityId);
+    if (leaderPos == null) {
+      debugPrint(
+        '[scenario_runtime] followCharacter canceled leader unresolved=${pending.leaderEntityId}',
+      );
+      _pendingScenarioFollowRequest = null;
+      return;
+    }
+    final leaderRect = _resolveScenarioLeaderCollisionFootprint(
+      leaderEntityId: pending.leaderEntityId,
+      fallbackAnchor: leaderPos,
+    );
+    final leaderMovement = scriptedNpcMovementStatus(pending.leaderEntityId);
+    final leaderTravelDirection = _resolveLeaderTravelDirection(
+      pending: pending,
+      leaderPos: leaderPos,
+      movementStatus: leaderMovement,
+    );
+    final preferredTrailingSide = leaderTravelDirection == null
+        ? null
+        : _oppositeDirection(leaderTravelDirection);
+    final playerPos = _world.player.pos;
+    final playerAdjacentToLeader = _isPosAdjacentToRect(playerPos, leaderRect);
+
+    // Condition de fin:
+    // - leader immobile
+    // - joueur déjà adjacent au footprint réel du leader.
+    if (leaderMovement.state != ScriptedEntityMovementState.moving &&
+        playerAdjacentToLeader) {
+      debugPrint(
+        '[scenario_runtime] followCharacter completed leader=${pending.leaderEntityId} player=(${playerPos.x},${playerPos.y})',
+      );
+      _pendingScenarioFollowRequest = null;
+      return;
+    }
+
+    // Si le joueur est déjà en interpolation, on attend le prochain tick.
+    if (_player.isStepping) {
+      return;
+    }
+
+    final canReuseCachedPath = pending.cachedPath != null &&
+        pending.cachedPathDestination != null &&
+        pending.cachedPathLeaderPos != null &&
+        pending.cachedPathLeaderPos!.x == leaderPos.x &&
+        pending.cachedPathLeaderPos!.y == leaderPos.y;
+    if (canReuseCachedPath) {
+      final nextPos = _nextFollowPathStep(
+        path: pending.cachedPath!,
+        currentPos: playerPos,
+      );
+      if (nextPos != null) {
+        final stepped = _stepPlayerAlongFollowPath(
+          leaderEntityId: pending.leaderEntityId,
+          leaderPos: leaderPos,
+          destination: pending.cachedPathDestination!,
+          nextPos: nextPos,
+          preferredTrailingSide: preferredTrailingSide,
+        );
+        if (stepped) {
+          pending.consecutiveBlockedSteps = 0;
+          return;
+        }
+        pending.consecutiveBlockedSteps += 1;
+        _clearPendingFollowPathCache(pending);
+        if (leaderMovement.state != ScriptedEntityMovementState.moving &&
+            pending.consecutiveBlockedSteps >= 10) {
+          debugPrint(
+            '[scenario_runtime] followCharacter canceled repeated blocked steps leader=${pending.leaderEntityId}',
+          );
+          _pendingScenarioFollowRequest = null;
+        }
+        return;
+      }
+      _clearPendingFollowPathCache(pending);
+    }
+
+    final followPlan = _resolveFollowPathPlanNearLeader(
+      leaderEntityId: pending.leaderEntityId,
+      leaderPos: leaderPos,
+      preferredSide: preferredTrailingSide,
+      strictPreferredSide:
+          leaderMovement.state == ScriptedEntityMovementState.moving,
+    );
+    if (followPlan == null) {
+      if (leaderMovement.state != ScriptedEntityMovementState.moving) {
+        pending.consecutiveBlockedSteps += 1;
+        if (pending.consecutiveBlockedSteps >= 10) {
+          debugPrint(
+            '[scenario_runtime] followCharacter canceled no reachable trailing path leader=${pending.leaderEntityId}',
+          );
+          _pendingScenarioFollowRequest = null;
+        }
+      }
+      return;
+    }
+    pending.consecutiveBlockedSteps = 0;
+
+    // Si on est déjà au meilleur point, on attend la prochaine évolution leader.
+    if (followPlan.path.length <= 1 ||
+        (followPlan.destination.x == playerPos.x &&
+            followPlan.destination.y == playerPos.y)) {
+      _clearPendingFollowPathCache(pending);
+      return;
+    }
+
+    pending.cachedPath = followPlan.path;
+    pending.cachedPathDestination = followPlan.destination;
+    pending.cachedPathLeaderPos = leaderPos;
+    final nextPos = _nextFollowPathStep(
+      path: followPlan.path,
+      currentPos: playerPos,
+    );
+    if (nextPos == null) {
+      _clearPendingFollowPathCache(pending);
+      return;
+    }
+
+    final stepped = _stepPlayerAlongFollowPath(
+      leaderEntityId: pending.leaderEntityId,
+      leaderPos: leaderPos,
+      destination: followPlan.destination,
+      nextPos: nextPos,
+      preferredTrailingSide: preferredTrailingSide,
+    );
+    if (!stepped) {
+      pending.consecutiveBlockedSteps += 1;
+      _clearPendingFollowPathCache(pending);
+      if (leaderMovement.state != ScriptedEntityMovementState.moving &&
+          pending.consecutiveBlockedSteps >= 10) {
+        debugPrint(
+          '[scenario_runtime] followCharacter canceled repeated blocked steps leader=${pending.leaderEntityId}',
+        );
+        _pendingScenarioFollowRequest = null;
+      }
+    }
+  }
+
+  bool _stepPlayerAlongFollowPath({
+    required String leaderEntityId,
+    required GridPos leaderPos,
+    required GridPos destination,
+    required GridPos nextPos,
+    required Direction? preferredTrailingSide,
+  }) {
+    final currentPos = _world.player.pos;
+    final direction = _directionBetweenAdjacent(
+      from: currentPos,
+      to: nextPos,
+    );
+    if (direction == null) {
+      debugPrint(
+        '[scenario_runtime] followCharacter invalid non-adjacent path step leader=$leaderEntityId from=(${currentPos.x},${currentPos.y}) to=(${nextPos.x},${nextPos.y})',
+      );
+      return false;
+    }
+
+    final result = stepGameplayWorld(_world, MoveIntent(direction));
+    if (result is! Moved) {
+      debugPrint(
+        '[scenario_runtime] followCharacter path step blocked leader=$leaderEntityId from=(${currentPos.x},${currentPos.y}) to=(${nextPos.x},${nextPos.y})',
+      );
+      return false;
+    }
+    _world = result.world;
+    _syncGameStateFromWorld();
+    _consumePathAnimationSignals(result.pathAnimationSignals);
+    _player.startStep(
+      _world.player,
+      durationSeconds: PlayerComponent.kDefaultStepSeconds,
+    );
+    _dispatchScenarioTriggerEnterFromMovement(
+      previousPos: currentPos,
+      currentPos: _world.player.pos,
+    );
+    debugPrint(
+      '[scenario_runtime] followCharacter stepping leader=$leaderEntityId leaderPos=(${leaderPos.x},${leaderPos.y}) trailingSide=${preferredTrailingSide?.name ?? '-'} destination=(${destination.x},${destination.y}) next=(${nextPos.x},${nextPos.y}) playerPos=(${_world.player.pos.x},${_world.player.pos.y})',
+    );
+    return true;
+  }
+
+  bool _runScenarioFaceCharacter({
+    required String entityId,
+    required String direction,
+  }) {
+    final facing = _parseEntityFacing(direction);
+    if (facing == null) {
+      debugPrint(
+        '[scenario_runtime] faceCharacter invalid direction="$direction"',
+      );
+      return false;
+    }
+    if (entityId == 'player') {
+      final next =
+          _world.player.copyWith(facing: _directionFromEntityFacing(facing));
+      _world = _world.withPlayer(next);
+      _syncGameStateFromWorld();
+      _player.syncState(_world.player, snapToGrid: true);
+      return true;
+    }
+    final active = _loadedMapsById[_activeMapId];
+    final actor = active?.npcActorByEntityId[entityId];
+    if (actor == null) {
+      debugPrint(
+        '[scenario_runtime] faceCharacter entity unresolved="$entityId"',
+      );
+      return false;
+    }
+    final movement = scriptedNpcMovementStatus(entityId);
+    if (movement.state == ScriptedEntityMovementState.moving ||
+        actor.isStepping) {
+      debugPrint(
+        '[scenario_runtime] faceCharacter deferred entity=$entityId while moving',
+      );
+      return true;
+    }
+    actor.setMotion(facing, CharacterAnimationState.idle);
+    return true;
+  }
+
+  EntityFacing? _parseEntityFacing(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'north':
+        return EntityFacing.north;
+      case 'south':
+        return EntityFacing.south;
+      case 'east':
+        return EntityFacing.east;
+      case 'west':
+        return EntityFacing.west;
+      default:
+        return null;
+    }
+  }
+
+  Direction _directionFromEntityFacing(EntityFacing facing) {
+    switch (facing) {
+      case EntityFacing.north:
+        return Direction.north;
+      case EntityFacing.south:
+        return Direction.south;
+      case EntityFacing.east:
+        return Direction.east;
+      case EntityFacing.west:
+        return Direction.west;
+    }
+  }
+
+  GridPos? _resolveScenarioLeaderPosition(String leaderEntityId) {
+    final movementStatus = scriptedNpcMovementStatus(leaderEntityId);
+    if (movementStatus.entityId == leaderEntityId) {
+      return movementStatus.currentPos;
+    }
+    final active = _loadedMapsById[_activeMapId];
+    final actor = active?.npcActorByEntityId[leaderEntityId];
+    final actorGridPos = actor?.gridPos;
+    if (actorGridPos != null) {
+      return actorGridPos;
+    }
+    for (final entity in _world.map.entities) {
+      if (entity.id == leaderEntityId) {
+        return entity.pos;
+      }
+    }
+    return null;
+  }
+
+  _FollowPathPlan? _resolveFollowPathPlanNearLeader({
+    required String leaderEntityId,
+    required GridPos leaderPos,
+    required Direction? preferredSide,
+    required bool strictPreferredSide,
+  }) {
+    final currentPlayerPos = _world.player.pos;
+    final leaderRect = _resolveScenarioLeaderCollisionFootprint(
+      leaderEntityId: leaderEntityId,
+      fallbackAnchor: leaderPos,
+    );
+    final candidates = <GridPos>[];
+    final preferredCandidates = <GridPos>{};
+    if (preferredSide != null) {
+      final trailing = _cellsAlongRectSide(leaderRect, preferredSide).toList();
+      candidates.addAll(trailing);
+      preferredCandidates.addAll(trailing);
+    }
+    if (!strictPreferredSide) {
+      candidates.addAll(_adjacentCellsAroundRect(leaderRect));
+    }
+    final deduplicated = candidates.toSet().toList(growable: false);
+    deduplicated.sort((a, b) {
+      final aPreferred = preferredCandidates.contains(a) ? 0 : 1;
+      final bPreferred = preferredCandidates.contains(b) ? 0 : 1;
+      if (aPreferred != bPreferred) {
+        return aPreferred.compareTo(bPreferred);
+      }
+      final da =
+          (a.x - currentPlayerPos.x).abs() + (a.y - currentPlayerPos.y).abs();
+      final db =
+          (b.x - currentPlayerPos.x).abs() + (b.y - currentPlayerPos.y).abs();
+      return da.compareTo(db);
+    });
+    for (final candidate in deduplicated) {
+      if (!_canPlacePlayerAt(candidate)) {
+        continue;
+      }
+      final path = _computeFollowPlayerPath(
+        start: currentPlayerPos,
+        goal: candidate,
+      );
+      if (path == null) {
+        continue;
+      }
+      return _FollowPathPlan(
+        destination: candidate,
+        path: path,
+      );
+    }
+
+    // Si la cible "derrière" est impossible en déplacement, on autorise un
+    // fallback adjacent pour éviter les blocages durs dans les couloirs.
+    if (strictPreferredSide) {
+      final relaxedCandidates =
+          _adjacentCellsAroundRect(leaderRect).toSet().toList(growable: false);
+      relaxedCandidates.sort((a, b) {
+        final da =
+            (a.x - currentPlayerPos.x).abs() + (a.y - currentPlayerPos.y).abs();
+        final db =
+            (b.x - currentPlayerPos.x).abs() + (b.y - currentPlayerPos.y).abs();
+        return da.compareTo(db);
+      });
+      for (final candidate in relaxedCandidates) {
+        if (!_canPlacePlayerAt(candidate)) {
+          continue;
+        }
+        final path = _computeFollowPlayerPath(
+          start: currentPlayerPos,
+          goal: candidate,
+        );
+        if (path == null) {
+          continue;
+        }
+        return _FollowPathPlan(
+          destination: candidate,
+          path: path,
+        );
+      }
+    }
+
+    if (_isPosAdjacentToRect(currentPlayerPos, leaderRect) &&
+        _canPlacePlayerAt(currentPlayerPos)) {
+      return _FollowPathPlan(
+        destination: currentPlayerPos,
+        path: <GridPos>[currentPlayerPos],
+      );
+    }
+    return null;
+  }
+
+  List<GridPos>? _computeFollowPlayerPath({
+    required GridPos start,
+    required GridPos goal,
+  }) {
+    final result = _followPathfinder.findPath(
+      bounds: _world.map.size,
+      start: start,
+      goal: goal,
+      isPassable: (x, y) {
+        if (x == start.x && y == start.y) {
+          return true;
+        }
+        final cell = GridPos(x: x, y: y);
+        if (!_isWithinMapBounds(_world.map, cell)) {
+          return false;
+        }
+        if (_isCellReservedByScriptedNpc(cell)) {
+          return false;
+        }
+        final trial = _world.withPlayer(_world.player.copyWith(pos: cell));
+        return !trial.isBlocked(x, y);
+      },
+    );
+    if (!result.foundPath) {
+      return null;
+    }
+    return result.path;
+  }
+
+  Direction? _directionBetweenAdjacent({
+    required GridPos from,
+    required GridPos to,
+  }) {
+    final dx = to.x - from.x;
+    final dy = to.y - from.y;
+    if (dx == 0 && dy == -1) return Direction.north;
+    if (dx == 0 && dy == 1) return Direction.south;
+    if (dx == 1 && dy == 0) return Direction.east;
+    if (dx == -1 && dy == 0) return Direction.west;
+    return null;
+  }
+
+  GridPos? _nextFollowPathStep({
+    required List<GridPos> path,
+    required GridPos currentPos,
+  }) {
+    if (path.length < 2) {
+      return null;
+    }
+    final currentIndex = path.indexWhere(
+      (cell) => cell.x == currentPos.x && cell.y == currentPos.y,
+    );
+    if (currentIndex < 0 || currentIndex + 1 >= path.length) {
+      return null;
+    }
+    return path[currentIndex + 1];
+  }
+
+  void _clearPendingFollowPathCache(_PendingScenarioFollowRequest pending) {
+    pending.cachedPath = null;
+    pending.cachedPathDestination = null;
+    pending.cachedPathLeaderPos = null;
+  }
+
+  MapRect _resolveScenarioLeaderCollisionFootprint({
+    required String leaderEntityId,
+    required GridPos fallbackAnchor,
+  }) {
+    for (final entity in _world.map.entities) {
+      if (entity.id == leaderEntityId) {
+        final footprint = resolveEntityCollisionFootprint(entity);
+        final offsetX = footprint.pos.x - entity.pos.x;
+        final offsetY = footprint.pos.y - entity.pos.y;
+        return MapRect(
+          pos: GridPos(
+            x: fallbackAnchor.x + offsetX,
+            y: fallbackAnchor.y + offsetY,
+          ),
+          size: footprint.size,
+        );
+      }
+    }
+    return MapRect(
+      pos: fallbackAnchor,
+      size: const GridSize(width: 1, height: 1),
+    );
+  }
+
+  Iterable<GridPos> _adjacentCellsAroundRect(MapRect rect) sync* {
+    final left = rect.pos.x;
+    final top = rect.pos.y;
+    final right = left + rect.size.width - 1;
+    final bottom = top + rect.size.height - 1;
+    final yielded = <GridPos>{};
+
+    for (var x = left; x <= right; x++) {
+      final north = GridPos(x: x, y: top - 1);
+      if (yielded.add(north)) {
+        yield north;
+      }
+      final south = GridPos(x: x, y: bottom + 1);
+      if (yielded.add(south)) {
+        yield south;
+      }
+    }
+    for (var y = top; y <= bottom; y++) {
+      final west = GridPos(x: left - 1, y: y);
+      if (yielded.add(west)) {
+        yield west;
+      }
+      final east = GridPos(x: right + 1, y: y);
+      if (yielded.add(east)) {
+        yield east;
+      }
+    }
+  }
+
+  Iterable<GridPos> _cellsAlongRectSide(MapRect rect, Direction side) sync* {
+    final left = rect.pos.x;
+    final top = rect.pos.y;
+    final right = left + rect.size.width - 1;
+    final bottom = top + rect.size.height - 1;
+    switch (side) {
+      case Direction.north:
+        for (var x = left; x <= right; x++) {
+          yield GridPos(x: x, y: top - 1);
+        }
+      case Direction.south:
+        for (var x = left; x <= right; x++) {
+          yield GridPos(x: x, y: bottom + 1);
+        }
+      case Direction.east:
+        for (var y = top; y <= bottom; y++) {
+          yield GridPos(x: right + 1, y: y);
+        }
+      case Direction.west:
+        for (var y = top; y <= bottom; y++) {
+          yield GridPos(x: left - 1, y: y);
+        }
+    }
+  }
+
+  Direction? _resolveLeaderTravelDirection({
+    required _PendingScenarioFollowRequest pending,
+    required GridPos leaderPos,
+    required ScriptedEntityMovementStatus movementStatus,
+  }) {
+    final previous = pending.lastLeaderPos;
+    pending.lastLeaderPos = leaderPos;
+    if (previous != null) {
+      final dx = leaderPos.x - previous.x;
+      final dy = leaderPos.y - previous.y;
+      final fromDelta = _directionFromDelta(dx, dy);
+      if (fromDelta != null) {
+        pending.lastLeaderTravelDirection = fromDelta;
+        return fromDelta;
+      }
+    }
+    if (movementStatus.state == ScriptedEntityMovementState.moving &&
+        movementStatus.targetPos != null) {
+      final target = movementStatus.targetPos!;
+      final dx = target.x - leaderPos.x;
+      final dy = target.y - leaderPos.y;
+      final fromTargetVector = _directionFromDelta(dx, dy);
+      if (fromTargetVector != null) {
+        pending.lastLeaderTravelDirection = fromTargetVector;
+        return fromTargetVector;
+      }
+    }
+    return pending.lastLeaderTravelDirection;
+  }
+
+  Direction? _directionFromDelta(int dx, int dy) {
+    if (dx == 0 && dy == 0) {
+      return null;
+    }
+    if (dx.abs() >= dy.abs()) {
+      return dx >= 0 ? Direction.east : Direction.west;
+    }
+    return dy >= 0 ? Direction.south : Direction.north;
+  }
+
+  Direction _oppositeDirection(Direction direction) {
+    switch (direction) {
+      case Direction.north:
+        return Direction.south;
+      case Direction.south:
+        return Direction.north;
+      case Direction.east:
+        return Direction.west;
+      case Direction.west:
+        return Direction.east;
+    }
+  }
+
+  bool _isPosAdjacentToRect(GridPos pos, MapRect rect) {
+    final left = rect.pos.x;
+    final top = rect.pos.y;
+    final right = left + rect.size.width - 1;
+    final bottom = top + rect.size.height - 1;
+    final isInside =
+        pos.x >= left && pos.x <= right && pos.y >= top && pos.y <= bottom;
+    if (isInside) {
+      return false;
+    }
+    final dx =
+        pos.x < left ? left - pos.x : (pos.x > right ? pos.x - right : 0);
+    final dy =
+        pos.y < top ? top - pos.y : (pos.y > bottom ? pos.y - bottom : 0);
+    return math.max(dx, dy) == 1;
+  }
+
+  bool _canPlacePlayerAt(GridPos pos) {
+    if (!_isWithinMapBounds(_world.map, pos)) {
+      return false;
+    }
+    final trial = _world.withPlayer(_world.player.copyWith(pos: pos));
+    return !trial.isBlocked(pos.x, pos.y);
   }
 
   /// Lance un script projet à partir d'un `scriptId`.
@@ -3569,17 +4719,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Iterable<GridPos> _scriptedNpcDynamicBlockedCells({
     String? ignoreEntityId,
   }) sync* {
-    final canonical = _world.player.pos;
-    yield canonical;
+    final activeFollowLeader = _pendingScenarioFollowRequest?.leaderEntityId;
+    final ignorePlayerForLeader = activeFollowLeader != null &&
+        ignoreEntityId != null &&
+        ignoreEntityId == activeFollowLeader;
 
-    final rendered = _renderedPlayerFootGridCell();
-    if (rendered == null) {
-      return;
-    }
-    if (rendered.x == canonical.x && rendered.y == canonical.y) {
-      // on continue pour inclure aussi les réservations PNJ.
-    } else {
-      yield rendered;
+    if (!ignorePlayerForLeader) {
+      final canonical = _world.player.pos;
+      yield canonical;
+
+      final rendered = _renderedPlayerFootGridCell();
+      if (rendered != null &&
+          (rendered.x != canonical.x || rendered.y != canonical.y)) {
+        yield rendered;
+      }
     }
 
     // Réservations de destination des autres PNJ en cours de pas.
@@ -3791,6 +4944,56 @@ class _GridCellPos {
 
   final int x;
   final int y;
+}
+
+class _PendingScenarioFollowRequest {
+  _PendingScenarioFollowRequest({
+    required this.leaderEntityId,
+    required this.requestedAtMs,
+  });
+
+  final String leaderEntityId;
+  final double requestedAtMs;
+  GridPos? lastLeaderPos;
+  Direction? lastLeaderTravelDirection;
+  List<GridPos>? cachedPath;
+  GridPos? cachedPathDestination;
+  GridPos? cachedPathLeaderPos;
+  int consecutiveBlockedSteps = 0;
+}
+
+class _PendingScenarioTransitionMapRequest {
+  const _PendingScenarioTransitionMapRequest({
+    required this.mapId,
+    required this.warpId,
+  });
+
+  final String mapId;
+  final String warpId;
+}
+
+class _PendingScenarioNpcWarpEntry {
+  const _PendingScenarioNpcWarpEntry({
+    required this.entityId,
+    required this.warpId,
+    required this.warpPos,
+    required this.approachPos,
+  });
+
+  final String entityId;
+  final String warpId;
+  final GridPos warpPos;
+  final GridPos approachPos;
+}
+
+class _FollowPathPlan {
+  const _FollowPathPlan({
+    required this.destination,
+    required this.path,
+  });
+
+  final GridPos destination;
+  final List<GridPos> path;
 }
 
 enum _WarpTransitionStyle {

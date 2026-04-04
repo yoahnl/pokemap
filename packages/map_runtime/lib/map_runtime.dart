@@ -48,7 +48,11 @@ export 'src/application/scenario_runtime/scenario_runtime_models.dart'
         ScenarioRuntimeExecutionContext,
         ScenarioRuntimeOpenDialogue,
         ScenarioRuntimeRunScript,
-        ScenarioRuntimeShowMessage;
+        ScenarioRuntimeShowMessage,
+        ScenarioRuntimeMoveCharacter,
+        ScenarioRuntimeFollowCharacter,
+        ScenarioRuntimeFaceCharacter,
+        ScenarioRuntimeTransitionMap;
 export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
     show
         ScenarioRuntimeExecutor,
@@ -59,6 +63,10 @@ export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
         kScenarioActionRunScript,
         kScenarioActionOpenDialogue,
         kScenarioActionShowMessage,
+        kScenarioActionMoveCharacter,
+        kScenarioActionFollowCharacter,
+        kScenarioActionFaceCharacter,
+        kScenarioActionTransitionMap,
         kScenarioActionSetFlag,
         kScenarioActionClearFlag,
         kScenarioActionEmitOutcome,

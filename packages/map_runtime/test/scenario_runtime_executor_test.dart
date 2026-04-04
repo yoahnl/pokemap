@@ -485,5 +485,413 @@ void main() {
           allowedResult.status, ScenarioRuntimeExecutionStatus.executedEffect);
       expect(dialogueOpened, isTrue);
     });
+
+    test(
+        'dispatchContinuation resumes after dialogue and executes moveCharacter',
+        () {
+      final scenario = ScenarioAsset(
+        id: 's_cutscene_like',
+        name: 'Cutscene-like chain',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'source_entity',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_entity',
+            type: ScenarioNodeType.reference,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+            binding: ScenarioNodeBinding(
+              mapId: 'vova_center',
+              entityId: 'emma',
+            ),
+          ),
+          ScenarioNode(
+            id: 'dialogue_intro',
+            type: ScenarioNodeType.dialogue,
+            binding: ScenarioNodeBinding(dialogueId: 'intro'),
+          ),
+          ScenarioNode(
+            id: 'move_emma',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionMoveCharacter,
+              params: <String, String>{
+                'targetKind': 'spawn',
+                'targetId': 'spawn',
+                'waitForCompletion': 'true',
+              },
+            ),
+            binding: ScenarioNodeBinding(entityId: 'emma'),
+          ),
+          ScenarioNode(id: 'end', type: ScenarioNodeType.end),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_entity',
+            toNodeId: 'dialogue_intro',
+          ),
+          ScenarioEdge(
+            id: 'e2',
+            fromNodeId: 'dialogue_intro',
+            toNodeId: 'move_emma',
+          ),
+          ScenarioEdge(
+            id: 'e3',
+            fromNodeId: 'move_emma',
+            toNodeId: 'end',
+          ),
+        ],
+      );
+
+      String? movedEntity;
+      String? movedKind;
+      String? movedTarget;
+      final result = executor.dispatchContinuation(
+        scenarios: <ScenarioAsset>[scenario],
+        scenarioId: 's_cutscene_like',
+        sourceNodeId: 'source_entity',
+        resumeAfterNodeId: 'dialogue_intro',
+        context: ScenarioRuntimeExecutionContext(
+          gameState: const GameState(saveId: 'save'),
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) => true,
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+          moveCharacter: ({
+            required entityId,
+            required targetKind,
+            required targetId,
+            required waitForCompletion,
+          }) {
+            movedEntity = entityId;
+            movedKind = targetKind;
+            movedTarget = targetId;
+            return true;
+          },
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.reachedEnd);
+      expect(movedEntity, 'emma');
+      expect(movedKind, 'spawn');
+      expect(movedTarget, 'spawn');
+    });
+
+    test('moveCharacter blocks when target data is missing', () {
+      final scenario = ScenarioAsset(
+        id: 's_move_invalid',
+        name: 'Move invalid',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'source_entity',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_entity',
+            type: ScenarioNodeType.reference,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+            binding: ScenarioNodeBinding(
+              mapId: 'vova_center',
+              entityId: 'emma',
+            ),
+          ),
+          ScenarioNode(
+            id: 'move_emma',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionMoveCharacter,
+              params: <String, String>{
+                'targetKind': 'spawn',
+                'waitForCompletion': 'true',
+              },
+            ),
+            binding: ScenarioNodeBinding(entityId: 'emma'),
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_entity',
+            toNodeId: 'move_emma',
+          ),
+        ],
+      );
+
+      final result = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'vova_center',
+          entityId: 'emma',
+        ),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: const GameState(saveId: 'save'),
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) => true,
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.blocked);
+      expect(result.message, contains('moveCharacter invalide'));
+    });
+
+    test('followCharacter delegates to context and continues to end', () {
+      final scenario = ScenarioAsset(
+        id: 's_follow',
+        name: 'Follow',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'source_entity',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_entity',
+            type: ScenarioNodeType.reference,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+            binding: ScenarioNodeBinding(
+              mapId: 'vova_center',
+              entityId: 'emma',
+            ),
+          ),
+          ScenarioNode(
+            id: 'follow',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionFollowCharacter,
+              params: <String, String>{'leaderId': 'emma'},
+            ),
+          ),
+          ScenarioNode(id: 'end', type: ScenarioNodeType.end),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_entity',
+            toNodeId: 'follow',
+          ),
+          ScenarioEdge(
+            id: 'e2',
+            fromNodeId: 'follow',
+            toNodeId: 'end',
+          ),
+        ],
+      );
+
+      String? followedLeader;
+      final result = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'vova_center',
+          entityId: 'emma',
+        ),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: const GameState(saveId: 'save'),
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) => true,
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+          moveCharacter: ({
+            required entityId,
+            required targetKind,
+            required targetId,
+            required waitForCompletion,
+          }) =>
+              true,
+          followCharacter: ({
+            required leaderEntityId,
+          }) {
+            followedLeader = leaderEntityId;
+            return true;
+          },
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.reachedEnd);
+      expect(followedLeader, 'emma');
+    });
+
+    test('followCharacter blocks when leaderId is missing', () {
+      final scenario = ScenarioAsset(
+        id: 's_follow_invalid',
+        name: 'Follow invalid',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'source_entity',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_entity',
+            type: ScenarioNodeType.reference,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+            binding: ScenarioNodeBinding(
+              mapId: 'vova_center',
+              entityId: 'emma',
+            ),
+          ),
+          ScenarioNode(
+            id: 'follow',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionFollowCharacter,
+              params: <String, String>{},
+            ),
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_entity',
+            toNodeId: 'follow',
+          ),
+        ],
+      );
+
+      final result = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'vova_center',
+          entityId: 'emma',
+        ),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: const GameState(saveId: 'save'),
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) => true,
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.blocked);
+      expect(result.message, contains('followCharacter invalide'));
+    });
+
+    test('transitionMap delegates to context and continues to end', () {
+      final scenario = ScenarioAsset(
+        id: 's_transition',
+        name: 'Transition',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'source_entity',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_entity',
+            type: ScenarioNodeType.reference,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+            binding: ScenarioNodeBinding(
+              mapId: 'vova_center',
+              entityId: 'emma',
+            ),
+          ),
+          ScenarioNode(
+            id: 'transition',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionTransitionMap,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'house_interior',
+              warpId: 'entry_warp',
+            ),
+          ),
+          ScenarioNode(id: 'end', type: ScenarioNodeType.end),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_entity',
+            toNodeId: 'transition',
+          ),
+          ScenarioEdge(
+            id: 'e2',
+            fromNodeId: 'transition',
+            toNodeId: 'end',
+          ),
+        ],
+      );
+
+      String? transitionedMapId;
+      String? transitionedWarpId;
+      final result = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'vova_center',
+          entityId: 'emma',
+        ),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: const GameState(saveId: 'save'),
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) => true,
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+          transitionMap: ({
+            required mapId,
+            required warpId,
+          }) {
+            transitionedMapId = mapId;
+            transitionedWarpId = warpId;
+            return true;
+          },
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.reachedEnd);
+      expect(transitionedMapId, 'house_interior');
+      expect(transitionedWarpId, 'entry_warp');
+    });
+
+    test('transitionMap blocks when mapId or warpId is missing', () {
+      final scenario = ScenarioAsset(
+        id: 's_transition_invalid',
+        name: 'Transition invalid',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'source_entity',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_entity',
+            type: ScenarioNodeType.reference,
+            payload:
+                ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+            binding: ScenarioNodeBinding(
+              mapId: 'vova_center',
+              entityId: 'emma',
+            ),
+          ),
+          ScenarioNode(
+            id: 'transition',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionTransitionMap,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'house_interior',
+            ),
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_entity',
+            toNodeId: 'transition',
+          ),
+        ],
+      );
+
+      final result = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'vova_center',
+          entityId: 'emma',
+        ),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: const GameState(saveId: 'save'),
+          onGameStateUpdated: (_) {},
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) => true,
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.blocked);
+      expect(result.message, contains('transitionMap invalide'));
+    });
   });
 }

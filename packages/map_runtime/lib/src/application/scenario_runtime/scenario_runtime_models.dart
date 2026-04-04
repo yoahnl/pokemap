@@ -170,6 +170,41 @@ typedef ScenarioRuntimeRunScript = bool Function(
 /// Callback pour afficher un message runtime simple.
 typedef ScenarioRuntimeShowMessage = void Function(String message);
 
+/// Callback pour démarrer un déplacement de personnage depuis une action
+/// scénario (bridge Cutscene Studio -> runtime).
+typedef ScenarioRuntimeMoveCharacter = bool Function({
+  required String entityId,
+  required String targetKind,
+  required String targetId,
+  required bool waitForCompletion,
+});
+
+/// Callback pour l'action scénario `followCharacter`.
+///
+/// Le leader est généralement un PNJ. L'implémentation runtime décide comment
+/// rapprocher le joueur du leader (pas à pas, snap, etc.) selon les contraintes
+/// actuelles du moteur.
+typedef ScenarioRuntimeFollowCharacter = bool Function({
+  required String leaderEntityId,
+});
+
+/// Callback pour l'action scénario `faceCharacter`.
+///
+/// Oriente une entité vers une direction cardinale (`north/south/east/west`).
+typedef ScenarioRuntimeFaceCharacter = bool Function({
+  required String entityId,
+  required String direction,
+});
+
+/// Callback pour l'action scénario `transitionMap`.
+///
+/// Déclenche une transition de map pour le joueur vers une destination
+/// explicite (`mapId` + `warpId` cible dans cette map).
+typedef ScenarioRuntimeTransitionMap = bool Function({
+  required String mapId,
+  required String warpId,
+});
+
 /// Contexte mutable d'exécution du bridge.
 ///
 /// Le bridge reste pur sur l'analyse du graphe, mais délègue les effets
@@ -181,6 +216,10 @@ class ScenarioRuntimeExecutionContext {
     required this.openDialogue,
     required this.runScript,
     required this.showMessage,
+    this.moveCharacter = _defaultMoveCharacter,
+    this.followCharacter = _defaultFollowCharacter,
+    this.faceCharacter = _defaultFaceCharacter,
+    this.transitionMap = _defaultTransitionMap,
   });
 
   GameState gameState;
@@ -188,4 +227,37 @@ class ScenarioRuntimeExecutionContext {
   final ScenarioRuntimeOpenDialogue openDialogue;
   final ScenarioRuntimeRunScript runScript;
   final ScenarioRuntimeShowMessage showMessage;
+  final ScenarioRuntimeMoveCharacter moveCharacter;
+  final ScenarioRuntimeFollowCharacter followCharacter;
+  final ScenarioRuntimeFaceCharacter faceCharacter;
+  final ScenarioRuntimeTransitionMap transitionMap;
+
+  static bool _defaultMoveCharacter({
+    required String entityId,
+    required String targetKind,
+    required String targetId,
+    required bool waitForCompletion,
+  }) {
+    return false;
+  }
+
+  static bool _defaultFollowCharacter({
+    required String leaderEntityId,
+  }) {
+    return false;
+  }
+
+  static bool _defaultFaceCharacter({
+    required String entityId,
+    required String direction,
+  }) {
+    return false;
+  }
+
+  static bool _defaultTransitionMap({
+    required String mapId,
+    required String warpId,
+  }) {
+    return false;
+  }
 }

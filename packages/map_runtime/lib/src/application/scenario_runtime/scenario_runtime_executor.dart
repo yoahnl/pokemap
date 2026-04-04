@@ -18,6 +18,10 @@ const String kScenarioSourceOutcome = 'sourceOutcome';
 const String kScenarioActionRunScript = 'runScript';
 const String kScenarioActionOpenDialogue = 'openDialogue';
 const String kScenarioActionShowMessage = 'showMessage';
+const String kScenarioActionMoveCharacter = 'moveCharacter';
+const String kScenarioActionFollowCharacter = 'followCharacter';
+const String kScenarioActionFaceCharacter = 'faceCharacter';
+const String kScenarioActionTransitionMap = 'transitionMap';
 const String kScenarioActionSetFlag = 'setFlag';
 const String kScenarioActionClearFlag = 'clearFlag';
 const String kScenarioActionEmitOutcome = 'emitOutcome';
@@ -96,6 +100,97 @@ class ScenarioRuntimeExecutor {
       sourceEvent: sourceEvent,
       context: context,
       depth: 0,
+    );
+  }
+
+  /// Reprend l'exécution d'un flow scénario après un node déjà exécuté.
+  ///
+  /// Cas d'usage:
+  /// - un node dialogue a été ouvert depuis le bridge scénario;
+  /// - une fois le dialogue fermé, on veut continuer vers le node suivant.
+  ///
+  /// Le contrat est volontairement strict pour éviter les reprises ambiguës:
+  /// - scénario + source + node courant doivent exister;
+  /// - la reprise part du `next` du node `resumeAfterNodeId`.
+  ScenarioRuntimeExecutionResult dispatchContinuation({
+    required List<ScenarioAsset> scenarios,
+    required String scenarioId,
+    required String sourceNodeId,
+    required String resumeAfterNodeId,
+    required ScenarioRuntimeExecutionContext context,
+  }) {
+    final normalizedScenarioId = scenarioId.trim();
+    final normalizedSourceNodeId = sourceNodeId.trim();
+    final normalizedResumeNodeId = resumeAfterNodeId.trim();
+    if (normalizedScenarioId.isEmpty ||
+        normalizedSourceNodeId.isEmpty ||
+        normalizedResumeNodeId.isEmpty) {
+      return const ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.blocked,
+        effect: ScenarioRuntimeEffect.none(),
+        message: 'Continuation invalide: identifiants manquants.',
+      );
+    }
+
+    ScenarioAsset? scenario;
+    for (final candidate in scenarios) {
+      if (candidate.id == normalizedScenarioId) {
+        scenario = candidate;
+        break;
+      }
+    }
+    if (scenario == null) {
+      return ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.blocked,
+        effect: const ScenarioRuntimeEffect.none(),
+        scenarioId: normalizedScenarioId,
+        sourceNodeId: normalizedSourceNodeId,
+        stopNodeId: normalizedResumeNodeId,
+        message: 'Continuation impossible: scénario introuvable.',
+      );
+    }
+
+    ScenarioNode? sourceNode;
+    for (final node in scenario.nodes) {
+      if (node.id == normalizedSourceNodeId) {
+        sourceNode = node;
+        break;
+      }
+    }
+    if (sourceNode == null) {
+      return ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.blocked,
+        effect: const ScenarioRuntimeEffect.none(),
+        scenarioId: normalizedScenarioId,
+        sourceNodeId: normalizedSourceNodeId,
+        stopNodeId: normalizedResumeNodeId,
+        message: 'Continuation impossible: source node introuvable.',
+      );
+    }
+
+    final nextNodeId = _pickLinearNextNodeId(
+      nodeId: normalizedResumeNodeId,
+      edges: scenario.edges,
+    );
+    if (nextNodeId == null || nextNodeId.isEmpty) {
+      return ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.reachedEnd,
+        effect: const ScenarioRuntimeEffect.none(),
+        scenarioId: normalizedScenarioId,
+        sourceNodeId: normalizedSourceNodeId,
+        stopNodeId: normalizedResumeNodeId,
+        message: 'Continuation: aucun node suivant, flow terminé.',
+      );
+    }
+
+    return _executeScenarioFromSource(
+      scenarios: scenarios,
+      scenario: scenario,
+      sourceNode: sourceNode,
+      sourceEvent: ScenarioRuntimeSourceEvent.mapEnter(mapId: ''),
+      context: context,
+      depth: 0,
+      startNodeId: nextNodeId,
     );
   }
 
@@ -182,6 +277,7 @@ class ScenarioRuntimeExecutor {
     required ScenarioRuntimeSourceEvent sourceEvent,
     required ScenarioRuntimeExecutionContext context,
     required int depth,
+    String? startNodeId,
   }) {
     final nodesById = <String, ScenarioNode>{
       for (final node in scenario.nodes) node.id: node,
@@ -189,10 +285,11 @@ class ScenarioRuntimeExecutor {
     final sourceId = sourceNode.id.trim();
 
     // Étape 1: passer de la source vers le premier node "exécutable".
-    var currentNodeId = _pickLinearNextNodeId(
-      nodeId: sourceId,
-      edges: scenario.edges,
-    );
+    var currentNodeId = startNodeId ??
+        _pickLinearNextNodeId(
+          nodeId: sourceId,
+          edges: scenario.edges,
+        );
     if (currentNodeId == null || currentNodeId.isEmpty) {
       return ScenarioRuntimeExecutionResult(
         status: ScenarioRuntimeExecutionStatus.blocked,
@@ -582,6 +679,192 @@ class ScenarioRuntimeExecutor {
                 );
               }
               currentNodeId = nextAfterOutcome;
+
+            case kScenarioActionMoveCharacter:
+              final entityId = node.binding.entityId?.trim() ?? '';
+              final targetKind =
+                  node.payload.params['targetKind']?.trim() ?? '';
+              final targetId = node.payload.params['targetId']?.trim() ?? '';
+              final waitForCompletion =
+                  (node.payload.params['waitForCompletion'] ?? 'true')
+                          .toLowerCase() ==
+                      'true';
+              if (entityId.isEmpty || targetKind.isEmpty || targetId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action moveCharacter invalide dans "${node.id}" (entity/target manquant).',
+                );
+              }
+              final started = context.moveCharacter(
+                entityId: entityId,
+                targetKind: targetKind,
+                targetId: targetId,
+                waitForCompletion: waitForCompletion,
+              );
+              if (!started) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action moveCharacter impossible pour "$entityId" vers "$targetKind:$targetId".',
+                );
+              }
+              final nextAfterMove = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterMove == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'Déplacement lancé. Fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterMove;
+
+            case kScenarioActionFollowCharacter:
+              final leaderId = node.payload.params['leaderId']?.trim() ?? '';
+              if (leaderId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action followCharacter invalide dans "${node.id}" (leaderId manquant).',
+                );
+              }
+              final followed = context.followCharacter(
+                leaderEntityId: leaderId,
+              );
+              if (!followed) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action followCharacter impossible pour leader "$leaderId".',
+                );
+              }
+              final nextAfterFollow = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterFollow == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'FollowCharacter exécuté. Fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterFollow;
+
+            case kScenarioActionFaceCharacter:
+              final entityId = node.binding.entityId?.trim() ?? '';
+              final direction = node.payload.params['direction']?.trim() ?? '';
+              if (entityId.isEmpty || direction.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action faceCharacter invalide dans "${node.id}" (entityId/direction manquant).',
+                );
+              }
+              final faced = context.faceCharacter(
+                entityId: entityId,
+                direction: direction,
+              );
+              if (!faced) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action faceCharacter impossible pour "$entityId" vers "$direction".',
+                );
+              }
+              final nextAfterFace = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterFace == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'FaceCharacter exécuté. Fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterFace;
+
+            case kScenarioActionTransitionMap:
+              final mapId = node.binding.mapId?.trim() ?? '';
+              final warpId = node.binding.warpId?.trim() ?? '';
+              if (mapId.isEmpty || warpId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action transitionMap invalide dans "${node.id}" (mapId/warpId manquant).',
+                );
+              }
+              final transitioned = context.transitionMap(
+                mapId: mapId,
+                warpId: warpId,
+              );
+              if (!transitioned) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action transitionMap impossible vers "$mapId" (warp "$warpId").',
+                );
+              }
+              final nextAfterTransition = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterTransition == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'TransitionMap exécuté. Fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterTransition;
 
             default:
               return ScenarioRuntimeExecutionResult(

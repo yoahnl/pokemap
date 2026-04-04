@@ -19,9 +19,38 @@ const String kCutsceneStudioSchemaMetadataKey = 'authoring.cutsceneSchema';
 /// dans l'UI; elles reflètent le contrat runtime existant.
 const String kCutsceneStudioActionRunScript = 'runScript';
 const String kCutsceneStudioActionOpenDialogue = 'openDialogue';
+const String kCutsceneStudioActionShowMessage = 'showMessage';
 const String kCutsceneStudioActionSetFlag = 'setFlag';
 const String kCutsceneStudioActionClearFlag = 'clearFlag';
 const String kCutsceneStudioActionEmitOutcome = 'emitOutcome';
+const String kCutsceneStudioActionMoveCharacter = 'moveCharacter';
+const String kCutsceneStudioActionFollowCharacter = 'followCharacter';
+const String kCutsceneStudioActionFaceCharacter = 'faceCharacter';
+const String kCutsceneStudioActionTransitionMap = 'transitionMap';
+const String kCutsceneStudioActionStarterChoice = 'starterChoice';
+const String kCutsceneStudioActionWaitMs = 'waitMs';
+
+/// Portée "produit" d'un résultat de scène.
+///
+/// IMPORTANT:
+/// Ces valeurs servent uniquement à l'authoring no-code.
+/// Le runtime continue de consommer l'outcomeId final généré.
+const String kCutsceneStudioResultScopeLocal = 'local';
+const String kCutsceneStudioResultScopeProgression = 'progression';
+const String kCutsceneStudioResultScopeGlobal = 'global';
+const List<String> kCutsceneStudioResultScopes = <String>[
+  kCutsceneStudioResultScopeLocal,
+  kCutsceneStudioResultScopeProgression,
+  kCutsceneStudioResultScopeGlobal,
+];
+
+/// Cibles de destination pour un bloc de déplacement.
+///
+/// Le but est d'offrir un vocabulaire métier (sortie, personnage, spawn...)
+/// plutôt que de forcer la saisie manuelle de coordonnées.
+const String kCutsceneStudioMoveTargetWarp = 'warp';
+const String kCutsceneStudioMoveTargetSpawn = 'spawn';
+const String kCutsceneStudioMoveTargetEntity = 'entity';
 
 /// Source hooks monde supportés par le studio v1.
 const String kCutsceneStudioSourceMapEnter = 'sourceMapEnter';
@@ -103,8 +132,20 @@ class CutsceneStudioSourceConfig {
 /// Cette contrainte permet de livrer une UX guidée stable sans mentir sur
 /// le support runtime actuellement branché.
 enum CutsceneStudioBlockKind {
+  // Blocs métier no-code (prioritaires dans l’UX principale).
   dialogue,
+  narration,
+  moveCharacter,
+  followCharacter,
+  faceCharacter,
+  transitionMap,
+  starterChoice,
+  wait,
+  sceneResult,
+  // Bloc "script" conservé pour compatibilité/transition (moins no-code).
   runScript,
+
+  // Compatibilité legacy (non exposés dans la palette principale).
   setFlag,
   clearFlag,
   emitOutcome,
@@ -112,11 +153,84 @@ enum CutsceneStudioBlockKind {
 
 String cutsceneStudioBlockKindLabel(CutsceneStudioBlockKind kind) {
   return switch (kind) {
-    CutsceneStudioBlockKind.dialogue => 'Dialogue',
-    CutsceneStudioBlockKind.runScript => 'Exécuter un script',
+    CutsceneStudioBlockKind.dialogue => 'Faire parler un personnage',
+    CutsceneStudioBlockKind.narration => 'Afficher une ligne de narration',
+    CutsceneStudioBlockKind.moveCharacter => 'Déplacer un personnage',
+    CutsceneStudioBlockKind.followCharacter => 'Le joueur suit un personnage',
+    CutsceneStudioBlockKind.faceCharacter => 'Tourner un personnage',
+    CutsceneStudioBlockKind.transitionMap => 'Entrer dans un bâtiment / map',
+    CutsceneStudioBlockKind.starterChoice => 'Choix du starter',
+    CutsceneStudioBlockKind.wait => 'Attendre',
+    CutsceneStudioBlockKind.sceneResult => 'Ajouter un résultat de scène',
+    CutsceneStudioBlockKind.runScript => 'Lancer une séquence scriptée',
     CutsceneStudioBlockKind.setFlag => 'Activer un flag',
     CutsceneStudioBlockKind.clearFlag => 'Désactiver un flag',
-    CutsceneStudioBlockKind.emitOutcome => 'Émettre un outcome',
+    CutsceneStudioBlockKind.emitOutcome => 'Émettre un outcome (legacy)',
+  };
+}
+
+enum CutsceneStudioBlockCategory {
+  dialogue,
+  movement,
+  transition,
+  gameplay,
+  logic,
+  technical,
+}
+
+CutsceneStudioBlockCategory cutsceneStudioBlockCategory(
+  CutsceneStudioBlockKind kind,
+) {
+  return switch (kind) {
+    CutsceneStudioBlockKind.dialogue ||
+    CutsceneStudioBlockKind.narration =>
+      CutsceneStudioBlockCategory.dialogue,
+    CutsceneStudioBlockKind.moveCharacter ||
+    CutsceneStudioBlockKind.followCharacter ||
+    CutsceneStudioBlockKind.faceCharacter =>
+      CutsceneStudioBlockCategory.movement,
+    CutsceneStudioBlockKind.transitionMap =>
+      CutsceneStudioBlockCategory.transition,
+    CutsceneStudioBlockKind.starterChoice ||
+    CutsceneStudioBlockKind.sceneResult =>
+      CutsceneStudioBlockCategory.gameplay,
+    CutsceneStudioBlockKind.wait => CutsceneStudioBlockCategory.logic,
+    CutsceneStudioBlockKind.runScript ||
+    CutsceneStudioBlockKind.setFlag ||
+    CutsceneStudioBlockKind.clearFlag ||
+    CutsceneStudioBlockKind.emitOutcome =>
+      CutsceneStudioBlockCategory.technical,
+  };
+}
+
+String cutsceneStudioBlockCategoryLabel(CutsceneStudioBlockCategory category) {
+  return switch (category) {
+    CutsceneStudioBlockCategory.dialogue => 'Dialogue',
+    CutsceneStudioBlockCategory.movement => 'Déplacement',
+    CutsceneStudioBlockCategory.transition => 'Transition',
+    CutsceneStudioBlockCategory.gameplay => 'Gameplay',
+    CutsceneStudioBlockCategory.logic => 'Logique',
+    CutsceneStudioBlockCategory.technical => 'Technique',
+  };
+}
+
+bool cutsceneStudioBlockRuntimeSupported(CutsceneStudioBlock block) {
+  return switch (block.kind) {
+    CutsceneStudioBlockKind.dialogue ||
+    CutsceneStudioBlockKind.narration ||
+    CutsceneStudioBlockKind.sceneResult ||
+    CutsceneStudioBlockKind.runScript ||
+    CutsceneStudioBlockKind.setFlag ||
+    CutsceneStudioBlockKind.clearFlag ||
+    CutsceneStudioBlockKind.emitOutcome =>
+      true,
+    CutsceneStudioBlockKind.moveCharacter ||
+    CutsceneStudioBlockKind.followCharacter ||
+    CutsceneStudioBlockKind.faceCharacter ||
+    CutsceneStudioBlockKind.transitionMap ||
+    CutsceneStudioBlockKind.starterChoice ||
+    CutsceneStudioBlockKind.wait =>
+      false,
   };
 }
 
@@ -125,57 +239,164 @@ class CutsceneStudioBlock {
   const CutsceneStudioBlock({
     required this.id,
     required this.kind,
+    this.actorId,
     this.dialogueId,
+    this.messageText,
     this.scriptId,
     this.flagName,
     this.outcomeId,
+    this.resultLabel,
+    this.resultScope,
+    this.destinationTargetKind,
+    this.destinationTargetId,
+    this.transitionMapId,
+    this.transitionWarpId,
+    this.facingDirection,
+    this.durationMs,
+    this.waitForCompletion,
+    this.choiceOptions = const <String>[],
   });
 
   final String id;
   final CutsceneStudioBlockKind kind;
+  final String? actorId;
   final String? dialogueId;
+  final String? messageText;
   final String? scriptId;
   final String? flagName;
   final String? outcomeId;
+  final String? resultLabel;
+  final String? resultScope;
+  final String? destinationTargetKind;
+  final String? destinationTargetId;
+  final String? transitionMapId;
+  final String? transitionWarpId;
+  final String? facingDirection;
+  final int? durationMs;
+  final bool? waitForCompletion;
+  final List<String> choiceOptions;
 
   CutsceneStudioBlock copyWith({
     String? id,
     CutsceneStudioBlockKind? kind,
+    Object? actorId = _unset,
     Object? dialogueId = _unset,
+    Object? messageText = _unset,
     Object? scriptId = _unset,
     Object? flagName = _unset,
     Object? outcomeId = _unset,
+    Object? resultLabel = _unset,
+    Object? resultScope = _unset,
+    Object? destinationTargetKind = _unset,
+    Object? destinationTargetId = _unset,
+    Object? transitionMapId = _unset,
+    Object? transitionWarpId = _unset,
+    Object? facingDirection = _unset,
+    Object? durationMs = _unset,
+    Object? waitForCompletion = _unset,
+    List<String>? choiceOptions,
   }) {
     return CutsceneStudioBlock(
       id: id ?? this.id,
       kind: kind ?? this.kind,
+      actorId: identical(actorId, _unset) ? this.actorId : actorId as String?,
       dialogueId: identical(dialogueId, _unset)
           ? this.dialogueId
           : dialogueId as String?,
+      messageText: identical(messageText, _unset)
+          ? this.messageText
+          : messageText as String?,
       scriptId:
           identical(scriptId, _unset) ? this.scriptId : scriptId as String?,
       flagName:
           identical(flagName, _unset) ? this.flagName : flagName as String?,
       outcomeId:
           identical(outcomeId, _unset) ? this.outcomeId : outcomeId as String?,
+      resultLabel: identical(resultLabel, _unset)
+          ? this.resultLabel
+          : resultLabel as String?,
+      resultScope: identical(resultScope, _unset)
+          ? this.resultScope
+          : resultScope as String?,
+      destinationTargetKind: identical(destinationTargetKind, _unset)
+          ? this.destinationTargetKind
+          : destinationTargetKind as String?,
+      destinationTargetId: identical(destinationTargetId, _unset)
+          ? this.destinationTargetId
+          : destinationTargetId as String?,
+      transitionMapId: identical(transitionMapId, _unset)
+          ? this.transitionMapId
+          : transitionMapId as String?,
+      transitionWarpId: identical(transitionWarpId, _unset)
+          ? this.transitionWarpId
+          : transitionWarpId as String?,
+      facingDirection: identical(facingDirection, _unset)
+          ? this.facingDirection
+          : facingDirection as String?,
+      durationMs:
+          identical(durationMs, _unset) ? this.durationMs : durationMs as int?,
+      waitForCompletion: identical(waitForCompletion, _unset)
+          ? this.waitForCompletion
+          : waitForCompletion as bool?,
+      choiceOptions: choiceOptions ?? this.choiceOptions,
     );
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is CutsceneStudioBlock &&
-        other.id == id &&
-        other.kind == kind &&
-        other.dialogueId == dialogueId &&
-        other.scriptId == scriptId &&
-        other.flagName == flagName &&
-        other.outcomeId == outcomeId;
+    if (other is! CutsceneStudioBlock) {
+      return false;
+    }
+    if (other.id != id ||
+        other.kind != kind ||
+        other.actorId != actorId ||
+        other.dialogueId != dialogueId ||
+        other.messageText != messageText ||
+        other.scriptId != scriptId ||
+        other.flagName != flagName ||
+        other.outcomeId != outcomeId ||
+        other.resultLabel != resultLabel ||
+        other.resultScope != resultScope ||
+        other.destinationTargetKind != destinationTargetKind ||
+        other.destinationTargetId != destinationTargetId ||
+        other.transitionMapId != transitionMapId ||
+        other.transitionWarpId != transitionWarpId ||
+        other.facingDirection != facingDirection ||
+        other.durationMs != durationMs ||
+        other.waitForCompletion != waitForCompletion ||
+        other.choiceOptions.length != choiceOptions.length) {
+      return false;
+    }
+    for (var i = 0; i < choiceOptions.length; i++) {
+      if (other.choiceOptions[i] != choiceOptions[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, kind, dialogueId, scriptId, flagName, outcomeId);
+  int get hashCode => Object.hash(
+        id,
+        kind,
+        actorId,
+        dialogueId,
+        messageText,
+        scriptId,
+        flagName,
+        outcomeId,
+        resultLabel,
+        resultScope,
+        destinationTargetKind,
+        destinationTargetId,
+        transitionMapId,
+        transitionWarpId,
+        facingDirection,
+        durationMs,
+        waitForCompletion,
+        Object.hashAll(choiceOptions),
+      );
 }
 
 /// Document d'authoring manipulé par le studio (surface centrale).
@@ -308,6 +529,7 @@ CutsceneStudioDocument createCutsceneStudioTemplateDocument({
         CutsceneStudioBlock(
           id: 'block_dialogue_1',
           kind: CutsceneStudioBlockKind.dialogue,
+          actorId: entityId,
           dialogueId: dialogueId,
         ),
       ],
@@ -505,8 +727,9 @@ ScenarioAsset buildScenarioFromCutsceneStudioDocument(
     edgeIndex++;
     previousNodeId = nodeId;
 
-    if (block.kind == CutsceneStudioBlockKind.emitOutcome) {
-      final outcome = block.outcomeId?.trim();
+    if (block.kind == CutsceneStudioBlockKind.emitOutcome ||
+        block.kind == CutsceneStudioBlockKind.sceneResult) {
+      final outcome = _resolveOutcomeIdForResultBlock(block);
       if (outcome != null && outcome.isNotEmpty) {
         declaredOutcomes.add(outcome);
       }
@@ -568,15 +791,142 @@ ScenarioNode _buildNodeForBlock(
 }) {
   switch (block.kind) {
     case CutsceneStudioBlockKind.dialogue:
-      // On encode en node `dialogue` pour rester lisible et cohérent avec le
-      // bridge runtime MVP qui sait ouvrir un dialogue à partir de `dialogueId`.
+      // Bloc métier "faire parler":
+      // - chemin principal: dialogue asset sélectionné;
+      // - fallback authoring: ligne inline convertie en showMessage.
+      final dialogueId = _trimOrNull(block.dialogueId);
+      if (dialogueId == null) {
+        final text = _trimOrNull(block.messageText) ?? '';
+        return ScenarioNode(
+          id: nodeId,
+          type: ScenarioNodeType.action,
+          title: cutsceneStudioBlockKindLabel(block.kind),
+          payload: ScenarioNodePayload(
+            actionKind: kCutsceneStudioActionShowMessage,
+            message: text,
+          ),
+          binding: ScenarioNodeBinding(
+            entityId: _trimOrNull(block.actorId),
+          ),
+        );
+      }
       return ScenarioNode(
         id: nodeId,
         type: ScenarioNodeType.dialogue,
         title: cutsceneStudioBlockKindLabel(block.kind),
         binding: ScenarioNodeBinding(
-          dialogueId: _trimOrNull(block.dialogueId),
+          entityId: _trimOrNull(block.actorId),
+          dialogueId: dialogueId,
         ),
+      );
+    case CutsceneStudioBlockKind.narration:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionShowMessage,
+          message: _trimOrNull(block.messageText) ?? '',
+        ),
+      );
+    case CutsceneStudioBlockKind.moveCharacter:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionMoveCharacter,
+          params: <String, String>{
+            'targetKind': _trimOrNull(block.destinationTargetKind) ?? '',
+            'targetId': _trimOrNull(block.destinationTargetId) ?? '',
+            'waitForCompletion':
+                (block.waitForCompletion ?? true) ? 'true' : 'false',
+          },
+        ),
+        binding: ScenarioNodeBinding(
+          entityId: _trimOrNull(block.actorId),
+        ),
+      );
+    case CutsceneStudioBlockKind.followCharacter:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionFollowCharacter,
+          params: <String, String>{
+            'leaderId': _trimOrNull(block.actorId) ?? '',
+          },
+        ),
+      );
+    case CutsceneStudioBlockKind.faceCharacter:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionFaceCharacter,
+          params: <String, String>{
+            'direction': _trimOrNull(block.facingDirection) ?? 'south',
+          },
+        ),
+        binding: ScenarioNodeBinding(
+          entityId: _trimOrNull(block.actorId),
+        ),
+      );
+    case CutsceneStudioBlockKind.transitionMap:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: const ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionTransitionMap,
+        ),
+        binding: ScenarioNodeBinding(
+          mapId: _trimOrNull(block.transitionMapId),
+          warpId: _trimOrNull(block.transitionWarpId),
+        ),
+      );
+    case CutsceneStudioBlockKind.starterChoice:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionStarterChoice,
+          choiceLabels: block.choiceOptions.isEmpty
+              ? const <String>['Feu', 'Eau', 'Plante']
+              : block.choiceOptions,
+        ),
+      );
+    case CutsceneStudioBlockKind.wait:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionWaitMs,
+          params: <String, String>{
+            'durationMs': (block.durationMs ?? 700).toString(),
+          },
+        ),
+      );
+    case CutsceneStudioBlockKind.sceneResult:
+      return ScenarioNode(
+        id: nodeId,
+        type: ScenarioNodeType.action,
+        title: cutsceneStudioBlockKindLabel(block.kind),
+        payload: const ScenarioNodePayload(
+          actionKind: kCutsceneStudioActionEmitOutcome,
+        ),
+        binding: ScenarioNodeBinding(
+          outcomeId: _resolveOutcomeIdForResultBlock(block),
+        ),
+        metadata: <String, String>{
+          'result.label': _trimOrNull(block.resultLabel) ?? '',
+          'result.scope':
+              _trimOrNull(block.resultScope) ?? kCutsceneStudioResultScopeLocal,
+        },
       );
     case CutsceneStudioBlockKind.runScript:
       return ScenarioNode(
@@ -623,7 +973,7 @@ ScenarioNode _buildNodeForBlock(
           actionKind: kCutsceneStudioActionEmitOutcome,
         ),
         binding: ScenarioNodeBinding(
-          outcomeId: _trimOrNull(block.outcomeId),
+          outcomeId: _resolveOutcomeIdForResultBlock(block),
         ),
       );
   }
@@ -707,6 +1057,7 @@ CutsceneStudioBlock? _parseBlockNode(
     return CutsceneStudioBlock(
       id: node.id,
       kind: CutsceneStudioBlockKind.dialogue,
+      actorId: _trimOrNull(node.binding.entityId),
       dialogueId: _trimOrNull(node.binding.dialogueId),
     );
   }
@@ -726,13 +1077,64 @@ CutsceneStudioBlock? _parseBlockNode(
         kind: CutsceneStudioBlockKind.runScript,
         scriptId: _trimOrNull(node.binding.scriptId),
       );
+    case kCutsceneStudioActionShowMessage:
+      return CutsceneStudioBlock(
+        id: node.id,
+        kind: CutsceneStudioBlockKind.narration,
+        messageText: _trimOrNull(node.payload.message),
+      );
     case kCutsceneStudioActionOpenDialogue:
       // Compatibilité: certains flux historiques utilisent `action/openDialogue`
       // au lieu d'un node `dialogue`.
       return CutsceneStudioBlock(
         id: node.id,
         kind: CutsceneStudioBlockKind.dialogue,
+        actorId: _trimOrNull(node.binding.entityId),
         dialogueId: _trimOrNull(node.binding.dialogueId),
+      );
+    case kCutsceneStudioActionMoveCharacter:
+      return CutsceneStudioBlock(
+        id: node.id,
+        kind: CutsceneStudioBlockKind.moveCharacter,
+        actorId: _trimOrNull(node.binding.entityId),
+        destinationTargetKind: _trimOrNull(node.payload.params['targetKind']),
+        destinationTargetId: _trimOrNull(node.payload.params['targetId']),
+        waitForCompletion:
+            (node.payload.params['waitForCompletion'] ?? 'true') == 'true',
+      );
+    case kCutsceneStudioActionFollowCharacter:
+      return CutsceneStudioBlock(
+        id: node.id,
+        kind: CutsceneStudioBlockKind.followCharacter,
+        actorId: _trimOrNull(node.payload.params['leaderId']),
+      );
+    case kCutsceneStudioActionFaceCharacter:
+      return CutsceneStudioBlock(
+        id: node.id,
+        kind: CutsceneStudioBlockKind.faceCharacter,
+        actorId: _trimOrNull(node.binding.entityId),
+        facingDirection: _trimOrNull(node.payload.params['direction']),
+      );
+    case kCutsceneStudioActionTransitionMap:
+      return CutsceneStudioBlock(
+        id: node.id,
+        kind: CutsceneStudioBlockKind.transitionMap,
+        transitionMapId: _trimOrNull(node.binding.mapId),
+        transitionWarpId: _trimOrNull(node.binding.warpId),
+      );
+    case kCutsceneStudioActionStarterChoice:
+      return CutsceneStudioBlock(
+        id: node.id,
+        kind: CutsceneStudioBlockKind.starterChoice,
+        choiceOptions: node.payload.choiceLabels.isEmpty
+            ? const <String>['Feu', 'Eau', 'Plante']
+            : node.payload.choiceLabels,
+      );
+    case kCutsceneStudioActionWaitMs:
+      return CutsceneStudioBlock(
+        id: node.id,
+        kind: CutsceneStudioBlockKind.wait,
+        durationMs: int.tryParse(node.payload.params['durationMs'] ?? ''),
       );
     case kCutsceneStudioActionSetFlag:
       return CutsceneStudioBlock(
@@ -747,10 +1149,15 @@ CutsceneStudioBlock? _parseBlockNode(
         flagName: _trimOrNull(node.binding.flagName),
       );
     case kCutsceneStudioActionEmitOutcome:
+      final outcomeId = _trimOrNull(node.binding.outcomeId);
       return CutsceneStudioBlock(
         id: node.id,
-        kind: CutsceneStudioBlockKind.emitOutcome,
-        outcomeId: _trimOrNull(node.binding.outcomeId),
+        kind: CutsceneStudioBlockKind.sceneResult,
+        outcomeId: outcomeId,
+        resultLabel: _trimOrNull(node.metadata['result.label']) ??
+            _labelFromOutcomeId(outcomeId),
+        resultScope: _trimOrNull(node.metadata['result.scope']) ??
+            _scopeFromOutcomeId(outcomeId),
       );
     default:
       warnings.add(
@@ -785,6 +1192,73 @@ String _normalizeNodeId(String raw, {required String fallback}) {
       .replaceAll(RegExp(r'_+'), '_')
       .replaceAll(RegExp(r'^_|_$'), '');
   return normalized.isEmpty ? fallback : normalized;
+}
+
+/// Résout l'`outcomeId` technique final pour un bloc "résultat de scène".
+///
+/// Frontière de responsabilité:
+/// - l'UI manipule `resultLabel` + `resultScope` (langage humain);
+/// - ce helper produit un identifiant technique stable utilisé au compile.
+///
+/// Cette fonction est publique pour que le workspace puisse afficher un aperçu
+/// explicite ("id généré"), tout en évitant la saisie d'id brut.
+String? resolveCutsceneStudioOutcomeId(CutsceneStudioBlock block) {
+  return _resolveOutcomeIdForResultBlock(block);
+}
+
+String? _resolveOutcomeIdForResultBlock(CutsceneStudioBlock block) {
+  final explicit = _trimOrNull(block.outcomeId);
+  if (explicit != null) {
+    return explicit;
+  }
+  final label = _trimOrNull(block.resultLabel);
+  if (label == null) {
+    return null;
+  }
+  final slug = _normalizeNodeId(label, fallback: 'scene_result');
+  final scope =
+      (_trimOrNull(block.resultScope) ?? kCutsceneStudioResultScopeLocal)
+          .toLowerCase();
+  switch (scope) {
+    case kCutsceneStudioResultScopeGlobal:
+      return 'global.$slug';
+    case kCutsceneStudioResultScopeProgression:
+      return 'progression.$slug';
+    default:
+      return 'local.$slug';
+  }
+}
+
+String _labelFromOutcomeId(String? outcomeId) {
+  final normalized = _trimOrNull(outcomeId);
+  if (normalized == null) {
+    return 'Résultat de scène';
+  }
+  final tail = normalized.split('.').last;
+  final words =
+      tail.split('_').where((part) => part.trim().isNotEmpty).toList();
+  if (words.isEmpty) {
+    return normalized;
+  }
+  return words
+      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+}
+
+String _scopeFromOutcomeId(String? outcomeId) {
+  final normalized = _trimOrNull(outcomeId);
+  if (normalized == null) {
+    return kCutsceneStudioResultScopeLocal;
+  }
+  if (normalized.startsWith('global.')) {
+    return kCutsceneStudioResultScopeGlobal;
+  }
+  if (normalized.startsWith('progression.') ||
+      normalized.startsWith('chapter_') ||
+      normalized.startsWith('badge_')) {
+    return kCutsceneStudioResultScopeProgression;
+  }
+  return kCutsceneStudioResultScopeLocal;
 }
 
 const Object _unset = Object();
