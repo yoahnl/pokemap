@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart' show LogicalKeyboardKey, KeyEventResult;
+import 'package:flutter/services.dart'
+    show KeyDownEvent, LogicalKeyboardKey;
 import 'package:map_core/map_core.dart';
 
 import '../../application/use_cases/project_scenario_use_cases.dart';
@@ -1319,6 +1320,11 @@ class _GlobalStoryStudioWorkspaceState
   ///
   /// Utilisé après l'insertion d'une step existante pour mettre à jour
   /// l'appartenance au chapitre.
+  ///
+  /// Cas **même chapitre** : on réordonne uniquement [GlobalStoryChapter.stepIds]
+  /// pour refléter l'insertion après `referenceStepId` (l'ordre global des
+  /// [StepStudioStep] a déjà été mis à jour par [_insertExistingStepAfter]).
+  /// Sans cette étape, l'UI du chapitre restait figée sur l'ancien ordre.
   void _moveStepToChapterOfStep(String referenceStepId, String stepIdToMove) {
     final globalDoc = _draftGlobalDocument;
     final stepDoc = _draftStepDocument;
@@ -1334,8 +1340,29 @@ class _GlobalStoryStudioWorkspaceState
     );
 
     if (sourceChapterIdx < 0 || currentChapterIdx < 0) return;
-    // Même chapitre: rien à faire.
-    if (sourceChapterIdx == currentChapterIdx) return;
+
+    // ── Même chapitre : réordonner stepIds (retirer puis réinsérer après la référence).
+    if (sourceChapterIdx == currentChapterIdx) {
+      final chapter = globalDoc.chapters[sourceChapterIdx];
+      final reordered = _stepIdsAfterMovingWithinChapter(
+        chapter.stepIds,
+        referenceStepId: referenceStepId,
+        stepIdToMove: stepIdToMove,
+      );
+      if (reordered == null) return;
+      final nextChapters = globalDoc.chapters
+          .asMap()
+          .entries
+          .map((e) => e.key == sourceChapterIdx
+              ? chapter.copyWith(stepIds: reordered)
+              : e.value)
+          .toList(growable: false);
+      _replaceDraftDocuments(
+        nextStepDocument: stepDoc,
+        nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
+      );
+      return;
+    }
 
     final sourceChapter = globalDoc.chapters[sourceChapterIdx];
     final currentChapter = globalDoc.chapters[currentChapterIdx];
@@ -1370,6 +1397,24 @@ class _GlobalStoryStudioWorkspaceState
       nextStepDocument: stepDoc,
       nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
     );
+  }
+
+  /// Réordonne les [stepIds] d'un chapitre après déplacement de [stepIdToMove]
+  /// juste après [referenceStepId]. Retourne `null` si les prérequis ne sont pas réunis.
+  List<String>? _stepIdsAfterMovingWithinChapter(
+    List<String> stepIds, {
+    required String referenceStepId,
+    required String stepIdToMove,
+  }) {
+    if (!stepIds.contains(referenceStepId) || !stepIds.contains(stepIdToMove)) {
+      return null;
+    }
+    final next = List<String>.from(stepIds, growable: true);
+    next.remove(stepIdToMove);
+    final refIdx = next.indexOf(referenceStepId);
+    if (refIdx < 0) return null;
+    next.insert(refIdx + 1, stepIdToMove);
+    return next;
   }
 
 
@@ -3285,85 +3330,82 @@ class _ChapterHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ============================================
-          // ZONE TOGGLE ACCORDÉON (toute la barre sauf actions)
-          // ============================================
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onExpansionTap,
-              child: Row(
-                children: [
-                  // Icône d'expansion avec animation fluide
-                  if (showExpansionIcon) ...[
-                    AnimatedRotation(
-                      // turns: 0.5 = 90° (chevron_down), 0.0 = 0° (chevron_right)
-                      turns: isExpanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      child: Icon(
-                        CupertinoIcons.chevron_right,
-                        size: 16,
-                        color: EditorChrome.primaryLabel(context),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                  // Numéro de chapitre.
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: EditorChrome.inspectorJoyPlum.withValues(
-                          alpha: 0.18),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'CH. ${chapterIndex + 1}',
-                      style: TextStyle(
-                        color: EditorChrome.inspectorJoyPlum,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                      ),
+          // ── ZONE TOGGLE (accordéon) : chevron + pastille CH uniquement.
+          // Le titre du chapitre est EXCLU pour permettre le double-clic renommage
+          // sans qu'un premier tap déclenche l'ouverture/fermeture.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onExpansionTap,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showExpansionIcon) ...[
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0.0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    child: Icon(
+                      CupertinoIcons.chevron_right,
+                      size: 16,
+                      color: EditorChrome.primaryLabel(context),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  // Nom du chapitre avec double-clic pour renommage
-                  Expanded(
-                    child: _ChapterNameDisplay(
-                      name: chapter.name,
-                      onRename: onRename,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Badge de step count.
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: EditorChrome.inspectorJoyMint.withValues(
-                          alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '$stepCount step${stepCount > 1 ? 's' : ''}',
-                      style: TextStyle(
-                        color: EditorChrome.inspectorJoyMint,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                  const SizedBox(width: 4),
                 ],
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: EditorChrome.inspectorJoyPlum.withValues(
+                        alpha: 0.18),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'CH. ${chapterIndex + 1}',
+                    style: TextStyle(
+                      color: EditorChrome.inspectorJoyPlum,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          // ── ZONE NOM : double-clic = renommage inline ; pas de toggle parent.
+          Expanded(
+            child: _ChapterNameDisplay(
+              name: chapter.name,
+              onRename: onRename,
+            ),
+          ),
+          const SizedBox(width: 8),
+          // ── ZONE TOGGLE (accordéon) : badge nombre de steps (même action que chevron).
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onExpansionTap,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: EditorChrome.inspectorJoyMint.withValues(
+                    alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$stepCount step${stepCount > 1 ? 's' : ''}',
+                style: TextStyle(
+                  color: EditorChrome.inspectorJoyMint,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
-          // ============================================
-          // ZONE ACTIONS (ne toggle pas l'accordéon)
-          // ============================================
+          // ── ZONE ACTIONS : jamais propagée au toggle (hors GestureDetector ci-dessus).
           if (canEdit) ...[
             const SizedBox(width: 8),
-            // Boutons d'action — chaque bouton a son propre GestureDetector
             Row(
               children: [
                 CupertinoButton(
@@ -3564,16 +3606,15 @@ class _ChapterSummary extends StatelessWidget {
   }
 }
 
-/// Affichage du nom du chapitre avec support de renommage inline par double-clic.
+/// Titre du chapitre : renommage inline (double-clic), sans modal.
 ///
-/// Comportement UX :
-/// - simple clic = ne fait rien (le toggle est géré par le parent)
-/// - double-clic = démarre le mode édition inline
-/// - Enter = valide le nouveau nom
-/// - Escape = annule et restaure l'ancien nom
-/// - perte de focus = annule et restaure l'ancien nom
+/// Le header parent place ce widget dans une [Expanded] dédiée : les zones
+/// « toggle accordéon » (chevron / badge steps) sont à côté, donc un simple
+/// clic sur le titre ne replie plus le chapitre pendant la préparation d’un
+/// double-clic.
 ///
-/// Style macOS : sélection automatique du texte, pas de modal.
+/// Raccourcis : Enter valide, Escape annule, perte de focus annule, chaîne
+/// vide après validation = annulation silencieuse (restauration du nom).
 class _ChapterNameDisplay extends StatefulWidget {
   const _ChapterNameDisplay({
     required this.name,
@@ -3598,13 +3639,13 @@ class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
     super.initState();
     _controller = TextEditingController(text: widget.name);
     _originalName = widget.name;
-    // Annule l'édition si le champ perd le focus
+    // Perte de focus : même sémantique qu’Escape (annuler, pas valider).
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus && _isEditing) {
         _cancelEdit();
       }
     });
-    // Gère les touches spéciales (Escape)
+    // Escape : uniquement sur key down (évite doubles annulations sur key up).
     _focusNode.onKeyEvent = _onEditKeyEvent;
   }
 
@@ -3642,10 +3683,11 @@ class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
     });
   }
 
-  /// Gère les événements clavier quand le champ a le focus.
-  /// Retourne [KeyEventResult.handled] si l'événement est consommé.
+  /// [KeyEventResult] provient de `package:flutter/widgets.dart` (réexport Cupertino).
   KeyEventResult _onEditKeyEvent(FocusNode node, KeyEvent event) {
-    // Vérifie si c'est la touche Escape (sans vérifier le type d'événement)
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       _cancelEdit();
       return KeyEventResult.handled;
@@ -3655,7 +3697,12 @@ class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
 
   void _commitEdit() {
     final newName = _controller.text.trim();
-    if (newName.isNotEmpty && newName != _originalName) {
+    // Chaîne vide : annulation silencieuse (ne pas appeler [onRename]).
+    if (newName.isEmpty) {
+      _cancelEdit();
+      return;
+    }
+    if (newName != _originalName) {
       widget.onRename(newName);
     }
     setState(() {
@@ -3673,39 +3720,36 @@ class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
   @override
   Widget build(BuildContext context) {
     if (_isEditing) {
-      // Mode édition : champ de saisie inline
-      // GestureDetector empêche le tap de se propager au toggle accordéon
-      return GestureDetector(
-        onTap: () {},
-        child: CupertinoTextField(
-          controller: _controller,
-          focusNode: _focusNode,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          decoration: BoxDecoration(
-            color: EditorChrome.largeIslandSurfaceColor(
-              context,
-              tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.05),
-            ),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.4),
-            ),
+      return CupertinoTextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.05),
           ),
-          style: TextStyle(
-            color: EditorChrome.primaryLabel(context),
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.4),
           ),
-          // Enter valide
-          onSubmitted: (_) => _commitEdit(),
         ),
+        style: TextStyle(
+          color: EditorChrome.primaryLabel(context),
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+        ),
+        onSubmitted: (_) => _commitEdit(),
       );
     }
 
-    // Mode affichage : texte normal avec double-clic
+    // Pleine largeur de la [Expanded] parente : double-clic n’importe où sur la ligne du titre.
     return GestureDetector(
+      behavior: HitTestBehavior.translucent,
       onDoubleTap: _startEditing,
       child: Container(
+        width: double.infinity,
+        alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         child: Text(
           widget.name,

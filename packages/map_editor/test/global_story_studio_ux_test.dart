@@ -9,6 +9,19 @@ import 'package:map_editor/src/features/narrative/application/narrative_workspac
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/ui/canvas/global_story_studio_workspace.dart';
 
+/// Les chapitres du Global Story Studio sont repliés par défaut : le contenu
+/// des steps (cartes compactes) n’apparaît qu’après toggle sur le chevron.
+Future<void> _expandAllGlobalStoryChapters(WidgetTester tester) async {
+  final chevrons = find.byIcon(CupertinoIcons.chevron_right);
+  expect(chevrons, findsWidgets);
+  final n = chevrons.evaluate().length;
+  for (var i = 0; i < n; i++) {
+    await tester.tap(chevrons.at(i));
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('Global Story Studio UX', () {
     // Helper to create a minimal project with a Global Story scenario
@@ -176,6 +189,8 @@ void main() {
         expect(find.text('Prologue'), findsOneWidget);
         expect(find.text('Depart'), findsOneWidget);
 
+        await _expandAllGlobalStoryChapters(tester);
+
         // Check that step names are visible (compact cards).
         expect(find.text('Introduction'), findsOneWidget);
         expect(find.text('Rencontre du professeur'), findsOneWidget);
@@ -227,6 +242,8 @@ void main() {
         );
 
         await tester.pump();
+
+        await _expandAllGlobalStoryChapters(tester);
 
         // Find and tap "Ouvrir Step" button (compact step card action).
         final ouvrirStepButtons = find.text('Ouvrir Step');
@@ -328,6 +345,8 @@ void main() {
         // Both chapters should be rendered.
         expect(find.text('Prologue'), findsOneWidget);
         expect(find.text('Depart'), findsOneWidget);
+
+        await _expandAllGlobalStoryChapters(tester);
 
         // Steps should be in their respective chapters.
         expect(find.text('Introduction'), findsOneWidget);
