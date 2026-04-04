@@ -1767,6 +1767,7 @@ class _GlobalStoryStudioWorkspaceState
                             .firstWhere((s) => s != null, orElse: () => null))
                         .whereType<StepStudioStep>()
                         .toList(growable: false),
+                    allProjectSteps: orderedSteps,
                     globalDocument: globalDocument,
                     selectedStepId: selectedStep?.id,
                     canEdit: _canEdit,
@@ -2970,6 +2971,7 @@ class _NarrativeChapterSection extends StatefulWidget {
     required this.chapterIndex,
     required this.totalChapters,
     required this.steps,
+    required this.allProjectSteps,
     required this.globalDocument,
     required this.selectedStepId,
     required this.canEdit,
@@ -2995,7 +2997,13 @@ class _NarrativeChapterSection extends StatefulWidget {
   final GlobalStoryChapter chapter;
   final int chapterIndex;
   final int totalChapters;
+  
+  /// Steps dans ce chapitre uniquement
   final List<StepStudioStep> steps;
+  
+  /// TOUTES les steps du projet (pour le picker d'insertion)
+  final List<StepStudioStep> allProjectSteps;
+  
   final GlobalStoryStudioDocument globalDocument;
   final String? selectedStepId;
   final bool canEdit;
@@ -3059,11 +3067,14 @@ class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
     _cancelPicker();
   }
 
-  /// Génère la liste des steps existantes disponibles pour insertion
-  /// (exclut la step courante).
+  /// Génère la liste des steps existantes disponibles pour insertion.
+  ///
+  /// IMPORTANT : utilise [allProjectSteps] (toutes les steps du projet)
+  /// et PAS [widget.steps] (steps du chapitre uniquement).
+  ///
+  /// Exclut la step courante pour éviter l'auto-insertion.
   List<_SimpleOption> _availableStepsFor(String currentStepId) {
-    final stepIds = widget.steps.map((s) => s.id).toList();
-    return widget.steps
+    return widget.allProjectSteps
         .where((s) => s.id != currentStepId)
         .map((s) => _SimpleOption(
               id: s.id,
@@ -3091,7 +3102,6 @@ class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
           stepCount: widget.steps.length,
           isSelected: false,
           canEdit: widget.canEdit,
-          onTap: () => widget.onTapChapter(widget.chapter.id),
           onRename: (name) => widget.onRenameChapter(widget.chapter.id, name),
           onMoveUp: widget.onMoveChapterUp,
           onMoveDown: widget.onMoveChapterDown,
@@ -3230,7 +3240,6 @@ class _ChapterHeader extends StatelessWidget {
     required this.stepCount,
     required this.isSelected,
     required this.canEdit,
-    required this.onTap,
     required this.onRename,
     required this.onMoveUp,
     required this.onMoveDown,
@@ -3247,7 +3256,6 @@ class _ChapterHeader extends StatelessWidget {
   final int stepCount;
   final bool isSelected;
   final bool canEdit;
-  final VoidCallback onTap;
   final ValueChanged<String> onRename;
   final VoidCallback onMoveUp;
   final VoidCallback onMoveDown;
@@ -3259,108 +3267,151 @@ class _ChapterHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          // Fond violet profond pour les chapitres (distinct du cyan du header global).
-          color: EditorChrome.largeIslandSurfaceColor(
-            context,
-            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.08),
-          ),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.3),
-            width: 1.5,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        // Fond violet profond pour les chapitres (distinct du cyan du header global).
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.08),
         ),
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-        child: Row(
-          children: [
-            // Icône d'expansion avec animation fluide
-            if (showExpansionIcon) ...[
-              GestureDetector(
-                onTap: onExpansionTap,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  child: AnimatedRotation(
-                    // turns: 0.5 = 90° (chevron_down), 0.0 = 0° (chevron_right)
-                    turns: isExpanded ? 0.5 : 0.0,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
-                    child: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 16,
-                      color: EditorChrome.primaryLabel(context),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // ============================================
+          // ZONE TOGGLE ACCORDÉON (toute la barre sauf actions)
+          // ============================================
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onExpansionTap,
+              child: Row(
+                children: [
+                  // Icône d'expansion avec animation fluide
+                  if (showExpansionIcon) ...[
+                    AnimatedRotation(
+                      // turns: 0.5 = 90° (chevron_down), 0.0 = 0° (chevron_right)
+                      turns: isExpanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      child: Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 16,
+                        color: EditorChrome.primaryLabel(context),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  // Numéro de chapitre.
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: EditorChrome.inspectorJoyPlum.withValues(
+                          alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'CH. ${chapterIndex + 1}',
+                      style: TextStyle(
+                        color: EditorChrome.inspectorJoyPlum,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
-            // Numéro de chapitre.
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                'CH. ${chapterIndex + 1}',
-                style: TextStyle(
-                  color: EditorChrome.inspectorJoyPlum,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Nom du chapitre.
-            Expanded(
-              child: Text(
-                chapter.name,
-                style: TextStyle(
-                  color: EditorChrome.primaryLabel(context),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 10),
+                  // Nom du chapitre avec double-clic pour renommage
+                  Expanded(
+                    child: _ChapterNameDisplay(
+                      name: chapter.name,
+                      onRename: onRename,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Badge de step count.
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: EditorChrome.inspectorJoyMint.withValues(
+                          alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$stepCount step${stepCount > 1 ? 's' : ''}',
+                      style: TextStyle(
+                        color: EditorChrome.inspectorJoyMint,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+          ),
+          // ============================================
+          // ZONE ACTIONS (ne toggle pas l'accordéon)
+          // ============================================
+          if (canEdit) ...[
             const SizedBox(width: 8),
-            // Badge de step count.
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                '$stepCount step${stepCount > 1 ? 's' : ''}',
-                style: TextStyle(
-                  color: EditorChrome.inspectorJoyMint,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+            // Boutons d'action — chaque bouton a son propre GestureDetector
+            Row(
+              children: [
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 28,
+                  onPressed: onMoveUp,
+                  child: Icon(
+                    CupertinoIcons.chevron_up,
+                    size: 18,
+                    color: EditorChrome.inspectorJoyPlum,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 4),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 28,
+                  onPressed: onMoveDown,
+                  child: Icon(
+                    CupertinoIcons.chevron_down,
+                    size: 18,
+                    color: EditorChrome.inspectorJoyPlum,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 28,
+                  onPressed: onDelete,
+                  child: Icon(
+                    CupertinoIcons.delete,
+                    size: 18,
+                    color: EditorChrome.inspectorJoyCoral,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 28,
+                  onPressed: onAddChapter,
+                  child: Icon(
+                    CupertinoIcons.add_circled,
+                    size: 20,
+                    color: EditorChrome.inspectorJoyCyan,
+                  ),
+                ),
+              ],
             ),
-            if (canEdit) ...[
-              const SizedBox(width: 6),
-              // Bouton pour ajouter un chapitre.
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                minSize: 28,
-                onPressed: onAddChapter,
-                child: Icon(
-                  CupertinoIcons.add_circled,
-                  size: 20,
-                  color: EditorChrome.inspectorJoyCyan,
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -3506,6 +3557,163 @@ class _ChapterSummary extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Affichage du nom du chapitre avec support de renommage inline par double-clic.
+///
+/// Comportement UX :
+/// - simple clic = ne fait rien (le toggle est géré par le parent)
+/// - double-clic = démarre le mode édition inline
+/// - Enter = valide le nouveau nom
+/// - Escape = annule et restaure l'ancien nom
+/// - perte de focus = annule et restaure l'ancien nom
+///
+/// Style macOS : sélection automatique du texte, pas de modal.
+class _ChapterNameDisplay extends StatefulWidget {
+  const _ChapterNameDisplay({
+    required this.name,
+    required this.onRename,
+  });
+
+  final String name;
+  final ValueChanged<String> onRename;
+
+  @override
+  State<_ChapterNameDisplay> createState() => _ChapterNameDisplayState();
+}
+
+class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
+  bool _isEditing = false;
+  late TextEditingController _controller;
+  late String _originalName;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.name);
+    _originalName = widget.name;
+    // Annule l'édition si le champ perd le focus
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus && _isEditing) {
+        _cancelEdit();
+      }
+    });
+    // Gère les touches spéciales (Escape)
+    _focusNode.onKeyEvent = _onEditKeyEvent;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChapterNameDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.name != widget.name) {
+      _controller.text = widget.name;
+      _originalName = widget.name;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    setState(() {
+      _isEditing = true;
+      _originalName = widget.name;
+      _controller.text = widget.name;
+    });
+    // Sélectionne tout le texte après le premier frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _controller.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _controller.text.length,
+        );
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  /// Gère les événements clavier quand le champ a le focus.
+  /// Retourne [KeyEventResult.handled] si l'événement est consommé.
+  KeyEventResult _onEditKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+      _cancelEdit();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _commitEdit() {
+    final newName = _controller.text.trim();
+    if (newName.isNotEmpty && newName != _originalName) {
+      widget.onRename(newName);
+    }
+    setState(() {
+      _isEditing = false;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _isEditing = false;
+      _controller.text = _originalName;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isEditing) {
+      // Mode édition : champ de saisie inline
+      // GestureDetector empêche le tap de se propager au toggle accordéon
+      return GestureDetector(
+        onTap: () {},
+        child: CupertinoTextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: EditorChrome.largeIslandSurfaceColor(
+              context,
+              tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.05),
+            ),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.4),
+            ),
+          ),
+          style: TextStyle(
+            color: EditorChrome.primaryLabel(context),
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+          // Enter valide
+          onSubmitted: (_) => _commitEdit(),
+        ),
+      );
+    }
+
+    // Mode affichage : texte normal avec double-clic
+    return GestureDetector(
+      onDoubleTap: _startEditing,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Text(
+          widget.name,
+          style: TextStyle(
+            color: EditorChrome.primaryLabel(context),
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
