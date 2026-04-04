@@ -9,6 +9,11 @@ import '../../features/narrative/application/step_studio_authoring.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
+/// Callback typé pour le renommage d'un chapitre (id + nouveau nom).
+///
+/// Utilisé car [ValueChanged] de Flutter ne prend qu'un seul argument.
+typedef _ChapterRenameCallback = void Function(String chapterId, String name);
+
 /// Workspace central "Global Story Studio v1".
 ///
 /// Rôle produit:
@@ -57,6 +62,7 @@ class _GlobalStoryStudioWorkspaceState
 
   String? _loadedGlobalScenarioId;
   String? _selectedStepId;
+  String? _selectedChapterId;
   bool _busy = false;
 
   List<String> _loadWarnings = const <String>[];
@@ -800,6 +806,141 @@ class _GlobalStoryStudioWorkspaceState
     widget.onSelectStep(selectedStep);
   }
 
+  // ===========================================================================
+  // GESTION DES CHAPITRES (nouveau concept v1.1)
+  // ===========================================================================
+  //
+  // Ces méthodes permettent de gérer les chapitres / arcs narratifs dans
+  // le Global Story Studio. Elles modifient UNIQUEMENT le document macro
+  // (GlobalStoryStudioDocument), pas le Step Studio document.
+
+  /// Sélectionne un chapitre pour mise en surbrillance dans l'UI.
+  /// C'est une sélection purement visuelle — pas de mutation provider.
+  void _selectChapter(String chapterId) {
+    setState(() {
+      _selectedChapterId = chapterId;
+    });
+  }
+
+  /// Renomme un chapitre existant.
+  void _renameChapter(String chapterId, String newName) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+
+    final nextChapters = globalDoc.chapters
+        .map((chapter) =>
+            chapter.id == chapterId ? chapter.copyWith(name: newName) : chapter)
+        .toList(growable: false);
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
+    );
+  }
+
+  /// Déplace un chapitre vers le haut ou le bas (change son ordre).
+  void _moveChapter(int delta) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    final selectedId = _selectedChapterId;
+    if (globalDoc == null || stepDoc == null || selectedId == null) return;
+
+    final ordered = globalDoc.chapters.toList(growable: true)
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final currentIndex = ordered.indexWhere((c) => c.id == selectedId);
+    if (currentIndex < 0) return;
+    final nextIndex = currentIndex + delta;
+    if (nextIndex < 0 || nextIndex >= ordered.length) return;
+
+    // Échange les orders.
+    final tempOrder = ordered[nextIndex].order;
+    ordered[nextIndex] = ordered[nextIndex].copyWith(order: ordered[currentIndex].order);
+    ordered[currentIndex] = ordered[currentIndex].copyWith(order: tempOrder);
+
+    // Re-trie et re-normalize les orders.
+    ordered.sort((a, b) => a.order.compareTo(b.order));
+    final normalized = ordered
+        .asMap()
+        .entries
+        .map((e) => e.value.copyWith(order: e.key))
+        .toList(growable: false);
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: normalized),
+    );
+  }
+
+  /// Ajoute un nouveau chapitre vide après le dernier existant.
+  void _addChapter() {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+
+    final ordered = globalDoc.chapters.toList(growable: false)
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final nextOrder = ordered.isEmpty ? 0 : ordered.last.order + 1;
+    final chapterCount = ordered.length + 1;
+
+    final newChapter = GlobalStoryChapter(
+      id: 'chapter_${chapterCount}',
+      name: 'Nouveau chapitre $chapterCount',
+      description: '',
+      stepIds: const <String>[],
+      order: nextOrder,
+    );
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(
+        chapters: <GlobalStoryChapter>[...ordered, newChapter],
+      ),
+    );
+    _selectChapter(newChapter.id);
+  }
+
+  /// Supprime un chapitre vide. On ne supprime PAS un chapitre contenant des steps.
+  void _deleteChapter(String chapterId) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+
+    final chapter =
+        globalDoc.chapters.where((c) => c.id == chapterId).cast<GlobalStoryChapter?>().firstWhere((c) => c != null, orElse: () => null);
+    if (chapter == null) return;
+    // On ne supprime que les chapitres vides ou le dernier chapitre.
+    // Les steps doivent être déplacées ailleurs avant de supprimer un chapitre non vide.
+    if (chapter.stepIds.isNotEmpty) return;
+
+    final nextChapters = globalDoc.chapters
+        .where((c) => c.id != chapterId)
+        .toList(growable: false);
+    // Re-normalize les orders.
+    final ordered = nextChapters.toList(growable: true)
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final normalized = ordered
+        .asMap()
+        .entries
+        .map((e) => e.value.copyWith(order: e.key))
+        .toList(growable: false);
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: normalized),
+    );
+    if (_selectedChapterId == chapterId) {
+      _selectedChapterId = null;
+    }
+  }
+
+  /// Met à jour le lien d'une step (raccourci pour le callback du UI compact).
+  void _updateLinkFromSelectedStepToStep(int linkIndex, String? toStepId) {
+    _updateLinkFromSelectedStep(
+      linkIndex: linkIndex,
+      toStepId: toStepId,
+    );
+  }
+
   List<_SimpleOption> _stepOptions({String? excludeStepId}) {
     final stepDoc = _draftStepDocument;
     if (stepDoc == null) {
@@ -870,31 +1011,31 @@ class _GlobalStoryStudioWorkspaceState
 
     final stepDoc = _draftStepDocument;
     final globalDoc = _draftGlobalDocument;
+    // NOTE: Le Global Story Studio est une vue de STRUCTURE (chapitres + steps).
+    // Il ne nécessite PAS de step sélectionnée pour afficher l'arbre narratif.
+    // Si aucune step n'est sélectionnée, on affiche quand même la structure.
     final selectedStep = _stepById(_selectedStepId);
 
-    return Row(
+    // Affichage principal: arbre narratif vertical avec chapitres.
+    // Cette UI est VOLONTAIREMENT très différente du Step Studio:
+    // - le Step Studio = fiche détaillée d'une step (activation, validation, etc.)
+    // - le Global Story Studio = arbre narratif (chapitres, steps, flux)
+    return Column(
       children: [
-        SizedBox(
-          width: 330,
-          child: _buildStepNavigatorCard(
-            context: context,
-            globalStories: globalStories,
-            stepDocument: stepDoc,
-            selectedStep: selectedStep,
+        if (stepDoc != null && globalDoc != null)
+          Expanded(
+            child: _buildNarrativeTree(
+              context: context,
+              globalStories: globalStories,
+              stepDocument: stepDoc,
+              globalDocument: globalDoc,
+              selectedStep: selectedStep,
+            ),
+          )
+        else
+          Expanded(
+            child: _buildNoStepSelectedState(context),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: (stepDoc == null || globalDoc == null || selectedStep == null)
-              ? _buildNoStepSelectedState(context)
-              : _buildGlobalStoryEditor(
-                  context: context,
-                  globalStories: globalStories,
-                  stepDocument: stepDoc,
-                  globalDocument: globalDoc,
-                  selectedStep: selectedStep,
-                ),
-        ),
       ],
     );
   }
@@ -1100,116 +1241,137 @@ class _GlobalStoryStudioWorkspaceState
     );
   }
 
-  Widget _buildGlobalStoryEditor({
+  // ===========================================================================
+  // ARBRE NARRATIF PRINCIPAL (nouvelle UX orientée chapitres + structure)
+  // ===========================================================================
+  //
+  // Cette méthode remplace l'ancien `_buildGlobalStoryEditor` qui ressemblait
+  // trop à une fiche de formulaire de step. L'objectif est de donner une
+  // sensation de "carte routière narrative" verticale avec:
+  // - une zone haute de résumé macro,
+  // - des chapitres clairement séparés,
+  // - des steps compactes dans chaque chapitre,
+  // - des indicateurs de flux entre les steps.
+
+  Widget _buildNarrativeTree({
     required BuildContext context,
     required List<ScenarioAsset> globalStories,
     required StepStudioDocument stepDocument,
     required GlobalStoryStudioDocument globalDocument,
-    required StepStudioStep selectedStep,
+    required StepStudioStep? selectedStep,
   }) {
-    final diagnostics = _diagnostics();
     final orderedSteps = stepDocument.steps.toList(growable: false)
       ..sort((a, b) => a.order.compareTo(b.order));
-    final outcomeOptions = _outcomeOptions();
+    final chapters = globalDocument.chapters.isEmpty
+        ? <GlobalStoryChapter>[]
+        : globalDocument.chapters.toList(growable: false)
+          ..sort((a, b) => a.order.compareTo(b.order));
+    final diagnostics = _diagnostics();
+    final globalName = globalStories.first.name.trim().isEmpty
+        ? globalStories.first.id
+        : globalStories.first.name;
+
+    // Compte les branches et convergences pour le résumé macro.
+    var branchCount = 0;
+    var convergeCount = 0;
+    for (final node in globalDocument.nodes) {
+      if (node.exitMode == GlobalStoryStepExitMode.branchExclusive ||
+          node.exitMode == GlobalStoryStepExitMode.branchConditional) {
+        branchCount++;
+      }
+      if (node.exitMode == GlobalStoryStepExitMode.converge) {
+        convergeCount++;
+      }
+    }
 
     return EditorPaneSurface(
       radius: 20,
       tint: EditorChrome.islandWarmTint,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: ListView(
+      child: Column(
         children: [
-          _buildHeader(
-            context: context,
-            globalStories: globalStories,
-            selectedStep: selectedStep,
+          // ZONE HAUTE: résumé macro du scénario global.
+          _NarrativeTreeHeader(
+            globalName: globalName,
+            chapterCount: chapters.length,
+            totalStepCount: orderedSteps.length,
+            branchCount: branchCount,
+            convergeCount: convergeCount,
+            hasUnsavedChanges: _hasUnsavedChanges,
+            canEdit: _canEdit,
+            onSave: _saveDraft,
+            onReset: _resetDraft,
           ),
-          const SizedBox(height: 12),
-          if (_usedStepLegacyFallback || _usedGlobalLegacyFallback) ...[
-            const _InlineInfoBanner(
-              accent: EditorChrome.inspectorJoyAmber,
-              text:
-                  'Des donnees historiques ont ete converties en mode compatibilite. Sauvegardez pour stabiliser le document Global Story v1.',
-            ),
-            const SizedBox(height: 10),
-          ],
-          for (final warning in diagnostics) ...[
-            _InlineInfoBanner(
-              accent: EditorChrome.inspectorJoyCoral,
-              text: warning,
-            ),
-            const SizedBox(height: 8),
-          ],
-          _GlobalStorySectionCard(
-            title: 'Plan narratif global',
-            subtitle:
-                'Le Global Story structure les transitions entre steps. Les details metier restent dans Step Studio.',
-            child: Column(
+          const SizedBox(height: 16),
+          // ZONE PRINCIPALE: arbre vertical par chapitres.
+          Expanded(
+            child: ListView(
               children: [
-                for (final entry in orderedSteps.asMap().entries) ...[
-                  _GlobalStoryStepCard(
-                    step: entry.value,
-                    node: _nodeByStepId(entry.value.id) ??
-                        GlobalStoryStepNode(stepId: entry.value.id),
-                    isSelected: entry.value.id == selectedStep.id,
-                    isEntryStep: globalDocument.entryStepId == entry.value.id,
-                    stepOptions: _stepOptions(excludeStepId: entry.value.id),
-                    outcomeOptions: outcomeOptions,
-                    canMoveUp: entry.key > 0,
-                    canMoveDown: entry.key < orderedSteps.length - 1,
-                    onTap: () => _selectStep(entry.value.id),
-                    onMarkAsEntry: () => _setEntryStep(entry.value.id),
-                    onMoveUp: () => _moveSelectedStep(-1),
-                    onMoveDown: () => _moveSelectedStep(1),
-                    onRenameStep: (name) =>
-                        _updateSelectedStepIdentity(name: name),
-                    onDescribeStep: (description) =>
-                        _updateSelectedStepIdentity(description: description),
-                    onChangeExitMode: _updateSelectedNodeExitMode,
+                if (_usedStepLegacyFallback || _usedGlobalLegacyFallback) ...[
+                  const _InlineInfoBanner(
+                    accent: EditorChrome.inspectorJoyAmber,
+                    text:
+                        'Des donnees historiques ont ete converties en mode compatibilite. Sauvegardez pour stabiliser le document Global Story v1.',
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                for (final warning in diagnostics) ...[
+                  _InlineInfoBanner(
+                    accent: EditorChrome.inspectorJoyCoral,
+                    text: warning,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                // Affichage des chapitres avec leurs steps.
+                for (final entry in chapters.asMap().entries) ...[
+                  if (entry.key > 0) const _ChapterGap(),
+                  _NarrativeChapterSection(
+                    chapter: entry.value,
+                    chapterIndex: entry.key,
+                    totalChapters: chapters.length,
+                    steps: entry.value.stepIds
+                        .map((stepId) => orderedSteps
+                            .where((s) => s.id == stepId)
+                            .cast<StepStudioStep?>()
+                            .firstWhere((s) => s != null, orElse: () => null))
+                        .whereType<StepStudioStep>()
+                        .toList(growable: false),
+                    globalDocument: globalDocument,
+                    selectedStepId: selectedStep?.id,
+                    canEdit: _canEdit,
+                    onTapChapter: (id) => _selectChapter(id),
+                    onRenameChapter: (id, name) => _renameChapter(id, name),
+                    onMoveChapterUp: () => _moveChapter(-1),
+                    onMoveChapterDown: () => _moveChapter(1),
+                    onAddChapter: _addChapter,
+                    onDeleteChapter: () => _deleteChapter(entry.value.id),
+                    onSelectStep: _selectStep,
+                    onOpenStepStudio: widget.onOpenStepStudio,
+                    onSetEntryStep: _setEntryStep,
+                    onInsertStepAfter: _addStepAfterSelection,
+                    onChangeStepExitMode: _updateSelectedNodeExitMode,
                     onAddLink: _addLinkFromSelectedStep,
-                    onUpdateLinkTarget: (index, value) =>
-                        _updateLinkFromSelectedStep(
-                      linkIndex: index,
-                      toStepId: value,
-                    ),
-                    onUpdateLinkCondition: (index, value) =>
-                        _updateLinkFromSelectedStep(
-                      linkIndex: index,
-                      conditionLabel: value,
-                    ),
-                    onUpdateLinkOutcome: (index, value) =>
-                        _updateLinkFromSelectedStep(
-                      linkIndex: index,
-                      requiredOutcomeId: value,
-                    ),
                     onRemoveLink: _removeLinkFromSelectedStep,
-                    onInsertAfter: _addStepAfterSelection,
-                    onOpenStepStudio: () =>
-                        widget.onOpenStepStudio(entry.value.id),
+                    onUpdateLinkTarget: _updateLinkFromSelectedStepToStep,
+                  ),
+                ],
+                // S'il n'y a aucun chapitre mais des steps existent,
+                // on affiche un message invitant à créer un chapitre.
+                if (chapters.isEmpty && orderedSteps.isNotEmpty) ...[
+                  _NoChaptersHint(
+                    stepCount: orderedSteps.length,
+                    onAddChapter: _addChapter,
                     enabled: _canEdit,
                   ),
-                  if (entry.key < orderedSteps.length - 1) ...[
-                    const SizedBox(height: 6),
-                    _FlowConnectorHint(
-                      sourceStepName: entry.value.name,
-                      destinationLabels: (_nodeByStepId(entry.value.id)
-                                  ?.links ??
-                              const <GlobalStoryStepLink>[])
-                          .map((link) =>
-                              _stepById(link.toStepId)?.name ?? link.toStepId)
-                          .toList(growable: false),
-                    ),
-                    const SizedBox(height: 6),
-                  ] else
-                    const SizedBox(height: 8),
                 ],
+                const SizedBox(height: 12),
+                const InspectorEmbeddedFootnote(
+                  text:
+                      'Global Story = structure macro (chapitres + steps). Step = logique locale. Cutscene = execution.',
+                  accent: EditorChrome.inspectorJoyCyan,
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 10),
-          const InspectorEmbeddedFootnote(
-            text:
-                'Global Story = structure macro. Step = logique locale. Cutscene = execution de scene. Cette separation reste stricte.',
-            accent: EditorChrome.inspectorJoyCyan,
           ),
         ],
       ),
@@ -2059,3 +2221,822 @@ class _EnumDropdown<T extends Enum> extends StatelessWidget {
 }
 
 const Object _unset = Object();
+
+// =============================================================================
+// NOUVEAUX WIDGETS POUR L'ARBRE NARRATIF (Global Story Studio v2)
+// =============================================================================
+//
+// Ces widgets remplacent l'ancien `_GlobalStoryStepCard` qui ressemblait
+// trop à une fiche de formulaire de step. L'objectif est d'avoir une
+// représentation visuelle de type "carte routière narrative".
+
+/// Zone haute du Global Story Studio: résumé macro du scénario global.
+///
+/// Montre immédiatement:
+/// - le nom du scénario global unique,
+/// - le nombre de chapitres, de steps, de branches, de convergences,
+/// - les actions globales (sauvegarder, réinitialiser).
+class _NarrativeTreeHeader extends StatelessWidget {
+  const _NarrativeTreeHeader({
+    required this.globalName,
+    required this.chapterCount,
+    required this.totalStepCount,
+    required this.branchCount,
+    required this.convergeCount,
+    required this.hasUnsavedChanges,
+    required this.canEdit,
+    required this.onSave,
+    required this.onReset,
+  });
+
+  final String globalName;
+  final int chapterCount;
+  final int totalStepCount;
+  final int branchCount;
+  final int convergeCount;
+  final bool hasUnsavedChanges;
+  final bool canEdit;
+  final VoidCallback onSave;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        // Couleur cyan pour le Global Story (distinct du mint du Step Studio).
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.3),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                CupertinoIcons.map_fill,
+                color: EditorChrome.inspectorJoyCyan,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  globalName,
+                  style: TextStyle(
+                    color: EditorChrome.primaryLabel(context),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (hasUnsavedChanges)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color:
+                        EditorChrome.inspectorJoyCoral.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color:
+                          EditorChrome.inspectorJoyCoral.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: const Text(
+                    'Modifié',
+                    style: TextStyle(
+                      color: EditorChrome.inspectorJoyCoral,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Badges de résumé macro.
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _MacroBadge(
+                icon: CupertinoIcons.book_fill,
+                label: '$chapterCount chapitre${chapterCount > 1 ? 's' : ''}',
+                accent: EditorChrome.inspectorJoyCyan,
+              ),
+              _MacroBadge(
+                icon: CupertinoIcons.flag_fill,
+                label: '$totalStepCount step${totalStepCount > 1 ? 's' : ''}',
+                accent: EditorChrome.inspectorJoyMint,
+              ),
+              if (branchCount > 0)
+                _MacroBadge(
+                  icon: CupertinoIcons.share,
+                  label: '$branchCount branche${branchCount > 1 ? 's' : ''}',
+                  accent: EditorChrome.inspectorJoyAmber,
+                ),
+              if (convergeCount > 0)
+                _MacroBadge(
+                  icon: CupertinoIcons.arrow_merge,
+                  label:
+                      '$convergeCount convergence${convergeCount > 1 ? 's' : ''}',
+                  accent: EditorChrome.inspectorJoyCoral,
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: InspectorEmbeddedPrimaryCapsule(
+                  accent: EditorChrome.inspectorJoyBlue,
+                  icon: CupertinoIcons.floppy_disk,
+                  label: 'Sauvegarder',
+                  prominent: true,
+                  enabled: canEdit && hasUnsavedChanges,
+                  onPressed: onSave,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InspectorEmbeddedSecondaryCapsule(
+                  accent: EditorChrome.inspectorJoyCyan,
+                  icon: CupertinoIcons.arrow_uturn_left,
+                  label: 'Réinitialiser',
+                  enabled: canEdit && hasUnsavedChanges,
+                  onPressed: onReset,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Petit badge de résumé macro dans le header du Global Story Studio.
+class _MacroBadge extends StatelessWidget {
+  const _MacroBadge({
+    required this.icon,
+    required this.label,
+    required this.accent,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: accent),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: accent,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Séparateur visuel entre deux chapitres dans l'arbre narratif.
+class _ChapterGap extends StatelessWidget {
+  const _ChapterGap();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 1,
+              color: EditorChrome.subtleLabel(context).withValues(alpha: 0.2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Icon(
+              CupertinoIcons.chevron_down,
+              size: 12,
+              color: EditorChrome.subtleLabel(context),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: EditorChrome.subtleLabel(context).withValues(alpha: 0.2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Message affiché quand des steps existent mais aucun chapitre n'est défini.
+class _NoChaptersHint extends StatelessWidget {
+  const _NoChaptersHint({
+    required this.stepCount,
+    required this.onAddChapter,
+    required this.enabled,
+  });
+
+  final int stepCount;
+  final VoidCallback onAddChapter;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyAmber.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyAmber.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '$stepCount step(s) sans chapitre',
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Organisez vos steps en chapitres pour une lecture narrative claire.',
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: InspectorEmbeddedPrimaryCapsule(
+              accent: EditorChrome.inspectorJoyAmber,
+              icon: CupertinoIcons.book_fill,
+              label: 'Créer un chapitre',
+              enabled: enabled,
+              onPressed: onAddChapter,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Section de chapitre dans l'arbre narratif.
+///
+/// Affiche:
+/// - un header de chapitre fort et visible,
+/// - les steps compactes dans ce chapitre,
+/// - les indicateurs de flux entre les steps.
+///
+/// C'est le widget CENTRAL de la nouvelle UX Global Story Studio.
+class _NarrativeChapterSection extends StatelessWidget {
+  const _NarrativeChapterSection({
+    required this.chapter,
+    required this.chapterIndex,
+    required this.totalChapters,
+    required this.steps,
+    required this.globalDocument,
+    required this.selectedStepId,
+    required this.canEdit,
+    required this.onTapChapter,
+    required this.onRenameChapter,
+    required this.onMoveChapterUp,
+    required this.onMoveChapterDown,
+    required this.onAddChapter,
+    required this.onDeleteChapter,
+    required this.onSelectStep,
+    required this.onOpenStepStudio,
+    required this.onSetEntryStep,
+    required this.onInsertStepAfter,
+    required this.onChangeStepExitMode,
+    required this.onAddLink,
+    required this.onRemoveLink,
+    required this.onUpdateLinkTarget,
+  });
+
+  final GlobalStoryChapter chapter;
+  final int chapterIndex;
+  final int totalChapters;
+  final List<StepStudioStep> steps;
+  final GlobalStoryStudioDocument globalDocument;
+  final String? selectedStepId;
+  final bool canEdit;
+  final ValueChanged<String> onTapChapter;
+  final _ChapterRenameCallback onRenameChapter;
+  final VoidCallback onMoveChapterUp;
+  final VoidCallback onMoveChapterDown;
+  final VoidCallback onAddChapter;
+  final VoidCallback onDeleteChapter;
+  final ValueChanged<String?> onSelectStep;
+  final ValueChanged<String> onOpenStepStudio;
+  final ValueChanged<String> onSetEntryStep;
+  final VoidCallback onInsertStepAfter;
+  final ValueChanged<GlobalStoryStepExitMode> onChangeStepExitMode;
+  final VoidCallback onAddLink;
+  final ValueChanged<int> onRemoveLink;
+  final void Function(int, String?) onUpdateLinkTarget;
+
+  GlobalStoryStepNode? _nodeByStepId(String? stepId) {
+    if (stepId == null) return null;
+    for (final node in globalDocument.nodes) {
+      if (node.stepId == stepId) return node;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // HEADER DU CHAPITRE: très visible, sensation de section majeure.
+        _ChapterHeader(
+          chapter: chapter,
+          chapterIndex: chapterIndex,
+          totalChapters: totalChapters,
+          stepCount: steps.length,
+          isSelected: false, // On peut ajouter la sélection plus tard
+          canEdit: canEdit,
+          onTap: () => onTapChapter(chapter.id),
+          onRename: (name) => onRenameChapter(chapter.id, name),
+          onMoveUp: onMoveChapterUp,
+          onMoveDown: onMoveChapterDown,
+          onAddChapter: onAddChapter,
+          onDelete: chapter.stepIds.isEmpty ? onDeleteChapter : null,
+        ),
+        const SizedBox(height: 8),
+        // STEPS DU CHAPITRE: cartes compactes en flux vertical.
+        for (final entry in steps.asMap().entries) ...[
+          if (entry.key > 0)
+            _StepFlowArrow(
+              sourceName: steps[entry.key - 1].name,
+              destinationName: entry.value.name,
+              node: _nodeByStepId(steps[entry.key - 1].id),
+            ),
+          _CompactStepCard(
+            step: entry.value,
+            node: _nodeByStepId(entry.value.id) ??
+                GlobalStoryStepNode(stepId: entry.value.id),
+            isSelected: entry.value.id == selectedStepId,
+            isEntryStep: globalDocument.entryStepId == entry.value.id,
+            canEdit: canEdit,
+            onTap: () => onSelectStep(entry.value.id),
+            onOpenStepStudio: () => onOpenStepStudio(entry.value.id),
+            onSetEntryStep: () => onSetEntryStep(entry.value.id),
+            onInsertAfter: onInsertStepAfter,
+          ),
+        ],
+        // Si le chapitre est vide, afficher un message.
+        if (steps.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: EditorChrome.largeIslandSurfaceColor(
+                context,
+                tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
+              ),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
+                style: BorderStyle.solid,
+              ),
+            ),
+            child: Text(
+              'Aucune step dans ce chapitre',
+              style: TextStyle(
+                color: EditorChrome.subtleLabel(context),
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Header de chapitre: titre fort, badge de step count, actions.
+///
+/// C'est le marqueur visuel le plus important de la hiérarchie
+/// du Global Story Studio. Il doit être IMPOSSIBLE de le confondre
+/// avec une step individuelle.
+class _ChapterHeader extends StatelessWidget {
+  const _ChapterHeader({
+    required this.chapter,
+    required this.chapterIndex,
+    required this.totalChapters,
+    required this.stepCount,
+    required this.isSelected,
+    required this.canEdit,
+    required this.onTap,
+    required this.onRename,
+    required this.onMoveUp,
+    required this.onMoveDown,
+    required this.onAddChapter,
+    this.onDelete,
+  });
+
+  final GlobalStoryChapter chapter;
+  final int chapterIndex;
+  final int totalChapters;
+  final int stepCount;
+  final bool isSelected;
+  final bool canEdit;
+  final VoidCallback onTap;
+  final ValueChanged<String> onRename;
+  final VoidCallback onMoveUp;
+  final VoidCallback onMoveDown;
+  final VoidCallback onAddChapter;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          // Fond violet profond pour les chapitres (distinct du cyan du header global).
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.08),
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        child: Row(
+          children: [
+            // Numéro de chapitre.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'CH. ${chapterIndex + 1}',
+                style: TextStyle(
+                  color: EditorChrome.inspectorJoyPlum,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Nom du chapitre.
+            Expanded(
+              child: Text(
+                chapter.name,
+                style: TextStyle(
+                  color: EditorChrome.primaryLabel(context),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Badge de step count.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$stepCount step${stepCount > 1 ? 's' : ''}',
+                style: TextStyle(
+                  color: EditorChrome.inspectorJoyMint,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            if (canEdit) ...[
+              const SizedBox(width: 6),
+              // Bouton pour ajouter un chapitre.
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minSize: 28,
+                onPressed: onAddChapter,
+                child: Icon(
+                  CupertinoIcons.add_circled,
+                  size: 20,
+                  color: EditorChrome.inspectorJoyCyan,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Flèche de flux entre deux steps consécutives.
+///
+/// Montre visuellement la progression narrative d'une step à l'autre
+/// à l'intérieur d'un chapitre.
+class _StepFlowArrow extends StatelessWidget {
+  const _StepFlowArrow({
+    required this.sourceName,
+    required this.destinationName,
+    this.node,
+  });
+
+  final String sourceName;
+  final String destinationName;
+  final GlobalStoryStepNode? node;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBranching = node != null &&
+        (node!.exitMode == GlobalStoryStepExitMode.branchExclusive ||
+            node!.exitMode == GlobalStoryStepExitMode.branchConditional);
+    final isConverge =
+        node != null && node!.exitMode == GlobalStoryStepExitMode.converge;
+    final destCount = node?.links.length ?? 1;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          // Indenteur visuel.
+          const SizedBox(width: 24),
+          // Icône de flux.
+          Icon(
+            isBranching
+                ? CupertinoIcons.share
+                : isConverge
+                    ? CupertinoIcons.arrow_merge
+                    : CupertinoIcons.arrow_down,
+            size: 12,
+            color: isBranching
+                ? EditorChrome.inspectorJoyAmber
+                : isConverge
+                    ? EditorChrome.inspectorJoyCoral
+                    : EditorChrome.subtleLabel(context).withValues(alpha: 0.5),
+          ),
+          const SizedBox(width: 6),
+          // Label de destination.
+          Expanded(
+            child: Text(
+              destCount > 1
+                  ? '$sourceName → $destCount destinations'
+                  : '$sourceName → $destinationName',
+              style: TextStyle(
+                color: EditorChrome.subtleLabel(context),
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                fontStyle: FontStyle.italic,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Carte de step COMPACTE dans le Global Story Studio.
+///
+/// CONTRAIREMENT au Step Studio qui affiche tous les détails d'une step,
+/// cette carte ne montre que l'essentiel pour la lecture macro:
+/// - numéro d'ordre,
+/// - nom,
+/// - description courte,
+/// - type de sortie (badge),
+/// - bouton "Ouvrir Step" pour accéder au détail.
+///
+/// C'est la différence visuelle CLÉ entre Global Story et Step Studio.
+class _CompactStepCard extends StatelessWidget {
+  const _CompactStepCard({
+    required this.step,
+    required this.node,
+    required this.isSelected,
+    required this.isEntryStep,
+    required this.canEdit,
+    required this.onTap,
+    required this.onOpenStepStudio,
+    required this.onSetEntryStep,
+    required this.onInsertAfter,
+  });
+
+  final StepStudioStep step;
+  final GlobalStoryStepNode node;
+  final bool isSelected;
+  final bool isEntryStep;
+  final bool canEdit;
+  final VoidCallback onTap;
+  final VoidCallback onOpenStepStudio;
+  final VoidCallback onSetEntryStep;
+  final VoidCallback onInsertAfter;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isSelected
+        ? EditorChrome.inspectorJoyBlue
+        : EditorChrome.inspectorJoyCyan;
+    final exitLabel = globalStoryStepExitModeLabel(node.exitMode);
+    final destCount = node.links.length;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(left: 16),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: accent.withValues(alpha: isSelected ? 0.12 : 0.04),
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: accent.withValues(alpha: isSelected ? 0.45 : 0.2),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                // Numéro d'ordre.
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '#${step.order + 1}',
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Nom de la step.
+                Expanded(
+                  child: Text(
+                    step.name,
+                    style: TextStyle(
+                      color: EditorChrome.primaryLabel(context),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Badge de type de sortie.
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    exitLabel,
+                    style: TextStyle(
+                      color: EditorChrome.inspectorJoyPlum,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isEntryStep) ...[
+                  const SizedBox(width: 4),
+                  const Icon(
+                    CupertinoIcons.location_solid,
+                    size: 12,
+                    color: EditorChrome.inspectorJoyMint,
+                  ),
+                ],
+              ],
+            ),
+            // Description courte.
+            if (step.description.trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                step.description,
+                style: TextStyle(
+                  color: EditorChrome.subtleLabel(context),
+                  fontSize: 11,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            // Info de destination.
+            if (destCount > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                destCount == 1
+                    ? 'Suite: ${node.links.first.toStepId}'
+                    : '$destCount suites possibles',
+                style: TextStyle(
+                  color: EditorChrome.subtleLabel(context),
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            // Actions rapides.
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: InspectorEmbeddedSecondaryCapsule(
+                    accent: EditorChrome.inspectorJoyPlum,
+                    icon: CupertinoIcons.square_stack_3d_up,
+                    label: 'Ouvrir Step',
+                    enabled: canEdit,
+                    onPressed: onOpenStepStudio,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: InspectorEmbeddedSecondaryCapsule(
+                    accent: EditorChrome.inspectorJoyMint,
+                    icon: CupertinoIcons.plus_circle,
+                    label: 'Insérer',
+                    enabled: canEdit,
+                    onPressed: onInsertAfter,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 28,
+                  onPressed: isEntryStep ? null : onSetEntryStep,
+                  child: Icon(
+                    CupertinoIcons.location,
+                    size: 16,
+                    color: isEntryStep
+                        ? EditorChrome.inspectorJoyMint
+                        : EditorChrome.subtleLabel(context),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -5,16 +5,22 @@ import 'package:map_core/map_core.dart';
 
 import 'step_studio_authoring.dart';
 
-/// Version de schéma du document Global Story Studio v1.
+/// Version de schéma du document Global Story Studio v1.1.
+///
+/// v1.1 ajoute le concept de **chapitre / arc narratif**:
+/// - les steps sont désormais groupées en chapitres pour une lecture macro;
+/// - un chapitre par défaut est créé automatiquement pour la rétrocompatibilité;
+/// - le document reste strictement "macro": il ne décrit PAS la logique locale.
 ///
 /// Ce document a une responsabilité strictement "macro":
+/// - chapitres / arcs narratifs;
 /// - liens entre steps;
 /// - point d'entrée global;
 /// - type de sortie (linéaire / branchement / convergence).
 ///
 /// Il NE remplace PAS la logique métier locale d'une step, qui reste portée
 /// par [StepStudioDocument].
-const String kGlobalStoryStudioSchemaVersion = 'global_story_studio_v1';
+const String kGlobalStoryStudioSchemaVersion = 'global_story_studio_v1.1';
 
 /// Clé metadata de version du document Global Story Studio.
 const String kGlobalStoryStudioSchemaMetadataKey =
@@ -105,6 +111,88 @@ class GlobalStoryStepLink {
   int get hashCode => Object.hash(toStepId, conditionLabel, requiredOutcomeId);
 }
 
+/// Chapitre / arc narratif dans la structure globale du jeu.
+///
+/// Rôle produit:
+/// - grouper visuellement les steps en arcs narratifs lisibles;
+/// - donner une hiérarchie de haut niveau à la structure du jeu;
+/// - rester un concept "macro": un chapitre ne décrit PAS la logique locale.
+///
+/// Contraintes:
+/// - les `stepIds` sont ordonnés et référencent des steps du Step Studio;
+/// - une step ne peut appartenir qu'à UN seul chapitre;
+/// - un chapitre peut être vide (prêt à recevoir des steps futures).
+@immutable
+class GlobalStoryChapter {
+  const GlobalStoryChapter({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.stepIds,
+    required this.order,
+  });
+
+  final String id;
+  final String name;
+  final String description;
+  final List<String> stepIds;
+  final int order;
+
+  GlobalStoryChapter copyWith({
+    String? id,
+    String? name,
+    String? description,
+    List<String>? stepIds,
+    int? order,
+  }) {
+    return GlobalStoryChapter(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      stepIds: stepIds ?? this.stepIds,
+      order: order ?? this.order,
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'name': name,
+        'description': description,
+        'stepIds': stepIds,
+        'order': order,
+      };
+
+  factory GlobalStoryChapter.fromJson(Map<String, dynamic> json) {
+    final stepIdsJson = (json['stepIds'] as List<dynamic>? ?? const []);
+    return GlobalStoryChapter(
+      id: _trimOrEmpty(json['id']),
+      name: _trimOrEmpty(json['name']),
+      description: _trimOrEmpty(json['description']),
+      stepIds: stepIdsJson
+          .whereType<String>()
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false),
+      order: (json['order'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is GlobalStoryChapter &&
+        other.id == id &&
+        other.name == name &&
+        other.description == description &&
+        listEquals(other.stepIds, stepIds) &&
+        other.order == order;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, description, Object.hashAll(stepIds), order);
+}
+
 /// Noeud macro du scénario global: une step + sa logique de sortie.
 @immutable
 class GlobalStoryStepNode {
@@ -169,13 +257,15 @@ class GlobalStoryStepNode {
 ///
 /// Rappel produit:
 /// - il n'y a qu'UN seul scénario global pour le jeu;
-/// - ce document encode uniquement la structure macro de progression.
+/// - ce document encode uniquement la structure macro de progression;
+/// - les chapitres groupent les steps en arcs narratifs lisibles.
 @immutable
 class GlobalStoryStudioDocument {
   const GlobalStoryStudioDocument({
     required this.globalStoryScenarioId,
     required this.entryStepId,
     required this.nodes,
+    this.chapters = const <GlobalStoryChapter>[],
     this.schemaVersion = kGlobalStoryStudioSchemaVersion,
   });
 
@@ -184,11 +274,20 @@ class GlobalStoryStudioDocument {
   final String entryStepId;
   final List<GlobalStoryStepNode> nodes;
 
+  /// Chapitres / arcs narratifs du scénario global.
+  ///
+  /// - Si vide, le chapitre par défaut "Histoire principale" sera dérivé
+  ///   automatiquement lors de la normalisation.
+  /// - Les `stepIds` de tous les chapitres combinés doivent correspondre
+  ///   aux steps du `StepStudioDocument`.
+  final List<GlobalStoryChapter> chapters;
+
   GlobalStoryStudioDocument copyWith({
     String? schemaVersion,
     String? globalStoryScenarioId,
     String? entryStepId,
     List<GlobalStoryStepNode>? nodes,
+    Object? chapters = _unset,
   }) {
     return GlobalStoryStudioDocument(
       schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -196,6 +295,9 @@ class GlobalStoryStudioDocument {
           globalStoryScenarioId ?? this.globalStoryScenarioId,
       entryStepId: entryStepId ?? this.entryStepId,
       nodes: nodes ?? this.nodes,
+      chapters: identical(chapters, _unset)
+          ? this.chapters
+          : chapters as List<GlobalStoryChapter>,
     );
   }
 
@@ -204,12 +306,15 @@ class GlobalStoryStudioDocument {
         'globalStoryScenarioId': globalStoryScenarioId,
         'entryStepId': entryStepId,
         'nodes': nodes.map((entry) => entry.toJson()).toList(growable: false),
+        'chapters':
+            chapters.map((entry) => entry.toJson()).toList(growable: false),
       };
 
   String toMetadataJson() => jsonEncode(toJson());
 
   factory GlobalStoryStudioDocument.fromJson(Map<String, dynamic> json) {
     final nodeJson = (json['nodes'] as List<dynamic>? ?? const []);
+    final chapterJson = (json['chapters'] as List<dynamic>? ?? const []);
     return GlobalStoryStudioDocument(
       schemaVersion:
           _trimOrNull(json['schemaVersion']) ?? kGlobalStoryStudioSchemaVersion,
@@ -221,6 +326,11 @@ class GlobalStoryStudioDocument {
           .map(GlobalStoryStepNode.fromJson)
           .where((entry) => entry.stepId.trim().isNotEmpty)
           .toList(growable: false),
+      chapters: chapterJson
+          .whereType<Map<String, dynamic>>()
+          .map(GlobalStoryChapter.fromJson)
+          .where((entry) => entry.id.trim().isNotEmpty)
+          .toList(growable: false),
     );
   }
 
@@ -231,7 +341,8 @@ class GlobalStoryStudioDocument {
         other.schemaVersion == schemaVersion &&
         other.globalStoryScenarioId == globalStoryScenarioId &&
         other.entryStepId == entryStepId &&
-        listEquals(other.nodes, nodes);
+        listEquals(other.nodes, nodes) &&
+        listEquals(other.chapters, chapters);
   }
 
   @override
@@ -240,6 +351,7 @@ class GlobalStoryStudioDocument {
         globalStoryScenarioId,
         entryStepId,
         Object.hashAll(nodes),
+        Object.hashAll(chapters),
       );
 }
 
@@ -342,6 +454,9 @@ ScenarioAsset applyGlobalStoryStudioDocumentToGlobalScenario(
 }
 
 /// Fabrique un flux global linéaire simple à partir des steps existantes.
+///
+/// Un chapitre par défaut "Histoire principale" est créé automatiquement
+/// pour que la structure soit immédiatement lisible dans l'UI.
 GlobalStoryStudioDocument createDefaultGlobalStoryStudioDocument({
   required String globalStoryScenarioId,
   required StepStudioDocument stepDocument,
@@ -353,12 +468,15 @@ GlobalStoryStudioDocument createDefaultGlobalStoryStudioDocument({
       globalStoryScenarioId: globalStoryScenarioId,
       entryStepId: '',
       nodes: const <GlobalStoryStepNode>[],
+      chapters: const <GlobalStoryChapter>[],
     );
   }
 
   final nodes = <GlobalStoryStepNode>[];
+  final allStepIds = <String>[];
   for (var index = 0; index < orderedSteps.length; index++) {
     final step = orderedSteps[index];
+    allStepIds.add(step.id);
     final nextStepId =
         index + 1 < orderedSteps.length ? orderedSteps[index + 1].id : null;
     nodes.add(
@@ -374,12 +492,29 @@ GlobalStoryStudioDocument createDefaultGlobalStoryStudioDocument({
     );
   }
 
+  // Chapitre par défaut contenant toutes les steps — la structure est
+  // immédiatement lisible comme un arc narratif unique.
+  final defaultChapter = GlobalStoryChapter(
+    id: _defaultChapterId,
+    name: _defaultChapterName,
+    description: '',
+    stepIds: allStepIds,
+    order: 0,
+  );
+
   return GlobalStoryStudioDocument(
     globalStoryScenarioId: globalStoryScenarioId,
     entryStepId: orderedSteps.first.id,
     nodes: nodes,
+    chapters: <GlobalStoryChapter>[defaultChapter],
   );
 }
+
+/// Identifiant du chapitre par défaut (quand aucun chapitre n'est défini).
+const String _defaultChapterId = 'chapter_main';
+
+/// Nom affiché du chapitre par défaut.
+const String _defaultChapterName = 'Histoire principale';
 
 /// Normalise le document macro pour éviter les incohérences structurelles.
 ///
@@ -389,7 +524,9 @@ GlobalStoryStudioDocument createDefaultGlobalStoryStudioDocument({
 /// - entryStepId pointe vers une step existante (ou vide si aucune step);
 /// - liens invalides (self-link, target inconnu, doublons) supprimés;
 /// - mode linéaire/convergence borné à une destination max;
-/// - fallback linéaire par ordre si aucun lien explicite.
+/// - fallback linéaire par ordre si aucun lien explicite;
+/// - **si aucun chapitre n'existe**, un chapitre par défaut est créé;
+/// - **les steps non assignées** sont ajoutées au chapitre par défaut.
 GlobalStoryStudioDocument normalizeGlobalStoryStudioDocument({
   required GlobalStoryStudioDocument document,
   required StepStudioDocument stepDocument,
@@ -405,6 +542,7 @@ GlobalStoryStudioDocument normalizeGlobalStoryStudioDocument({
       globalStoryScenarioId: stepDocument.globalStoryScenarioId,
       entryStepId: '',
       nodes: const <GlobalStoryStepNode>[],
+      chapters: const <GlobalStoryChapter>[],
     );
   }
 
@@ -452,12 +590,94 @@ GlobalStoryStudioDocument normalizeGlobalStoryStudioDocument({
       ? document.entryStepId
       : orderedStepIds.first;
 
+  // --- Normalisation des chapitres ---
+  // Si aucun chapitre n'existe, on crée le chapitre par défaut avec toutes
+  // les steps. Sinon, on nettoie les chapitres existants.
+  final normalizedChapters = _normalizeChapters(
+    existingChapters: document.chapters,
+    allStepIds: orderedStepIds,
+  );
+
   return document.copyWith(
     schemaVersion: kGlobalStoryStudioSchemaVersion,
     globalStoryScenarioId: stepDocument.globalStoryScenarioId,
     entryStepId: entryStepId,
     nodes: normalizedNodes,
+    chapters: normalizedChapters,
   );
+}
+
+/// Normalise les chapitres pour garantir l'invariant:
+/// - toutes les steps sont assignées à exactement un chapitre;
+/// - si aucun chapitre n'existe, un chapitre par défaut est créé;
+/// - les steps non assignées sont ajoutées au chapitre par défaut.
+List<GlobalStoryChapter> _normalizeChapters({
+  required List<GlobalStoryChapter> existingChapters,
+  required List<String> allStepIds,
+}) {
+  final allStepIdSet = allStepIds.toSet();
+
+  // Collecte les steps déjà assignées et nettoie les chapitres existants.
+  final assignedStepIds = <String>{};
+  final normalizedChapters = <GlobalStoryChapter>[];
+
+  final orderedChapters = existingChapters.toList(growable: true)
+    ..sort((a, b) => a.order.compareTo(b.order));
+
+  var orderCounter = 0;
+  for (final chapter in orderedChapters) {
+    // Filtre les stepIds invalides ou duplicates.
+    final validStepIds = <String>[];
+    for (final stepId in chapter.stepIds) {
+      if (allStepIdSet.contains(stepId) && !assignedStepIds.contains(stepId)) {
+        validStepIds.add(stepId);
+        assignedStepIds.add(stepId);
+      }
+    }
+
+    normalizedChapters.add(
+      chapter.copyWith(
+        stepIds: validStepIds,
+        order: orderCounter,
+      ),
+    );
+    orderCounter++;
+  }
+
+  // Si aucun chapitre n'existe ou si des steps restent non assignées,
+  // on utilise le chapitre par défaut.
+  final unassignedSteps = allStepIds
+      .where((id) => !assignedStepIds.contains(id))
+      .toList(growable: false);
+
+  // Cherche le chapitre par défaut existant ou en crée un.
+  final defaultChapterIdx = normalizedChapters.indexWhere(
+    (c) => c.id == _defaultChapterId,
+  );
+  if (defaultChapterIdx >= 0) {
+    // Met à jour le chapitre par défaut avec les steps non assignées.
+    final existing = normalizedChapters[defaultChapterIdx];
+    normalizedChapters[defaultChapterIdx] = existing.copyWith(
+      stepIds: <String>[...existing.stepIds, ...unassignedSteps],
+    );
+  } else if (unassignedSteps.isNotEmpty || normalizedChapters.isEmpty) {
+    // Crée un chapitre par défaut.
+    normalizedChapters.add(GlobalStoryChapter(
+      id: _defaultChapterId,
+      name: _defaultChapterName,
+      description: '',
+      stepIds: unassignedSteps.isEmpty ? allStepIds : unassignedSteps,
+      order: orderCounter,
+    ));
+  }
+
+  // Re-ordonne les chapitres.
+  final finalChapters = <GlobalStoryChapter>[];
+  for (var i = 0; i < normalizedChapters.length; i++) {
+    finalChapters.add(normalizedChapters[i].copyWith(order: i));
+  }
+
+  return finalChapters;
 }
 
 /// Produit des diagnostics "produit" lisibles pour l'UI.
