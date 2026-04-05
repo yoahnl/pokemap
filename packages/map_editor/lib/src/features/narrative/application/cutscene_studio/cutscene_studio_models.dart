@@ -86,6 +86,9 @@ const String kCutsceneStudioMoveTargetWarp = 'warp';
 const String kCutsceneStudioMoveTargetSpawn = 'spawn';
 const String kCutsceneStudioMoveTargetEntity = 'entity';
 
+/// ID acteur « joueur » (studio + runtime) pour la simulation de carte contextuelle.
+const String kCutsceneStudioActorPlayerId = 'player';
+
 /// Source hooks monde supportés par le studio v1.
 const String kCutsceneStudioSourceMapEnter = 'sourceMapEnter';
 const String kCutsceneStudioSourceTriggerEnter = 'sourceTriggerEnter';

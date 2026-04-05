@@ -85,6 +85,9 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   /// Bloc actif dans l’inspecteur droit (null = méta cutscene + source).
   String? _selectedBlockId;
 
+  /// Déduplication des [addPostFrameCallback] pour précharger les maps du contexte.
+  int? _lastContextWarmHash;
+
   @override
   void initState() {
     super.initState();
@@ -127,6 +130,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         _triggersByMapId.clear();
         _warpsByMapId.clear();
         _selectedBlockId = null;
+        _lastContextWarmHash = null;
       });
       return;
     }
@@ -147,6 +151,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         _triggersByMapId.clear();
         _warpsByMapId.clear();
         _selectedBlockId = null;
+        _lastContextWarmHash = null;
       });
       return;
     }
@@ -164,6 +169,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       _triggersByMapId.clear();
       _warpsByMapId.clear();
       _selectedBlockId = null;
+      _lastContextWarmHash = null;
     });
     _primeSourceLookups(parse.document.source.mapId);
   }
@@ -269,6 +275,61 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       return;
     }
     unawaited(_ensureLookupsLoadedForMap(normalizedMapId));
+  }
+
+  /// Carte utilisée pour PNJ / warps / spawns **à ce point du flow** (simulation
+  /// joueur : warps + [CutsceneStudioBlockKind.transitionMap] dans les blocs précédents).
+  String? _inspectorContextMapIdForBlock(
+    CutsceneStudioDocument draft,
+    String blockId,
+  ) {
+    final start = _trimOrNull(draft.source.mapId);
+    final flow = effectiveCutsceneFlowForDocument(draft);
+    final resolution = cutsceneStudioResolveMapContextPredecessors(flow, blockId);
+    return switch (resolution) {
+      CutsceneStudioMapContextLinear(:final predecessorBlocks) =>
+        cutsceneStudioSimulatedPlayerMapId(
+          startMapId: start,
+          predecessorBlocks: predecessorBlocks,
+          warpTargetMapId: (mapId, warpId) {
+            for (final w in _warpsForMap(mapId)) {
+              if (w.id == warpId) return w.targetMapId;
+            }
+            return null;
+          },
+        ),
+      _ => start,
+    };
+  }
+
+  void _warmCutsceneContextMaps(
+    CutsceneStudioDocument draft,
+    String? selectedBlockId,
+  ) {
+    final start = _trimOrNull(draft.source.mapId);
+    if (selectedBlockId == null) {
+      _primeSourceLookups(start);
+      return;
+    }
+    final flow = effectiveCutsceneFlowForDocument(draft);
+    final res = cutsceneStudioResolveMapContextPredecessors(flow, selectedBlockId);
+    if (res is CutsceneStudioMapContextLinear) {
+      final ids = cutsceneStudioCollectMapIdsAlongPlayerSimulation(
+        startMapId: start,
+        predecessorBlocks: res.predecessorBlocks,
+        warpTargetMapId: (mapId, warpId) {
+          for (final w in _warpsForMap(mapId)) {
+            if (w.id == warpId) return w.targetMapId;
+          }
+          return null;
+        },
+      );
+      for (final id in ids) {
+        _primeSourceLookups(id);
+      }
+      return;
+    }
+    _primeSourceLookups(start);
   }
 
   Future<void> _ensureLookupsLoadedForMap(String mapId) async {
@@ -520,10 +581,14 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   }
 
   String _flowSummaryLine(CutsceneStudioBlock block) {
+    final draft = _draftDocument;
+    final ctxMap = draft != null
+        ? _inspectorContextMapIdForBlock(draft, block.id)
+        : _trimOrNull(_draftDocument?.source.mapId);
     return switch (block.kind) {
       CutsceneStudioBlockKind.dialogue =>
-        _trimmedOrFallback(_actorLabelById(block.actorId,
-                mapId: _trimOrNull(_draftDocument?.source.mapId)),
+        _trimmedOrFallback(
+            _actorLabelById(block.actorId, mapId: ctxMap),
             fallback: 'Personnage') +
             (_trimOrNull(block.messageText) != null
                 ? ' · ${_trimOrNull(block.messageText)}'
@@ -533,8 +598,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       CutsceneStudioBlockKind.moveCharacter ||
       CutsceneStudioBlockKind.pathfindMove =>
         _trimmedOrFallback(
-          _actorLabelById(block.actorId,
-              mapId: _trimOrNull(_draftDocument?.source.mapId)),
+          _actorLabelById(block.actorId, mapId: ctxMap),
           fallback: 'Déplacement',
         ),
       CutsceneStudioBlockKind.wait =>
@@ -548,6 +612,17 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     final draft = _draftDocument;
     if (draft == null) {
       return _buildEmptyState(context);
+    }
+    final warmHash = Object.hash(draft, _selectedBlockId);
+    if (_lastContextWarmHash != warmHash) {
+      _lastContextWarmHash = warmHash;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final d = _draftDocument;
+        if (d == null) return;
+        if (Object.hash(d, _selectedBlockId) != warmHash) return;
+        _warmCutsceneContextMaps(d, _selectedBlockId);
+      });
     }
     return EditorPaneSurface(
       radius: 20,
@@ -725,6 +800,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         style: TextStyle(color: EditorChrome.subtleLabel(context)),
       );
     }
+    final flow = effectiveCutsceneFlowForDocument(draft);
+    final contextResolution =
+        cutsceneStudioResolveMapContextPredecessors(flow, block.id);
+    final inspectorContextMapId = _inspectorContextMapIdForBlock(draft, block.id);
     final destructive = CupertinoColors.destructiveRed.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -766,11 +845,39 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
               ),
           ],
         ),
+        if (contextResolution is CutsceneStudioMapContextAmbiguous) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Carte contextuelle : map de départ uniquement (bloc après un choix '
+            'à branches — le chemin joueur n’est pas unique ici).',
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.25,
+              color: EditorChrome.subtleLabel(context),
+            ),
+          ),
+        ],
+        if (contextResolution is CutsceneStudioMapContextLinear &&
+            inspectorContextMapId != null &&
+            inspectorContextMapId != _trimOrNull(draft.source.mapId)) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Carte contextuelle (pour ce bloc) : '
+            '${_mapLabelById(inspectorContextMapId) ?? inspectorContextMapId}',
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.25,
+              color: EditorChrome.subtleLabel(context),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
         const SizedBox(height: 10),
         _buildBlockEditor(
           context,
           draft: draft,
           block: block,
+          inspectorContextMapId: inspectorContextMapId,
           onChanged: (next) => _replaceBlockById(next.id, next),
         ),
       ],
@@ -993,6 +1100,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
+    required String? inspectorContextMapId,
     required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     return switch (block.kind) {
@@ -1000,6 +1108,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           context,
           draft: draft,
           block: block,
+          contextMapId: inspectorContextMapId,
           onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.narration => _buildNarrationBlockEditor(
@@ -1011,24 +1120,28 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           context,
           draft: draft,
           block: block,
+          contextMapId: inspectorContextMapId,
           onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.pathfindMove => _buildMoveBlockEditor(
           context,
           draft: draft,
           block: block,
+          contextMapId: inspectorContextMapId,
           onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.followCharacter => _buildFollowBlockEditor(
           context,
           draft: draft,
           block: block,
+          contextMapId: inspectorContextMapId,
           onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.faceCharacter => _buildFaceBlockEditor(
           context,
           draft: draft,
           block: block,
+          contextMapId: inspectorContextMapId,
           onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.transitionMap => _buildTransitionMapBlockEditor(
@@ -1198,9 +1311,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
+    required String? contextMapId,
     required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
-    final mapId = _trimOrNull(draft.source.mapId);
+    final mapId = _trimOrNull(contextMapId);
     final actorIds = _actorIdsForMap(mapId);
     final dialogueIds = widget.project.dialogues
         .map((entry) => entry.id)
@@ -1302,9 +1416,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
+    required String? contextMapId,
     required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
-    final mapId = _trimOrNull(draft.source.mapId);
+    final mapId = _trimOrNull(contextMapId);
     final actorIds = _actorIdsForMap(mapId);
     const targetKinds = <String>[
       kCutsceneStudioMoveTargetWarp,
@@ -1403,9 +1518,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
+    required String? contextMapId,
     required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
-    final mapId = _trimOrNull(draft.source.mapId);
+    final mapId = _trimOrNull(contextMapId);
     final leaderIds = _npcsForMap(mapId).map((entry) => entry.id).toList();
     return Column(
       children: [
@@ -1440,9 +1556,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
+    required String? contextMapId,
     required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
-    final mapId = _trimOrNull(draft.source.mapId);
+    final mapId = _trimOrNull(contextMapId);
     final actorIds = _actorIdsForMap(mapId);
     const directions = <String>['north', 'south', 'east', 'west'];
     final selectedDirection = _trimOrNull(block.facingDirection) ?? 'south';
@@ -1808,7 +1925,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
 
 
   List<String> _actorIdsForMap(String? mapId) {
-    final ids = <String>{kCutsceneActorPlayerId, kCutsceneActorNarratorId};
+    final ids = <String>{
+      kCutsceneStudioActorPlayerId,
+      kCutsceneActorNarratorId,
+    };
     ids.addAll(_npcsForMap(mapId).map((entry) => entry.id));
     return ids.toList(growable: false);
   }
@@ -1819,7 +1939,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   }) {
     final normalized = _trimOrNull(actorId);
     if (normalized == null) return null;
-    if (normalized == kCutsceneActorPlayerId) {
+    if (normalized == kCutsceneStudioActorPlayerId) {
       return 'Joueur';
     }
     if (normalized == kCutsceneActorNarratorId) {
@@ -2761,5 +2881,4 @@ T? _firstOrNull<T>(List<T> list) {
   return list.first;
 }
 
-const String kCutsceneActorPlayerId = 'player';
 const String kCutsceneActorNarratorId = 'narrator';
