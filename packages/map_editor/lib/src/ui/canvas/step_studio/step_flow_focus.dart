@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 // Garde-fou revue : ne pas renommer les valeurs d’enum pour coller au texte UI —
 // elles sont des identifiants stables dans le code. En revanche, titres et
 // libellés affichés (`StepFlowCanvas`, palette, inspecteur) suivent le vocabulaire
-// créateur (voir `step_studio_polish_final.md`).
+// créateur verrouillé (voir `reports/step_studio_wording_lock_final.md`).
 
 /// Zone logique du flux Step affichée sur le canvas vertical.
 enum StepFlowSlot {
@@ -38,13 +38,13 @@ enum StepFlowSlot {
   /// Édition d’un outcome scope `progression`.
   progressionOutcome,
 
-  /// Après l’étape : `flowExitLabel` sur le fil ; mémo d’autre étape (`flowUnlocksStepId`) inspecteur seulement.
+  /// Note de transition : `flowExitLabel` sur le parcours ; mémo `flowUnlocksStepId` (inspecteur seulement, sans effet auto).
   exitNext,
 
-  /// Changements monde persistants liés à la progression.
+  /// Changements persistants sur la carte (`worldChanges`).
   worldPersistence,
 
-  /// Une ligne de changement monde.
+  /// Une ligne de `worldChanges`.
   worldChangeItem,
 }
 

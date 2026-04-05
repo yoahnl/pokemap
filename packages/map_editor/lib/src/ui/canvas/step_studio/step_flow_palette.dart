@@ -94,8 +94,8 @@ class StepFlowPalette extends StatelessWidget {
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.tree,
-                  label: 'Issues possibles',
-                  subtitle: 'Issues locales pour cette étape',
+                  label: 'Issues',
+                  subtitle: 'Issues possibles pour cette étape',
                   onTap: () =>
                       onFocus(const StepFlowFocus(StepFlowSlot.localBranches)),
                 ),
@@ -110,8 +110,8 @@ class StepFlowPalette extends StatelessWidget {
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.doc_plaintext,
-                  label: 'Note de transition',
-                  subtitle: 'Mémo auteur — sans suite automatique',
+                  label: 'Transition',
+                  subtitle: 'Note de transition — mémo seulement',
                   onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.exitNext)),
                 ),
                 _paletteTile(
@@ -155,7 +155,7 @@ class StepFlowPalette extends StatelessWidget {
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.plus_circled,
-                  label: 'Ajouter un changement',
+                  label: 'Ajouter un changement sur la carte',
                   subtitle: 'Nouvelle ligne pour cette étape',
                   onTap: onAddWorldChange,
                   filled: true,

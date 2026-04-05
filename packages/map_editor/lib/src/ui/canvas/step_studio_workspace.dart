@@ -687,7 +687,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     final outcomes = selectedStep.outcomes;
     final label = switch (scope) {
       StepStudioOutcomeScope.local => 'Nouvelle issue',
-      StepStudioOutcomeScope.progression => 'Nouveau résultat d’histoire',
+      StepStudioOutcomeScope.progression => 'Nouveau résultat pour l’histoire',
       StepStudioOutcomeScope.world => 'Nouvel état du monde',
     };
     final outcome = StepStudioOutcomeDefinition(
@@ -1436,7 +1436,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Règle appliquée : ${summarizeStepActivation(selectedStep)}',
+                    'Règle actuelle : ${summarizeStepActivation(selectedStep)}',
                     style: TextStyle(
                       color: EditorChrome.primaryLabel(context),
                       fontSize: 12,
@@ -1467,7 +1467,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               title: 'Objectif',
               subtitle: 'Complément facultatif pour le parcours.',
               child: _InlineTextField(
-                label: 'Texte optionnel dans le parcours',
+                label: 'Texte affiché dans le parcours (facultatif)',
                 value: selectedStep.flowObjectiveLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1485,7 +1485,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final links = selectedStep.cutscenes;
         if (idx == null || idx < 0 || idx >= links.length) {
           return Text(
-            'Référence de scène introuvable.',
+            'Référence de la scène introuvable.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1548,7 +1548,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       case StepFlowSlot.cutscenesHub:
         final links = selectedStep.cutscenes;
         return _StepSectionCard(
-          title: 'Scènes pour cette étape',
+          title: 'Scènes liées',
           subtitle: 'Plusieurs références possibles — pas le contenu dialogué ici.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1604,7 +1604,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         return _StepSectionCard(
           title: 'Issues possibles',
           subtitle:
-              'Issues locales enregistrées — pas la mise en scène (Cutscene Studio).',
+              'Issues enregistrées pour cette étape — pas la mise en scène (Cutscene Studio).',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1657,7 +1657,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.local) {
           return Text(
-            'Ce n’est pas une issue locale.',
+            'Ce résultat n’est pas une issue de cette étape. Ouvrez « Issues possibles » sur le parcours.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1729,7 +1729,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.progression) {
           return Text(
-            'Choisissez un résultat d’histoire sur le parcours au centre.',
+            'Choisissez un résultat pour l’histoire sur le parcours au centre.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1767,13 +1767,12 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       case StepFlowSlot.exitNext:
         return _StepSectionCard(
           title: 'Note de transition',
-          subtitle:
-              'Mémo auteur uniquement : n’active rien automatiquement. Pas de suite imposée.',
+          subtitle: 'N’active rien automatiquement.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _InlineTextField(
-                label: 'Texte affiché dans le parcours (visible au centre)',
+                label: 'Texte affiché dans le parcours',
                 value: selectedStep.flowExitLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1785,7 +1784,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               const SizedBox(height: 10),
               _SimpleDropdown(
                 accent: EditorChrome.inspectorJoyCyan,
-                fieldLabel: 'Étape liée en mémo (n’active rien automatiquement)',
+                fieldLabel: 'Étape associée (mémo uniquement)',
                 options: previousStepOptions,
                 selectedId: selectedStep.flowUnlocksStepId,
                 emptyLabel: '— Aucune —',
@@ -2160,7 +2159,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             ),
           if (activation.mode == StepStudioActivationMode.whenFlagTrue)
             _InlineTextField(
-              label: 'État monde attendu',
+              label: 'État du monde attendu',
               value: activation.flagName ?? '',
               enabled: _canEdit,
               onChanged: (value) {
@@ -2204,13 +2203,13 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
     return _StepSectionCard(
       title: 'Condition de fin',
-      subtitle: 'Règle appliquée (indépendante du texte du parcours).',
+      subtitle: 'Règle actuelle (indépendante du texte du parcours).',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _EnumDropdown<StepStudioCompletionMode>(
             accent: EditorChrome.inspectorJoyBlue,
-            fieldLabel: 'Règle enregistrée',
+            fieldLabel: 'Condition de fin enregistrée',
             value: completion.mode,
             values: StepStudioCompletionMode.values,
             labelBuilder: stepStudioCompletionModeLabel,
@@ -2338,7 +2337,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               ),
             ),
             child: Text(
-              summarizeStepCompletion(selectedStep),
+              'Règle actuelle : ${summarizeStepCompletion(selectedStep)}',
               style: TextStyle(
                 color: EditorChrome.primaryLabel(context),
                 fontSize: 12,
@@ -2375,7 +2374,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           if (worldChanges.isEmpty)
             const _EmptySectionHint(
               text:
-                  'Aucun changement persistant. Exemple: Emma dehors invisible après la step, Emma labo visible.',
+                  'Aucun changement persistant. Exemple : Emma dehors invisible après l’étape, Emma labo visible.',
             ),
           // GARDE anti-boucle: même motif — `.asMap().entries` protège
           // contre l'oubli de `++` qui causait la boucle infinie build().
@@ -2436,7 +2435,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             child: InspectorEmbeddedSecondaryCapsule(
               accent: EditorChrome.inspectorJoyCyan,
               icon: CupertinoIcons.plus_circle_fill,
-              label: 'Ajouter un changement',
+              label: 'Ajouter un changement sur la carte',
               enabled: _canEdit && mapOptions.isNotEmpty,
               onPressed: () {
                 final defaultMapId = mapOptions.first.id;
@@ -2825,7 +2824,7 @@ class _CutsceneLinkRow extends StatelessWidget {
         children: [
           _EnumDropdown<StepStudioCutsceneRole>(
             accent: EditorChrome.inspectorJoyPlum,
-            fieldLabel: 'Rôle',
+            fieldLabel: 'Rôle de la scène',
             value: link.role,
             values: StepStudioCutsceneRole.values,
             labelBuilder: stepStudioCutsceneRoleLabel,

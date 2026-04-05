@@ -36,7 +36,7 @@ String stepStudioActivationModeLabel(StepStudioActivationMode mode) {
     StepStudioActivationMode.afterPreviousStep => 'Après l’étape précédente',
     StepStudioActivationMode.afterStep => 'Après une étape précise',
     StepStudioActivationMode.afterOutcome =>
-      'Après un résultat d’avancement de l’histoire',
+      'Après un résultat pour l’histoire',
     StepStudioActivationMode.afterCutscene => 'Après une scène',
     StepStudioActivationMode.whenFlagTrue =>
       'Quand un état du monde est vrai',
@@ -86,7 +86,7 @@ String stepStudioCutsceneRoleLabel(StepStudioCutsceneRole role) {
   };
 }
 
-/// Catégorie "humaine" d'un résultat de progression.
+/// Catégorie créateur d’un résultat (libellés UI : issue / histoire / état).
 enum StepStudioOutcomeScope {
   local,
   progression,
@@ -95,8 +95,8 @@ enum StepStudioOutcomeScope {
 
 String stepStudioOutcomeScopeLabel(StepStudioOutcomeScope scope) {
   return switch (scope) {
-    StepStudioOutcomeScope.local => 'Variante de cette étape',
-    StepStudioOutcomeScope.progression => 'Avancement de l’histoire',
+    StepStudioOutcomeScope.local => 'Issue de cette étape',
+    StepStudioOutcomeScope.progression => 'Résultat pour l’histoire',
     StepStudioOutcomeScope.world => 'État du monde',
   };
 }
@@ -104,8 +104,8 @@ String stepStudioOutcomeScopeLabel(StepStudioOutcomeScope scope) {
 /// Règles de présence persistante d'une entité après la step.
 ///
 /// Exemple produit:
-/// - Emma dehors visible avant validation de step.
-/// - Emma labo visible après validation.
+/// - Emma dehors visible avant la fin de l’étape.
+/// - Emma labo visible après la fin de l’étape.
 enum StepStudioPresenceRule {
   visibleBeforeStepCompletion,
   visibleAfterStepCompletion,

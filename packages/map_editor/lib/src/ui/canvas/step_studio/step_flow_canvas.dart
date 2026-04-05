@@ -70,7 +70,7 @@ class StepFlowCanvas extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               'Les scènes se conçoivent dans Cutscene Studio. '
-              'L’ordre sur le fil aide à lire l’étape ; ce n’est pas toujours un enchaînement strict dans le jeu.',
+              'L’ordre du parcours aide à lire l’étape ; ce n’est pas toujours un enchaînement strict dans le jeu.',
               style: TextStyle(
                 color: EditorChrome.subtleLabel(context),
                 fontSize: 11,
@@ -83,7 +83,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.flowEntry),
               accent: EditorChrome.inspectorJoyMint,
               icon: CupertinoIcons.arrow_right_circle,
-              title: 'Quand l’étape devient disponible',
+              title: 'Quand ça commence',
               body: step.flowEntryLabel.trim().isEmpty
                   ? Text(
                       summarizeStepActivation(step),
@@ -110,7 +110,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.objective),
               accent: EditorChrome.inspectorJoyAmber,
               icon: CupertinoIcons.scope,
-              title: 'Ce que le joueur doit faire',
+              title: 'Objectif',
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -135,7 +135,7 @@ class StepFlowCanvas extends StatelessWidget {
               ),
             ),
             _connector(context),
-            _sectionTitle(context, 'Quelles scènes servent cette étape'),
+            _sectionTitle(context, 'Scènes liées'),
             const SizedBox(height: 8),
             if (step.cutscenes.isEmpty)
               _emptyHint(
@@ -232,12 +232,12 @@ class StepFlowCanvas extends StatelessWidget {
                     ),
             ),
             _connector(context),
-            _sectionTitle(context, 'Ce que ça débloque pour l’histoire'),
+            _sectionTitle(context, 'Résultats pour l’histoire'),
             const SizedBox(height: 8),
             if (progs.isEmpty)
               _emptyHint(
                 context,
-                'Aucun résultat enregistré pour faire avancer l’histoire du jeu.',
+                'Aucun résultat pour l’histoire enregistré pour l’instant.',
               )
             else
               for (var i = 0; i < progs.length; i++) ...[
@@ -273,7 +273,7 @@ class StepFlowCanvas extends StatelessWidget {
                     )
                   : _emptyHint(
                       context,
-                      'Texte libre (facultatif). Mémo d’une autre étape : panneau de droite — sans effet automatique.',
+                      'Texte libre (facultatif). Mémo seulement : rien ne s’enclenche tout seul.',
                     ),
             ),
             _connector(context),
