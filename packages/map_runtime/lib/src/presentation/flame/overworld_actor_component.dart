@@ -43,6 +43,10 @@ class OverworldActorComponent extends PositionComponent {
   EntityFacing _facing;
   CharacterAnimationState _animState;
   double _animElapsed = 0.0;
+  /// Vrai si on affiche une anim « idle » (ou peu de frames) pendant un pas
+  /// alors que l’état logique demande marche/course — léger bob pour éviter
+  /// l’effet « lévitation » quand le tileset n’a pas de strip walk pour cette direction.
+  bool _strideBobActive = false;
 
   // --- Déplacement grille interpolé (base cutscene runtime) -----------------
   //
@@ -170,7 +174,9 @@ class OverworldActorComponent extends PositionComponent {
       _renderFallback(canvas);
       return;
     }
-    final frame = _pickFrame(anim.frames);
+    final strideTimeScale =
+        _strideBobActive && anim.frames.length <= 3 ? 2.4 : 1.0;
+    final frame = _pickFrame(anim.frames, timeScale: strideTimeScale);
     final src = frame.source;
     final srcW = _frameWidthTiles * _tileWidth;
     final srcH = _frameHeightTiles * _tileHeight;
@@ -184,27 +190,110 @@ class OverworldActorComponent extends PositionComponent {
       _renderFallback(canvas);
       return;
     }
+    final bobY = _strideBobActive
+        ? math.sin(_animElapsed * math.pi * 2 * 5.5) *
+            (0.04 * math.min(_cellHeight, _cellWidth))
+        : 0.0;
+    canvas.save();
+    canvas.translate(0, bobY);
     canvas.drawImageRect(
       image,
       srcRect,
       Rect.fromLTWH(0, 0, size.x, size.y),
       Paint()..filterQuality = FilterQuality.none,
     );
+    canvas.restore();
   }
+
+  static bool _hasFrames(CharacterAnimation? a) =>
+      a != null && a.frames.isNotEmpty;
 
   CharacterAnimation? _findAnimation() {
-    CharacterAnimation? idleFallback;
+    _strideBobActive = false;
+
+    CharacterAnimation? exactFacing;
+    CharacterAnimation? idleFacing;
+    CharacterAnimation? walkFacing;
+    CharacterAnimation? runFacing;
+    CharacterAnimation? walkAny;
+    CharacterAnimation? runAny;
+    CharacterAnimation? idleAny;
+
     for (final a in character.animations) {
-      if (a.direction != _facing) continue;
-      if (a.state == _animState) return a;
-      if (a.state == CharacterAnimationState.idle) idleFallback = a;
+      if (!_hasFrames(a)) continue;
+      if (a.direction == _facing) {
+        if (a.state == _animState) exactFacing = a;
+        switch (a.state) {
+          case CharacterAnimationState.idle:
+            idleFacing = a;
+            break;
+          case CharacterAnimationState.walk:
+            walkFacing = a;
+            break;
+          case CharacterAnimationState.run:
+            runFacing = a;
+            break;
+        }
+      } else {
+        switch (a.state) {
+          case CharacterAnimationState.walk:
+            walkAny ??= a;
+            break;
+          case CharacterAnimationState.run:
+            runAny ??= a;
+            break;
+          case CharacterAnimationState.idle:
+            idleAny ??= a;
+            break;
+        }
+      }
     }
-    return idleFallback;
+
+    if (_hasFrames(exactFacing)) {
+      return exactFacing;
+    }
+
+    final wantsMotion = _animState == CharacterAnimationState.walk ||
+        _animState == CharacterAnimationState.run;
+
+    if (wantsMotion) {
+      final List<CharacterAnimation?> cascade = _animState ==
+              CharacterAnimationState.walk
+          ? <CharacterAnimation?>[
+              walkFacing,
+              runFacing,
+              walkAny,
+              runAny,
+              idleFacing,
+              idleAny,
+            ]
+          : <CharacterAnimation?>[
+              runFacing,
+              walkFacing,
+              runAny,
+              walkAny,
+              idleFacing,
+              idleAny,
+            ];
+
+      for (final candidate in cascade) {
+        if (!_hasFrames(candidate)) continue;
+        if (candidate!.state == CharacterAnimationState.idle && isStepping) {
+          _strideBobActive = true;
+        }
+        return candidate;
+      }
+    }
+
+    return idleFacing ?? idleAny;
   }
 
-  CharacterAnimationFrame _pickFrame(List<CharacterAnimationFrame> frames) {
+  CharacterAnimationFrame _pickFrame(
+    List<CharacterAnimationFrame> frames, {
+    double timeScale = 1.0,
+  }) {
     if (frames.length == 1) return frames.first;
-    final elapsedMs = (_animElapsed * 1000).toInt();
+    final elapsedMs = (_animElapsed * 1000 * timeScale).toInt();
     var total = 0;
     for (final f in frames) {
       total += f.durationMs;

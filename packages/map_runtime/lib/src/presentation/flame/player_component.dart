@@ -107,6 +107,10 @@ class PlayerComponent extends PositionComponent {
         _moveFrom = null;
         _moveTo = null;
         _moveRemaining = 0.0;
+        _actor?.setMotion(
+          EntityFacing.values.byName(_state.facing.name),
+          CharacterAnimationState.idle,
+        );
       }
     }
   }
