@@ -275,5 +275,40 @@ void main() {
         isTrue,
       );
     });
+
+    test('removeCutsceneFlowBlockEntryWithId removes blocks and whole choices', () {
+      final flow = <CutsceneFlowEntry>[
+        const CutsceneFlowBlockEntry(
+          CutsceneStudioBlock(id: 'a', kind: CutsceneStudioBlockKind.dialogue),
+        ),
+        CutsceneFlowChoiceEntry(
+          question: const CutsceneStudioBlock(
+            id: 'q',
+            kind: CutsceneStudioBlockKind.playerQuestion,
+          ),
+          onYes: const <CutsceneFlowEntry>[
+            CutsceneFlowBlockEntry(
+              CutsceneStudioBlock(
+                id: 'y',
+                kind: CutsceneStudioBlockKind.narration,
+              ),
+            ),
+          ],
+          onNo: const <CutsceneFlowEntry>[],
+        ),
+      ];
+      final withoutY = removeCutsceneFlowBlockEntryWithId(flow, 'y');
+      expect(withoutY.length, 2);
+      final choice = withoutY[1] as CutsceneFlowChoiceEntry;
+      expect(choice.onYes, isEmpty);
+
+      final withoutQ = removeCutsceneFlowBlockEntryWithId(flow, 'q');
+      expect(withoutQ.length, 1);
+      expect(withoutQ.single, isA<CutsceneFlowBlockEntry>());
+
+      final withoutA = removeCutsceneFlowBlockEntryWithId(flow, 'a');
+      expect(withoutA.length, 1);
+      expect(withoutA.single, isA<CutsceneFlowChoiceEntry>());
+    });
   });
 }

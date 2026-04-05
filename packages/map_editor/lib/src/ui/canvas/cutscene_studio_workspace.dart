@@ -350,6 +350,23 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     );
   }
 
+  void _removeSelectedBlockFromFlow() {
+    final id = _selectedBlockId;
+    final d = _draftDocument;
+    if (id == null || d == null || !_canEdit) return;
+    final next = removeCutsceneFlowBlockEntryWithId(
+      effectiveCutsceneFlowForDocument(d),
+      id,
+    );
+    setState(() {
+      _selectedBlockId = null;
+      _draftDocument = d.copyWith(
+        cutsceneFlow: next,
+        blocks: flattenMainTrunkFlowToBlocks(next),
+      );
+    });
+  }
+
   void _replaceBlockById(String id, CutsceneStudioBlock next) {
     final d = _draftDocument;
     if (d == null || !_canEdit) return;
@@ -704,16 +721,46 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         style: TextStyle(color: EditorChrome.subtleLabel(context)),
       );
     }
+    final destructive = CupertinoColors.destructiveRed.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          cutsceneStudioBlockKindLabel(block.kind),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: EditorChrome.primaryLabel(context),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                cutsceneStudioBlockKindLabel(block.kind),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: EditorChrome.primaryLabel(context),
+                ),
+              ),
+            ),
+            if (_canEdit)
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.only(left: 8, right: 0, top: 0, bottom: 0),
+                minimumSize: Size.zero,
+                onPressed: _removeSelectedBlockFromFlow,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.trash, size: 16, color: destructive),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Retirer',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: destructive,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 10),
         _buildBlockEditor(

@@ -16,8 +16,9 @@
 // - **Droite** : configuration **contextuelle** du bloc sélectionné. Le centre
 //   montre un **résumé** ; le détail vit ici (principe séparation composition /
 //   inspection, comme dans un outil no-code sérieux).
-// - **Suppression cutscene** : action sur la ligne dans la liste gauche du mode
-//   Cutscene ([NarrativeWorkspaceCanvas]), pas dans cette colonne.
+// - **Suppression d’une cutscene entière** : liste des scénarios ([NarrativeWorkspaceCanvas]).
+// - **Suppression d’une étape** : corbeille sur chaque carte du flow + bouton « Retirer »
+//   dans l’inspecteur quand un bloc est sélectionné.
 // - **Poignées** entre les trois colonnes : redimensionnement horizontal (curseur
 //   « resize column »), avec garde-fous min/max pour la palette, la scène et les propriétés.
 //
@@ -25,6 +26,7 @@
 // - Palette → tronc : [insertMainFlowEntryAt] après drop sur une fente du fil principal.
 // - Réordonnancement tronc : [moveMainFlowEntry].
 // - Branche Oui / Non : [insertIntoChoiceBranch] (index du choix sur le tronc connu).
+// - Suppression : [removeCutsceneFlowBlockEntryWithId] (icône corbeille sur la carte + inspecteur).
 // Payloads UI : [CutsceneStudioPaletteDragData], [CutsceneCanvasReorderDragData].
 // Les [DragTarget] acceptent l’union des deux pour un seul type de « fente ».
 //
@@ -36,7 +38,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Material;
+import 'package:flutter/material.dart' show Material, Tooltip;
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../../features/narrative/application/cutscene_studio_authoring.dart';
@@ -323,6 +325,16 @@ class _CutsceneStudioWorkbenchState extends State<CutsceneStudioWorkbench> {
     widget.onSelectBlock(block.id);
   }
 
+  void _removeFlowStep(String blockOrQuestionId) {
+    if (!widget.canEdit) return;
+    final next =
+        removeCutsceneFlowBlockEntryWithId(widget.flow, blockOrQuestionId);
+    widget.onCommitFlow(next);
+    if (widget.selectedBlockId == blockOrQuestionId) {
+      widget.onSelectBlock(null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bg = EditorChrome.largeIslandSurfaceColor(
@@ -411,6 +423,7 @@ class _CutsceneStudioWorkbenchState extends State<CutsceneStudioWorkbench> {
                           flowSummaryBuilder: widget.flowSummaryBuilder,
                           onDropMain: _acceptDropOnMain,
                           onDropBranch: _acceptDropOnBranch,
+                          onRemoveFlowStep: _removeFlowStep,
                         ),
                       ),
                       _CutsceneWorkbenchHorizontalSplitter(
@@ -922,6 +935,7 @@ class _FlowCanvasColumn extends StatelessWidget {
     required this.flowSummaryBuilder,
     required this.onDropMain,
     required this.onDropBranch,
+    required this.onRemoveFlowStep,
   });
 
   final List<CutsceneFlowEntry> flow;
@@ -936,6 +950,7 @@ class _FlowCanvasColumn extends StatelessWidget {
     required int branchInsertIndex,
     Object? data,
   }) onDropBranch;
+  final ValueChanged<String> onRemoveFlowStep;
 
   @override
   Widget build(BuildContext context) {
@@ -987,6 +1002,7 @@ class _FlowCanvasColumn extends StatelessWidget {
                       flowSummaryBuilder: flowSummaryBuilder,
                       onDropMain: onDropMain,
                       onDropBranch: onDropBranch,
+                      onRemoveFlowStep: onRemoveFlowStep,
                     ),
                     _FlowConnector(),
                     _MainDropSlot(
@@ -1133,6 +1149,7 @@ class _FlowMainEntry extends StatelessWidget {
     required this.flowSummaryBuilder,
     required this.onDropMain,
     required this.onDropBranch,
+    required this.onRemoveFlowStep,
   });
 
   final CutsceneFlowEntry entry;
@@ -1148,6 +1165,7 @@ class _FlowMainEntry extends StatelessWidget {
     required int branchInsertIndex,
     Object? data,
   }) onDropBranch;
+  final ValueChanged<String> onRemoveFlowStep;
 
   @override
   Widget build(BuildContext context) {
@@ -1161,6 +1179,8 @@ class _FlowMainEntry extends StatelessWidget {
             selected: selectedBlockId == block.id,
             onTap: () => onSelectBlock(block.id),
             subtitle: flowSummaryBuilder(block),
+            canEdit: canEdit,
+            onDelete: () => onRemoveFlowStep(block.id),
           ),
         );
       case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
@@ -1172,6 +1192,8 @@ class _FlowMainEntry extends StatelessWidget {
               selected: selectedBlockId == question.id,
               onTap: () => onSelectBlock(question.id),
               subtitle: flowSummaryBuilder(question),
+              canEdit: canEdit,
+              onDelete: () => onRemoveFlowStep(question.id),
             ),
             const SizedBox(height: 8),
             _BranchColumn(
@@ -1184,6 +1206,7 @@ class _FlowMainEntry extends StatelessWidget {
               onSelectBlock: onSelectBlock,
               flowSummaryBuilder: flowSummaryBuilder,
               onDropBranch: onDropBranch,
+              onRemoveFlowStep: onRemoveFlowStep,
             ),
             const SizedBox(height: 8),
             _BranchColumn(
@@ -1196,6 +1219,7 @@ class _FlowMainEntry extends StatelessWidget {
               onSelectBlock: onSelectBlock,
               flowSummaryBuilder: flowSummaryBuilder,
               onDropBranch: onDropBranch,
+              onRemoveFlowStep: onRemoveFlowStep,
             ),
           ],
         );
@@ -1223,6 +1247,7 @@ class _BranchColumn extends StatelessWidget {
     required this.onSelectBlock,
     required this.flowSummaryBuilder,
     required this.onDropBranch,
+    required this.onRemoveFlowStep,
   });
 
   final String label;
@@ -1239,6 +1264,7 @@ class _BranchColumn extends StatelessWidget {
     required int branchInsertIndex,
     Object? data,
   }) onDropBranch;
+  final ValueChanged<String> onRemoveFlowStep;
 
   @override
   Widget build(BuildContext context) {
@@ -1295,6 +1321,7 @@ class _BranchColumn extends StatelessWidget {
                     selectedBlockId: selectedBlockId,
                     onSelectBlock: onSelectBlock,
                     flowSummaryBuilder: flowSummaryBuilder,
+                    onRemoveFlowStep: onRemoveFlowStep,
                   ),
                   _BranchDropSlot(
                     enabled: canEdit,
@@ -1320,6 +1347,7 @@ class _BranchInnerEntry extends StatelessWidget {
     required this.selectedBlockId,
     required this.onSelectBlock,
     required this.flowSummaryBuilder,
+    required this.onRemoveFlowStep,
   });
 
   final CutsceneFlowEntry entry;
@@ -1327,6 +1355,7 @@ class _BranchInnerEntry extends StatelessWidget {
   final String? selectedBlockId;
   final ValueChanged<String?> onSelectBlock;
   final String Function(CutsceneStudioBlock block) flowSummaryBuilder;
+  final ValueChanged<String> onRemoveFlowStep;
 
   @override
   Widget build(BuildContext context) {
@@ -1339,6 +1368,8 @@ class _BranchInnerEntry extends StatelessWidget {
             selected: selectedBlockId == block.id,
             onTap: () => onSelectBlock(block.id),
             subtitle: flowSummaryBuilder(block),
+            canEdit: canEdit,
+            onDelete: () => onRemoveFlowStep(block.id),
           ),
         );
       case CutsceneFlowChoiceEntry(:final question):
@@ -1456,24 +1487,42 @@ class _SelectableFlowBlock extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.subtitle,
+    required this.canEdit,
+    required this.onDelete,
   });
 
   final CutsceneStudioBlock block;
   final bool selected;
   final VoidCallback onTap;
   final String subtitle;
+  final bool canEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final accent = _familyAccent(block.kind);
-    return GestureDetector(
+    final destructive = CupertinoColors.destructiveRed.resolveFrom(context);
+    return _FlowBlockCard(
+      title: cutsceneStudioBlockKindLabel(block.kind),
+      subtitle: subtitle,
+      selected: selected,
+      accent: accent,
       onTap: onTap,
-      child: _FlowBlockCard(
-        title: cutsceneStudioBlockKindLabel(block.kind),
-        subtitle: subtitle,
-        selected: selected,
-        accent: accent,
-      ),
+      trailing: canEdit
+          ? Tooltip(
+              message: 'Retirer du scénario',
+              child: CupertinoButton(
+                padding: const EdgeInsets.all(6),
+                minimumSize: Size.zero,
+                onPressed: onDelete,
+                child: Icon(
+                  CupertinoIcons.trash,
+                  size: 18,
+                  color: destructive,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
@@ -1484,55 +1533,81 @@ class _FlowBlockCard extends StatelessWidget {
     required this.subtitle,
     required this.selected,
     required this.accent,
+    this.onTap,
+    this.trailing,
   });
 
   final String title;
   final String subtitle;
   final bool selected;
   final Color accent;
+  final VoidCallback? onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final textColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: EditorChrome.primaryLabel(context),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: EditorChrome.subtleLabel(context),
+          ),
+        ),
+      ],
+    );
+
+    final main = onTap != null
+        ? GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: textColumn,
+          )
+        : textColumn;
+
+    final inner = trailing == null
+        ? main
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: main),
+              const SizedBox(width: 4),
+              trailing!,
+            ],
+          );
+
     return AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected
-                ? accent.withValues(alpha: 0.75)
-                : CupertinoColors.separator.resolveFrom(context),
-            width: selected ? 1.6 : 1,
-          ),
-          color: EditorChrome.largeIslandSurfaceColor(
-            context,
-            tint: accent.withValues(alpha: selected ? 0.12 : 0.05),
-          ),
+      duration: const Duration(milliseconds: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: selected
+              ? accent.withValues(alpha: 0.75)
+              : CupertinoColors.separator.resolveFrom(context),
+          width: selected ? 1.6 : 1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: EditorChrome.primaryLabel(context),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: EditorChrome.subtleLabel(context),
-              ),
-            ),
-          ],
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: accent.withValues(alpha: selected ? 0.12 : 0.05),
         ),
+      ),
+      child: inner,
     );
   }
 }

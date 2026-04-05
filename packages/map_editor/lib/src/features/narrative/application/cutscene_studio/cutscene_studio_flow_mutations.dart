@@ -53,7 +53,10 @@ List<CutsceneFlowEntry> replaceCutsceneBlockByIdInFlow(
   return walk(flow);
 }
 
-/// Supprime un bloc simple du flux (pas un bloc « question » d’un embranchement).
+/// Retire du flux :
+/// - tout [CutsceneFlowBlockEntry] dont [CutsceneStudioBlock.id] == [blockId] ;
+/// - tout [CutsceneFlowChoiceEntry] dont [question.id] == [blockId] (embranchement entier) ;
+/// — récursivement dans les branches Oui / Non.
 List<CutsceneFlowEntry> removeCutsceneFlowBlockEntryWithId(
   List<CutsceneFlowEntry> flow,
   String blockId,
@@ -63,8 +66,13 @@ List<CutsceneFlowEntry> removeCutsceneFlowBlockEntryWithId(
     for (final entry in list) {
       switch (entry) {
         case CutsceneFlowBlockEntry(:final block):
-          if (block.id != blockId) out.add(entry);
+          if (block.id != blockId) {
+            out.add(entry);
+          }
         case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
+          if (question.id == blockId) {
+            continue;
+          }
           out.add(
             CutsceneFlowChoiceEntry(
               question: question,
