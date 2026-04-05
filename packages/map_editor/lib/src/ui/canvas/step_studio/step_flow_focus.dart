@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 
 // -----------------------------------------------------------------------------
-// Step Studio — focalisation inspecteur (logique métier, pas exécution scène)
+// StepFlowFocus — lien canvas ⇄ inspecteur (polish final)
 // -----------------------------------------------------------------------------
 //
-// StepFlowFocus relie le canvas central (blocs de progression) au panneau
-// droit. Ce n’est **pas** un nœud de graphe runtime : aucun lien avec les
-// blocs Dialogue / Move / Caméra de Cutscene Studio.
+// Un slot = « quelle partie de l’étape on détaille à droite ». Ce n’est pas un
+// nœud d’exécution Cutscene (pas de Dialogue / Move / Caméra ici).
 //
-// Chaque [StepFlowSlot] correspond à une **responsabilité Step** décrite dans
-// le rapport produit (entrée, objectif, cutscenes liées, branches locales, etc.).
+// Garde-fou revue : ne pas renommer les valeurs d’enum pour coller au texte UI —
+// elles sont des identifiants stables dans le code. En revanche, titres et
+// libellés affichés (`StepFlowCanvas`, palette, inspecteur) suivent le vocabulaire
+// créateur (voir `step_studio_polish_final.md`).
 
 /// Zone logique du flux Step affichée sur le canvas vertical.
 enum StepFlowSlot {
@@ -19,7 +20,7 @@ enum StepFlowSlot {
   /// Objectif : identité step (`name` / `description`) + `flowObjectiveLabel` optionnel.
   objective,
 
-  /// Une ligne de [StepStudioCutsceneLink] — on configure le rôle et l’id, pas le contenu.
+  /// Une ligne de lien cutscene (id + rôle) — pas le contenu de la scène.
   cutsceneLink,
 
   /// Outcomes scope **local** : variante métier documentée (pas un nœud Cutscene).
@@ -34,7 +35,7 @@ enum StepFlowSlot {
   /// Édition d’un outcome scope `progression`.
   progressionOutcome,
 
-  /// Notes sortie : `flowExitLabel` sur canvas ; `flowUnlocksStepId` seulement ici.
+  /// Après l’étape : `flowExitLabel` sur le fil ; mémo d’autre étape (`flowUnlocksStepId`) inspecteur seulement.
   exitNext,
 
   /// Changements monde persistants liés à la progression.
@@ -51,7 +52,7 @@ class StepFlowFocus {
 
   final StepFlowSlot slot;
 
-  /// Index dans [StepStudioStep.cutscenes], outcomes filtrés, ou worldChanges.
+  /// Index dans `cutscenes`, filtrage `outcomes`, ou `worldChanges`.
   final int? listIndex;
 
   @override

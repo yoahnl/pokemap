@@ -4,7 +4,7 @@ import 'package:map_editor/src/features/narrative/application/step_studio_author
 import 'package:map_editor/src/ui/canvas/step_studio/step_flow_canvas.dart';
 
 void main() {
-  group('StepFlowCanvas (passe 3 — honnêteté UX)', () {
+  group('StepFlowCanvas (polish final — titres & honnêteté)', () {
     /// `flowUnlocksStepId` reste dans le JSON mais ne doit pas apparaître sur le
     /// canvas : c’était un signal « faux lien » vers une step suivante.
     testWidgets('does not display flowUnlocksStepId on canvas', (tester) async {
@@ -71,6 +71,38 @@ void main() {
       );
 
       expect(find.text(exitText), findsOneWidget);
+    });
+
+    testWidgets('uses creator-facing titles on canvas', (tester) async {
+      final step = StepStudioStep(
+        id: 'step_c',
+        name: 'C',
+        description: '',
+        order: 0,
+        activation: const StepStudioActivationRule(
+          mode: StepStudioActivationMode.atGameStart,
+        ),
+        completion: const StepStudioCompletionRule(
+          mode: StepStudioCompletionMode.manual,
+        ),
+      );
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: StepFlowCanvas(
+              step: step,
+              selected: null,
+              onSelect: (_) {},
+              resolveCutsceneName: (id) => id,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Cette étape'), findsOneWidget);
+      expect(find.text('Après cette étape'), findsOneWidget);
+      expect(find.text('Quand ça commence'), findsOneWidget);
     });
   });
 }

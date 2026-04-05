@@ -507,6 +507,9 @@ class StepStudioStep {
   //
   // Uniquement : sérialisation JSON + affichage Step Studio. Pas de lecture
   // gameplay dans ce repo. Ne pas traiter comme « vérité runtime ».
+  //
+  // Vocabulaire UI (fil, variante, phrase…) = confort créateur ; les noms de
+  // propriétés Dart / clés JSON restent `flow*` pour stabilité des sauvegardes.
 
   /// Note auteur sur le canvas : « quand cette étape commence » (langage humain).
   /// Le résumé technique affiché à côté vient de [activation], pas de ce texte.

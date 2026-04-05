@@ -31,8 +31,9 @@ import 'step_studio/step_flow_palette.dart';
 // sont des **annotations auteur** (voir `step_studio_authoring.dart`), pas une
 // couche runtime.
 //
-// Passe 3 : le canvas (`StepFlowCanvas`) n’affiche plus `flowUnlocksStepId` pour
-// éviter un faux « lien » visuel ; le mémo reste éditable dans l’inspecteur.
+// Passe 3 / polish final : le canvas n’affiche pas `flowUnlocksStepId` (faux « lien »
+// entre étapes). Polish final : libellés orientés **créateur** ; les noms de champs
+// JSON (`flow*`, `activation`…) restent techniques dans le code et l’authoring.
 
 /// Workspace central **Step Studio** — logique de progression d’une étape.
 ///
@@ -1351,7 +1352,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           const SizedBox(height: 10),
           const InspectorEmbeddedFootnote(
             text:
-                'Notes « flux » = auteur. Règles structurées : activation, completion, outcomes, cutscenes.',
+                'Les phrases sur le fil = aide à la lecture. Les réglages précis (début, fin, scènes liées, choix, carte) sont enregistrés pour l’étape.',
             accent: EditorChrome.inspectorJoyCyan,
           ),
         ],
@@ -1359,7 +1360,10 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     );
   }
 
-  /// Panneau droit : détail du bloc sélectionné sur le canvas (données Step).
+  /// Panneau droit : tout ce qu’on peut **éditer** pour la carte sélectionnée.
+  /// Mélange honnête de phrases d’aide (`flow*`) et de réglages enregistrés
+  /// (`activation`, `completion`, listes). Ne pas présenter les `flow*` comme
+  /// seuls pilotes du jeu — voir commentaires par section.
   Widget _buildFlowInspectorColumn(
     BuildContext context, {
     required StepStudioStep selectedStep,
@@ -1376,8 +1380,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       child: focus == null
           ? Center(
               child: Text(
-                'Sélectionnez une carte du flux ou un raccourci à gauche.\n'
-                'Pas de mise en scène ici (Cutscene Studio).',
+                'Touchez une carte au centre ou un raccourci à gauche.\n'
+                'Les dialogues et la caméra se règlent dans Cutscene Studio.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: EditorChrome.subtleLabel(context),
@@ -1415,14 +1419,14 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _StepSectionCard(
-              title: 'Entrée & activation',
+              title: 'Début de l’étape',
               subtitle:
-                  'Champ ci-dessous : note auteur (canvas). Section suivante : activation (structurée).',
+                  'Phrase facultative sur le fil ; en dessous, le vrai réglage « quand cette étape devient active ».',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _InlineTextField(
-                    label: 'Note (canvas), pas une règle runtime',
+                    label: 'Phrase sur le fil (facultative)',
                     value: selectedStep.flowEntryLabel,
                     enabled: _canEdit,
                     minLines: 2,
@@ -1433,7 +1437,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Activation : ${summarizeStepActivation(selectedStep)}',
+                    'Réglage enregistré : ${summarizeStepActivation(selectedStep)}',
                     style: TextStyle(
                       color: EditorChrome.primaryLabel(context),
                       fontSize: 12,
@@ -1463,9 +1467,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             _StepSectionCard(
               title: 'Objectif',
               subtitle:
-                  'Identité = nom + description. Ligne suivante = note canvas optionnelle.',
+                  'Le titre et le texte décrivent l’étape ; la ligne suivante ne fait que compléter le fil.',
               child: _InlineTextField(
-                label: 'Ligne canvas (optionnel, note auteur)',
+                label: 'Phrase optionnelle sur le fil',
                 value: selectedStep.flowObjectiveLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1483,7 +1487,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final links = selectedStep.cutscenes;
         if (idx == null || idx < 0 || idx >= links.length) {
           return Text(
-            'Lien cutscene introuvable.',
+            'Référence de scène introuvable.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1492,8 +1496,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _StepSectionCard(
-              title: 'Cutscene (référence)',
-              subtitle: 'Id + rôle. Contenu scène : Cutscene Studio.',
+              title: 'Scène liée',
+              subtitle:
+                  'Quelle cutscene jouer et dans quel rôle. Le contenu se modifie dans Cutscene Studio.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -1545,9 +1550,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
       case StepFlowSlot.localBranches:
         return _StepSectionCard(
-          title: 'Outcomes locaux',
+          title: 'Variantes possibles',
           subtitle:
-              'Donnée structurée : liste outcomes (scope local). Pas une branche d’exécution scène.',
+              'Liste des issues enregistrées pour cette étape — ce n’est pas le graphe de la cutscene.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1583,7 +1588,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               InspectorEmbeddedSecondaryCapsule(
                 accent: EditorChrome.inspectorJoyOrchid,
                 icon: CupertinoIcons.plus_circle_fill,
-                label: 'Ajouter un résultat local',
+                label: 'Ajouter une variante',
                 enabled: _canEdit,
                 onPressed: () => _appendOutcome(StepStudioOutcomeScope.local),
               ),
@@ -1600,7 +1605,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.local) {
           return Text(
-            'Ce résultat n’est pas de portée locale.',
+            'Ce n’est pas une variante locale.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1640,10 +1645,11 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _StepSectionCard(
-              title: 'Validation',
-              subtitle: 'Note auteur puis règle completion (structurée).',
+              title: 'Fin de l’étape',
+              subtitle:
+                  'Phrase facultative sur le fil ; en dessous, comment l’étape se termine vraiment.',
               child: _InlineTextField(
-                label: 'Note (canvas), pas la règle seule',
+                label: 'Phrase sur le fil (facultative)',
                 value: selectedStep.flowValidationLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1672,7 +1678,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.progression) {
           return Text(
-            'Sélectionnez un résultat « Progression » sur le canvas.',
+            'Choisissez un « résultat pour l’histoire » sur le fil au centre.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1709,14 +1715,14 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
       case StepFlowSlot.exitNext:
         return _StepSectionCard(
-          title: 'Notes sortie',
+          title: 'Après cette étape',
           subtitle:
-              'Annotation + mémo id. Aucun des deux ne débloque une step (voir activation de la step cible).',
+              'Texte libre + rappel d’une autre étape du même scénario. Rien ici n’ouvre automatiquement une suite — chaque étape s’active selon ses propres réglages.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _InlineTextField(
-                label: 'Texte (visible sur le canvas)',
+                label: 'Phrase sur le fil (visible au centre)',
                 value: selectedStep.flowExitLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1728,7 +1734,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               const SizedBox(height: 10),
               _SimpleDropdown(
                 accent: EditorChrome.inspectorJoyCyan,
-                fieldLabel: 'Mémo : id d’une autre step (éditeur, sans effet runtime)',
+                fieldLabel:
+                    'Rappel personnel : autre étape du scénario (sans effet automatique)',
                 options: previousStepOptions,
                 selectedId: selectedStep.flowUnlocksStepId,
                 emptyLabel: '— Aucune —',
@@ -1927,14 +1934,14 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
   Widget _buildIdentitySection(
       BuildContext context, StepStudioStep selectedStep) {
     return _StepSectionCard(
-      title: '1. Identité',
+      title: '1. Fiche de l’étape',
       subtitle:
-          'Cette fiche décrit l’objectif métier de la step. Les IDs restent secondaires.',
+          'Titre et texte : ce que le joueur comprend de cette partie du jeu.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _InlineTextField(
-            label: 'Nom de la step',
+            label: 'Nom de l’étape',
             value: selectedStep.name,
             enabled: _canEdit,
             onChanged: (value) {

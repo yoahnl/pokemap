@@ -4,22 +4,16 @@ import '../../shared/cupertino_editor_widgets.dart';
 import 'step_flow_focus.dart';
 
 // -----------------------------------------------------------------------------
-// Palette gauche — « briques métier » Step Studio
+// Palette gauche — Step Studio (polish final, langage créateur)
 // -----------------------------------------------------------------------------
 //
-// IMPORTANT PRODUIT (à ne pas violer) :
-// - Ici : entrée, objectif, validation, outcomes, liens cutscene, monde.
-// - Pas ici : dialogue, déplacement PNJ, caméra, wait, pathfinding.
-//   Ces derniers vivent exclusivement dans Cutscene Studio.
+// Chaque tuile doit avoir un sens **immédiat** pour quelqu’un qui ne code pas.
+// En interne, une tuile ouvre l’inspecteur sur une vraie liste du modèle
+// (`cutscenes`, `outcomes`, `worldChanges`, etc.) ou ajoute une ligne — jamais
+// un gadget sans donnée derrière.
 //
-// La palette ne crée pas de nœuds d’exécution : elle oriente la créatrice
-// vers les bons champs **ou** déclenche l’ajout d’éléments de données Step
-// (ex. nouvelle cutscene liée = nouvelle entrée dans `cutscenes`).
-//
-// Chaque tuile correspond soit à un focus inspecteur (données réelles), soit à
-// un ajout de liste (`cutscenes`, `outcomes`, `worldChanges`). Aucune tuile
-// purement « décorative » : si une action n’existe pas dans le modèle, elle
-// n’a pas sa place ici.
+// INTERDIT ici (Cutscene Studio uniquement) : dialogue, déplacement PNJ,
+// caméra, timing, pathfinding.
 
 /// Colonne gauche : raccourcis vers les zones du flux et actions d’ajout.
 class StepFlowPalette extends StatelessWidget {
@@ -63,7 +57,7 @@ class StepFlowPalette extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Focus ou ajout dans le modèle.',
+            'Ouvrir un détail ou ajouter quelque chose à l’étape.',
             style: TextStyle(
               color: EditorChrome.subtleLabel(context),
               fontSize: 10,
@@ -78,44 +72,44 @@ class StepFlowPalette extends StatelessWidget {
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.arrow_right_circle,
-                  label: 'Entrée & activation',
-                  subtitle: 'Note + règle activation',
+                  label: 'Début de l’étape',
+                  subtitle: 'Phrase sur le fil + quand l’étape s’active',
                   onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.flowEntry)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.scope,
                   label: 'Objectif',
-                  subtitle: 'Fiche + ligne canvas optionnelle',
+                  subtitle: 'Titre, texte et phrase optionnelle sur le fil',
                   onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.objective)),
                 ),
                 const SizedBox(height: 10),
-                _PaletteSectionLabel(context, 'Cutscenes'),
+                _PaletteSectionLabel(context, 'Scènes'),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.plus_rectangle_on_rectangle,
-                  label: 'Lier une cutscene',
-                  subtitle: 'Référence id + rôle',
+                  label: 'Lier une scène',
+                  subtitle: 'Référence seule — pas le dialogue ici',
                   onTap: onAddCutsceneLink,
                   filled: true,
                   accent: EditorChrome.inspectorJoyPlum,
                   tileEnabled: canAddCutscene,
                 ),
                 const SizedBox(height: 10),
-                _PaletteSectionLabel(context, 'Outcomes'),
+                _PaletteSectionLabel(context, 'Choix & suites'),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.tree,
-                  label: 'Liste outcomes locaux',
-                  subtitle: 'Donnée : outcomes (scope local)',
+                  label: 'Variantes possibles',
+                  subtitle: 'Issues différentes pour la même étape',
                   onTap: () =>
                       onFocus(const StepFlowFocus(StepFlowSlot.localBranches)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.plus_circle,
-                  label: '+ Outcome local',
-                  subtitle: 'Ajout dans outcomes',
+                  label: '+ Une variante',
+                  subtitle: 'Ex. un choix de starter différent',
                   onTap: onAddLocalOutcome,
                   filled: true,
                   accent: EditorChrome.inspectorJoyOrchid,
@@ -123,8 +117,8 @@ class StepFlowPalette extends StatelessWidget {
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.arrow_branch,
-                  label: '+ Outcome progression',
-                  subtitle: 'Ajout dans outcomes',
+                  label: '+ Résultat pour l’histoire',
+                  subtitle: 'Ce qui fait avancer le jeu global',
                   onTap: onAddProgressionOutcome,
                   filled: true,
                   accent: EditorChrome.inspectorJoyMint,
@@ -134,33 +128,33 @@ class StepFlowPalette extends StatelessWidget {
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.checkmark_seal,
-                  label: 'Validation',
-                  subtitle: 'Note + règle completion',
+                  label: 'Fin de l’étape',
+                  subtitle: 'Phrase sur le fil + comment ça se termine',
                   onTap: () =>
                       onFocus(const StepFlowFocus(StepFlowSlot.validationEngine)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.doc_plaintext,
-                  label: 'Notes sortie',
-                  subtitle: 'Annotation + mémo id step (inspecteur)',
+                  label: 'Après cette étape',
+                  subtitle: 'Texte libre + rappel (panneau de droite)',
                   onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.exitNext)),
                 ),
                 const SizedBox(height: 10),
-                _PaletteSectionLabel(context, 'Monde'),
+                _PaletteSectionLabel(context, 'Carte'),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.map,
-                  label: 'Changements monde',
-                  subtitle: 'Liste worldChanges',
+                  label: 'Sur la carte',
+                  subtitle: 'Qui apparaît ou disparaît',
                   onTap: () =>
                       onFocus(const StepFlowFocus(StepFlowSlot.worldPersistence)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.plus_circled,
-                  label: '+ Changement monde',
-                  subtitle: 'Ajout worldChanges',
+                  label: '+ Règle sur la carte',
+                  subtitle: 'Nouvelle ligne pour cette étape',
                   onTap: onAddWorldChange,
                   filled: true,
                   accent: EditorChrome.inspectorJoyCyan,
