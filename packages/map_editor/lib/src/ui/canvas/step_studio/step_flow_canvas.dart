@@ -8,8 +8,11 @@ import 'step_flow_focus.dart';
 // Canvas central — flux vertical « Scratch métier »
 // -----------------------------------------------------------------------------
 //
-// Chaque carte résume une **responsabilité Step**. Les cutscenes n’affichent
-// que id + rôle : la mise en scène reste dans Cutscene Studio.
+// Chaque carte résume une **responsabilité Step**. Les textes « flux »
+// (`flow*Label`) sont des annotations auteur sur le canvas ; les phrases
+// techniques viennent de `summarizeStepActivation` / `summarizeStepCompletion`.
+// Les cutscenes n’affichent que id + rôle : la mise en scène reste dans
+// Cutscene Studio.
 //
 // Ce layout est volontairement linéaire (peu de « spaghetti ») : la complexité
 // des branches **métier** est portée par les outcomes locaux, pas par un graphe
@@ -158,11 +161,13 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.localBranches),
               accent: EditorChrome.inspectorJoyOrchid,
               icon: CupertinoIcons.tree,
-              title: 'Branches locales (résultats locaux)',
+              title: 'Outcomes locaux',
               body: locals.isEmpty
                   ? _emptyHint(
                       context,
-                      'Ex. starter feu / eau / plante : ajoutez des résultats « Local ».',
+                      'Chaque outcome « Local » documente une variante métier '
+                      '(ex. starter feu / eau / plante). Le choix joueur '
+                      's’exécute dans la cutscene, pas ici.',
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -220,6 +225,11 @@ class StepFlowCanvas extends StatelessWidget {
                         ),
                       ],
                     ),
+              foot: Text(
+                'Source technique : `completion` (ci-dessus ou seul si pas de note auteur). '
+                '`flowValidationLabel` est une aide lecture, pas la règle exécutable seule.',
+                style: _captionStyle(context),
+              ),
             ),
             _connector(context),
             _sectionTitle(context, 'Outcomes de progression'),
@@ -265,18 +275,24 @@ class StepFlowCanvas extends StatelessWidget {
                     )
                   else
                     Text(
-                      'Décrivez ce qui se débloque pour la créatrice (texte libre).',
+                      'Texte libre : conséquence narrative / design (annotation auteur).',
                       style: _bodyStyle(context),
                     ),
                   if (step.flowUnlocksStepId != null &&
                       step.flowUnlocksStepId!.trim().isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Step suggérée ensuite : ${step.flowUnlocksStepId}',
+                      'Mémo : step id « ${step.flowUnlocksStepId} » '
+                      '(rappel dans le document — ne déclenche pas le déblocage).',
                       style: _captionStyle(context),
                     ),
                   ],
                 ],
+              ),
+              foot: Text(
+                'À ne pas confondre : le déblocage réel d’une step = ses règles '
+                '`activation`, pas ce bloc ni `flowUnlocksStepId`.',
+                style: _captionStyle(context),
               ),
             ),
             _connector(context),

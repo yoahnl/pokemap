@@ -440,15 +440,37 @@ class StepStudioWorldChange {
   int get hashCode => Object.hash(mapId, entityId, presenceRule, note);
 }
 
-/// Objet métier central d'une step.
+/// Objet métier central d'une step (schéma d’authoring Step Studio v1).
 ///
-/// Cette classe est la "fiche" compréhensible par un non-développeur:
-/// - identité claire,
-/// - activation,
-/// - validation,
-/// - cutscenes liées,
-/// - résultats,
-/// - changements monde persistants.
+/// ---------------------------------------------------------------------------
+/// Deux familles de champs (ne pas les confondre — voir rapport consolidation §3)
+/// ---------------------------------------------------------------------------
+///
+/// **A. Données structurées « intentionnelles »** — ce que le moteur ou la
+/// projection narrative pourront un jour consommer directement (aujourd’hui
+/// encore majoritairement côté éditeur, mais ce sont les seuls champs avec une
+/// sémantique technique explicite : modes, IDs, listes typées) :
+/// - [activation], [completion]
+/// - [cutscenes] (références par id)
+/// - [outcomes] (labels + `outcomeId` + scope)
+/// - [worldChanges]
+/// - [id], [name], [description], [order]
+///
+/// **B. Annotations d’affichage / mémo auteur** — persistées dans le JSON du
+/// document pour Step Studio (canvas + inspecteur), **sans autre consommateur**
+/// dans ce dépôt : ni `map_gameplay`, ni `map_runtime`, ni les résumés de step
+/// de la projection narrative (ces champs n’y figurent pas).
+/// Ce ne sont **pas** des garde-fous runtime : ne pas en déduire une règle de
+/// déblocage ou de validation exécutable tant qu’aucun pipeline ne les lit.
+/// - [flowEntryLabel], [flowObjectiveLabel], [flowValidationLabel],
+///   [flowExitLabel] : texte libre pour lisibilité no-code sur le canvas.
+/// - [flowUnlocksStepId] : id d’une autre step du **même** document, purement
+///   documentaire (rappel « quelle step enchaîne ») ; l’activation réelle de la
+///   step suivante reste portée par [StepStudioActivationRule] de **cette**
+///   step suivante, pas par ce pointeur.
+///
+/// [flowObjectiveLabel] peut recouper [description] : la description reste la
+/// fiche générale ; le libellé flux est optionnel et sert surtout au canvas.
 @immutable
 class StepStudioStep {
   const StepStudioStep({
@@ -479,28 +501,32 @@ class StepStudioStep {
   final List<StepStudioWorldChange> worldChanges;
 
   // ---------------------------------------------------------------------------
-  // Libellés « flux métier » Step Studio (séparés de la mise en scène Cutscene)
+  // Annotations canvas / mémo auteur (famille B — voir doc de classe)
   // ---------------------------------------------------------------------------
   //
-  // Ces champs existent pour la vue **Step Studio** : ils décrivent la progression
-  // en langage créateur, affichés sur le canvas vertical (style Scratch métier).
-  // Ils ne pilotent pas le runtime seuls : activation/completion/outcomes restent
-  // la source technique ; ces labels enrichissent la lisibilité no-code.
-  //
-  /// Entrée humaine : ex. « Le professeur a été rencontré ».
+  // Uniquement : sérialisation JSON + affichage Step Studio. Pas de lecture
+  // gameplay dans ce repo. Ne pas traiter comme « vérité runtime ».
+
+  /// Note auteur sur le canvas : « quand cette étape commence » (langage humain).
+  /// Le résumé technique affiché à côté vient de [activation], pas de ce texte.
   final String flowEntryLabel;
 
-  /// Objectif joueur : ex. « Choisir un starter ».
+  /// Ligne optionnelle sur le canvas pour l’objectif ; la fiche step utilise
+  /// aussi [name] et [description]. Redondance volontairement possible.
   final String flowObjectiveLabel;
 
-  /// Validation humaine : ex. « Un starter a été attribué ».
+  /// Note auteur : ce que la créatrice entend par « c’est validé ».
+  /// La condition exécutable documentée est [completion] (+ outcomes associés).
   final String flowValidationLabel;
 
-  /// Sortie / conséquence narrative : ex. « Débloquer la step Combat rival ».
+  /// Note auteur : conséquence narrative / design (texte libre), **sans** effet
+  /// sur le graphe. À ne pas confondre avec [flowUnlocksStepId].
   final String flowExitLabel;
 
-  /// Référence optionnelle à une autre step du même document (aide à la lecture).
-  /// L’enchaînement réel reste porté par l’activation de la step suivante côté données.
+  /// Mémo optionnel : id d’une autre step du même [StepStudioDocument].
+  /// **Ne déclenche rien** : pas de moteur de déblocage parallèle ; l’ordre et
+  /// le déblocage effectifs passent par les règles d’activation des steps et le
+  /// scénario global, pas par ce champ.
   final String? flowUnlocksStepId;
 
   StepStudioStep copyWith({

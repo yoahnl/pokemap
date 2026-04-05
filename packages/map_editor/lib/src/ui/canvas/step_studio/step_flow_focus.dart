@@ -13,32 +13,28 @@ import 'package:flutter/foundation.dart';
 
 /// Zone logique du flux Step affichée sur le canvas vertical.
 enum StepFlowSlot {
-  /// Libellé no-code « quand ça commence » + rappel de l’activation technique.
+  /// Entrée : note auteur `flowEntryLabel` + édition de `activation` dans l’inspecteur.
   flowEntry,
 
-  /// Règles techniques d’activation (quand la step devient active).
-  /// Reste dans Step : ce n’est pas une condition de dialogue Cutscene.
-  activationEngine,
-
-  /// Objectif joueur (titre + description + flowObjectiveLabel).
+  /// Objectif : identité step (`name` / `description`) + `flowObjectiveLabel` optionnel.
   objective,
 
   /// Une ligne de [StepStudioCutsceneLink] — on configure le rôle et l’id, pas le contenu.
   cutsceneLink,
 
-  /// Vue d’ensemble des résultats **locaux** (branches type starter feu/eau/plante).
+  /// Outcomes scope **local** : variante métier documentée (pas un nœud Cutscene).
   localBranches,
 
-  /// Un résultat local précis (édition label / id).
+  /// Édition d’un outcome scope `local`.
   localOutcome,
 
-  /// Règles techniques de validation (fin de step).
+  /// Note `flowValidationLabel` + règle technique `completion` dans l’inspecteur.
   validationEngine,
 
-  /// Résultat de **progression** (ex. outcome global métier chapter_1.*).
+  /// Édition d’un outcome scope `progression`.
   progressionOutcome,
 
-  /// Sortie narrative + step suivante suggérée (flowUnlocksStepId).
+  /// Note `flowExitLabel` (narratif) + mémo optionnel `flowUnlocksStepId` (non exécutable).
   exitNext,
 
   /// Changements monde persistants liés à la progression.

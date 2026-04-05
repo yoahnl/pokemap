@@ -13,6 +13,24 @@ import 'step_studio/step_flow_canvas.dart';
 import 'step_studio/step_flow_focus.dart';
 import 'step_studio/step_flow_palette.dart';
 
+// -----------------------------------------------------------------------------
+// step_studio_workspace.dart — périmètre volontairement large
+// -----------------------------------------------------------------------------
+//
+// Ce fichier concentre tout le cycle Step Studio **dans l’éditeur** : hydratation
+// depuis le scénario global, brouillon, sauvegarde, liste des steps, assemblage
+// palette + canvas + inspecteur, et les sections techniques (`activation`,
+// `completion`, liens cutscene, outcomes, monde).
+//
+// Découpage additionnel n’est pas gratuit ici : les blocs (`_buildActivationSection`,
+// `_OutcomeRow`, etc.) ne sont réutilisés nulle part ailleurs ; les extraire
+// augmenterait la surface sans second consommateur. Si un second écran édite les
+// mêmes champs, extraire alors les sections partagées.
+//
+// Rappel : les champs `flow*Label` et `flowUnlocksStepId` sont édités ici mais
+// sont des **annotations auteur** (voir `step_studio_authoring.dart`), pas une
+// couche runtime.
+
 /// Workspace central **Step Studio** — logique de progression d’une étape.
 ///
 /// RÔLE PRODUIT (à ne pas confondre avec Cutscene Studio ni Global Story) :
@@ -746,8 +764,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     });
   }
 
-  /// Gabarit produit « Choix du starter » (rapport Step Studio §11).
-  /// Hypothèse : les IDs d’outcome sont stables ; les cutscenes se lient ensuite.
+  /// Gabarit « Choix du starter » : remplit surtout **données structurées**
+  /// (`outcomes`, `completion`) + **annotations canvas** (`flow*Label`, mémo
+  /// `flowUnlocksStepId`). Les textes flux ne remplacent pas la logique runtime.
   void _applyStarterChoiceDemoTemplate() {
     final selectedStep = _selectedStep;
     final doc = _draftDocument;
@@ -1330,7 +1349,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           const SizedBox(height: 10),
           const InspectorEmbeddedFootnote(
             text:
-                'Step Studio = progression lisible. Cutscene Studio = exécution. Global Story = macro-arcs.',
+                'Les textes « flux » sur le canvas sont des notes auteur. '
+                'Les règles jouables : activation, completion, outcomes, cutscenes liées.',
             accent: EditorChrome.inspectorJoyCyan,
           ),
         ],
@@ -1395,14 +1415,15 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _StepSectionCard(
-              title: 'Entrée dans l’étape',
+              title: 'Entrée & activation',
               subtitle:
-                  'Texte créateur + rappel du moteur d’activation (technique).',
+                  'Note auteur (`flowEntryLabel`, canvas uniquement) puis règles '
+                  'techniques `activation` ci-dessous.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _InlineTextField(
-                    label: 'Quand cette étape commence (langage humain)',
+                    label: 'Note auteur — quand l’étape commence (hors moteur)',
                     value: selectedStep.flowEntryLabel,
                     enabled: _canEdit,
                     minLines: 2,
@@ -1413,7 +1434,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    summarizeStepActivation(selectedStep),
+                    'Résumé technique (activation) : '
+                    '${summarizeStepActivation(selectedStep)}',
                     style: TextStyle(
                       color: EditorChrome.primaryLabel(context),
                       fontSize: 12,
@@ -1434,15 +1456,6 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           ],
         );
 
-      case StepFlowSlot.activationEngine:
-        return _buildActivationSection(
-          context,
-          selectedStep,
-          previousStepOptions: previousStepOptions,
-          outcomeOptions: outcomeOptions,
-          cutsceneOptions: cutsceneOptions,
-        );
-
       case StepFlowSlot.objective:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1452,9 +1465,10 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             _StepSectionCard(
               title: 'Objectif (phrase joueur)',
               subtitle:
-                  'Complète le titre : ce que le joueur doit accomplir maintenant.',
+                  'Fiche : nom + description. Ligne optionnelle canvas = `flowObjectiveLabel` '
+                  '(annotation, redondante avec la description si vous préférez).',
               child: _InlineTextField(
-                label: 'Objectif lisible',
+                label: 'Ligne canvas optionnelle (`flowObjectiveLabel`)',
                 value: selectedStep.flowObjectiveLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1536,10 +1550,10 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
       case StepFlowSlot.localBranches:
         return _StepSectionCard(
-          title: 'Branches locales',
+          title: 'Outcomes à portée locale',
           subtitle:
-              'Chaque résultat « Local » correspond à une branche métier '
-              '(ex. feu / eau / plante). La mise en scène du choix est dans la cutscene.',
+              'Ce ne sont pas des « branches runtime » : des entrées `outcomes` '
+              'scope Local. La branche d’exécution (UI, dialogue…) est dans la cutscene.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1632,10 +1646,11 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _StepSectionCard(
-              title: 'Validation (texte créateur)',
-              subtitle: 'Phrase sur ce qui doit être vrai pour terminer l’étape.',
+              title: 'Validation',
+              subtitle:
+                  'Note auteur (`flowValidationLabel`) puis règle technique `completion`.',
               child: _InlineTextField(
-                label: 'Condition de validation humaine',
+                label: 'Note auteur — ce que « terminé » signifie pour l’équipe',
                 value: selectedStep.flowValidationLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1701,15 +1716,16 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
       case StepFlowSlot.exitNext:
         return _StepSectionCard(
-          title: 'Sortie & suite',
+          title: 'Sortie narrative & mémo suite',
           subtitle:
-              'Lisible pour l’équipe créative. L’enchaînement technique peut aussi '
-              'passer par l’activation de la step suivante dans le graphe global.',
+              '`flowExitLabel` = conséquence racontée (annotation). '
+              '`flowUnlocksStepId` = rappel d’id dans ce document — **aucun** '
+              'déblocage automatique ; la step suivante s’active via **sa** `activation`.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _InlineTextField(
-                label: 'Ce qui se débloque (texte)',
+                label: 'Conséquence narrative / design (texte libre, annotation)',
                 value: selectedStep.flowExitLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1721,7 +1737,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               const SizedBox(height: 10),
               _SimpleDropdown(
                 accent: EditorChrome.inspectorJoyCyan,
-                fieldLabel: 'Step suivante suggérée (optionnel)',
+                fieldLabel:
+                    'Autre step du document (mémo auteur, optionnel — non exécutable)',
                 options: previousStepOptions,
                 selectedId: selectedStep.flowUnlocksStepId,
                 emptyLabel: '— Aucune —',

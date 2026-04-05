@@ -14,7 +14,12 @@ import 'step_flow_focus.dart';
 //
 // La palette ne crée pas de nœuds d’exécution : elle oriente la créatrice
 // vers les bons champs **ou** déclenche l’ajout d’éléments de données Step
-// (ex. nouvelle cutscene liée = nouvelle entrée dans [StepStudioStep.cutscenes]).
+// (ex. nouvelle cutscene liée = nouvelle entrée dans `cutscenes`).
+//
+// Chaque tuile correspond soit à un focus inspecteur (données réelles), soit à
+// un ajout de liste (`cutscenes`, `outcomes`, `worldChanges`). Aucune tuile
+// purement « décorative » : si une action n’existe pas dans le modèle, elle
+// n’a pas sa place ici.
 
 /// Colonne gauche : raccourcis vers les zones du flux et actions d’ajout.
 class StepFlowPalette extends StatelessWidget {
@@ -69,27 +74,20 @@ class StepFlowPalette extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                _PaletteSectionLabel(context, 'Lire / structurer'),
+                _PaletteSectionLabel(context, 'Entrée & objectif'),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.arrow_right_circle,
-                  label: 'Entrée dans l’étape',
-                  subtitle: 'Quand ça commence (texte + activation)',
+                  label: 'Entrée & activation',
+                  subtitle:
+                      'Note auteur + règles `activation` (même inspecteur)',
                   onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.flowEntry)),
                 ),
                 _paletteTile(
                   context,
-                  icon: CupertinoIcons.gear_alt,
-                  label: 'Moteur d’activation',
-                  subtitle: 'Règle technique « step active »',
-                  onTap: () =>
-                      onFocus(const StepFlowFocus(StepFlowSlot.activationEngine)),
-                ),
-                _paletteTile(
-                  context,
                   icon: CupertinoIcons.scope,
-                  label: 'Objectif joueur',
-                  subtitle: 'Ce que le joueur doit accomplir',
+                  label: 'Objectif & fiche step',
+                  subtitle: 'Nom, description, ligne canvas optionnelle',
                   onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.objective)),
                 ),
                 const SizedBox(height: 10),
@@ -105,20 +103,21 @@ class StepFlowPalette extends StatelessWidget {
                   tileEnabled: canAddCutscene,
                 ),
                 const SizedBox(height: 10),
-                _PaletteSectionLabel(context, 'Résultats & branches'),
+                _PaletteSectionLabel(context, 'Outcomes'),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.tree,
-                  label: 'Branches locales',
-                  subtitle: 'Outcomes locaux (ex. choix starter)',
+                  label: 'Outcomes locaux (liste)',
+                  subtitle:
+                      'Variantes métier documentées ; exécution du choix = Cutscene',
                   onTap: () =>
                       onFocus(const StepFlowFocus(StepFlowSlot.localBranches)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.plus_circle,
-                  label: 'Résultat local',
-                  subtitle: 'Nouvelle branche / choix',
+                  label: 'Ajouter un outcome local',
+                  subtitle: 'Nouvelle entrée dans `outcomes` (scope local)',
                   onTap: onAddLocalOutcome,
                   filled: true,
                   accent: EditorChrome.inspectorJoyOrchid,
@@ -126,8 +125,8 @@ class StepFlowPalette extends StatelessWidget {
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.arrow_branch,
-                  label: 'Résultat progression',
-                  subtitle: 'Outcome qui fait avancer l’histoire',
+                  label: 'Ajouter un outcome progression',
+                  subtitle: 'Entrée `outcomes` (scope progression)',
                   onTap: onAddProgressionOutcome,
                   filled: true,
                   accent: EditorChrome.inspectorJoyMint,
@@ -138,15 +137,16 @@ class StepFlowPalette extends StatelessWidget {
                   context,
                   icon: CupertinoIcons.checkmark_seal,
                   label: 'Validation',
-                  subtitle: 'Quand l’étape est terminée',
+                  subtitle: 'Note auteur + règle `completion` (technique)',
                   onTap: () =>
                       onFocus(const StepFlowFocus(StepFlowSlot.validationEngine)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.arrow_right_circle,
-                  label: 'Sortie & suite',
-                  subtitle: 'Débloquer la step suivante (lisible)',
+                  label: 'Sortie narrative & mémo suite',
+                  subtitle:
+                      'Texte libre + id step optionnel (non branché moteur)',
                   onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.exitNext)),
                 ),
                 const SizedBox(height: 10),
