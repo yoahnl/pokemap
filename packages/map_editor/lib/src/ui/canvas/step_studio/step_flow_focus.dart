@@ -23,7 +23,10 @@ enum StepFlowSlot {
   /// Une ligne de lien cutscene (id + rôle) — pas le contenu de la scène.
   cutsceneLink,
 
-  /// Outcomes scope **local** : variante métier documentée (pas un nœud Cutscene).
+  /// Vue d’ensemble des scènes liées (plusieurs références possibles).
+  cutscenesHub,
+
+  /// Outcomes scope **local** : issue métier documentée (pas un nœud Cutscene).
   localBranches,
 
   /// Édition d’un outcome scope `local`.

@@ -19,9 +19,9 @@ import 'step_flow_focus.dart';
 //   afficher un id de « step suivante » ici faisait croire à un déblocage automatique.
 // - Cutscenes : **références** (nom + rôle) ; le contenu dialogues / caméra vit ailleurs.
 //
-// Ordre des cartes : début → objectif → scènes liées → variantes locales →
-// validation → résultats « histoire globale » → notes de sortie → carte.
-// Ne pas réordonner sans revue produit (la lecture doit raconter une étape).
+// Ordre des cartes : parcours de **lecture** (Modèle A) — haut → bas — sans
+// imposer un enchaînement temps réel entre blocs (issues, scènes, fin…).
+// Ne pas réordonner sans revue produit.
 
 typedef CutsceneNameResolver = String Function(String cutsceneId);
 
@@ -69,7 +69,8 @@ class StepFlowCanvas extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              'Du début à la fin de l’étape. Les scènes se conçoivent dans Cutscene Studio.',
+              'Les scènes se conçoivent dans Cutscene Studio. '
+              'L’ordre sur le fil aide à lire l’étape ; ce n’est pas toujours un enchaînement strict dans le jeu.',
               style: TextStyle(
                 color: EditorChrome.subtleLabel(context),
                 fontSize: 11,
@@ -82,7 +83,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.flowEntry),
               accent: EditorChrome.inspectorJoyMint,
               icon: CupertinoIcons.arrow_right_circle,
-              title: 'Quand ça commence',
+              title: 'Quand l’étape devient disponible',
               body: step.flowEntryLabel.trim().isEmpty
                   ? Text(
                       summarizeStepActivation(step),
@@ -109,7 +110,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.objective),
               accent: EditorChrome.inspectorJoyAmber,
               icon: CupertinoIcons.scope,
-              title: 'Objectif',
+              title: 'Ce que le joueur doit faire',
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -134,12 +135,12 @@ class StepFlowCanvas extends StatelessWidget {
               ),
             ),
             _connector(context),
-            _sectionTitle(context, 'Scènes liées'),
+            _sectionTitle(context, 'Quelles scènes servent cette étape'),
             const SizedBox(height: 8),
             if (step.cutscenes.isEmpty)
               _emptyHint(
                 context,
-                'Aucune scène pour l’instant. Utilisez les raccourcis à gauche pour en lier une.',
+                'Aucune pour l’instant. À gauche : « Ajouter une scène ».',
               )
             else
               for (var i = 0; i < step.cutscenes.length; i++) ...[
@@ -166,12 +167,12 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.localBranches),
               accent: EditorChrome.inspectorJoyOrchid,
               icon: CupertinoIcons.tree,
-              title: 'Variantes possibles',
+              title: 'Issues possibles',
               body: locals.isEmpty
                   ? _emptyHint(
                       context,
-                      'Plusieurs fins possibles pour cette étape ? Listez-les ici. '
-                      'Ce qui se passe à l’écran (dialogue, choix…) reste dans la cutscene.',
+                      'Plusieurs issues pour la même étape ? Listez-les ici. '
+                      'Le détail à l’écran reste dans Cutscene Studio.',
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,7 +210,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.validationEngine),
               accent: EditorChrome.inspectorJoyBlue,
               icon: CupertinoIcons.checkmark_seal,
-              title: 'Fin de l’étape',
+              title: 'Ce qui valide l’étape',
               body: step.flowValidationLabel.trim().isEmpty
                   ? Text(
                       summarizeStepCompletion(step),
@@ -231,7 +232,7 @@ class StepFlowCanvas extends StatelessWidget {
                     ),
             ),
             _connector(context),
-            _sectionTitle(context, 'Pour l’histoire globale'),
+            _sectionTitle(context, 'Ce que ça débloque pour l’histoire'),
             const SizedBox(height: 8),
             if (progs.isEmpty)
               _emptyHint(
@@ -281,11 +282,11 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.worldPersistence),
               accent: EditorChrome.inspectorJoyCyan,
               icon: CupertinoIcons.map,
-              title: 'Sur la carte',
+              title: 'Ce que ça change sur la carte',
               body: step.worldChanges.isEmpty
                   ? _emptyHint(
                       context,
-                      'Qui est visible ou caché sur la carte quand cette étape avance.',
+                      'Visibilité des éléments sur les maps liée à cette étape.',
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

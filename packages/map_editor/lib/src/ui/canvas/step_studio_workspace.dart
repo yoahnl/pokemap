@@ -686,7 +686,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     }
     final outcomes = selectedStep.outcomes;
     final label = switch (scope) {
-      StepStudioOutcomeScope.local => 'Nouveau choix local',
+      StepStudioOutcomeScope.local => 'Nouvelle issue locale',
       StepStudioOutcomeScope.progression => 'Nouveau résultat de progression',
       StepStudioOutcomeScope.world => 'Nouveau résultat monde',
     };
@@ -1420,8 +1420,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           children: [
             _StepSectionCard(
               title: 'Début de l’étape',
-              subtitle:
-                  'Phrase facultative sur le fil ; en dessous, le vrai réglage « quand cette étape devient active ».',
+              subtitle: 'Phrase affichée sur le fil.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -1466,8 +1465,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             const SizedBox(height: 10),
             _StepSectionCard(
               title: 'Objectif',
-              subtitle:
-                  'Le titre et le texte décrivent l’étape ; la ligne suivante ne fait que compléter le fil.',
+              subtitle: 'Complément facultatif pour le fil.',
               child: _InlineTextField(
                 label: 'Phrase optionnelle sur le fil',
                 value: selectedStep.flowObjectiveLabel,
@@ -1497,8 +1495,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           children: [
             _StepSectionCard(
               title: 'Scène liée',
-              subtitle:
-                  'Quelle cutscene jouer et dans quel rôle. Le contenu se modifie dans Cutscene Studio.',
+              subtitle: 'Référence et rôle — le contenu est dans Cutscene Studio.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -1548,11 +1545,65 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           ],
         );
 
+      case StepFlowSlot.cutscenesHub:
+        final links = selectedStep.cutscenes;
+        return _StepSectionCard(
+          title: 'Scènes pour cette étape',
+          subtitle: 'Plusieurs références possibles — pas le contenu dialogué ici.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (links.isEmpty)
+                Text(
+                  'Aucune pour l’instant.',
+                  style: TextStyle(
+                    color: EditorChrome.subtleLabel(context),
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                )
+              else
+                for (var i = 0; i < links.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      onPressed: () {
+                        setState(() {
+                          _flowInspectorFocus =
+                              StepFlowFocus(StepFlowSlot.cutsceneLink, i);
+                        });
+                      },
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${i + 1}. ${stepStudioCutsceneRoleLabel(links[i].role)} — ${_cutsceneDisplayName(links[i].cutsceneId)}',
+                          style: TextStyle(
+                            color: EditorChrome.primaryLabel(context),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              const SizedBox(height: 8),
+              InspectorEmbeddedSecondaryCapsule(
+                accent: EditorChrome.inspectorJoyPlum,
+                icon: CupertinoIcons.plus_rectangle_on_rectangle,
+                label: 'Ajouter une scène',
+                enabled: _canEdit && cutsceneOptions.isNotEmpty,
+                onPressed: _addCutsceneLinkForFlow,
+              ),
+            ],
+          ),
+        );
+
       case StepFlowSlot.localBranches:
         return _StepSectionCard(
-          title: 'Variantes possibles',
-          subtitle:
-              'Liste des issues enregistrées pour cette étape — ce n’est pas le graphe de la cutscene.',
+          title: 'Issues possibles',
+          subtitle: 'Issues locales enregistrées — pas le graphe de la cutscene.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1588,7 +1639,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               InspectorEmbeddedSecondaryCapsule(
                 accent: EditorChrome.inspectorJoyOrchid,
                 icon: CupertinoIcons.plus_circle_fill,
-                label: 'Ajouter une variante',
+                label: 'Ajouter une issue locale',
                 enabled: _canEdit,
                 onPressed: () => _appendOutcome(StepStudioOutcomeScope.local),
               ),
@@ -1605,7 +1656,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.local) {
           return Text(
-            'Ce n’est pas une variante locale.',
+            'Ce n’est pas une issue locale.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1646,8 +1697,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           children: [
             _StepSectionCard(
               title: 'Fin de l’étape',
-              subtitle:
-                  'Phrase facultative sur le fil ; en dessous, comment l’étape se termine vraiment.',
+              subtitle: 'Phrase affichée sur le fil.',
               child: _InlineTextField(
                 label: 'Phrase sur le fil (facultative)',
                 value: selectedStep.flowValidationLabel,
@@ -1716,8 +1766,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       case StepFlowSlot.exitNext:
         return _StepSectionCard(
           title: 'Après cette étape',
-          subtitle:
-              'Texte libre + rappel d’une autre étape du même scénario. Rien ici n’ouvre automatiquement une suite — chaque étape s’active selon ses propres réglages.',
+          subtitle: 'Texte sur le fil ; rappel d’étape optionnel en dessous.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1734,8 +1783,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               const SizedBox(height: 10),
               _SimpleDropdown(
                 accent: EditorChrome.inspectorJoyCyan,
-                fieldLabel:
-                    'Rappel personnel : autre étape du scénario (sans effet automatique)',
+                fieldLabel: 'Rappel : autre étape (sans effet automatique)',
                 options: previousStepOptions,
                 selectedId: selectedStep.flowUnlocksStepId,
                 emptyLabel: '— Aucune —',
@@ -2035,9 +2083,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
   }) {
     final activation = selectedStep.activation;
     return _StepSectionCard(
-      title: '2. Activation',
-      subtitle:
-          'Définit comment cette step devient active dans le scénario global.',
+      title: 'Activation de l’étape',
+      subtitle: 'Quand l’étape est réellement active dans le scénario.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2154,8 +2201,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         .toList(growable: false);
 
     return _StepSectionCard(
-      title: '3. Validation',
-      subtitle: 'Définit quand la step est considérée comme terminée.',
+      title: 'Condition de fin',
+      subtitle: 'Réglage enregistré (indépendant de la phrase sur le fil).',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
