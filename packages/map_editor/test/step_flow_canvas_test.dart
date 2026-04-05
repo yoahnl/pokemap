@@ -101,8 +101,9 @@ void main() {
       );
 
       expect(find.text('Cette étape'), findsOneWidget);
-      expect(find.text('Après cette étape'), findsOneWidget);
+      expect(find.text('Note de transition'), findsOneWidget);
       expect(find.text('Quand l’étape devient disponible'), findsOneWidget);
+      expect(find.text('Quand l’étape se termine'), findsOneWidget);
       expect(find.text('Issues possibles'), findsOneWidget);
     });
   });

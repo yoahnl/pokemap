@@ -686,9 +686,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     }
     final outcomes = selectedStep.outcomes;
     final label = switch (scope) {
-      StepStudioOutcomeScope.local => 'Nouvelle issue locale',
-      StepStudioOutcomeScope.progression => 'Nouveau résultat de progression',
-      StepStudioOutcomeScope.world => 'Nouveau résultat monde',
+      StepStudioOutcomeScope.local => 'Nouvelle issue',
+      StepStudioOutcomeScope.progression => 'Nouveau résultat d’histoire',
+      StepStudioOutcomeScope.world => 'Nouvel état du monde',
     };
     final outcome = StepStudioOutcomeDefinition(
       label: label,
@@ -1196,7 +1196,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             child: draft == null || draft.steps.isEmpty
                 ? Center(
                     child: Text(
-                      'Aucune step.',
+                      'Aucune étape.',
                       style: TextStyle(
                         color:
                             CupertinoColors.secondaryLabel.resolveFrom(context),
@@ -1214,7 +1214,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                         leading: const Icon(CupertinoIcons.flag_fill),
                         title: Text('${step.order + 1}. ${step.name}'),
                         subtitle: Text(
-                          '${step.cutscenes.length} cutscene(s) • ${step.outcomes.length} résultat(s) • ${step.worldChanges.length} changement(s) monde',
+                          '${step.cutscenes.length} scène(s) • ${step.outcomes.length} résultat(s) • ${step.worldChanges.length} changement(s) sur la carte',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1352,7 +1352,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           const SizedBox(height: 10),
           const InspectorEmbeddedFootnote(
             text:
-                'Les phrases sur le fil = aide à la lecture. Les réglages précis (début, fin, scènes liées, choix, carte) sont enregistrés pour l’étape.',
+                'Les textes du parcours central aident à lire l’étape. Les conditions (début, fin, scènes, issues, carte) sont des réglages enregistrés — pas des raccourcis magiques.',
             accent: EditorChrome.inspectorJoyCyan,
           ),
         ],
@@ -1420,12 +1420,12 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           children: [
             _StepSectionCard(
               title: 'Début de l’étape',
-              subtitle: 'Phrase affichée sur le fil.',
+              subtitle: 'Texte affiché dans le parcours.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _InlineTextField(
-                    label: 'Phrase sur le fil (facultative)',
+                    label: 'Texte affiché dans le parcours (facultatif)',
                     value: selectedStep.flowEntryLabel,
                     enabled: _canEdit,
                     minLines: 2,
@@ -1436,7 +1436,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Réglage enregistré : ${summarizeStepActivation(selectedStep)}',
+                    'Règle appliquée : ${summarizeStepActivation(selectedStep)}',
                     style: TextStyle(
                       color: EditorChrome.primaryLabel(context),
                       fontSize: 12,
@@ -1465,9 +1465,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             const SizedBox(height: 10),
             _StepSectionCard(
               title: 'Objectif',
-              subtitle: 'Complément facultatif pour le fil.',
+              subtitle: 'Complément facultatif pour le parcours.',
               child: _InlineTextField(
-                label: 'Phrase optionnelle sur le fil',
+                label: 'Texte optionnel dans le parcours',
                 value: selectedStep.flowObjectiveLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1603,7 +1603,8 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       case StepFlowSlot.localBranches:
         return _StepSectionCard(
           title: 'Issues possibles',
-          subtitle: 'Issues locales enregistrées — pas le graphe de la cutscene.',
+          subtitle:
+              'Issues locales enregistrées — pas la mise en scène (Cutscene Studio).',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1639,7 +1640,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               InspectorEmbeddedSecondaryCapsule(
                 accent: EditorChrome.inspectorJoyOrchid,
                 icon: CupertinoIcons.plus_circle_fill,
-                label: 'Ajouter une issue locale',
+                label: 'Ajouter une issue',
                 enabled: _canEdit,
                 onPressed: () => _appendOutcome(StepStudioOutcomeScope.local),
               ),
@@ -1696,10 +1697,10 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _StepSectionCard(
-              title: 'Fin de l’étape',
-              subtitle: 'Phrase affichée sur le fil.',
+              title: 'Quand l’étape se termine',
+              subtitle: 'Texte affiché dans le parcours.',
               child: _InlineTextField(
-                label: 'Phrase sur le fil (facultative)',
+                label: 'Texte affiché dans le parcours (facultatif)',
                 value: selectedStep.flowValidationLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1728,7 +1729,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.progression) {
           return Text(
-            'Choisissez un « résultat pour l’histoire » sur le fil au centre.',
+            'Choisissez un résultat d’histoire sur le parcours au centre.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1765,13 +1766,14 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
       case StepFlowSlot.exitNext:
         return _StepSectionCard(
-          title: 'Après cette étape',
-          subtitle: 'Texte sur le fil ; rappel d’étape optionnel en dessous.',
+          title: 'Note de transition',
+          subtitle:
+              'Mémo auteur uniquement : n’active rien automatiquement. Pas de suite imposée.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _InlineTextField(
-                label: 'Phrase sur le fil (visible au centre)',
+                label: 'Texte affiché dans le parcours (visible au centre)',
                 value: selectedStep.flowExitLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1783,7 +1785,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               const SizedBox(height: 10),
               _SimpleDropdown(
                 accent: EditorChrome.inspectorJoyCyan,
-                fieldLabel: 'Rappel : autre étape (sans effet automatique)',
+                fieldLabel: 'Étape liée en mémo (n’active rien automatiquement)',
                 options: previousStepOptions,
                 selectedId: selectedStep.flowUnlocksStepId,
                 emptyLabel: '— Aucune —',
@@ -2110,11 +2112,11 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               accent: EditorChrome.inspectorJoyMint,
               fieldLabel:
                   activation.mode == StepStudioActivationMode.afterPreviousStep
-                      ? 'Step précédente'
-                      : 'Step requise',
+                      ? 'Étape précédente'
+                      : 'Étape requise',
               options: previousStepOptions,
               selectedId: activation.stepId,
-              emptyLabel: 'Aucune step disponible',
+              emptyLabel: 'Aucune étape disponible',
               enabled: _canEdit && previousStepOptions.isNotEmpty,
               onSelected: (id) {
                 _replaceSelectedStep(
@@ -2143,10 +2145,10 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           if (activation.mode == StepStudioActivationMode.afterCutscene)
             _SimpleDropdown(
               accent: EditorChrome.inspectorJoyMint,
-              fieldLabel: 'Cutscene déclencheuse',
+              fieldLabel: 'Scène déclencheuse',
               options: cutsceneOptions,
               selectedId: activation.cutsceneId,
-              emptyLabel: 'Aucune cutscene disponible',
+              emptyLabel: 'Aucune scène disponible',
               enabled: _canEdit && cutsceneOptions.isNotEmpty,
               onSelected: (id) {
                 _replaceSelectedStep(
@@ -2202,13 +2204,13 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
     return _StepSectionCard(
       title: 'Condition de fin',
-      subtitle: 'Réglage enregistré (indépendant de la phrase sur le fil).',
+      subtitle: 'Règle appliquée (indépendante du texte du parcours).',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _EnumDropdown<StepStudioCompletionMode>(
             accent: EditorChrome.inspectorJoyBlue,
-            fieldLabel: 'Condition de fin',
+            fieldLabel: 'Règle enregistrée',
             value: completion.mode,
             values: StepStudioCompletionMode.values,
             labelBuilder: stepStudioCompletionModeLabel,
@@ -2225,10 +2227,10 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           if (completion.mode == StepStudioCompletionMode.whenCutsceneEnds)
             _SimpleDropdown(
               accent: EditorChrome.inspectorJoyBlue,
-              fieldLabel: 'Cutscene de validation',
+              fieldLabel: 'Scène concernée',
               options: cutsceneOptions,
               selectedId: completion.cutsceneId,
-              emptyLabel: 'Aucune cutscene disponible',
+              emptyLabel: 'Aucune scène disponible',
               enabled: _canEdit && cutsceneOptions.isNotEmpty,
               onSelected: (id) {
                 _replaceSelectedStep(
@@ -2310,7 +2312,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             ),
           if (completion.mode == StepStudioCompletionMode.whenFlagTrue)
             _InlineTextField(
-              label: 'État monde attendu',
+              label: 'État du monde attendu',
               value: completion.flagName ?? '',
               enabled: _canEdit,
               onChanged: (value) {
@@ -2364,9 +2366,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         .toList(growable: false);
 
     return _StepSectionCard(
-      title: '6. Monde / persistance',
+      title: 'Changements sur la carte',
       subtitle:
-          'Déclare les changements persistants de présence d’entités pilotés par la progression.',
+          'Qui est visible ou masqué sur les maps quand cette étape progresse.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2434,7 +2436,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             child: InspectorEmbeddedSecondaryCapsule(
               accent: EditorChrome.inspectorJoyCyan,
               icon: CupertinoIcons.plus_circle_fill,
-              label: 'Ajouter un changement monde',
+              label: 'Ajouter un changement',
               enabled: _canEdit && mapOptions.isNotEmpty,
               onPressed: () {
                 final defaultMapId = mapOptions.first.id;
@@ -2833,10 +2835,10 @@ class _CutsceneLinkRow extends StatelessWidget {
           const SizedBox(height: 6),
           _SimpleDropdown(
             accent: EditorChrome.inspectorJoyPlum,
-            fieldLabel: 'Cutscene',
+            fieldLabel: 'Scène',
             options: cutsceneOptions,
             selectedId: link.cutsceneId,
-            emptyLabel: 'Aucune cutscene',
+            emptyLabel: 'Aucune scène',
             enabled: enabled && cutsceneOptions.isNotEmpty,
             onSelected: onCutsceneChanged,
           ),
@@ -2846,7 +2848,7 @@ class _CutsceneLinkRow extends StatelessWidget {
             child: InspectorEmbeddedSecondaryCapsule(
               accent: EditorChrome.inspectorJoyCoral,
               icon: CupertinoIcons.minus_circle,
-              label: 'Retirer cette cutscene',
+              label: 'Retirer cette scène',
               enabled: enabled,
               onPressed: onRemove,
             ),
@@ -2900,7 +2902,7 @@ class _OutcomeRow extends StatelessWidget {
           const SizedBox(height: 6),
           _EnumDropdown<StepStudioOutcomeScope>(
             accent: EditorChrome.inspectorJoyOrchid,
-            fieldLabel: 'Portée',
+            fieldLabel: 'Type de résultat',
             value: outcome.scope,
             values: StepStudioOutcomeScope.values,
             labelBuilder: stepStudioOutcomeScopeLabel,

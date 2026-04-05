@@ -155,7 +155,7 @@ class StepFlowCanvas extends StatelessWidget {
                     style: _emphasisStyle(context),
                   ),
                   foot: Text(
-                    'Réf. projet : ${step.cutscenes[i].cutsceneId}',
+                    'Référence de la scène : ${step.cutscenes[i].cutsceneId}',
                     style: _captionStyle(context),
                   ),
                 ),
@@ -210,7 +210,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.validationEngine),
               accent: EditorChrome.inspectorJoyBlue,
               icon: CupertinoIcons.checkmark_seal,
-              title: 'Ce qui valide l’étape',
+              title: 'Quand l’étape se termine',
               body: step.flowValidationLabel.trim().isEmpty
                   ? Text(
                       summarizeStepCompletion(step),
@@ -265,7 +265,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.exitNext),
               accent: EditorChrome.inspectorJoyCyan,
               icon: CupertinoIcons.doc_plaintext,
-              title: 'Après cette étape',
+              title: 'Note de transition',
               body: step.flowExitLabel.trim().isNotEmpty
                   ? Text(
                       step.flowExitLabel,
@@ -273,7 +273,7 @@ class StepFlowCanvas extends StatelessWidget {
                     )
                   : _emptyHint(
                       context,
-                      'Phrase libre (facultative). Rappel sur une autre étape : panneau de droite.',
+                      'Texte libre (facultatif). Mémo d’une autre étape : panneau de droite — sans effet automatique.',
                     ),
             ),
             _connector(context),
@@ -282,7 +282,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.worldPersistence),
               accent: EditorChrome.inspectorJoyCyan,
               icon: CupertinoIcons.map,
-              title: 'Ce que ça change sur la carte',
+              title: 'Changements sur la carte',
               body: step.worldChanges.isEmpty
                   ? _emptyHint(
                       context,

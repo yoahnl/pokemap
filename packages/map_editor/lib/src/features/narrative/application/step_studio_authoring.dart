@@ -33,15 +33,17 @@ enum StepStudioActivationMode {
 String stepStudioActivationModeLabel(StepStudioActivationMode mode) {
   return switch (mode) {
     StepStudioActivationMode.atGameStart => 'Au début du jeu',
-    StepStudioActivationMode.afterPreviousStep => 'Après la step précédente',
-    StepStudioActivationMode.afterStep => 'Après une step précise',
-    StepStudioActivationMode.afterOutcome => 'Après un résultat de progression',
-    StepStudioActivationMode.afterCutscene => 'Après une cutscene',
-    StepStudioActivationMode.whenFlagTrue => 'Quand un état monde est vrai',
+    StepStudioActivationMode.afterPreviousStep => 'Après l’étape précédente',
+    StepStudioActivationMode.afterStep => 'Après une étape précise',
+    StepStudioActivationMode.afterOutcome =>
+      'Après un résultat d’avancement de l’histoire',
+    StepStudioActivationMode.afterCutscene => 'Après une scène',
+    StepStudioActivationMode.whenFlagTrue =>
+      'Quand un état du monde est vrai',
   };
 }
 
-/// Modes de validation d'une step (quand elle est terminée).
+/// Modes de fin d’étape : condition enregistrée (quand elle est terminée).
 enum StepStudioCompletionMode {
   whenCutsceneEnds,
   whenOutcomeEmitted,
@@ -53,13 +55,14 @@ enum StepStudioCompletionMode {
 String stepStudioCompletionModeLabel(StepStudioCompletionMode mode) {
   return switch (mode) {
     StepStudioCompletionMode.whenCutsceneEnds =>
-      'Quand une cutscene se termine',
+      'Quand une scène se termine',
     StepStudioCompletionMode.whenOutcomeEmitted =>
       'Quand un résultat est obtenu',
     StepStudioCompletionMode.whenInteractionDone =>
-      'Quand une interaction clé est faite',
-    StepStudioCompletionMode.whenFlagTrue => 'Quand un état monde est vrai',
-    StepStudioCompletionMode.manual => 'Validation manuelle (fallback)',
+      'Quand une interaction clé a eu lieu',
+    StepStudioCompletionMode.whenFlagTrue =>
+      'Quand un état du monde est vrai',
+    StepStudioCompletionMode.manual => 'Manuellement',
   };
 }
 
@@ -76,10 +79,10 @@ enum StepStudioCutsceneRole {
 
 String stepStudioCutsceneRoleLabel(StepStudioCutsceneRole role) {
   return switch (role) {
-    StepStudioCutsceneRole.kickoff => 'Cutscene de démarrage',
-    StepStudioCutsceneRole.main => 'Cutscene principale',
-    StepStudioCutsceneRole.completion => 'Cutscene de validation',
-    StepStudioCutsceneRole.optional => 'Cutscene optionnelle',
+    StepStudioCutsceneRole.kickoff => 'Scène de démarrage',
+    StepStudioCutsceneRole.main => 'Scène principale',
+    StepStudioCutsceneRole.completion => 'Scène qui conclut l’étape',
+    StepStudioCutsceneRole.optional => 'Scène optionnelle',
   };
 }
 
@@ -92,9 +95,9 @@ enum StepStudioOutcomeScope {
 
 String stepStudioOutcomeScopeLabel(StepStudioOutcomeScope scope) {
   return switch (scope) {
-    StepStudioOutcomeScope.local => 'Local',
-    StepStudioOutcomeScope.progression => 'Progression',
-    StepStudioOutcomeScope.world => 'Monde',
+    StepStudioOutcomeScope.local => 'Variante de cette étape',
+    StepStudioOutcomeScope.progression => 'Avancement de l’histoire',
+    StepStudioOutcomeScope.world => 'État du monde',
   };
 }
 
@@ -113,13 +116,13 @@ enum StepStudioPresenceRule {
 String stepStudioPresenceRuleLabel(StepStudioPresenceRule rule) {
   return switch (rule) {
     StepStudioPresenceRule.visibleBeforeStepCompletion =>
-      'Visible avant validation de la step',
+      'Visible avant la fin de cette étape',
     StepStudioPresenceRule.visibleAfterStepCompletion =>
-      'Visible après validation de la step',
+      'Visible après la fin de cette étape',
     StepStudioPresenceRule.hiddenAfterStepCompletion =>
-      'Masquée après validation de la step',
+      'Masquée après la fin de cette étape',
     StepStudioPresenceRule.visibleOnlyWhenCompleted =>
-      'Visible seulement si la step est terminée',
+      'Visible seulement quand cette étape est terminée',
   };
 }
 
@@ -898,13 +901,13 @@ String summarizeStepActivation(StepStudioStep step) {
   return switch (activation.mode) {
     StepStudioActivationMode.atGameStart => 'Démarre au lancement du jeu',
     StepStudioActivationMode.afterPreviousStep =>
-      'Démarre après la step précédente',
+      'Démarre après l’étape précédente',
     StepStudioActivationMode.afterStep =>
-      'Démarre après la step "${activation.stepId ?? '—'}"',
+      'Démarre après l’étape "${activation.stepId ?? '—'}"',
     StepStudioActivationMode.afterOutcome =>
       'Démarre après le résultat "${activation.outcomeId ?? '—'}"',
     StepStudioActivationMode.afterCutscene =>
-      'Démarre après la cutscene "${activation.cutsceneId ?? '—'}"',
+      'Démarre après la scène "${activation.cutsceneId ?? '—'}"',
     StepStudioActivationMode.whenFlagTrue =>
       'Démarre quand "${activation.flagName ?? 'state'}" est vrai',
   };
@@ -914,14 +917,14 @@ String summarizeStepCompletion(StepStudioStep step) {
   final completion = step.completion;
   return switch (completion.mode) {
     StepStudioCompletionMode.whenCutsceneEnds =>
-      'Terminée quand la cutscene "${completion.cutsceneId ?? '—'}" se termine',
+      'Se termine quand la scène "${completion.cutsceneId ?? '—'}" est finie',
     StepStudioCompletionMode.whenOutcomeEmitted =>
-      'Terminée quand le résultat "${completion.outcomeId ?? '—'}" est obtenu',
+      'Se termine quand le résultat "${completion.outcomeId ?? '—'}" est obtenu',
     StepStudioCompletionMode.whenInteractionDone =>
-      'Terminée après l\'interaction "${completion.interactionId ?? '—'}"',
+      'Se termine après l’interaction "${completion.interactionId ?? '—'}"',
     StepStudioCompletionMode.whenFlagTrue =>
-      'Terminée quand "${completion.flagName ?? 'state'}" est vrai',
-    StepStudioCompletionMode.manual => 'Terminée manuellement (fallback)',
+      'Se termine quand "${completion.flagName ?? 'state'}" est vrai',
+    StepStudioCompletionMode.manual => 'Se termine manuellement',
   };
 }
 
