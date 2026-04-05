@@ -718,6 +718,11 @@ class ScenarioRuntimeExecutor {
                 targetKind: targetKind,
                 targetId: targetId,
                 waitForCompletion: waitForCompletion,
+                runtimeSourceId: _runtimeSourceId(
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  nodeId: node.id,
+                ),
               );
               if (!started) {
                 return ScenarioRuntimeExecutionResult(

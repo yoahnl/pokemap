@@ -177,6 +177,7 @@ typedef ScenarioRuntimeMoveCharacter = bool Function({
   required String targetKind,
   required String targetId,
   required bool waitForCompletion,
+  String? runtimeSourceId,
 });
 
 /// Callback pour l'action scénario `followCharacter`.
@@ -237,6 +238,7 @@ class ScenarioRuntimeExecutionContext {
     required String targetKind,
     required String targetId,
     required bool waitForCompletion,
+    String? runtimeSourceId,
   }) {
     return false;
   }

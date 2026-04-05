@@ -290,8 +290,7 @@ class _CutsceneStudioWorkbenchState extends State<CutsceneStudioWorkbench> {
       return;
     }
     if (data is CutsceneCanvasReorderDragData) {
-      if (data.mainIndex == insertIndex ||
-          data.mainIndex + 1 == insertIndex) {
+      if (data.mainIndex == insertIndex || data.mainIndex + 1 == insertIndex) {
         return;
       }
       var to = insertIndex;
@@ -651,17 +650,15 @@ class _WorkbenchTopBarState extends State<_WorkbenchTopBar> {
               const SizedBox(width: 10),
               _TopBarPrimaryButton(
                 label: 'Sauvegarder',
-                enabled: widget.canEdit &&
-                    widget.hasUnsavedChanges &&
-                    !widget.busy,
+                enabled:
+                    widget.canEdit && widget.hasUnsavedChanges && !widget.busy,
                 onPressed: widget.onSave,
               ),
               const SizedBox(width: 8),
               _TopBarTextButton(
                 label: 'Réinitialiser',
-                enabled: widget.canEdit &&
-                    widget.hasUnsavedChanges &&
-                    !widget.busy,
+                enabled:
+                    widget.canEdit && widget.hasUnsavedChanges && !widget.busy,
                 onPressed: widget.onReset,
               ),
               const SizedBox(width: 8),
@@ -854,8 +851,7 @@ class _PaletteCategorySection extends StatelessWidget {
           ),
         ),
         if (expanded)
-          for (final kind in kinds)
-            _PaletteDraggableTile(kind: kind),
+          for (final kind in kinds) _PaletteDraggableTile(kind: kind),
       ],
     );
   }
@@ -1225,7 +1221,6 @@ class _FlowMainEntry extends StatelessWidget {
         );
     }
   }
-
 }
 
 String _branchTitleForQuestion(CutsceneStudioBlock question, int i) {
@@ -1472,7 +1467,8 @@ class _DraggableMainBlock extends StatelessWidget {
     // différentes du ListView source. Sans largeur bornée, notre carte (Row +
     // Expanded) peut entrer dans un état "not laid out", puis le mouse tracker
     // spamme des assertions pendant le drag.
-    final feedbackWidth = math.min(420.0, math.max(220.0, MediaQuery.sizeOf(context).width * 0.34));
+    final feedbackWidth = math.min(
+        420.0, math.max(220.0, MediaQuery.sizeOf(context).width * 0.34));
     return Draggable<Object>(
       data: CutsceneCanvasReorderDragData(mainIndex),
       feedback: Material(

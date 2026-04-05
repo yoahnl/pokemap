@@ -563,6 +563,7 @@ void main() {
             required targetKind,
             required targetId,
             required waitForCompletion,
+            runtimeSourceId,
           }) {
             movedEntity = entityId;
             movedKind = targetKind;
@@ -695,6 +696,7 @@ void main() {
             required targetKind,
             required targetId,
             required waitForCompletion,
+            runtimeSourceId,
           }) =>
               true,
           followCharacter: ({

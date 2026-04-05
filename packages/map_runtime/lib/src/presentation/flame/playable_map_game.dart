@@ -155,6 +155,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   _PendingScenarioTransitionMapRequest? _pendingScenarioTransitionMapRequest;
   final Map<String, _PendingScenarioNpcWarpEntry>
       _pendingScenarioNpcWarpEntries = <String, _PendingScenarioNpcWarpEntry>{};
+  final Map<String, _PendingScenarioMoveContinuation>
+      _pendingScenarioMoveContinuationsByEntity =
+      <String, _PendingScenarioMoveContinuation>{};
 
   // Save/Load system
   final GameSaveRepository _saveRepo;
@@ -729,6 +732,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // - base propre pour un futur "wait movement" en cutscene.
     _scriptedEntityMovementController?.update(dt);
     _processPendingScenarioNpcWarpEntries();
+    _processPendingScenarioMoveContinuations();
     _processPendingScenarioFollowRequest();
     _processPendingScenarioTransitionMapRequest();
 
@@ -1056,12 +1060,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           required targetKind,
           required targetId,
           required waitForCompletion,
+          runtimeSourceId,
         }) {
           return _runScenarioMoveCharacter(
             entityId: entityId,
             targetKind: targetKind,
             targetId: targetId,
             waitForCompletion: waitForCompletion,
+            runtimeSourceId: runtimeSourceId,
           );
         },
         followCharacter: ({
@@ -1168,12 +1174,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           required targetKind,
           required targetId,
           required waitForCompletion,
+          runtimeSourceId,
         }) {
           return _runScenarioMoveCharacter(
             entityId: entityId,
             targetKind: targetKind,
             targetId: targetId,
             waitForCompletion: waitForCompletion,
+            runtimeSourceId: runtimeSourceId,
           );
         },
         followCharacter: ({
@@ -1211,6 +1219,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String targetKind,
     required String targetId,
     required bool waitForCompletion,
+    String? runtimeSourceId,
   }) {
     final trimmedEntity = entityId.trim();
     if (trimmedEntity == 'player') {
@@ -1279,9 +1288,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingScenarioNpcWarpEntries.remove(entityId);
     }
     if (waitForCompletion) {
+      final runtimeSource = runtimeSourceId?.trim() ?? '';
+      if (runtimeSource.startsWith('scenario:') && trimmedEntity.isNotEmpty) {
+        _pendingScenarioMoveContinuationsByEntity[trimmedEntity] =
+            _PendingScenarioMoveContinuation(
+          entityId: trimmedEntity,
+          runtimeSourceId: runtimeSource,
+          targetKind: targetKind,
+        );
+      }
       debugPrint(
-        '[scenario_runtime] moveCharacter started entity=$entityId destination=(${resolvedDestination.x},${resolvedDestination.y}) waitForCompletion=true (non-blocking bridge)',
+        '[scenario_runtime] moveCharacter started entity=$entityId destination=(${resolvedDestination.x},${resolvedDestination.y}) waitForCompletion=true',
       );
+    } else {
+      _pendingScenarioMoveContinuationsByEntity.remove(trimmedEntity);
     }
     return true;
   }
@@ -1497,7 +1517,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         null) {
       return false;
     }
-    for (final cell in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+    for (final cell
+        in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
       if (cell.x == anchor.x && cell.y == anchor.y) {
         return false;
       }
@@ -1602,6 +1623,41 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  void _processPendingScenarioMoveContinuations() {
+    if (_pendingScenarioMoveContinuationsByEntity.isEmpty) {
+      return;
+    }
+    final entityIds = _pendingScenarioMoveContinuationsByEntity.keys
+        .toList(growable: false)
+      ..sort();
+    for (final entityId in entityIds) {
+      final pending = _pendingScenarioMoveContinuationsByEntity[entityId];
+      if (pending == null) {
+        continue;
+      }
+
+      if (pending.targetKind == 'warp' && _pendingWarp != null) {
+        // Le déplacement est "fini" uniquement après consommation effective du
+        // warp joueur et retour en overworld.
+        continue;
+      }
+
+      final status = scriptedNpcMovementStatus(entityId);
+      if (status.state == ScriptedEntityMovementState.moving) {
+        continue;
+      }
+      if (status.state == ScriptedEntityMovementState.failed) {
+        _pendingScenarioMoveContinuationsByEntity.remove(entityId);
+        continue;
+      }
+      if (status.state == ScriptedEntityMovementState.completed ||
+          status.state == ScriptedEntityMovementState.idle) {
+        _pendingScenarioMoveContinuationsByEntity.remove(entityId);
+        _resumeScenarioAfterRuntimeSource(pending.runtimeSourceId);
+      }
+    }
+  }
+
   void _completeScenarioNpcWarpEntry(_PendingScenarioNpcWarpEntry pending) {
     if (pending.entityId.trim() == 'player') {
       _completeScenarioPlayerWarpEntry(pending);
@@ -1687,6 +1743,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingScenarioFollowRequest = null;
     }
     _pendingScenarioNpcWarpEntries.remove(normalized);
+    _pendingScenarioMoveContinuationsByEntity.remove(normalized);
     _scriptedEntityMovementController?.untrackEntity(normalized);
     _syncGameStateFromWorld();
     return true;
@@ -4104,6 +4161,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingBattleRequest = null;
     }
     _pendingPlacedElementBehavior = null;
+    _pendingScenarioMoveContinuationsByEntity.clear();
     _notification?.removeFromParent();
     _notification = null;
     _dialogueOverlay?.removeFromParent();
@@ -4753,7 +4811,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           null) {
         return true;
       }
-      for (final cell in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+      for (final cell
+          in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
         if (cell.x == x && cell.y == y) {
           return true;
         }
@@ -4800,7 +4859,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
         return block.name;
       }
-      for (final cell in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+      for (final cell
+          in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
         if (cell.x == to.x && cell.y == to.y) {
           debugPrint(
             '[npc_patrol] runtime step rejected entity=player to=(${to.x},${to.y}) reason=dynamic_blocker',
@@ -4899,8 +4959,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final nextState = _world.player.copyWith(pos: to, facing: walkFacing);
       _player.startStep(
         nextState,
-        durationSeconds:
-            durationSeconds ?? PlayerComponent.kDefaultStepSeconds,
+        durationSeconds: durationSeconds ?? PlayerComponent.kDefaultStepSeconds,
       );
       _reserveScriptedNpcStepOccupiedCells(
         entityId: entityId,
@@ -5148,6 +5207,18 @@ class _PendingScenarioNpcWarpEntry {
   final String warpId;
   final GridPos warpPos;
   final GridPos approachPos;
+}
+
+class _PendingScenarioMoveContinuation {
+  const _PendingScenarioMoveContinuation({
+    required this.entityId,
+    required this.runtimeSourceId,
+    required this.targetKind,
+  });
+
+  final String entityId;
+  final String runtimeSourceId;
+  final String targetKind;
 }
 
 class _FollowPathPlan {
