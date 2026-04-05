@@ -1239,6 +1239,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
     var resolvedDestination = destination;
+    var entityApproachCandidates = const <GridPos>[];
+    if (targetKind == 'entity') {
+      entityApproachCandidates = _resolveScenarioEntityApproachCandidates(
+        moverEntityId: entityId,
+        targetEntityId: targetId,
+        primaryDestination: destination,
+      );
+      if (entityApproachCandidates.isEmpty) {
+        debugPrint(
+          '[scenario_runtime] moveCharacter entity target has no reachable adjacent cell entity=$entityId target=$targetId',
+        );
+        return false;
+      }
+      resolvedDestination = entityApproachCandidates.first;
+    }
     var started = startScriptedNpcMove(
       entityId: entityId,
       destination: resolvedDestination,
@@ -1270,11 +1285,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     if (started.state == ScriptedEntityMovementState.failed &&
         targetKind == 'entity') {
-      final fallbackCandidates = _resolveScenarioEntityApproachCandidates(
-        moverEntityId: entityId,
-        targetEntityId: targetId,
-        primaryDestination: destination,
-      );
+      final fallbackCandidates = entityApproachCandidates.isNotEmpty
+          ? entityApproachCandidates.skip(1)
+          : _resolveScenarioEntityApproachCandidates(
+              moverEntityId: entityId,
+              targetEntityId: targetId,
+              primaryDestination: destination,
+            );
       for (final candidate in fallbackCandidates) {
         final fallbackStarted = startScriptedNpcMove(
           entityId: entityId,
@@ -1536,16 +1553,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     candidates.sort((a, b) {
+      final aCurrent = (a.x - currentPos.x).abs() + (a.y - currentPos.y).abs();
+      final bCurrent = (b.x - currentPos.x).abs() + (b.y - currentPos.y).abs();
+      if (aCurrent != bCurrent) {
+        return aCurrent.compareTo(bCurrent);
+      }
       final aTarget =
           (a.x - targetRect.pos.x).abs() + (a.y - targetRect.pos.y).abs();
       final bTarget =
           (b.x - targetRect.pos.x).abs() + (b.y - targetRect.pos.y).abs();
-      if (aTarget != bTarget) {
-        return aTarget.compareTo(bTarget);
-      }
-      final aCurrent = (a.x - currentPos.x).abs() + (a.y - currentPos.y).abs();
-      final bCurrent = (b.x - currentPos.x).abs() + (b.y - currentPos.y).abs();
-      return aCurrent.compareTo(bCurrent);
+      return aTarget.compareTo(bTarget);
     });
     return candidates;
   }
