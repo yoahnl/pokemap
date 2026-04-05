@@ -43,6 +43,7 @@ class OverworldActorComponent extends PositionComponent {
   EntityFacing _facing;
   CharacterAnimationState _animState;
   double _animElapsed = 0.0;
+
   /// Vrai si on affiche une anim « idle » (ou peu de frames) pendant un pas
   /// alors que l’état logique demande marche/course — léger bob pour éviter
   /// l’effet « lévitation » quand le tileset n’a pas de strip walk pour cette direction.
@@ -72,10 +73,57 @@ class OverworldActorComponent extends PositionComponent {
   GridPos? get gridPos => _gridPos;
 
   void setMotion(EntityFacing facing, CharacterAnimationState animState) {
-    if (_facing == facing && _animState == animState) return;
+    // Guard rail:
+    // pendant un pas interpolé, certains appels externes peuvent demander
+    // "idle" avant la fin visuelle du déplacement (resync runtime, update état).
+    // Ignorer cet idle empêche d'éteindre l'animation de marche en plein step.
+    if (animState == CharacterAnimationState.idle &&
+        isStepping &&
+        (_animState == CharacterAnimationState.walk ||
+            _animState == CharacterAnimationState.run)) {
+      if (_facing != facing) {
+        _facing = facing;
+        _animElapsed = 0.0;
+      }
+      return;
+    }
+
+    if (_facing == facing && _animState == animState) {
+      return;
+    }
+
+    // Cause racine du "ça glisse sans animation":
+    // - les steps runtime sont courts (~120ms),
+    // - les frames walk sont souvent à 150ms,
+    // - si on reset _animElapsed à chaque transition idle<->walk, on reste
+    //   bloqué sur la première frame à chaque pas.
+    //
+    // Stratégie:
+    // - on conserve la phase d'animation quand on alterne idle <-> walk/run
+    //   avec la même direction,
+    // - on reset uniquement sur changement de direction ou changement de mode
+    //   animation "fort" (ex: walk->run).
+    //
+    // Résultat:
+    // - player + NPC continuent d'animer leurs jambes de façon visible même
+    //   avec des pas rapides.
+    final previousFacing = _facing;
+    final previousState = _animState;
+    final togglesMovementIdle =
+        (previousState == CharacterAnimationState.idle &&
+                (animState == CharacterAnimationState.walk ||
+                    animState == CharacterAnimationState.run)) ||
+            ((previousState == CharacterAnimationState.walk ||
+                    previousState == CharacterAnimationState.run) &&
+                animState == CharacterAnimationState.idle);
+    final preserveAnimationPhase =
+        previousFacing == facing && togglesMovementIdle;
+
     _facing = facing;
     _animState = animState;
-    _animElapsed = 0.0;
+    if (!preserveAnimationPhase) {
+      _animElapsed = 0.0;
+    }
   }
 
   /// Configure la position grille de référence de l'acteur.
@@ -257,24 +305,24 @@ class OverworldActorComponent extends PositionComponent {
         _animState == CharacterAnimationState.run;
 
     if (wantsMotion) {
-      final List<CharacterAnimation?> cascade = _animState ==
-              CharacterAnimationState.walk
-          ? <CharacterAnimation?>[
-              walkFacing,
-              runFacing,
-              walkAny,
-              runAny,
-              idleFacing,
-              idleAny,
-            ]
-          : <CharacterAnimation?>[
-              runFacing,
-              walkFacing,
-              runAny,
-              walkAny,
-              idleFacing,
-              idleAny,
-            ];
+      final List<CharacterAnimation?> cascade =
+          _animState == CharacterAnimationState.walk
+              ? <CharacterAnimation?>[
+                  walkFacing,
+                  runFacing,
+                  walkAny,
+                  runAny,
+                  idleFacing,
+                  idleAny,
+                ]
+              : <CharacterAnimation?>[
+                  runFacing,
+                  walkFacing,
+                  runAny,
+                  walkAny,
+                  idleFacing,
+                  idleAny,
+                ];
 
       for (final candidate in cascade) {
         if (!_hasFrames(candidate)) continue;

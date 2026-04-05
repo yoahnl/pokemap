@@ -143,16 +143,18 @@ class PlayerComponent extends PositionComponent {
 
   void syncState(GameplayPlayerState state, {bool snapToGrid = false}) {
     _state = state;
+    final facing = EntityFacing.values.byName(state.facing.name);
     if (snapToGrid || !isStepping) {
       _moveFrom = null;
       _moveTo = null;
       _moveRemaining = 0.0;
       _snapToStatePosition();
+      _actor?.setMotion(facing, CharacterAnimationState.idle);
+    } else {
+      // Ne pas forcer idle pendant l’interpolation d’un pas (sinon tout appel
+      // à syncState — ex. changement de mode — écrase l’anim marche).
+      _actor?.setMotion(facing, CharacterAnimationState.walk);
     }
-    _actor?.setMotion(
-      EntityFacing.values.byName(state.facing.name),
-      CharacterAnimationState.idle,
-    );
   }
 
   void startStep(

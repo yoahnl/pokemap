@@ -1468,12 +1468,20 @@ class _DraggableMainBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!canEdit) return child;
+    // Le feedback d'un Draggable est rendu dans un overlay avec contraintes
+    // différentes du ListView source. Sans largeur bornée, notre carte (Row +
+    // Expanded) peut entrer dans un état "not laid out", puis le mouse tracker
+    // spamme des assertions pendant le drag.
+    final feedbackWidth = math.min(420.0, math.max(220.0, MediaQuery.sizeOf(context).width * 0.34));
     return Draggable<Object>(
       data: CutsceneCanvasReorderDragData(mainIndex),
       feedback: Material(
         elevation: 3,
         borderRadius: BorderRadius.circular(12),
-        child: Opacity(opacity: 0.9, child: child),
+        child: SizedBox(
+          width: feedbackWidth,
+          child: Opacity(opacity: 0.9, child: child),
+        ),
       ),
       childWhenDragging: Opacity(opacity: 0.25, child: child),
       child: child,

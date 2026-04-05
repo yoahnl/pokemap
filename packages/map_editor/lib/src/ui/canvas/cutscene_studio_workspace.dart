@@ -88,6 +88,9 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   /// Déduplication des [addPostFrameCallback] pour précharger les maps du contexte.
   int? _lastContextWarmHash;
 
+  /// Invalide les [setState] de fin de chargement PNJ/warps obsolètes (batch plus récent).
+  int _mapLookupGeneration = 0;
+
   @override
   void initState() {
     super.initState();
@@ -274,7 +277,87 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     if (normalizedMapId == null) {
       return;
     }
-    unawaited(_ensureLookupsLoadedForMap(normalizedMapId));
+    unawaited(_batchEnsureLookupsLoaded(<String>[normalizedMapId]));
+  }
+
+  bool _isLookupCacheCompleteForMap(String mapId) {
+    return _npcsByMapId.containsKey(mapId) &&
+        _spawnsByMapId.containsKey(mapId) &&
+        _triggersByMapId.containsKey(mapId) &&
+        _warpsByMapId.containsKey(mapId);
+  }
+
+  void _applyMapSnapshotToCache(String mapId, MapData? data) {
+    if (data == null) {
+      _npcsByMapId[mapId] = const <MapEntity>[];
+      _spawnsByMapId[mapId] = const <MapEntity>[];
+      _triggersByMapId[mapId] = const <MapTrigger>[];
+      _warpsByMapId[mapId] = const <MapWarp>[];
+      return;
+    }
+    _npcsByMapId[mapId] = _sortedNpcs(data.entities);
+    _spawnsByMapId[mapId] = _sortedSpawns(data.entities);
+    _triggersByMapId[mapId] = _sortedTriggers(data.triggers);
+    _warpsByMapId[mapId] = _sortedWarps(data.warps);
+  }
+
+  /// Charge plusieurs maps puis **un seul** [setState] : évite d’annuler un drag en cours
+  /// (plusieurs [setState] successifs reconstruisaient tout le workbench).
+  Future<void> _batchEnsureLookupsLoaded(List<String> mapIdsRaw) async {
+    final gen = ++_mapLookupGeneration;
+    final wanted = <String>{};
+    for (final raw in mapIdsRaw) {
+      final t = _trimOrNull(raw);
+      if (t != null) {
+        wanted.add(t);
+      }
+    }
+    if (wanted.isEmpty) {
+      return;
+    }
+
+    final active = widget.activeMap;
+    for (final id in wanted) {
+      if (active != null && active.id == id) {
+        _applyMapSnapshotToCache(id, active);
+      }
+    }
+
+    final fromDisk = wanted
+        .where(
+          (id) =>
+              !(active != null && active.id == id) &&
+              !_isLookupCacheCompleteForMap(id),
+        )
+        .toList(growable: false);
+
+    String? loadError;
+    if (fromDisk.isNotEmpty) {
+      final results = await Future.wait(
+        fromDisk.map((id) async {
+          final m = await widget.editorNotifier.loadMapSnapshotById(id);
+          return MapEntry(id, m);
+        }),
+      );
+      for (final e in results) {
+        if (e.value == null) {
+          loadError ??=
+              'Impossible de charger les PNJ/triggers pour la map "${e.key}".';
+        }
+        _applyMapSnapshotToCache(e.key, e.value);
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+    if (gen != _mapLookupGeneration) {
+      return;
+    }
+    setState(() {
+      _isLoadingSourceLookups = false;
+      _sourceLookupError = loadError;
+    });
   }
 
   /// Carte utilisée pour PNJ / warps / spawns **à ce point du flow** (simulation
@@ -307,88 +390,37 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     String? selectedBlockId,
   ) {
     final start = _trimOrNull(draft.source.mapId);
-    if (selectedBlockId == null) {
-      _primeSourceLookups(start);
-      return;
+    final toLoad = <String>{};
+    if (start != null) {
+      toLoad.add(start);
     }
-    final flow = effectiveCutsceneFlowForDocument(draft);
-    final res = cutsceneStudioResolveMapContextPredecessors(flow, selectedBlockId);
-    if (res is CutsceneStudioMapContextLinear) {
-      final ids = cutsceneStudioCollectMapIdsAlongPlayerSimulation(
-        startMapId: start,
-        predecessorBlocks: res.predecessorBlocks,
-        warpTargetMapId: (mapId, warpId) {
-          for (final w in _warpsForMap(mapId)) {
-            if (w.id == warpId) return w.targetMapId;
-          }
-          return null;
-        },
-      );
-      for (final id in ids) {
-        _primeSourceLookups(id);
+    if (selectedBlockId != null) {
+      final flow = effectiveCutsceneFlowForDocument(draft);
+      final res =
+          cutsceneStudioResolveMapContextPredecessors(flow, selectedBlockId);
+      if (res is CutsceneStudioMapContextLinear) {
+        toLoad.addAll(
+          cutsceneStudioCollectMapIdsAlongPlayerSimulation(
+            startMapId: start,
+            predecessorBlocks: res.predecessorBlocks,
+            warpTargetMapId: (mapId, warpId) {
+              for (final w in _warpsForMap(mapId)) {
+                if (w.id == warpId) return w.targetMapId;
+              }
+              return null;
+            },
+          ),
+        );
       }
+    }
+    if (toLoad.isEmpty) {
       return;
     }
-    _primeSourceLookups(start);
+    unawaited(_batchEnsureLookupsLoaded(toLoad.toList()));
   }
 
   Future<void> _ensureLookupsLoadedForMap(String mapId) async {
-    // Cas 1: la map est active, on exploite la version en mémoire (incluant
-    // d'éventuelles modifications non sauvegardées).
-    final activeMap = widget.activeMap;
-    if (activeMap != null && activeMap.id == mapId) {
-      if (!mounted) return;
-      setState(() {
-        _npcsByMapId[mapId] = _sortedNpcs(activeMap.entities);
-        _spawnsByMapId[mapId] = _sortedSpawns(activeMap.entities);
-        _triggersByMapId[mapId] = _sortedTriggers(activeMap.triggers);
-        _warpsByMapId[mapId] = _sortedWarps(activeMap.warps);
-        _sourceLookupError = null;
-        _isLoadingSourceLookups = false;
-      });
-      return;
-    }
-
-    // Cas 2: déjà chargé (snapshot disque), inutile de recharger.
-    if (_npcsByMapId.containsKey(mapId) &&
-        _spawnsByMapId.containsKey(mapId) &&
-        _triggersByMapId.containsKey(mapId) &&
-        _warpsByMapId.containsKey(mapId)) {
-      return;
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoadingSourceLookups = true;
-        _sourceLookupError = null;
-      });
-    }
-
-    // Cas 3: lecture non destructive d'une autre map.
-    final loadedMap = await widget.editorNotifier.loadMapSnapshotById(mapId);
-    if (!mounted) return;
-
-    if (loadedMap == null) {
-      setState(() {
-        _isLoadingSourceLookups = false;
-        _sourceLookupError =
-            'Impossible de charger les PNJ/triggers pour la map "$mapId".';
-        _npcsByMapId[mapId] = const <MapEntity>[];
-        _spawnsByMapId[mapId] = const <MapEntity>[];
-        _triggersByMapId[mapId] = const <MapTrigger>[];
-        _warpsByMapId[mapId] = const <MapWarp>[];
-      });
-      return;
-    }
-
-    setState(() {
-      _npcsByMapId[mapId] = _sortedNpcs(loadedMap.entities);
-      _spawnsByMapId[mapId] = _sortedSpawns(loadedMap.entities);
-      _triggersByMapId[mapId] = _sortedTriggers(loadedMap.triggers);
-      _warpsByMapId[mapId] = _sortedWarps(loadedMap.warps);
-      _isLoadingSourceLookups = false;
-      _sourceLookupError = null;
-    });
+    await _batchEnsureLookupsLoaded(<String>[mapId]);
   }
 
   bool get _hasUnsavedChanges =>
