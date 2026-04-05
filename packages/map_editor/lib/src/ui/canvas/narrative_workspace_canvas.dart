@@ -9,6 +9,7 @@ import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import 'cutscene_studio_workspace.dart';
+import 'dialogue_studio_workspace.dart';
 import 'global_story_studio_workspace.dart';
 import 'step_studio_workspace.dart';
 
@@ -90,6 +91,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               cutsceneScenarioId: selectedCutscene?.id,
             );
           },
+          onSelectDialogue: editorNotifier.selectDialogueWorkspace,
         ),
         const SizedBox(height: 12),
         Expanded(
@@ -176,6 +178,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 },
                 onSelectOutcome: narrativeController.selectOutcome,
               ),
+            EditorWorkspaceMode.dialogue => const DialogueStudioWorkspace(),
             // Workspaces non narratifs: ce widget ne doit pas être utilisé.
             _ => const SizedBox.shrink(),
           },
@@ -218,12 +221,14 @@ class _NarrativeModeStrip extends StatelessWidget {
     required this.onSelectGlobal,
     required this.onSelectStep,
     required this.onSelectCutscene,
+    required this.onSelectDialogue,
   });
 
   final EditorWorkspaceMode workspaceMode;
   final VoidCallback onSelectGlobal;
   final VoidCallback onSelectStep;
   final VoidCallback onSelectCutscene;
+  final VoidCallback onSelectDialogue;
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +250,12 @@ class _NarrativeModeStrip extends StatelessWidget {
           label: 'Cutscene',
           selected: workspaceMode == EditorWorkspaceMode.cutscene,
           onTap: onSelectCutscene,
+        ),
+        const SizedBox(width: 8),
+        _ModeChip(
+          label: 'Dialogue',
+          selected: workspaceMode == EditorWorkspaceMode.dialogue,
+          onTap: onSelectDialogue,
         ),
       ],
     );
@@ -423,6 +434,10 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
                   selectedCutscene: selectedCutscene,
                   onSelectCutscene: onSelectCutscene,
                   onSelectOutcome: onSelectOutcome,
+                  onOpenDialogueStudio: (dialogueId) {
+                    editorNotifier.selectProjectDialogue(dialogueId);
+                    editorNotifier.selectDialogueWorkspace();
+                  },
                 ),
         ),
       ],

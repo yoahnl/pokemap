@@ -851,6 +851,12 @@ MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase(
   );
 }
 
+@riverpod
+SaveDialogueYarnBodyUseCase saveDialogueYarnBodyUseCase(
+    SaveDialogueYarnBodyUseCaseRef ref) {
+  return SaveDialogueYarnBodyUseCase();
+}
+
 // ---------------------------------------------------------------------------
 // Rollback UI/logic scénario:
 // Les providers scénario/scripts runtime sont retirés de map_editor pour

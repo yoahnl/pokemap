@@ -1313,6 +1313,41 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  /// Bascule vers Dialogue Studio (bibliothèque + canvas + inspecteur).
+  void selectDialogueWorkspace() {
+    state = state.copyWith(
+      workspaceMode: EditorWorkspaceMode.dialogue,
+      errorMessage: null,
+    );
+  }
+
+  /// Écrit uniquement le fichier `.yarn` (le manifest projet reste inchangé).
+  Future<void> saveProjectDialogueYarnBody({
+    required String dialogueId,
+    required String yarnBody,
+  }) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return;
+    try {
+      final useCase = ref.read(saveDialogueYarnBodyUseCaseProvider);
+      await useCase.execute(
+        fs,
+        project,
+        dialogueId: dialogueId,
+        yarnBody: yarnBody,
+      );
+      state = state.copyWith(
+        statusMessage: 'Dialogue .yarn enregistré sur disque',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Échec enregistrement dialogue: $e',
+      );
+    }
+  }
+
   void selectTilesetEditorContext(String? tilesetId) {
     final project = state.project;
     if (project == null) return;

@@ -76,6 +76,7 @@ class NarrativeLibraryPanel extends ConsumerWidget {
               cutsceneScenarioId: narrative.selectedCutsceneId,
             );
           },
+          onDialogue: notifier.selectDialogueWorkspace,
         ),
         const SizedBox(height: 10),
         const EditorSidebarSectionTitle('GLOBAL STORY (UNIQUE)', leftInset: 2),
@@ -185,12 +186,14 @@ class _WorkspaceQuickActions extends StatelessWidget {
     required this.onGlobal,
     required this.onStep,
     required this.onCutscene,
+    required this.onDialogue,
   });
 
   final EditorState editor;
   final VoidCallback onGlobal;
   final VoidCallback onStep;
   final VoidCallback onCutscene;
+  final VoidCallback onDialogue;
 
   @override
   Widget build(BuildContext context) {
@@ -212,6 +215,11 @@ class _WorkspaceQuickActions extends StatelessWidget {
           label: 'Cutscene',
           selected: editor.workspaceMode == EditorWorkspaceMode.cutscene,
           onTap: onCutscene,
+        ),
+        _ActionChip(
+          label: 'Dialogue',
+          selected: editor.workspaceMode == EditorWorkspaceMode.dialogue,
+          onTap: onDialogue,
         ),
       ],
     );

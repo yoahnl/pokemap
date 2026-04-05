@@ -22,6 +22,7 @@ dependencies:
   macos_ui: ^2.2.2
   macos_window_utils: ^1.9.1
   cupertino_icons: ^1.0.8
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

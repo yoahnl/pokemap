@@ -260,3 +260,25 @@ class DeleteProjectDialogueUseCase {
     return updated;
   }
 }
+
+/// Écrit le corps texte d’un fichier `.yarn` projet (sans toucher au manifest).
+///
+/// Utilisé par Dialogue Studio : la source de vérité manifest (`ProjectDialogueEntry`)
+/// reste inchangée ; seul le contenu disque est mis à jour.
+class SaveDialogueYarnBodyUseCase {
+  /// Persistance directe sur le disque workspace.
+  Future<void> execute(
+    ProjectWorkspace ws,
+    ProjectManifest project, {
+    required String dialogueId,
+    required String yarnBody,
+  }) async {
+    final index = project.dialogues.indexWhere((d) => d.id == dialogueId);
+    if (index < 0) {
+      throw EditorNotFoundException('Dialogue not found: $dialogueId');
+    }
+    final entry = project.dialogues[index];
+    final abs = ws.resolveProjectRelativePath(entry.relativePath);
+    await File(abs).writeAsString(yarnBody);
+  }
+}

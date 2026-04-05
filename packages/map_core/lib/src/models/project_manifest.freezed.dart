@@ -791,6 +791,13 @@ mixin _$ProjectSettings {
       readValue: _readDefaultPlayerCharacterId)
   String? get defaultPlayerCharacterId => throw _privateConstructorUsedError;
 
+  /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+  ///
+  /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
+  /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
+  @JsonKey(name: 'mistralApiKey', includeIfNull: false)
+  String? get mistralApiKey => throw _privateConstructorUsedError;
+
   /// Serializes this ProjectSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -816,7 +823,9 @@ abstract class $ProjectSettingsCopyWith<$Res> {
       @JsonKey(
           name: 'defaultPlayerCharacterId',
           readValue: _readDefaultPlayerCharacterId)
-      String? defaultPlayerCharacterId});
+      String? defaultPlayerCharacterId,
+      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
+      String? mistralApiKey});
 }
 
 /// @nodoc
@@ -840,6 +849,7 @@ class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
     Object? defaultMapWidth = null,
     Object? defaultMapHeight = null,
     Object? defaultPlayerCharacterId = freezed,
+    Object? mistralApiKey = freezed,
   }) {
     return _then(_value.copyWith(
       tileWidth: null == tileWidth
@@ -866,6 +876,10 @@ class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
           ? _value.defaultPlayerCharacterId
           : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
               as String?,
+      mistralApiKey: freezed == mistralApiKey
+          ? _value.mistralApiKey
+          : mistralApiKey // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -887,7 +901,9 @@ abstract class _$$ProjectSettingsImplCopyWith<$Res>
       @JsonKey(
           name: 'defaultPlayerCharacterId',
           readValue: _readDefaultPlayerCharacterId)
-      String? defaultPlayerCharacterId});
+      String? defaultPlayerCharacterId,
+      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
+      String? mistralApiKey});
 }
 
 /// @nodoc
@@ -909,6 +925,7 @@ class __$$ProjectSettingsImplCopyWithImpl<$Res>
     Object? defaultMapWidth = null,
     Object? defaultMapHeight = null,
     Object? defaultPlayerCharacterId = freezed,
+    Object? mistralApiKey = freezed,
   }) {
     return _then(_$ProjectSettingsImpl(
       tileWidth: null == tileWidth
@@ -935,6 +952,10 @@ class __$$ProjectSettingsImplCopyWithImpl<$Res>
           ? _value.defaultPlayerCharacterId
           : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
               as String?,
+      mistralApiKey: freezed == mistralApiKey
+          ? _value.mistralApiKey
+          : mistralApiKey // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -952,7 +973,9 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
       @JsonKey(
           name: 'defaultPlayerCharacterId',
           readValue: _readDefaultPlayerCharacterId)
-      this.defaultPlayerCharacterId});
+      this.defaultPlayerCharacterId,
+      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
+      this.mistralApiKey});
 
   factory _$ProjectSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectSettingsImplFromJson(json);
@@ -978,9 +1001,17 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
       readValue: _readDefaultPlayerCharacterId)
   final String? defaultPlayerCharacterId;
 
+  /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+  ///
+  /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
+  /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
+  @override
+  @JsonKey(name: 'mistralApiKey', includeIfNull: false)
+  final String? mistralApiKey;
+
   @override
   String toString() {
-    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId)';
+    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
   }
 
   @override
@@ -1000,7 +1031,9 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
                 other.defaultMapHeight == defaultMapHeight) &&
             (identical(
                     other.defaultPlayerCharacterId, defaultPlayerCharacterId) ||
-                other.defaultPlayerCharacterId == defaultPlayerCharacterId));
+                other.defaultPlayerCharacterId == defaultPlayerCharacterId) &&
+            (identical(other.mistralApiKey, mistralApiKey) ||
+                other.mistralApiKey == mistralApiKey));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1012,7 +1045,8 @@ class _$ProjectSettingsImpl implements _ProjectSettings {
       displayScale,
       defaultMapWidth,
       defaultMapHeight,
-      defaultPlayerCharacterId);
+      defaultPlayerCharacterId,
+      mistralApiKey);
 
   /// Create a copy of ProjectSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -1041,7 +1075,9 @@ abstract class _ProjectSettings implements ProjectSettings {
       @JsonKey(
           name: 'defaultPlayerCharacterId',
           readValue: _readDefaultPlayerCharacterId)
-      final String? defaultPlayerCharacterId}) = _$ProjectSettingsImpl;
+      final String? defaultPlayerCharacterId,
+      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
+      final String? mistralApiKey}) = _$ProjectSettingsImpl;
 
   factory _ProjectSettings.fromJson(Map<String, dynamic> json) =
       _$ProjectSettingsImpl.fromJson;
@@ -1061,6 +1097,14 @@ abstract class _ProjectSettings implements ProjectSettings {
       name: 'defaultPlayerCharacterId',
       readValue: _readDefaultPlayerCharacterId)
   String? get defaultPlayerCharacterId;
+
+  /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+  ///
+  /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
+  /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
+  @override
+  @JsonKey(name: 'mistralApiKey', includeIfNull: false)
+  String? get mistralApiKey;
 
   /// Create a copy of ProjectSettings
   /// with the given fields replaced by the non-null parameter values.

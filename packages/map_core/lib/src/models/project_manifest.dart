@@ -58,6 +58,12 @@ class ProjectSettings with _$ProjectSettings {
       readValue: _readDefaultPlayerCharacterId,
     )
     String? defaultPlayerCharacterId,
+
+    /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+    ///
+    /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
+    /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
+    @JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey,
   }) = _ProjectSettings;
 
   factory ProjectSettings.fromJson(Map<String, dynamic> json) =>

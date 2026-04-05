@@ -2396,6 +2396,26 @@ final moveDialogueToLibraryRootUseCaseProvider =
 // ignore: unused_element
 typedef MoveDialogueToLibraryRootUseCaseRef
     = AutoDisposeProviderRef<MoveDialogueToLibraryRootUseCase>;
+String _$saveDialogueYarnBodyUseCaseHash() =>
+    r'feae78b51aa499cb63a4670921ffa26ba2889471';
+
+/// See also [saveDialogueYarnBodyUseCase].
+@ProviderFor(saveDialogueYarnBodyUseCase)
+final saveDialogueYarnBodyUseCaseProvider =
+    AutoDisposeProvider<SaveDialogueYarnBodyUseCase>.internal(
+  saveDialogueYarnBodyUseCase,
+  name: r'saveDialogueYarnBodyUseCaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$saveDialogueYarnBodyUseCaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SaveDialogueYarnBodyUseCaseRef
+    = AutoDisposeProviderRef<SaveDialogueYarnBodyUseCase>;
 String _$createEncounterTableUseCaseHash() =>
     r'd97101b62faf54992523844b6d019b72db92c1f1';
 

@@ -21,6 +21,9 @@ enum EditorWorkspaceMode {
   globalStory,
   step,
   cutscene,
+
+  /// Studio de conversation (dialogues `.yarn` en blocs visuels).
+  dialogue,
 }
 
 enum CollisionBrushSizeMode {

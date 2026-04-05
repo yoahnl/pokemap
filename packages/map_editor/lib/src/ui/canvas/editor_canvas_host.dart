@@ -19,7 +19,8 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.tileset => const TilesetEditorCanvas(),
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||
-      EditorWorkspaceMode.cutscene =>
+      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.dialogue =>
         const NarrativeWorkspaceCanvas(),
     };
   }

@@ -226,6 +226,12 @@ class TopToolbar extends ConsumerWidget {
             selected: state.workspaceMode == EditorWorkspaceMode.cutscene,
             onPressed: notifier.selectCutsceneWorkspace,
           ),
+          _ToolbarCapsuleButton(
+            icon: CupertinoIcons.text_bubble,
+            tooltip: 'Switch to dialogue studio',
+            selected: state.workspaceMode == EditorWorkspaceMode.dialogue,
+            onPressed: notifier.selectDialogueWorkspace,
+          ),
         ],
       ),
       if (showWorldTools)
@@ -417,6 +423,7 @@ class TopToolbar extends ConsumerWidget {
           EditorWorkspaceMode.globalStory => 'Global Story',
           EditorWorkspaceMode.step => 'Step Studio',
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',
+          EditorWorkspaceMode.dialogue => 'Dialogue Studio',
         },
       ),
       titleWidth: 236,
@@ -533,6 +540,8 @@ class TopToolbar extends ConsumerWidget {
     final defaultMapHeightController =
         TextEditingController(text: settings.defaultMapHeight.toString());
     String? defaultPlayerCharacterId = settings.defaultPlayerCharacterId;
+    final mistralApiKeyController =
+        TextEditingController(text: settings.mistralApiKey ?? '');
 
     String? validatePositiveInt(String? v) {
       final text = (v ?? '').trim();
@@ -658,6 +667,31 @@ class TopToolbar extends ConsumerWidget {
                           );
                         },
                       ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'IA (éditeur)',
+                        style: editorMacosSheetTitleStyle(ctx).copyWith(
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Clé utilisée par Dialogue Studio et les futures intégrations '
+                        'IA. Elle est enregistrée dans project.json — évitez les dépôts '
+                        'publics ou utilisez plutôt la variable d’environnement MISTRAL_API_KEY.',
+                        style: MacosTheme.of(ctx).typography.caption1.copyWith(
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(ctx),
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      TopToolbar._settingsLabeledField(
+                        ctx,
+                        label: 'Clé API Mistral',
+                        controller: mistralApiKeyController,
+                        obscureText: true,
+                        placeholder: 'sk-… (optionnel si MISTRAL_API_KEY est définie)',
+                      ),
                     ],
                   ),
                 ),
@@ -695,6 +729,7 @@ class TopToolbar extends ConsumerWidget {
                               e5 != null) {
                             return;
                           }
+                          final mistralKey = mistralApiKeyController.text.trim();
                           final updatedSettings = settings.copyWith(
                             tileWidth:
                                 int.parse(tileWidthController.text.trim()),
@@ -710,6 +745,8 @@ class TopToolbar extends ConsumerWidget {
                               defaultMapHeightController.text.trim(),
                             ),
                             defaultPlayerCharacterId: defaultPlayerCharacterId,
+                            mistralApiKey:
+                                mistralKey.isEmpty ? null : mistralKey,
                           );
                           Navigator.pop(ctx);
                           await notifier.updateProjectSettings(
@@ -829,6 +866,8 @@ class TopToolbar extends ConsumerWidget {
     required TextEditingController controller,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    bool obscureText = false,
+    String? placeholder,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -839,6 +878,8 @@ class TopToolbar extends ConsumerWidget {
           controller: controller,
           keyboardType: keyboardType ?? TextInputType.text,
           inputFormatters: inputFormatters,
+          obscureText: obscureText,
+          placeholder: placeholder,
         ),
       ],
     );

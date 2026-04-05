@@ -44,6 +44,7 @@ class NarrativeInspectorPanel extends ConsumerWidget {
             EditorWorkspaceMode.globalStory => 'Global Story',
             EditorWorkspaceMode.step => 'Step',
             EditorWorkspaceMode.cutscene => 'Cutscene',
+            EditorWorkspaceMode.dialogue => 'Dialogue Studio',
             _ => '—',
           },
         ),
@@ -51,6 +52,7 @@ class NarrativeInspectorPanel extends ConsumerWidget {
         _InspectorSection(
           title: 'Selection',
           content: _selectionLabel(
+            editor: editor,
             projection: projection,
             narrative: narrative,
             workspaceMode: editor.workspaceMode,
@@ -98,6 +100,7 @@ class NarrativeInspectorPanel extends ConsumerWidget {
 }
 
 String _selectionLabel({
+  required EditorState editor,
   required NarrativeWorkspaceProjection projection,
   required NarrativeWorkspaceState narrative,
   required EditorWorkspaceMode workspaceMode,
@@ -126,6 +129,15 @@ String _selectionLabel({
       return scenario == null
           ? scenarioId
           : '${scenario.name} (${scenario.id})';
+    case EditorWorkspaceMode.dialogue:
+      final did = editor.selectedProjectDialogueId;
+      if (did == null) return 'No dialogue selected';
+      final project = editor.project;
+      if (project == null) return did;
+      for (final d in project.dialogues) {
+        if (d.id == did) return '${d.name} ($did)';
+      }
+      return did;
     default:
       return '—';
   }

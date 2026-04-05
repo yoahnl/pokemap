@@ -143,6 +143,7 @@ _$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
       defaultPlayerCharacterId:
           _readDefaultPlayerCharacterId(json, 'defaultPlayerCharacterId')
               as String?,
+      mistralApiKey: json['mistralApiKey'] as String?,
     );
 
 Map<String, dynamic> _$$ProjectSettingsImplToJson(
@@ -154,6 +155,7 @@ Map<String, dynamic> _$$ProjectSettingsImplToJson(
       'defaultMapWidth': instance.defaultMapWidth,
       'defaultMapHeight': instance.defaultMapHeight,
       'defaultPlayerCharacterId': instance.defaultPlayerCharacterId,
+      if (instance.mistralApiKey case final value?) 'mistralApiKey': value,
     };
 
 _$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(

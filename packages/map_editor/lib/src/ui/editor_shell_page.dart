@@ -63,6 +63,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.globalStory => 'Global Story Workspace',
       EditorWorkspaceMode.step => 'Step Workspace',
       EditorWorkspaceMode.cutscene => 'Cutscene Workspace',
+      EditorWorkspaceMode.dialogue => 'Dialogue Studio',
     };
     final workspaceSubtitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap == null
@@ -77,6 +78,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         'Step logic workspace: progression rules, expected outcomes, linked cutscenes.',
       EditorWorkspaceMode.cutscene =>
         'Scene execution workspace: dialogue, movement, waits, local branching.',
+      EditorWorkspaceMode.dialogue =>
+        'Conversation authoring: visual blocks, preview, Yarn export — not a raw script IDE.',
     };
 
     ref.listen(editorNotifierProvider.select((s) => s.errorMessage),
@@ -96,7 +99,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final isNarrativeWorkspace = switch (workspaceMode) {
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||
-      EditorWorkspaceMode.cutscene =>
+      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.dialogue =>
         true,
       _ => false,
     };
@@ -318,6 +322,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       EditorChrome.islandWarmTint,
                                     EditorWorkspaceMode.cutscene =>
                                       EditorChrome.islandNeutralTint,
+                                    EditorWorkspaceMode.dialogue =>
+                                      EditorChrome.islandCoolTint,
                                   },
                                   child: switch (workspaceMode) {
                                     EditorWorkspaceMode.map =>
@@ -326,7 +332,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       const TilesetPalettePanel(),
                                     EditorWorkspaceMode.globalStory ||
                                     EditorWorkspaceMode.step ||
-                                    EditorWorkspaceMode.cutscene =>
+                                    EditorWorkspaceMode.cutscene ||
+                                    EditorWorkspaceMode.dialogue =>
                                       const NarrativeInspectorPanel(),
                                   },
                                 ),
@@ -454,6 +461,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyCyan,
       EditorWorkspaceMode.step => EditorChrome.inspectorJoyMint,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
+      EditorWorkspaceMode.dialogue => EditorChrome.inspectorJoyBlue,
     };
     final chipAccent2 = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyApricot,
@@ -461,6 +469,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyBlue,
       EditorWorkspaceMode.step => EditorChrome.accentJade,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
+      EditorWorkspaceMode.dialogue => EditorChrome.inspectorJoyCyan,
     };
 
     return Row(
@@ -491,6 +500,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
+              EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,
             },
             color: CupertinoColors.white,
             size: 22,
@@ -569,6 +579,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.globalStory => 'Global',
               EditorWorkspaceMode.step => 'Step',
               EditorWorkspaceMode.cutscene => 'Cutscene',
+              EditorWorkspaceMode.dialogue => 'Dialogue',
             },
             style: TextStyle(
               color: chipAccent,

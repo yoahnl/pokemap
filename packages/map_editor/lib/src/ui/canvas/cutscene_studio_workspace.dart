@@ -39,6 +39,7 @@ class CutsceneStudioWorkspace extends StatefulWidget {
     required this.selectedCutscene,
     required this.onSelectCutscene,
     required this.onSelectOutcome,
+    this.onOpenDialogueStudio,
   });
 
   final EditorNotifier editorNotifier;
@@ -48,6 +49,9 @@ class CutsceneStudioWorkspace extends StatefulWidget {
   final NarrativeScenarioSummary? selectedCutscene;
   final ValueChanged<String> onSelectCutscene;
   final ValueChanged<String?> onSelectOutcome;
+
+  /// Point d’entrée produit : depuis un bloc « dialogue » cutscene → Dialogue Studio.
+  final ValueChanged<String>? onOpenDialogueStudio;
 
   @override
   State<CutsceneStudioWorkspace> createState() =>
@@ -1241,6 +1245,30 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
             );
           },
         ),
+        if (widget.onOpenDialogueStudio != null &&
+            _trimOrNull(block.dialogueId) != null) ...[
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              onPressed: !_canEdit
+                  ? null
+                  : () => widget.onOpenDialogueStudio!(
+                        _trimOrNull(block.dialogueId)!,
+                      ),
+              child: Text(
+                'Ouvrir dans Dialogue Studio',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: EditorChrome.inspectorJoyBlue,
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
