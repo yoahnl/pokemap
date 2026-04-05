@@ -573,7 +573,7 @@ void main() {
         ),
       );
 
-      expect(result.status, ScenarioRuntimeExecutionStatus.reachedEnd);
+      expect(result.status, ScenarioRuntimeExecutionStatus.executedEffect);
       expect(movedEntity, 'emma');
       expect(movedKind, 'spawn');
       expect(movedTarget, 'spawn');

@@ -1268,6 +1268,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       }
     }
+    if (started.state == ScriptedEntityMovementState.failed &&
+        targetKind == 'entity') {
+      final fallbackCandidates = _resolveScenarioEntityApproachCandidates(
+        moverEntityId: entityId,
+        targetEntityId: targetId,
+        primaryDestination: destination,
+      );
+      for (final candidate in fallbackCandidates) {
+        final fallbackStarted = startScriptedNpcMove(
+          entityId: entityId,
+          destination: candidate,
+        );
+        if (fallbackStarted.state != ScriptedEntityMovementState.failed) {
+          resolvedDestination = candidate;
+          started = fallbackStarted;
+          debugPrint(
+            '[scenario_runtime] moveCharacter entity fallback entity=$entityId target=$targetId destination=(${candidate.x},${candidate.y})',
+          );
+          break;
+        }
+      }
+    }
     if (started.state == ScriptedEntityMovementState.failed) {
       debugPrint(
         '[scenario_runtime] moveCharacter failed entity=$entityId destination=(${resolvedDestination.x},${resolvedDestination.y})',
@@ -1461,6 +1483,65 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final bDoor = (b.x - warp.pos.x).abs() + (b.y - warp.pos.y).abs();
       if (aDoor != bDoor) {
         return aDoor.compareTo(bDoor);
+      }
+      final aCurrent = (a.x - currentPos.x).abs() + (a.y - currentPos.y).abs();
+      final bCurrent = (b.x - currentPos.x).abs() + (b.y - currentPos.y).abs();
+      return aCurrent.compareTo(bCurrent);
+    });
+    return candidates;
+  }
+
+  List<GridPos> _resolveScenarioEntityApproachCandidates({
+    required String moverEntityId,
+    required String targetEntityId,
+    required GridPos primaryDestination,
+  }) {
+    final currentPos =
+        _resolveScenarioEntityPosition(moverEntityId) ?? primaryDestination;
+
+    MapRect targetRect;
+    if (targetEntityId == 'player') {
+      targetRect = MapRect(
+        pos: _world.player.pos,
+        size: const GridSize(width: 1, height: 1),
+      );
+    } else {
+      MapEntity? targetEntity;
+      for (final entry in _world.map.entities) {
+        if (entry.id == targetEntityId) {
+          targetEntity = entry;
+          break;
+        }
+      }
+      if (targetEntity == null) {
+        return const <GridPos>[];
+      }
+      targetRect = resolveEntityCollisionFootprint(targetEntity);
+    }
+
+    final candidates = <GridPos>[];
+    final seen = <GridPos>{primaryDestination};
+    for (final cell in _adjacentCellsAroundRect(targetRect)) {
+      if (!seen.add(cell)) {
+        continue;
+      }
+      if (!_isWithinMapBounds(_world.map, cell)) {
+        continue;
+      }
+      if (!_isScenarioNpcAnchorPassable(
+          entityId: moverEntityId, anchor: cell)) {
+        continue;
+      }
+      candidates.add(cell);
+    }
+
+    candidates.sort((a, b) {
+      final aTarget =
+          (a.x - targetRect.pos.x).abs() + (a.y - targetRect.pos.y).abs();
+      final bTarget =
+          (b.x - targetRect.pos.x).abs() + (b.y - targetRect.pos.y).abs();
+      if (aTarget != bTarget) {
+        return aTarget.compareTo(bTarget);
       }
       final aCurrent = (a.x - currentPos.x).abs() + (a.y - currentPos.y).abs();
       final bCurrent = (b.x - currentPos.x).abs() + (b.y - currentPos.y).abs();
@@ -4161,7 +4242,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingBattleRequest = null;
     }
     _pendingPlacedElementBehavior = null;
-    _pendingScenarioMoveContinuationsByEntity.clear();
     _notification?.removeFromParent();
     _notification = null;
     _dialogueOverlay?.removeFromParent();

@@ -735,6 +735,17 @@ class ScenarioRuntimeExecutor {
                       'Action moveCharacter impossible pour "$entityId" vers "$targetKind:$targetId".',
                 );
               }
+              if (waitForCompletion) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.executedEffect,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action moveCharacter lancée pour "$entityId" (attente de fin).',
+                );
+              }
               final nextAfterMove = _pickLinearNextNodeId(
                 nodeId: node.id,
                 edges: scenario.edges,
