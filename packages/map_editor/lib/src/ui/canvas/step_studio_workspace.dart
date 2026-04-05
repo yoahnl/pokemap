@@ -686,7 +686,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     }
     final outcomes = selectedStep.outcomes;
     final label = switch (scope) {
-      StepStudioOutcomeScope.local => 'Nouvelle issue',
+      StepStudioOutcomeScope.local => 'Nouveau résultat',
       StepStudioOutcomeScope.progression => 'Nouveau résultat pour l’histoire',
       StepStudioOutcomeScope.world => 'Nouvel état du monde',
     };
@@ -1352,7 +1352,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           const SizedBox(height: 10),
           const InspectorEmbeddedFootnote(
             text:
-                'Les textes du parcours central aident à lire l’étape. Les conditions (début, fin, scènes, issues, carte) sont des réglages enregistrés — pas des raccourcis magiques.',
+                'Les textes au centre aident à lire l’étape. Début, fin, scènes, résultats et carte sont des réglages enregistrés — pas des raccourcis magiques.',
             accent: EditorChrome.inspectorJoyCyan,
           ),
         ],
@@ -1420,12 +1420,12 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           children: [
             _StepSectionCard(
               title: 'Début de l’étape',
-              subtitle: 'Texte affiché dans le parcours.',
+              subtitle: 'Texte affiché au centre.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _InlineTextField(
-                    label: 'Texte affiché dans le parcours (facultatif)',
+                    label: 'Texte affiché au centre (facultatif)',
                     value: selectedStep.flowEntryLabel,
                     enabled: _canEdit,
                     minLines: 2,
@@ -1465,9 +1465,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             const SizedBox(height: 10),
             _StepSectionCard(
               title: 'Objectif',
-              subtitle: 'Complément facultatif pour le parcours.',
+              subtitle: 'Complément facultatif pour le centre.',
               child: _InlineTextField(
-                label: 'Texte affiché dans le parcours (facultatif)',
+                label: 'Texte affiché au centre (facultatif)',
                 value: selectedStep.flowObjectiveLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1602,9 +1602,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
       case StepFlowSlot.localBranches:
         return _StepSectionCard(
-          title: 'Issues possibles',
+          title: 'Résultats possibles',
           subtitle:
-              'Issues enregistrées pour cette étape — pas la mise en scène (Cutscene Studio).',
+              'Résultats de cette étape — pas la mise en scène (Cutscene Studio).',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1640,7 +1640,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
               InspectorEmbeddedSecondaryCapsule(
                 accent: EditorChrome.inspectorJoyOrchid,
                 icon: CupertinoIcons.plus_circle_fill,
-                label: 'Ajouter une issue',
+                label: 'Ajouter un résultat',
                 enabled: _canEdit,
                 onPressed: () => _appendOutcome(StepStudioOutcomeScope.local),
               ),
@@ -1657,7 +1657,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.local) {
           return Text(
-            'Ce résultat n’est pas une issue de cette étape. Ouvrez « Issues possibles » sur le parcours.',
+            'Ce résultat n’est pas un résultat de cette étape. Ouvrez « Résultats possibles » au centre.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1698,9 +1698,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           children: [
             _StepSectionCard(
               title: 'Quand l’étape se termine',
-              subtitle: 'Texte affiché dans le parcours.',
+              subtitle: 'Texte affiché au centre.',
               child: _InlineTextField(
-                label: 'Texte affiché dans le parcours (facultatif)',
+                label: 'Texte affiché au centre (facultatif)',
                 value: selectedStep.flowValidationLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1729,7 +1729,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         final o = outcomes[i];
         if (o.scope != StepStudioOutcomeScope.progression) {
           return Text(
-            'Choisissez un résultat pour l’histoire sur le parcours au centre.',
+            'Choisissez un résultat pour l’histoire au centre.',
             style: TextStyle(color: EditorChrome.subtleLabel(context)),
           );
         }
@@ -1766,13 +1766,13 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
       case StepFlowSlot.exitNext:
         return _StepSectionCard(
-          title: 'Note de transition',
+          title: 'Transition',
           subtitle: 'N’active rien automatiquement.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _InlineTextField(
-                label: 'Texte affiché dans le parcours',
+                label: 'Texte affiché au centre',
                 value: selectedStep.flowExitLabel,
                 enabled: _canEdit,
                 minLines: 2,
@@ -1965,7 +1965,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             ],
           ),
           const SizedBox(height: 8),
-          // Gabarit pédagogique §11 : remplit objectifs / outcomes / validation
+          // Gabarit pédagogique §11 : remplit objectifs / outcomes / condition de fin
           // pour illustrer la séparation Step (métier) vs Cutscene (mise en scène).
           // Les cutscenes starter_intro / starter_selection restent à lier manuellement.
           InspectorEmbeddedSecondaryCapsule(
@@ -2203,7 +2203,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
     return _StepSectionCard(
       title: 'Condition de fin',
-      subtitle: 'Règle actuelle (indépendante du texte du parcours).',
+      subtitle: 'Règle actuelle (indépendante du texte au centre).',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2435,7 +2435,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             child: InspectorEmbeddedSecondaryCapsule(
               accent: EditorChrome.inspectorJoyCyan,
               icon: CupertinoIcons.plus_circle_fill,
-              label: 'Ajouter un changement sur la carte',
+              label: 'Ajouter un changement',
               enabled: _canEdit && mapOptions.isNotEmpty,
               onPressed: () {
                 final defaultMapId = mapOptions.first.id;

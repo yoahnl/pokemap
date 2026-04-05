@@ -8,7 +8,7 @@ import 'step_flow_focus.dart';
 // Canvas central — fil vertical de L’ÉTAPE (Step Studio, polish final)
 // -----------------------------------------------------------------------------
 //
-// Rôle produit : donner un **parcours lisible** (haut → bas) pour une personne
+// Rôle produit : donner une **lecture claire au centre** (haut → bas) pour une personne
 // non développeuse — pas une check-list moteur, pas un mini Cutscene Studio.
 //
 // Hiérarchie honnête :
@@ -19,8 +19,8 @@ import 'step_flow_focus.dart';
 //   afficher un id de « step suivante » ici faisait croire à un déblocage automatique.
 // - Cutscenes : **références** (nom + rôle) ; le contenu dialogues / caméra vit ailleurs.
 //
-// Ordre des cartes : parcours de **lecture** (Modèle A) — haut → bas — sans
-// imposer un enchaînement temps réel entre blocs (issues, scènes, fin…).
+// Ordre des cartes : lecture verticale — haut → bas — sans imposer un
+// enchaînement temps réel entre blocs (résultats, scènes, fin…).
 // Ne pas réordonner sans revue produit.
 
 typedef CutsceneNameResolver = String Function(String cutsceneId);
@@ -70,7 +70,7 @@ class StepFlowCanvas extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               'Les scènes se conçoivent dans Cutscene Studio. '
-              'L’ordre du parcours aide à lire l’étape ; ce n’est pas toujours un enchaînement strict dans le jeu.',
+              'L’ordre au centre aide à lire l’étape ; ce n’est pas toujours un enchaînement strict dans le jeu.',
               style: TextStyle(
                 color: EditorChrome.subtleLabel(context),
                 fontSize: 11,
@@ -167,11 +167,11 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.localBranches),
               accent: EditorChrome.inspectorJoyOrchid,
               icon: CupertinoIcons.tree,
-              title: 'Issues possibles',
+              title: 'Résultats possibles',
               body: locals.isEmpty
                   ? _emptyHint(
                       context,
-                      'Plusieurs issues pour la même étape ? Listez-les ici. '
+                      'Plusieurs résultats pour la même étape ? Listez-les ici. '
                       'Le détail à l’écran reste dans Cutscene Studio.',
                     )
                   : Column(
@@ -265,7 +265,7 @@ class StepFlowCanvas extends StatelessWidget {
               focus: const StepFlowFocus(StepFlowSlot.exitNext),
               accent: EditorChrome.inspectorJoyCyan,
               icon: CupertinoIcons.doc_plaintext,
-              title: 'Note de transition',
+              title: 'Transition',
               body: step.flowExitLabel.trim().isNotEmpty
                   ? Text(
                       step.flowExitLabel,

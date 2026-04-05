@@ -86,7 +86,7 @@ String stepStudioCutsceneRoleLabel(StepStudioCutsceneRole role) {
   };
 }
 
-/// Catégorie créateur d’un résultat (libellés UI : issue / histoire / état).
+/// Catégorie créateur d’un résultat (libellés UI : étape / histoire / état monde).
 enum StepStudioOutcomeScope {
   local,
   progression,
@@ -95,7 +95,7 @@ enum StepStudioOutcomeScope {
 
 String stepStudioOutcomeScopeLabel(StepStudioOutcomeScope scope) {
   return switch (scope) {
-    StepStudioOutcomeScope.local => 'Issue de cette étape',
+    StepStudioOutcomeScope.local => 'Résultat de cette étape',
     StepStudioOutcomeScope.progression => 'Résultat pour l’histoire',
     StepStudioOutcomeScope.world => 'État du monde',
   };
@@ -934,7 +934,7 @@ StepStudioStep _legacyStepFromScenario(ScenarioAsset scenario) {
   final legacyName = _trimOrNull(metadata['step.name']) ?? scenario.name;
   final legacyDescription = _trimOrNull(metadata['step.description']) ??
       (scenario.description.trim().isEmpty
-          ? 'Step issue du scénario global.'
+          ? 'Étape dérivée du scénario global.'
           : scenario.description);
 
   final linkedCutsceneIds = _parseCsv(_trimOrNull(metadata['step.cutsceneIds']))

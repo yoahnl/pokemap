@@ -4,7 +4,7 @@ import 'package:map_editor/src/features/narrative/application/step_studio_author
 import 'package:map_editor/src/ui/canvas/step_studio/step_flow_canvas.dart';
 
 void main() {
-  group('StepFlowCanvas (wording lock final)', () {
+  group('StepFlowCanvas (final wording pass)', () {
     /// `flowUnlocksStepId` reste dans le JSON mais ne doit pas apparaître sur le
     /// canvas : c’était un signal « faux lien » vers une autre étape.
     testWidgets('does not display flowUnlocksStepId on canvas', (tester) async {
@@ -73,7 +73,7 @@ void main() {
       expect(find.text(exitText), findsOneWidget);
     });
 
-    testWidgets('uses locked creator-facing titles on canvas', (tester) async {
+    testWidgets('uses final creator-facing titles on canvas', (tester) async {
       final step = StepStudioStep(
         id: 'step_c',
         name: 'C',
@@ -104,10 +104,10 @@ void main() {
       expect(find.text('Quand ça commence'), findsOneWidget);
       expect(find.text('Objectif'), findsOneWidget);
       expect(find.text('Scènes liées'), findsOneWidget);
-      expect(find.text('Issues possibles'), findsOneWidget);
+      expect(find.text('Résultats possibles'), findsOneWidget);
       expect(find.text('Quand l’étape se termine'), findsOneWidget);
       expect(find.text('Résultats pour l’histoire'), findsOneWidget);
-      expect(find.text('Note de transition'), findsOneWidget);
+      expect(find.text('Transition'), findsOneWidget);
       expect(find.text('Changements sur la carte'), findsOneWidget);
     });
 
@@ -139,7 +139,8 @@ void main() {
       );
 
       expect(find.text('Après cette étape'), findsNothing);
-      expect(find.text('Quand l’étape devient disponible'), findsNothing);
+      expect(find.text('Note de transition'), findsNothing);
+      expect(find.text('Issues possibles'), findsNothing);
       expect(find.textContaining('flowUnlocksStepId'), findsNothing);
       expect(find.textContaining('Portée'), findsNothing);
       expect(find.textContaining('Validation'), findsNothing);
