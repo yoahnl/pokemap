@@ -398,9 +398,11 @@ void main() {
       final addToChapter = find.byKey(
         const ValueKey<String>('macro_add_step_to_chapter_chapter_prologue'),
       );
-      await tester.scrollUntilVisible(addToChapter, 500);
+      // La colonne navigation est scrollable : on rend le bouton visible sans
+      // `scrollUntilVisible` (qui exige un match unique dans certains layouts).
+      await tester.ensureVisible(addToChapter.first);
       await tester.pumpAndSettle();
-      await tester.tap(addToChapter);
+      await tester.tap(addToChapter.first);
       await tester.pumpAndSettle();
 
       expect(

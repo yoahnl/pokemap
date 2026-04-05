@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -27,6 +28,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   Timer? _toastTimer;
   String? _toastMessage;
   bool _toastIsError = false;
+
+  /// When false, the right ResizablePane (map / tileset / narrative inspector) is omitted so the center stage uses full width.
+  bool _rightInspectorVisible = true;
 
   @override
   void dispose() {
@@ -88,6 +92,14 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         _flashToast(next, isError: false);
       }
     });
+
+    final isNarrativeWorkspace = switch (workspaceMode) {
+      EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.step ||
+      EditorWorkspaceMode.cutscene =>
+        true,
+      _ => false,
+    };
 
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
@@ -189,18 +201,23 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         backgroundColor: const Color(0x00000000),
                         toolBar: buildMapEditorToolbar(context, ref),
                         children: [
-                          const ResizablePane.noScrollBar(
-                            key: ValueKey('editor_left_pane'),
+                          ResizablePane.noScrollBar(
+                            key: ValueKey<bool>(isNarrativeWorkspace),
                             resizableSide: ResizableSide.right,
-                            minSize: 240,
-                            maxSize: 520,
-                            startSize: 344,
-                            decoration: BoxDecoration(
+                            minSize: isNarrativeWorkspace ? 200 : 240,
+                            maxSize: isNarrativeWorkspace ? 460 : 520,
+                            startSize: isNarrativeWorkspace ? 268 : 344,
+                            decoration: const BoxDecoration(
                               color: MacosColors.transparent,
                             ),
                             child: Padding(
-                              padding: EdgeInsets.fromLTRB(16, 18, 12, 18),
-                              child: ProjectExplorerPanel(),
+                              padding: EdgeInsets.fromLTRB(
+                                isNarrativeWorkspace ? 12 : 16,
+                                isNarrativeWorkspace ? 16 : 18,
+                                isNarrativeWorkspace ? 10 : 12,
+                                isNarrativeWorkspace ? 16 : 18,
+                              ),
+                              child: const ProjectExplorerPanel(),
                             ),
                           ),
                           ContentArea(
@@ -209,21 +226,21 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                 children: [
                                   Expanded(
                                     child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        18,
-                                        18,
-                                        18,
-                                        8,
+                                      padding: EdgeInsets.fromLTRB(
+                                        isNarrativeWorkspace ? 10 : 18,
+                                        isNarrativeWorkspace ? 12 : 18,
+                                        isNarrativeWorkspace ? 10 : 18,
+                                        isNarrativeWorkspace ? 6 : 8,
                                       ),
                                       child: EditorIsland(
                                         radius: 36,
                                         tint: EditorChrome.islandCoolTint,
                                         child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            18,
-                                            18,
-                                            18,
-                                            16,
+                                          padding: EdgeInsets.fromLTRB(
+                                            isNarrativeWorkspace ? 12 : 18,
+                                            isNarrativeWorkspace ? 12 : 18,
+                                            isNarrativeWorkspace ? 12 : 18,
+                                            isNarrativeWorkspace ? 10 : 16,
                                           ),
                                           child: Column(
                                             crossAxisAlignment:
@@ -233,15 +250,32 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                 title: workspaceTitle,
                                                 subtitle: workspaceSubtitle,
                                                 workspaceMode: workspaceMode,
+                                                rightPanelVisible:
+                                                    _rightInspectorVisible,
+                                                onToggleRightPanel: () {
+                                                  setState(() {
+                                                    _rightInspectorVisible =
+                                                        !_rightInspectorVisible;
+                                                  });
+                                                },
                                               ),
-                                              const SizedBox(height: 18),
+                                              SizedBox(
+                                                height: isNarrativeWorkspace
+                                                    ? 12
+                                                    : 18,
+                                              ),
                                               Expanded(
                                                 child: ClipRRect(
                                                   borderRadius:
                                                       BorderRadius.circular(26),
-                                                  child: const Padding(
-                                                    padding: EdgeInsets.all(14),
-                                                    child: EditorCanvasHost(),
+                                                  child: Padding(
+                                                    padding: EdgeInsets.all(
+                                                      isNarrativeWorkspace
+                                                          ? 8
+                                                          : 14,
+                                                    ),
+                                                    child:
+                                                        const EditorCanvasHost(),
                                                   ),
                                                 ),
                                               ),
@@ -256,45 +290,48 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                               );
                             },
                           ),
-                          ResizablePane.noScrollBar(
-                            key: const ValueKey('editor_right_pane'),
-                            resizableSide: ResizableSide.left,
-                            minSize: 240,
-                            maxSize: 620,
-                            startSize: 336,
-                            decoration: const BoxDecoration(
-                              color: MacosColors.transparent,
-                            ),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(12, 18, 16, 18),
-                              child: EditorIsland(
-                                radius: 32,
-                                tint: switch (workspaceMode) {
-                                  EditorWorkspaceMode.map =>
-                                    EditorChrome.islandNeutralTint,
-                                  EditorWorkspaceMode.tileset =>
-                                    EditorChrome.islandWarmTint,
-                                  EditorWorkspaceMode.globalStory =>
-                                    EditorChrome.islandCoolTint,
-                                  EditorWorkspaceMode.step =>
-                                    EditorChrome.islandWarmTint,
-                                  EditorWorkspaceMode.cutscene =>
-                                    EditorChrome.islandNeutralTint,
-                                },
-                                child: switch (workspaceMode) {
-                                  EditorWorkspaceMode.map =>
-                                    const MapInspectorPanel(),
-                                  EditorWorkspaceMode.tileset =>
-                                    const TilesetPalettePanel(),
-                                  EditorWorkspaceMode.globalStory ||
-                                  EditorWorkspaceMode.step ||
-                                  EditorWorkspaceMode.cutscene =>
-                                    const NarrativeInspectorPanel(),
-                                },
+                          if (_rightInspectorVisible)
+                            ResizablePane.noScrollBar(
+                              key: ValueKey<String>(
+                                'editor_right_${isNarrativeWorkspace ? 'n' : 'm'}',
+                              ),
+                              resizableSide: ResizableSide.left,
+                              minSize: isNarrativeWorkspace ? 220 : 240,
+                              maxSize: 620,
+                              startSize: isNarrativeWorkspace ? 292 : 336,
+                              decoration: const BoxDecoration(
+                                color: MacosColors.transparent,
+                              ),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 18, 16, 18),
+                                child: EditorIsland(
+                                  radius: 32,
+                                  tint: switch (workspaceMode) {
+                                    EditorWorkspaceMode.map =>
+                                      EditorChrome.islandNeutralTint,
+                                    EditorWorkspaceMode.tileset =>
+                                      EditorChrome.islandWarmTint,
+                                    EditorWorkspaceMode.globalStory =>
+                                      EditorChrome.islandCoolTint,
+                                    EditorWorkspaceMode.step =>
+                                      EditorChrome.islandWarmTint,
+                                    EditorWorkspaceMode.cutscene =>
+                                      EditorChrome.islandNeutralTint,
+                                  },
+                                  child: switch (workspaceMode) {
+                                    EditorWorkspaceMode.map =>
+                                      const MapInspectorPanel(),
+                                    EditorWorkspaceMode.tileset =>
+                                      const TilesetPalettePanel(),
+                                    EditorWorkspaceMode.globalStory ||
+                                    EditorWorkspaceMode.step ||
+                                    EditorWorkspaceMode.cutscene =>
+                                      const NarrativeInspectorPanel(),
+                                  },
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -396,11 +433,15 @@ class _WorkspaceStageHeader extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.workspaceMode,
+    required this.rightPanelVisible,
+    required this.onToggleRightPanel,
   });
 
   final String title;
   final String subtitle;
   final EditorWorkspaceMode workspaceMode;
+  final bool rightPanelVisible;
+  final VoidCallback onToggleRightPanel;
 
   @override
   Widget build(BuildContext context) {
@@ -485,6 +526,32 @@ class _WorkspaceStageHeader extends StatelessWidget {
             ],
           ),
         ),
+        MacosTooltip(
+          message: rightPanelVisible
+              ? 'Hide right panel'
+              : 'Show right panel',
+          child: MacosIconButton(
+            semanticLabel: rightPanelVisible
+                ? 'Hide right panel'
+                : 'Show right panel',
+            icon: MacosIcon(
+              rightPanelVisible ? Icons.open_in_full : Icons.close_fullscreen,
+              color: label.withValues(alpha: 0.85),
+              size: 18,
+            ),
+            backgroundColor: CupertinoColors.transparent,
+            hoverColor: chipAccent.withValues(alpha: 0.12),
+            onPressed: onToggleRightPanel,
+            boxConstraints: const BoxConstraints(
+              minWidth: 34,
+              maxWidth: 34,
+              minHeight: 34,
+              maxHeight: 34,
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(

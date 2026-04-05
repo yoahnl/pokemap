@@ -179,9 +179,9 @@ void main() {
         expect(find.textContaining('Rencontre du professeur'), findsWidgets);
         expect(find.textContaining('Choix du starter'), findsWidgets);
 
-        // Check that the macro summary is displayed.
+        // Résumé structuré (stats chapitres / étapes).
         expect(find.textContaining('chapitre'), findsWidgets);
-        expect(find.textContaining('step'), findsWidgets);
+        expect(find.textContaining('étapes'), findsWidgets);
       },
       timeout: const Timeout(Duration(seconds: 30)),
     );

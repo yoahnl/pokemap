@@ -1,6 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart'
-    show KeyDownEvent, LogicalKeyboardKey;
 import 'package:map_core/map_core.dart';
 
 import '../../application/use_cases/project_scenario_use_cases.dart';
@@ -10,12 +8,7 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../features/narrative/application/step_studio_authoring.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
-import 'global_story_macro_editor.dart';
-
-/// Callback typé pour le renommage d'un chapitre (id + nouveau nom).
-///
-/// Utilisé car [ValueChanged] de Flutter ne prend qu'un seul argument.
-typedef _ChapterRenameCallback = void Function(String chapterId, String name);
+import 'global_story_studio/global_story_studio_shell.dart';
 
 /// Workspace central "Global Story Studio v1".
 ///
@@ -357,61 +350,73 @@ class _GlobalStoryStudioWorkspaceState
       }
     }
     
-    // Normaliser les chapitres - s'assurer que chaque step est dans un chapitre
+    // Chapitres triés par [order] : même ordre que la nav / [normalizeGlobalStoryStudioDocument].
+    // Sinon le « premier chapitre qui garde un doublon » dépend de l’ordre brut en mémoire
+    // et les étapes « sautent » visuellement vers un autre chapitre.
+    final sortedChapters = globalDocument.chapters.toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
     final allAssignedStepIds = <String>{};
     final normalizedChapters = <GlobalStoryChapter>[];
-    
-    for (final chapter in globalDocument.chapters) {
+
+    for (final chapter in sortedChapters) {
       final validStepIds = chapter.stepIds
           .where((id) => stepIds.contains(id) && !allAssignedStepIds.contains(id))
           .toList();
-      
-      // Marquer les steps assignées
+
       allAssignedStepIds.addAll(validStepIds);
-      
+
       normalizedChapters.add(chapter.copyWith(stepIds: validStepIds));
     }
-    
-    // Trouver les steps non assignées
+
     final unassignedStepIds = stepIds
         .where((id) => !allAssignedStepIds.contains(id))
-        .toList();
-    
-    // Si des steps sont non assignées, les ajouter à un chapitre par défaut
+        .toList(growable: false);
+
     if (unassignedStepIds.isNotEmpty) {
-      // Trouver ou créer le chapitre par défaut
       final defaultChapterIndex = normalizedChapters.indexWhere(
         (c) => c.id == _defaultChapterId,
       );
-      
+
       if (defaultChapterIndex >= 0) {
-        // Ajouter les steps non assignées au chapitre par défaut
         final existingChapter = normalizedChapters[defaultChapterIndex];
         normalizedChapters[defaultChapterIndex] = existingChapter.copyWith(
-          stepIds: [...existingChapter.stepIds, ...unassignedStepIds],
+          stepIds: <String>[...existingChapter.stepIds, ...unassignedStepIds],
         );
-      } else {
-        // Créer un nouveau chapitre par défaut
+      } else if (normalizedChapters.isEmpty) {
         normalizedChapters.add(GlobalStoryChapter(
           id: _defaultChapterId,
           name: _defaultChapterName,
           description: 'Chapitre par défaut pour les steps non assignées',
           stepIds: unassignedStepIds,
-          order: normalizedChapters.length,
+          order: 0,
         ));
+      } else {
+        // Pas de chapter_main : rattacher au premier chapitre affiché plutôt que
+        // d’inventer un bloc « Histoire principale » en queue (effet « tout part au ch.2 »).
+        final first = normalizedChapters.first;
+        normalizedChapters[0] = first.copyWith(
+          stepIds: <String>[...first.stepIds, ...unassignedStepIds],
+        );
       }
     }
-    
-    // S'assurer que l'entryStepId est valide
+
+    final orderedSteps = stepDocument.steps.toList(growable: false)
+      ..sort((a, b) => a.order.compareTo(b.order));
     final entryStepId = stepIds.contains(globalDocument.entryStepId)
         ? globalDocument.entryStepId
-        : (stepDocument.steps.isNotEmpty ? stepDocument.steps.first.id : '');
-    
-    // Retourner le document réconcilié
+        : (orderedSteps.isNotEmpty ? orderedSteps.first.id : '');
+
+    final renumberedChapters = normalizedChapters
+        .asMap()
+        .entries
+        .map((e) => e.value.copyWith(order: e.key))
+        .toList(growable: false);
+
     return globalDocument.copyWith(
       entryStepId: entryStepId,
       nodes: nodeMap.values.toList(),
-      chapters: normalizedChapters,
+      chapters: renumberedChapters,
     );
   }
 
@@ -978,7 +983,7 @@ class _GlobalStoryStudioWorkspaceState
     final chapterCount = ordered.length + 1;
 
     final newChapter = GlobalStoryChapter(
-      id: 'chapter_${chapterCount}',
+      id: 'chapter_$chapterCount',
       name: 'Nouveau chapitre $chapterCount',
       description: '',
       stepIds: const <String>[],
@@ -993,20 +998,30 @@ class _GlobalStoryStudioWorkspaceState
     );
   }
 
-  /// Supprime un chapitre. Les steps redeviennent non assignées puis sont réconciliées.
+  /// Supprime un chapitre. Les étapes qu’il contenait sont **rattachées au premier
+  /// chapitre restant** (ordre d’affichage), sinon comportement « un seul chapitre »
+  /// comme avant — ainsi elles ne restent pas « en l’air » puis réassignées au mauvais
+  /// endroit par la réconciliation.
   void _deleteChapter(String chapterId) {
     final globalDoc = _draftGlobalDocument;
     final stepDoc = _draftStepDocument;
     if (globalDoc == null || stepDoc == null) return;
 
-    final chapter =
-        globalDoc.chapters.where((c) => c.id == chapterId).cast<GlobalStoryChapter?>().firstWhere((c) => c != null, orElse: () => null);
-    if (chapter == null) return;
+    GlobalStoryChapter? victim;
+    for (final c in globalDoc.chapters) {
+      if (c.id == chapterId) {
+        victim = c;
+        break;
+      }
+    }
+    if (victim == null) return;
+    final chapter = victim;
+
+    final orphanStepIds = List<String>.from(chapter.stepIds);
 
     final nextChapters = globalDoc.chapters
         .where((c) => c.id != chapterId)
         .toList(growable: false);
-    // Re-normalize les orders.
     final ordered = nextChapters.toList(growable: true)
       ..sort((a, b) => a.order.compareTo(b.order));
     var normalized = ordered
@@ -1015,21 +1030,26 @@ class _GlobalStoryStudioWorkspaceState
         .map((e) => e.value.copyWith(order: e.key))
         .toList(growable: false);
 
-    // Supprimer le dernier chapitre alors qu'il reste des steps : si on passe une
-    // liste vide à la réconciliation, elle recrée `chapter_main` à l'identique —
-    // le document redevient == à l'ancien et l'UI semble ne rien faire.
-    // On recrée donc un chapitre avec un **nouvel id** et les steps dans l'ordre Step Studio.
+    if (normalized.isNotEmpty && orphanStepIds.isNotEmpty) {
+      final first = normalized.first;
+      normalized = <GlobalStoryChapter>[
+        first.copyWith(
+          stepIds: <String>[...first.stepIds, ...orphanStepIds],
+        ),
+        ...normalized.skip(1),
+      ];
+    }
+
     if (normalized.isEmpty && stepDoc.steps.isNotEmpty) {
       final orderedSteps = stepDoc.steps.toList(growable: false)
         ..sort((a, b) => a.order.compareTo(b.order));
-      final reserved = nextChapters.map((c) => c.id).toSet();
+      final reserved = normalized.map((c) => c.id).toSet();
       normalized = <GlobalStoryChapter>[
         GlobalStoryChapter(
           id: _allocateUniqueChapterId(reserved),
           name: 'Nouveau chapitre',
           description: '',
-          stepIds:
-              orderedSteps.map((s) => s.id).toList(growable: false),
+          stepIds: orderedSteps.map((s) => s.id).toList(growable: false),
           order: 0,
         ),
       ];
@@ -1118,10 +1138,14 @@ class _GlobalStoryStudioWorkspaceState
     final chapter = globalDoc.chapters[chapterIdx];
     if (fromIndex < 0 || fromIndex >= chapter.stepIds.length) return;
     if (toIndex < 0 || toIndex >= chapter.stepIds.length) return;
+    if (fromIndex == toIndex) return;
 
+    // L’UI ne propose que des swaps adjacents (↑ / ↓). removeAt + insert sur indices
+    // absolus provoquait des inversions avec la réconciliation / longueurs variables.
     final list = List<String>.from(chapter.stepIds);
-    final id = list.removeAt(fromIndex);
-    list.insert(toIndex, id);
+    final tmp = list[fromIndex];
+    list[fromIndex] = list[toIndex];
+    list[toIndex] = tmp;
 
     final nextChapters = globalDoc.chapters
         .asMap()
@@ -1566,9 +1590,7 @@ class _GlobalStoryStudioWorkspaceState
     // NOTE: Le Global Story Studio est une vue de STRUCTURE (chapitres + steps).
     // Il ne nécessite PAS de step sélectionnée pour afficher l'arbre narratif.
     // Si aucune step n'est sélectionnée, on affiche quand même la structure.
-    final selectedStep = _stepById(_selectedStepId);
-
-    // Affichage principal: arbre narratif vertical avec chapitres.
+    // Affichage principal: studio narratif (navigation + fil + détail).
     // Cette UI est VOLONTAIREMENT très différente du Step Studio:
     // - le Step Studio = fiche détaillée d'une step (activation, validation, etc.)
     // - le Global Story Studio = arbre narratif (chapitres, steps, flux)
@@ -1581,7 +1603,6 @@ class _GlobalStoryStudioWorkspaceState
               globalStories: globalStories,
               stepDocument: stepDoc,
               globalDocument: globalDoc,
-              selectedStep: selectedStep,
             ),
           )
         else
@@ -1793,13 +1814,12 @@ class _GlobalStoryStudioWorkspaceState
     );
   }
 
-  /// Vue macro : [GlobalStoryMacroEditor].
+  /// Studio Histoire globale : [GlobalStoryStudioShell].
   Widget _buildNarrativeTree({
     required BuildContext context,
     required List<ScenarioAsset> globalStories,
     required StepStudioDocument stepDocument,
     required GlobalStoryStudioDocument globalDocument,
-    required StepStudioStep? selectedStep,
   }) {
     final orderedSteps = stepDocument.steps.toList(growable: false)
       ..sort((a, b) => a.order.compareTo(b.order));
@@ -1812,13 +1832,31 @@ class _GlobalStoryStudioWorkspaceState
         ? globalStories.first.id
         : globalStories.first.name;
 
-    return GlobalStoryMacroEditor(
+    final storylineChoices = <({String id, String label})>[
+      for (final s in globalStories)
+        (
+          id: s.id,
+          label: s.name.trim().isEmpty ? s.id : s.name.trim(),
+        ),
+    ];
+
+    return GlobalStoryStudioShell(
       globalStoryName: globalName,
+      storylineChoices: storylineChoices,
+      selectedStorylineId: globalStories.length == 1
+          ? globalStories.first.id
+          : (widget.selectedGlobalStoryId ??
+              (globalStories.isNotEmpty ? globalStories.first.id : null)),
+      onSelectStoryline: (id) {
+        if (id != null && id.trim().isNotEmpty) {
+          widget.onSelectGlobalStory(id);
+        }
+      },
       orderedSteps: orderedSteps,
       chapters: chapters,
       globalDocument: globalDocument,
-      projectionStepCount: widget.projection.steps.length,
-      selectedStepId: selectedStep?.id,
+      projection: widget.projection,
+      selectedStepId: _selectedStepId,
       hasUnsavedChanges: _hasUnsavedChanges,
       canEdit: _canEdit,
       warnings: diagnostics,

@@ -363,6 +363,29 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    trailing: Semantics(
+                      label: 'Supprimer cette cutscene',
+                      button: true,
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size.square(32),
+                        onPressed: () async {
+                          await deleteCutsceneWithUserConfirmation(
+                            context: context,
+                            editorNotifier: editorNotifier,
+                            projection: projection,
+                            scenarioId: scenario.id,
+                            selectedScenarioId: selectedCutscene?.id,
+                            onSelectReplacement: onSelectCutscene,
+                          );
+                        },
+                        child: Icon(
+                          CupertinoIcons.trash,
+                          size: 17,
+                          color: EditorChrome.inspectorJoyCoral,
+                        ),
+                      ),
+                    ),
                   ),
                 )
                 .toList(growable: false),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show InkWell, Material, MaterialType;
 import 'package:map_core/map_core.dart';
 
 import '../../application/use_cases/project_scenario_use_cases.dart';
@@ -9,19 +10,25 @@ import '../../features/narrative/application/cutscene_studio_authoring.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import 'cutscene_studio/cutscene_studio_workbench.dart';
 
-/// Workspace central "Cutscene Studio" (v1 guidé, no-code).
+/// Workspace central **Cutscene Studio** (refonte « studio narratif »).
 ///
-/// Philosophie produit:
-/// - édition principale au CENTRE (pas dans l'inspecteur latéral),
-/// - authoring en blocs de haut niveau,
-/// - langage orienté usage ("faire parler", "exécuter script"...),
-/// - éviter les IDs techniques bruts dans le parcours principal.
+/// Rôles (séparation stricte) :
+/// - **Workbench** ([CutsceneStudioWorkbench]) : palette + flow vertical + inspecteur.
+/// - **Ce State** : liaison projet (hydratation, sauvegarde, lookups map/PNJ),
+///   et éditeurs de blocs réutilisés dans la colonne droite.
 ///
-/// Limite assumée du lot:
-/// - v1 supporte un flow linéaire guidé (sans branches complexes).
-/// - les scénarios hors format v1 restent visibles mais en lecture seule, avec
-///   explication explicite pour rester honnête sur l'état réel.
+/// Le centre n’est plus une pile de formulaires : la composition vit dans le flow ;
+/// les formulaires détaillés ne s’affichent que pour le bloc sélectionné.
+///
+/// Données : [CutsceneStudioDocument.cutsceneFlow] décrit les branches ;
+/// [buildScenarioFromCutsceneStudioDocument] compile vers `ScenarioAsset` et
+/// sérialise le flow en JSON (`kCutsceneStudioFlowMetadataKey`) pour reprise UI.
+///
+/// Scénarios sans metadata de flow mais graphe linéaire : toujours éditables ;
+/// graphe avec branches **sans** JSON : lecture seule (avertissements), car on
+/// ne reconstruit pas l’arbre depuis le seul graphe runtime.
 class CutsceneStudioWorkspace extends StatefulWidget {
   const CutsceneStudioWorkspace({
     super.key,
@@ -71,6 +78,9 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   bool _isLoadingSourceLookups = false;
   String? _sourceLookupError;
 
+  /// Bloc actif dans l’inspecteur droit (null = méta cutscene + source).
+  String? _selectedBlockId;
+
   @override
   void initState() {
     super.initState();
@@ -112,6 +122,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         _spawnsByMapId.clear();
         _triggersByMapId.clear();
         _warpsByMapId.clear();
+        _selectedBlockId = null;
       });
       return;
     }
@@ -131,6 +142,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         _spawnsByMapId.clear();
         _triggersByMapId.clear();
         _warpsByMapId.clear();
+        _selectedBlockId = null;
       });
       return;
     }
@@ -147,6 +159,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       _spawnsByMapId.clear();
       _triggersByMapId.clear();
       _warpsByMapId.clear();
+      _selectedBlockId = null;
     });
     _primeSourceLookups(parse.document.source.mapId);
   }
@@ -326,6 +339,189 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     });
   }
 
+  void _commitFlowEntries(List<CutsceneFlowEntry> next) {
+    final d = _draftDocument;
+    if (d == null || !_canEdit) return;
+    _replaceDraft(
+      d.copyWith(
+        cutsceneFlow: next,
+        blocks: flattenMainTrunkFlowToBlocks(next),
+      ),
+    );
+  }
+
+  void _replaceBlockById(String id, CutsceneStudioBlock next) {
+    final d = _draftDocument;
+    if (d == null || !_canEdit) return;
+    final flow = effectiveCutsceneFlowForDocument(d);
+    final updated = replaceCutsceneBlockByIdInFlow(flow, id, next);
+    _replaceDraft(
+      d.copyWith(
+        cutsceneFlow: updated,
+        blocks: flattenMainTrunkFlowToBlocks(updated),
+      ),
+    );
+  }
+
+  CutsceneStudioBlock _paletteBlockForKind(CutsceneStudioBlockKind kind) {
+    final draft = _draftDocument!;
+    final blockId = 'block_${DateTime.now().microsecondsSinceEpoch}';
+    final sourceMapId = _trimOrNull(draft.source.mapId);
+    final actors = _actorIdsForMap(sourceMapId);
+    final npcs = _npcsForMap(sourceMapId);
+    final warps = _warpsForMap(sourceMapId);
+    final spawns = _spawnsForMap(sourceMapId);
+    return switch (kind) {
+      CutsceneStudioBlockKind.dialogue => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          actorId: _firstOrNull(actors),
+          dialogueId: widget.project.dialogues.isEmpty
+              ? null
+              : widget.project.dialogues.first.id,
+        ),
+      CutsceneStudioBlockKind.narration => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          messageText: 'Texte de narration',
+        ),
+      CutsceneStudioBlockKind.moveCharacter => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          actorId: npcs.isNotEmpty
+              ? npcs.first.id
+              : _firstOrNull(
+                  actors
+                      .where((id) => id != kCutsceneActorNarratorId)
+                      .toList(),
+                ),
+          destinationTargetKind: kCutsceneStudioMoveTargetWarp,
+          destinationTargetId: warps.isNotEmpty
+              ? warps.first.id
+              : spawns.isNotEmpty
+                  ? spawns.first.id
+                  : _firstOrNull(
+                      actors
+                          .where((id) => id != kCutsceneActorNarratorId)
+                          .toList(growable: false),
+                    ),
+          waitForCompletion: true,
+        ),
+      CutsceneStudioBlockKind.pathfindMove => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          actorId: npcs.isNotEmpty
+              ? npcs.first.id
+              : _firstOrNull(actors),
+          destinationTargetKind: kCutsceneStudioMoveTargetWarp,
+          destinationTargetId: warps.isNotEmpty ? warps.first.id : null,
+          waitForCompletion: true,
+        ),
+      CutsceneStudioBlockKind.followCharacter => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          actorId: _firstOrNull(npcs.map((e) => e.id).toList()),
+        ),
+      CutsceneStudioBlockKind.faceCharacter => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          actorId: _firstOrNull(actors),
+          facingDirection: 'south',
+        ),
+      CutsceneStudioBlockKind.characterAppear ||
+      CutsceneStudioBlockKind.characterDisappear ||
+      CutsceneStudioBlockKind.cameraCenter ||
+      CutsceneStudioBlockKind.cameraTransition =>
+        CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          actorId: _firstOrNull(actors),
+        ),
+      CutsceneStudioBlockKind.playerQuestion => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          messageText: 'Votre question au joueur ?',
+          choiceOptions: const ['Oui', 'Non'],
+        ),
+      CutsceneStudioBlockKind.callCutscene => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          messageText: 'Référence cutscene (bientôt)',
+        ),
+      CutsceneStudioBlockKind.wait => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          durationMs: 700,
+        ),
+      CutsceneStudioBlockKind.transitionMap => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          transitionMapId: sourceMapId ??
+              (widget.project.maps.isEmpty
+                  ? null
+                  : widget.project.maps.first.id),
+          transitionWarpId:
+              _firstOrNull(warps.map((entry) => entry.id).toList()),
+        ),
+      CutsceneStudioBlockKind.starterChoice => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          choiceOptions: const ['Feu', 'Eau', 'Plante'],
+        ),
+      CutsceneStudioBlockKind.sceneResult => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          resultLabel: 'Résultat de scène',
+          resultScope: kCutsceneStudioResultScopeLocal,
+        ),
+      CutsceneStudioBlockKind.runScript => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          scriptId: widget.project.scripts.isEmpty
+              ? null
+              : widget.project.scripts.first.id,
+        ),
+      CutsceneStudioBlockKind.setFlag ||
+      CutsceneStudioBlockKind.clearFlag =>
+        CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          flagName: 'story.flag_name',
+        ),
+      CutsceneStudioBlockKind.emitOutcome => CutsceneStudioBlock(
+          id: blockId,
+          kind: kind,
+          outcomeId: widget.projection.outcomes.isEmpty
+              ? 'chapter_1.example_outcome'
+              : widget.projection.outcomes.first.id,
+        ),
+    };
+  }
+
+  String _flowSummaryLine(CutsceneStudioBlock block) {
+    return switch (block.kind) {
+      CutsceneStudioBlockKind.dialogue =>
+        _trimmedOrFallback(_actorLabelById(block.actorId,
+                mapId: _trimOrNull(_draftDocument?.source.mapId)),
+            fallback: 'Personnage') +
+            (_trimOrNull(block.messageText) != null
+                ? ' · ${_trimOrNull(block.messageText)}'
+                : ''),
+      CutsceneStudioBlockKind.playerQuestion =>
+        _trimmedOrFallback(block.messageText, fallback: 'Question au joueur'),
+      CutsceneStudioBlockKind.moveCharacter ||
+      CutsceneStudioBlockKind.pathfindMove =>
+        _trimmedOrFallback(
+          _actorLabelById(block.actorId,
+              mapId: _trimOrNull(_draftDocument?.source.mapId)),
+          fallback: 'Déplacement',
+        ),
+      CutsceneStudioBlockKind.wait =>
+        'Pause ${block.durationMs ?? 700} ms',
+      _ => cutsceneStudioBlockKindLabel(block.kind),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final draft = _draftDocument;
@@ -335,201 +531,180 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     return EditorPaneSurface(
       radius: 20,
       tint: EditorChrome.islandWarmTint,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: ListView(
-        children: [
-          _buildHeader(context, draft),
-          const SizedBox(height: 12),
-          if (!_isStudioCompatible) ...[
-            _CompatibilityWarningCard(
-              warnings: _compatWarnings,
+      padding: EdgeInsets.zero,
+      child: CutsceneStudioWorkbench(
+        cutsceneName: draft.name,
+        onRename: (name) {
+          final t = name.trim();
+          if (t.isEmpty || !_canEdit) return;
+          _replaceDraft(draft.copyWith(name: t));
+        },
+        flow: effectiveCutsceneFlowForDocument(draft),
+        onCommitFlow: _commitFlowEntries,
+        canEdit: _canEdit,
+        busy: _busy,
+        hasUnsavedChanges: _hasUnsavedChanges,
+        onSave: _saveDraftToProject,
+        onReset: _restoreSavedDocument,
+        onTest: () => _showCutsceneStudioNotice(
+              context,
+              title: 'Tester',
+              message:
+                  'L’aperçu runtime interactif sera branché ici. Pour l’instant, enregistrez puis lancez le jeu.',
             ),
-            const SizedBox(height: 12),
-          ],
-          _buildSourceSection(context, draft),
-          const SizedBox(height: 12),
-          _buildBlocksSection(context, draft),
-          const SizedBox(height: 12),
-          const InspectorEmbeddedFootnote(
-            text:
-                'Cutscene Studio v1 édite un flow guidé linéaire. Pour les graphes complexes, utilisez une migration progressive plutôt qu\'une édition destructive.',
-            accent: EditorChrome.inspectorJoyPlum,
-          ),
-        ],
+        onSimulate: () => _showCutsceneStudioNotice(
+              context,
+              title: 'Simuler',
+              message:
+                  'La simulation pas-à-pas arrive dans une prochaine itération.',
+            ),
+        onCreateNew: _createCutsceneFromTemplateFlow,
+        selectedBlockId: _selectedBlockId,
+        onSelectBlock: (id) => setState(() => _selectedBlockId = id),
+        paletteBlockFactory: _paletteBlockForKind,
+        flowSummaryBuilder: _flowSummaryLine,
+        inspector: _buildWorkbenchInspector(context, draft),
+        sourceStrip: _buildCompactSourceStrip(context, draft),
+        compatibilityBanner: !_isStudioCompatible
+            ? Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _CompatibilityWarningCard(warnings: _compatWarnings),
+              )
+            : null,
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return EditorPaneSurface(
-      radius: 20,
-      tint: EditorChrome.islandWarmTint,
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                CupertinoIcons.play_rectangle_fill,
-                size: 34,
-                color: EditorChrome.inspectorJoyPlum,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Aucune cutscene sélectionnée',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: EditorChrome.primaryLabel(context),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Créez une scène avec un template guidé: dialogue, script, hook map ou interaction PNJ.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: 260,
-                child: InspectorEmbeddedPrimaryCapsule(
-                  accent: EditorChrome.inspectorJoyPlum,
-                  icon: CupertinoIcons.plus_circle_fill,
-                  label: 'Créer une cutscene',
-                  prominent: true,
-                  enabled: !_busy,
-                  onPressed: _createCutsceneFromTemplateFlow,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  void _showCutsceneStudioNotice(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) {
+    showCupertinoEditorAlert(
+      context,
+      title: title,
+      message: message,
     );
   }
 
-  Widget _buildHeader(BuildContext context, CutsceneStudioDocument draft) {
-    final subtitle = _isStudioCompatible
-        ? 'Édition guidée en blocs (v1).'
-        : 'Scénario détecté hors format guidé v1 (lecture seule).';
+  /// Bandeau horizontal : rappel du hook « quand » sans monopoliser le canvas.
+  Widget _buildCompactSourceStrip(
+    BuildContext context,
+    CutsceneStudioDocument draft,
+  ) {
+    final mapLabel =
+        _mapLabelById(_trimOrNull(draft.source.mapId)) ?? 'Map non définie';
+    final hook = cutsceneStudioSourceKindLabel(draft.source.kind);
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
           context,
-          tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.08),
+          tint: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.06),
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.35),
+          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.25),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      draft.name,
-                      style: TextStyle(
-                        color: EditorChrome.primaryLabel(context),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: EditorChrome.subtleLabel(context),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_hasUnsavedChanges)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color:
-                        EditorChrome.inspectorJoyCoral.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: EditorChrome.inspectorJoyCoral
-                          .withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: const Text(
-                    'Non sauvegardé',
-                    style: TextStyle(
-                      color: EditorChrome.inspectorJoyCoral,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-            ],
+          Icon(
+            CupertinoIcons.clock_fill,
+            size: 16,
+            color: EditorChrome.inspectorJoyCyan,
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: InspectorEmbeddedPrimaryCapsule(
-                  accent: EditorChrome.inspectorJoyMint,
-                  icon: CupertinoIcons.plus_circle_fill,
-                  label: 'Nouvelle cutscene',
-                  enabled: !_busy,
-                  onPressed: _createCutsceneFromTemplateFlow,
-                ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Quand : $hook · $mapLabel',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: EditorChrome.primaryLabel(context),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InspectorEmbeddedPrimaryCapsule(
-                  accent: EditorChrome.inspectorJoyBlue,
-                  icon: CupertinoIcons.floppy_disk,
-                  label: 'Sauvegarder',
-                  prominent: true,
-                  enabled: _canEdit && _hasUnsavedChanges,
-                  onPressed: _saveDraftToProject,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InspectorEmbeddedSecondaryCapsule(
-                  accent: EditorChrome.inspectorJoyCyan,
-                  icon: CupertinoIcons.arrow_uturn_left,
-                  label: 'Réinitialiser',
-                  enabled: _canEdit && _hasUnsavedChanges,
-                  onPressed: _restoreSavedDocument,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: InspectorEmbeddedSecondaryCapsule(
-              accent: EditorChrome.inspectorJoyCoral,
-              icon: CupertinoIcons.delete,
-              label: 'Supprimer cette cutscene',
-              enabled: !_busy && _loadedScenarioId != null,
-              onPressed: _deleteSelectedCutscene,
             ),
           ),
+          if (_canEdit)
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              minimumSize: Size.zero,
+              onPressed: () => setState(() => _selectedBlockId = null),
+              child: Text(
+                'Configurer la source',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: EditorChrome.inspectorJoyCyan,
+                ),
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  /// Inspecteur : source complète si aucun bloc, sinon formulaire du bloc.
+  Widget _buildWorkbenchInspector(
+    BuildContext context,
+    CutsceneStudioDocument draft,
+  ) {
+    if (_selectedBlockId == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Cutscene',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: EditorChrome.subtleLabel(context),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            draft.description.isEmpty
+                ? 'Aucune description.'
+                : draft.description,
+            style: TextStyle(
+              fontSize: 12,
+              color: EditorChrome.primaryLabel(context),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSourceSection(context, draft),
+        ],
+      );
+    }
+    final block = findCutsceneBlockByIdInFlow(
+      effectiveCutsceneFlowForDocument(draft),
+      _selectedBlockId!,
+    );
+    if (block == null) {
+      return Text(
+        'Bloc introuvable.',
+        style: TextStyle(color: EditorChrome.subtleLabel(context)),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          cutsceneStudioBlockKindLabel(block.kind),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: EditorChrome.primaryLabel(context),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _buildBlockEditor(
+          context,
+          draft: draft,
+          block: block,
+          onChanged: (next) => _replaceBlockById(next.id, next),
+        ),
+      ],
     );
   }
 
@@ -567,26 +742,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CupertinoSlidingSegmentedControl<CutsceneStudioSourceKind>(
+          _CutsceneSourceKindPicker(
             groupValue: draft.source.kind,
-            children: {
-              for (final kind in CutsceneStudioSourceKind.values)
-                kind: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    cutsceneStudioSourceKindLabel(kind),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            },
+            enabled: canEditSource,
             onValueChanged: (kind) {
-              if (!canEditSource || kind == null) return;
-              // Quand le type change, on nettoie les champs non pertinents
-              // pour éviter des bindings ambigus.
               switch (kind) {
                 case CutsceneStudioSourceKind.mapEnter:
                   _replaceDraft(
@@ -623,9 +782,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
             },
           ),
           const SizedBox(height: 10),
-          // IMPORTANT UX:
-          // on utilise un dropdown inline (pas une alerte modale) pour rendre
-          // la sélection map immédiate et lisible dans le flux d’édition.
           InspectorEmbeddedDropdown(
             accent: EditorChrome.inspectorJoyCyan,
             fieldLabel: 'Map',
@@ -637,8 +793,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
             onSelected: (nextMapId) {
               if (!canEditSource) return;
               var nextSource = draft.source.copyWith(mapId: nextMapId);
-              // Quand la map change, on nettoie les références dépendantes:
-              // elles pourraient pointer vers un PNJ/trigger d'une autre map.
               if (nextSource.kind == CutsceneStudioSourceKind.entityInteract) {
                 nextSource = nextSource.copyWith(entityId: null);
               }
@@ -651,7 +805,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           ),
           if (draft.source.kind == CutsceneStudioSourceKind.entityInteract) ...[
             const SizedBox(height: 8),
-            // Dropdown PNJ: propose TOUS les PNJ de la map sélectionnée.
             InspectorEmbeddedDropdown(
               accent: EditorChrome.inspectorJoyCyan,
               fieldLabel: 'PNJ concerné',
@@ -712,268 +865,271 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     );
   }
 
-  Widget _buildBlocksSection(
-      BuildContext context, CutsceneStudioDocument draft) {
-    return _StudioSectionCard(
-      title: 'Construction de la scène',
-      subtitle:
-          'Assemblez des blocs concrets dans l’ordre: dialogues, déplacements, transitions, choix et résultats.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          InspectorEmbeddedPrimaryCapsule(
-            accent: EditorChrome.inspectorJoyPlum,
-            icon: CupertinoIcons.add_circled_solid,
-            label: 'Ajouter un bloc',
-            enabled: _canEdit,
-            onPressed: _addBlockFlow,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Lecture de haut en bas: chaque bloc représente une action de scène.',
-            style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (draft.blocks.isEmpty)
-            Container(
-              decoration: BoxDecoration(
-                color: EditorChrome.largeIslandSurfaceColor(
-                  context,
-                  tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.07),
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.28),
+  Widget _buildEmptyState(BuildContext context) {
+    return EditorPaneSurface(
+      radius: 20,
+      tint: EditorChrome.islandWarmTint,
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                CupertinoIcons.play_rectangle_fill,
+                size: 34,
+                color: EditorChrome.inspectorJoyPlum,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Aucune cutscene sélectionnée',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: EditorChrome.primaryLabel(context),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                'Aucun bloc pour le moment. Commencez par "Faire parler un personnage" ou "Déplacer un personnage".',
+              const SizedBox(height: 8),
+              Text(
+                'Créez une scène avec un template guidé: dialogue, script, hook map ou interaction PNJ.',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: EditorChrome.subtleLabel(context),
-                  fontSize: 12,
+                  fontSize: 13,
                 ),
               ),
-            )
-          else
-            for (var i = 0; i < draft.blocks.length; i++) ...[
-              _buildBlockCard(
-                context,
-                draft: draft,
-                block: draft.blocks[i],
-                index: i,
+              const SizedBox(height: 14),
+              SizedBox(
+                width: 260,
+                child: InspectorEmbeddedPrimaryCapsule(
+                  accent: EditorChrome.inspectorJoyPlum,
+                  icon: CupertinoIcons.plus_circle_fill,
+                  label: 'Créer une cutscene',
+                  prominent: true,
+                  enabled: !_busy,
+                  onPressed: _createCutsceneFromTemplateFlow,
+                ),
               ),
-              if (i < draft.blocks.length - 1) const SizedBox(height: 8),
             ],
-        ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildBlockCard(
-    BuildContext context, {
-    required CutsceneStudioDocument draft,
-    required CutsceneStudioBlock block,
-    required int index,
-  }) {
-    final canMoveUp = index > 0;
-    final canMoveDown = index < draft.blocks.length - 1;
-    final canEditBlock = _canEdit;
-    final category = cutsceneStudioBlockCategory(block.kind);
-    final accent = _categoryAccent(category);
-    final runtimeSupported = cutsceneStudioBlockRuntimeSupported(block);
-    return Container(
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: accent.withValues(alpha: 0.08),
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.34),
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: accent.withValues(alpha: 0.2),
-                  border: Border.all(
-                    color: accent.withValues(alpha: 0.55),
-                  ),
-                ),
-                child: Text(
-                  'Bloc ${index + 1}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  cutsceneStudioBlockKindLabel(block.kind),
-                  style: TextStyle(
-                    color: EditorChrome.primaryLabel(context),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (!runtimeSupported)
-                Container(
-                  margin: const EdgeInsets.only(right: 6),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    color:
-                        EditorChrome.inspectorJoyCoral.withValues(alpha: 0.18),
-                    border: Border.all(
-                      color: EditorChrome.inspectorJoyCoral
-                          .withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: const Text(
-                    'Préparation runtime',
-                    style: TextStyle(
-                      color: EditorChrome.inspectorJoyCoral,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              _MiniIconButton(
-                icon: CupertinoIcons.chevron_up,
-                enabled: canEditBlock && canMoveUp,
-                onTap: () => _moveBlock(index, index - 1),
-              ),
-              const SizedBox(width: 4),
-              _MiniIconButton(
-                icon: CupertinoIcons.chevron_down,
-                enabled: canEditBlock && canMoveDown,
-                onTap: () => _moveBlock(index, index + 1),
-              ),
-              const SizedBox(width: 4),
-              _MiniIconButton(
-                icon: CupertinoIcons.trash,
-                enabled: canEditBlock,
-                onTap: () => _removeBlock(index),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            cutsceneStudioBlockCategoryLabel(category),
-            style: TextStyle(
-              color: accent,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildBlockEditor(
-            context,
-            draft: draft,
-            block: block,
-            index: index,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildBlockEditor(
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     return switch (block.kind) {
       CutsceneStudioBlockKind.dialogue => _buildDialogueBlockEditor(
           context,
           draft: draft,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.narration => _buildNarrationBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.moveCharacter => _buildMoveBlockEditor(
           context,
           draft: draft,
           block: block,
-          index: index,
+          onChanged: onChanged,
+        ),
+      CutsceneStudioBlockKind.pathfindMove => _buildMoveBlockEditor(
+          context,
+          draft: draft,
+          block: block,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.followCharacter => _buildFollowBlockEditor(
           context,
           draft: draft,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.faceCharacter => _buildFaceBlockEditor(
           context,
           draft: draft,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.transitionMap => _buildTransitionMapBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.starterChoice => _buildStarterChoiceBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
+        ),
+      CutsceneStudioBlockKind.playerQuestion =>
+        _buildPlayerQuestionBlockEditor(
+          context,
+          block: block,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.wait => _buildWaitBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.sceneResult => _buildSceneResultBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.runScript => _buildRunScriptBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.setFlag ||
       CutsceneStudioBlockKind.clearFlag =>
         _buildFlagBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
         ),
       CutsceneStudioBlockKind.emitOutcome => _buildLegacyOutcomeBlockEditor(
           context,
           block: block,
-          index: index,
+          onChanged: onChanged,
+        ),
+      CutsceneStudioBlockKind.characterAppear ||
+      CutsceneStudioBlockKind.characterDisappear ||
+      CutsceneStudioBlockKind.cameraCenter ||
+      CutsceneStudioBlockKind.cameraTransition ||
+      CutsceneStudioBlockKind.callCutscene =>
+        _buildStubBlockEditor(
+          context,
+          block: block,
+          onChanged: onChanged,
         ),
     };
+  }
+
+  /// Blocs « placeholder » : l’utilisateur compose la scène sans jargon moteur.
+  Widget _buildStubBlockEditor(
+    BuildContext context, {
+    required CutsceneStudioBlock block,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Action en préparation côté jeu : vous pouvez déjà la positionner '
+          'dans le flux pour structurer votre scène.',
+          style: TextStyle(
+            fontSize: 12,
+            color: EditorChrome.subtleLabel(context),
+          ),
+        ),
+        if (block.kind == CutsceneStudioBlockKind.callCutscene) ...[
+          const SizedBox(height: 10),
+          _InlineActionRow(
+            label: 'Mémo (référence cutscene)',
+            value: _trimmedOrFallback(
+              block.messageText,
+              fallback: 'Appuyez pour noter une cible…',
+            ),
+            icon: CupertinoIcons.link,
+            enabled: _canEdit,
+            onTap: () async {
+              final next = await _promptTextValue(
+                title: 'Référence',
+                initialValue: block.messageText,
+                placeholder: 'ex: intro_professeur',
+              );
+              if (!mounted || next == null || !_canEdit) return;
+              onChanged(block.copyWith(messageText: next));
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Question binaire (compile → node `choice` + branches Oui/Non).
+  Widget _buildPlayerQuestionBlockEditor(
+    BuildContext context, {
+    required CutsceneStudioBlock block,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
+  }) {
+    final options = block.choiceOptions.length >= 2
+        ? block.choiceOptions
+        : <String>['Oui', 'Non'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _InlineActionRow(
+          label: 'Texte de la question',
+          value: _trimmedOrFallback(
+            block.messageText,
+            fallback: 'Quelle question posez-vous ?',
+          ),
+          icon: CupertinoIcons.question_circle,
+          enabled: _canEdit,
+          onTap: () async {
+            final next = await _promptTextValue(
+              title: 'Question au joueur',
+              initialValue: block.messageText,
+              placeholder: 'Ex: Acceptes-tu de commencer ?',
+            );
+            if (!mounted || next == null || !_canEdit) return;
+            onChanged(block.copyWith(messageText: next));
+          },
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Libellés des deux chemins',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: EditorChrome.subtleLabel(context),
+          ),
+        ),
+        const SizedBox(height: 6),
+        for (var i = 0; i < 2; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == 0 ? 6 : 0),
+            child: _InlineActionRow(
+              label: i == 0 ? 'Premier choix' : 'Second choix',
+              value: options[i],
+              icon: CupertinoIcons.textformat_abc,
+              enabled: _canEdit,
+              onTap: () async {
+                final next = await _promptTextValue(
+                  title: i == 0 ? 'Libellé du premier choix' : 'Libellé du second choix',
+                  initialValue: options[i],
+                  placeholder: i == 0 ? 'Oui' : 'Non',
+                );
+                if (!mounted || next == null || !_canEdit) return;
+                final o = List<String>.from(options);
+                o[i] = next;
+                onChanged(block.copyWith(choiceOptions: o));
+              },
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildDialogueBlockEditor(
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final mapId = _trimOrNull(draft.source.mapId);
     final actorIds = _actorIdsForMap(mapId);
@@ -994,7 +1150,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: (id) => _actorLabelById(id, mapId: mapId) ?? id,
           onSelected: (actorId) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(actorId: actorId));
+            onChanged(block.copyWith(actorId: actorId));
           },
         ),
         const SizedBox(height: 8),
@@ -1010,8 +1166,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: (id) => _dialogueLabelById(id) ?? id,
           onSelected: (dialogueId) {
             if (!_canEdit) return;
-            _replaceBlock(
-              index,
+            onChanged(
               block.copyWith(
                 dialogueId: dialogueId,
                 // On nettoie le fallback texte inline dès qu'un vrai dialogue
@@ -1028,7 +1183,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildNarrationBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     return _InlineActionRow(
       label: 'Texte de narration',
@@ -1045,7 +1200,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           placeholder: 'Ex: Emma regarde vers le laboratoire...',
         );
         if (!mounted || nextText == null || !_canEdit) return;
-        _replaceBlock(index, block.copyWith(messageText: nextText));
+        onChanged(block.copyWith(messageText: nextText));
       },
     );
   }
@@ -1054,7 +1209,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final mapId = _trimOrNull(draft.source.mapId);
     final actorIds = _actorIdsForMap(mapId);
@@ -1084,7 +1239,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: (id) => _actorLabelById(id, mapId: mapId) ?? id,
           onSelected: (actorId) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(actorId: actorId));
+            onChanged(block.copyWith(actorId: actorId));
           },
         ),
         const SizedBox(height: 8),
@@ -1102,8 +1257,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
               kind: nextKind,
               mapId: mapId,
             );
-            _replaceBlock(
-              index,
+            onChanged(
               block.copyWith(
                 destinationTargetKind: nextKind,
                 destinationTargetId: _firstOrNull(nextTargetIds),
@@ -1135,7 +1289,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
               id,
           onSelected: (targetId) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(destinationTargetId: targetId));
+            onChanged(block.copyWith(destinationTargetId: targetId));
           },
         ),
         const SizedBox(height: 8),
@@ -1145,7 +1299,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           enabled: _canEdit,
           onChanged: (next) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(waitForCompletion: next));
+            onChanged(block.copyWith(waitForCompletion: next));
           },
         ),
       ],
@@ -1156,7 +1310,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final mapId = _trimOrNull(draft.source.mapId);
     final leaderIds = _npcsForMap(mapId).map((entry) => entry.id).toList();
@@ -1174,7 +1328,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: (id) => _actorLabelById(id, mapId: mapId) ?? id,
           onSelected: (leaderId) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(actorId: leaderId));
+            onChanged(block.copyWith(actorId: leaderId));
           },
         ),
         const SizedBox(height: 6),
@@ -1193,7 +1347,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     BuildContext context, {
     required CutsceneStudioDocument draft,
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final mapId = _trimOrNull(draft.source.mapId);
     final actorIds = _actorIdsForMap(mapId);
@@ -1213,7 +1367,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: (id) => _actorLabelById(id, mapId: mapId) ?? id,
           onSelected: (actorId) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(actorId: actorId));
+            onChanged(block.copyWith(actorId: actorId));
           },
         ),
         const SizedBox(height: 8),
@@ -1227,7 +1381,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: _directionLabel,
           onSelected: (direction) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(facingDirection: direction));
+            onChanged(block.copyWith(facingDirection: direction));
           },
         ),
       ],
@@ -1237,7 +1391,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildTransitionMapBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final mapIds = _projectMaps.map((entry) => entry.id).toList();
     final selectedMapId = _trimOrNull(block.transitionMapId);
@@ -1258,8 +1412,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
             _primeSourceLookups(mapId);
             final nextWarpIds =
                 _warpsForMap(mapId).map((entry) => entry.id).toList();
-            _replaceBlock(
-              index,
+            onChanged(
               block.copyWith(
                 transitionMapId: mapId,
                 transitionWarpId: _firstOrNull(nextWarpIds),
@@ -1284,7 +1437,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: (id) => _warpLabelById(id, warps) ?? id,
           onSelected: (warpId) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(transitionWarpId: warpId));
+            onChanged(block.copyWith(transitionWarpId: warpId));
           },
         ),
       ],
@@ -1294,7 +1447,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildStarterChoiceBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final options = block.choiceOptions.isEmpty
         ? const <String>['Feu', 'Eau', 'Plante']
@@ -1343,7 +1496,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
                     icon: CupertinoIcons.pencil,
                     enabled: _canEdit,
                     onTap: () => _editStarterChoiceOption(
-                      blockIndex: index,
+                      block: block,
                       optionIndex: optionIndex,
                       currentValue: options[optionIndex],
                     ),
@@ -1356,10 +1509,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
                       if (!_canEdit || options.length <= 2) return;
                       final nextOptions = List<String>.from(options)
                         ..removeAt(optionIndex);
-                      _replaceBlock(
-                        index,
-                        block.copyWith(choiceOptions: nextOptions),
-                      );
+                      onChanged(block.copyWith(choiceOptions: nextOptions));
                     },
                   ),
                 ],
@@ -1372,7 +1522,10 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           icon: CupertinoIcons.plus,
           label: 'Ajouter une option',
           enabled: _canEdit,
-          onPressed: () => _addStarterChoiceOption(index: index, block: block),
+          onPressed: () => _addStarterChoiceOption(
+                block: block,
+                onChanged: onChanged,
+              ),
         ),
       ],
     );
@@ -1381,7 +1534,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildWaitBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final knownDurations = <String>[
       '250',
@@ -1408,7 +1561,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         if (!_canEdit) return;
         final parsed = int.tryParse(duration);
         if (parsed == null) return;
-        _replaceBlock(index, block.copyWith(durationMs: parsed));
+        onChanged(block.copyWith(durationMs: parsed));
       },
     );
   }
@@ -1416,7 +1569,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildSceneResultBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final selectedScope =
         _trimOrNull(block.resultScope) ?? kCutsceneStudioResultScopeLocal;
@@ -1438,7 +1591,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
               placeholder: 'Ex: Emma rencontrée',
             );
             if (!mounted || nextLabel == null || !_canEdit) return;
-            _replaceBlock(index, block.copyWith(resultLabel: nextLabel));
+            onChanged(block.copyWith(resultLabel: nextLabel));
           },
         ),
         const SizedBox(height: 8),
@@ -1453,7 +1606,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           idToLabel: _resultScopeLabel,
           onSelected: (scope) {
             if (!_canEdit) return;
-            _replaceBlock(index, block.copyWith(resultScope: scope));
+            onChanged(block.copyWith(resultScope: scope));
           },
         ),
         const SizedBox(height: 8),
@@ -1488,7 +1641,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildRunScriptBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final scriptIds =
         widget.project.scripts.map((entry) => entry.id).toList(growable: false);
@@ -1504,7 +1657,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       idToLabel: (id) => _scriptLabelById(id) ?? id,
       onSelected: (scriptId) {
         if (!_canEdit) return;
-        _replaceBlock(index, block.copyWith(scriptId: scriptId));
+        onChanged(block.copyWith(scriptId: scriptId));
       },
     );
   }
@@ -1512,7 +1665,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildFlagBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final flagNames = _collectKnownFlagNames();
     return InspectorEmbeddedDropdown(
@@ -1527,7 +1680,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       idToLabel: (id) => id,
       onSelected: (flagName) {
         if (!_canEdit) return;
-        _replaceBlock(index, block.copyWith(flagName: flagName));
+        onChanged(block.copyWith(flagName: flagName));
       },
     );
   }
@@ -1535,7 +1688,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   Widget _buildLegacyOutcomeBlockEditor(
     BuildContext context, {
     required CutsceneStudioBlock block,
-    required int index,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) {
     final outcomes = widget.projection.outcomes
         .map((entry) => entry.id)
@@ -1554,22 +1707,12 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       idToLabel: (id) => id,
       onSelected: (outcomeId) {
         if (!_canEdit) return;
-        _replaceBlock(index, block.copyWith(outcomeId: outcomeId));
+        onChanged(block.copyWith(outcomeId: outcomeId));
         widget.onSelectOutcome(outcomeId);
       },
     );
   }
 
-  Color _categoryAccent(CutsceneStudioBlockCategory category) {
-    return switch (category) {
-      CutsceneStudioBlockCategory.dialogue => EditorChrome.inspectorJoyMint,
-      CutsceneStudioBlockCategory.movement => EditorChrome.inspectorJoyBlue,
-      CutsceneStudioBlockCategory.transition => EditorChrome.inspectorJoyBlue,
-      CutsceneStudioBlockCategory.gameplay => EditorChrome.inspectorJoyPlum,
-      CutsceneStudioBlockCategory.logic => EditorChrome.inspectorJoyCyan,
-      CutsceneStudioBlockCategory.technical => EditorChrome.inspectorJoyCoral,
-    };
-  }
 
   List<String> _actorIdsForMap(String? mapId) {
     final ids = <String>{kCutsceneActorPlayerId, kCutsceneActorNarratorId};
@@ -1664,7 +1807,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   }
 
   Future<void> _editStarterChoiceOption({
-    required int blockIndex,
+    required CutsceneStudioBlock block,
     required int optionIndex,
     required String currentValue,
   }) async {
@@ -1674,22 +1817,17 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       placeholder: 'Ex: Feu',
     );
     if (!mounted || nextValue == null || !_canEdit) return;
-    final draft = _draftDocument;
-    if (draft == null || blockIndex < 0 || blockIndex >= draft.blocks.length) {
-      return;
-    }
-    final block = draft.blocks[blockIndex];
     final options = block.choiceOptions.isEmpty
         ? <String>['Feu', 'Eau', 'Plante']
         : List<String>.from(block.choiceOptions);
     if (optionIndex < 0 || optionIndex >= options.length) return;
     options[optionIndex] = nextValue;
-    _replaceBlock(blockIndex, block.copyWith(choiceOptions: options));
+    _replaceBlockById(block.id, block.copyWith(choiceOptions: options));
   }
 
   Future<void> _addStarterChoiceOption({
-    required int index,
     required CutsceneStudioBlock block,
+    required ValueChanged<CutsceneStudioBlock> onChanged,
   }) async {
     final nextValue = await _promptTextValue(
       title: 'Nouvelle option',
@@ -1700,7 +1838,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     final nextOptions = block.choiceOptions.isEmpty
         ? <String>['Feu', 'Eau', 'Plante', nextValue]
         : <String>[...block.choiceOptions, nextValue];
-    _replaceBlock(index, block.copyWith(choiceOptions: nextOptions));
+    onChanged(block.copyWith(choiceOptions: nextOptions));
   }
 
   Future<String?> _promptTextValue({
@@ -1725,161 +1863,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     return controller.text.trim();
   }
 
-  Future<void> _addBlockFlow() async {
-    final draft = _draftDocument;
-    if (draft == null || !_canEdit) return;
-    final selectedKind =
-        await showMacosEditorActionsSheet<CutsceneStudioBlockKind>(
-      context: context,
-      title: const Text('Ajouter un bloc'),
-      actions: <MacosEditorSheetAction<CutsceneStudioBlockKind>>[
-        for (final kind in _cutscenePaletteBlockKinds)
-          MacosEditorSheetAction<CutsceneStudioBlockKind>(
-            label:
-                '${cutsceneStudioBlockCategoryLabel(cutsceneStudioBlockCategory(kind))} • ${cutsceneStudioBlockKindLabel(kind)}',
-            value: kind,
-          ),
-      ],
-      cancelLabel: 'Annuler',
-    );
-    if (!mounted || selectedKind == null) return;
-
-    final blockId = 'block_${DateTime.now().microsecondsSinceEpoch}';
-    final sourceMapId = _trimOrNull(draft.source.mapId);
-    final actors = _actorIdsForMap(sourceMapId);
-    final npcs = _npcsForMap(sourceMapId);
-    final warps = _warpsForMap(sourceMapId);
-    final spawns = _spawnsForMap(sourceMapId);
-    final newBlock = switch (selectedKind) {
-      CutsceneStudioBlockKind.dialogue => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          actorId: _firstOrNull(actors),
-          dialogueId: widget.project.dialogues.isEmpty
-              ? null
-              : widget.project.dialogues.first.id,
-        ),
-      CutsceneStudioBlockKind.narration => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          messageText: 'Texte de narration',
-        ),
-      CutsceneStudioBlockKind.moveCharacter => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          actorId: npcs.isNotEmpty
-              ? npcs.first.id
-              : _firstOrNull(actors
-                  .where((id) => id != kCutsceneActorNarratorId)
-                  .toList()),
-          destinationTargetKind: kCutsceneStudioMoveTargetWarp,
-          destinationTargetId: warps.isNotEmpty
-              ? warps.first.id
-              : spawns.isNotEmpty
-                  ? spawns.first.id
-                  : _firstOrNull(
-                      actors
-                          .where((id) => id != kCutsceneActorNarratorId)
-                          .toList(growable: false),
-                    ),
-          waitForCompletion: true,
-        ),
-      CutsceneStudioBlockKind.followCharacter => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          actorId: _firstOrNull(npcs.map((entry) => entry.id).toList()),
-        ),
-      CutsceneStudioBlockKind.faceCharacter => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          actorId: _firstOrNull(actors),
-          facingDirection: 'south',
-        ),
-      CutsceneStudioBlockKind.transitionMap => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          transitionMapId: sourceMapId ??
-              (widget.project.maps.isEmpty
-                  ? null
-                  : widget.project.maps.first.id),
-          transitionWarpId:
-              _firstOrNull(warps.map((entry) => entry.id).toList()),
-        ),
-      CutsceneStudioBlockKind.starterChoice => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          choiceOptions: const <String>['Feu', 'Eau', 'Plante'],
-        ),
-      CutsceneStudioBlockKind.wait => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          durationMs: 700,
-        ),
-      CutsceneStudioBlockKind.sceneResult => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          resultLabel: 'Résultat de scène',
-          resultScope: kCutsceneStudioResultScopeLocal,
-        ),
-      CutsceneStudioBlockKind.runScript => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          scriptId: widget.project.scripts.isEmpty
-              ? null
-              : widget.project.scripts.first.id,
-        ),
-      CutsceneStudioBlockKind.setFlag ||
-      CutsceneStudioBlockKind.clearFlag =>
-        CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          flagName: 'story.flag_name',
-        ),
-      CutsceneStudioBlockKind.emitOutcome => CutsceneStudioBlock(
-          id: blockId,
-          kind: selectedKind,
-          outcomeId: widget.projection.outcomes.isEmpty
-              ? 'chapter_1.example_outcome'
-              : widget.projection.outcomes.first.id,
-        ),
-    };
-
-    _replaceDraft(
-      draft.copyWith(
-        blocks: <CutsceneStudioBlock>[...draft.blocks, newBlock],
-      ),
-    );
-  }
-
-  void _replaceBlock(int index, CutsceneStudioBlock nextBlock) {
-    final draft = _draftDocument;
-    if (draft == null || !_canEdit) return;
-    final blocks = List<CutsceneStudioBlock>.from(draft.blocks);
-    if (index < 0 || index >= blocks.length) return;
-    blocks[index] = nextBlock;
-    _replaceDraft(draft.copyWith(blocks: blocks));
-  }
-
-  void _removeBlock(int index) {
-    final draft = _draftDocument;
-    if (draft == null || !_canEdit) return;
-    final blocks = List<CutsceneStudioBlock>.from(draft.blocks);
-    if (index < 0 || index >= blocks.length) return;
-    blocks.removeAt(index);
-    _replaceDraft(draft.copyWith(blocks: blocks));
-  }
-
-  void _moveBlock(int from, int to) {
-    final draft = _draftDocument;
-    if (draft == null || !_canEdit) return;
-    final blocks = List<CutsceneStudioBlock>.from(draft.blocks);
-    if (from < 0 || from >= blocks.length || to < 0 || to >= blocks.length) {
-      return;
-    }
-    final entry = blocks.removeAt(from);
-    blocks.insert(to, entry);
-    _replaceDraft(draft.copyWith(blocks: blocks));
-  }
 
   Future<void> _saveDraftToProject() async {
     final draft = _draftDocument;
@@ -1918,46 +1901,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   void _restoreSavedDocument() {
     if (!_canEdit || _savedDocument == null) return;
     _replaceDraft(_savedDocument!);
-  }
-
-  Future<void> _deleteSelectedCutscene() async {
-    final scenarioId = _loadedScenarioId;
-    if (scenarioId == null || _busy) return;
-    final confirmed = await showMacosEditorTwoChoiceAlert(
-      context,
-      title: 'Supprimer cette cutscene ?',
-      message:
-          'Cette action retire définitivement la cutscene du projet. Les links qui la référencent devront être mis à jour.',
-      primaryLabel: 'Supprimer',
-      secondaryLabel: 'Annuler',
-      primaryIsDestructive: true,
-    );
-    if (!confirmed || !mounted) return;
-
-    setState(() => _busy = true);
-    try {
-      await widget.editorNotifier.deleteProjectScenario(scenarioId);
-      if (!mounted) return;
-      final fallback = widget.projection.localEventFlows
-          .where((entry) => entry.id != scenarioId)
-          .cast<NarrativeScenarioSummary?>()
-          .firstWhere((entry) => entry != null, orElse: () => null);
-      if (fallback != null) {
-        widget.onSelectCutscene(fallback.id);
-      } else {
-        setState(() {
-          _loadedScenarioId = null;
-          _savedDocument = null;
-          _draftDocument = null;
-          _isStudioCompatible = false;
-          _compatWarnings = const <String>[];
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
   }
 
   Future<void> _createCutsceneFromTemplateFlow() async {
@@ -2195,6 +2138,125 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     final list = values.toList(growable: false)
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return list;
+  }
+}
+
+/// Sélecteur 3 états pour le hook « quand la scène démarre ».
+///
+/// Remplace [CupertinoSlidingSegmentedControl] : celui-ci calcule la hauteur
+/// du contrôle avec une largeur infinie, donc une seule ligne de texte — les
+/// libellés français (« Entrée sur une map », etc.) passaient sur 2 lignes et
+/// étaient rognés en bas.
+class _CutsceneSourceKindPicker extends StatelessWidget {
+  const _CutsceneSourceKindPicker({
+    required this.groupValue,
+    required this.enabled,
+    required this.onValueChanged,
+  });
+
+  final CutsceneStudioSourceKind groupValue;
+  final bool enabled;
+  final ValueChanged<CutsceneStudioSourceKind> onValueChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    // Couleurs explicites (les fills Cupertino peuvent se confondre avec le fond
+    // de la carte sur thème macOS / îlot personnalisé).
+    final track = EditorChrome.chipFill(context);
+    final thumb = EditorChrome.islandFillElevated(context);
+    final border = EditorChrome.separator(context);
+    final kinds = CutsceneStudioSourceKind.values;
+
+    // Hauteur imposée : sans elle, une Row [Expanded × CupertinoButton minSize 0]
+    // peut se replier à hauteur 0 (les segments « disparaissent »).
+    return SizedBox(
+      height: 72,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: track,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: border.withValues(alpha: 0.55)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < kinds.length; i++)
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: i > 0 ? 1.5 : 0,
+                      right: i < kinds.length - 1 ? 1.5 : 0,
+                    ),
+                    child: _CutsceneSourceKindSegment(
+                      label: cutsceneStudioSourceKindLabel(kinds[i]),
+                      selected: groupValue == kinds[i],
+                      enabled: enabled,
+                      onTap: () => onValueChanged(kinds[i]),
+                      selectedFill: thumb,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CutsceneSourceKindSegment extends StatelessWidget {
+  const _CutsceneSourceKindSegment({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+    required this.selectedFill,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+  final Color selectedFill;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor = enabled
+        ? EditorChrome.primaryLabel(context)
+        : CupertinoColors.placeholderText.resolveFrom(context);
+
+    return MergeSemantics(
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(7),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+            decoration: BoxDecoration(
+              color: selected ? selectedFill : null,
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                height: 1.2,
+                color: labelColor,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -2474,6 +2536,43 @@ class _CompatibilityWarningCard extends StatelessWidget {
   }
 }
 
+/// Dialogue de confirmation puis suppression d’une cutscene.
+///
+/// Si [selectedScenarioId] est l’id supprimé et qu’il reste au moins une autre
+/// cutscene locale dans [projection], appelle [onSelectReplacement] avec son id.
+Future<void> deleteCutsceneWithUserConfirmation({
+  required BuildContext context,
+  required EditorNotifier editorNotifier,
+  required NarrativeWorkspaceProjection projection,
+  required String scenarioId,
+  required String? selectedScenarioId,
+  required ValueChanged<String> onSelectReplacement,
+}) async {
+  final confirmed = await showMacosEditorTwoChoiceAlert(
+    context,
+    title: 'Supprimer cette cutscene ?',
+    message:
+        'Cette action retire définitivement la cutscene du projet. Les links qui la référencent devront être mis à jour.',
+    primaryLabel: 'Supprimer',
+    secondaryLabel: 'Annuler',
+    primaryIsDestructive: true,
+  );
+  if (!confirmed || !context.mounted) return;
+
+  await editorNotifier.deleteProjectScenario(scenarioId);
+  if (!context.mounted) return;
+
+  if (selectedScenarioId == scenarioId) {
+    final fallback = projection.localEventFlows
+        .where((entry) => entry.id != scenarioId)
+        .cast<NarrativeScenarioSummary?>()
+        .firstWhere((entry) => entry != null, orElse: () => null);
+    if (fallback != null) {
+      onSelectReplacement(fallback.id);
+    }
+  }
+}
+
 String? _trimOrNull(String? value) {
   final normalized = value?.trim();
   if (normalized == null || normalized.isEmpty) {
@@ -2517,23 +2616,3 @@ T? _firstOrNull<T>(List<T> list) {
 
 const String kCutsceneActorPlayerId = 'player';
 const String kCutsceneActorNarratorId = 'narrator';
-
-/// Palette v1 exposée dans le bouton "Ajouter un bloc".
-///
-/// Intention produit:
-/// - privilégier les blocs métier no-code;
-/// - conserver `runScript` comme échappatoire avancée;
-/// - éviter d'exposer par défaut les blocs legacy techniques.
-const List<CutsceneStudioBlockKind> _cutscenePaletteBlockKinds =
-    <CutsceneStudioBlockKind>[
-  CutsceneStudioBlockKind.dialogue,
-  CutsceneStudioBlockKind.narration,
-  CutsceneStudioBlockKind.moveCharacter,
-  CutsceneStudioBlockKind.followCharacter,
-  CutsceneStudioBlockKind.faceCharacter,
-  CutsceneStudioBlockKind.transitionMap,
-  CutsceneStudioBlockKind.starterChoice,
-  CutsceneStudioBlockKind.wait,
-  CutsceneStudioBlockKind.sceneResult,
-  CutsceneStudioBlockKind.runScript,
-];

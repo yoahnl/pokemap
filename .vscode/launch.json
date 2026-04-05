@@ -1,0 +1,86 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "playable_runtime_host",
+            "cwd": "examples/playable_runtime_host",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "playable_runtime_host (profile mode)",
+            "cwd": "examples/playable_runtime_host",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "playable_runtime_host (release mode)",
+            "cwd": "examples/playable_runtime_host",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "map_battle",
+            "cwd": "packages/map_battle",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "map_core",
+            "cwd": "packages/map_core",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "map_editor",
+            "cwd": "packages/map_editor",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "map_editor (profile mode)",
+            "cwd": "packages/map_editor",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "map_editor (release mode)",
+            "cwd": "packages/map_editor",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "map_gameplay",
+            "cwd": "packages/map_gameplay",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "map_runtime",
+            "cwd": "packages/map_runtime",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "map_runtime (profile mode)",
+            "cwd": "packages/map_runtime",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "map_runtime (release mode)",
+            "cwd": "packages/map_runtime",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

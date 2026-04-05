@@ -135,8 +135,11 @@ void main() {
       expect(compiled.id, 'starter_intro');
       expect(compiled.scope, ScenarioScope.localEventFlow);
       expect(compiled.entryNodeId, 'start');
-      expect(compiled.metadata[kCutsceneStudioSchemaMetadataKey],
-          kCutsceneStudioSchemaVersion);
+      expect(
+        compiled.metadata[kCutsceneStudioSchemaMetadataKey],
+        kCutsceneStudioSchemaVersion,
+      );
+      expect(compiled.metadata[kCutsceneStudioFlowMetadataKey], isNotEmpty);
       expect(compiled.declaredOutcomes, contains('chapter_1.intro_ready'));
 
       final sourceNode =
