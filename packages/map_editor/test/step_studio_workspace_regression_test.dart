@@ -31,6 +31,10 @@ void main() {
         final projection = buildNarrativeWorkspaceProjection(project);
 
         final callbackPhases = <SchedulerPhase>[];
+        // Surface large : le Step Editor (sidebar + 3 colonnes / empilement) dépasse
+        // souvent le viewport par défaut des tests (800×600).
+        await tester.binding.setSurfaceSize(const Size(1600, 1200));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
           ProviderScope(
             child: Consumer(
@@ -109,19 +113,16 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    /// Regression test for the infinite-loop bug caused by missing `index++`
-    /// in three `for` loops inside `_buildCutsceneLinksSection`,
-    /// `_buildOutcomesSection` and `_buildWorldPersistenceSection`.
+    /// Regression test for the infinite-loop bug (2026-04) caused by missing
+    /// `index++` in `for` loops inside d’anciennes sections Step Studio.
     ///
-    /// **Root cause:** `for (var index = 0; index < X.length; index)` without
-    /// `index++` kept `index` at 0 forever, generating an infinite stream of
-    /// widgets in the spread `...[]`. This caused synchronous CPU spin + RAM
-    /// explosion (tens of gigabytes) as Flutter tried to materialise
-    /// infinitely many widget instances.
+    /// **Root cause:** `for (var index = 0; index < X.length; index)` sans
+    /// `index++` gardait `index` à 0, générant une infinité de widgets dans
+    /// un spread `...[]` (freeze + RAM).
     ///
-    /// **Fix:** replaced all three loops with `for (final entry in
-    /// X.asMap().entries) ...[]`, which is intrinsically bounded — each entry
-    /// is visited exactly once with no manual counter.
+    /// **Fix historique :** boucles basées sur `X.asMap().entries`. Les sections
+    /// concernées ont été retirées au profit du canvas + inspecteur, mais ce
+    /// test reste un garde-fou « build borné » avec listes non vides.
     ///
     /// **What this test verifies:** build completes in < 5 seconds even when
     /// the step has multiple cutscenes, outcomes, and world changes. An
@@ -221,6 +222,8 @@ void main() {
 
         var selectionCallbackCount = 0;
 
+        await tester.binding.setSurfaceSize(const Size(1600, 1200));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
           ProviderScope(
             child: Consumer(

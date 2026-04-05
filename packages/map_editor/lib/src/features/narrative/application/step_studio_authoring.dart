@@ -461,6 +461,11 @@ class StepStudioStep {
     this.cutscenes = const <StepStudioCutsceneLink>[],
     this.outcomes = const <StepStudioOutcomeDefinition>[],
     this.worldChanges = const <StepStudioWorldChange>[],
+    this.flowEntryLabel = '',
+    this.flowObjectiveLabel = '',
+    this.flowValidationLabel = '',
+    this.flowExitLabel = '',
+    this.flowUnlocksStepId,
   });
 
   final String id;
@@ -473,6 +478,31 @@ class StepStudioStep {
   final List<StepStudioOutcomeDefinition> outcomes;
   final List<StepStudioWorldChange> worldChanges;
 
+  // ---------------------------------------------------------------------------
+  // Libellés « flux métier » Step Studio (séparés de la mise en scène Cutscene)
+  // ---------------------------------------------------------------------------
+  //
+  // Ces champs existent pour la vue **Step Studio** : ils décrivent la progression
+  // en langage créateur, affichés sur le canvas vertical (style Scratch métier).
+  // Ils ne pilotent pas le runtime seuls : activation/completion/outcomes restent
+  // la source technique ; ces labels enrichissent la lisibilité no-code.
+  //
+  /// Entrée humaine : ex. « Le professeur a été rencontré ».
+  final String flowEntryLabel;
+
+  /// Objectif joueur : ex. « Choisir un starter ».
+  final String flowObjectiveLabel;
+
+  /// Validation humaine : ex. « Un starter a été attribué ».
+  final String flowValidationLabel;
+
+  /// Sortie / conséquence narrative : ex. « Débloquer la step Combat rival ».
+  final String flowExitLabel;
+
+  /// Référence optionnelle à une autre step du même document (aide à la lecture).
+  /// L’enchaînement réel reste porté par l’activation de la step suivante côté données.
+  final String? flowUnlocksStepId;
+
   StepStudioStep copyWith({
     String? id,
     String? name,
@@ -483,6 +513,11 @@ class StepStudioStep {
     List<StepStudioCutsceneLink>? cutscenes,
     List<StepStudioOutcomeDefinition>? outcomes,
     List<StepStudioWorldChange>? worldChanges,
+    String? flowEntryLabel,
+    String? flowObjectiveLabel,
+    String? flowValidationLabel,
+    String? flowExitLabel,
+    Object? flowUnlocksStepId = _unset,
   }) {
     return StepStudioStep(
       id: id ?? this.id,
@@ -494,6 +529,13 @@ class StepStudioStep {
       cutscenes: cutscenes ?? this.cutscenes,
       outcomes: outcomes ?? this.outcomes,
       worldChanges: worldChanges ?? this.worldChanges,
+      flowEntryLabel: flowEntryLabel ?? this.flowEntryLabel,
+      flowObjectiveLabel: flowObjectiveLabel ?? this.flowObjectiveLabel,
+      flowValidationLabel: flowValidationLabel ?? this.flowValidationLabel,
+      flowExitLabel: flowExitLabel ?? this.flowExitLabel,
+      flowUnlocksStepId: identical(flowUnlocksStepId, _unset)
+          ? this.flowUnlocksStepId
+          : flowUnlocksStepId as String?,
     );
   }
 
@@ -507,6 +549,11 @@ class StepStudioStep {
         'cutscenes': cutscenes.map((entry) => entry.toJson()).toList(),
         'outcomes': outcomes.map((entry) => entry.toJson()).toList(),
         'worldChanges': worldChanges.map((entry) => entry.toJson()).toList(),
+        'flowEntryLabel': flowEntryLabel,
+        'flowObjectiveLabel': flowObjectiveLabel,
+        'flowValidationLabel': flowValidationLabel,
+        'flowExitLabel': flowExitLabel,
+        'flowUnlocksStepId': flowUnlocksStepId,
       };
 
   factory StepStudioStep.fromJson(Map<String, dynamic> json) {
@@ -543,6 +590,11 @@ class StepStudioStep {
           .where((entry) =>
               entry.mapId.trim().isNotEmpty && entry.entityId.trim().isNotEmpty)
           .toList(growable: false),
+      flowEntryLabel: _trimOrEmpty(json['flowEntryLabel']),
+      flowObjectiveLabel: _trimOrEmpty(json['flowObjectiveLabel']),
+      flowValidationLabel: _trimOrEmpty(json['flowValidationLabel']),
+      flowExitLabel: _trimOrEmpty(json['flowExitLabel']),
+      flowUnlocksStepId: _trimOrNull(json['flowUnlocksStepId']),
     );
   }
 
@@ -558,7 +610,12 @@ class StepStudioStep {
         other.completion == completion &&
         listEquals(other.cutscenes, cutscenes) &&
         listEquals(other.outcomes, outcomes) &&
-        listEquals(other.worldChanges, worldChanges);
+        listEquals(other.worldChanges, worldChanges) &&
+        other.flowEntryLabel == flowEntryLabel &&
+        other.flowObjectiveLabel == flowObjectiveLabel &&
+        other.flowValidationLabel == flowValidationLabel &&
+        other.flowExitLabel == flowExitLabel &&
+        other.flowUnlocksStepId == flowUnlocksStepId;
   }
 
   @override
@@ -572,6 +629,11 @@ class StepStudioStep {
         Object.hashAll(cutscenes),
         Object.hashAll(outcomes),
         Object.hashAll(worldChanges),
+        flowEntryLabel,
+        flowObjectiveLabel,
+        flowValidationLabel,
+        flowExitLabel,
+        flowUnlocksStepId,
       );
 }
 
@@ -949,6 +1011,11 @@ StepStudioDocument _normalizeDocument(StepStudioDocument document) {
         description: step.description.trim(),
         order: index,
         outcomes: normalizedOutcomes,
+        flowEntryLabel: step.flowEntryLabel.trim(),
+        flowObjectiveLabel: step.flowObjectiveLabel.trim(),
+        flowValidationLabel: step.flowValidationLabel.trim(),
+        flowExitLabel: step.flowExitLabel.trim(),
+        flowUnlocksStepId: _trimOrNull(step.flowUnlocksStepId),
       ),
     );
   }

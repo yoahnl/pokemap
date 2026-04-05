@@ -109,5 +109,54 @@ void main() {
       expect(stepId, 'rencontrer_emma_1');
       expect(outcomeId, 'world.rencontrer_emma_1.emma_dans_le_labo');
     });
+
+    test('apply + parse roundtrip keeps Step Studio flow labels + exit link', () {
+      const sourceScenario = ScenarioAsset(
+        id: 'global_story',
+        name: 'Global Story',
+        scope: ScenarioScope.globalStory,
+        entryNodeId: 'start',
+      );
+
+      const document = StepStudioDocument(
+        globalStoryScenarioId: 'global_story',
+        steps: <StepStudioStep>[
+          StepStudioStep(
+            id: 'step_starter',
+            name: 'Choix du starter',
+            description: 'Exemple produit',
+            order: 0,
+            flowEntryLabel: 'Professeur rencontré.',
+            flowObjectiveLabel: 'Choisir un starter.',
+            flowValidationLabel: 'Starter attribué.',
+            flowExitLabel: 'Débloquer combat rival.',
+            flowUnlocksStepId: 'step_rival',
+            activation: StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            ),
+            completion: StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.whenOutcomeEmitted,
+              outcomeId: 'chapter_1.starter_chosen',
+            ),
+            cutscenes: <StepStudioCutsceneLink>[],
+            outcomes: <StepStudioOutcomeDefinition>[],
+            worldChanges: <StepStudioWorldChange>[],
+          ),
+        ],
+      );
+
+      final updated = applyStepStudioDocumentToGlobalScenario(
+        sourceScenario,
+        document,
+      );
+      final parse = parseStepStudioDocumentFromGlobalScenario(updated);
+      final step = parse.document.steps.single;
+
+      expect(step.flowEntryLabel, 'Professeur rencontré.');
+      expect(step.flowObjectiveLabel, 'Choisir un starter.');
+      expect(step.flowValidationLabel, 'Starter attribué.');
+      expect(step.flowExitLabel, 'Débloquer combat rival.');
+      expect(step.flowUnlocksStepId, 'step_rival');
+    });
   });
 }

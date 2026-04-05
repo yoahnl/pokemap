@@ -149,6 +149,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   );
                 },
                 onSelectOutcome: narrativeController.selectOutcome,
+                onOpenCutsceneStudio: (cutsceneScenarioId) {
+                  // Même séquence que la bibliothèque narrative : sélection +
+                  // état de vue, puis bascule du workspace éditeur.
+                  narrativeController.selectCutscene(cutsceneScenarioId);
+                  narrativeController.openCutscene(
+                    cutsceneScenarioId: cutsceneScenarioId,
+                  );
+                  editorNotifier.selectCutsceneWorkspace();
+                },
                 editorNotifier: editorNotifier,
                 project: editor.project,
                 activeMap: editor.activeMap,
@@ -293,6 +302,7 @@ class _StepWorkspaceBody extends StatelessWidget {
     required this.selectedStep,
     required this.onSelectStep,
     required this.onSelectOutcome,
+    required this.onOpenCutsceneStudio,
   });
 
   final EditorNotifier editorNotifier;
@@ -302,6 +312,9 @@ class _StepWorkspaceBody extends StatelessWidget {
   final NarrativeStepSummary? selectedStep;
   final ValueChanged<String> onSelectStep;
   final ValueChanged<String?> onSelectOutcome;
+
+  /// Depuis Step Studio : ouvrir la mise en scène sans l’éditer dans la step.
+  final ValueChanged<String> onOpenCutsceneStudio;
 
   @override
   Widget build(BuildContext context) {
@@ -318,6 +331,7 @@ class _StepWorkspaceBody extends StatelessWidget {
         onSelectStep(stepId);
       },
       onSelectOutcome: onSelectOutcome,
+      onOpenCutsceneStudio: onOpenCutsceneStudio,
     );
   }
 }

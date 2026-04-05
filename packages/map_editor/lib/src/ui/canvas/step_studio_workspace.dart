@@ -9,17 +9,26 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../features/narrative/application/step_studio_authoring.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import 'step_studio/step_flow_canvas.dart';
+import 'step_studio/step_flow_focus.dart';
+import 'step_studio/step_flow_palette.dart';
 
-/// Workspace central "Step Studio v1".
+/// Workspace central **Step Studio** — logique de progression d’une étape.
 ///
-/// Objectif produit:
-/// - rendre l'édition des steps compréhensible pour un non-développeur;
-/// - imposer la séparation stricte:
-///   - Global Story = structure macro,
-///   - Step = logique de progression métier,
-///   - Cutscene = exécution de scène;
-/// - garder un flux inline (cards + dropdowns + listes), sans dépendre de
-///   boîtes de dialogue pour les actions principales.
+/// RÔLE PRODUIT (à ne pas confondre avec Cutscene Studio ni Global Story) :
+/// - **Global Story** : macro-progression, arcs, quelle step est débloquée.
+/// - **Step (ici)** : ce que le joueur doit accomplir, outcomes attendus,
+///   validation, liens vers des cutscenes (**références seules**), branches
+///   locales métier, sortie vers la suite.
+/// - **Cutscene** : mise en scène concrète (dialogue, move, caméra…).
+///
+/// L’UI est structurée en **3 zones** :
+/// - palette gauche : raccourcis « blocs métier » (pas blocs d’exécution);
+/// - canvas central : flux vertical lisible façon « Scratch métier »;
+/// - inspecteur droit : champs détaillés du bloc sélectionné.
+///
+/// Les cutscenes ne s’éditent **pas** ici : on ne fait que les lier et
+/// proposer d’ouvrir Cutscene Studio.
 class StepStudioWorkspace extends StatefulWidget {
   const StepStudioWorkspace({
     super.key,
@@ -30,6 +39,7 @@ class StepStudioWorkspace extends StatefulWidget {
     required this.selectedStepId,
     required this.onSelectStep,
     required this.onSelectOutcome,
+    this.onOpenCutsceneStudio,
   });
 
   final EditorNotifier editorNotifier;
@@ -39,6 +49,9 @@ class StepStudioWorkspace extends StatefulWidget {
   final String? selectedStepId;
   final ValueChanged<String?> onSelectStep;
   final ValueChanged<String?> onSelectOutcome;
+
+  /// Bascule vers Cutscene Studio sur une cutscene donnée (référence Step).
+  final void Function(String cutsceneScenarioId)? onOpenCutsceneStudio;
 
   @override
   State<StepStudioWorkspace> createState() => _StepStudioWorkspaceState();
@@ -50,6 +63,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
   String? _loadedGlobalScenarioId;
   String? _selectedStepId;
   bool _busy = false;
+
+  /// Bloc du flux central actuellement détaillé dans l’inspecteur droit.
+  StepFlowFocus? _flowInspectorFocus;
 
   // Informations de compatibilité / migration affichées dans l'UI.
   List<String> _loadWarnings = const <String>[];
@@ -110,6 +126,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       if (requestedStepId != null && _containsStep(requestedStepId)) {
         setState(() {
           _selectedStepId = requestedStepId;
+          _flowInspectorFocus = null;
         });
         // Aucun side-effect dans build: on prime les entités ici.
         _warmupEntityLookupsForStep(_stepById(requestedStepId));
@@ -536,6 +553,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     }
     setState(() {
       _selectedStepId = stepId;
+      _flowInspectorFocus = null;
     });
     _warmupEntityLookupsForStep(_stepById(stepId));
     // Interaction utilisateur: callback immédiat (pas dans build/initState).
@@ -625,6 +643,189 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       normalized.add(mutable[i].copyWith(order: i));
     }
     _replaceDraft(doc.copyWith(steps: normalized));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step Studio — flux 3 colonnes : actions palette / résolution noms cutscene
+  // ---------------------------------------------------------------------------
+
+  String _cutsceneDisplayName(String cutsceneId) {
+    for (final s in widget.projection.localEventFlows) {
+      if (s.id == cutsceneId) {
+        return s.name;
+      }
+    }
+    return cutsceneId;
+  }
+
+  void _appendOutcome(StepStudioOutcomeScope scope) {
+    final selectedStep = _selectedStep;
+    if (selectedStep == null || !_canEdit) {
+      return;
+    }
+    final outcomes = selectedStep.outcomes;
+    final label = switch (scope) {
+      StepStudioOutcomeScope.local => 'Nouveau choix local',
+      StepStudioOutcomeScope.progression => 'Nouveau résultat de progression',
+      StepStudioOutcomeScope.world => 'Nouveau résultat monde',
+    };
+    final outcome = StepStudioOutcomeDefinition(
+      label: label,
+      scope: scope,
+      outcomeId: generateOutcomeIdFromLabel(
+        stepId: selectedStep.id,
+        label: label,
+        scope: scope,
+      ),
+    );
+    final newIndex = outcomes.length;
+    _replaceSelectedStep(
+      selectedStep.copyWith(
+        outcomes: <StepStudioOutcomeDefinition>[...outcomes, outcome],
+      ),
+    );
+    setState(() {
+      _flowInspectorFocus = StepFlowFocus(
+        scope == StepStudioOutcomeScope.local
+            ? StepFlowSlot.localOutcome
+            : StepFlowSlot.progressionOutcome,
+        newIndex,
+      );
+    });
+  }
+
+  void _addCutsceneLinkForFlow() {
+    final selectedStep = _selectedStep;
+    if (selectedStep == null || !_canEdit) {
+      return;
+    }
+    final options = _cutsceneOptions();
+    if (options.isEmpty) {
+      return;
+    }
+    final defaultCutsceneId = options.first.id;
+    final nextLinks = <StepStudioCutsceneLink>[
+      ...selectedStep.cutscenes,
+      StepStudioCutsceneLink(
+        cutsceneId: defaultCutsceneId,
+        role: StepStudioCutsceneRole.main,
+      ),
+    ];
+    final newIndex = nextLinks.length - 1;
+    _replaceSelectedStep(selectedStep.copyWith(cutscenes: nextLinks));
+    setState(() {
+      _flowInspectorFocus = StepFlowFocus(StepFlowSlot.cutsceneLink, newIndex);
+    });
+  }
+
+  void _addWorldChangeForFlow() {
+    final selectedStep = _selectedStep;
+    if (selectedStep == null || !_canEdit) {
+      return;
+    }
+    final mapOptions = _projectMaps;
+    if (mapOptions.isEmpty) {
+      return;
+    }
+    final defaultMapId = mapOptions.first.id;
+    unawaited(_ensureEntitiesLoadedForMap(defaultMapId));
+    final nextChange = StepStudioWorldChange(
+      mapId: defaultMapId,
+      entityId: '',
+      presenceRule: StepStudioPresenceRule.visibleAfterStepCompletion,
+      note: '',
+    );
+    final next = <StepStudioWorldChange>[
+      ...selectedStep.worldChanges,
+      nextChange,
+    ];
+    _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
+    setState(() {
+      _flowInspectorFocus =
+          StepFlowFocus(StepFlowSlot.worldChangeItem, next.length - 1);
+    });
+  }
+
+  /// Gabarit produit « Choix du starter » (rapport Step Studio §11).
+  /// Hypothèse : les IDs d’outcome sont stables ; les cutscenes se lient ensuite.
+  void _applyStarterChoiceDemoTemplate() {
+    final selectedStep = _selectedStep;
+    final doc = _draftDocument;
+    if (selectedStep == null || doc == null || !_canEdit) {
+      return;
+    }
+
+    String? unlocks;
+    for (final s in doc.steps) {
+      if (s.id == selectedStep.id) {
+        continue;
+      }
+      final n = s.name.toLowerCase();
+      if (n.contains('rival') || n.contains('combat')) {
+        unlocks = s.id;
+        break;
+      }
+    }
+    if (unlocks == null && doc.steps.length > 1) {
+      for (final s in doc.steps) {
+        if (s.id != selectedStep.id) {
+          unlocks = s.id;
+          break;
+        }
+      }
+    }
+
+    final fire = StepStudioOutcomeDefinition(
+      label: 'Starter feu',
+      scope: StepStudioOutcomeScope.local,
+      outcomeId: 'starter.selected.fire',
+    );
+    final water = StepStudioOutcomeDefinition(
+      label: 'Starter eau',
+      scope: StepStudioOutcomeScope.local,
+      outcomeId: 'starter.selected.water',
+    );
+    final grass = StepStudioOutcomeDefinition(
+      label: 'Starter plante',
+      scope: StepStudioOutcomeScope.local,
+      outcomeId: 'starter.selected.grass',
+    );
+    final chapter = StepStudioOutcomeDefinition(
+      label: 'Chapitre 1 — starter choisi',
+      scope: StepStudioOutcomeScope.progression,
+      outcomeId: 'chapter_1.starter_chosen',
+    );
+
+    final keepWorld = selectedStep.outcomes
+        .where((o) => o.scope == StepStudioOutcomeScope.world)
+        .toList();
+
+    _replaceSelectedStep(
+      selectedStep.copyWith(
+        name: 'Choix du starter',
+        description:
+            'Le joueur doit sélectionner son premier Pokémon auprès du professeur.',
+        flowEntryLabel: 'Le professeur a été rencontré.',
+        flowObjectiveLabel: 'Choisir un starter.',
+        flowValidationLabel: 'Un starter a été attribué au joueur.',
+        flowExitLabel: 'Débloquer la step « Combat rival ».',
+        flowUnlocksStepId: unlocks,
+        outcomes: <StepStudioOutcomeDefinition>[
+          fire,
+          water,
+          grass,
+          chapter,
+          ...keepWorld,
+        ],
+        completion: const StepStudioCompletionRule(
+          mode: StepStudioCompletionMode.whenOutcomeEmitted,
+          outcomeId: 'chapter_1.starter_chosen',
+        ),
+      ),
+    );
+    setState(() {
+      _flowInspectorFocus = const StepFlowFocus(StepFlowSlot.objective);
+    });
   }
 
   Future<void> _saveDraft() async {
@@ -1004,6 +1205,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     );
   }
 
+  /// Assemble les 3 colonnes : palette métier | canvas de flux | inspecteur.
   Widget _buildStepEditor(
     BuildContext context,
     StepStudioDocument draft,
@@ -1013,12 +1215,21 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     final cutsceneOptions = _cutsceneOptions();
     final outcomeOptions = _outcomeOptions();
     final previousStepOptions = _stepOptions(excludeStepId: selectedStep.id);
+    final mapOptions = _projectMaps
+        .map(
+          (entry) => _SimpleOption(
+            id: entry.id,
+            label: '${entry.name} (${entry.id})',
+          ),
+        )
+        .toList(growable: false);
 
     return EditorPaneSurface(
       radius: 20,
       tint: EditorChrome.islandWarmTint,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: ListView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(
             context: context,
@@ -1041,41 +1252,546 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             ),
             const SizedBox(height: 8),
           ],
-          _buildIdentitySection(context, selectedStep),
-          const SizedBox(height: 12),
-          _buildActivationSection(
-            context,
-            selectedStep,
-            previousStepOptions: previousStepOptions,
-            outcomeOptions: outcomeOptions,
-            cutsceneOptions: cutsceneOptions,
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Largeur fixe des colonnes latérales + gouttières (~560). En surface
+                // étroite (tests widget 800px, sidebar 320px → ~440px pour l’éditeur),
+                // un Row horizontal déborde : on empile palette / canvas / inspecteur.
+                const lateral = 232.0 + 308.0 + 20.0;
+                final useStackedLayout =
+                    constraints.maxWidth < lateral + 160;
+
+                final palette = StepFlowPalette(
+                  enabled: _canEdit,
+                  onFocus: (f) => setState(() => _flowInspectorFocus = f),
+                  onAddCutsceneLink: _addCutsceneLinkForFlow,
+                  onAddLocalOutcome: () =>
+                      _appendOutcome(StepStudioOutcomeScope.local),
+                  onAddProgressionOutcome: () =>
+                      _appendOutcome(StepStudioOutcomeScope.progression),
+                  onAddWorldChange: _addWorldChangeForFlow,
+                  canAddCutscene: cutsceneOptions.isNotEmpty,
+                  canAddWorldChange: mapOptions.isNotEmpty,
+                );
+
+                final canvas = StepFlowCanvas(
+                  step: selectedStep,
+                  selected: _flowInspectorFocus,
+                  onSelect: (f) => setState(() => _flowInspectorFocus = f),
+                  resolveCutsceneName: _cutsceneDisplayName,
+                );
+
+                final inspector = _buildFlowInspectorColumn(
+                  context,
+                  selectedStep: selectedStep,
+                  cutsceneOptions: cutsceneOptions,
+                  outcomeOptions: outcomeOptions,
+                  previousStepOptions: previousStepOptions,
+                  mapOptions: mapOptions,
+                );
+
+                if (useStackedLayout) {
+                  // Pas de hauteurs fixes : en tests la zone utile peut être très basse.
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: palette,
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        flex: 4,
+                        child: canvas,
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        flex: 3,
+                        child: inspector,
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: 232, child: palette),
+                    const SizedBox(width: 10),
+                    Expanded(child: canvas),
+                    const SizedBox(width: 10),
+                    SizedBox(width: 308, child: inspector),
+                  ],
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildCompletionSection(
-            context,
-            selectedStep,
-            outcomeOptions: outcomeOptions,
-            cutsceneOptions: cutsceneOptions,
-          ),
-          const SizedBox(height: 12),
-          _buildCutsceneLinksSection(
-            context,
-            selectedStep,
-            cutsceneOptions: cutsceneOptions,
-          ),
-          const SizedBox(height: 12),
-          _buildOutcomesSection(context, selectedStep),
-          const SizedBox(height: 12),
-          _buildWorldPersistenceSection(context, selectedStep),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           const InspectorEmbeddedFootnote(
             text:
-                'Step Studio pilote la logique métier et les effets persistants. Les cutscenes restent une couche d’exécution.',
+                'Step Studio = progression lisible. Cutscene Studio = exécution. Global Story = macro-arcs.',
             accent: EditorChrome.inspectorJoyCyan,
           ),
         ],
       ),
     );
+  }
+
+  /// Panneau droit : détail du bloc sélectionné sur le canvas (données Step).
+  Widget _buildFlowInspectorColumn(
+    BuildContext context, {
+    required StepStudioStep selectedStep,
+    required List<_SimpleOption> cutsceneOptions,
+    required List<_SimpleOption> outcomeOptions,
+    required List<_SimpleOption> previousStepOptions,
+    required List<_SimpleOption> mapOptions,
+  }) {
+    final focus = _flowInspectorFocus;
+    return EditorPaneSurface(
+      radius: 16,
+      tint: EditorChrome.islandNeutralTint,
+      padding: const EdgeInsets.fromLTRB(11, 12, 11, 12),
+      child: focus == null
+          ? Center(
+              child: Text(
+                'Sélectionnez un bloc du flux central ou un raccourci dans la palette de gauche.\n\n'
+                'Ce panneau édite la **logique de progression** — pas les dialogues, '
+                'déplacements ou caméras (voir Cutscene Studio).',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: EditorChrome.subtleLabel(context),
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
+            )
+          : SingleChildScrollView(
+              child: _buildFlowInspectorContent(
+                context,
+                focus: focus,
+                selectedStep: selectedStep,
+                cutsceneOptions: cutsceneOptions,
+                outcomeOptions: outcomeOptions,
+                previousStepOptions: previousStepOptions,
+                mapOptions: mapOptions,
+              ),
+            ),
+    );
+  }
+
+  Widget _buildFlowInspectorContent(
+    BuildContext context, {
+    required StepFlowFocus focus,
+    required StepStudioStep selectedStep,
+    required List<_SimpleOption> cutsceneOptions,
+    required List<_SimpleOption> outcomeOptions,
+    required List<_SimpleOption> previousStepOptions,
+    required List<_SimpleOption> mapOptions,
+  }) {
+    switch (focus.slot) {
+      case StepFlowSlot.flowEntry:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StepSectionCard(
+              title: 'Entrée dans l’étape',
+              subtitle:
+                  'Texte créateur + rappel du moteur d’activation (technique).',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _InlineTextField(
+                    label: 'Quand cette étape commence (langage humain)',
+                    value: selectedStep.flowEntryLabel,
+                    enabled: _canEdit,
+                    minLines: 2,
+                    maxLines: 5,
+                    onChanged: (v) => _replaceSelectedStep(
+                      selectedStep.copyWith(flowEntryLabel: v),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    summarizeStepActivation(selectedStep),
+                    style: TextStyle(
+                      color: EditorChrome.primaryLabel(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildActivationSection(
+              context,
+              selectedStep,
+              previousStepOptions: previousStepOptions,
+              outcomeOptions: outcomeOptions,
+              cutsceneOptions: cutsceneOptions,
+            ),
+          ],
+        );
+
+      case StepFlowSlot.activationEngine:
+        return _buildActivationSection(
+          context,
+          selectedStep,
+          previousStepOptions: previousStepOptions,
+          outcomeOptions: outcomeOptions,
+          cutsceneOptions: cutsceneOptions,
+        );
+
+      case StepFlowSlot.objective:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildIdentitySection(context, selectedStep),
+            const SizedBox(height: 10),
+            _StepSectionCard(
+              title: 'Objectif (phrase joueur)',
+              subtitle:
+                  'Complète le titre : ce que le joueur doit accomplir maintenant.',
+              child: _InlineTextField(
+                label: 'Objectif lisible',
+                value: selectedStep.flowObjectiveLabel,
+                enabled: _canEdit,
+                minLines: 2,
+                maxLines: 4,
+                onChanged: (v) => _replaceSelectedStep(
+                  selectedStep.copyWith(flowObjectiveLabel: v),
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case StepFlowSlot.cutsceneLink:
+        final idx = focus.listIndex;
+        final links = selectedStep.cutscenes;
+        if (idx == null || idx < 0 || idx >= links.length) {
+          return Text(
+            'Lien cutscene introuvable.',
+            style: TextStyle(color: EditorChrome.subtleLabel(context)),
+          );
+        }
+        final link = links[idx];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StepSectionCard(
+              title: 'Cutscene liée (référence)',
+              subtitle:
+                  'On choisit l’identifiant et le rôle logique. '
+                  'Aucun dialogue ni bloc de mise en scène ici.',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _CutsceneLinkRow(
+                    link: link,
+                    cutsceneOptions: cutsceneOptions,
+                    enabled: _canEdit,
+                    onRoleChanged: (role) {
+                      final next = links.toList(growable: true);
+                      next[idx] = next[idx].copyWith(role: role);
+                      _replaceSelectedStep(
+                        selectedStep.copyWith(cutscenes: next),
+                      );
+                    },
+                    onCutsceneChanged: (cutsceneId) {
+                      if (cutsceneId == null) {
+                        return;
+                      }
+                      final next = links.toList(growable: true);
+                      next[idx] = next[idx].copyWith(cutsceneId: cutsceneId);
+                      _replaceSelectedStep(
+                        selectedStep.copyWith(cutscenes: next),
+                      );
+                    },
+                    onRemove: () {
+                      final next = links.toList(growable: true)..removeAt(idx);
+                      _replaceSelectedStep(
+                        selectedStep.copyWith(cutscenes: next),
+                      );
+                      setState(() => _flowInspectorFocus = null);
+                    },
+                  ),
+                  if (widget.onOpenCutsceneStudio != null) ...[
+                    const SizedBox(height: 10),
+                    InspectorEmbeddedSecondaryCapsule(
+                      accent: EditorChrome.inspectorJoyPlum,
+                      icon: CupertinoIcons.arrow_right_square,
+                      label: 'Ouvrir dans Cutscene Studio',
+                      enabled: _canEdit,
+                      onPressed: () =>
+                          widget.onOpenCutsceneStudio!(link.cutsceneId),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+
+      case StepFlowSlot.localBranches:
+        return _StepSectionCard(
+          title: 'Branches locales',
+          subtitle:
+              'Chaque résultat « Local » correspond à une branche métier '
+              '(ex. feu / eau / plante). La mise en scène du choix est dans la cutscene.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final o in selectedStep.outcomes.where(
+                (x) => x.scope == StepStudioOutcomeScope.local,
+              ))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    onPressed: () {
+                      final i = selectedStep.outcomes.indexOf(o);
+                      setState(() {
+                        _flowInspectorFocus =
+                            StepFlowFocus(StepFlowSlot.localOutcome, i);
+                      });
+                    },
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '• ${o.label} (${o.outcomeId})',
+                        style: TextStyle(
+                          color: EditorChrome.primaryLabel(context),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 6),
+              InspectorEmbeddedSecondaryCapsule(
+                accent: EditorChrome.inspectorJoyOrchid,
+                icon: CupertinoIcons.plus_circle_fill,
+                label: 'Ajouter un résultat local',
+                enabled: _canEdit,
+                onPressed: () => _appendOutcome(StepStudioOutcomeScope.local),
+              ),
+            ],
+          ),
+        );
+
+      case StepFlowSlot.localOutcome:
+        final i = focus.listIndex;
+        final outcomes = selectedStep.outcomes;
+        if (i == null || i < 0 || i >= outcomes.length) {
+          return const SizedBox.shrink();
+        }
+        final o = outcomes[i];
+        if (o.scope != StepStudioOutcomeScope.local) {
+          return Text(
+            'Ce résultat n’est pas de portée locale.',
+            style: TextStyle(color: EditorChrome.subtleLabel(context)),
+          );
+        }
+        return _OutcomeRow(
+          outcome: o,
+          enabled: _canEdit,
+          onLabelChanged: (label) {
+            final generated = generateOutcomeIdFromLabel(
+              stepId: selectedStep.id,
+              label: label,
+              scope: o.scope,
+            );
+            final next = outcomes.toList(growable: true);
+            next[i] = o.copyWith(label: label, outcomeId: generated);
+            _replaceSelectedStep(selectedStep.copyWith(outcomes: next));
+          },
+          onScopeChanged: (scope) {
+            final generated = generateOutcomeIdFromLabel(
+              stepId: selectedStep.id,
+              label: o.label,
+              scope: scope,
+            );
+            final next = outcomes.toList(growable: true);
+            next[i] = o.copyWith(scope: scope, outcomeId: generated);
+            _replaceSelectedStep(selectedStep.copyWith(outcomes: next));
+          },
+          onTapOutcomeId: () => widget.onSelectOutcome(o.outcomeId),
+          onRemove: () {
+            final next = outcomes.toList(growable: true)..removeAt(i);
+            _replaceSelectedStep(selectedStep.copyWith(outcomes: next));
+            setState(() => _flowInspectorFocus = null);
+          },
+        );
+
+      case StepFlowSlot.validationEngine:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StepSectionCard(
+              title: 'Validation (texte créateur)',
+              subtitle: 'Phrase sur ce qui doit être vrai pour terminer l’étape.',
+              child: _InlineTextField(
+                label: 'Condition de validation humaine',
+                value: selectedStep.flowValidationLabel,
+                enabled: _canEdit,
+                minLines: 2,
+                maxLines: 4,
+                onChanged: (v) => _replaceSelectedStep(
+                  selectedStep.copyWith(flowValidationLabel: v),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildCompletionSection(
+              context,
+              selectedStep,
+              outcomeOptions: outcomeOptions,
+              cutsceneOptions: cutsceneOptions,
+            ),
+          ],
+        );
+
+      case StepFlowSlot.progressionOutcome:
+        final i = focus.listIndex;
+        final outcomes = selectedStep.outcomes;
+        if (i == null || i < 0 || i >= outcomes.length) {
+          return const SizedBox.shrink();
+        }
+        final o = outcomes[i];
+        if (o.scope != StepStudioOutcomeScope.progression) {
+          return Text(
+            'Sélectionnez un résultat « Progression » sur le canvas.',
+            style: TextStyle(color: EditorChrome.subtleLabel(context)),
+          );
+        }
+        return _OutcomeRow(
+          outcome: o,
+          enabled: _canEdit,
+          onLabelChanged: (label) {
+            final generated = generateOutcomeIdFromLabel(
+              stepId: selectedStep.id,
+              label: label,
+              scope: o.scope,
+            );
+            final next = outcomes.toList(growable: true);
+            next[i] = o.copyWith(label: label, outcomeId: generated);
+            _replaceSelectedStep(selectedStep.copyWith(outcomes: next));
+          },
+          onScopeChanged: (scope) {
+            final generated = generateOutcomeIdFromLabel(
+              stepId: selectedStep.id,
+              label: o.label,
+              scope: scope,
+            );
+            final next = outcomes.toList(growable: true);
+            next[i] = o.copyWith(scope: scope, outcomeId: generated);
+            _replaceSelectedStep(selectedStep.copyWith(outcomes: next));
+          },
+          onTapOutcomeId: () => widget.onSelectOutcome(o.outcomeId),
+          onRemove: () {
+            final next = outcomes.toList(growable: true)..removeAt(i);
+            _replaceSelectedStep(selectedStep.copyWith(outcomes: next));
+            setState(() => _flowInspectorFocus = null);
+          },
+        );
+
+      case StepFlowSlot.exitNext:
+        return _StepSectionCard(
+          title: 'Sortie & suite',
+          subtitle:
+              'Lisible pour l’équipe créative. L’enchaînement technique peut aussi '
+              'passer par l’activation de la step suivante dans le graphe global.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _InlineTextField(
+                label: 'Ce qui se débloque (texte)',
+                value: selectedStep.flowExitLabel,
+                enabled: _canEdit,
+                minLines: 2,
+                maxLines: 4,
+                onChanged: (v) => _replaceSelectedStep(
+                  selectedStep.copyWith(flowExitLabel: v),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _SimpleDropdown(
+                accent: EditorChrome.inspectorJoyCyan,
+                fieldLabel: 'Step suivante suggérée (optionnel)',
+                options: previousStepOptions,
+                selectedId: selectedStep.flowUnlocksStepId,
+                emptyLabel: '— Aucune —',
+                enabled: _canEdit,
+                onSelected: (id) {
+                  _replaceSelectedStep(
+                    selectedStep.copyWith(flowUnlocksStepId: id),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+
+      case StepFlowSlot.worldPersistence:
+        return _buildWorldPersistenceSection(context, selectedStep);
+
+      case StepFlowSlot.worldChangeItem:
+        final i = focus.listIndex;
+        final changes = selectedStep.worldChanges;
+        if (i == null || i < 0 || i >= changes.length) {
+          return const SizedBox.shrink();
+        }
+        return _WorldChangeRow(
+          change: changes[i],
+          mapOptions: mapOptions,
+          entityOptions: _entitiesForMap(changes[i].mapId)
+              .map(
+                (entity) => _SimpleOption(
+                  id: entity.id,
+                  label: _entityLabel(entity),
+                ),
+              )
+              .toList(growable: false),
+          loadingEntities: _isLoadingEntities,
+          enabled: _canEdit,
+          onMapChanged: (mapId) {
+            if (mapId == null) {
+              return;
+            }
+            unawaited(_ensureEntitiesLoadedForMap(mapId));
+            final next = changes.toList(growable: true);
+            next[i] = next[i].copyWith(mapId: mapId, entityId: '');
+            _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
+          },
+          onEntityChanged: (entityId) {
+            if (entityId == null) {
+              return;
+            }
+            final next = changes.toList(growable: true);
+            next[i] = next[i].copyWith(entityId: entityId);
+            _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
+          },
+          onRuleChanged: (rule) {
+            final next = changes.toList(growable: true);
+            next[i] = next[i].copyWith(presenceRule: rule);
+            _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
+          },
+          onNoteChanged: (note) {
+            final next = changes.toList(growable: true);
+            next[i] = next[i].copyWith(note: note);
+            _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
+          },
+          onRemove: () {
+            final next = changes.toList(growable: true)..removeAt(i);
+            _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
+            setState(() => _flowInspectorFocus = null);
+          },
+        );
+    }
   }
 
   Widget _buildHeader({
@@ -1184,6 +1900,17 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          // Gabarit pédagogique §11 : remplit objectifs / outcomes / validation
+          // pour illustrer la séparation Step (métier) vs Cutscene (mise en scène).
+          // Les cutscenes starter_intro / starter_selection restent à lier manuellement.
+          InspectorEmbeddedSecondaryCapsule(
+            accent: EditorChrome.inspectorJoyOrchid,
+            icon: CupertinoIcons.wand_stars,
+            label: 'Gabarit produit : Choix du starter',
+            enabled: _canEdit,
+            onPressed: _applyStarterChoiceDemoTemplate,
           ),
         ],
       ),
@@ -1554,191 +2281,6 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCutsceneLinksSection(
-    BuildContext context,
-    StepStudioStep selectedStep, {
-    required List<_SimpleOption> cutsceneOptions,
-  }) {
-    final links = selectedStep.cutscenes;
-    return _StepSectionCard(
-      title: '4. Cutscenes liées',
-      subtitle:
-          'La step référence des cutscenes, mais la progression reste pilotée par la logique step.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (links.isEmpty)
-            _EmptySectionHint(
-              text:
-                  'Aucune cutscene liée. Vous pouvez ajouter une cutscene de démarrage, principale ou de validation.',
-            ),
-          // NOTE BUG FIX (2026-04-04):
-          // Les trois boucles `for` ci-dessous utilisaient previously
-          // `for (var index = 0; index < X.length; index)` sans `index++`,
-          // ce qui provoquait une boucle infinie SYNCHRONE dans build().
-          // Quand la liste n'était pas vide, `index` restait à 0 indéfiniment,
-          // générant une infinité de widgets dans le spread `...[]`.
-          // Conséquence: freeze macOS, roue colorée, RAM qui explose (Go+).
-          //
-          // Garde: on utilise maintenant `.asMap().entries` qui est
-          // intrinsèquement protégé contre ce type d'erreur — chaque entrée
-          // est itérée exactement une fois, sans compteur manuel.
-          for (final entry in links.asMap().entries)
-            ...[
-              _CutsceneLinkRow(
-                link: entry.value,
-                cutsceneOptions: cutsceneOptions,
-                enabled: _canEdit,
-                onRoleChanged: (role) {
-                  final nextLinks = links.toList(growable: true);
-                  nextLinks[entry.key] =
-                      nextLinks[entry.key].copyWith(role: role);
-                  _replaceSelectedStep(
-                      selectedStep.copyWith(cutscenes: nextLinks));
-                },
-                onCutsceneChanged: (cutsceneId) {
-                  if (cutsceneId == null) return;
-                  final nextLinks = links.toList(growable: true);
-                  nextLinks[entry.key] =
-                      nextLinks[entry.key].copyWith(cutsceneId: cutsceneId);
-                  _replaceSelectedStep(
-                      selectedStep.copyWith(cutscenes: nextLinks));
-                },
-                onRemove: () {
-                  if (!_canEdit) return;
-                  final nextLinks = links.toList(growable: true)
-                    ..removeAt(entry.key);
-                  _replaceSelectedStep(
-                      selectedStep.copyWith(cutscenes: nextLinks));
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
-          SizedBox(
-            width: double.infinity,
-            child: InspectorEmbeddedSecondaryCapsule(
-              accent: EditorChrome.inspectorJoyPlum,
-              icon: CupertinoIcons.plus_circle_fill,
-              label: 'Ajouter une cutscene liée',
-              enabled: _canEdit && cutsceneOptions.isNotEmpty,
-              onPressed: () {
-                final defaultCutsceneId = cutsceneOptions.first.id;
-                final nextLinks = <StepStudioCutsceneLink>[
-                  ...links,
-                  StepStudioCutsceneLink(
-                    cutsceneId: defaultCutsceneId,
-                    role: StepStudioCutsceneRole.main,
-                  ),
-                ];
-                _replaceSelectedStep(
-                    selectedStep.copyWith(cutscenes: nextLinks));
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOutcomesSection(
-      BuildContext context, StepStudioStep selectedStep) {
-    final outcomes = selectedStep.outcomes;
-    return _StepSectionCard(
-      title: '5. Résultats de progression',
-      subtitle:
-          'Les résultats sont saisis en langage humain, puis un id technique est généré automatiquement.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (outcomes.isEmpty)
-            const _EmptySectionHint(
-              text:
-                  'Aucun résultat pour cette step. Ajoutez un résultat pour débloquer d’autres steps / cutscenes.',
-            ),
-          // GARDE anti-boucle: même motif que cutscenes — `.asMap().entries`
-          // au lieu d'un compteur manuel sujet aux oublis de `++`.
-          for (final entry in outcomes.asMap().entries)
-            ...[
-              _OutcomeRow(
-                outcome: entry.value,
-                enabled: _canEdit,
-                onLabelChanged: (label) {
-                  final current = outcomes[entry.key];
-                  final generated = generateOutcomeIdFromLabel(
-                    stepId: selectedStep.id,
-                    label: label,
-                    scope: current.scope,
-                  );
-                  final nextOutcomes = outcomes.toList(growable: true);
-                  nextOutcomes[entry.key] = current.copyWith(
-                    label: label,
-                    outcomeId: generated,
-                  );
-                  _replaceSelectedStep(
-                      selectedStep.copyWith(outcomes: nextOutcomes));
-                },
-                onScopeChanged: (scope) {
-                  final current = outcomes[entry.key];
-                  final generated = generateOutcomeIdFromLabel(
-                    stepId: selectedStep.id,
-                    label: current.label,
-                    scope: scope,
-                  );
-                  final nextOutcomes = outcomes.toList(growable: true);
-                  nextOutcomes[entry.key] = current.copyWith(
-                    scope: scope,
-                    outcomeId: generated,
-                  );
-                  _replaceSelectedStep(
-                      selectedStep.copyWith(outcomes: nextOutcomes));
-                },
-                onTapOutcomeId: () {
-                  widget.onSelectOutcome(outcomes[entry.key].outcomeId);
-                },
-                onRemove: () {
-                  final nextOutcomes = outcomes.toList(growable: true)
-                    ..removeAt(entry.key);
-                  _replaceSelectedStep(
-                      selectedStep.copyWith(outcomes: nextOutcomes));
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
-          SizedBox(
-            width: double.infinity,
-            child: InspectorEmbeddedSecondaryCapsule(
-              accent: EditorChrome.inspectorJoyOrchid,
-              icon: CupertinoIcons.plus_circle_fill,
-              label: 'Ajouter un résultat',
-              enabled: _canEdit,
-              onPressed: () {
-                final label = 'Nouveau résultat';
-                final scope = StepStudioOutcomeScope.progression;
-                final outcome = StepStudioOutcomeDefinition(
-                  label: label,
-                  scope: scope,
-                  outcomeId: generateOutcomeIdFromLabel(
-                    stepId: selectedStep.id,
-                    label: label,
-                    scope: scope,
-                  ),
-                );
-                _replaceSelectedStep(
-                  selectedStep.copyWith(
-                    outcomes: <StepStudioOutcomeDefinition>[
-                      ...outcomes,
-                      outcome,
-                    ],
-                  ),
-                );
-              },
             ),
           ),
         ],
