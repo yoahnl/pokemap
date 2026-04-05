@@ -9,19 +9,6 @@ import 'package:map_editor/src/features/narrative/application/narrative_workspac
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/ui/canvas/global_story_studio_workspace.dart';
 
-/// Les chapitres du Global Story Studio sont repliés par défaut : le contenu
-/// des steps (cartes compactes) n’apparaît qu’après toggle sur le chevron.
-Future<void> _expandAllGlobalStoryChapters(WidgetTester tester) async {
-  final chevrons = find.byIcon(CupertinoIcons.chevron_right);
-  expect(chevrons, findsWidgets);
-  final n = chevrons.evaluate().length;
-  for (var i = 0; i < n; i++) {
-    await tester.tap(chevrons.at(i));
-    await tester.pump();
-  }
-  await tester.pumpAndSettle();
-}
-
 void main() {
   group('Global Story Studio UX', () {
     // Helper to create a minimal project with a Global Story scenario
@@ -184,17 +171,13 @@ void main() {
         // Verify no overflow or exceptions.
         expect(tester.takeException(), isNull);
 
-        // The new UX should display chapters, not a form-like step editor.
-        // Check that the chapter names are visible.
-        expect(find.text('Prologue'), findsOneWidget);
-        expect(find.text('Depart'), findsOneWidget);
+        // Chapitres (titres éditables) + liste projet + steps dans chapitres.
+        expect(find.textContaining('Prologue'), findsWidgets);
+        expect(find.textContaining('Depart'), findsWidgets);
 
-        await _expandAllGlobalStoryChapters(tester);
-
-        // Check that step names are visible (compact cards).
-        expect(find.text('Introduction'), findsOneWidget);
-        expect(find.text('Rencontre du professeur'), findsOneWidget);
-        expect(find.text('Choix du starter'), findsOneWidget);
+        expect(find.textContaining('Introduction'), findsWidgets);
+        expect(find.textContaining('Rencontre du professeur'), findsWidgets);
+        expect(find.textContaining('Choix du starter'), findsWidgets);
 
         // Check that the macro summary is displayed.
         expect(find.textContaining('chapitre'), findsWidgets);
@@ -243,9 +226,7 @@ void main() {
 
         await tester.pump();
 
-        await _expandAllGlobalStoryChapters(tester);
-
-        // Find and tap "Ouvrir Step" button (compact step card action).
+        // Find and tap "Ouvrir Step" button (liste projet ou chapitre).
         final ouvrirStepButtons = find.text('Ouvrir Step');
         expect(ouvrirStepButtons, findsWidgets);
         await tester.tap(ouvrirStepButtons.first);
@@ -342,15 +323,11 @@ void main() {
         await tester.pump();
         expect(tester.takeException(), isNull);
 
-        // Both chapters should be rendered.
-        expect(find.text('Prologue'), findsOneWidget);
-        expect(find.text('Depart'), findsOneWidget);
+        expect(find.textContaining('Prologue'), findsWidgets);
+        expect(find.textContaining('Depart'), findsWidgets);
 
-        await _expandAllGlobalStoryChapters(tester);
-
-        // Steps should be in their respective chapters.
-        expect(find.text('Introduction'), findsOneWidget);
-        expect(find.text('Choix du starter'), findsOneWidget);
+        expect(find.textContaining('Introduction'), findsWidgets);
+        expect(find.textContaining('Choix du starter'), findsWidgets);
 
         // Entry step indicator should be visible.
         expect(find.byIcon(CupertinoIcons.location_solid), findsWidgets);

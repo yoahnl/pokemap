@@ -167,7 +167,7 @@ void main() {
   });
 
   group('Global Story Studio widget — header & rename', () {
-    testWidgets('tap chevron toggles expansion; add chapter does not only collapse',
+    testWidgets('steps visibles sans accordéon; ajouter un chapitre conserve la liste',
         (tester) async {
       final stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'global_story',
@@ -255,27 +255,15 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Introduction'), findsNothing);
+      expect(find.textContaining('Introduction'), findsWidgets);
 
-      await tester.tap(find.byIcon(CupertinoIcons.chevron_right).first);
+      await tester.tap(find.text('Nouveau chapitre'));
       await tester.pumpAndSettle();
-      expect(find.text('Introduction'), findsOneWidget);
-
-      await tester.tap(find.byIcon(CupertinoIcons.chevron_right).first);
-      await tester.pumpAndSettle();
-      expect(find.text('Introduction'), findsNothing);
-
-      await tester.tap(find.byIcon(CupertinoIcons.chevron_right).first);
-      await tester.pumpAndSettle();
-      expect(find.text('Introduction'), findsOneWidget);
-
-      await tester.tap(find.byIcon(CupertinoIcons.add_circled).first);
-      await tester.pumpAndSettle();
-      expect(find.text('Introduction'), findsOneWidget);
+      expect(find.textContaining('Introduction'), findsWidgets);
       expect(find.textContaining('CH.'), findsWidgets);
     });
 
-    testWidgets('double-tap chapter title opens field; enter commits rename',
+    testWidgets('champ titre chapitre : saisie + validation renomme',
         (tester) async {
       final stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'global_story',
@@ -362,15 +350,8 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.tap(find.byIcon(CupertinoIcons.chevron_right).first);
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Acte I'));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text('Acte I'));
-      await tester.pumpAndSettle();
-
-      final field = find.byType(CupertinoTextField);
+      final field = find.byKey(const ValueKey('macro_chapter_name_c1'));
       expect(field, findsOneWidget);
       await tester.enterText(field, 'Acte I bis');
       await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -381,7 +362,9 @@ void main() {
   });
 
   group('Insert picker widget', () {
-    testWidgets('Insérer opens sheet listing other project steps', (tester) async {
+    testWidgets(
+        'Ajouter une step au chapitre ouvre le sélecteur macOS (steps absentes du chapitre)',
+        (tester) async {
       final data = _buildThreeStepProject();
       await tester.pumpWidget(
         ProviderScope(
@@ -411,24 +394,24 @@ void main() {
         ),
       );
       await tester.pump();
-      final chevrons = find.byIcon(CupertinoIcons.chevron_right);
-      for (var i = 0; i < chevrons.evaluate().length; i++) {
-        await tester.tap(chevrons.at(i));
-        await tester.pump();
-      }
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Insérer').first);
+      final addToChapter = find.byKey(
+        const ValueKey<String>('macro_add_step_to_chapter_chapter_prologue'),
+      );
+      await tester.scrollUntilVisible(addToChapter, 500);
+      await tester.pumpAndSettle();
+      await tester.tap(addToChapter);
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('Insérer une step existante après celle-ci'),
+        find.textContaining('Ajouter au chapitre'),
         findsOneWidget,
       );
-      // Première option du picker = première step du projet hors step courante (ordre global).
-      expect(find.textContaining('#2. Rencontre du professeur'), findsOneWidget);
-      // Step courante toujours visible dans la carte au-dessus du picker.
-      expect(find.text('Introduction'), findsWidgets);
+      expect(find.textContaining('Prologue'), findsWidgets);
+      expect(
+        find.textContaining('#3. Choix du starter — actuellement : Depart'),
+        findsOneWidget,
+      );
     });
   });
 }

@@ -10,6 +10,7 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../features/narrative/application/step_studio_authoring.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import 'global_story_macro_editor.dart';
 
 /// Callback typé pour le renommage d'un chapitre (id + nouveau nom).
 ///
@@ -64,12 +65,8 @@ class _GlobalStoryStudioWorkspaceState
 
   String? _loadedGlobalScenarioId;
   String? _selectedStepId;
-  String? _selectedChapterId;
   bool _busy = false;
-  
-  // Ensemble des IDs des chapitres ouverts (fonctionnalité accordéon)
-  final Set<String> _expandedChapters = <String>{};
-  
+
   // Constantes pour le chapitre par défaut
   static const String _defaultChapterId = 'chapter_main';
   static const String _defaultChapterName = 'Histoire principale';
@@ -430,11 +427,10 @@ class _GlobalStoryStudioWorkspaceState
       globalDocument: nextGlobalDocument,
     );
     
-    if (_draftStepDocument == nextStepDocument &&
-        _draftGlobalDocument == reconciledGlobal) {
-      return;
-    }
-    
+    // Ne pas court-circuiter sur l'égalité des valeurs : la réconciliation peut
+    // produire un document == à l'ancien (ex. suppression du seul chapitre qui
+    // recrée `chapter_main` à l'identique) alors que l'utilisateur attend une mutation.
+
     setState(() {
       _draftStepDocument = nextStepDocument;
       _draftGlobalDocument = reconciledGlobal;
@@ -450,17 +446,6 @@ class _GlobalStoryStudioWorkspaceState
     });
     _lastDispatchedStepSelection = stepId;
     widget.onSelectStep(stepId);
-  }
-
-  /// Bascule l'état d'expansion d'un chapitre (accordéon).
-  void _toggleChapterExpansion(String chapterId) {
-    setState(() {
-      if (_expandedChapters.contains(chapterId)) {
-        _expandedChapters.remove(chapterId);
-      } else {
-        _expandedChapters.add(chapterId);
-      }
-    });
   }
 
   Future<void> _createGlobalStoryAndBootstrap() async {
@@ -933,19 +918,6 @@ class _GlobalStoryStudioWorkspaceState
   // le Global Story Studio. Elles modifient UNIQUEMENT le document macro
   // (GlobalStoryStudioDocument), pas le Step Studio document.
 
-  /// Sélectionne un chapitre pour mise en surbrillance dans l'UI.
-  /// C'est une sélection purement visuelle — pas de mutation provider.
-  void _selectChapter(String chapterId) {
-    setState(() {
-      _selectedChapterId = chapterId;
-    });
-  }
-
-  /// État pour le sélecteur de step existante à insérer.
-  ///
-  /// Quand non null, le sélecteur de step existante est affiché sous forme
-  /// d'un popup intégré au-dessus de la step concernée.
-
   /// Renomme un chapitre existant.
   void _renameChapter(String chapterId, String newName) {
     final globalDoc = _draftGlobalDocument;
@@ -963,15 +935,14 @@ class _GlobalStoryStudioWorkspaceState
   }
 
   /// Déplace un chapitre vers le haut ou le bas (change son ordre).
-  void _moveChapter(int delta) {
+  void _moveChapter(String chapterId, int delta) {
     final globalDoc = _draftGlobalDocument;
     final stepDoc = _draftStepDocument;
-    final selectedId = _selectedChapterId;
-    if (globalDoc == null || stepDoc == null || selectedId == null) return;
+    if (globalDoc == null || stepDoc == null) return;
 
     final ordered = globalDoc.chapters.toList(growable: true)
       ..sort((a, b) => a.order.compareTo(b.order));
-    final currentIndex = ordered.indexWhere((c) => c.id == selectedId);
+    final currentIndex = ordered.indexWhere((c) => c.id == chapterId);
     if (currentIndex < 0) return;
     final nextIndex = currentIndex + delta;
     if (nextIndex < 0 || nextIndex >= ordered.length) return;
@@ -1020,10 +991,9 @@ class _GlobalStoryStudioWorkspaceState
         chapters: <GlobalStoryChapter>[...ordered, newChapter],
       ),
     );
-    _selectChapter(newChapter.id);
   }
 
-  /// Supprime un chapitre vide. On ne supprime PAS un chapitre contenant des steps.
+  /// Supprime un chapitre. Les steps redeviennent non assignées puis sont réconciliées.
   void _deleteChapter(String chapterId) {
     final globalDoc = _draftGlobalDocument;
     final stepDoc = _draftStepDocument;
@@ -1032,9 +1002,6 @@ class _GlobalStoryStudioWorkspaceState
     final chapter =
         globalDoc.chapters.where((c) => c.id == chapterId).cast<GlobalStoryChapter?>().firstWhere((c) => c != null, orElse: () => null);
     if (chapter == null) return;
-    // On ne supprime que les chapitres vides ou le dernier chapitre.
-    // Les steps doivent être déplacées ailleurs avant de supprimer un chapitre non vide.
-    if (chapter.stepIds.isNotEmpty) return;
 
     final nextChapters = globalDoc.chapters
         .where((c) => c.id != chapterId)
@@ -1042,19 +1009,131 @@ class _GlobalStoryStudioWorkspaceState
     // Re-normalize les orders.
     final ordered = nextChapters.toList(growable: true)
       ..sort((a, b) => a.order.compareTo(b.order));
-    final normalized = ordered
+    var normalized = ordered
         .asMap()
         .entries
         .map((e) => e.value.copyWith(order: e.key))
         .toList(growable: false);
 
+    // Supprimer le dernier chapitre alors qu'il reste des steps : si on passe une
+    // liste vide à la réconciliation, elle recrée `chapter_main` à l'identique —
+    // le document redevient == à l'ancien et l'UI semble ne rien faire.
+    // On recrée donc un chapitre avec un **nouvel id** et les steps dans l'ordre Step Studio.
+    if (normalized.isEmpty && stepDoc.steps.isNotEmpty) {
+      final orderedSteps = stepDoc.steps.toList(growable: false)
+        ..sort((a, b) => a.order.compareTo(b.order));
+      final reserved = nextChapters.map((c) => c.id).toSet();
+      normalized = <GlobalStoryChapter>[
+        GlobalStoryChapter(
+          id: _allocateUniqueChapterId(reserved),
+          name: 'Nouveau chapitre',
+          description: '',
+          stepIds:
+              orderedSteps.map((s) => s.id).toList(growable: false),
+          order: 0,
+        ),
+      ];
+    }
+
     _replaceDraftDocuments(
       nextStepDocument: stepDoc,
       nextGlobalDocument: globalDoc.copyWith(chapters: normalized),
     );
-    if (_selectedChapterId == chapterId) {
-      _selectedChapterId = null;
+  }
+
+  /// Id de chapitre stable du type `chapter_N` absent de [reservedIds].
+  String _allocateUniqueChapterId(Set<String> reservedIds) {
+    for (var n = 1; n < 100000; n++) {
+      final id = 'chapter_$n';
+      if (!reservedIds.contains(id)) {
+        return id;
+      }
     }
+    return 'chapter_${DateTime.now().microsecondsSinceEpoch}';
+  }
+
+  /// Place [stepId] dans [chapterId] (retirée des autres chapitres), en fin de liste.
+  void _addStepToChapter(String chapterId, String stepId) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+    if (!stepDoc.steps.any((s) => s.id == stepId)) return;
+
+    final strippedChapters = globalDoc.chapters
+        .map(
+          (c) => c.copyWith(
+            stepIds: c.stepIds.where((id) => id != stepId).toList(),
+          ),
+        )
+        .toList(growable: false);
+
+    final chapterIdx = strippedChapters.indexWhere((c) => c.id == chapterId);
+    if (chapterIdx < 0) return;
+
+    final chapter = strippedChapters[chapterIdx];
+    if (chapter.stepIds.contains(stepId)) return;
+
+    final nextStepIds = <String>[...chapter.stepIds, stepId];
+    final nextChapters = strippedChapters
+        .asMap()
+        .entries
+        .map((e) => e.key == chapterIdx
+            ? chapter.copyWith(stepIds: nextStepIds)
+            : e.value)
+        .toList(growable: false);
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
+    );
+  }
+
+  void _removeStepFromChapter(String chapterId, String stepId) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+
+    final nextChapters = globalDoc.chapters
+        .map((c) {
+          if (c.id != chapterId) return c;
+          return c.copyWith(
+            stepIds: c.stepIds.where((id) => id != stepId).toList(),
+          );
+        })
+        .toList(growable: false);
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
+    );
+  }
+
+  void _moveStepInChapter(String chapterId, int fromIndex, int toIndex) {
+    final globalDoc = _draftGlobalDocument;
+    final stepDoc = _draftStepDocument;
+    if (globalDoc == null || stepDoc == null) return;
+
+    final chapterIdx = globalDoc.chapters.indexWhere((c) => c.id == chapterId);
+    if (chapterIdx < 0) return;
+    final chapter = globalDoc.chapters[chapterIdx];
+    if (fromIndex < 0 || fromIndex >= chapter.stepIds.length) return;
+    if (toIndex < 0 || toIndex >= chapter.stepIds.length) return;
+
+    final list = List<String>.from(chapter.stepIds);
+    final id = list.removeAt(fromIndex);
+    list.insert(toIndex, id);
+
+    final nextChapters = globalDoc.chapters
+        .asMap()
+        .entries
+        .map((e) =>
+            e.key == chapterIdx ? chapter.copyWith(stepIds: list) : e.value)
+        .toList(growable: false);
+
+    _replaceDraftDocuments(
+      nextStepDocument: stepDoc,
+      nextGlobalDocument: globalDoc.copyWith(chapters: nextChapters),
+    );
   }
 
   /// Met à jour le lien d'une step (raccourci pour le callback du UI compact).
@@ -1295,18 +1374,32 @@ class _GlobalStoryStudioWorkspaceState
     final stepDoc = _draftStepDocument;
     if (globalDoc == null || stepDoc == null) return;
 
-    final chapterIdx = globalDoc.chapters.indexWhere(
+    final strippedChapters = globalDoc.chapters
+        .map(
+          (c) => c.copyWith(
+            stepIds: c.stepIds.where((id) => id != newStepId).toList(),
+          ),
+        )
+        .toList(growable: false);
+
+    final chapterIdx = strippedChapters.indexWhere(
       (c) => c.stepIds.contains(referenceStepId),
     );
     if (chapterIdx < 0) return;
 
-    final chapter = globalDoc.chapters[chapterIdx];
-    final nextChapters = globalDoc.chapters
+    final chapter = strippedChapters[chapterIdx];
+    final inserted = chapterStepIdsInsertingAfterReference(
+      chapter.stepIds,
+      referenceStepId,
+      newStepId,
+    );
+    final nextStepIds = inserted ?? <String>[...chapter.stepIds, newStepId];
+
+    final nextChapters = strippedChapters
         .asMap()
         .entries
         .map((e) => e.key == chapterIdx
-            ? chapter.copyWith(
-                stepIds: <String>[...chapter.stepIds, newStepId])
+            ? chapter.copyWith(stepIds: nextStepIds)
             : e.value)
         .toList(growable: false);
 
@@ -1700,18 +1793,7 @@ class _GlobalStoryStudioWorkspaceState
     );
   }
 
-  // ===========================================================================
-  // ARBRE NARRATIF PRINCIPAL (nouvelle UX orientée chapitres + structure)
-  // ===========================================================================
-  //
-  // Cette méthode remplace l'ancien `_buildGlobalStoryEditor` qui ressemblait
-  // trop à une fiche de formulaire de step. L'objectif est de donner une
-  // sensation de "carte routière narrative" verticale avec:
-  // - une zone haute de résumé macro,
-  // - des chapitres clairement séparés,
-  // - des steps compactes dans chaque chapitre,
-  // - des indicateurs de flux entre les steps.
-
+  /// Vue macro : [GlobalStoryMacroEditor].
   Widget _buildNarrativeTree({
     required BuildContext context,
     required List<ScenarioAsset> globalStories,
@@ -1730,114 +1812,30 @@ class _GlobalStoryStudioWorkspaceState
         ? globalStories.first.id
         : globalStories.first.name;
 
-    // Compte les branches et convergences pour le résumé macro.
-    var branchCount = 0;
-    var convergeCount = 0;
-    for (final node in globalDocument.nodes) {
-      if (node.exitMode == GlobalStoryStepExitMode.branchExclusive ||
-          node.exitMode == GlobalStoryStepExitMode.branchConditional) {
-        branchCount++;
-      }
-      if (node.exitMode == GlobalStoryStepExitMode.converge) {
-        convergeCount++;
-      }
-    }
-
-    return EditorPaneSurface(
-      radius: 20,
-      tint: EditorChrome.islandWarmTint,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      child: Column(
-        children: [
-          // ZONE HAUTE: résumé macro du scénario global.
-          _NarrativeTreeHeader(
-            globalName: globalName,
-            chapterCount: chapters.length,
-            totalStepCount: orderedSteps.length,
-            branchCount: branchCount,
-            convergeCount: convergeCount,
-            hasUnsavedChanges: _hasUnsavedChanges,
-            canEdit: _canEdit,
-            onSave: _saveDraft,
-            onReset: _resetDraft,
-          ),
-          const SizedBox(height: 16),
-          // ZONE PRINCIPALE: arbre vertical par chapitres.
-          Expanded(
-            child: ListView(
-              children: [
-                if (_usedStepLegacyFallback || _usedGlobalLegacyFallback) ...[
-                  const _InlineInfoBanner(
-                    accent: EditorChrome.inspectorJoyAmber,
-                    text:
-                        'Des donnees historiques ont ete converties en mode compatibilite. Sauvegardez pour stabiliser le document Global Story v1.',
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                for (final warning in diagnostics) ...[
-                  _InlineInfoBanner(
-                    accent: EditorChrome.inspectorJoyCoral,
-                    text: warning,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                // Affichage des chapitres avec leurs steps.
-                for (final entry in chapters.asMap().entries) ...[
-                  if (entry.key > 0) const _ChapterGap(),
-                  _NarrativeChapterSection(
-                    chapter: entry.value,
-                    chapterIndex: entry.key,
-                    totalChapters: chapters.length,
-                    steps: entry.value.stepIds
-                        .map((stepId) => orderedSteps
-                            .where((s) => s.id == stepId)
-                            .cast<StepStudioStep?>()
-                            .firstWhere((s) => s != null, orElse: () => null))
-                        .whereType<StepStudioStep>()
-                        .toList(growable: false),
-                    allProjectSteps: orderedSteps,
-                    globalDocument: globalDocument,
-                    selectedStepId: selectedStep?.id,
-                    canEdit: _canEdit,
-                    onTapChapter: (id) => _selectChapter(id),
-                    onRenameChapter: (id, name) => _renameChapter(id, name),
-                    onMoveChapterUp: () => _moveChapter(-1),
-                    onMoveChapterDown: () => _moveChapter(1),
-                    onAddChapter: _addChapter,
-                    onDeleteChapter: () => _deleteChapter(entry.value.id),
-                    onSelectStep: _selectStep,
-                    onOpenStepStudio: widget.onOpenStepStudio,
-                    onSetEntryStep: _setEntryStep,
-                    onCreateNewStep: _createNewStepAfter,
-                    onInsertExistingStep: _insertExistingStepAfter,
-                    onChangeStepExitMode: _updateSelectedNodeExitMode,
-                    onAddLink: _addLinkFromSelectedStep,
-                    onRemoveLink: _removeLinkFromSelectedStep,
-                    onUpdateLinkTarget: _updateLinkFromSelectedStepToStep,
-                    isExpanded: _expandedChapters.contains(entry.value.id),
-                    onToggleExpansion: () => _toggleChapterExpansion(entry.value.id),
-                  ),
-                ],
-                // S'il n'y a aucun chapitre mais des steps existent,
-                // on affiche un message invitant à créer un chapitre.
-                if (chapters.isEmpty && orderedSteps.isNotEmpty) ...[
-                  _NoChaptersHint(
-                    stepCount: orderedSteps.length,
-                    onAddChapter: _addChapter,
-                    enabled: _canEdit,
-                  ),
-                ],
-                const SizedBox(height: 12),
-                const InspectorEmbeddedFootnote(
-                  text:
-                      'Global Story = structure macro (chapitres + steps). Step = logique locale. Cutscene = execution.',
-                  accent: EditorChrome.inspectorJoyCyan,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return GlobalStoryMacroEditor(
+      globalStoryName: globalName,
+      orderedSteps: orderedSteps,
+      chapters: chapters,
+      globalDocument: globalDocument,
+      projectionStepCount: widget.projection.steps.length,
+      selectedStepId: selectedStep?.id,
+      hasUnsavedChanges: _hasUnsavedChanges,
+      canEdit: _canEdit,
+      warnings: diagnostics,
+      showLegacyBanner: _usedStepLegacyFallback || _usedGlobalLegacyFallback,
+      onSave: _saveDraft,
+      onReset: _resetDraft,
+      onAddChapter: _addChapter,
+      onDeleteChapter: _deleteChapter,
+      onRenameChapter: _renameChapter,
+      onMoveChapter: _moveChapter,
+      onAddStepToChapter: _addStepToChapter,
+      onRemoveStepFromChapter: _removeStepFromChapter,
+      onMoveStepInChapter: _moveStepInChapter,
+      onSelectStep: _selectStep,
+      onOpenStepStudio: widget.onOpenStepStudio,
+      onSetEntryStep: _setEntryStep,
+      onCreateStep: _addStepAfterSelection,
     );
   }
 
@@ -2684,1500 +2682,3 @@ class _EnumDropdown<T extends Enum> extends StatelessWidget {
 }
 
 const Object _unset = Object();
-
-// =============================================================================
-// NOUVEAUX WIDGETS POUR L'ARBRE NARRATIF (Global Story Studio v2)
-// =============================================================================
-//
-// Ces widgets remplacent l'ancien `_GlobalStoryStepCard` qui ressemblait
-// trop à une fiche de formulaire de step. L'objectif est d'avoir une
-// représentation visuelle de type "carte routière narrative".
-
-/// Zone haute du Global Story Studio: résumé macro du scénario global.
-///
-/// Montre immédiatement:
-/// - le nom du scénario global unique,
-/// - le nombre de chapitres, de steps, de branches, de convergences,
-/// - les actions globales (sauvegarder, réinitialiser).
-class _NarrativeTreeHeader extends StatelessWidget {
-  const _NarrativeTreeHeader({
-    required this.globalName,
-    required this.chapterCount,
-    required this.totalStepCount,
-    required this.branchCount,
-    required this.convergeCount,
-    required this.hasUnsavedChanges,
-    required this.canEdit,
-    required this.onSave,
-    required this.onReset,
-  });
-
-  final String globalName;
-  final int chapterCount;
-  final int totalStepCount;
-  final int branchCount;
-  final int convergeCount;
-  final bool hasUnsavedChanges;
-  final bool canEdit;
-  final VoidCallback onSave;
-  final VoidCallback onReset;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        // Couleur cyan pour le Global Story (distinct du mint du Step Studio).
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.06),
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.3),
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                CupertinoIcons.map_fill,
-                color: EditorChrome.inspectorJoyCyan,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  globalName,
-                  style: TextStyle(
-                    color: EditorChrome.primaryLabel(context),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              if (hasUnsavedChanges)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color:
-                        EditorChrome.inspectorJoyCoral.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color:
-                          EditorChrome.inspectorJoyCoral.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: const Text(
-                    'Modifié',
-                    style: TextStyle(
-                      color: EditorChrome.inspectorJoyCoral,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Badges de résumé macro.
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _MacroBadge(
-                icon: CupertinoIcons.book_fill,
-                label: '$chapterCount chapitre${chapterCount > 1 ? 's' : ''}',
-                accent: EditorChrome.inspectorJoyCyan,
-              ),
-              _MacroBadge(
-                icon: CupertinoIcons.flag_fill,
-                label: '$totalStepCount step${totalStepCount > 1 ? 's' : ''}',
-                accent: EditorChrome.inspectorJoyMint,
-              ),
-              if (branchCount > 0)
-                _MacroBadge(
-                  icon: CupertinoIcons.share,
-                  label: '$branchCount branche${branchCount > 1 ? 's' : ''}',
-                  accent: EditorChrome.inspectorJoyAmber,
-                ),
-              if (convergeCount > 0)
-                _MacroBadge(
-                  icon: CupertinoIcons.arrow_merge,
-                  label:
-                      '$convergeCount convergence${convergeCount > 1 ? 's' : ''}',
-                  accent: EditorChrome.inspectorJoyCoral,
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: InspectorEmbeddedPrimaryCapsule(
-                  accent: EditorChrome.inspectorJoyBlue,
-                  icon: CupertinoIcons.floppy_disk,
-                  label: 'Sauvegarder',
-                  prominent: true,
-                  enabled: canEdit && hasUnsavedChanges,
-                  onPressed: onSave,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InspectorEmbeddedSecondaryCapsule(
-                  accent: EditorChrome.inspectorJoyCyan,
-                  icon: CupertinoIcons.arrow_uturn_left,
-                  label: 'Réinitialiser',
-                  enabled: canEdit && hasUnsavedChanges,
-                  onPressed: onReset,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Petit badge de résumé macro dans le header du Global Story Studio.
-class _MacroBadge extends StatelessWidget {
-  const _MacroBadge({
-    required this.icon,
-    required this.label,
-    required this.accent,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: accent.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: accent),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: accent,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Séparateur visuel entre deux chapitres dans l'arbre narratif.
-class _ChapterGap extends StatelessWidget {
-  const _ChapterGap();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 1,
-              color: EditorChrome.subtleLabel(context).withValues(alpha: 0.2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(
-              CupertinoIcons.chevron_down,
-              size: 12,
-              color: EditorChrome.subtleLabel(context),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 1,
-              color: EditorChrome.subtleLabel(context).withValues(alpha: 0.2),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Message affiché quand des steps existent mais aucun chapitre n'est défini.
-class _NoChaptersHint extends StatelessWidget {
-  const _NoChaptersHint({
-    required this.stepCount,
-    required this.onAddChapter,
-    required this.enabled,
-  });
-
-  final int stepCount;
-  final VoidCallback onAddChapter;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.inspectorJoyAmber.withValues(alpha: 0.06),
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: EditorChrome.inspectorJoyAmber.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '$stepCount step(s) sans chapitre',
-            style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Organisez vos steps en chapitres pour une lecture narrative claire.',
-            style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: InspectorEmbeddedPrimaryCapsule(
-              accent: EditorChrome.inspectorJoyAmber,
-              icon: CupertinoIcons.book_fill,
-              label: 'Créer un chapitre',
-              enabled: enabled,
-              onPressed: onAddChapter,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Section de chapitre dans l'arbre narratif.
-///
-/// Affiche:
-/// - un header de chapitre fort et visible,
-/// - les steps compactes dans ce chapitre,
-/// - les indicateurs de flux entre les steps.
-///
-/// C'est le widget CENTRAL de la nouvelle UX Global Story Studio.
-///
-/// Converti en StatefulWidget pour gérer l'état du sélecteur d'insertion
-/// de step existante (quel step affiche le picker en ce moment).
-class _NarrativeChapterSection extends StatefulWidget {
-  const _NarrativeChapterSection({
-    required this.chapter,
-    required this.chapterIndex,
-    required this.totalChapters,
-    required this.steps,
-    required this.allProjectSteps,
-    required this.globalDocument,
-    required this.selectedStepId,
-    required this.canEdit,
-    required this.onTapChapter,
-    required this.onRenameChapter,
-    required this.onMoveChapterUp,
-    required this.onMoveChapterDown,
-    required this.onAddChapter,
-    required this.onDeleteChapter,
-    required this.onSelectStep,
-    required this.onOpenStepStudio,
-    required this.onSetEntryStep,
-    required this.onCreateNewStep,
-    required this.onInsertExistingStep,
-    required this.onChangeStepExitMode,
-    required this.onAddLink,
-    required this.onRemoveLink,
-    required this.onUpdateLinkTarget,
-    required this.isExpanded,
-    required this.onToggleExpansion,
-  });
-
-  final GlobalStoryChapter chapter;
-  final int chapterIndex;
-  final int totalChapters;
-  
-  /// Steps dans ce chapitre uniquement
-  final List<StepStudioStep> steps;
-  
-  /// TOUTES les steps du projet (pour le picker d'insertion)
-  final List<StepStudioStep> allProjectSteps;
-  
-  final GlobalStoryStudioDocument globalDocument;
-  final String? selectedStepId;
-  final bool canEdit;
-  final ValueChanged<String> onTapChapter;
-  final _ChapterRenameCallback onRenameChapter;
-  final VoidCallback onMoveChapterUp;
-  final VoidCallback onMoveChapterDown;
-  final VoidCallback onAddChapter;
-  final VoidCallback onDeleteChapter;
-  final ValueChanged<String?> onSelectStep;
-  final ValueChanged<String> onOpenStepStudio;
-  final ValueChanged<String> onSetEntryStep;
-
-  // Callback pour CRÉER une nouvelle step après une step donnée.
-  final ValueChanged<String> onCreateNewStep;
-
-  // Callback pour INSÉRER une step existante après une step donnée
-  // (l'ID de la step à insérer est passée via le picker).
-  final void Function(String afterStepId, String existingStepId)
-      onInsertExistingStep;
-
-  final ValueChanged<GlobalStoryStepExitMode> onChangeStepExitMode;
-  final VoidCallback onAddLink;
-  final ValueChanged<int> onRemoveLink;
-  final void Function(int, String?) onUpdateLinkTarget;
-  final bool isExpanded;
-  final VoidCallback onToggleExpansion;
-
-  @override
-  State<_NarrativeChapterSection> createState() =>
-      _NarrativeChapterSectionState();
-}
-
-class _NarrativeChapterSectionState extends State<_NarrativeChapterSection> {
-  // ID de la step qui affiche actuellement le sélecteur de step existante.
-  // Une seule step à la fois peut avoir le picker ouvert.
-  String? _insertPickerStepId;
-
-  GlobalStoryStepNode? _nodeByStepId(String? stepId) {
-    if (stepId == null) return null;
-    for (final node in widget.globalDocument.nodes) {
-      if (node.stepId == stepId) return node;
-    }
-    return null;
-  }
-
-  void _togglePicker(String stepId) {
-    setState(() {
-      _insertPickerStepId = _insertPickerStepId == stepId ? null : stepId;
-    });
-  }
-
-  void _cancelPicker() {
-    setState(() {
-      _insertPickerStepId = null;
-    });
-  }
-
-  void _pickExistingStep(String afterStepId, String existingStepId) {
-    widget.onInsertExistingStep(afterStepId, existingStepId);
-    _cancelPicker();
-  }
-
-  /// Génère la liste des steps existantes disponibles pour insertion.
-  ///
-  /// IMPORTANT : utilise [allProjectSteps] (toutes les steps du projet)
-  /// et PAS [widget.steps] (steps du chapitre uniquement).
-  ///
-  /// Exclut la step courante pour éviter l'auto-insertion.
-  List<_SimpleOption> _availableStepsFor(String currentStepId) {
-    final byId = <String, StepStudioStep>{
-      for (final s in widget.allProjectSteps) s.id: s,
-    };
-    return eligibleStepIdsForGlobalStoryInsertPicker(
-      widget.allProjectSteps,
-      currentStepId,
-    )
-        .map((id) {
-          final s = byId[id];
-          final label =
-              s != null ? '#${s.order + 1}. ${s.name}' : id;
-          return _SimpleOption(id: id, label: label);
-        })
-        .toList(growable: false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ============================================
-        // ZONE 1: HEADER FIXE (toujours visible)
-        // ============================================
-        // Le header contient:
-        // - le chevron animé (toggle expansion)
-        // - le nom du chapitre (sélection)
-        // - les badges et actions
-        _ChapterHeader(
-          chapter: widget.chapter,
-          chapterIndex: widget.chapterIndex,
-          totalChapters: widget.totalChapters,
-          stepCount: widget.steps.length,
-          isSelected: false,
-          canEdit: widget.canEdit,
-          onRename: (name) => widget.onRenameChapter(widget.chapter.id, name),
-          onMoveUp: widget.onMoveChapterUp,
-          onMoveDown: widget.onMoveChapterDown,
-          onAddChapter: widget.onAddChapter,
-          onDelete: widget.chapter.stepIds.isEmpty
-              ? widget.onDeleteChapter
-              : null,
-          showExpansionIcon: true,
-          isExpanded: widget.isExpanded,
-          onExpansionTap: widget.onToggleExpansion,
-        ),
-        
-        // ============================================
-        // ZONE 2: RÉSUMÉ STABLE (toujours visible)
-        // ============================================
-        // Affiche un résumé compact du chapitre:
-        // - nombre de steps
-        // - description si disponible
-        // Opacité légèrement réduite quand le chapitre est ouvert
-        // pour laisser la place visuelle aux steps.
-        _ChapterSummary(
-          stepCount: widget.steps.length,
-          chapter: widget.chapter,
-          isExpanded: widget.isExpanded,
-        ),
-        
-        const SizedBox(height: 6),
-        
-        // ============================================
-        // ZONE 3: CONTENU DES STEPS (ANIMÉ)
-        // ============================================
-        // Cette zone s'ouvre et se ferme avec une animation fluide.
-        // Utilise ClipRect + AnimatedSize pour:
-        // - une transition de hauteur douce et naturelle
-        // - pas de débordement visuel pendant l'animation
-        // - alignment par le haut (lecture top-down)
-        ClipRect(
-          child: AnimatedSize(
-            // Duration: 300ms pour une animation fluide mais réactive
-            duration: const Duration(milliseconds: 300),
-            // Curve: easeInOut pour un mouvement naturel
-            curve: Curves.easeInOut,
-            // Alignment: topCenter pour que l'animation parte du haut
-            // (cohérent avec la lecture top-down du Global Story)
-            alignment: Alignment.topCenter,
-            // Si le chapitre est ouvert: affiche les steps
-            // Si le chapitre est fermé: SizedBox.shrink() (hauteur 0)
-            child: widget.isExpanded
-              ? _buildStepsContent(context)
-              : const SizedBox.shrink(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Construit le contenu des steps du chapitre.
-  ///
-  /// Cette méthode est séparée du build() principal pour:
-  /// - clarifier la responsabilité (zone animée vs structure)
-  /// - faciliter la maintenance
-  /// - garder le build() lisible
-  Widget _buildStepsContent(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // STEPS DU CHAPITRE: cartes compactes en flux vertical.
-        for (final entry in widget.steps.asMap().entries) ...[
-          if (entry.key > 0)
-            _StepFlowArrow(
-              sourceName: widget.steps[entry.key - 1].name,
-              destinationName: entry.value.name,
-              node: _nodeByStepId(widget.steps[entry.key - 1].id),
-            ),
-          _CompactStepCard(
-            step: entry.value,
-            node: _nodeByStepId(entry.value.id) ??
-                GlobalStoryStepNode(stepId: entry.value.id),
-            isSelected: entry.value.id == widget.selectedStepId,
-            isEntryStep: widget.globalDocument.entryStepId == entry.value.id,
-            canEdit: widget.canEdit,
-            onTap: () => widget.onSelectStep(entry.value.id),
-            onOpenStepStudio: () => widget.onOpenStepStudio(entry.value.id),
-            onSetEntryStep: () => widget.onSetEntryStep(entry.value.id),
-            // Bouton "Nouvelle step" — crée explicitement une nouvelle step.
-            onCreateNewStep: () => widget.onCreateNewStep(entry.value.id),
-            // Bouton "Insérer" — ouvre le sélecteur de step existante.
-            onInsertExistingStep: () => _togglePicker(entry.value.id),
-            // État du picker pour cette step.
-            insertPickerVisible: _insertPickerStepId == entry.value.id,
-            onTogglePicker: () => _togglePicker(entry.value.id),
-            onPickExistingStep: (existingStepId) =>
-                _pickExistingStep(entry.value.id, existingStepId),
-            availableSteps: _availableStepsFor(entry.value.id),
-          ),
-        ],
-        // Si le chapitre est vide, afficher un message.
-        if (widget.steps.isEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: EditorChrome.largeIslandSurfaceColor(
-                context,
-                tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
-              ),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: Text(
-              'Aucune step dans ce chapitre',
-              style: TextStyle(
-                color: EditorChrome.subtleLabel(context),
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Header de chapitre: titre fort, badge de step count, actions.
-///
-/// C'est le marqueur visuel le plus important de la hiérarchie
-/// du Global Story Studio. Il doit être IMPOSSIBLE de le confondre
-/// avec une step individuelle.
-class _ChapterHeader extends StatelessWidget {
-  const _ChapterHeader({
-    required this.chapter,
-    required this.chapterIndex,
-    required this.totalChapters,
-    required this.stepCount,
-    required this.isSelected,
-    required this.canEdit,
-    required this.onRename,
-    required this.onMoveUp,
-    required this.onMoveDown,
-    required this.onAddChapter,
-    this.onDelete,
-    this.showExpansionIcon = false,
-    this.isExpanded = false,
-    this.onExpansionTap,
-  });
-
-  final GlobalStoryChapter chapter;
-  final int chapterIndex;
-  final int totalChapters;
-  final int stepCount;
-  final bool isSelected;
-  final bool canEdit;
-  final ValueChanged<String> onRename;
-  final VoidCallback onMoveUp;
-  final VoidCallback onMoveDown;
-  final VoidCallback onAddChapter;
-  final VoidCallback? onDelete;
-  final bool showExpansionIcon;
-  final bool isExpanded;
-  final VoidCallback? onExpansionTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        // Fond violet profond pour les chapitres (distinct du cyan du header global).
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.08),
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.3),
-          width: 1.5,
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Une seule grande zone « ligne de chapitre » pour l’accordéon : chevron,
-          // pastille CH, titre (simple tap = toggle, double tap = renommage via enfant),
-          // badge steps. Les boutons d’action restent en dehors de ce GestureDetector.
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onExpansionTap ?? () {},
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (showExpansionIcon) ...[
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      child: Icon(
-                        CupertinoIcons.chevron_right,
-                        size: 16,
-                        color: EditorChrome.primaryLabel(context),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: EditorChrome.inspectorJoyPlum.withValues(
-                          alpha: 0.18),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'CH. ${chapterIndex + 1}',
-                      style: TextStyle(
-                        color: EditorChrome.inspectorJoyPlum,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _ChapterNameDisplay(
-                      name: chapter.name,
-                      onRename: onRename,
-                      onAccordionToggle: onExpansionTap ?? () {},
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: EditorChrome.inspectorJoyMint.withValues(
-                          alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '$stepCount step${stepCount > 1 ? 's' : ''}',
-                      style: TextStyle(
-                        color: EditorChrome.inspectorJoyMint,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (canEdit) ...[
-            const SizedBox(width: 8),
-            Row(
-              children: [
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minSize: 28,
-                  onPressed: onMoveUp,
-                  child: Icon(
-                    CupertinoIcons.chevron_up,
-                    size: 18,
-                    color: EditorChrome.inspectorJoyPlum,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minSize: 28,
-                  onPressed: onMoveDown,
-                  child: Icon(
-                    CupertinoIcons.chevron_down,
-                    size: 18,
-                    color: EditorChrome.inspectorJoyPlum,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minSize: 28,
-                  onPressed: onDelete,
-                  child: Icon(
-                    CupertinoIcons.delete,
-                    size: 18,
-                    color: EditorChrome.inspectorJoyCoral,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minSize: 28,
-                  onPressed: onAddChapter,
-                  child: Icon(
-                    CupertinoIcons.add_circled,
-                    size: 20,
-                    color: EditorChrome.inspectorJoyCyan,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Flèche de flux entre deux steps consécutives.
-///
-/// Montre visuellement la progression narrative d'une step à l'autre
-/// à l'intérieur d'un chapitre.
-class _StepFlowArrow extends StatelessWidget {
-  const _StepFlowArrow({
-    required this.sourceName,
-    required this.destinationName,
-    this.node,
-  });
-
-  final String sourceName;
-  final String destinationName;
-  final GlobalStoryStepNode? node;
-
-  @override
-  Widget build(BuildContext context) {
-    final isBranching = node != null &&
-        (node!.exitMode == GlobalStoryStepExitMode.branchExclusive ||
-            node!.exitMode == GlobalStoryStepExitMode.branchConditional);
-    final isConverge =
-        node != null && node!.exitMode == GlobalStoryStepExitMode.converge;
-    final destCount = node?.links.length ?? 1;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          // Indenteur visuel.
-          const SizedBox(width: 24),
-          // Icône de flux.
-          Icon(
-            isBranching
-                ? CupertinoIcons.share
-                : isConverge
-                    ? CupertinoIcons.arrow_merge
-                    : CupertinoIcons.arrow_down,
-            size: 12,
-            color: isBranching
-                ? EditorChrome.inspectorJoyAmber
-                : isConverge
-                    ? EditorChrome.inspectorJoyCoral
-                    : EditorChrome.subtleLabel(context).withValues(alpha: 0.5),
-          ),
-          const SizedBox(width: 6),
-          // Label de destination.
-          Expanded(
-            child: Text(
-              destCount > 1
-                  ? '$sourceName → $destCount destinations'
-                  : '$sourceName → $destinationName',
-              style: TextStyle(
-                color: EditorChrome.subtleLabel(context),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                fontStyle: FontStyle.italic,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Résumé compact d'un chapitre, toujours visible sous le header.
-///
-/// Ce widget affiche un résumé stable du chapitre (nombre de steps, etc.)
-/// et reste visible que le chapitre soit ouvert ou fermé.
-/// Quand le chapitre est ouvert, l'opacité est légèrement réduite pour
-/// laisser la place aux steps tout en restant lisible.
-///
-/// Rôle produit:
-/// - donner une information immédiate sur le contenu du chapitre
-/// - rester stable visuellement (pas de swap brutal)
-/// - renforcer la lecture macro (Global Story ≠ Step Studio)
-class _ChapterSummary extends StatelessWidget {
-  const _ChapterSummary({
-    required this.stepCount,
-    required this.chapter,
-    this.isExpanded = false,
-  });
-
-  /// Nombre de steps dans le chapitre
-  final int stepCount;
-
-  /// Chapitre concerné
-  final GlobalStoryChapter chapter;
-
-  /// État d'expansion (pour ajuster l'opacité)
-  final bool isExpanded;
-
-  @override
-  Widget build(BuildContext context) {
-    // Opacité réduite quand le chapitre est ouvert pour laisser la place aux steps
-    final summaryOpacity = isExpanded ? 0.6 : 1.0;
-
-    return AnimatedOpacity(
-      opacity: summaryOpacity,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        child: Row(
-          children: [
-            // Badge du nombre de steps
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                '$stepCount step${stepCount > 1 ? 's' : ''}',
-                style: TextStyle(
-                  color: EditorChrome.inspectorJoyMint,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            // Séparateur visuel si le chapitre a une description
-            if (chapter.description.trim().isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  chapter.description,
-                  style: TextStyle(
-                    color: EditorChrome.subtleLabel(context),
-                    fontSize: 10,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Titre du chapitre dans la ligne d’en-tête : accordéon + renommage.
-///
-/// En affichage : [onAccordionToggle] est déclenché au **simple tap** (avec le
-/// délai standard si un double tap est en cours) ; le **double tap** lance
-/// l’édition inline. Le parent enveloppe aussi chevron / badges dans un
-/// [GestureDetector] pour une ligne visuellement homogène.
-///
-/// Raccourcis édition : Enter valide, Escape annule, perte de focus annule,
-/// chaîne vide = annulation silencieuse.
-class _ChapterNameDisplay extends StatefulWidget {
-  const _ChapterNameDisplay({
-    required this.name,
-    required this.onRename,
-    required this.onAccordionToggle,
-  });
-
-  final String name;
-  final ValueChanged<String> onRename;
-  final VoidCallback onAccordionToggle;
-
-  @override
-  State<_ChapterNameDisplay> createState() => _ChapterNameDisplayState();
-}
-
-class _ChapterNameDisplayState extends State<_ChapterNameDisplay> {
-  bool _isEditing = false;
-  late TextEditingController _controller;
-  late String _originalName;
-  final FocusNode _focusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.name);
-    _originalName = widget.name;
-    // Perte de focus : même sémantique qu’Escape (annuler, pas valider).
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus && _isEditing) {
-        _cancelEdit();
-      }
-    });
-    // Escape : uniquement sur key down (évite doubles annulations sur key up).
-    _focusNode.onKeyEvent = _onEditKeyEvent;
-  }
-
-  @override
-  void didUpdateWidget(covariant _ChapterNameDisplay oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.name != widget.name) {
-      _controller.text = widget.name;
-      _originalName = widget.name;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _startEditing() {
-    setState(() {
-      _isEditing = true;
-      _originalName = widget.name;
-      _controller.text = widget.name;
-    });
-    // Sélectionne tout le texte après le premier frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _controller.selection = TextSelection(
-          baseOffset: 0,
-          extentOffset: _controller.text.length,
-        );
-        _focusNode.requestFocus();
-      }
-    });
-  }
-
-  /// [KeyEventResult] provient de `package:flutter/widgets.dart` (réexport Cupertino).
-  KeyEventResult _onEditKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.escape) {
-      _cancelEdit();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  void _commitEdit() {
-    final newName = _controller.text.trim();
-    // Chaîne vide : annulation silencieuse (ne pas appeler [onRename]).
-    if (newName.isEmpty) {
-      _cancelEdit();
-      return;
-    }
-    if (newName != _originalName) {
-      widget.onRename(newName);
-    }
-    setState(() {
-      _isEditing = false;
-    });
-  }
-
-  void _cancelEdit() {
-    setState(() {
-      _isEditing = false;
-      _controller.text = _originalName;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isEditing) {
-      return CupertinoTextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          color: EditorChrome.largeIslandSurfaceColor(
-            context,
-            tint: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.05),
-          ),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.4),
-          ),
-        ),
-        style: TextStyle(
-          color: EditorChrome.primaryLabel(context),
-          fontSize: 15,
-          fontWeight: FontWeight.w800,
-        ),
-        onSubmitted: (_) => _commitEdit(),
-      );
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onAccordionToggle,
-      onDoubleTap: _startEditing,
-      child: Container(
-        width: double.infinity,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: Text(
-          widget.name,
-          style: TextStyle(
-            color: EditorChrome.primaryLabel(context),
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-}
-
-/// Carte de step COMPACTE dans le Global Story Studio.
-///
-/// CONTRAIREMENT au Step Studio qui affiche tous les détails d'une step,
-/// cette carte ne montre que l'essentiel pour la lecture macro:
-/// - numéro d'ordre,
-/// - nom,
-/// - description courte,
-/// - type de sortie (badge),
-/// - bouton "Ouvrir Step" pour accéder au détail.
-///
-/// C'est la différence visuelle CLÉ entre Global Story et Step Studio.
-class _CompactStepCard extends StatelessWidget {
-  const _CompactStepCard({
-    required this.step,
-    required this.node,
-    required this.isSelected,
-    required this.isEntryStep,
-    required this.canEdit,
-    required this.onTap,
-    required this.onOpenStepStudio,
-    required this.onSetEntryStep,
-    required this.onCreateNewStep,
-    required this.onInsertExistingStep,
-    required this.insertPickerVisible,
-    required this.onTogglePicker,
-    required this.onPickExistingStep,
-    required this.availableSteps,
-  });
-
-  final StepStudioStep step;
-  final GlobalStoryStepNode node;
-  final bool isSelected;
-  final bool isEntryStep;
-  final bool canEdit;
-  final VoidCallback onTap;
-  final VoidCallback onOpenStepStudio;
-  final VoidCallback onSetEntryStep;
-
-  // Callback pour "Créer une nouvelle step" — action explicite de création.
-  final VoidCallback onCreateNewStep;
-
-  // Callback pour "Insérer une step existante" — ouvre le sélecteur.
-  final VoidCallback onInsertExistingStep;
-
-  // État du sélecteur de step existante (affiché ou non).
-  final bool insertPickerVisible;
-
-  // Toggle du sélecteur.
-  final VoidCallback onTogglePicker;
-
-  // Callback quand l'utilisateur choisit une step existante dans le picker.
-  final ValueChanged<String> onPickExistingStep;
-
-  // Liste des steps existantes disponibles pour insertion (exclut la step courante).
-  final List<_SimpleOption> availableSteps;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = isSelected
-        ? EditorChrome.inspectorJoyBlue
-        : EditorChrome.inspectorJoyCyan;
-    final exitLabel = globalStoryStepExitModeLabel(node.exitMode);
-    final destCount = node.links.length;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        margin: const EdgeInsets.only(left: 16),
-        decoration: BoxDecoration(
-          color: EditorChrome.largeIslandSurfaceColor(
-            context,
-            tint: accent.withValues(alpha: isSelected ? 0.12 : 0.04),
-          ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: accent.withValues(alpha: isSelected ? 0.45 : 0.2),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                // Numéro d'ordre.
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '#${step.order + 1}',
-                    style: TextStyle(
-                      color: accent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // Nom de la step.
-                Expanded(
-                  child: Text(
-                    step.name,
-                    style: TextStyle(
-                      color: EditorChrome.primaryLabel(context),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // Badge de type de sortie.
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: EditorChrome.inspectorJoyPlum.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    exitLabel,
-                    style: TextStyle(
-                      color: EditorChrome.inspectorJoyPlum,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (isEntryStep) ...[
-                  const SizedBox(width: 4),
-                  const Icon(
-                    CupertinoIcons.location_solid,
-                    size: 12,
-                    color: EditorChrome.inspectorJoyMint,
-                  ),
-                ],
-              ],
-            ),
-            // Description courte.
-            if (step.description.trim().isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                step.description,
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 11,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            // Info de destination.
-            if (destCount > 0) ...[
-              const SizedBox(height: 4),
-              Text(
-                destCount == 1
-                    ? 'Suite: ${node.links.first.toStepId}'
-                    : '$destCount suites possibles',
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 10,
-                  fontStyle: FontStyle.italic,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            // Actions rapides.
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: InspectorEmbeddedSecondaryCapsule(
-                    accent: EditorChrome.inspectorJoyPlum,
-                    icon: CupertinoIcons.square_stack_3d_up,
-                    label: 'Ouvrir Step',
-                    enabled: canEdit,
-                    onPressed: onOpenStepStudio,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: InspectorEmbeddedSecondaryCapsule(
-                    accent: EditorChrome.inspectorJoyMint,
-                    icon: CupertinoIcons.plus_app,
-                    // Libellé EXPLICITE: ce bouton CRÉE une nouvelle step.
-                    label: 'Nouvelle',
-                    enabled: canEdit,
-                    onPressed: onCreateNewStep,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: InspectorEmbeddedSecondaryCapsule(
-                    accent: EditorChrome.inspectorJoyBlue,
-                    icon: CupertinoIcons.arrow_down_right,
-                    // Libellé EXPLICITE: ce bouton insère une step EXISTANTE.
-                    label: 'Insérer',
-                    enabled: canEdit,
-                    onPressed: onInsertExistingStep,
-                  ),
-                ),
-              ],
-            ),
-            // Sélecteur de step existante (affiché quand l'utilisateur clique
-            // sur "Insérer" pour choisir quelle step existante insérer).
-            if (insertPickerVisible) ...[
-              const SizedBox(height: 6),
-              _InsertStepPicker(
-                availableSteps: availableSteps,
-                onPickStep: onPickExistingStep,
-                onCancel: onTogglePicker,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Sélecteur de step existante pour insertion.
-///
-/// Ce widget est affiché INLINE sous la carte de step quand l'utilisateur
-/// clique sur "Insérer". Il propose une liste de steps existantes
-/// (excluant la step courante) dans un menu déroulant simple.
-///
-/// Design:
-/// - compact, intégré au style actuel (pas de popup/modale agressive)
-/// - dropdown + bouton confirmer + bouton annuler
-/// - clairement orienté "structure macro"
-class _InsertStepPicker extends StatefulWidget {
-  const _InsertStepPicker({
-    required this.availableSteps,
-    required this.onPickStep,
-    required this.onCancel,
-  });
-
-  final List<_SimpleOption> availableSteps;
-  final ValueChanged<String> onPickStep;
-  final VoidCallback onCancel;
-
-  @override
-  State<_InsertStepPicker> createState() => _InsertStepPickerState();
-}
-
-class _InsertStepPickerState extends State<_InsertStepPicker> {
-  String? _selectedStepId;
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.availableSteps.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: EditorChrome.largeIslandSurfaceColor(
-            context,
-            tint: EditorChrome.subtleLabel(context).withValues(alpha: 0.04),
-          ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: EditorChrome.subtleLabel(context).withValues(alpha: 0.15),
-          ),
-        ),
-        child: Text(
-          'Aucune step disponible pour insertion.',
-          style: TextStyle(
-            color: EditorChrome.subtleLabel(context),
-            fontSize: 11,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-      );
-    }
-
-    // Pré-sélectionner la première option par défaut.
-    _selectedStepId ??= widget.availableSteps.first.id;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.06),
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Insérer une step existante après celle-ci',
-            style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          // Dropdown de sélection de step.
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minSize: 32,
-            onPressed: () => _showStepPickerMenu(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: EditorChrome.largeIslandSurfaceColor(
-                  context,
-                  tint: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.08),
-                ),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: EditorChrome.inspectorJoyBlue.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _selectedStepLabel,
-                      style: TextStyle(
-                        color: EditorChrome.primaryLabel(context),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Icon(
-                    CupertinoIcons.chevron_down,
-                    size: 12,
-                    color: EditorChrome.subtleLabel(context),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: InspectorEmbeddedPrimaryCapsule(
-                  accent: EditorChrome.inspectorJoyBlue,
-                  icon: CupertinoIcons.arrow_down_right,
-                  label: 'Insérer',
-                  enabled: true,
-                  onPressed: _confirmSelection,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: InspectorEmbeddedSecondaryCapsule(
-                  accent: EditorChrome.inspectorJoyCoral,
-                  icon: CupertinoIcons.xmark,
-                  label: 'Annuler',
-                  enabled: true,
-                  onPressed: widget.onCancel,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String get _selectedStepLabel {
-    final selected = widget.availableSteps
-        .where((s) => s.id == _selectedStepId)
-        .cast<_SimpleOption?>()
-        .firstWhere((s) => s != null, orElse: () => null);
-    return selected?.label ?? '—';
-  }
-
-  void _showStepPickerMenu(BuildContext context) {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('Choisir une step à insérer'),
-        message: Text(
-          'Sélectionnez la step existante à insérer après cette step.',
-          style: TextStyle(
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            fontSize: 12,
-          ),
-        ),
-        actions: widget.availableSteps
-            .map(
-              (option) => CupertinoActionSheetAction(
-                onPressed: () {
-                  setState(() {
-                    _selectedStepId = option.id;
-                  });
-                  Navigator.of(context).pop();
-                },
-                child: Text(option.label),
-              ),
-            )
-            .toList(growable: false),
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-      ),
-    );
-  }
-
-  void _confirmSelection() {
-    final selected = _selectedStepId;
-    if (selected != null) {
-      widget.onPickStep(selected);
-    }
-  }
-}

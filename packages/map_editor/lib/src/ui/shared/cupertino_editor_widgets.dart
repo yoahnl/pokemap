@@ -805,6 +805,12 @@ class MacosEditorSheetAction<T> {
   final bool isDestructive;
 }
 
+MacosThemeData _editorFallbackMacosThemeData(BuildContext context) {
+  return MediaQuery.platformBrightnessOf(context) == Brightness.dark
+      ? MacosThemeData.dark()
+      : MacosThemeData.light();
+}
+
 /// Liste de choix dans une [MacosSheet] (remplace l’ancienne action sheet iOS).
 Future<T?> showMacosListPicker<T>({
   required BuildContext context,
@@ -820,54 +826,64 @@ Future<T?> showMacosListPicker<T>({
     context: context,
     barrierDismissible: true,
     builder: (ctx) {
-      return Center(
-        child: MacosSheet(
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 72, vertical: 44),
-          child: SizedBox(
-            width: 380,
-            height: maxH,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: editorMacosSheetTitleStyle(ctx),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 6),
-                      itemBuilder: (c, i) {
-                        final e = items[i];
-                        return PushButton(
+      final themeData =
+          MacosTheme.maybeOf(ctx) ?? _editorFallbackMacosThemeData(ctx);
+      return MacosTheme(
+        data: themeData,
+        child: Builder(
+          builder: (themedCtx) {
+            return Center(
+              child: MacosSheet(
+                insetPadding:
+                    const EdgeInsets.symmetric(horizontal: 72, vertical: 44),
+                child: SizedBox(
+                  width: 380,
+                  height: maxH,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: editorMacosSheetTitleStyle(themedCtx),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: items.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 6),
+                            itemBuilder: (c, i) {
+                              final e = items[i];
+                              return PushButton(
+                                controlSize: ControlSize.large,
+                                secondary: true,
+                                onPressed: () => Navigator.of(c).pop(e),
+                                child: Text(
+                                  labelOf(e),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        PushButton(
                           controlSize: ControlSize.large,
                           secondary: true,
-                          onPressed: () => Navigator.of(c).pop(e),
-                          child: Text(
-                            labelOf(e),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      },
+                          onPressed: () => Navigator.of(themedCtx).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  PushButton(
-                    controlSize: ControlSize.large,
-                    secondary: true,
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       );
     },
