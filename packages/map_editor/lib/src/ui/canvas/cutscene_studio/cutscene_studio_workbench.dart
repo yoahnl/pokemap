@@ -21,9 +21,11 @@
 // - **Poignées** entre les trois colonnes : redimensionnement horizontal (curseur
 //   « resize column »), avec garde-fous min/max pour la palette, la scène et les propriétés.
 //
-// Drag-and-drop :
-// - Depuis la palette : payload = [CutsceneStudioPaletteDragData] (kind du bloc).
-// - Réordonnancement sur le tronc : payload = [CutsceneCanvasReorderDragData].
+// Drag-and-drop (mutations = fonctions pures côté authoring, pas dans ce widget) :
+// - Palette → tronc : [insertMainFlowEntryAt] après drop sur une fente du fil principal.
+// - Réordonnancement tronc : [moveMainFlowEntry].
+// - Branche Oui / Non : [insertIntoChoiceBranch] (index du choix sur le tronc connu).
+// Payloads UI : [CutsceneStudioPaletteDragData], [CutsceneCanvasReorderDragData].
 // Les [DragTarget] acceptent l’union des deux pour un seul type de « fente ».
 //
 // Évolutions prévues (non bloquantes pour cette base) :
@@ -209,6 +211,7 @@ class CutsceneStudioWorkbench extends StatefulWidget {
     required this.inspector,
     required this.sourceStrip,
     required this.compatibilityBanner,
+    this.runtimeHonestyBanner,
   });
 
   final String cutsceneName;
@@ -241,6 +244,9 @@ class CutsceneStudioWorkbench extends StatefulWidget {
 
   /// Bannière lecture seule si graphe incompatible.
   final Widget? compatibilityBanner;
+
+  /// Rappels honnêteté runtime (placeholder, choix MVP, waitMs…) — optionnel.
+  final Widget? runtimeHonestyBanner;
 
   @override
   State<CutsceneStudioWorkbench> createState() =>
@@ -344,6 +350,7 @@ class _CutsceneStudioWorkbenchState extends State<CutsceneStudioWorkbench> {
             onCreateNew: widget.onCreateNew,
           ),
           if (widget.compatibilityBanner != null) widget.compatibilityBanner!,
+          if (widget.runtimeHonestyBanner != null) widget.runtimeHonestyBanner!,
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: widget.sourceStrip,

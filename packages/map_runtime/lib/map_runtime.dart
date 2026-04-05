@@ -70,6 +70,8 @@ export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
         kScenarioActionSetFlag,
         kScenarioActionClearFlag,
         kScenarioActionEmitOutcome,
+        kScenarioActionFlowMerge,
+        kScenarioActionAuthoringPlaceholder,
         scenarioOutcomeFlagName;
 export 'src/application/scripted_entity_movement_models.dart'
     show

@@ -216,5 +216,64 @@ void main() {
       expect(moveNode.payload.params['targetId'], 'lab_entry');
       expect(moveNode.payload.params['waitForCompletion'], 'true');
     });
+
+    test('choice compilation inserts flowMerge joints, not wait 0', () {
+      final document = createCutsceneStudioDemoFlowDocument(
+        id: 'flow_demo',
+        name: 'Flow demo',
+      );
+      final compiled = buildScenarioFromCutsceneStudioDocument(document);
+      final merges = compiled.nodes
+          .where((n) => n.payload.actionKind == kCutsceneStudioActionFlowMerge)
+          .toList();
+      expect(merges, isNotEmpty);
+      final fakeWaits = compiled.nodes.where(
+        (n) =>
+            n.payload.actionKind == kCutsceneStudioActionWaitMs &&
+            n.payload.params['durationMs'] == '0',
+      );
+      expect(fakeWaits, isEmpty);
+    });
+
+    test('palette stub blocks compile to authoringPlaceholder metadata', () {
+      const document = CutsceneStudioDocument(
+        id: 'stub_scene',
+        name: 'Stub',
+        description: '',
+        source: CutsceneStudioSourceConfig(
+          kind: CutsceneStudioSourceKind.mapEnter,
+          mapId: 'map_a',
+        ),
+        blocks: <CutsceneStudioBlock>[
+          CutsceneStudioBlock(
+            id: 'cam1',
+            kind: CutsceneStudioBlockKind.cameraCenter,
+            actorId: 'actor_x',
+          ),
+        ],
+      );
+      final compiled = buildScenarioFromCutsceneStudioDocument(document);
+      final node = compiled.nodes.firstWhere((n) => n.id == 'cam1');
+      expect(
+        node.payload.actionKind,
+        kCutsceneStudioActionAuthoringPlaceholder,
+      );
+      expect(
+        node.metadata[kCutsceneStudioPlaceholderKindMetadataKey],
+        CutsceneStudioBlockKind.cameraCenter.name,
+      );
+    });
+
+    test('runtime advisories surface choice MVP limitation', () {
+      final document = createCutsceneStudioDemoFlowDocument(
+        id: 'adv_demo',
+        name: 'Adv',
+      );
+      final adv = cutsceneStudioRuntimeAdvisories(document);
+      expect(
+        adv.any((s) => s.contains('choice') || s.contains('Choix')),
+        isTrue,
+      );
+    });
   });
 }

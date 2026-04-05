@@ -26,6 +26,19 @@ const String kScenarioActionSetFlag = 'setFlag';
 const String kScenarioActionClearFlag = 'clearFlag';
 const String kScenarioActionEmitOutcome = 'emitOutcome';
 
+/// Jonction pure graphe après compilation d’un embranchement (Cutscene Studio).
+///
+/// Ce n’est **pas** une attente temporelle: l’exécuteur avance immédiatement
+/// vers le nœud suivant, sans effet gameplay. L’authoring l’introduit pour
+/// fusionner Oui/Non avant la suite, sans mentir avec `waitMs` à 0 ms.
+const String kScenarioActionFlowMerge = 'flowMerge';
+
+/// Blocs encore non branchés dans l’exécuteur MVP mais présents au graphe.
+///
+/// Comportement: pas d’effet, passage immédiat au suivant, message explicite
+/// (honêteté produit — évite `waitMs` factice).
+const String kScenarioActionAuthoringPlaceholder = 'authoringPlaceholder';
+
 /// Préfixe de flag persistant pour les outcomes scénario.
 ///
 /// Le MVP reste volontairement simple: un outcome local est persisté en tant
@@ -865,6 +878,42 @@ class ScenarioRuntimeExecutor {
                 );
               }
               currentNodeId = nextAfterTransition;
+
+            case kScenarioActionFlowMerge:
+              final nextAfterMerge = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterMerge == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'Fusion de branches (aucune suite).',
+                );
+              }
+              currentNodeId = nextAfterMerge;
+
+            case kScenarioActionAuthoringPlaceholder:
+              final detail = node.payload.message?.trim();
+              final nextAfterPlaceholder = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterPlaceholder == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Placeholder authoring "${node.id}"${detail != null && detail.isNotEmpty ? ': $detail' : ''} — fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterPlaceholder;
 
             default:
               return ScenarioRuntimeExecutionResult(

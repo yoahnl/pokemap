@@ -571,7 +571,25 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
                 child: _CompatibilityWarningCard(warnings: _compatWarnings),
               )
             : null,
+        runtimeHonestyBanner: _isStudioCompatible
+            ? _runtimeHonestyBannerIfAny(context, draft)
+            : null,
       ),
+    );
+  }
+
+  /// Bandeau distinct du parse legacy : ce que l’exécuteur MVP fera vraiment.
+  Widget? _runtimeHonestyBannerIfAny(
+    BuildContext context,
+    CutsceneStudioDocument draft,
+  ) {
+    final lines = cutsceneStudioRuntimeAdvisories(draft);
+    if (lines.isEmpty) {
+      return null;
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: _CutsceneRuntimeHonestyCard(lines: lines),
     );
   }
 
@@ -2530,6 +2548,60 @@ class _CompatibilityWarningCard extends StatelessWidget {
                 ),
               ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CutsceneRuntimeHonestyCard extends StatelessWidget {
+  const _CutsceneRuntimeHonestyCard({required this.lines});
+
+  final List<String> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final amber = CupertinoColors.systemOrange.resolveFrom(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: amber.withValues(alpha: 0.08),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: amber.withValues(alpha: 0.45)),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Lecture runtime MVP (honnêteté)',
+            style: TextStyle(
+              color: amber,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Ces points décrivent le comportement actuel de l’exécuteur scénario '
+            'MVP, pas une erreur de sauvegarde. Le graphe reste explicite '
+            '(fusion, placeholders, etc.).',
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final line in lines)
+            Text(
+              '• $line',
+              style: TextStyle(
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                fontSize: 11,
+              ),
+            ),
         ],
       ),
     );
