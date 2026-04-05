@@ -8,11 +8,14 @@ import 'step_flow_focus.dart';
 // Canvas central — flux vertical « Scratch métier »
 // -----------------------------------------------------------------------------
 //
-// Chaque carte résume une **responsabilité Step**. Les textes « flux »
-// (`flow*Label`) sont des annotations auteur sur le canvas ; les phrases
-// techniques viennent de `summarizeStepActivation` / `summarizeStepCompletion`.
-// Les cutscenes n’affichent que id + rôle : la mise en scène reste dans
-// Cutscene Studio.
+// Cartes = lecture rapide de la step. Règle passe 3 : peu de texte
+// « pédagogique » dans le canvas — les nuances vivent dans l’inspecteur.
+//
+// - Résumés techniques : `summarizeStepActivation` / `summarizeStepCompletion`
+//   (données structurées `activation` / `completion`).
+// - `flow*Label` : notes auteur sur le canvas.
+// - `flowUnlocksStepId` : **pas** sur le canvas (mémo dangereux en UX) ; inspecteur.
+// - Cutscenes : id + rôle seulement ; contenu = Cutscene Studio.
 //
 // Ce layout est volontairement linéaire (peu de « spaghetti ») : la complexité
 // des branches **métier** est portée par les outcomes locaux, pas par un graphe
@@ -55,19 +58,19 @@ class StepFlowCanvas extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Flux de l’étape',
+              'Progression',
               style: TextStyle(
                 color: EditorChrome.primaryLabel(context),
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
-              'Logique de progression — les scènes s’éditent ailleurs.',
+              'Scènes : Cutscene Studio.',
               style: TextStyle(
                 color: EditorChrome.subtleLabel(context),
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
             const SizedBox(height: 18),
@@ -128,13 +131,12 @@ class StepFlowCanvas extends StatelessWidget {
               ),
             ),
             _connector(context),
-            _sectionTitle(context, 'Cutscenes liées (références)'),
+            _sectionTitle(context, 'Cutscenes'),
             const SizedBox(height: 8),
             if (step.cutscenes.isEmpty)
               _emptyHint(
                 context,
-                'Aucune cutscene. Utilisez la palette pour en lier une — '
-                'vous éditerez le contenu dans Cutscene Studio.',
+                'Aucune référence. Palette : lier. Contenu : Cutscene Studio.',
               )
             else
               for (var i = 0; i < step.cutscenes.length; i++) ...[
@@ -165,9 +167,7 @@ class StepFlowCanvas extends StatelessWidget {
               body: locals.isEmpty
                   ? _emptyHint(
                       context,
-                      'Chaque outcome « Local » documente une variante métier '
-                      '(ex. starter feu / eau / plante). Le choix joueur '
-                      's’exécute dans la cutscene, pas ici.',
+                      'Outcomes scope local. Exécution du choix : cutscene.',
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -225,20 +225,14 @@ class StepFlowCanvas extends StatelessWidget {
                         ),
                       ],
                     ),
-              foot: Text(
-                'Source technique : `completion` (ci-dessus ou seul si pas de note auteur). '
-                '`flowValidationLabel` est une aide lecture, pas la règle exécutable seule.',
-                style: _captionStyle(context),
-              ),
             ),
             _connector(context),
-            _sectionTitle(context, 'Outcomes de progression'),
+            _sectionTitle(context, 'Progression'),
             const SizedBox(height: 8),
             if (progs.isEmpty)
               _emptyHint(
                 context,
-                'Ajoutez un résultat « Progression » pour l’histoire globale '
-                '(ex. chapter_1.starter_chosen).',
+                'Aucun outcome scope progression.',
               )
             else
               for (var i = 0; i < progs.length; i++) ...[
@@ -259,41 +253,23 @@ class StepFlowCanvas extends StatelessWidget {
                 if (i < progs.length - 1) _connector(context),
               ],
             _connector(context),
+            // Notes sortie : uniquement `flowExitLabel`. Le mémo `flowUnlocksStepId`
+            // n’apparaît pas ici (passe 3) — trop proche d’un faux « lien runtime ».
             _flowCard(
               context,
               focus: const StepFlowFocus(StepFlowSlot.exitNext),
               accent: EditorChrome.inspectorJoyCyan,
-              icon: CupertinoIcons.arrow_right_circle,
-              title: 'Sortie de l’étape',
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (step.flowExitLabel.trim().isNotEmpty)
-                    Text(
+              icon: CupertinoIcons.doc_plaintext,
+              title: 'Notes sortie',
+              body: step.flowExitLabel.trim().isNotEmpty
+                  ? Text(
                       step.flowExitLabel,
                       style: _emphasisStyle(context),
                     )
-                  else
-                    Text(
-                      'Texte libre : conséquence narrative / design (annotation auteur).',
-                      style: _bodyStyle(context),
+                  : _emptyHint(
+                      context,
+                      'Annotation optionnelle. Mémo step : inspecteur.',
                     ),
-                  if (step.flowUnlocksStepId != null &&
-                      step.flowUnlocksStepId!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Mémo : step id « ${step.flowUnlocksStepId} » '
-                      '(rappel dans le document — ne déclenche pas le déblocage).',
-                      style: _captionStyle(context),
-                    ),
-                  ],
-                ],
-              ),
-              foot: Text(
-                'À ne pas confondre : le déblocage réel d’une step = ses règles '
-                '`activation`, pas ce bloc ni `flowUnlocksStepId`.',
-                style: _captionStyle(context),
-              ),
             ),
             _connector(context),
             _flowCard(
@@ -305,9 +281,7 @@ class StepFlowCanvas extends StatelessWidget {
               body: step.worldChanges.isEmpty
                   ? _emptyHint(
                       context,
-                      'Aucun changement de présence d’entité. '
-                      'C’est ici que vit la cohérence « Emma dehors / Emma labo », '
-                      'pas dans une cutscene.',
+                      'Présence d’entités sur carte (donnée structurée).',
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

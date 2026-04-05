@@ -34,7 +34,7 @@ enum StepFlowSlot {
   /// Édition d’un outcome scope `progression`.
   progressionOutcome,
 
-  /// Note `flowExitLabel` (narratif) + mémo optionnel `flowUnlocksStepId` (non exécutable).
+  /// Notes sortie : `flowExitLabel` sur canvas ; `flowUnlocksStepId` seulement ici.
   exitNext,
 
   /// Changements monde persistants liés à la progression.

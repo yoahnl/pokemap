@@ -457,17 +457,18 @@ class StepStudioWorldChange {
 /// - [id], [name], [description], [order]
 ///
 /// **B. Annotations d’affichage / mémo auteur** — persistées dans le JSON du
-/// document pour Step Studio (canvas + inspecteur), **sans autre consommateur**
+/// document pour Step Studio (surtout canvas pour `flow*Label`, inspecteur pour
+/// le mémo `flowUnlocksStepId`), **sans autre consommateur**
 /// dans ce dépôt : ni `map_gameplay`, ni `map_runtime`, ni les résumés de step
 /// de la projection narrative (ces champs n’y figurent pas).
 /// Ce ne sont **pas** des garde-fous runtime : ne pas en déduire une règle de
 /// déblocage ou de validation exécutable tant qu’aucun pipeline ne les lit.
 /// - [flowEntryLabel], [flowObjectiveLabel], [flowValidationLabel],
 ///   [flowExitLabel] : texte libre pour lisibilité no-code sur le canvas.
-/// - [flowUnlocksStepId] : id d’une autre step du **même** document, purement
-///   documentaire (rappel « quelle step enchaîne ») ; l’activation réelle de la
-///   step suivante reste portée par [StepStudioActivationRule] de **cette**
-///   step suivante, pas par ce pointeur.
+/// - [flowUnlocksStepId] : mémo éditeur uniquement (id d’une autre step du
+///   même document). **Aucun effet** sur le runtime dans ce dépôt. Préférence
+///   UX (passe 3) : affiché et édité surtout dans l’inspecteur « Notes sortie »,
+///   pas sur le canvas central — pour limiter l’illusion de « lien actif ».
 ///
 /// [flowObjectiveLabel] peut recouper [description] : la description reste la
 /// fiche générale ; le libellé flux est optionnel et sert surtout au canvas.
@@ -523,10 +524,9 @@ class StepStudioStep {
   /// sur le graphe. À ne pas confondre avec [flowUnlocksStepId].
   final String flowExitLabel;
 
-  /// Mémo optionnel : id d’une autre step du même [StepStudioDocument].
-  /// **Ne déclenche rien** : pas de moteur de déblocage parallèle ; l’ordre et
-  /// le déblocage effectifs passent par les règles d’activation des steps et le
-  /// scénario global, pas par ce champ.
+  /// Mémo éditeur : id d’une autre step du même document. Pas de branchement
+  /// automatique. Canvas Step (passe 3) : ne montre que [flowExitLabel] ; ce
+  /// champ se règle dans l’inspecteur pour éviter la confusion avec un déblocage.
   final String? flowUnlocksStepId;
 
   StepStudioStep copyWith({
