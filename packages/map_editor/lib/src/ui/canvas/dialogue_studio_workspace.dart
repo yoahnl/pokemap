@@ -10,6 +10,7 @@
 
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, SelectableText;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -200,7 +201,7 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bibliothèque des dialogues',
+                  'Dialogues du projet',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
@@ -209,7 +210,7 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Créer, organiser, chercher, ouvrir.',
+                  'Choisir, créer, importer ou classer — tout se fait ici.',
                   style: TextStyle(
                     fontSize: 11,
                     color: CupertinoColors.secondaryLabel.resolveFrom(context),
@@ -270,6 +271,32 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                   ),
                 ),
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => _importProjectDialogue(context, notifier),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: CupertinoColors.separator.resolveFrom(context),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Importer .yarn / .txt',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: CupertinoColors.label.resolveFrom(context),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -417,7 +444,7 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
         tint: EditorChrome.islandWarmTint,
         child: Center(
           child: Text(
-            'Sélectionnez un dialogue dans la bibliothèque.',
+            'Sélectionnez un dialogue dans la liste à gauche.',
             style: TextStyle(
               color: CupertinoColors.secondaryLabel.resolveFrom(context),
             ),
@@ -1505,6 +1532,37 @@ Règles strictes :
     final name = c.text.trim();
     if (name.isEmpty) return;
     await n.createDialogueLibraryFolder(name: name);
+  }
+
+  Future<void> _importProjectDialogue(
+    BuildContext context,
+    EditorNotifier notifier,
+  ) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['yarn', 'txt'],
+    );
+    if (result == null || result.files.single.path == null) return;
+    final path = result.files.single.path!;
+    if (!context.mounted) return;
+    final baseName =
+        p.basenameWithoutExtension(path).replaceAll(RegExp(r'[^\w\-]+'), '_');
+    final nameController = TextEditingController(text: baseName);
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'Importer un dialogue',
+      controller: nameController,
+      confirmLabel: 'Importer',
+      placeholder: 'Nom dans le projet',
+    );
+    if (!ok || !context.mounted) return;
+    final displayName = nameController.text.trim();
+    if (displayName.isEmpty) return;
+    await notifier.importProjectDialogue(
+      absoluteSourcePath: path,
+      displayName: displayName,
+      folderId: null,
+    );
   }
 
   Future<void> _promptRename(

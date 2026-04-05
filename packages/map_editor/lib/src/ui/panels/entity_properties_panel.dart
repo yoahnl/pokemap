@@ -1118,8 +1118,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       return [
         InspectorEmbeddedFootnote(
           text: _l(
-            'Ajoutez des scripts dans l’explorateur (bibliothèque Dialogues), puis sélectionnez-les ici — plus besoin de chemin relatif.',
-            'Add scripts in the explorer (Dialogues library), then pick them here — no relative paths.',
+            'Créez ou importez des dialogues dans Dialogue Studio, puis sélectionnez-les ici — plus besoin de chemin relatif.',
+            'Create or import dialogues in Dialogue Studio, then pick them here — no relative paths.',
           ),
           accent: scriptAccent,
         ),
@@ -1128,8 +1128,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           const SizedBox(height: 8),
           InspectorEmbeddedFootnote(
             text: _l(
-              'Référence fichier héritée : ${_npcScriptPath.text.trim()}. Importez ce fichier dans la bibliothèque Dialogues pour le lier proprement.',
-              'Legacy file reference: ${_npcScriptPath.text.trim()}. Import it into the Dialogues library to bind it cleanly.',
+              'Référence fichier héritée : ${_npcScriptPath.text.trim()}. Importez ce fichier dans Dialogue Studio pour le lier proprement.',
+              'Legacy file reference: ${_npcScriptPath.text.trim()}. Import it in Dialogue Studio to bind it cleanly.',
             ),
             accent: scriptAccent,
           ),
@@ -1149,11 +1149,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     return [
       if (widget.embedded)
         InspectorEmbeddedSectionLabel(
-          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
+          _l('Dialogue (projet)', 'Project dialogue'),
         )
       else
         Text(
-          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
+          _l('Dialogue (projet)', 'Project dialogue'),
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -1165,8 +1165,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           _npcScriptPath.text.trim().isNotEmpty) ...[
         InspectorEmbeddedFootnote(
           text: _l(
-            'Ancienne référence par chemin : ${_npcScriptPath.text.trim()}\nChoisissez un script dans la liste pour enregistrer une liaison bibliothèque.',
-            'Legacy path reference: ${_npcScriptPath.text.trim()}\nPick a script from the list to save a library binding.',
+            'Ancienne référence par chemin : ${_npcScriptPath.text.trim()}\nChoisissez un dialogue dans la liste pour enregistrer la liaison au projet.',
+            'Legacy path reference: ${_npcScriptPath.text.trim()}\nPick a dialogue from the list to save the project binding.',
           ),
           accent: scriptAccent,
         ),
@@ -1282,8 +1282,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         if (dialogueEntries.isEmpty)
           InspectorEmbeddedFootnote(
             text: _l(
-              'Ajoutez des scripts dans la bibliothèque Dialogues pour en sélectionner un ici.',
-              'Add scripts to the Dialogues library to pick one here.',
+              'Ajoutez des dialogues dans Dialogue Studio pour en sélectionner un ici.',
+              'Add dialogues in Dialogue Studio to pick one here.',
             ),
             accent: battleAccent,
           )
@@ -1334,8 +1334,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       return [
         InspectorEmbeddedFootnote(
           text: _l(
-            'Ajoutez des scripts dans l’explorateur (bibliothèque Dialogues), puis sélectionnez-les ici.',
-            'Add scripts in the explorer (Dialogues library), then pick them here.',
+            'Créez ou importez des dialogues dans Dialogue Studio, puis sélectionnez-les ici.',
+            'Create or import dialogues in Dialogue Studio, then pick them here.',
           ),
           accent: scriptAccent,
         ),
@@ -1344,8 +1344,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           const SizedBox(height: 8),
           InspectorEmbeddedFootnote(
             text: _l(
-              'Référence fichier héritée : ${_signScriptPath.text.trim()}. Importez ce fichier dans la bibliothèque Dialogues.',
-              'Legacy file reference: ${_signScriptPath.text.trim()}. Import it into the Dialogues library.',
+              'Référence fichier héritée : ${_signScriptPath.text.trim()}. Importez ce fichier dans Dialogue Studio.',
+              'Legacy file reference: ${_signScriptPath.text.trim()}. Import it in Dialogue Studio.',
             ),
             accent: scriptAccent,
           ),
@@ -1367,11 +1367,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     return [
       if (widget.embedded)
         InspectorEmbeddedSectionLabel(
-          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
+          _l('Dialogue (projet)', 'Project dialogue'),
         )
       else
         Text(
-          _l('Dialogue (bibliothèque)', 'Dialogue (library)'),
+          _l('Dialogue (projet)', 'Project dialogue'),
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
