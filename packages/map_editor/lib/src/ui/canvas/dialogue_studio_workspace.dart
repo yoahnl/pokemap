@@ -14,6 +14,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, SelectableText;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -42,6 +43,20 @@ class _StepSelection {
   final String stepId;
 }
 
+/// Option de liste pour déplacer un dossier de dialogues (parent manifeste).
+class _DialogueFolderMoveOption {
+  const _DialogueFolderMoveOption(this.label, this.newParentId);
+  final String label;
+  final String? newParentId;
+}
+
+/// Option de liste pour rattacher un dialogue à un dossier (ou racine).
+class _AssignDialogueFolderDest {
+  const _AssignDialogueFolderDest(this.label, this.folderId);
+  final String label;
+  final String? folderId;
+}
+
 class DialogueStudioWorkspace extends ConsumerStatefulWidget {
   const DialogueStudioWorkspace({super.key});
 
@@ -68,6 +83,14 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
 
   /// Erreurs IA / validation légère affichées sous le champ d’instruction.
   String? _iaError;
+
+  /// Dossier « cible » pour les actions **Nouveau**, **Nouveau dossier** et **Importer**.
+  ///
+  /// `null` = racine du manifeste (dialogues sans `folderId`), comme dans les use cases
+  /// [EditorNotifier.createProjectDialogue] / [EditorNotifier.importProjectDialogue].
+  /// Ce n’est pas un second état de navigation décoratif : il pilote uniquement le
+  /// paramètre `folderId` / `parentFolderId` passé au notifier.
+  String? _sidebarTargetFolderId;
 
   @override
   void dispose() {
@@ -175,6 +198,15 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
 
   // --- Bibliothèque ----------------------------------------------------------
 
+  String _folderTargetHint(ProjectManifest project, String folderId) {
+    for (final f in project.dialogueFolders) {
+      if (f.id == folderId) {
+        return 'Import / nouveaux → dossier « ${f.name} »';
+      }
+    }
+    return 'Import / nouveaux → dossier sélectionné';
+  }
+
   Widget _buildLibraryColumn(
     BuildContext context,
     EditorState editor,
@@ -210,7 +242,7 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Choisir, créer, importer ou classer — tout se fait ici.',
+                  'Arborescence réelle du manifeste : dossiers et fichiers .yarn.',
                   style: TextStyle(
                     fontSize: 11,
                     color: CupertinoColors.secondaryLabel.resolveFrom(context),
@@ -219,6 +251,67 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
               ],
             ),
           ),
+          // Cible explicite pour import / création (évite l’ambiguïté « où ça part ? »).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Nouveaux fichiers et import vont dans :',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () => setState(() => _sidebarTargetFolderId = null),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _sidebarTargetFolderId == null
+                            ? EditorChrome.inspectorJoyBlue
+                            : CupertinoColors.separator.resolveFrom(context),
+                        width: _sidebarTargetFolderId == null ? 1.5 : 1,
+                      ),
+                      color: _sidebarTargetFolderId == null
+                          ? EditorChrome.inspectorJoyBlue.withValues(alpha: 0.1)
+                          : null,
+                    ),
+                    child: Text(
+                      'Racine — dialogues sans dossier',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: _sidebarTargetFolderId == null
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: CupertinoColors.label.resolveFrom(context),
+                      ),
+                    ),
+                  ),
+                ),
+                if (_sidebarTargetFolderId != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _folderTargetHint(project, _sidebarTargetFolderId!),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
@@ -314,13 +407,40 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
               children: [
                 ...tree.rootFolders.map(
-                  (b) => _DialogueFolderTile(
+                  (b) => _StudioDialogueFolderTreeNode(
                     branch: b,
                     depth: 0,
-                    selectedId: editor.selectedProjectDialogueId,
+                    project: project,
+                    selectedDialogueId: editor.selectedProjectDialogueId,
+                    targetFolderId: _sidebarTargetFolderId,
                     filter: matchEntry,
-                    onSelect: (id) {
-                      notifier.selectProjectDialogue(id);
+                    onDialogueTap: (dialogueId, parentFolderId) {
+                      notifier.selectProjectDialogue(dialogueId);
+                      setState(() {
+                        final p = parentFolderId?.trim() ?? '';
+                        _sidebarTargetFolderId = p.isEmpty ? null : p;
+                      });
+                    },
+                    onFolderTargetTap: (folderId) {
+                      setState(() => _sidebarTargetFolderId = folderId);
+                    },
+                    onFolderMenu: (btnContext, folder) {
+                      _openStudioDialogueFolderMenu(
+                        context,
+                        project,
+                        notifier,
+                        folder,
+                        anchorGlobal: editorMenuAnchorBelowWidget(btnContext),
+                      );
+                    },
+                    onDialogueEntryMenuButton: (entry, btnCtx) {
+                      _openStudioDialogueEntryMenu(
+                        context,
+                        project,
+                        notifier,
+                        entry,
+                        editorMenuAnchorBelowWidget(btnCtx),
+                      );
                     },
                   ),
                 ),
@@ -329,7 +449,20 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                     entry: d,
                     selected: editor.selectedProjectDialogueId == d.id,
                     depth: 0,
-                    onTap: () => notifier.selectProjectDialogue(d.id),
+                    onTap: () {
+                      notifier.selectProjectDialogue(d.id);
+                      setState(() {
+                        final p = d.folderId?.trim() ?? '';
+                        _sidebarTargetFolderId = p.isEmpty ? null : p;
+                      });
+                    },
+                    onMenuButton: (btnCtx) => _openStudioDialogueEntryMenu(
+                      context,
+                      project,
+                      notifier,
+                      d,
+                      editorMenuAnchorBelowWidget(btnCtx),
+                    ),
                   ),
                 ),
               ],
@@ -408,6 +541,23 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                     child: const Text('Renommer', style: TextStyle(fontSize: 12)),
                   ),
                 ),
+                Expanded(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    minimumSize: Size.zero,
+                    onPressed: () => _promptMoveDialogueToFolder(
+                      context,
+                      notifier,
+                      editor.project!,
+                      entry!,
+                    ),
+                    child: const Text('Déplacer…', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
                 Expanded(
                   child: CupertinoButton(
                     padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1492,6 +1642,160 @@ Règles strictes :
     }
   }
 
+  // --- Menus dossiers / déplacement (use cases réels du notifier) -----------
+
+  Future<void> _openStudioDialogueFolderMenu(
+    BuildContext hostContext,
+    ProjectManifest project,
+    EditorNotifier notifier,
+    ProjectDialogueFolder folder, {
+    required Offset anchorGlobal,
+  }) async {
+    final action = await showMacosEditorContextMenu<String>(
+      context: hostContext,
+      globalPosition: anchorGlobal,
+      actions: const [
+        MacosEditorSheetAction(label: 'Renommer le dossier', value: 'rename'),
+        MacosEditorSheetAction(label: 'Nouveau sous-dossier', value: 'sub'),
+        MacosEditorSheetAction(label: 'Déplacer le dossier…', value: 'move'),
+        MacosEditorSheetAction(
+          label: 'Supprimer le dossier',
+          value: 'delete',
+          isDestructive: true,
+        ),
+      ],
+    );
+    if (!hostContext.mounted || action == null) return;
+    switch (action) {
+      case 'rename':
+        await _promptRenameDialogueFolder(hostContext, notifier, folder);
+      case 'sub':
+        await _promptNewFolder(hostContext, notifier, parentFolderId: folder.id);
+      case 'move':
+        await _pickMoveDialogueLibraryFolder(hostContext, project, notifier, folder.id);
+      case 'delete':
+        final ok = await showMacosEditorTwoChoiceAlert(
+          hostContext,
+          title: 'Supprimer le dossier ?',
+          message:
+              'Les dialogues qu’il contient doivent être déplacés ailleurs avant suppression.',
+          primaryLabel: 'Supprimer',
+          primaryIsDestructive: true,
+        );
+        if (ok && hostContext.mounted) {
+          await notifier.deleteDialogueLibraryFolder(folder.id);
+        }
+    }
+  }
+
+  Future<void> _openStudioDialogueEntryMenu(
+    BuildContext hostContext,
+    ProjectManifest project,
+    EditorNotifier notifier,
+    ProjectDialogueEntry entry,
+    Offset anchor,
+  ) async {
+    final inFolder = entry.folderId != null && entry.folderId!.trim().isNotEmpty;
+    final action = await showMacosEditorContextMenu<String>(
+      context: hostContext,
+      globalPosition: anchor,
+      actions: [
+        const MacosEditorSheetAction(label: 'Renommer', value: 'rename'),
+        const MacosEditorSheetAction(label: 'Déplacer vers un dossier…', value: 'move'),
+        if (inFolder)
+          const MacosEditorSheetAction(
+            label: 'Mettre à la racine',
+            value: 'root',
+          ),
+      ],
+    );
+    if (!hostContext.mounted || action == null) return;
+    switch (action) {
+      case 'rename':
+        await _promptRename(hostContext, notifier, entry);
+      case 'move':
+        await _promptMoveDialogueToFolder(hostContext, notifier, project, entry);
+      case 'root':
+        await notifier.moveDialogueToLibraryRoot(entry.id);
+    }
+  }
+
+  Future<void> _promptRenameDialogueFolder(
+    BuildContext context,
+    EditorNotifier notifier,
+    ProjectDialogueFolder folder,
+  ) async {
+    final c = TextEditingController(text: folder.name);
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'Renommer le dossier',
+      controller: c,
+      confirmLabel: 'Enregistrer',
+      placeholder: 'Nom',
+      compact: true,
+    );
+    if (!ok || !context.mounted) return;
+    final name = c.text.trim();
+    if (name.isEmpty) return;
+    await notifier.renameDialogueLibraryFolder(folderId: folder.id, name: name);
+  }
+
+  Future<void> _pickMoveDialogueLibraryFolder(
+    BuildContext context,
+    ProjectManifest project,
+    EditorNotifier notifier,
+    String folderId,
+  ) async {
+    final blocked = dialogueFolderSubtreeIds(project, folderId);
+    final options = <_DialogueFolderMoveOption>[
+      const _DialogueFolderMoveOption('Racine des dossiers', null),
+    ];
+    for (final row in flattenDialogueFoldersForPicker(project)) {
+      if (row.id == folderId) continue;
+      if (blocked.contains(row.id)) continue;
+      options.add(_DialogueFolderMoveOption(row.label, row.id));
+    }
+    final picked = await showCupertinoListPicker<_DialogueFolderMoveOption>(
+      context: context,
+      title: 'Déplacer le dossier vers…',
+      items: options,
+      labelOf: (o) => o.label,
+    );
+    if (picked == null || !context.mounted) return;
+    await notifier.moveDialogueLibraryFolder(
+      folderId: folderId,
+      newParentFolderId: picked.newParentId,
+    );
+  }
+
+  Future<void> _promptMoveDialogueToFolder(
+    BuildContext context,
+    EditorNotifier notifier,
+    ProjectManifest project,
+    ProjectDialogueEntry entry,
+  ) async {
+    final options = <_AssignDialogueFolderDest>[
+      const _AssignDialogueFolderDest('Racine (hors dossier)', null),
+      ...flattenDialogueFoldersForPicker(project)
+          .map((r) => _AssignDialogueFolderDest(r.label, r.id)),
+    ];
+    final picked = await showCupertinoListPicker<_AssignDialogueFolderDest>(
+      context: context,
+      title: 'Ranger le dialogue dans…',
+      items: options,
+      labelOf: (o) => o.label,
+    );
+    if (picked == null || !context.mounted) return;
+    if (picked.folderId == null) {
+      await notifier.moveDialogueToLibraryRoot(entry.id);
+    } else {
+      await notifier.assignDialogueToLibraryFolder(
+        dialogueId: entry.id,
+        folderId: picked.folderId!,
+      );
+    }
+  }
+
   // --- Persistance / prompts ------------------------------------------------
 
   Future<void> _save(EditorNotifier notifier, String dialogueId) async {
@@ -1515,15 +1819,22 @@ Règles strictes :
     if (!ok || !context.mounted) return;
     final name = c.text.trim();
     if (name.isEmpty) return;
-    await n.createProjectDialogue(name: name);
+    await n.createProjectDialogue(
+      name: name,
+      folderId: _sidebarTargetFolderId,
+    );
     n.selectDialogueWorkspace();
   }
 
-  Future<void> _promptNewFolder(BuildContext context, EditorNotifier n) async {
+  Future<void> _promptNewFolder(
+    BuildContext context,
+    EditorNotifier n, {
+    String? parentFolderId,
+  }) async {
     final c = TextEditingController();
     final ok = await showMacosEditorPromptSheet(
       context,
-      title: 'Nouveau dossier',
+      title: parentFolderId == null ? 'Nouveau dossier' : 'Nouveau sous-dossier',
       controller: c,
       confirmLabel: 'Créer',
       placeholder: 'Nom du dossier',
@@ -1531,7 +1842,10 @@ Règles strictes :
     if (!ok || !context.mounted) return;
     final name = c.text.trim();
     if (name.isEmpty) return;
-    await n.createDialogueLibraryFolder(name: name);
+    await n.createDialogueLibraryFolder(
+      name: name,
+      parentFolderId: parentFolderId ?? _sidebarTargetFolderId,
+    );
   }
 
   Future<void> _importProjectDialogue(
@@ -1561,7 +1875,7 @@ Règles strictes :
     await notifier.importProjectDialogue(
       absoluteSourcePath: path,
       displayName: displayName,
-      folderId: null,
+      folderId: _sidebarTargetFolderId,
     );
   }
 
@@ -1587,54 +1901,143 @@ Règles strictes :
 
 // --- Sous-widgets canvas ----------------------------------------------------
 
-class _DialogueFolderTile extends StatelessWidget {
-  const _DialogueFolderTile({
+/// Nœud dossier : repliable, cible d’import/création au tap sur le nom, menu ⋯ branché au notifier.
+class _StudioDialogueFolderTreeNode extends StatefulWidget {
+  const _StudioDialogueFolderTreeNode({
     required this.branch,
     required this.depth,
-    required this.selectedId,
+    required this.project,
+    required this.selectedDialogueId,
+    required this.targetFolderId,
     required this.filter,
-    required this.onSelect,
+    required this.onDialogueTap,
+    required this.onFolderTargetTap,
+    required this.onFolderMenu,
+    required this.onDialogueEntryMenuButton,
   });
 
   final DialogueLibraryBranch branch;
   final int depth;
-  final String? selectedId;
+  final ProjectManifest project;
+  final String? selectedDialogueId;
+  final String? targetFolderId;
   final bool Function(ProjectDialogueEntry) filter;
-  final ValueChanged<String> onSelect;
+  final void Function(String dialogueId, String? parentFolderId) onDialogueTap;
+  final ValueChanged<String> onFolderTargetTap;
+  final void Function(BuildContext buttonContext, ProjectDialogueFolder folder)
+      onFolderMenu;
+  /// Bouton ⋯ : [BuildContext] du bouton sert à ancrer le menu macOS.
+  final void Function(ProjectDialogueEntry entry, BuildContext menuButtonContext)
+      onDialogueEntryMenuButton;
+
+  @override
+  State<_StudioDialogueFolderTreeNode> createState() =>
+      _StudioDialogueFolderTreeNodeState();
+}
+
+class _StudioDialogueFolderTreeNodeState extends State<_StudioDialogueFolderTreeNode> {
+  /// État UI local de repli — ne duplique pas la hiérarchie manifeste.
+  bool _expanded = true;
 
   @override
   Widget build(BuildContext context) {
+    final f = widget.branch.folder;
+    final isTarget = widget.targetFolderId == f.id;
+    final left = widget.depth * 12.0 + 4;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: EdgeInsets.only(left: depth * 12.0 + 4, top: 4, bottom: 2),
-          child: Text(
-            branch.folder.name,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            ),
-          ),
-        ),
-        ...branch.childFolders.map(
-          (c) => _DialogueFolderTile(
-            branch: c,
-            depth: depth + 1,
-            selectedId: selectedId,
-            filter: filter,
-            onSelect: onSelect,
-          ),
-        ),
-        ...branch.dialogues.where(filter).map(
-              (d) => _DialogueEntryRow(
-                entry: d,
-                selected: selectedId == d.id,
-                depth: depth + 1,
-                onTap: () => onSelect(d.id),
+          padding: EdgeInsets.only(left: left, top: 4, bottom: 2),
+          child: Row(
+            children: [
+              CupertinoButton(
+                padding: const EdgeInsets.all(4),
+                minimumSize: Size.zero,
+                onPressed: () => setState(() => _expanded = !_expanded),
+                child: AnimatedRotation(
+                  turns: _expanded ? 0.25 : 0,
+                  duration: const Duration(milliseconds: 140),
+                  child: MacosIcon(
+                    CupertinoIcons.chevron_right,
+                    size: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                ),
               ),
+              Expanded(
+                child: CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  minimumSize: Size.zero,
+                  alignment: Alignment.centerLeft,
+                  onPressed: () => widget.onFolderTargetTap(f.id),
+                  child: Row(
+                    children: [
+                      MacosIcon(
+                        CupertinoIcons.folder_fill,
+                        size: 15,
+                        color: isTarget
+                            ? EditorChrome.inspectorJoyBlue
+                            : CupertinoColors.secondaryLabel.resolveFrom(context),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          f.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: isTarget
+                                ? EditorChrome.inspectorJoyBlue
+                                : CupertinoColors.label.resolveFrom(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Builder(
+                builder: (btnContext) => EditorToolbarIconButton(
+                  icon: CupertinoIcons.ellipsis_vertical,
+                  tooltip: 'Actions dossier',
+                  iconSize: 16,
+                  onPressed: () => widget.onFolderMenu(btnContext, f),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_expanded) ...[
+          ...widget.branch.childFolders.map(
+            (c) => _StudioDialogueFolderTreeNode(
+              branch: c,
+              depth: widget.depth + 1,
+              project: widget.project,
+              selectedDialogueId: widget.selectedDialogueId,
+              targetFolderId: widget.targetFolderId,
+              filter: widget.filter,
+              onDialogueTap: widget.onDialogueTap,
+              onFolderTargetTap: widget.onFolderTargetTap,
+              onFolderMenu: widget.onFolderMenu,
+              onDialogueEntryMenuButton: widget.onDialogueEntryMenuButton,
             ),
+          ),
+          ...widget.branch.dialogues.where(widget.filter).map(
+                (d) => _DialogueEntryRow(
+                  entry: d,
+                  selected: widget.selectedDialogueId == d.id,
+                  depth: widget.depth + 1,
+                  onTap: () => widget.onDialogueTap(d.id, d.folderId),
+                  onMenuButton: (btnCtx) =>
+                      widget.onDialogueEntryMenuButton(d, btnCtx),
+                ),
+              ),
+        ],
       ],
     );
   }
@@ -1646,45 +2049,64 @@ class _DialogueEntryRow extends StatelessWidget {
     required this.selected,
     required this.depth,
     required this.onTap,
+    this.onMenuButton,
   });
 
   final ProjectDialogueEntry entry;
   final bool selected;
   final int depth;
   final VoidCallback onTap;
+  final void Function(BuildContext menuButtonContext)? onMenuButton;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(left: depth * 12.0),
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        minimumSize: Size.zero,
-        onPressed: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected
-                ? EditorChrome.inspectorJoyBlue.withValues(alpha: 0.14)
-                : null,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected
-                  ? EditorChrome.inspectorJoyBlue
-                  : CupertinoColors.separator.resolveFrom(context).withValues(alpha: 0.5),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              minimumSize: Size.zero,
+              onPressed: onTap,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? EditorChrome.inspectorJoyBlue.withValues(alpha: 0.14)
+                      : null,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: selected
+                        ? EditorChrome.inspectorJoyBlue
+                        : CupertinoColors.separator
+                            .resolveFrom(context)
+                            .withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Text(
+                  entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             ),
           ),
-          child: Text(
-            entry.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              fontSize: 12,
+          if (onMenuButton != null)
+            Builder(
+              builder: (btnContext) => EditorToolbarIconButton(
+                icon: CupertinoIcons.ellipsis_vertical,
+                tooltip: 'Actions dialogue',
+                iconSize: 16,
+                onPressed: () => onMenuButton!(btnContext),
+              ),
             ),
-          ),
-        ),
+        ],
       ),
     );
   }

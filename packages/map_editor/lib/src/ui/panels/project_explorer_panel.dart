@@ -362,6 +362,7 @@ class ProjectExplorerPanel extends ConsumerStatefulWidget {
 
 class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandTileLib = true;
+  bool _expandProjectDialogues = true;
   bool _expandNarrative = true;
   bool _expandWorld = true;
   bool _expandTerrains = true;
@@ -549,6 +550,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
 
     final screenH = MediaQuery.sizeOf(context).height;
     final hTileset = (screenH * 0.30).clamp(240.0, 400.0);
+    final hProjectDialogues = (screenH * 0.24).clamp(200.0, 320.0);
     final hNarrative = (screenH * 0.34).clamp(260.0, 460.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
@@ -597,6 +599,39 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             ],
           ),
           child: _buildTilesetsIsland(context, project, state, notifier),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Dialogues (projet)',
+          subtitle:
+              'Hiérarchie manifeste — édition dans Dialogue Studio (pas de gestion doublonnée ici)',
+          icon: CupertinoIcons.doc_text_fill,
+          accentColor: EditorChrome.inspectorJoyLilac,
+          badgeText: '${project.dialogues.length}',
+          expanded: _expandProjectDialogues,
+          onToggle: () => setState(
+            () => _expandProjectDialogues = !_expandProjectDialogues,
+          ),
+          expandedHeight: hProjectDialogues,
+          headerTrailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SidebarHeaderAction(
+                enabled: true,
+                icon: CupertinoIcons.square_pencil,
+                tooltip: 'Ouvrir Dialogue Studio',
+                onPressed: notifier.selectDialogueWorkspace,
+                iconColor: actionIcon,
+                hoverFill: actionHover,
+              ),
+            ],
+          ),
+          child: _buildProjectDialoguesReadOnlyOverview(
+            context,
+            project,
+            state,
+            notifier,
+          ),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
@@ -700,6 +735,75 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
       primary: false,
       padding: const EdgeInsets.only(bottom: 8),
       child: _buildTilesetsSection(context, project, state, notifier),
+    );
+  }
+
+  /// Vue projet des dialogues : **lecture + sélection** seulement ; toute mutation
+  /// (création, import, dossiers) reste dans Dialogue Studio pour éviter la double UX.
+  Widget _buildProjectDialoguesReadOnlyOverview(
+    BuildContext context,
+    ProjectManifest project,
+    dynamic state,
+    EditorNotifier notifier,
+  ) {
+    final tree = buildDialogueLibraryTree(project);
+    final selectedId = state.selectedProjectDialogueId;
+    final empty = project.dialogues.isEmpty && project.dialogueFolders.isEmpty;
+    if (empty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+        child: Text(
+          'Aucun dialogue dans le manifeste. Ouvrez Dialogue Studio pour créer, importer ou classer.',
+          style: TextStyle(
+            fontSize: 12,
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      primary: false,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ...tree.rootFolders.map(
+            (b) => _ProjectExplorerDialogueFolderNode(
+              branch: b,
+              depth: 0,
+              selectedDialogueId: selectedId,
+              notifier: notifier,
+            ),
+          ),
+          ...tree.rootDialogues.map(
+            (d) => EditorSidebarListRow(
+              selected: selectedId == d.id,
+              onTap: () {
+                notifier.selectProjectDialogue(d.id);
+                notifier.selectDialogueWorkspace();
+              },
+              leftIndent: 14,
+              leading: const MacosIcon(CupertinoIcons.doc_text_fill, size: 16),
+              title: Text(
+                d.name,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                d.relativePath,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: EditorChrome.subtleLabel(context),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1100,6 +1204,81 @@ class _SidebarHeaderActionState extends State<_SidebarHeaderAction> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Dossier dialogue dans l’explorateur projet : repliage UI uniquement ; données = [ProjectDialogueFolder].
+class _ProjectExplorerDialogueFolderNode extends StatelessWidget {
+  const _ProjectExplorerDialogueFolderNode({
+    required this.branch,
+    required this.depth,
+    required this.selectedDialogueId,
+    required this.notifier,
+  });
+
+  final DialogueLibraryBranch branch;
+  final int depth;
+  final String? selectedDialogueId;
+  final EditorNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = branch.folder;
+    return CupertinoDisclosureTile(
+      useEditorMacosSidebarDisclosureStyle: true,
+      initiallyExpanded: true,
+      childrenPadding: EdgeInsets.zero,
+      tilePadding: EdgeInsets.only(
+        left: 8 + 10.0 * depth,
+        right: 8,
+        top: 2,
+        bottom: 2,
+      ),
+      leading: const MacosIcon(CupertinoIcons.folder_fill, size: 16),
+      title: Text(
+        f.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      ),
+      children: [
+        ...branch.childFolders.map(
+          (c) => _ProjectExplorerDialogueFolderNode(
+            branch: c,
+            depth: depth + 1,
+            selectedDialogueId: selectedDialogueId,
+            notifier: notifier,
+          ),
+        ),
+        ...branch.dialogues.map(
+          (d) => EditorSidebarListRow(
+            selected: selectedDialogueId == d.id,
+            onTap: () {
+              notifier.selectProjectDialogue(d.id);
+              notifier.selectDialogueWorkspace();
+            },
+            leftIndent: 6 + 10.0 * (depth + 1),
+            leading: const MacosIcon(CupertinoIcons.doc_text_fill, size: 16),
+            title: Text(
+              d.name,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              d.relativePath,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                color: EditorChrome.subtleLabel(context),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
