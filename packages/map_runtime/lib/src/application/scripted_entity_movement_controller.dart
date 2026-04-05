@@ -265,6 +265,29 @@ class ScriptedEntityMovementController {
     _patrols.remove(normalized);
   }
 
+  /// Réaligne la position suivie (ex. joueur après déplacement manuel) sans
+  /// interrompre une commande active ni un pas en cours d’animation.
+  void syncTrackedEntityPosition(String entityId, GridPos pos) {
+    final normalized = entityId.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    if (!_trackedPositions.containsKey(normalized)) {
+      return;
+    }
+    if (_activeTasks.containsKey(normalized)) {
+      return;
+    }
+    if (_isEntityStepping(normalized)) {
+      return;
+    }
+    _trackedPositions[normalized] = pos;
+    _statusByEntityId[normalized] = ScriptedEntityMovementStatus.idle(
+      entityId: normalized,
+      currentPos: pos,
+    );
+  }
+
   /// Tick principal du contrôleur.
   ///
   /// `dt` n'est pas utilisé dans ce MVP (pas de vitesse variable côté logique),

@@ -577,6 +577,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     }
 
+    // Déplacement scripté joueur (scénario / cutscene): pas d’entrées clavier.
+    if (_suppressOverworldInputForScriptedPlayerMovement() &&
+        _flowPhase == _RuntimeFlowPhase.overworld) {
+      if (_isMovementKey(key)) {
+        _pressedKeys.remove(key);
+        if (_lastMoveKey == key) {
+          _lastMoveKey = null;
+        }
+        return KeyEventResult.handled;
+      }
+      if (event is KeyDownEvent &&
+          (key == LogicalKeyboardKey.keyE ||
+              key == LogicalKeyboardKey.space ||
+              key == LogicalKeyboardKey.enter)) {
+        return KeyEventResult.handled;
+      }
+    }
+
     // Handle movement keys (but NOT during battle)
     if (_isMovementKey(key)) {
       if (_flowPhase == _RuntimeFlowPhase.dialogue) {
@@ -782,6 +800,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _driveMovement() {
+    if (_suppressOverworldInputForScriptedPlayerMovement()) {
+      _clearPressedMovementKeys();
+      return;
+    }
     if (_player.isStepping) {
       return;
     }
@@ -1190,6 +1212,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String targetId,
     required bool waitForCompletion,
   }) {
+    final trimmedEntity = entityId.trim();
+    if (trimmedEntity == 'player') {
+      _scriptedEntityMovementController?.syncTrackedEntityPosition(
+        trimmedEntity,
+        _world.player.pos,
+      );
+    }
     final destination = _resolveScenarioMoveTarget(
       targetKind: targetKind,
       targetId: targetId,
@@ -1443,6 +1472,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String entityId,
     required GridPos anchor,
   }) {
+    if (entityId.trim() == 'player') {
+      return _isPlayerScriptedMoveAnchorPassable(anchor);
+    }
     final probe = evaluateScriptedNpcAnchorPassability(
       world: _world,
       entityId: entityId,
@@ -1453,6 +1485,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ),
     );
     return probe.passable;
+  }
+
+  bool _isPlayerScriptedMoveAnchorPassable(GridPos anchor) {
+    final mode = _world.player.movementMode;
+    if (_world.movementBlockReasonAt(
+          x: anchor.x,
+          y: anchor.y,
+          movementMode: mode,
+        ) !=
+        null) {
+      return false;
+    }
+    for (final cell in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+      if (cell.x == anchor.x && cell.y == anchor.y) {
+        return false;
+      }
+    }
+    return true;
   }
 
   GridPos? _resolveScenarioEntityPosition(String entityId) {
@@ -1506,6 +1556,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  bool _suppressOverworldInputForScriptedPlayerMovement() {
+    final status = scriptedNpcMovementStatus('player');
+    return status.state == ScriptedEntityMovementState.moving;
+  }
+
+  void _clearPressedMovementKeys() {
+    _pressedKeys.removeWhere(_isMovementKey);
+    if (_lastMoveKey != null && !_pressedKeys.contains(_lastMoveKey!)) {
+      _lastMoveKey = null;
+    }
+  }
+
   void _processPendingScenarioNpcWarpEntries() {
     if (_pendingScenarioNpcWarpEntries.isEmpty) {
       return;
@@ -1541,6 +1603,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _completeScenarioNpcWarpEntry(_PendingScenarioNpcWarpEntry pending) {
+    if (pending.entityId.trim() == 'player') {
+      _completeScenarioPlayerWarpEntry(pending);
+      return;
+    }
     final removed = _despawnNpcFromActiveMap(pending.entityId);
     if (!removed) {
       debugPrint(
@@ -1550,6 +1616,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     debugPrint(
       '[scenario_runtime] npc entered warp entity=${pending.entityId} warp=${pending.warpId} approach=(${pending.approachPos.x},${pending.approachPos.y})',
+    );
+  }
+
+  void _completeScenarioPlayerWarpEntry(_PendingScenarioNpcWarpEntry pending) {
+    final warp = _findMapWarpById(pending.warpId);
+    if (warp == null) {
+      debugPrint(
+        '[scenario_runtime] player warp failed: warp "${pending.warpId}" not found on map "${_bundle.map.id}"',
+      );
+      return;
+    }
+    _pendingWarp = TriggeredWarp(
+      warpId: warp.id,
+      targetMapId: warp.targetMapId,
+      targetPos: warp.targetPos,
+      triggerMode: warp.triggerMode,
+    );
+    debugPrint(
+      '[scenario_runtime] player reached warp=${warp.id} -> map=${warp.targetMapId} target=(${warp.targetPos.x},${warp.targetPos.y})',
     );
   }
 
@@ -4596,6 +4681,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runtimeNpcPositions
       ..clear()
       ..addAll(_collectCurrentNpcPositions());
+    _runtimeNpcPositions['player'] = _world.player.pos;
     _scriptedNpcReservedOccupiedCellsByEntity.clear();
 
     final controller = ScriptedEntityMovementController(
@@ -4657,6 +4743,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (normalizedIgnore == null || normalizedIgnore.isEmpty) {
       return _world.isBlocked(x, y);
     }
+    if (normalizedIgnore == 'player') {
+      final mode = _world.player.movementMode;
+      if (_world.movementBlockReasonAt(
+            x: x,
+            y: y,
+            movementMode: mode,
+          ) !=
+          null) {
+        return true;
+      }
+      for (final cell in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+        if (cell.x == x && cell.y == y) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     // Pathfinding anchor validation:
     // - `x,y` est la position logique MapEntity.pos (top-left),
@@ -4684,6 +4787,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GridPos from,
     required GridPos to,
   }) {
+    if (entityId.trim() == 'player') {
+      final mode = _world.player.movementMode;
+      final block = _world.movementBlockReasonAt(
+        x: to.x,
+        y: to.y,
+        movementMode: mode,
+      );
+      if (block != null) {
+        debugPrint(
+          '[npc_patrol] runtime step rejected entity=player from=(${from.x},${from.y}) to=(${to.x},${to.y}) reason=${block.name}',
+        );
+        return block.name;
+      }
+      for (final cell in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
+        if (cell.x == to.x && cell.y == to.y) {
+          debugPrint(
+            '[npc_patrol] runtime step rejected entity=player to=(${to.x},${to.y}) reason=dynamic_blocker',
+          );
+          return 'Dynamic blocker at destination.';
+        }
+      }
+      return null;
+    }
     final probe = evaluateScriptedNpcAnchorPassability(
       world: _world,
       entityId: entityId,
@@ -4768,6 +4894,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required EntityFacing facing,
     double? durationSeconds,
   }) {
+    if (entityId.trim() == 'player') {
+      final walkFacing = _directionFromEntityFacing(facing);
+      final nextState = _world.player.copyWith(pos: to, facing: walkFacing);
+      _player.startStep(
+        nextState,
+        durationSeconds:
+            durationSeconds ?? PlayerComponent.kDefaultStepSeconds,
+      );
+      _reserveScriptedNpcStepOccupiedCells(
+        entityId: entityId,
+        fromAnchorPos: from,
+        toAnchorPos: to,
+      );
+      return true;
+    }
     final loaded = _loadedMapsById[_activeMapId];
     final actor = loaded?.npcActorByEntityId[entityId];
     if (actor == null) {
@@ -4791,12 +4932,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool _isScriptedNpcStepping(String entityId) {
+    if (entityId.trim() == 'player') {
+      return _player.isStepping;
+    }
     final loaded = _loadedMapsById[_activeMapId];
     final actor = loaded?.npcActorByEntityId[entityId];
     return actor?.isStepping ?? false;
   }
 
   void _commitScriptedNpcPosition(String entityId, GridPos position) {
+    if (entityId.trim() == 'player') {
+      final from = _world.player.pos;
+      final facing = _directionBetweenAdjacent(from: from, to: position) ??
+          _world.player.facing;
+      _world = _world.withPlayer(
+        _world.player.copyWith(pos: position, facing: facing),
+      );
+      _runtimeNpcPositions['player'] = position;
+      _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
+      _player.syncState(_world.player, snapToGrid: true);
+      _syncGameStateFromWorld();
+      return;
+    }
     _runtimeNpcPositions[entityId] = position;
     _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
     _world = _world.withEntityPosition(entityId, position);
@@ -4816,6 +4973,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GridPos fromAnchorPos,
     required GridPos toAnchorPos,
   }) {
+    if (entityId.trim() == 'player') {
+      _scriptedNpcReservedOccupiedCellsByEntity[entityId] = <GridPos>{
+        GridPos(x: fromAnchorPos.x, y: fromAnchorPos.y),
+        GridPos(x: toAnchorPos.x, y: toAnchorPos.y),
+      };
+      return;
+    }
     final entity = _world.map.entities
         .where((candidate) => candidate.id == entityId)
         .cast<MapEntity?>()

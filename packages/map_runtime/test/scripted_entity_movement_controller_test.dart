@@ -413,5 +413,35 @@ void main() {
       expect(status.failureReason, isNotEmpty);
       expect(controller.isPatrolling('npc_1'), isFalse);
     });
+
+    test('syncTrackedEntityPosition updates anchor when idle', () {
+      final runtimePositions = <String, GridPos>{
+        'player': const GridPos(x: 1, y: 1),
+      };
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 6, height: 6),
+        isCellBlocked: (x, y, {ignoreEntityId}) => false,
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) =>
+            true,
+        isEntityStepping: (_) => false,
+        onEntityPositionCommitted: (entityId, pos) {},
+      );
+      controller.replaceTrackedEntities(runtimePositions);
+      controller.syncTrackedEntityPosition('player', const GridPos(x: 2, y: 2));
+      expect(
+        controller.trackedPositionOf('player'),
+        const GridPos(x: 2, y: 2),
+      );
+      expect(
+        controller.statusOf('player').state,
+        ScriptedEntityMovementState.idle,
+      );
+    });
   });
 }
