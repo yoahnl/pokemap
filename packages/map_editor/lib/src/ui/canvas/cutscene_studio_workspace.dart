@@ -74,6 +74,8 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   // - on peut charger une snapshot de map (non destructive) puis réutiliser
   //   les options dans le dropdown tant que le workspace est ouvert.
   final Map<String, List<MapEntity>> _npcsByMapId = <String, List<MapEntity>>{};
+  final Map<String, List<MapEntity>> _entitiesByMapId =
+      <String, List<MapEntity>>{};
   final Map<String, List<MapEntity>> _spawnsByMapId =
       <String, List<MapEntity>>{};
   final Map<String, List<MapTrigger>> _triggersByMapId =
@@ -129,6 +131,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         _isLoadingSourceLookups = false;
         _sourceLookupError = null;
         _npcsByMapId.clear();
+        _entitiesByMapId.clear();
         _spawnsByMapId.clear();
         _triggersByMapId.clear();
         _warpsByMapId.clear();
@@ -150,6 +153,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         _isLoadingSourceLookups = false;
         _sourceLookupError = null;
         _npcsByMapId.clear();
+        _entitiesByMapId.clear();
         _spawnsByMapId.clear();
         _triggersByMapId.clear();
         _warpsByMapId.clear();
@@ -168,6 +172,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       _isLoadingSourceLookups = false;
       _sourceLookupError = null;
       _npcsByMapId.clear();
+      _entitiesByMapId.clear();
       _spawnsByMapId.clear();
       _triggersByMapId.clear();
       _warpsByMapId.clear();
@@ -240,6 +245,18 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     return _spawnsByMapId[normalized] ?? const <MapEntity>[];
   }
 
+  List<MapEntity> _entitiesForMap(String? mapId) {
+    final normalized = _trimOrNull(mapId);
+    if (normalized == null) {
+      return const <MapEntity>[];
+    }
+    final activeMap = widget.activeMap;
+    if (activeMap != null && activeMap.id == normalized) {
+      return _sortedEntities(activeMap.entities);
+    }
+    return _entitiesByMapId[normalized] ?? const <MapEntity>[];
+  }
+
   List<MapEntity> _sortedNpcs(Iterable<MapEntity> entities) {
     return entities
         .where((entity) => entity.kind == MapEntityKind.npc)
@@ -272,6 +289,15 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       );
   }
 
+  List<MapEntity> _sortedEntities(Iterable<MapEntity> entities) {
+    return entities.toList(growable: false)
+      ..sort(
+        (a, b) => a.inspectorHeadline
+            .toLowerCase()
+            .compareTo(b.inspectorHeadline.toLowerCase()),
+      );
+  }
+
   void _primeSourceLookups(String? mapId) {
     final normalizedMapId = _trimOrNull(mapId);
     if (normalizedMapId == null) {
@@ -282,6 +308,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
 
   bool _isLookupCacheCompleteForMap(String mapId) {
     return _npcsByMapId.containsKey(mapId) &&
+        _entitiesByMapId.containsKey(mapId) &&
         _spawnsByMapId.containsKey(mapId) &&
         _triggersByMapId.containsKey(mapId) &&
         _warpsByMapId.containsKey(mapId);
@@ -290,12 +317,14 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   void _applyMapSnapshotToCache(String mapId, MapData? data) {
     if (data == null) {
       _npcsByMapId[mapId] = const <MapEntity>[];
+      _entitiesByMapId[mapId] = const <MapEntity>[];
       _spawnsByMapId[mapId] = const <MapEntity>[];
       _triggersByMapId[mapId] = const <MapTrigger>[];
       _warpsByMapId[mapId] = const <MapWarp>[];
       return;
     }
     _npcsByMapId[mapId] = _sortedNpcs(data.entities);
+    _entitiesByMapId[mapId] = _sortedEntities(data.entities);
     _spawnsByMapId[mapId] = _sortedSpawns(data.entities);
     _triggersByMapId[mapId] = _sortedTriggers(data.triggers);
     _warpsByMapId[mapId] = _sortedWarps(data.warps);
@@ -368,7 +397,8 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
   ) {
     final start = _trimOrNull(draft.source.mapId);
     final flow = effectiveCutsceneFlowForDocument(draft);
-    final resolution = cutsceneStudioResolveMapContextPredecessors(flow, blockId);
+    final resolution =
+        cutsceneStudioResolveMapContextPredecessors(flow, blockId);
     return switch (resolution) {
       CutsceneStudioMapContextLinear(:final predecessorBlocks) =>
         cutsceneStudioSimulatedPlayerMapId(
@@ -505,9 +535,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           actorId: npcs.isNotEmpty
               ? npcs.first.id
               : _firstOrNull(
-                  actors
-                      .where((id) => id != kCutsceneActorNarratorId)
-                      .toList(),
+                  actors.where((id) => id != kCutsceneActorNarratorId).toList(),
                 ),
           destinationTargetKind: kCutsceneStudioMoveTargetWarp,
           destinationTargetId: warps.isNotEmpty
@@ -524,9 +552,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       CutsceneStudioBlockKind.pathfindMove => CutsceneStudioBlock(
           id: blockId,
           kind: kind,
-          actorId: npcs.isNotEmpty
-              ? npcs.first.id
-              : _firstOrNull(actors),
+          actorId: npcs.isNotEmpty ? npcs.first.id : _firstOrNull(actors),
           destinationTargetKind: kCutsceneStudioMoveTargetWarp,
           destinationTargetId: warps.isNotEmpty ? warps.first.id : null,
           waitForCompletion: true,
@@ -618,13 +644,12 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         ? _inspectorContextMapIdForBlock(draft, block.id)
         : _trimOrNull(_draftDocument?.source.mapId);
     return switch (block.kind) {
-      CutsceneStudioBlockKind.dialogue =>
-        _trimmedOrFallback(
-            _actorLabelById(block.actorId, mapId: ctxMap),
-            fallback: 'Personnage') +
-            (_trimOrNull(block.messageText) != null
-                ? ' · ${_trimOrNull(block.messageText)}'
-                : ''),
+      CutsceneStudioBlockKind.dialogue => _trimmedOrFallback(
+              _actorLabelById(block.actorId, mapId: ctxMap),
+              fallback: 'Personnage') +
+          (_trimOrNull(block.messageText) != null
+              ? ' · ${_trimOrNull(block.messageText)}'
+              : ''),
       CutsceneStudioBlockKind.playerQuestion =>
         _trimmedOrFallback(block.messageText, fallback: 'Question au joueur'),
       CutsceneStudioBlockKind.moveCharacter ||
@@ -633,8 +658,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           _actorLabelById(block.actorId, mapId: ctxMap),
           fallback: 'Déplacement',
         ),
-      CutsceneStudioBlockKind.wait =>
-        'Pause ${block.durationMs ?? 700} ms',
+      CutsceneStudioBlockKind.wait => 'Pause ${block.durationMs ?? 700} ms',
       _ => cutsceneStudioBlockKindLabel(block.kind),
     };
   }
@@ -675,17 +699,17 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         onSave: _saveDraftToProject,
         onReset: _restoreSavedDocument,
         onTest: () => _showCutsceneStudioNotice(
-              context,
-              title: 'Tester',
-              message:
-                  'L’aperçu runtime interactif sera branché ici. Pour l’instant, enregistrez puis lancez le jeu.',
-            ),
+          context,
+          title: 'Tester',
+          message:
+              'L’aperçu runtime interactif sera branché ici. Pour l’instant, enregistrez puis lancez le jeu.',
+        ),
         onSimulate: () => _showCutsceneStudioNotice(
-              context,
-              title: 'Simuler',
-              message:
-                  'La simulation pas-à-pas arrive dans une prochaine itération.',
-            ),
+          context,
+          title: 'Simuler',
+          message:
+              'La simulation pas-à-pas arrive dans une prochaine itération.',
+        ),
         onCreateNew: _createCutsceneFromTemplateFlow,
         selectedBlockId: _selectedBlockId,
         onSelectBlock: (id) => setState(() => _selectedBlockId = id),
@@ -835,7 +859,8 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     final flow = effectiveCutsceneFlowForDocument(draft);
     final contextResolution =
         cutsceneStudioResolveMapContextPredecessors(flow, block.id);
-    final inspectorContextMapId = _inspectorContextMapIdForBlock(draft, block.id);
+    final inspectorContextMapId =
+        _inspectorContextMapIdForBlock(draft, block.id);
     final destructive = CupertinoColors.destructiveRed.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1127,7 +1152,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     );
   }
 
-
   Widget _buildBlockEditor(
     BuildContext context, {
     required CutsceneStudioDocument draft,
@@ -1186,8 +1210,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           block: block,
           onChanged: onChanged,
         ),
-      CutsceneStudioBlockKind.playerQuestion =>
-        _buildPlayerQuestionBlockEditor(
+      CutsceneStudioBlockKind.playerQuestion => _buildPlayerQuestionBlockEditor(
           context,
           block: block,
           onChanged: onChanged,
@@ -1324,7 +1347,9 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
               enabled: _canEdit,
               onTap: () async {
                 final next = await _promptTextValue(
-                  title: i == 0 ? 'Libellé du premier choix' : 'Libellé du second choix',
+                  title: i == 0
+                      ? 'Libellé du premier choix'
+                      : 'Libellé du second choix',
                   initialValue: options[i],
                   placeholder: i == 0 ? 'Oui' : 'Non',
                 );
@@ -1765,9 +1790,9 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
           label: 'Ajouter une option',
           enabled: _canEdit,
           onPressed: () => _addStarterChoiceOption(
-                block: block,
-                onChanged: onChanged,
-              ),
+            block: block,
+            onChanged: onChanged,
+          ),
         ),
       ],
     );
@@ -1955,7 +1980,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     );
   }
 
-
   List<String> _actorIdsForMap(String? mapId) {
     final ids = <String>{
       kCutsceneStudioActorPlayerId,
@@ -1994,19 +2018,45 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
             .map((entry) => entry.id)
             .toList(growable: false);
       case kCutsceneStudioMoveTargetEntity:
-        return _actorIdsForMap(mapId)
-            .where((id) => id != kCutsceneActorNarratorId)
-            .toList(growable: false);
+        return _entityTargetIdsForMap(mapId);
       default:
         return const <String>[];
     }
+  }
+
+  List<String> _entityTargetIdsForMap(String? mapId) {
+    final ids = <String>[kCutsceneStudioActorPlayerId];
+    ids.addAll(_entitiesForMap(mapId).map((entry) => entry.id));
+    return ids;
+  }
+
+  String? _entityTargetLabelById(
+    String? entityId, {
+    required String? mapId,
+  }) {
+    final normalized = _trimOrNull(entityId);
+    if (normalized == null) {
+      return null;
+    }
+    if (normalized == kCutsceneStudioActorPlayerId) {
+      return 'Joueur (player)';
+    }
+    for (final entity in _entitiesForMap(mapId)) {
+      if (entity.id == normalized) {
+        final headline = entity.inspectorHeadline.trim().isEmpty
+            ? entity.id
+            : entity.inspectorHeadline;
+        return '$headline (${entity.id})';
+      }
+    }
+    return normalized;
   }
 
   String _moveTargetKindLabel(String kind) {
     return switch (kind) {
       kCutsceneStudioMoveTargetWarp => 'Vers une sortie (warp)',
       kCutsceneStudioMoveTargetSpawn => 'Vers un point d’arrivée (spawn)',
-      kCutsceneStudioMoveTargetEntity => 'Vers un personnage',
+      kCutsceneStudioMoveTargetEntity => 'Vers une entité (entity)',
       _ => kind,
     };
   }
@@ -2026,7 +2076,7 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       case kCutsceneStudioMoveTargetSpawn:
         return _spawnLabelById(normalizedId, _spawnsForMap(mapId));
       case kCutsceneStudioMoveTargetEntity:
-        return _actorLabelById(normalizedId, mapId: mapId);
+        return _entityTargetLabelById(normalizedId, mapId: mapId);
       default:
         return normalizedId;
     }
@@ -2107,7 +2157,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     }
     return controller.text.trim();
   }
-
 
   Future<void> _saveDraftToProject() async {
     final draft = _draftDocument;

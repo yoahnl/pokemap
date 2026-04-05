@@ -2067,23 +2067,73 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _player.syncState(_world.player, snapToGrid: true);
       return true;
     }
+    final normalizedEntityId = entityId.trim();
     final active = _loadedMapsById[_activeMapId];
-    final actor = active?.npcActorByEntityId[entityId];
-    if (actor == null) {
-      debugPrint(
-        '[scenario_runtime] faceCharacter entity unresolved="$entityId"',
-      );
-      return false;
+    final actor = active?.npcActorByEntityId[normalizedEntityId];
+    if (actor != null) {
+      final movement = scriptedNpcMovementStatus(normalizedEntityId);
+      if (movement.state == ScriptedEntityMovementState.moving ||
+          actor.isStepping) {
+        debugPrint(
+          '[scenario_runtime] faceCharacter deferred entity=$normalizedEntityId while moving',
+        );
+        return true;
+      }
+      actor.setMotion(facing, CharacterAnimationState.idle);
+      return true;
     }
-    final movement = scriptedNpcMovementStatus(entityId);
-    if (movement.state == ScriptedEntityMovementState.moving ||
-        actor.isStepping) {
+
+    // Tolérance runtime: si l’entité n’a pas d’acteur visuel actuellement
+    // monté (ex: map context différente), on tente au moins de persister
+    // l’orientation dans l’état map; sinon on ignore sans bloquer le flow.
+    if (_setEntityFacingStateOnly(normalizedEntityId, facing)) {
       debugPrint(
-        '[scenario_runtime] faceCharacter deferred entity=$entityId while moving',
+        '[scenario_runtime] faceCharacter applied state-only entity="$normalizedEntityId"',
       );
       return true;
     }
-    actor.setMotion(facing, CharacterAnimationState.idle);
+    debugPrint(
+      '[scenario_runtime] faceCharacter entity unresolved="$normalizedEntityId" (ignored)',
+    );
+    return true;
+  }
+
+  bool _setEntityFacingStateOnly(String entityId, EntityFacing facing) {
+    if (entityId.isEmpty) {
+      return false;
+    }
+    final entities = _world.map.entities;
+    final index = entities.indexWhere((entity) => entity.id == entityId);
+    if (index < 0) {
+      return false;
+    }
+    final entity = entities[index];
+    final npc = entity.npc;
+    if (npc == null) {
+      return false;
+    }
+    final updatedEntities = List<MapEntity>.from(entities);
+    updatedEntities[index] = entity.copyWith(
+      npc: npc.copyWith(facing: facing),
+    );
+    final updatedMap = _world.map.copyWith(entities: updatedEntities);
+    final playerState = _world.player;
+    _world = GameplayWorldState.initial(
+      map: updatedMap,
+      playerPos: playerState.pos,
+      playerFacing: playerState.facing,
+      playerMovementMode: playerState.movementMode,
+      project: _bundle.manifest,
+      tileWidth: _bundle.manifest.settings.tileWidth,
+      tileHeight: _bundle.manifest.settings.tileHeight,
+    );
+    _bundle = RuntimeMapBundle(
+      manifest: _bundle.manifest,
+      map: updatedMap,
+      projectRootDirectory: _bundle.projectRootDirectory,
+      tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
+    );
+    _syncGameStateFromWorld();
     return true;
   }
 
