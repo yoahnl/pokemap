@@ -166,6 +166,7 @@ class ProjectValidator {
 
   static void _validateProjectDialogues(ProjectManifest manifest) {
     final dialogueFolderIds = manifest.dialogueFolders.map((f) => f.id).toSet();
+    final dialogueRelativePaths = <String>{};
     for (final d in manifest.dialogues) {
       final id = d.id.trim();
       if (id.isEmpty) {
@@ -175,6 +176,12 @@ class ProjectValidator {
         throw ValidationException('Dialogue $id has an empty name');
       }
       assertValidProjectDialogueRelativePath(d.relativePath, dialogueId: id);
+      final rpNorm = d.relativePath.replaceAll(r'\', '/');
+      if (!dialogueRelativePaths.add(rpNorm)) {
+        throw ValidationException(
+          'Duplicate dialogue relativePath in manifest: $rpNorm',
+        );
+      }
       assertValidDialogueStartNode(
         d.defaultStartNode,
         contextLabel: 'Dialogue $id defaultStartNode',

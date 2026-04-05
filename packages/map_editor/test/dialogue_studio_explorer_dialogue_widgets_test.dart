@@ -17,7 +17,7 @@ void main() {
     tempProjectRoot =
         await Directory.systemTemp.createTemp('map_editor_dlg_widget_');
     final yarn = File(
-      '${tempProjectRoot.path}/dialogues/dlg_hi.yarn',
+      '${tempProjectRoot.path}/dialogues/pnj/dlg_hi.yarn',
     );
     await yarn.parent.create(recursive: true);
     await yarn.writeAsString('title: Salut\n---\n===\n');
@@ -40,7 +40,7 @@ void main() {
       ProjectDialogueEntry(
         id: 'dlg_hi',
         name: 'Salut',
-        relativePath: 'dialogues/dlg_hi.yarn',
+        relativePath: 'dialogues/pnj/dlg_hi.yarn',
         folderId: 'f_npc',
       ),
     ],
@@ -119,7 +119,7 @@ void main() {
     expect(notifier.state.selectedProjectDialogueId, 'dlg_hi');
   });
 
-  testWidgets('ProjectExplorerPanel shows project dialogues section not old card', (
+  testWidgets('ProjectExplorerPanel has no embedded project dialogues card', (
     tester,
   ) async {
     final container = ProviderContainer();
@@ -148,9 +148,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Dialogues (projet)'), findsOneWidget);
+    expect(find.text('Dialogues (projet)'), findsNothing);
     expect(find.text('Dialogue Library'), findsNothing);
-    expect(find.text('PNJ'), findsWidgets);
-    expect(find.text('Salut'), findsOneWidget);
+    expect(find.text('Tileset Library'), findsOneWidget);
   });
 }

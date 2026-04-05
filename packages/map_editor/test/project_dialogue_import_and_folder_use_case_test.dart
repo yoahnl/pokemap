@@ -66,6 +66,7 @@ void main() {
       );
 
       expect(updated.dialogues.single.folderId, 'fld');
+      expect(updated.dialogues.single.relativePath, startsWith('dialogues/npc/'));
       final dest = File(
         ws.resolveProjectRelativePath(updated.dialogues.single.relativePath),
       );
@@ -93,6 +94,11 @@ void main() {
 
       expect(updated.dialogues.single.folderId, 'f');
       expect(updated.dialogues.single.name, 'Fresh');
+      expect(updated.dialogues.single.relativePath, startsWith('dialogues/box/'));
+      final f = File(
+        ws.resolveProjectRelativePath(updated.dialogues.single.relativePath),
+      );
+      expect(await f.exists(), isTrue);
     });
   });
 }

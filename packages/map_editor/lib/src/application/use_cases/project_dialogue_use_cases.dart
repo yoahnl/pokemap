@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
+import 'dialogue_disk_path_support.dart';
 import 'project_use_case_support.dart';
 
 String generateUniqueDialogueId(ProjectManifest project, String seed) {
@@ -76,15 +77,18 @@ class CreateProjectDialogueUseCase {
       }
     }
     final id = generateUniqueDialogueId(project, trimmed);
-    final relativePath = p.posix.join(kProjectDialoguesRelativeDir, '$id.yarn');
+    final segments = computeDialogueFolderDiskSegments(project);
+    final relativePath = expectedDialogueFileRelativePath(
+      project,
+      segments,
+      parent,
+      id,
+      '.yarn',
+    );
+    await assertDestinationFileAvailable(ws, relativePath);
     final abs = ws.resolveProjectRelativePath(relativePath);
     await ws.ensureDirectoryExists(abs);
     final file = File(abs);
-    if (await file.exists()) {
-      throw EditorValidationException(
-        'Dialogue file already exists: $relativePath',
-      );
-    }
     await file.writeAsString(minimalYarnStub(trimmed));
     final sortOrder = nextDialogueLibrarySortOrder(
       project,
@@ -141,14 +145,17 @@ class ImportProjectDialogueUseCase {
       }
     }
     final id = generateUniqueDialogueId(project, trimmed);
-    final fileName = '$id$ext';
-    final relativePath = p.posix.join(kProjectDialoguesRelativeDir, fileName);
+    final segments = computeDialogueFolderDiskSegments(project);
+    final relativePath = expectedDialogueFileRelativePath(
+      project,
+      segments,
+      parent,
+      id,
+      ext,
+    );
+    await assertDestinationFileAvailable(ws, relativePath);
     final destAbs = ws.resolveProjectRelativePath(relativePath);
     await ws.ensureDirectoryExists(destAbs);
-    final dest = File(destAbs);
-    if (await dest.exists()) {
-      throw EditorValidationException('Target already exists: $relativePath');
-    }
     await src.copy(destAbs);
     final sortOrder = nextDialogueLibrarySortOrder(
       project,
@@ -168,6 +175,13 @@ class ImportProjectDialogueUseCase {
   }
 }
 
+/// Met à jour les métadonnées manifeste d’un dialogue.
+///
+/// **Fichier disque** : le nom de fichier reste `« id ».yarn` (ou `.txt`) à l’emplacement
+/// de [ProjectDialogueEntry.relativePath]. Un renommage **affiché** ([ProjectDialogueEntry.name])
+/// ne renomme **pas** le fichier : l’identité stable `id` + chemin restent la vérité runtime.
+/// Pour déplacer sur disque, utiliser [AssignDialogueToLibraryFolderUseCase] /
+/// [MoveDialogueToLibraryRootUseCase].
 class UpdateProjectDialogueUseCase {
   UpdateProjectDialogueUseCase(this._repo);
 
