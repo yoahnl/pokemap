@@ -30,6 +30,7 @@ import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
+import '../../application/step_studio_completion_runtime.dart';
 import '../../application/scripted_entity_movement_controller.dart';
 import '../../application/scripted_entity_movement_models.dart';
 import '../../application/script_runtime_state.dart';
@@ -118,6 +119,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeStoryBranching _storyBranching = const RuntimeStoryBranching();
   final ScenarioRuntimeExecutor _scenarioRuntime =
       const ScenarioRuntimeExecutor();
+  /// Cache de l’index Step Studio ↔ cutscenes locales (invalidé quand [_bundle] change).
+  StepCompletionCutsceneIndex? _cachedStepCompletionIndex;
+  RuntimeMapBundle? _cachedStepCompletionBundleForIndex;
   late final CutsceneRuntimeRunner _cutsceneRunner =
       _buildCutsceneRuntimeRunner();
   CutsceneChoiceRequest? _pendingCutsceneChoiceRequest;
@@ -1047,54 +1051,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final result = _scenarioRuntime.dispatch(
       scenarios: scenarios,
       sourceEvent: sourceEvent,
-      context: ScenarioRuntimeExecutionContext(
-        gameState: _gameState,
-        onGameStateUpdated: (state) {
-          _gameState = state;
-        },
-        openDialogue: _openScenarioDialogueById,
-        runScript: _runScenarioScriptById,
-        showMessage: (message) => _showNotification(message),
-        moveCharacter: ({
-          required entityId,
-          required targetKind,
-          required targetId,
-          required waitForCompletion,
-          runtimeSourceId,
-        }) {
-          return _runScenarioMoveCharacter(
-            entityId: entityId,
-            targetKind: targetKind,
-            targetId: targetId,
-            waitForCompletion: waitForCompletion,
-            runtimeSourceId: runtimeSourceId,
-          );
-        },
-        followCharacter: ({
-          required leaderEntityId,
-        }) {
-          return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
-        },
-        faceCharacter: ({
-          required entityId,
-          required direction,
-        }) {
-          return _runScenarioFaceCharacter(
-            entityId: entityId,
-            direction: direction,
-          );
-        },
-        transitionMap: ({
-          required mapId,
-          required warpId,
-        }) {
-          return _runScenarioTransitionMap(
-            mapId: mapId,
-            warpId: warpId,
-          );
-        },
-      ),
+      context: _buildScenarioRuntimeExecutionContext(),
     );
+
+    // Step Studio : persistance `whenCutsceneEnds` (nœud `end` → statut reachedEnd).
+    _finalizeScenarioRuntimeResult(result);
 
     // On maintient une trace explicite en logs pour faciliter le debug.
     if (result.status == ScenarioRuntimeExecutionStatus.noMatchingSource) {
@@ -1104,6 +1065,112 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       '[scenario_runtime] source=${sourceEvent.type.name} map=${sourceEvent.mapId} trigger=${sourceEvent.triggerId ?? '-'} entity=${sourceEvent.entityId ?? '-'} status=${result.status.name} scenario=${result.scenarioId ?? '-'} sourceNode=${result.sourceNodeId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
     );
     return result;
+  }
+
+  /// Contexte partagé dispatch / continuation : inclut le filtre Step Studio
+  /// pour ne pas relancer une cutscene locale dont la step est déjà complétée.
+  ScenarioRuntimeExecutionContext _buildScenarioRuntimeExecutionContext() {
+    return ScenarioRuntimeExecutionContext(
+      gameState: _gameState,
+      onGameStateUpdated: (state) {
+        _gameState = state;
+      },
+      shouldSkipScenario: _shouldSkipLocalScenarioForCompletedStep,
+      openDialogue: _openScenarioDialogueById,
+      runScript: _runScenarioScriptById,
+      showMessage: (message) => _showNotification(message),
+      moveCharacter: ({
+        required entityId,
+        required targetKind,
+        required targetId,
+        required waitForCompletion,
+        runtimeSourceId,
+      }) {
+        return _runScenarioMoveCharacter(
+          entityId: entityId,
+          targetKind: targetKind,
+          targetId: targetId,
+          waitForCompletion: waitForCompletion,
+          runtimeSourceId: runtimeSourceId,
+        );
+      },
+      followCharacter: ({
+        required leaderEntityId,
+      }) {
+        return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
+      },
+      faceCharacter: ({
+        required entityId,
+        required direction,
+      }) {
+        return _runScenarioFaceCharacter(
+          entityId: entityId,
+          direction: direction,
+        );
+      },
+      transitionMap: ({
+        required mapId,
+        required warpId,
+      }) {
+        return _runScenarioTransitionMap(
+          mapId: mapId,
+          warpId: warpId,
+        );
+      },
+    );
+  }
+
+  /// Index Step Studio mis en cache tant que le bundle courant est inchangé
+  /// (évite de re-parser le JSON à chaque déclencheur).
+  StepCompletionCutsceneIndex _stepCompletionIndexForCurrentBundle() {
+    if (!identical(_cachedStepCompletionBundleForIndex, _bundle)) {
+      _cachedStepCompletionBundleForIndex = _bundle;
+      _cachedStepCompletionIndex =
+          buildStepCompletionCutsceneIndex(_bundle.manifest.scenarios);
+    }
+    return _cachedStepCompletionIndex!;
+  }
+
+  /// Si la cutscene [scenarioId] est la condition de fin d’une step déjà
+  /// enregistrée dans [PlayerProgression.completedStepIds], on ignore ce
+  /// scénario pour permettre à un autre candidat de matcher (ou aucun).
+  bool _shouldSkipLocalScenarioForCompletedStep(String scenarioId) {
+    final index = _stepCompletionIndexForCurrentBundle();
+    final stepId = index.stepIdToCompleteWhenCutsceneEnds(scenarioId);
+    if (stepId == null) {
+      return false;
+    }
+    return _gameState.progression.completedStepIds.contains(stepId);
+  }
+
+  /// Quand l’exécuteur atteint un nœud `end` ([reachedEnd]), on matérialise
+  /// la completion Step Studio `whenCutsceneEnds` dans la sauvegarde logique.
+  void _finalizeScenarioRuntimeResult(ScenarioRuntimeExecutionResult result) {
+    if (result.status != ScenarioRuntimeExecutionStatus.reachedEnd) {
+      return;
+    }
+    final scenarioId = result.scenarioId;
+    if (scenarioId == null || scenarioId.trim().isEmpty) {
+      return;
+    }
+    final index = _stepCompletionIndexForCurrentBundle();
+    final stepId = index.stepIdToCompleteWhenCutsceneEnds(scenarioId);
+    if (stepId == null) {
+      return;
+    }
+    final next = appendCompletedStepIdIfAbsent(
+      _gameState.progression.completedStepIds,
+      stepId,
+    );
+    if (identical(next, _gameState.progression.completedStepIds)) {
+      return;
+    }
+    _gameState = _gameState.copyWith(
+      progression: _gameState.progression.copyWith(completedStepIds: next),
+    );
+    debugPrint(
+      '[step_studio] step "$stepId" completed (cutscene "$scenarioId" reached end).',
+    );
   }
 
   /// Ouvre un dialogue projet à partir d'un `dialogueId`.
@@ -1161,54 +1228,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       scenarioId: scenarioId,
       sourceNodeId: sourceNodeId,
       resumeAfterNodeId: resumeAfterNodeId,
-      context: ScenarioRuntimeExecutionContext(
-        gameState: _gameState,
-        onGameStateUpdated: (state) {
-          _gameState = state;
-        },
-        openDialogue: _openScenarioDialogueById,
-        runScript: _runScenarioScriptById,
-        showMessage: (message) => _showNotification(message),
-        moveCharacter: ({
-          required entityId,
-          required targetKind,
-          required targetId,
-          required waitForCompletion,
-          runtimeSourceId,
-        }) {
-          return _runScenarioMoveCharacter(
-            entityId: entityId,
-            targetKind: targetKind,
-            targetId: targetId,
-            waitForCompletion: waitForCompletion,
-            runtimeSourceId: runtimeSourceId,
-          );
-        },
-        followCharacter: ({
-          required leaderEntityId,
-        }) {
-          return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
-        },
-        faceCharacter: ({
-          required entityId,
-          required direction,
-        }) {
-          return _runScenarioFaceCharacter(
-            entityId: entityId,
-            direction: direction,
-          );
-        },
-        transitionMap: ({
-          required mapId,
-          required warpId,
-        }) {
-          return _runScenarioTransitionMap(
-            mapId: mapId,
-            warpId: warpId,
-          );
-        },
-      ),
+      context: _buildScenarioRuntimeExecutionContext(),
     );
+    _finalizeScenarioRuntimeResult(result);
     debugPrint(
       '[scenario_runtime] continuation source=$runtimeSourceId status=${result.status.name} scenario=${result.scenarioId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
     );

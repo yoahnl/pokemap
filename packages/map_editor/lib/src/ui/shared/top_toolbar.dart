@@ -222,7 +222,7 @@ class TopToolbar extends ConsumerWidget {
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.play_rectangle,
-            tooltip: 'Switch to cutscene workspace',
+            tooltip: 'Switch to Cutscene Studio',
             selected: state.workspaceMode == EditorWorkspaceMode.cutscene,
             onPressed: notifier.selectCutsceneWorkspace,
           ),

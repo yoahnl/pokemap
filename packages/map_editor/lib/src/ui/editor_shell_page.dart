@@ -62,7 +62,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
       EditorWorkspaceMode.globalStory => 'Global Story Workspace',
       EditorWorkspaceMode.step => 'Step Workspace',
-      EditorWorkspaceMode.cutscene => 'Cutscene Workspace',
+      EditorWorkspaceMode.cutscene => 'Cutscene Studio',
       EditorWorkspaceMode.dialogue => 'Dialogue Studio',
     };
     final workspaceSubtitle = switch (workspaceMode) {

@@ -236,6 +236,11 @@ class ScenarioRuntimeExecutor {
       if (sourceNode == null) {
         continue;
       }
+      final scenarioId = scenario.id.trim();
+      final skip = context.shouldSkipScenario;
+      if (skip != null && scenarioId.isNotEmpty && skip(scenarioId)) {
+        continue;
+      }
       return _executeScenarioFromSource(
         scenario: scenario,
         sourceNode: sourceNode,

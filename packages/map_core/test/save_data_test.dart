@@ -64,17 +64,20 @@ void main() {
       const progression = PlayerProgression(
         unlockedFieldAbilities: [FieldAbility.surf],
         storyFlags: ['badge_cascade', 'rescued_bill'],
+        completedStepIds: ['step_intro', 'step_2_1'],
       );
       final json = progression.toJson();
       final restored = PlayerProgression.fromJson(json);
       expect(restored.unlockedFieldAbilities, [FieldAbility.surf]);
       expect(restored.storyFlags, ['badge_cascade', 'rescued_bill']);
+      expect(restored.completedStepIds, ['step_intro', 'step_2_1']);
     });
 
     test('defaults are empty', () {
       const progression = PlayerProgression();
       expect(progression.unlockedFieldAbilities, isEmpty);
       expect(progression.storyFlags, isEmpty);
+      expect(progression.completedStepIds, isEmpty);
     });
   });
 
@@ -124,6 +127,7 @@ void main() {
       expect(save.party.members, isEmpty);
       expect(save.progression.unlockedFieldAbilities, isEmpty);
       expect(save.progression.storyFlags, isEmpty);
+      expect(save.progression.completedStepIds, isEmpty);
       expect(save.properties, isEmpty);
     });
 

@@ -453,6 +453,10 @@ mixin _$PlayerProgression {
       throw _privateConstructorUsedError;
   List<String> get storyFlags => throw _privateConstructorUsedError;
 
+  /// Steps du document `authoring.stepStudioDocument` marquées comme
+  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
+  List<String> get completedStepIds => throw _privateConstructorUsedError;
+
   /// Serializes this PlayerProgression to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -470,7 +474,9 @@ abstract class $PlayerProgressionCopyWith<$Res> {
       _$PlayerProgressionCopyWithImpl<$Res, PlayerProgression>;
   @useResult
   $Res call(
-      {List<FieldAbility> unlockedFieldAbilities, List<String> storyFlags});
+      {List<FieldAbility> unlockedFieldAbilities,
+      List<String> storyFlags,
+      List<String> completedStepIds});
 }
 
 /// @nodoc
@@ -490,6 +496,7 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
   $Res call({
     Object? unlockedFieldAbilities = null,
     Object? storyFlags = null,
+    Object? completedStepIds = null,
   }) {
     return _then(_value.copyWith(
       unlockedFieldAbilities: null == unlockedFieldAbilities
@@ -499,6 +506,10 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
       storyFlags: null == storyFlags
           ? _value.storyFlags
           : storyFlags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      completedStepIds: null == completedStepIds
+          ? _value.completedStepIds
+          : completedStepIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
     ) as $Val);
   }
@@ -513,7 +524,9 @@ abstract class _$$PlayerProgressionImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {List<FieldAbility> unlockedFieldAbilities, List<String> storyFlags});
+      {List<FieldAbility> unlockedFieldAbilities,
+      List<String> storyFlags,
+      List<String> completedStepIds});
 }
 
 /// @nodoc
@@ -531,6 +544,7 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
   $Res call({
     Object? unlockedFieldAbilities = null,
     Object? storyFlags = null,
+    Object? completedStepIds = null,
   }) {
     return _then(_$PlayerProgressionImpl(
       unlockedFieldAbilities: null == unlockedFieldAbilities
@@ -540,6 +554,10 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
       storyFlags: null == storyFlags
           ? _value._storyFlags
           : storyFlags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      completedStepIds: null == completedStepIds
+          ? _value._completedStepIds
+          : completedStepIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
     ));
   }
@@ -551,9 +569,11 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
 class _$PlayerProgressionImpl implements _PlayerProgression {
   const _$PlayerProgressionImpl(
       {final List<FieldAbility> unlockedFieldAbilities = const [],
-      final List<String> storyFlags = const []})
+      final List<String> storyFlags = const [],
+      final List<String> completedStepIds = const []})
       : _unlockedFieldAbilities = unlockedFieldAbilities,
-        _storyFlags = storyFlags;
+        _storyFlags = storyFlags,
+        _completedStepIds = completedStepIds;
 
   factory _$PlayerProgressionImpl.fromJson(Map<String, dynamic> json) =>
       _$$PlayerProgressionImplFromJson(json);
@@ -577,9 +597,24 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
     return EqualUnmodifiableListView(_storyFlags);
   }
 
+  /// Steps du document `authoring.stepStudioDocument` marquées comme
+  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
+  final List<String> _completedStepIds;
+
+  /// Steps du document `authoring.stepStudioDocument` marquées comme
+  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
+  @override
+  @JsonKey()
+  List<String> get completedStepIds {
+    if (_completedStepIds is EqualUnmodifiableListView)
+      return _completedStepIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_completedStepIds);
+  }
+
   @override
   String toString() {
-    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags)';
+    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, completedStepIds: $completedStepIds)';
   }
 
   @override
@@ -590,7 +625,9 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
             const DeepCollectionEquality().equals(
                 other._unlockedFieldAbilities, _unlockedFieldAbilities) &&
             const DeepCollectionEquality()
-                .equals(other._storyFlags, _storyFlags));
+                .equals(other._storyFlags, _storyFlags) &&
+            const DeepCollectionEquality()
+                .equals(other._completedStepIds, _completedStepIds));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -598,7 +635,8 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
   int get hashCode => Object.hash(
       runtimeType,
       const DeepCollectionEquality().hash(_unlockedFieldAbilities),
-      const DeepCollectionEquality().hash(_storyFlags));
+      const DeepCollectionEquality().hash(_storyFlags),
+      const DeepCollectionEquality().hash(_completedStepIds));
 
   /// Create a copy of PlayerProgression
   /// with the given fields replaced by the non-null parameter values.
@@ -620,7 +658,8 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
 abstract class _PlayerProgression implements PlayerProgression {
   const factory _PlayerProgression(
       {final List<FieldAbility> unlockedFieldAbilities,
-      final List<String> storyFlags}) = _$PlayerProgressionImpl;
+      final List<String> storyFlags,
+      final List<String> completedStepIds}) = _$PlayerProgressionImpl;
 
   factory _PlayerProgression.fromJson(Map<String, dynamic> json) =
       _$PlayerProgressionImpl.fromJson;
@@ -629,6 +668,11 @@ abstract class _PlayerProgression implements PlayerProgression {
   List<FieldAbility> get unlockedFieldAbilities;
   @override
   List<String> get storyFlags;
+
+  /// Steps du document `authoring.stepStudioDocument` marquées comme
+  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
+  @override
+  List<String> get completedStepIds;
 
   /// Create a copy of PlayerProgression
   /// with the given fields replaced by the non-null parameter values.

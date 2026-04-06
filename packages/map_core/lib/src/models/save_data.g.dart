@@ -53,6 +53,10 @@ _$PlayerProgressionImpl _$$PlayerProgressionImplFromJson(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      completedStepIds: (json['completedStepIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$PlayerProgressionImplToJson(
@@ -62,6 +66,7 @@ Map<String, dynamic> _$$PlayerProgressionImplToJson(
           .map((e) => _$FieldAbilityEnumMap[e]!)
           .toList(),
       'storyFlags': instance.storyFlags,
+      'completedStepIds': instance.completedStepIds,
     };
 
 const _$FieldAbilityEnumMap = {

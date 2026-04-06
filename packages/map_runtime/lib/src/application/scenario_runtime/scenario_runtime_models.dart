@@ -206,6 +206,11 @@ typedef ScenarioRuntimeTransitionMap = bool Function({
   required String warpId,
 });
 
+/// Callback optionnel : si [true], le scénario candidat est ignoré et la
+/// recherche continue (ex. cutscene locale déjà « consommée » par une step
+/// Step Studio complétée — voir persistance `completedStepIds`).
+typedef ScenarioRuntimeShouldSkipScenario = bool Function(String scenarioId);
+
 /// Contexte mutable d'exécution du bridge.
 ///
 /// Le bridge reste pur sur l'analyse du graphe, mais délègue les effets
@@ -221,6 +226,7 @@ class ScenarioRuntimeExecutionContext {
     this.followCharacter = _defaultFollowCharacter,
     this.faceCharacter = _defaultFaceCharacter,
     this.transitionMap = _defaultTransitionMap,
+    this.shouldSkipScenario,
   });
 
   GameState gameState;
@@ -232,6 +238,12 @@ class ScenarioRuntimeExecutionContext {
   final ScenarioRuntimeFollowCharacter followCharacter;
   final ScenarioRuntimeFaceCharacter faceCharacter;
   final ScenarioRuntimeTransitionMap transitionMap;
+
+  /// Filtre appliqué **après** match de source et **avant** exécution du flow.
+  ///
+  /// Uniquement sur [ScenarioRuntimeExecutor.dispatch] (parcours de candidats),
+  /// pas sur [ScenarioRuntimeExecutor.dispatchContinuation] (reprise ciblée).
+  final ScenarioRuntimeShouldSkipScenario? shouldSkipScenario;
 
   static bool _defaultMoveCharacter({
     required String entityId,

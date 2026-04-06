@@ -46,6 +46,7 @@ export 'src/application/scenario_runtime/scenario_runtime_models.dart'
         ScenarioRuntimeExecutionStatus,
         ScenarioRuntimeExecutionResult,
         ScenarioRuntimeExecutionContext,
+        ScenarioRuntimeShouldSkipScenario,
         ScenarioRuntimeOpenDialogue,
         ScenarioRuntimeRunScript,
         ScenarioRuntimeShowMessage,

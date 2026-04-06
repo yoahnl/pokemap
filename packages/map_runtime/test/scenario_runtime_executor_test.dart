@@ -895,5 +895,91 @@ void main() {
       expect(result.status, ScenarioRuntimeExecutionStatus.blocked);
       expect(result.message, contains('transitionMap invalide'));
     });
+
+    test('shouldSkipScenario bypasses scenario and tries next candidate', () {
+      final scenarioSkip = ScenarioAsset(
+        id: 'skip_me',
+        name: 'Skip',
+        entryNodeId: 'source_skip',
+        scope: ScenarioScope.localEventFlow,
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_skip',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(actionKind: kScenarioSourceMapEnter),
+            binding: ScenarioNodeBinding(mapId: 'm1'),
+          ),
+          ScenarioNode(
+            id: 'end',
+            type: ScenarioNodeType.end,
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_skip',
+            toNodeId: 'end',
+          ),
+        ],
+      );
+
+      final scenarioRun = ScenarioAsset(
+        id: 'run_me',
+        name: 'Run',
+        entryNodeId: 'source_run',
+        scope: ScenarioScope.localEventFlow,
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source_run',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(actionKind: kScenarioSourceMapEnter),
+            binding: ScenarioNodeBinding(mapId: 'm1'),
+          ),
+          ScenarioNode(
+            id: 'dialogue_intro',
+            type: ScenarioNodeType.dialogue,
+            binding: ScenarioNodeBinding(dialogueId: 'intro'),
+          ),
+          ScenarioNode(
+            id: 'end',
+            type: ScenarioNodeType.end,
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+            id: 'e1',
+            fromNodeId: 'source_run',
+            toNodeId: 'dialogue_intro',
+          ),
+          ScenarioEdge(
+            id: 'e2',
+            fromNodeId: 'dialogue_intro',
+            toNodeId: 'end',
+          ),
+        ],
+      );
+
+      final openedDialogues = <String>[];
+      var state = const GameState(saveId: 'save');
+      final result = executor.dispatch(
+        scenarios: <ScenarioAsset>[scenarioSkip, scenarioRun],
+        sourceEvent: ScenarioRuntimeSourceEvent.mapEnter(mapId: 'm1'),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: state,
+          onGameStateUpdated: (next) => state = next,
+          shouldSkipScenario: (id) => id == 'skip_me',
+          openDialogue: (dialogueId, {startNode, runtimeSourceId}) {
+            openedDialogues.add(dialogueId);
+            return true;
+          },
+          runScript: (scriptId, {startNode, runtimeSourceId}) => false,
+          showMessage: (_) {},
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.executedEffect);
+      expect(openedDialogues, <String>['intro']);
+      expect(result.scenarioId, 'run_me');
+    });
   });
 }

@@ -21,6 +21,7 @@ void main() {
         progression: PlayerProgression(
           unlockedFieldAbilities: [FieldAbility.surf],
           storyFlags: ['met_professor', 'starter_received'],
+          completedStepIds: ['step_a'],
         ),
         properties: {'legacy': 'ok'},
       );
@@ -36,6 +37,7 @@ void main() {
           contains(FieldAbility.surf));
       expect(state.storyFlags.activeFlags,
           containsAll(['met_professor', 'starter_received']));
+      expect(state.progression.completedStepIds, ['step_a']);
       expect(state.metadata['legacy'], equals('ok'));
     });
   });
@@ -47,7 +49,10 @@ void main() {
         currentMapId: 'route_1',
         playerPosition: const GridPos(x: 3, y: 4),
         playerFacing: EntityFacing.north,
-        progression: const PlayerProgression(storyFlags: ['from_progression']),
+        progression: const PlayerProgression(
+          storyFlags: ['from_progression'],
+          completedStepIds: ['step_done'],
+        ),
         storyFlags: const StoryFlags(activeFlags: {'from_story_flags'}),
       );
 
@@ -61,6 +66,7 @@ void main() {
         save.progression.storyFlags.toSet(),
         containsAll(<String>{'from_progression', 'from_story_flags'}),
       );
+      expect(save.progression.completedStepIds, ['step_done']);
     });
   });
 

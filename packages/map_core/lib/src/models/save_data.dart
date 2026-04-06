@@ -37,12 +37,20 @@ class PlayerParty with _$PlayerParty {
 }
 
 /// Progression du joueur — field abilities débloquées, flags scénaristiques.
+///
+/// [completedStepIds] : identifiants des steps **Step Studio** déjà terminées
+/// côté runtime (ex. completion `whenCutsceneEnds`). Persistance save/load
+/// via [SaveData.progression] ; distinct des flags narratifs génériques.
 @freezed
 class PlayerProgression with _$PlayerProgression {
   @JsonSerializable(explicitToJson: true)
   const factory PlayerProgression({
     @Default([]) List<FieldAbility> unlockedFieldAbilities,
     @Default([]) List<String> storyFlags,
+
+    /// Steps du document `authoring.stepStudioDocument` marquées comme
+    /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
+    @Default([]) List<String> completedStepIds,
   }) = _PlayerProgression;
 
   factory PlayerProgression.fromJson(Map<String, dynamic> json) =>
