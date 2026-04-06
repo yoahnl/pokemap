@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
@@ -93,6 +95,62 @@ void main() {
         parse.document.steps.first.worldChanges.first.entityId,
         'emma_outside',
       );
+    });
+
+    test(
+      'apply + parse roundtrip keeps worldChanges when entityId is still empty',
+      () {
+      const sourceScenario = ScenarioAsset(
+        id: 'global_story',
+        name: 'Global Story',
+        scope: ScenarioScope.globalStory,
+        entryNodeId: 'start',
+      );
+
+      const document = StepStudioDocument(
+        globalStoryScenarioId: 'global_story',
+        steps: <StepStudioStep>[
+          StepStudioStep(
+            id: 'step_map_change',
+            name: 'Carte',
+            description: 'Test persistance worldChanges',
+            order: 0,
+            activation: StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            ),
+            completion: const StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.manual,
+            ),
+            worldChanges: <StepStudioWorldChange>[
+              StepStudioWorldChange(
+                mapId: 'route_1',
+                entityId: '',
+                presenceRule:
+                    StepStudioPresenceRule.visibleAfterStepCompletion,
+                note: 'brouillon',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final updated = applyStepStudioDocumentToGlobalScenario(
+        sourceScenario,
+        document,
+      );
+      final raw = updated.metadata[kStepStudioDocumentMetadataKey];
+      expect(raw, isNotNull);
+      final decoded = jsonDecode(raw!) as Map<String, dynamic>;
+      final steps = decoded['steps'] as List<dynamic>;
+      final worldChangesJson =
+          (steps.first as Map<String, dynamic>)['worldChanges'] as List;
+      expect(worldChangesJson, hasLength(1));
+
+      final parse = parseStepStudioDocumentFromGlobalScenario(updated);
+      expect(parse.document.steps.single.worldChanges, hasLength(1));
+      expect(parse.document.steps.single.worldChanges.first.mapId, 'route_1');
+      expect(parse.document.steps.single.worldChanges.first.entityId, '');
+      expect(parse.document.steps.single.worldChanges.first.note, 'brouillon');
     });
 
     test('generates stable user-friendly ids', () {

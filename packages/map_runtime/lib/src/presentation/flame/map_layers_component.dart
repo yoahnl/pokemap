@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_manifest_tilesets.dart';
@@ -22,6 +23,7 @@ class MapLayersComponent extends PositionComponent {
     required this.tileImagesByTilesetId,
     this.renderPass = MapLayerRenderPass.background,
     this.showCollisionOverlay = false,
+    this.npcMapPresencePredicate,
   })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
         _pathAutotileByPresetId = {
           for (final p in bundle.manifest.pathPresets)
@@ -49,6 +51,10 @@ class MapLayersComponent extends PositionComponent {
   final Map<String, ui.Image> tileImagesByTilesetId;
   final MapLayerRenderPass renderPass;
   bool showCollisionOverlay;
+
+  /// Si non null, les PNJ pour lesquels ce filtre retourne `false` ne sont pas
+  /// peints (sprites « élément projet » sans personnage dédié).
+  NpcMapPresencePredicate? npcMapPresencePredicate;
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
   final Map<String, List<_PathRuleSpec>> _pathRulesByLayerId;
@@ -284,6 +290,10 @@ class MapLayersComponent extends PositionComponent {
     final elapsedMs = (_animElapsed * 1000).toInt();
     for (final entity in bundle.map.entities) {
       if (entity.kind == MapEntityKind.npc) {
+        final presence = npcMapPresencePredicate;
+        if (presence != null && !presence(entity)) {
+          continue;
+        }
         final charId = resolveNpcCharacterId(entity, bundle.manifest);
         if (charId != null && charId.isNotEmpty) continue;
       }

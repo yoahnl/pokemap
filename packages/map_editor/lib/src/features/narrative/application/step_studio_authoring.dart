@@ -616,11 +616,14 @@ class StepStudioStep {
               entry.label.trim().isNotEmpty ||
               entry.outcomeId.trim().isNotEmpty)
           .toList(growable: false),
+      // Ne pas exiger `entityId` non vide : l’UI peut persister une ligne
+      // « brouillon » (map choisie, entité pas encore resélectionnée après
+      // changement de map, etc.). Filtrer ici faisait disparaître ces lignes
+      // après save + réhydratation alors qu’elles étaient bien dans le JSON.
       worldChanges: worldChangeJson
           .whereType<Map<String, dynamic>>()
           .map(StepStudioWorldChange.fromJson)
-          .where((entry) =>
-              entry.mapId.trim().isNotEmpty && entry.entityId.trim().isNotEmpty)
+          .where((entry) => entry.mapId.trim().isNotEmpty)
           .toList(growable: false),
       flowEntryLabel: _trimOrEmpty(json['flowEntryLabel']),
       flowObjectiveLabel: _trimOrEmpty(json['flowObjectiveLabel']),

@@ -61,7 +61,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.map => state.activeMap?.name ?? 'Map Workspace',
       EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
       EditorWorkspaceMode.globalStory => 'Global Story Workspace',
-      EditorWorkspaceMode.step => 'Step Workspace',
+      EditorWorkspaceMode.step => 'Step Studio',
       EditorWorkspaceMode.cutscene => 'Cutscene Studio',
       EditorWorkspaceMode.dialogue => 'Dialogue Studio',
     };

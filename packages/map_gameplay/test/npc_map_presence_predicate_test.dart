@@ -1,0 +1,42 @@
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:test/test.dart';
+
+void main() {
+  test('PNJ absent des caches spatiaux quand le prédicat retourne false', () {
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      size: const GridSize(width: 12, height: 12),
+      layers: const <MapLayer>[
+        MapLayer.collision(
+          id: 'collision',
+          name: 'Collision',
+          collisions: <bool>[],
+        ),
+      ],
+      entities: const <MapEntity>[
+        MapEntity(
+          id: 'emma',
+          kind: MapEntityKind.npc,
+          pos: GridPos(x: 5, y: 5),
+          size: GridSize(width: 2, height: 2),
+          npc: MapEntityNpcData(),
+        ),
+      ],
+    );
+
+    final hidden = GameplayWorldState.initial(
+      map: map,
+      playerPos: const GridPos(x: 0, y: 0),
+      npcMapPresencePredicate: (_) => false,
+    );
+
+    expect(hidden.isBlocked(5, 5), isFalse);
+    expect(hidden.entityAt(5, 5), isNull);
+
+    final visible = hidden.withNpcMapPresencePredicate((_) => true);
+    expect(visible.isBlocked(5, 5), isTrue);
+    expect(visible.entityAt(5, 5)?.id, 'emma');
+  });
+}

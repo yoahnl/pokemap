@@ -44,6 +44,9 @@ class OverworldActorComponent extends PositionComponent {
   CharacterAnimationState _animState;
   double _animElapsed = 0.0;
 
+  /// Masque le sprite sans retirer le composant (visibilité conditionnelle PNJ).
+  bool _gameplayVisible = true;
+
   /// Vrai si on affiche une anim « idle » (ou peu de frames) pendant un pas
   /// alors que l’état logique demande marche/course — léger bob pour éviter
   /// l’effet « lévitation » quand le tileset n’a pas de strip walk pour cette direction.
@@ -64,6 +67,10 @@ class OverworldActorComponent extends PositionComponent {
   Vector2? _moveTo;
   double _moveRemaining = 0;
   double _stepDurationSeconds = 0.12;
+
+  void setGameplayVisible(bool visible) {
+    _gameplayVisible = visible;
+  }
 
   int get frameWidthTiles => _frameWidthTiles;
   int get frameHeightTiles => _frameHeightTiles;
@@ -212,6 +219,9 @@ class OverworldActorComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (!_gameplayVisible) {
+      return;
+    }
     final anim = _findAnimation();
     if (anim == null || anim.frames.isEmpty) {
       _renderFallback(canvas);

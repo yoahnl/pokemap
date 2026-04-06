@@ -216,7 +216,7 @@ class TopToolbar extends ConsumerWidget {
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.flag,
-            tooltip: 'Switch to step workspace',
+            tooltip: 'Switch to Step Studio',
             selected: state.workspaceMode == EditorWorkspaceMode.step,
             onPressed: notifier.selectStepWorkspace,
           ),

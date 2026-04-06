@@ -20,6 +20,69 @@ Map<String, dynamic> _$$DialogueRefImplToJson(_$DialogueRefImpl instance) =>
       'startNode': instance.startNode,
     };
 
+_$MapEntityRuntimePredicateImpl _$$MapEntityRuntimePredicateImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapEntityRuntimePredicateImpl(
+      kind: $enumDecode(_$MapEntityRuntimePredicateKindEnumMap, json['kind']),
+      refId: json['refId'] as String? ?? '',
+    );
+
+Map<String, dynamic> _$$MapEntityRuntimePredicateImplToJson(
+        _$MapEntityRuntimePredicateImpl instance) =>
+    <String, dynamic>{
+      'kind': _$MapEntityRuntimePredicateKindEnumMap[instance.kind]!,
+      'refId': instance.refId,
+    };
+
+const _$MapEntityRuntimePredicateKindEnumMap = {
+  MapEntityRuntimePredicateKind.storyFlagSet: 'storyFlagSet',
+  MapEntityRuntimePredicateKind.storyFlagUnset: 'storyFlagUnset',
+  MapEntityRuntimePredicateKind.stepCompleted: 'stepCompleted',
+  MapEntityRuntimePredicateKind.stepNotCompleted: 'stepNotCompleted',
+  MapEntityRuntimePredicateKind.chapterCompleted: 'chapterCompleted',
+  MapEntityRuntimePredicateKind.chapterNotCompleted: 'chapterNotCompleted',
+  MapEntityRuntimePredicateKind.cutsceneCompleted: 'cutsceneCompleted',
+  MapEntityRuntimePredicateKind.cutsceneNotCompleted: 'cutsceneNotCompleted',
+};
+
+_$MapEntityNpcVisibilityRuleImpl _$$MapEntityNpcVisibilityRuleImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapEntityNpcVisibilityRuleImpl(
+      mode: $enumDecode(_$MapEntityNpcVisibilityModeEnumMap, json['mode']),
+      predicate: json['predicate'] == null
+          ? null
+          : MapEntityRuntimePredicate.fromJson(
+              json['predicate'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$MapEntityNpcVisibilityRuleImplToJson(
+        _$MapEntityNpcVisibilityRuleImpl instance) =>
+    <String, dynamic>{
+      'mode': _$MapEntityNpcVisibilityModeEnumMap[instance.mode]!,
+      'predicate': instance.predicate?.toJson(),
+    };
+
+const _$MapEntityNpcVisibilityModeEnumMap = {
+  MapEntityNpcVisibilityMode.always: 'always',
+  MapEntityNpcVisibilityMode.visibleWhen: 'visibleWhen',
+  MapEntityNpcVisibilityMode.hiddenWhen: 'hiddenWhen',
+};
+
+_$MapEntityConditionalDialogueImpl _$$MapEntityConditionalDialogueImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapEntityConditionalDialogueImpl(
+      when: MapEntityRuntimePredicate.fromJson(
+          json['when'] as Map<String, dynamic>),
+      dialogue: DialogueRef.fromJson(json['dialogue'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$MapEntityConditionalDialogueImplToJson(
+        _$MapEntityConditionalDialogueImpl instance) =>
+    <String, dynamic>{
+      'when': instance.when.toJson(),
+      'dialogue': instance.dialogue.toJson(),
+    };
+
 _$MapEntityNpcDataImpl _$$MapEntityNpcDataImplFromJson(
         Map<String, dynamic> json) =>
     _$MapEntityNpcDataImpl(
@@ -41,6 +104,15 @@ _$MapEntityNpcDataImpl _$$MapEntityNpcDataImplFromJson(
           ? const MapEntityNpcMovementConfig()
           : MapEntityNpcMovementConfig.fromJson(
               json['movement'] as Map<String, dynamic>),
+      visibilityRule: json['visibilityRule'] == null
+          ? null
+          : MapEntityNpcVisibilityRule.fromJson(
+              json['visibilityRule'] as Map<String, dynamic>),
+      conditionalDialogues: (json['conditionalDialogues'] as List<dynamic>?)
+              ?.map((e) => MapEntityConditionalDialogue.fromJson(
+                  e as Map<String, dynamic>))
+              .toList() ??
+          const <MapEntityConditionalDialogue>[],
     );
 
 Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
@@ -55,6 +127,9 @@ Map<String, dynamic> _$$MapEntityNpcDataImplToJson(
       'defeatDialogueRef': instance.defeatDialogueRef?.toJson(),
       'characterId': instance.characterId,
       'movement': instance.movement.toJson(),
+      'visibilityRule': instance.visibilityRule?.toJson(),
+      'conditionalDialogues':
+          instance.conditionalDialogues.map((e) => e.toJson()).toList(),
     };
 
 const _$EntityFacingEnumMap = {

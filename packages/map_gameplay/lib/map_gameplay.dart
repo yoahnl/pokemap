@@ -37,7 +37,8 @@ export 'src/gameplay_step_result.dart'
         EntityInteracted,
         PlacedElementInteracted,
         MapEventInteracted;
-export 'src/gameplay_world_state.dart' show GameplayWorldState;
+export 'src/gameplay_world_state.dart'
+    show GameplayWorldState, NpcMapPresencePredicate;
 export 'src/surf_evaluation.dart'
     show
         SurfAttemptEvaluation,

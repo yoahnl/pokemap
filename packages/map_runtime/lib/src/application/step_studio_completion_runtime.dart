@@ -108,3 +108,22 @@ List<String> appendCompletedStepIdIfAbsent(
   }
   return [...completed, id];
 }
+
+/// Enregistre un scénario **local** comme terminé (prédicats `cutsceneCompleted`).
+///
+/// Appelé quand l’exécuteur atteint `reachedEnd` pour un [ScenarioAsset] de
+/// scope [ScenarioScope.localEventFlow]. Les scénarios globaux ne sont pas
+/// ajoutés ici (évite la confusion avec les cutscenes de map).
+List<String> appendCompletedCutsceneIdIfAbsent(
+  List<String> completed,
+  String scenarioId,
+) {
+  final id = scenarioId.trim();
+  if (id.isEmpty) {
+    return completed;
+  }
+  if (completed.contains(id)) {
+    return completed;
+  }
+  return [...completed, id];
+}

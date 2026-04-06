@@ -341,6 +341,7 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
           contextLabel: 'Entity ${entity.id} (defeat dialogue)',
         );
       }
+      _assertNpcVisibilityAndConditionalDialogues(entity.id, n);
       break;
     case MapEntityKind.sign:
       final s = entity.sign ?? const MapEntitySignData();
@@ -369,6 +370,51 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
     case MapEntityKind.spawn:
     case MapEntityKind.custom:
       break;
+  }
+}
+
+void _assertNpcVisibilityAndConditionalDialogues(String entityId, MapEntityNpcData n) {
+  final rule = n.visibilityRule;
+  if (rule != null) {
+    switch (rule.mode) {
+      case MapEntityNpcVisibilityMode.always:
+        break;
+      case MapEntityNpcVisibilityMode.visibleWhen:
+      case MapEntityNpcVisibilityMode.hiddenWhen:
+        final pred = rule.predicate;
+        if (pred == null) {
+          throw ValidationException(
+            'Entity $entityId visibility rule (${rule.mode.name}) requires a predicate',
+          );
+        }
+        _assertRuntimePredicateRef(entityId, pred, 'visibility');
+    }
+  }
+  for (var i = 0; i < n.conditionalDialogues.length; i++) {
+    final row = n.conditionalDialogues[i];
+    _assertRuntimePredicateRef(entityId, row.when, 'conditional dialogue #$i');
+    if (row.dialogue.dialogueId.trim().isEmpty) {
+      throw ValidationException(
+        'Entity $entityId conditional dialogue #$i is missing dialogueId',
+      );
+    }
+    _assertDialogueScriptPath(row.dialogue.scriptPathRelative, entityId);
+    assertValidDialogueStartNode(
+      row.dialogue.startNode,
+      contextLabel: 'Entity $entityId (conditional dialogue #$i)',
+    );
+  }
+}
+
+void _assertRuntimePredicateRef(
+  String entityId,
+  MapEntityRuntimePredicate predicate,
+  String contextLabel,
+) {
+  if (predicate.refId.trim().isEmpty) {
+    throw ValidationException(
+      'Entity $entityId $contextLabel: a target must be selected (empty ref)',
+    );
   }
 }
 

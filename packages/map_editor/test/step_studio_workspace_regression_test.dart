@@ -272,6 +272,91 @@ void main() {
       // completes in < 1 second.
       timeout: const Timeout(Duration(seconds: 30)),
     );
+
+    testWidgets(
+      'hydrated sidebar lists worldChanges count when entityId is empty (draft row)',
+      (tester) async {
+        final document = StepStudioDocument(
+          globalStoryScenarioId: 'global_story',
+          steps: <StepStudioStep>[
+            StepStudioStep(
+              id: 'step_a',
+              name: 'Step A',
+              description: 'First step',
+              order: 0,
+              activation: const StepStudioActivationRule(
+                mode: StepStudioActivationMode.atGameStart,
+              ),
+              completion: const StepStudioCompletionRule(
+                mode: StepStudioCompletionMode.manual,
+              ),
+              worldChanges: const <StepStudioWorldChange>[
+                StepStudioWorldChange(
+                  mapId: 'map_alpha',
+                  entityId: '',
+                  presenceRule:
+                      StepStudioPresenceRule.visibleAfterStepCompletion,
+                  note: '',
+                ),
+              ],
+            ),
+          ],
+        );
+
+        final project = ProjectManifest(
+          name: 'test',
+          maps: const <ProjectMapEntry>[],
+          tilesets: const <ProjectTilesetEntry>[],
+          scenarios: <ScenarioAsset>[
+            ScenarioAsset(
+              id: 'global_story',
+              name: 'Global Story',
+              scope: ScenarioScope.globalStory,
+              entryNodeId: 'start',
+              metadata: <String, String>{
+                kStepStudioDocumentMetadataKey: document.toMetadataJson(),
+              },
+            ),
+          ],
+        );
+        final projection = buildNarrativeWorkspaceProjection(project);
+
+        await tester.binding.setSurfaceSize(const Size(1600, 1200));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          ProviderScope(
+            child: Consumer(
+              builder: (context, ref, _) {
+                final notifier = ref.read(editorNotifierProvider.notifier);
+                return MaterialApp(
+                  home: Scaffold(
+                    body: SizedBox(
+                      width: 1280,
+                      height: 900,
+                      child: StepStudioWorkspace(
+                        editorNotifier: notifier,
+                        project: project,
+                        activeMap: null,
+                        projection: projection,
+                        selectedStepId: 'step_a',
+                        onSelectStep: (_) {},
+                        onSelectOutcome: (_) {},
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(
+          find.textContaining('1 changement(s) sur la carte'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }
 

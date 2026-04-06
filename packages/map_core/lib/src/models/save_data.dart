@@ -51,6 +51,11 @@ class PlayerProgression with _$PlayerProgression {
     /// Steps du document `authoring.stepStudioDocument` marquées comme
     /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
     @Default([]) List<String> completedStepIds,
+
+    /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
+    /// au moins une fois dans cette partie — utilisé pour prédicats
+    /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
+    @Default([]) List<String> completedCutsceneIds,
   }) = _PlayerProgression;
 
   factory PlayerProgression.fromJson(Map<String, dynamic> json) =>

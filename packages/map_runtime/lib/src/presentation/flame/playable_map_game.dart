@@ -31,6 +31,8 @@ import '../../application/runtime_story_branching.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
 import '../../application/step_studio_completion_runtime.dart';
+import '../../application/global_story_chapter_runtime.dart';
+import '../../application/map_entity_runtime_predicate_evaluator.dart';
 import '../../application/scripted_entity_movement_controller.dart';
 import '../../application/scripted_entity_movement_models.dart';
 import '../../application/script_runtime_state.dart';
@@ -241,6 +243,59 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  /// Filtre spatial PNJ aligné sur [MapEntityRuntimePredicateEvaluator]
+  /// (flags, steps, chapitres, cutscenes locales terminées).
+  NpcMapPresencePredicate _npcPresencePredicateFor(ProjectManifest manifest) {
+    return (MapEntity npcEntity) {
+      return MapEntityRuntimePredicateEvaluator(
+        gameState: _gameState,
+        chapterIndex: buildGlobalStoryChapterStepIndex(manifest.scenarios),
+      ).isNpcPresentOnMap(npcEntity);
+    };
+  }
+
+  /// Dialogue effectif : variantes ordonnées puis dialogue par défaut du PNJ.
+  DialogueRef? _resolveNpcDialogueRef(MapEntity entity) {
+    final npc = entity.npc;
+    if (npc == null) {
+      return null;
+    }
+    return MapEntityRuntimePredicateEvaluator(
+      gameState: _gameState,
+      chapterIndex: buildGlobalStoryChapterStepIndex(_bundle.manifest.scenarios),
+    ).resolveNpcDialogue(npc);
+  }
+
+  void _refreshWorldNpcPresence() {
+    if (!isLoaded) {
+      return;
+    }
+    _world = _world.withNpcMapPresencePredicate(
+      _npcPresencePredicateFor(_bundle.manifest),
+    );
+    _syncNpcRenderVisibility();
+    _syncNpcCollisionDebugOverlay();
+  }
+
+  void _syncNpcRenderVisibility() {
+    for (final loaded in _loadedMapsById.values) {
+      _applyNpcVisibilityToLoadedMap(loaded);
+    }
+  }
+
+  void _applyNpcVisibilityToLoadedMap(_LoadedPlayableMap loaded) {
+    final npcPred = _npcPresencePredicateFor(loaded.bundle.manifest);
+    loaded.backgroundLayers.npcMapPresencePredicate = npcPred;
+    loaded.foregroundLayers.npcMapPresencePredicate = npcPred;
+    for (final entity in loaded.bundle.map.entities) {
+      if (entity.kind != MapEntityKind.npc) {
+        continue;
+      }
+      loaded.npcActorByEntityId[entity.id]
+          ?.setGameplayVisible(npcPred(entity));
+    }
+  }
+
   RuntimeMapBundle _resolveRuntimeBundle(RuntimeMapBundle bundle) {
     final transform = bundleTransformer;
     if (transform == null) {
@@ -440,6 +495,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         project: _bundle.manifest,
         tileWidth: _bundle.manifest.settings.tileWidth,
         tileHeight: _bundle.manifest.settings.tileHeight,
+        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       );
       debugPrint(
         '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
@@ -453,6 +509,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         project: _bundle.manifest,
         tileWidth: _bundle.manifest.settings.tileWidth,
         tileHeight: _bundle.manifest.settings.tileHeight,
+        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       );
     }
     final images =
@@ -1074,6 +1131,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       gameState: _gameState,
       onGameStateUpdated: (state) {
         _gameState = state;
+        _refreshWorldNpcPresence();
       },
       shouldSkipScenario: _shouldSkipLocalScenarioForCompletedStep,
       openDialogue: _openScenarioDialogueById,
@@ -1145,32 +1203,63 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   /// Quand l’exécuteur atteint un nœud `end` ([reachedEnd]), on matérialise
   /// la completion Step Studio `whenCutsceneEnds` dans la sauvegarde logique.
+  ///
+  /// On enregistre aussi les scénarios **locaux** terminés dans
+  /// [PlayerProgression.completedCutsceneIds] pour les prédicats PNJ
+  /// `cutsceneCompleted` / `cutsceneNotCompleted`.
   void _finalizeScenarioRuntimeResult(ScenarioRuntimeExecutionResult result) {
     if (result.status != ScenarioRuntimeExecutionStatus.reachedEnd) {
       return;
     }
-    final scenarioId = result.scenarioId;
-    if (scenarioId == null || scenarioId.trim().isEmpty) {
+    final scenarioId = result.scenarioId?.trim();
+    if (scenarioId == null || scenarioId.isEmpty) {
       return;
     }
+    var progression = _gameState.progression;
+    var changed = false;
+
     final index = _stepCompletionIndexForCurrentBundle();
     final stepId = index.stepIdToCompleteWhenCutsceneEnds(scenarioId);
-    if (stepId == null) {
-      return;
+    if (stepId != null) {
+      final nextSteps = appendCompletedStepIdIfAbsent(
+        progression.completedStepIds,
+        stepId,
+      );
+      if (!identical(nextSteps, progression.completedStepIds)) {
+        progression = progression.copyWith(completedStepIds: nextSteps);
+        changed = true;
+        debugPrint(
+          '[step_studio] step "$stepId" completed (cutscene "$scenarioId" reached end).',
+        );
+      }
     }
-    final next = appendCompletedStepIdIfAbsent(
-      _gameState.progression.completedStepIds,
-      stepId,
-    );
-    if (identical(next, _gameState.progression.completedStepIds)) {
-      return;
+
+    ScenarioAsset? scenarioAsset;
+    for (final s in _bundle.manifest.scenarios) {
+      if (s.id == scenarioId) {
+        scenarioAsset = s;
+        break;
+      }
     }
-    _gameState = _gameState.copyWith(
-      progression: _gameState.progression.copyWith(completedStepIds: next),
-    );
-    debugPrint(
-      '[step_studio] step "$stepId" completed (cutscene "$scenarioId" reached end).',
-    );
+    if (scenarioAsset != null &&
+        scenarioAsset.scope == ScenarioScope.localEventFlow) {
+      final nextCut = appendCompletedCutsceneIdIfAbsent(
+        progression.completedCutsceneIds,
+        scenarioId,
+      );
+      if (!identical(nextCut, progression.completedCutsceneIds)) {
+        progression = progression.copyWith(completedCutsceneIds: nextCut);
+        changed = true;
+        debugPrint(
+          '[runtime] local scenario "$scenarioId" marked completed (predicate cutsceneCompleted).',
+        );
+      }
+    }
+
+    if (changed) {
+      _gameState = _gameState.copyWith(progression: progression);
+      _refreshWorldNpcPresence();
+    }
   }
 
   /// Ouvre un dialogue projet à partir d'un `dialogueId`.
@@ -1836,6 +1925,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       project: _bundle.manifest,
       tileWidth: _bundle.manifest.settings.tileWidth,
       tileHeight: _bundle.manifest.settings.tileHeight,
+      npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
     );
     _bundle = RuntimeMapBundle(
       manifest: _bundle.manifest,
@@ -2148,6 +2238,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       project: _bundle.manifest,
       tileWidth: _bundle.manifest.settings.tileWidth,
       tileHeight: _bundle.manifest.settings.tileHeight,
+      npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
     );
     _bundle = RuntimeMapBundle(
       manifest: _bundle.manifest,
@@ -2782,6 +2873,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _gameState =
           _storyFlags.markTrainerDefeated(_gameState, request.trainerId);
       debugPrint('[battle] trainer marked as defeated: ${request.trainerId}');
+      _refreshWorldNpcPresence();
     }
 
     // Nettoyer et retourner à l'overworld
@@ -3282,9 +3374,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: updatedMap,
         playerPos: _world.player.pos,
         playerFacing: _world.player.facing,
+        playerMovementMode: _world.player.movementMode,
         project: _bundle.manifest,
         tileWidth: _bundle.manifest.settings.tileWidth,
         tileHeight: _bundle.manifest.settings.tileHeight,
+        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       );
       _bundle = RuntimeMapBundle(
         manifest: _bundle.manifest,
@@ -3460,7 +3554,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Cas 1: pas de trainerId → dialogue normal
     if (trainerId == null || trainerId.isEmpty) {
       _tryOpenDialogue(
-          entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+        entity.id,
+        _resolveNpcDialogueRef(entity),
+        entity.inspectorHeadline,
+      );
       return;
     }
 
@@ -3485,7 +3582,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _showNotification('Dresseur introuvable.');
       _tryOpenDialogue(
-          entity.id, entity.npc?.dialogue, entity.inspectorHeadline);
+        entity.id,
+        _resolveNpcDialogueRef(entity),
+        entity.inspectorHeadline,
+      );
       return;
     }
 
@@ -3522,11 +3622,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (defeatRef != null) {
       debugPrint('[interact] opening defeat dialogue npc=${entity.id}');
       _tryOpenDialogue(entity.id, defeatRef, entity.inspectorHeadline);
-    } else if (entity.npc?.dialogue != null) {
+    } else if (_resolveNpcDialogueRef(entity) != null) {
       debugPrint(
           '[interact] no defeat dialogue, fallback to normal dialogue npc=${entity.id}');
       _tryOpenDialogue(
-          entity.id, entity.npc!.dialogue, entity.inspectorHeadline);
+        entity.id,
+        _resolveNpcDialogueRef(entity),
+        entity.inspectorHeadline,
+      );
     } else {
       debugPrint(
           '[interact] no dialogue for defeated trainer npc=${entity.id}');
@@ -3550,6 +3653,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _gameState = _storyFlags.markTrainerDefeated(_gameState, trimmedId);
     debugPrint('[debug] trainer $trimmedId marked as defeated');
+    _refreshWorldNpcPresence();
   }
 
   /// Vérifie la Line of Sight (LoS) des trainers et déclenche automatiquement
@@ -3580,6 +3684,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     for (final entity in _world.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
+      if (!_npcPresencePredicateFor(_bundle.manifest)(entity)) {
+        continue;
+      }
 
       final trainerId = entity.npc?.trainerId;
       if (trainerId == null || trainerId.isEmpty) continue;
@@ -3829,6 +3936,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         playerPos: loadedState.playerPosition,
         playerFacing: loadedState.playerFacing.asDirection,
         playerMovementMode: loadedState.playerMovementMode,
+        npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
       );
 
       // 10. Mettre _activeMapId + reset contrôleur PNJ scripté
@@ -3989,6 +4097,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         project: newBundle.manifest,
         tileWidth: newBundle.manifest.settings.tileWidth,
         tileHeight: newBundle.manifest.settings.tileHeight,
+        npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
       );
       if (newWorld.isBlocked(warp.targetPos.x, warp.targetPos.y)) {
         throw StateError(
@@ -4167,6 +4276,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       project: project,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
+      npcMapPresencePredicate: _npcPresencePredicateFor(project),
     );
     if (!world.isBlocked(safePos.x, safePos.y)) {
       return world;
@@ -4181,6 +4291,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         project: project,
         tileWidth: tileWidth,
         tileHeight: tileHeight,
+        npcMapPresencePredicate: _npcPresencePredicateFor(project),
       );
       if (!spawnWorld.isBlocked(spawn.pos.x, spawn.pos.y)) {
         return spawnWorld;
@@ -4197,6 +4308,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             project: project,
             tileWidth: tileWidth,
             tileHeight: tileHeight,
+            npcMapPresencePredicate: _npcPresencePredicateFor(project),
           );
         }
       }
@@ -4263,6 +4375,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         project: target.bundle.manifest,
         tileWidth: target.bundle.manifest.settings.tileWidth,
         tileHeight: target.bundle.manifest.settings.tileHeight,
+        npcMapPresencePredicate:
+            _npcPresencePredicateFor(target.bundle.manifest),
       );
       if (newWorld.isBlocked(targetPos.x, targetPos.y)) {
         debugPrint(
@@ -4531,10 +4645,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int originCellX,
     required int originCellY,
   }) async {
+    final npcPred = _npcPresencePredicateFor(bundle.manifest);
     final backgroundLayers = MapLayersComponent(
       bundle: bundle,
       tileImagesByTilesetId: tileImagesById,
       showCollisionOverlay: _showCollisionOverlay,
+      npcMapPresencePredicate: npcPred,
     );
     backgroundLayers.position = _originPixels(
       originCellX: originCellX,
@@ -4548,6 +4664,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileImagesByTilesetId: tileImagesById,
       renderPass: MapLayerRenderPass.foreground,
       showCollisionOverlay: false,
+      npcMapPresencePredicate: npcPred,
     );
     foregroundLayers.position = _originPixels(
       originCellX: originCellX,
@@ -4600,6 +4717,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       npcActorByEntityId: npcActorByEntityId,
     );
     _loadedMapsById[bundle.map.id] = loaded;
+    _applyNpcVisibilityToLoadedMap(loaded);
     return loaded;
   }
 
@@ -4806,9 +4924,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         },
         setFlag: (flagName) {
           _gameState = _storyFlags.set(_gameState, flagName);
+          _refreshWorldNpcPresence();
         },
         clearFlag: (flagName) {
           _gameState = _storyFlags.clear(_gameState, flagName);
+          _refreshWorldNpcPresence();
         },
         isFlagSet: (flagName) => _storyFlags.isSet(_gameState, flagName),
         isOutcomeSet: (outcomeId) =>
@@ -4867,6 +4987,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       project: _bundle.manifest,
       tileWidth: _bundle.manifest.settings.tileWidth,
       tileHeight: _bundle.manifest.settings.tileHeight,
+      npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
     );
     _bundle = RuntimeMapBundle(
       manifest: _bundle.manifest,
@@ -4889,6 +5010,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _gameState =
         _storyFlags.set(_gameState, scenarioOutcomeFlagName(normalized));
+    _refreshWorldNpcPresence();
     _dispatchScenarioRuntimeSource(
       ScenarioRuntimeSourceEvent.outcomeReceived(
         outcomeId: normalized,

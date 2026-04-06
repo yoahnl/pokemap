@@ -2327,6 +2327,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     BuildContext context,
     EditorNotifier notifier,
   ) async {
+    final priorNpc = notifier.getSelectedEntity()?.npc;
     final x = int.tryParse(_xController.text.trim());
     final y = int.tryParse(_yController.text.trim());
     final width = int.tryParse(_widthController.text.trim());
@@ -2455,6 +2456,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             pauseDurationMs: pauseMs < 0 ? 0 : pauseMs,
             stepDurationMs: stepMs <= 0 ? 200 : stepMs,
           ),
+          // Préservés tant que l’UI dédiée (visibilité / variantes) n’est pas
+          // branchée : évite d’effacer du JSON authoring importé à la main.
+          visibilityRule: priorNpc?.visibilityRule,
+          conditionalDialogues: priorNpc?.conditionalDialogues ?? const [],
         );
         break;
       case MapEntityKind.sign:

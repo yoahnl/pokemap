@@ -220,6 +220,603 @@ abstract class _DialogueRef implements DialogueRef {
       throw _privateConstructorUsedError;
 }
 
+MapEntityRuntimePredicate _$MapEntityRuntimePredicateFromJson(
+    Map<String, dynamic> json) {
+  return _MapEntityRuntimePredicate.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapEntityRuntimePredicate {
+  MapEntityRuntimePredicateKind get kind => throw _privateConstructorUsedError;
+
+  /// Id métier selon [kind] : nom de flag, id de step, id de chapitre,
+  /// id de scénario local (cutscene).
+  String get refId => throw _privateConstructorUsedError;
+
+  /// Serializes this MapEntityRuntimePredicate to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapEntityRuntimePredicate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapEntityRuntimePredicateCopyWith<MapEntityRuntimePredicate> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapEntityRuntimePredicateCopyWith<$Res> {
+  factory $MapEntityRuntimePredicateCopyWith(MapEntityRuntimePredicate value,
+          $Res Function(MapEntityRuntimePredicate) then) =
+      _$MapEntityRuntimePredicateCopyWithImpl<$Res, MapEntityRuntimePredicate>;
+  @useResult
+  $Res call({MapEntityRuntimePredicateKind kind, String refId});
+}
+
+/// @nodoc
+class _$MapEntityRuntimePredicateCopyWithImpl<$Res,
+        $Val extends MapEntityRuntimePredicate>
+    implements $MapEntityRuntimePredicateCopyWith<$Res> {
+  _$MapEntityRuntimePredicateCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapEntityRuntimePredicate
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? kind = null,
+    Object? refId = null,
+  }) {
+    return _then(_value.copyWith(
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as MapEntityRuntimePredicateKind,
+      refId: null == refId
+          ? _value.refId
+          : refId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$MapEntityRuntimePredicateImplCopyWith<$Res>
+    implements $MapEntityRuntimePredicateCopyWith<$Res> {
+  factory _$$MapEntityRuntimePredicateImplCopyWith(
+          _$MapEntityRuntimePredicateImpl value,
+          $Res Function(_$MapEntityRuntimePredicateImpl) then) =
+      __$$MapEntityRuntimePredicateImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({MapEntityRuntimePredicateKind kind, String refId});
+}
+
+/// @nodoc
+class __$$MapEntityRuntimePredicateImplCopyWithImpl<$Res>
+    extends _$MapEntityRuntimePredicateCopyWithImpl<$Res,
+        _$MapEntityRuntimePredicateImpl>
+    implements _$$MapEntityRuntimePredicateImplCopyWith<$Res> {
+  __$$MapEntityRuntimePredicateImplCopyWithImpl(
+      _$MapEntityRuntimePredicateImpl _value,
+      $Res Function(_$MapEntityRuntimePredicateImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapEntityRuntimePredicate
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? kind = null,
+    Object? refId = null,
+  }) {
+    return _then(_$MapEntityRuntimePredicateImpl(
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as MapEntityRuntimePredicateKind,
+      refId: null == refId
+          ? _value.refId
+          : refId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapEntityRuntimePredicateImpl implements _MapEntityRuntimePredicate {
+  const _$MapEntityRuntimePredicateImpl({required this.kind, this.refId = ''});
+
+  factory _$MapEntityRuntimePredicateImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MapEntityRuntimePredicateImplFromJson(json);
+
+  @override
+  final MapEntityRuntimePredicateKind kind;
+
+  /// Id métier selon [kind] : nom de flag, id de step, id de chapitre,
+  /// id de scénario local (cutscene).
+  @override
+  @JsonKey()
+  final String refId;
+
+  @override
+  String toString() {
+    return 'MapEntityRuntimePredicate(kind: $kind, refId: $refId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapEntityRuntimePredicateImpl &&
+            (identical(other.kind, kind) || other.kind == kind) &&
+            (identical(other.refId, refId) || other.refId == refId));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, kind, refId);
+
+  /// Create a copy of MapEntityRuntimePredicate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapEntityRuntimePredicateImplCopyWith<_$MapEntityRuntimePredicateImpl>
+      get copyWith => __$$MapEntityRuntimePredicateImplCopyWithImpl<
+          _$MapEntityRuntimePredicateImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapEntityRuntimePredicateImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapEntityRuntimePredicate implements MapEntityRuntimePredicate {
+  const factory _MapEntityRuntimePredicate(
+      {required final MapEntityRuntimePredicateKind kind,
+      final String refId}) = _$MapEntityRuntimePredicateImpl;
+
+  factory _MapEntityRuntimePredicate.fromJson(Map<String, dynamic> json) =
+      _$MapEntityRuntimePredicateImpl.fromJson;
+
+  @override
+  MapEntityRuntimePredicateKind get kind;
+
+  /// Id métier selon [kind] : nom de flag, id de step, id de chapitre,
+  /// id de scénario local (cutscene).
+  @override
+  String get refId;
+
+  /// Create a copy of MapEntityRuntimePredicate
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapEntityRuntimePredicateImplCopyWith<_$MapEntityRuntimePredicateImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+MapEntityNpcVisibilityRule _$MapEntityNpcVisibilityRuleFromJson(
+    Map<String, dynamic> json) {
+  return _MapEntityNpcVisibilityRule.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapEntityNpcVisibilityRule {
+  MapEntityNpcVisibilityMode get mode => throw _privateConstructorUsedError;
+  MapEntityRuntimePredicate? get predicate =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this MapEntityNpcVisibilityRule to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapEntityNpcVisibilityRule
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapEntityNpcVisibilityRuleCopyWith<MapEntityNpcVisibilityRule>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapEntityNpcVisibilityRuleCopyWith<$Res> {
+  factory $MapEntityNpcVisibilityRuleCopyWith(MapEntityNpcVisibilityRule value,
+          $Res Function(MapEntityNpcVisibilityRule) then) =
+      _$MapEntityNpcVisibilityRuleCopyWithImpl<$Res,
+          MapEntityNpcVisibilityRule>;
+  @useResult
+  $Res call(
+      {MapEntityNpcVisibilityMode mode, MapEntityRuntimePredicate? predicate});
+
+  $MapEntityRuntimePredicateCopyWith<$Res>? get predicate;
+}
+
+/// @nodoc
+class _$MapEntityNpcVisibilityRuleCopyWithImpl<$Res,
+        $Val extends MapEntityNpcVisibilityRule>
+    implements $MapEntityNpcVisibilityRuleCopyWith<$Res> {
+  _$MapEntityNpcVisibilityRuleCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapEntityNpcVisibilityRule
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? mode = null,
+    Object? predicate = freezed,
+  }) {
+    return _then(_value.copyWith(
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcVisibilityMode,
+      predicate: freezed == predicate
+          ? _value.predicate
+          : predicate // ignore: cast_nullable_to_non_nullable
+              as MapEntityRuntimePredicate?,
+    ) as $Val);
+  }
+
+  /// Create a copy of MapEntityNpcVisibilityRule
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntityRuntimePredicateCopyWith<$Res>? get predicate {
+    if (_value.predicate == null) {
+      return null;
+    }
+
+    return $MapEntityRuntimePredicateCopyWith<$Res>(_value.predicate!, (value) {
+      return _then(_value.copyWith(predicate: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$MapEntityNpcVisibilityRuleImplCopyWith<$Res>
+    implements $MapEntityNpcVisibilityRuleCopyWith<$Res> {
+  factory _$$MapEntityNpcVisibilityRuleImplCopyWith(
+          _$MapEntityNpcVisibilityRuleImpl value,
+          $Res Function(_$MapEntityNpcVisibilityRuleImpl) then) =
+      __$$MapEntityNpcVisibilityRuleImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {MapEntityNpcVisibilityMode mode, MapEntityRuntimePredicate? predicate});
+
+  @override
+  $MapEntityRuntimePredicateCopyWith<$Res>? get predicate;
+}
+
+/// @nodoc
+class __$$MapEntityNpcVisibilityRuleImplCopyWithImpl<$Res>
+    extends _$MapEntityNpcVisibilityRuleCopyWithImpl<$Res,
+        _$MapEntityNpcVisibilityRuleImpl>
+    implements _$$MapEntityNpcVisibilityRuleImplCopyWith<$Res> {
+  __$$MapEntityNpcVisibilityRuleImplCopyWithImpl(
+      _$MapEntityNpcVisibilityRuleImpl _value,
+      $Res Function(_$MapEntityNpcVisibilityRuleImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapEntityNpcVisibilityRule
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? mode = null,
+    Object? predicate = freezed,
+  }) {
+    return _then(_$MapEntityNpcVisibilityRuleImpl(
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcVisibilityMode,
+      predicate: freezed == predicate
+          ? _value.predicate
+          : predicate // ignore: cast_nullable_to_non_nullable
+              as MapEntityRuntimePredicate?,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapEntityNpcVisibilityRuleImpl implements _MapEntityNpcVisibilityRule {
+  const _$MapEntityNpcVisibilityRuleImpl({required this.mode, this.predicate});
+
+  factory _$MapEntityNpcVisibilityRuleImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$MapEntityNpcVisibilityRuleImplFromJson(json);
+
+  @override
+  final MapEntityNpcVisibilityMode mode;
+  @override
+  final MapEntityRuntimePredicate? predicate;
+
+  @override
+  String toString() {
+    return 'MapEntityNpcVisibilityRule(mode: $mode, predicate: $predicate)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapEntityNpcVisibilityRuleImpl &&
+            (identical(other.mode, mode) || other.mode == mode) &&
+            (identical(other.predicate, predicate) ||
+                other.predicate == predicate));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, mode, predicate);
+
+  /// Create a copy of MapEntityNpcVisibilityRule
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapEntityNpcVisibilityRuleImplCopyWith<_$MapEntityNpcVisibilityRuleImpl>
+      get copyWith => __$$MapEntityNpcVisibilityRuleImplCopyWithImpl<
+          _$MapEntityNpcVisibilityRuleImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapEntityNpcVisibilityRuleImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapEntityNpcVisibilityRule
+    implements MapEntityNpcVisibilityRule {
+  const factory _MapEntityNpcVisibilityRule(
+          {required final MapEntityNpcVisibilityMode mode,
+          final MapEntityRuntimePredicate? predicate}) =
+      _$MapEntityNpcVisibilityRuleImpl;
+
+  factory _MapEntityNpcVisibilityRule.fromJson(Map<String, dynamic> json) =
+      _$MapEntityNpcVisibilityRuleImpl.fromJson;
+
+  @override
+  MapEntityNpcVisibilityMode get mode;
+  @override
+  MapEntityRuntimePredicate? get predicate;
+
+  /// Create a copy of MapEntityNpcVisibilityRule
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapEntityNpcVisibilityRuleImplCopyWith<_$MapEntityNpcVisibilityRuleImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+MapEntityConditionalDialogue _$MapEntityConditionalDialogueFromJson(
+    Map<String, dynamic> json) {
+  return _MapEntityConditionalDialogue.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapEntityConditionalDialogue {
+  MapEntityRuntimePredicate get when => throw _privateConstructorUsedError;
+  DialogueRef get dialogue => throw _privateConstructorUsedError;
+
+  /// Serializes this MapEntityConditionalDialogue to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapEntityConditionalDialogue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapEntityConditionalDialogueCopyWith<MapEntityConditionalDialogue>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapEntityConditionalDialogueCopyWith<$Res> {
+  factory $MapEntityConditionalDialogueCopyWith(
+          MapEntityConditionalDialogue value,
+          $Res Function(MapEntityConditionalDialogue) then) =
+      _$MapEntityConditionalDialogueCopyWithImpl<$Res,
+          MapEntityConditionalDialogue>;
+  @useResult
+  $Res call({MapEntityRuntimePredicate when, DialogueRef dialogue});
+
+  $MapEntityRuntimePredicateCopyWith<$Res> get when;
+  $DialogueRefCopyWith<$Res> get dialogue;
+}
+
+/// @nodoc
+class _$MapEntityConditionalDialogueCopyWithImpl<$Res,
+        $Val extends MapEntityConditionalDialogue>
+    implements $MapEntityConditionalDialogueCopyWith<$Res> {
+  _$MapEntityConditionalDialogueCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapEntityConditionalDialogue
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? when = null,
+    Object? dialogue = null,
+  }) {
+    return _then(_value.copyWith(
+      when: null == when
+          ? _value.when
+          : when // ignore: cast_nullable_to_non_nullable
+              as MapEntityRuntimePredicate,
+      dialogue: null == dialogue
+          ? _value.dialogue
+          : dialogue // ignore: cast_nullable_to_non_nullable
+              as DialogueRef,
+    ) as $Val);
+  }
+
+  /// Create a copy of MapEntityConditionalDialogue
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntityRuntimePredicateCopyWith<$Res> get when {
+    return $MapEntityRuntimePredicateCopyWith<$Res>(_value.when, (value) {
+      return _then(_value.copyWith(when: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapEntityConditionalDialogue
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $DialogueRefCopyWith<$Res> get dialogue {
+    return $DialogueRefCopyWith<$Res>(_value.dialogue, (value) {
+      return _then(_value.copyWith(dialogue: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$MapEntityConditionalDialogueImplCopyWith<$Res>
+    implements $MapEntityConditionalDialogueCopyWith<$Res> {
+  factory _$$MapEntityConditionalDialogueImplCopyWith(
+          _$MapEntityConditionalDialogueImpl value,
+          $Res Function(_$MapEntityConditionalDialogueImpl) then) =
+      __$$MapEntityConditionalDialogueImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({MapEntityRuntimePredicate when, DialogueRef dialogue});
+
+  @override
+  $MapEntityRuntimePredicateCopyWith<$Res> get when;
+  @override
+  $DialogueRefCopyWith<$Res> get dialogue;
+}
+
+/// @nodoc
+class __$$MapEntityConditionalDialogueImplCopyWithImpl<$Res>
+    extends _$MapEntityConditionalDialogueCopyWithImpl<$Res,
+        _$MapEntityConditionalDialogueImpl>
+    implements _$$MapEntityConditionalDialogueImplCopyWith<$Res> {
+  __$$MapEntityConditionalDialogueImplCopyWithImpl(
+      _$MapEntityConditionalDialogueImpl _value,
+      $Res Function(_$MapEntityConditionalDialogueImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapEntityConditionalDialogue
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? when = null,
+    Object? dialogue = null,
+  }) {
+    return _then(_$MapEntityConditionalDialogueImpl(
+      when: null == when
+          ? _value.when
+          : when // ignore: cast_nullable_to_non_nullable
+              as MapEntityRuntimePredicate,
+      dialogue: null == dialogue
+          ? _value.dialogue
+          : dialogue // ignore: cast_nullable_to_non_nullable
+              as DialogueRef,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapEntityConditionalDialogueImpl
+    implements _MapEntityConditionalDialogue {
+  const _$MapEntityConditionalDialogueImpl(
+      {required this.when, required this.dialogue});
+
+  factory _$MapEntityConditionalDialogueImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$MapEntityConditionalDialogueImplFromJson(json);
+
+  @override
+  final MapEntityRuntimePredicate when;
+  @override
+  final DialogueRef dialogue;
+
+  @override
+  String toString() {
+    return 'MapEntityConditionalDialogue(when: $when, dialogue: $dialogue)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapEntityConditionalDialogueImpl &&
+            (identical(other.when, when) || other.when == when) &&
+            (identical(other.dialogue, dialogue) ||
+                other.dialogue == dialogue));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, when, dialogue);
+
+  /// Create a copy of MapEntityConditionalDialogue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapEntityConditionalDialogueImplCopyWith<
+          _$MapEntityConditionalDialogueImpl>
+      get copyWith => __$$MapEntityConditionalDialogueImplCopyWithImpl<
+          _$MapEntityConditionalDialogueImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapEntityConditionalDialogueImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapEntityConditionalDialogue
+    implements MapEntityConditionalDialogue {
+  const factory _MapEntityConditionalDialogue(
+          {required final MapEntityRuntimePredicate when,
+          required final DialogueRef dialogue}) =
+      _$MapEntityConditionalDialogueImpl;
+
+  factory _MapEntityConditionalDialogue.fromJson(Map<String, dynamic> json) =
+      _$MapEntityConditionalDialogueImpl.fromJson;
+
+  @override
+  MapEntityRuntimePredicate get when;
+  @override
+  DialogueRef get dialogue;
+
+  /// Create a copy of MapEntityConditionalDialogue
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapEntityConditionalDialogueImplCopyWith<
+          _$MapEntityConditionalDialogueImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 MapEntityNpcData _$MapEntityNpcDataFromJson(Map<String, dynamic> json) {
   return _MapEntityNpcData.fromJson(json);
 }
@@ -235,6 +832,14 @@ mixin _$MapEntityNpcData {
   DialogueRef? get defeatDialogueRef => throw _privateConstructorUsedError;
   String? get characterId => throw _privateConstructorUsedError;
   MapEntityNpcMovementConfig get movement => throw _privateConstructorUsedError;
+
+  /// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
+  MapEntityNpcVisibilityRule? get visibilityRule =>
+      throw _privateConstructorUsedError;
+
+  /// Variantes testées **dans l’ordre** avant [dialogue] par défaut.
+  List<MapEntityConditionalDialogue> get conditionalDialogues =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this MapEntityNpcData to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -261,11 +866,14 @@ abstract class $MapEntityNpcDataCopyWith<$Res> {
       int lineOfSightRange,
       DialogueRef? defeatDialogueRef,
       String? characterId,
-      MapEntityNpcMovementConfig movement});
+      MapEntityNpcMovementConfig movement,
+      MapEntityNpcVisibilityRule? visibilityRule,
+      List<MapEntityConditionalDialogue> conditionalDialogues});
 
   $DialogueRefCopyWith<$Res>? get dialogue;
   $DialogueRefCopyWith<$Res>? get defeatDialogueRef;
   $MapEntityNpcMovementConfigCopyWith<$Res> get movement;
+  $MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule;
 }
 
 /// @nodoc
@@ -292,6 +900,8 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
     Object? defeatDialogueRef = freezed,
     Object? characterId = freezed,
     Object? movement = null,
+    Object? visibilityRule = freezed,
+    Object? conditionalDialogues = null,
   }) {
     return _then(_value.copyWith(
       displayName: null == displayName
@@ -330,6 +940,14 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
           ? _value.movement
           : movement // ignore: cast_nullable_to_non_nullable
               as MapEntityNpcMovementConfig,
+      visibilityRule: freezed == visibilityRule
+          ? _value.visibilityRule
+          : visibilityRule // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcVisibilityRule?,
+      conditionalDialogues: null == conditionalDialogues
+          ? _value.conditionalDialogues
+          : conditionalDialogues // ignore: cast_nullable_to_non_nullable
+              as List<MapEntityConditionalDialogue>,
     ) as $Val);
   }
 
@@ -370,6 +988,21 @@ class _$MapEntityNpcDataCopyWithImpl<$Res, $Val extends MapEntityNpcData>
       return _then(_value.copyWith(movement: value) as $Val);
     });
   }
+
+  /// Create a copy of MapEntityNpcData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule {
+    if (_value.visibilityRule == null) {
+      return null;
+    }
+
+    return $MapEntityNpcVisibilityRuleCopyWith<$Res>(_value.visibilityRule!,
+        (value) {
+      return _then(_value.copyWith(visibilityRule: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -389,7 +1022,9 @@ abstract class _$$MapEntityNpcDataImplCopyWith<$Res>
       int lineOfSightRange,
       DialogueRef? defeatDialogueRef,
       String? characterId,
-      MapEntityNpcMovementConfig movement});
+      MapEntityNpcMovementConfig movement,
+      MapEntityNpcVisibilityRule? visibilityRule,
+      List<MapEntityConditionalDialogue> conditionalDialogues});
 
   @override
   $DialogueRefCopyWith<$Res>? get dialogue;
@@ -397,6 +1032,8 @@ abstract class _$$MapEntityNpcDataImplCopyWith<$Res>
   $DialogueRefCopyWith<$Res>? get defeatDialogueRef;
   @override
   $MapEntityNpcMovementConfigCopyWith<$Res> get movement;
+  @override
+  $MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule;
 }
 
 /// @nodoc
@@ -421,6 +1058,8 @@ class __$$MapEntityNpcDataImplCopyWithImpl<$Res>
     Object? defeatDialogueRef = freezed,
     Object? characterId = freezed,
     Object? movement = null,
+    Object? visibilityRule = freezed,
+    Object? conditionalDialogues = null,
   }) {
     return _then(_$MapEntityNpcDataImpl(
       displayName: null == displayName
@@ -459,6 +1098,14 @@ class __$$MapEntityNpcDataImplCopyWithImpl<$Res>
           ? _value.movement
           : movement // ignore: cast_nullable_to_non_nullable
               as MapEntityNpcMovementConfig,
+      visibilityRule: freezed == visibilityRule
+          ? _value.visibilityRule
+          : visibilityRule // ignore: cast_nullable_to_non_nullable
+              as MapEntityNpcVisibilityRule?,
+      conditionalDialogues: null == conditionalDialogues
+          ? _value._conditionalDialogues
+          : conditionalDialogues // ignore: cast_nullable_to_non_nullable
+              as List<MapEntityConditionalDialogue>,
     ));
   }
 }
@@ -476,7 +1123,11 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
       this.lineOfSightRange = 0,
       this.defeatDialogueRef,
       this.characterId,
-      this.movement = const MapEntityNpcMovementConfig()});
+      this.movement = const MapEntityNpcMovementConfig(),
+      this.visibilityRule,
+      final List<MapEntityConditionalDialogue> conditionalDialogues =
+          const <MapEntityConditionalDialogue>[]})
+      : _conditionalDialogues = conditionalDialogues;
 
   factory _$MapEntityNpcDataImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapEntityNpcDataImplFromJson(json);
@@ -505,9 +1156,26 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
   @JsonKey()
   final MapEntityNpcMovementConfig movement;
 
+  /// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
+  @override
+  final MapEntityNpcVisibilityRule? visibilityRule;
+
+  /// Variantes testées **dans l’ordre** avant [dialogue] par défaut.
+  final List<MapEntityConditionalDialogue> _conditionalDialogues;
+
+  /// Variantes testées **dans l’ordre** avant [dialogue] par défaut.
+  @override
+  @JsonKey()
+  List<MapEntityConditionalDialogue> get conditionalDialogues {
+    if (_conditionalDialogues is EqualUnmodifiableListView)
+      return _conditionalDialogues;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_conditionalDialogues);
+  }
+
   @override
   String toString() {
-    return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement)';
+    return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
   }
 
   @override
@@ -531,7 +1199,11 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
             (identical(other.characterId, characterId) ||
                 other.characterId == characterId) &&
             (identical(other.movement, movement) ||
-                other.movement == movement));
+                other.movement == movement) &&
+            (identical(other.visibilityRule, visibilityRule) ||
+                other.visibilityRule == visibilityRule) &&
+            const DeepCollectionEquality()
+                .equals(other._conditionalDialogues, _conditionalDialogues));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -546,7 +1218,9 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
       lineOfSightRange,
       defeatDialogueRef,
       characterId,
-      movement);
+      movement,
+      visibilityRule,
+      const DeepCollectionEquality().hash(_conditionalDialogues));
 
   /// Create a copy of MapEntityNpcData
   /// with the given fields replaced by the non-null parameter values.
@@ -567,15 +1241,18 @@ class _$MapEntityNpcDataImpl implements _MapEntityNpcData {
 
 abstract class _MapEntityNpcData implements MapEntityNpcData {
   const factory _MapEntityNpcData(
-      {final String displayName,
-      final DialogueRef? dialogue,
-      final EntityFacing facing,
-      final String visualElementId,
-      final String? trainerId,
-      final int lineOfSightRange,
-      final DialogueRef? defeatDialogueRef,
-      final String? characterId,
-      final MapEntityNpcMovementConfig movement}) = _$MapEntityNpcDataImpl;
+          {final String displayName,
+          final DialogueRef? dialogue,
+          final EntityFacing facing,
+          final String visualElementId,
+          final String? trainerId,
+          final int lineOfSightRange,
+          final DialogueRef? defeatDialogueRef,
+          final String? characterId,
+          final MapEntityNpcMovementConfig movement,
+          final MapEntityNpcVisibilityRule? visibilityRule,
+          final List<MapEntityConditionalDialogue> conditionalDialogues}) =
+      _$MapEntityNpcDataImpl;
 
   factory _MapEntityNpcData.fromJson(Map<String, dynamic> json) =
       _$MapEntityNpcDataImpl.fromJson;
@@ -598,6 +1275,14 @@ abstract class _MapEntityNpcData implements MapEntityNpcData {
   String? get characterId;
   @override
   MapEntityNpcMovementConfig get movement;
+
+  /// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
+  @override
+  MapEntityNpcVisibilityRule? get visibilityRule;
+
+  /// Variantes testées **dans l’ordre** avant [dialogue] par défaut.
+  @override
+  List<MapEntityConditionalDialogue> get conditionalDialogues;
 
   /// Create a copy of MapEntityNpcData
   /// with the given fields replaced by the non-null parameter values.

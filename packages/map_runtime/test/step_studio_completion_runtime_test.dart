@@ -43,5 +43,13 @@ void main() {
       final twice = appendCompletedStepIdIfAbsent(once, 'c');
       expect(identical(twice, once), isTrue);
     });
+
+    test('appendCompletedCutsceneIdIfAbsent dédoublonne les scénarios locaux', () {
+      const existing = ['cut_x'];
+      final once = appendCompletedCutsceneIdIfAbsent(existing, 'cut_y');
+      expect(once, ['cut_x', 'cut_y']);
+      final twice = appendCompletedCutsceneIdIfAbsent(once, 'cut_y');
+      expect(identical(twice, once), isTrue);
+    });
   });
 }

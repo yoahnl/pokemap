@@ -27,6 +27,89 @@ class DialogueRef with _$DialogueRef {
       _$DialogueRefFromJson(json);
 }
 
+// ---------------------------------------------------------------------------
+// Règles runtime PNJ (visibilité + dialogues conditionnels) — authoring JSON
+// ---------------------------------------------------------------------------
+//
+// Ces types sont consommés par map_runtime (évaluation) et map_editor (UI
+// dropdowns). Les libellés UI restent côté éditeur ; ici seulement noms
+// stables pour la sérialisation projet.
+
+/// Comment interpréter la [MapEntityRuntimePredicate] pour la **visibilité**.
+enum MapEntityNpcVisibilityMode {
+  /// PNJ toujours affiché (ignore [MapEntityNpcVisibilityRule.predicate]).
+  @JsonValue('always')
+  always,
+
+  /// Visible uniquement lorsque la prédicat est vrai.
+  @JsonValue('visibleWhen')
+  visibleWhen,
+
+  /// Masqué lorsque la prédicat est vrai (visible sinon).
+  @JsonValue('hiddenWhen')
+  hiddenWhen,
+}
+
+/// Condition réutilisable (visibilité ou variante de dialogue).
+enum MapEntityRuntimePredicateKind {
+  @JsonValue('storyFlagSet')
+  storyFlagSet,
+  @JsonValue('storyFlagUnset')
+  storyFlagUnset,
+  @JsonValue('stepCompleted')
+  stepCompleted,
+  @JsonValue('stepNotCompleted')
+  stepNotCompleted,
+  @JsonValue('chapterCompleted')
+  chapterCompleted,
+  @JsonValue('chapterNotCompleted')
+  chapterNotCompleted,
+  @JsonValue('cutsceneCompleted')
+  cutsceneCompleted,
+  @JsonValue('cutsceneNotCompleted')
+  cutsceneNotCompleted,
+}
+
+@freezed
+class MapEntityRuntimePredicate with _$MapEntityRuntimePredicate {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapEntityRuntimePredicate({
+    required MapEntityRuntimePredicateKind kind,
+
+    /// Id métier selon [kind] : nom de flag, id de step, id de chapitre,
+    /// id de scénario local (cutscene).
+    @Default('') String refId,
+  }) = _MapEntityRuntimePredicate;
+
+  factory MapEntityRuntimePredicate.fromJson(Map<String, dynamic> json) =>
+      _$MapEntityRuntimePredicateFromJson(json);
+}
+
+@freezed
+class MapEntityNpcVisibilityRule with _$MapEntityNpcVisibilityRule {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapEntityNpcVisibilityRule({
+    required MapEntityNpcVisibilityMode mode,
+    MapEntityRuntimePredicate? predicate,
+  }) = _MapEntityNpcVisibilityRule;
+
+  factory MapEntityNpcVisibilityRule.fromJson(Map<String, dynamic> json) =>
+      _$MapEntityNpcVisibilityRuleFromJson(json);
+}
+
+/// Une ligne de la chaîne « premier match gagne » pour le dialogue PNJ.
+@freezed
+class MapEntityConditionalDialogue with _$MapEntityConditionalDialogue {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapEntityConditionalDialogue({
+    required MapEntityRuntimePredicate when,
+    required DialogueRef dialogue,
+  }) = _MapEntityConditionalDialogue;
+
+  factory MapEntityConditionalDialogue.fromJson(Map<String, dynamic> json) =>
+      _$MapEntityConditionalDialogueFromJson(json);
+}
+
 @freezed
 class MapEntityNpcData with _$MapEntityNpcData {
   @JsonSerializable(explicitToJson: true)
@@ -40,6 +123,13 @@ class MapEntityNpcData with _$MapEntityNpcData {
     DialogueRef? defeatDialogueRef,
     String? characterId,
     @Default(MapEntityNpcMovementConfig()) MapEntityNpcMovementConfig movement,
+
+    /// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
+    MapEntityNpcVisibilityRule? visibilityRule,
+
+    /// Variantes testées **dans l’ordre** avant [dialogue] par défaut.
+    @Default(<MapEntityConditionalDialogue>[])
+    List<MapEntityConditionalDialogue> conditionalDialogues,
   }) = _MapEntityNpcData;
 
   factory MapEntityNpcData.fromJson(Map<String, dynamic> json) =>

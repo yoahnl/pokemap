@@ -457,6 +457,11 @@ mixin _$PlayerProgression {
   /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
   List<String> get completedStepIds => throw _privateConstructorUsedError;
 
+  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
+  /// au moins une fois dans cette partie — utilisé pour prédicats
+  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
+  List<String> get completedCutsceneIds => throw _privateConstructorUsedError;
+
   /// Serializes this PlayerProgression to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -476,7 +481,8 @@ abstract class $PlayerProgressionCopyWith<$Res> {
   $Res call(
       {List<FieldAbility> unlockedFieldAbilities,
       List<String> storyFlags,
-      List<String> completedStepIds});
+      List<String> completedStepIds,
+      List<String> completedCutsceneIds});
 }
 
 /// @nodoc
@@ -497,6 +503,7 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
     Object? unlockedFieldAbilities = null,
     Object? storyFlags = null,
     Object? completedStepIds = null,
+    Object? completedCutsceneIds = null,
   }) {
     return _then(_value.copyWith(
       unlockedFieldAbilities: null == unlockedFieldAbilities
@@ -510,6 +517,10 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
       completedStepIds: null == completedStepIds
           ? _value.completedStepIds
           : completedStepIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      completedCutsceneIds: null == completedCutsceneIds
+          ? _value.completedCutsceneIds
+          : completedCutsceneIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
     ) as $Val);
   }
@@ -526,7 +537,8 @@ abstract class _$$PlayerProgressionImplCopyWith<$Res>
   $Res call(
       {List<FieldAbility> unlockedFieldAbilities,
       List<String> storyFlags,
-      List<String> completedStepIds});
+      List<String> completedStepIds,
+      List<String> completedCutsceneIds});
 }
 
 /// @nodoc
@@ -545,6 +557,7 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
     Object? unlockedFieldAbilities = null,
     Object? storyFlags = null,
     Object? completedStepIds = null,
+    Object? completedCutsceneIds = null,
   }) {
     return _then(_$PlayerProgressionImpl(
       unlockedFieldAbilities: null == unlockedFieldAbilities
@@ -559,6 +572,10 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
           ? _value._completedStepIds
           : completedStepIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      completedCutsceneIds: null == completedCutsceneIds
+          ? _value._completedCutsceneIds
+          : completedCutsceneIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -570,10 +587,12 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
   const _$PlayerProgressionImpl(
       {final List<FieldAbility> unlockedFieldAbilities = const [],
       final List<String> storyFlags = const [],
-      final List<String> completedStepIds = const []})
+      final List<String> completedStepIds = const [],
+      final List<String> completedCutsceneIds = const []})
       : _unlockedFieldAbilities = unlockedFieldAbilities,
         _storyFlags = storyFlags,
-        _completedStepIds = completedStepIds;
+        _completedStepIds = completedStepIds,
+        _completedCutsceneIds = completedCutsceneIds;
 
   factory _$PlayerProgressionImpl.fromJson(Map<String, dynamic> json) =>
       _$$PlayerProgressionImplFromJson(json);
@@ -612,9 +631,26 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
     return EqualUnmodifiableListView(_completedStepIds);
   }
 
+  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
+  /// au moins une fois dans cette partie — utilisé pour prédicats
+  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
+  final List<String> _completedCutsceneIds;
+
+  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
+  /// au moins une fois dans cette partie — utilisé pour prédicats
+  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
+  @override
+  @JsonKey()
+  List<String> get completedCutsceneIds {
+    if (_completedCutsceneIds is EqualUnmodifiableListView)
+      return _completedCutsceneIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_completedCutsceneIds);
+  }
+
   @override
   String toString() {
-    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, completedStepIds: $completedStepIds)';
+    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, completedStepIds: $completedStepIds, completedCutsceneIds: $completedCutsceneIds)';
   }
 
   @override
@@ -627,7 +663,9 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
             const DeepCollectionEquality()
                 .equals(other._storyFlags, _storyFlags) &&
             const DeepCollectionEquality()
-                .equals(other._completedStepIds, _completedStepIds));
+                .equals(other._completedStepIds, _completedStepIds) &&
+            const DeepCollectionEquality()
+                .equals(other._completedCutsceneIds, _completedCutsceneIds));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -636,7 +674,8 @@ class _$PlayerProgressionImpl implements _PlayerProgression {
       runtimeType,
       const DeepCollectionEquality().hash(_unlockedFieldAbilities),
       const DeepCollectionEquality().hash(_storyFlags),
-      const DeepCollectionEquality().hash(_completedStepIds));
+      const DeepCollectionEquality().hash(_completedStepIds),
+      const DeepCollectionEquality().hash(_completedCutsceneIds));
 
   /// Create a copy of PlayerProgression
   /// with the given fields replaced by the non-null parameter values.
@@ -659,7 +698,8 @@ abstract class _PlayerProgression implements PlayerProgression {
   const factory _PlayerProgression(
       {final List<FieldAbility> unlockedFieldAbilities,
       final List<String> storyFlags,
-      final List<String> completedStepIds}) = _$PlayerProgressionImpl;
+      final List<String> completedStepIds,
+      final List<String> completedCutsceneIds}) = _$PlayerProgressionImpl;
 
   factory _PlayerProgression.fromJson(Map<String, dynamic> json) =
       _$PlayerProgressionImpl.fromJson;
@@ -673,6 +713,12 @@ abstract class _PlayerProgression implements PlayerProgression {
   /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
   @override
   List<String> get completedStepIds;
+
+  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
+  /// au moins une fois dans cette partie — utilisé pour prédicats
+  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
+  @override
+  List<String> get completedCutsceneIds;
 
   /// Create a copy of PlayerProgression
   /// with the given fields replaced by the non-null parameter values.

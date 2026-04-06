@@ -6,6 +6,17 @@ import 'movement_block_reason.dart';
 import 'gameplay_player_state.dart';
 import 'player_spawn_resolver.dart';
 
+/// Indique si un PNJ doit exister sur la grille pour collision et interaction.
+///
+/// Si le callback retourne `false`, le moteur ignore ce PNJ dans les caches
+/// spatiaux : il ne bloque plus le joueur et [GameplayWorldState.entityAt]
+/// ne le voit pas. Les autres types d'entités (panneaux, objets, etc.) ne
+/// passent jamais par ce filtre.
+///
+/// Fourni par le runtime (ex. règles de visibilité conditionnelle) sans que
+/// [map_gameplay] ne connaisse les flags / steps.
+typedef NpcMapPresencePredicate = bool Function(MapEntity npcEntity);
+
 class GameplayWorldState {
   GameplayWorldState._({
     required this.map,
@@ -29,6 +40,7 @@ class GameplayWorldState {
     required List<bool> waterCellCache,
     required int tileWidth,
     required int tileHeight,
+    this.npcMapPresencePredicate,
   })  : _collisionCache = collisionCache,
         _blockingEntityByPos = blockingEntityByPos,
         _warpCandidatesByPos = warpCandidatesByPos,
@@ -57,6 +69,7 @@ class GameplayWorldState {
     ProjectManifest? project,
     int tileWidth = 16,
     int tileHeight = 16,
+    NpcMapPresencePredicate? npcMapPresencePredicate,
   }) =>
       GameplayWorldState._(
         map: map,
@@ -66,10 +79,16 @@ class GameplayWorldState {
           movementMode: playerMovementMode,
         ),
         collisionCache: _buildCollisionCache(map, project: project),
-        blockingEntityByPos: _buildBlockingEntityByPos(map),
+        blockingEntityByPos: _buildBlockingEntityByPos(
+          map,
+          npcPresence: npcMapPresencePredicate,
+        ),
         warpCandidatesByPos:
             _buildWarpCandidatesByPos(map, tileWidth, tileHeight),
-        entityByPos: _buildEntityByPos(map),
+        entityByPos: _buildEntityByPos(
+          map,
+          npcPresence: npcMapPresencePredicate,
+        ),
         actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
           map,
           project: project,
@@ -124,6 +143,7 @@ class GameplayWorldState {
         waterCellCache: _buildWaterCellCache(map, project: project),
         tileWidth: tileWidth,
         tileHeight: tileHeight,
+        npcMapPresencePredicate: npcMapPresencePredicate,
       );
 
   factory GameplayWorldState.fromMap(
@@ -131,12 +151,19 @@ class GameplayWorldState {
     ProjectManifest? project,
     int tileWidth = 16,
     int tileHeight = 16,
+    NpcMapPresencePredicate? npcMapPresencePredicate,
   }) {
     final player = resolveInitialPlayerSpawn(map);
     final cache = _buildCollisionCache(map, project: project);
-    final blockingEntities = _buildBlockingEntityByPos(map);
+    final blockingEntities = _buildBlockingEntityByPos(
+      map,
+      npcPresence: npcMapPresencePredicate,
+    );
     final warps = _buildWarpCandidatesByPos(map, tileWidth, tileHeight);
-    final entities = _buildEntityByPos(map);
+    final entities = _buildEntityByPos(
+      map,
+      npcPresence: npcMapPresencePredicate,
+    );
     final world = GameplayWorldState._(
       map: map,
       player: player,
@@ -198,6 +225,7 @@ class GameplayWorldState {
       waterCellCache: _buildWaterCellCache(map, project: project),
       tileWidth: tileWidth,
       tileHeight: tileHeight,
+      npcMapPresencePredicate: npcMapPresencePredicate,
     );
     if (world.isBlocked(player.pos.x, player.pos.y)) {
       throw GameplaySpawnResolutionException(
@@ -209,6 +237,9 @@ class GameplayWorldState {
 
   final MapData map;
   final GameplayPlayerState player;
+
+  /// Filtre optionnel de présence des PNJ sur la grille (voir [NpcMapPresencePredicate]).
+  final NpcMapPresencePredicate? npcMapPresencePredicate;
   final List<bool> _collisionCache;
   final Map<int, MapEntity> _blockingEntityByPos;
   final Map<int, List<MapWarp>> _warpCandidatesByPos;
@@ -453,7 +484,41 @@ class GameplayWorldState {
         waterCellCache: _waterCellCache,
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
+        npcMapPresencePredicate: npcMapPresencePredicate,
       );
+
+  /// Reconstruit les caches spatiaux PNJ après changement de progression (visibilité).
+  GameplayWorldState withNpcMapPresencePredicate(
+    NpcMapPresencePredicate? predicate,
+  ) {
+    return GameplayWorldState._(
+      map: map,
+      player: player,
+      collisionCache: _collisionCache,
+      blockingEntityByPos: _buildBlockingEntityByPos(
+        map,
+        npcPresence: predicate,
+      ),
+      entityByPos: _buildEntityByPos(map, npcPresence: predicate),
+      warpCandidatesByPos: _warpCandidatesByPos,
+      actionBehaviorByPos: _actionBehaviorByPos,
+      enterBehaviorByPos: _enterBehaviorByPos,
+      bumpBehaviorByPos: _bumpBehaviorByPos,
+      exitBehaviorByPos: _exitBehaviorByPos,
+      nearBehaviorByPos: _nearBehaviorByPos,
+      placedElementCoverageByPos: _placedElementCoverageByPos,
+      pathRuleOnEnterByPos: _pathRuleOnEnterByPos,
+      pathRuleOnStepByPos: _pathRuleOnStepByPos,
+      pathRuleOnActionByPos: _pathRuleOnActionByPos,
+      pathRuleOnBumpByPos: _pathRuleOnBumpByPos,
+      pathRuleOnNearByPos: _pathRuleOnNearByPos,
+      pathRuleWhileInsideByPos: _pathRuleWhileInsideByPos,
+      waterCellCache: _waterCellCache,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+      npcMapPresencePredicate: predicate,
+    );
+  }
 
   /// Retourne un nouvel état monde où la position d'une entité est mise à jour.
   ///
@@ -494,8 +559,14 @@ class GameplayWorldState {
       player: player,
       collisionCache: _collisionCache,
       // Les entités bloquantes et interactives doivent refléter la nouvelle map.
-      blockingEntityByPos: _buildBlockingEntityByPos(updatedMap),
-      entityByPos: _buildEntityByPos(updatedMap),
+      blockingEntityByPos: _buildBlockingEntityByPos(
+        updatedMap,
+        npcPresence: npcMapPresencePredicate,
+      ),
+      entityByPos: _buildEntityByPos(
+        updatedMap,
+        npcPresence: npcMapPresencePredicate,
+      ),
       // Les warps/behaviors/path rules restent valides: ils ne dépendent pas
       // de la position des entités map dans le modèle actuel.
       warpCandidatesByPos: _warpCandidatesByPos,
@@ -514,6 +585,7 @@ class GameplayWorldState {
       waterCellCache: _waterCellCache,
       tileWidth: _tileWidth,
       tileHeight: _tileHeight,
+      npcMapPresencePredicate: npcMapPresencePredicate,
     );
   }
 
@@ -741,10 +813,23 @@ Map<int, List<MapWarp>> _buildWarpCandidatesByPos(
   return result;
 }
 
-Map<int, MapEntity> _buildBlockingEntityByPos(MapData map) {
+bool _includeMapEntityInSpatialCaches(
+  MapEntity entity,
+  NpcMapPresencePredicate? npcPresence,
+) {
+  if (entity.kind != MapEntityKind.npc) return true;
+  if (npcPresence == null) return true;
+  return npcPresence(entity);
+}
+
+Map<int, MapEntity> _buildBlockingEntityByPos(
+  MapData map, {
+  NpcMapPresencePredicate? npcPresence,
+}) {
   final w = map.size.width;
   final result = <int, MapEntity>{};
   for (final entity in map.entities) {
+    if (!_includeMapEntityInSpatialCaches(entity, npcPresence)) continue;
     if (!_isEntityBlockingCandidate(entity)) continue;
     for (final cell in resolveEntityCollisionCells(entity)) {
       if (cell.x < 0 ||
@@ -759,10 +844,14 @@ Map<int, MapEntity> _buildBlockingEntityByPos(MapData map) {
   return result;
 }
 
-Map<int, MapEntity> _buildEntityByPos(MapData map) {
+Map<int, MapEntity> _buildEntityByPos(
+  MapData map, {
+  NpcMapPresencePredicate? npcPresence,
+}) {
   final w = map.size.width;
   final result = <int, MapEntity>{};
   for (final entity in map.entities) {
+    if (!_includeMapEntityInSpatialCaches(entity, npcPresence)) continue;
     if (entity.kind == MapEntityKind.spawn) continue;
     for (final cell in resolveEntityCollisionCells(entity)) {
       if (cell.x < 0 ||
