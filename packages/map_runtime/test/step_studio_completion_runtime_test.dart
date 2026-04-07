@@ -51,5 +51,32 @@ void main() {
       final twice = appendCompletedCutsceneIdIfAbsent(once, 'cut_y');
       expect(identical(twice, once), isTrue);
     });
+
+    test('maps both step_2 and step_2_1 from real-style cutscene ids', () {
+      const doc = '''
+{"schemaVersion":"step_studio_v1","globalStoryScenarioId":"global_story","steps":[
+  {"id":"step_2_1","completion":{"mode":"whenCutsceneEnds","cutsceneId":"premier_pas"}},
+  {"id":"step_2","completion":{"mode":"whenCutsceneEnds","cutsceneId":"premier_dialogue_avec_le_professeur_emma"}}
+]}''';
+      final scenarios = [
+        ScenarioAsset(
+          id: 'global_story',
+          name: 'global',
+          entryNodeId: 'start',
+          scope: ScenarioScope.globalStory,
+          nodes: const [],
+          edges: const [],
+          metadata: {kStepStudioDocumentMetadataKey: doc},
+        ),
+      ];
+      final index = buildStepCompletionCutsceneIndex(scenarios);
+      expect(index.stepIdToCompleteWhenCutsceneEnds('premier_pas'), 'step_2_1');
+      expect(
+        index.stepIdToCompleteWhenCutsceneEnds(
+          'premier_dialogue_avec_le_professeur_emma',
+        ),
+        'step_2',
+      );
+    });
   });
 }

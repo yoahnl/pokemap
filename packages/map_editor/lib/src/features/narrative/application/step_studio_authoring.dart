@@ -1106,6 +1106,37 @@ StepStudioDocument _normalizeDocument(StepStudioDocument document) {
   );
 }
 
+/// Validation défensive juste avant persistance du document Step Studio.
+///
+/// Invariant produit: une ligne `worldChanges` qui cible une map (mapId non vide)
+/// doit cibler explicitement une entité (`entityId` non vide), sinon la règle
+/// est ambiguë et ne peut pas être appliquée correctement par le runtime.
+///
+/// Cette validation est volontairement découplée de la normalisation:
+/// - normaliser = rendre la forme stable/idempotente,
+/// - valider = refuser les états métier incomplets.
+List<String> validateStepStudioDocumentForPersistence(
+  StepStudioDocument document,
+) {
+  final errors = <String>[];
+  for (final step in document.steps) {
+    for (final change in step.worldChanges) {
+      final mapId = change.mapId.trim();
+      final entityId = change.entityId.trim();
+      if (mapId.isEmpty) {
+        continue;
+      }
+      if (entityId.isNotEmpty) {
+        continue;
+      }
+      errors.add(
+        'step=${step.id}: worldChange mapId="$mapId" exige un entityId non vide.',
+      );
+    }
+  }
+  return errors;
+}
+
 StepStudioActivationMode _parseActivationMode(
   String? raw, {
   required StepStudioActivationMode fallback,

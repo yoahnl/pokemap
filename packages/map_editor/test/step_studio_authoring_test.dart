@@ -377,5 +377,37 @@ void main() {
         );
       },
     );
+
+    test('validation persistence blocks worldChange mapId with empty entityId', () {
+      const document = StepStudioDocument(
+        globalStoryScenarioId: 'global_story',
+        steps: <StepStudioStep>[
+          StepStudioStep(
+            id: 'step_2',
+            name: 'Step 2',
+            description: 'Validation',
+            order: 0,
+            activation: StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            ),
+            completion: StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.manual,
+            ),
+            worldChanges: <StepStudioWorldChange>[
+              StepStudioWorldChange(
+                mapId: 'Bourivka center',
+                entityId: '',
+                presenceRule: StepStudioPresenceRule.hiddenAfterStepCompletion,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final errors = validateStepStudioDocumentForPersistence(document);
+      expect(errors, isNotEmpty);
+      expect(errors.first, contains('step=step_2'));
+      expect(errors.first, contains('entityId non vide'));
+    });
   });
 }

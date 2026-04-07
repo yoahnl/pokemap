@@ -401,8 +401,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (entity.kind != MapEntityKind.npc) {
         continue;
       }
+      final present = npcPred(loaded.bundle.map.id, entity);
+      // Trace "source de vérité -> rendu" :
+      // on journalise la décision finale de présence pour chaque PNJ afin de
+      // diagnostiquer rapidement un cas "la règle existe mais l'acteur reste visible".
+      debugPrint(
+        '[step_studio_trace] npc_presence_applied map=${loaded.bundle.map.id} entity=${entity.id} present=$present',
+      );
       loaded.npcActorByEntityId[entity.id]
-          ?.setGameplayVisible(npcPred(loaded.bundle.map.id, entity));
+          ?.setGameplayVisible(present);
     }
   }
 
@@ -4836,6 +4843,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     for (final entity in bundle.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
       if (!npcPred(bundle.map.id, entity)) {
+        // Pas de création d'acteur si la règle runtime dit "absent".
+        debugPrint(
+          '[step_studio_trace] npc_mount_skipped map=${bundle.map.id} entity=${entity.id} reason=presence_predicate_false',
+        );
         continue;
       }
       final charId = resolveNpcCharacterId(entity, bundle.manifest);
@@ -4861,6 +4872,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       npcActorByEntityId[entity.id] = actor;
       _npcActors.add(actor);
       await world.add(actor);
+      debugPrint(
+        '[step_studio_trace] npc_mount_added map=${bundle.map.id} entity=${entity.id}',
+      );
     }
 
     final loaded = _LoadedPlayableMap(

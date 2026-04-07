@@ -885,29 +885,21 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       _busy = true;
     });
 
-    for (final step in draft.steps) {
-      for (final change in step.worldChanges) {
-        final mapId = change.mapId.trim();
-        final entityId = change.entityId.trim();
-        if (mapId.isEmpty) {
-          continue;
-        }
-        if (entityId.isNotEmpty) {
-          continue;
-        }
-        debugPrint(
-          '[step_studio_trace] action=save_blocked_empty_entity step=${step.id} mapId=$mapId rule=${change.presenceRule.name}',
-        );
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _busy = false;
-          _entityLookupError =
-              'Sauvegarde bloquée: la step "${step.id}" contient un worldChange sur "$mapId" sans entité sélectionnée.';
-        });
+    final validationErrors = validateStepStudioDocumentForPersistence(draft);
+    if (validationErrors.isNotEmpty) {
+      // On log toutes les erreurs pour un diagnostic post-mortem complet,
+      // puis on montre la première dans l'UI pour rester lisible côté auteur.
+      for (final error in validationErrors) {
+        debugPrint('[step_studio_trace] action=save_blocked_validation $error');
+      }
+      if (!mounted) {
         return;
       }
+      setState(() {
+        _busy = false;
+        _entityLookupError = 'Sauvegarde bloquée: ${validationErrors.first}';
+      });
+      return;
     }
 
     final nextScenario =
