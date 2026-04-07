@@ -692,7 +692,7 @@ ProjectManifest _project({
         ],
         collisionProfile: includeCollisionProfile
             ? ElementCollisionProfile(
-                pixelMask: _solidMaskForElementFootprint(
+                collisionMask: _solidMaskForElementFootprint(
                   elementSize: elementSize,
                 ),
                 cells: const <GridPos>[],

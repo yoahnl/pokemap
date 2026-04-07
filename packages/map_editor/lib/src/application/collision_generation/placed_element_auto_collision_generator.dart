@@ -5,13 +5,18 @@ import 'package:map_core/map_core.dart';
 
 import 'element_visual_occupancy_analyzer.dart';
 import 'placed_element_collision_params.dart';
+import 'placed_element_mask_heuristics_v1.dart';
 
-/// Orchestre le décodage image → [ElementCollisionProfile] avec **pixelMask** uniquement.
+/// Orchestre le décodage image → [ElementCollisionProfile] avec **trois** rôles :
+/// [ElementCollisionProfile.visualMask], [ElementCollisionProfile.collisionMask],
+/// [ElementCollisionProfile.occlusionMask].
 ///
-/// Pipeline V1 (pas de dérivation grille) :
-/// 1. occupation visuelle (`ElementVisualOccupancyAnalyzer`) ;
-/// 2. **copie directe** visuel → masque gameplay (même géométrie, même taille) ;
-/// 3. encodage `packed_bits_v1`.
+/// Pipeline (V2 produit) :
+/// 1. occupation visuelle binaire (`ElementVisualOccupancyAnalyzer`) ;
+/// 2. encodage du **visuel** tel quel ;
+/// 3. **collision** et **occlusion** dérivés par [PlacedElementMaskHeuristicsV1]
+///    (pas de copie « opaque = bloquant ») ;
+/// 4. encodage `packed_bits_v1` pour chaque masque.
 ///
 /// [ElementCollisionProfile.cells] reste vide : legacy réservé migration JSON hors runtime.
 class PlacedElementAutoCollisionGenerator {
@@ -87,20 +92,46 @@ class PlacedElementAutoCollisionGenerator {
       padding: padding,
       alphaThreshold: params.alphaThreshold,
     );
-    // Masque gameplay auto = copie directe de l’occupation visuelle (pas de grille).
-    final pixelMask = ElementCollisionPixelMask(
+    final visualPixels = List<bool>.from(visual.visiblePixels);
+    final derived = PlacedElementMaskHeuristicsV1.deriveFromVisualOccupancy(
+      visualOpaque: visualPixels,
+      widthPx: maskWidthPx,
+      heightPx: maskHeightPx,
+    );
+
+    final visualMask = ElementCollisionPixelMask(
       widthPx: maskWidthPx,
       heightPx: maskHeightPx,
       dataBase64: ElementCollisionMaskCodec.encodePackedBits(
         widthPx: maskWidthPx,
         heightPx: maskHeightPx,
-        solidPixels: List<bool>.from(visual.visiblePixels),
+        solidPixels: visualPixels,
+      ),
+    );
+    final collisionMask = ElementCollisionPixelMask(
+      widthPx: maskWidthPx,
+      heightPx: maskHeightPx,
+      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+        widthPx: maskWidthPx,
+        heightPx: maskHeightPx,
+        solidPixels: derived.collision,
+      ),
+    );
+    final occlusionMask = ElementCollisionPixelMask(
+      widthPx: maskWidthPx,
+      heightPx: maskHeightPx,
+      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+        widthPx: maskWidthPx,
+        heightPx: maskHeightPx,
+        solidPixels: derived.occlusion,
       ),
     );
 
     return ElementCollisionProfile(
       source: ElementCollisionProfileSource.generated,
-      pixelMask: pixelMask,
+      visualMask: visualMask,
+      collisionMask: collisionMask,
+      occlusionMask: occlusionMask,
       padding: padding,
       cells: const [],
     );

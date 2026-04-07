@@ -251,18 +251,35 @@ mixin _$ElementCollisionProfile {
   ElementCollisionProfileSource get source =>
       throw _privateConstructorUsedError;
 
-  /// Optionnel: masque pixel-level (nouvelle source de vérité).
+  /// Masque **visuel** : pixels où le sprite est matière affichée (alpha au-dessus du seuil).
   ///
-  /// Stratégie de compatibilité:
-  /// - si présent, le runtime peut en dériver les cellules cache;
-  /// - sinon, on utilise la liste `cells` legacy.
-  ElementCollisionPixelMask? get pixelMask =>
+  /// Sert à l’éditeur (aperçu, légende) et à l’auto-génération ; **ne bloque pas**
+  /// le déplacement par lui-même. Peut être absent : l’éditeur peut retomber sur
+  /// la lecture directe du PNG.
+  ElementCollisionPixelMask? get visualMask =>
+      throw _privateConstructorUsedError;
+
+  /// **Collision gameplay** : pixels qui **bloquent** joueur / PNJ (bitmap monde).
+  ///
+  /// Clé JSON historique : `pixelMask` (compatibilité). Ne doit **pas** être une
+  /// simple copie du visuel : ombres / décoration haute peuvent être exclues par
+  /// l’auto-génération ou l’édition manuelle.
+  @JsonKey(name: 'pixelMask')
+  ElementCollisionPixelMask? get collisionMask =>
+      throw _privateConstructorUsedError;
+
+  /// **Occlusion / couverture** : pixels du sprite qui peuvent **recouvrir** un
+  /// personnage lorsqu’il passe « derrière » (toit, feuillage, etc.).
+  ///
+  /// Le runtime l’utilise pour le **rendu** (profondeur), pas pour le blocage.
+  /// Indépendant de [collisionMask].
+  ElementCollisionPixelMask? get occlusionMask =>
       throw _privateConstructorUsedError;
   WarpTriggerPadding get padding => throw _privateConstructorUsedError;
 
-  /// Format legacy basé sur cellules.
+  /// **Legacy JSON uniquement** : migration / outillage / inspection.
   ///
-  /// Conservé pour compatibilité JSON/projets existants et pour debug.
+  /// Ne pas lire cette liste dans [map_gameplay] pour la collision active.
   List<GridPos> get cells => throw _privateConstructorUsedError;
 
   /// Serializes this ElementCollisionProfile to a JSON map.
@@ -283,11 +300,15 @@ abstract class $ElementCollisionProfileCopyWith<$Res> {
   @useResult
   $Res call(
       {ElementCollisionProfileSource source,
-      ElementCollisionPixelMask? pixelMask,
+      ElementCollisionPixelMask? visualMask,
+      @JsonKey(name: 'pixelMask') ElementCollisionPixelMask? collisionMask,
+      ElementCollisionPixelMask? occlusionMask,
       WarpTriggerPadding padding,
       List<GridPos> cells});
 
-  $ElementCollisionPixelMaskCopyWith<$Res>? get pixelMask;
+  $ElementCollisionPixelMaskCopyWith<$Res>? get visualMask;
+  $ElementCollisionPixelMaskCopyWith<$Res>? get collisionMask;
+  $ElementCollisionPixelMaskCopyWith<$Res>? get occlusionMask;
   $WarpTriggerPaddingCopyWith<$Res> get padding;
 }
 
@@ -308,7 +329,9 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
   @override
   $Res call({
     Object? source = null,
-    Object? pixelMask = freezed,
+    Object? visualMask = freezed,
+    Object? collisionMask = freezed,
+    Object? occlusionMask = freezed,
     Object? padding = null,
     Object? cells = null,
   }) {
@@ -317,9 +340,17 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as ElementCollisionProfileSource,
-      pixelMask: freezed == pixelMask
-          ? _value.pixelMask
-          : pixelMask // ignore: cast_nullable_to_non_nullable
+      visualMask: freezed == visualMask
+          ? _value.visualMask
+          : visualMask // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionPixelMask?,
+      collisionMask: freezed == collisionMask
+          ? _value.collisionMask
+          : collisionMask // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionPixelMask?,
+      occlusionMask: freezed == occlusionMask
+          ? _value.occlusionMask
+          : occlusionMask // ignore: cast_nullable_to_non_nullable
               as ElementCollisionPixelMask?,
       padding: null == padding
           ? _value.padding
@@ -336,13 +367,44 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $ElementCollisionPixelMaskCopyWith<$Res>? get pixelMask {
-    if (_value.pixelMask == null) {
+  $ElementCollisionPixelMaskCopyWith<$Res>? get visualMask {
+    if (_value.visualMask == null) {
       return null;
     }
 
-    return $ElementCollisionPixelMaskCopyWith<$Res>(_value.pixelMask!, (value) {
-      return _then(_value.copyWith(pixelMask: value) as $Val);
+    return $ElementCollisionPixelMaskCopyWith<$Res>(_value.visualMask!,
+        (value) {
+      return _then(_value.copyWith(visualMask: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ElementCollisionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ElementCollisionPixelMaskCopyWith<$Res>? get collisionMask {
+    if (_value.collisionMask == null) {
+      return null;
+    }
+
+    return $ElementCollisionPixelMaskCopyWith<$Res>(_value.collisionMask!,
+        (value) {
+      return _then(_value.copyWith(collisionMask: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ElementCollisionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ElementCollisionPixelMaskCopyWith<$Res>? get occlusionMask {
+    if (_value.occlusionMask == null) {
+      return null;
+    }
+
+    return $ElementCollisionPixelMaskCopyWith<$Res>(_value.occlusionMask!,
+        (value) {
+      return _then(_value.copyWith(occlusionMask: value) as $Val);
     });
   }
 
@@ -368,12 +430,18 @@ abstract class _$$ElementCollisionProfileImplCopyWith<$Res>
   @useResult
   $Res call(
       {ElementCollisionProfileSource source,
-      ElementCollisionPixelMask? pixelMask,
+      ElementCollisionPixelMask? visualMask,
+      @JsonKey(name: 'pixelMask') ElementCollisionPixelMask? collisionMask,
+      ElementCollisionPixelMask? occlusionMask,
       WarpTriggerPadding padding,
       List<GridPos> cells});
 
   @override
-  $ElementCollisionPixelMaskCopyWith<$Res>? get pixelMask;
+  $ElementCollisionPixelMaskCopyWith<$Res>? get visualMask;
+  @override
+  $ElementCollisionPixelMaskCopyWith<$Res>? get collisionMask;
+  @override
+  $ElementCollisionPixelMaskCopyWith<$Res>? get occlusionMask;
   @override
   $WarpTriggerPaddingCopyWith<$Res> get padding;
 }
@@ -394,7 +462,9 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? source = null,
-    Object? pixelMask = freezed,
+    Object? visualMask = freezed,
+    Object? collisionMask = freezed,
+    Object? occlusionMask = freezed,
     Object? padding = null,
     Object? cells = null,
   }) {
@@ -403,9 +473,17 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as ElementCollisionProfileSource,
-      pixelMask: freezed == pixelMask
-          ? _value.pixelMask
-          : pixelMask // ignore: cast_nullable_to_non_nullable
+      visualMask: freezed == visualMask
+          ? _value.visualMask
+          : visualMask // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionPixelMask?,
+      collisionMask: freezed == collisionMask
+          ? _value.collisionMask
+          : collisionMask // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionPixelMask?,
+      occlusionMask: freezed == occlusionMask
+          ? _value.occlusionMask
+          : occlusionMask // ignore: cast_nullable_to_non_nullable
               as ElementCollisionPixelMask?,
       padding: null == padding
           ? _value.padding
@@ -425,7 +503,9 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
 class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   const _$ElementCollisionProfileImpl(
       {this.source = ElementCollisionProfileSource.generated,
-      this.pixelMask,
+      this.visualMask,
+      @JsonKey(name: 'pixelMask') this.collisionMask,
+      this.occlusionMask,
       this.padding = const WarpTriggerPadding(),
       final List<GridPos> cells = const []})
       : _cells = cells;
@@ -437,25 +517,42 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   @JsonKey()
   final ElementCollisionProfileSource source;
 
-  /// Optionnel: masque pixel-level (nouvelle source de vérité).
+  /// Masque **visuel** : pixels où le sprite est matière affichée (alpha au-dessus du seuil).
   ///
-  /// Stratégie de compatibilité:
-  /// - si présent, le runtime peut en dériver les cellules cache;
-  /// - sinon, on utilise la liste `cells` legacy.
+  /// Sert à l’éditeur (aperçu, légende) et à l’auto-génération ; **ne bloque pas**
+  /// le déplacement par lui-même. Peut être absent : l’éditeur peut retomber sur
+  /// la lecture directe du PNG.
   @override
-  final ElementCollisionPixelMask? pixelMask;
+  final ElementCollisionPixelMask? visualMask;
+
+  /// **Collision gameplay** : pixels qui **bloquent** joueur / PNJ (bitmap monde).
+  ///
+  /// Clé JSON historique : `pixelMask` (compatibilité). Ne doit **pas** être une
+  /// simple copie du visuel : ombres / décoration haute peuvent être exclues par
+  /// l’auto-génération ou l’édition manuelle.
+  @override
+  @JsonKey(name: 'pixelMask')
+  final ElementCollisionPixelMask? collisionMask;
+
+  /// **Occlusion / couverture** : pixels du sprite qui peuvent **recouvrir** un
+  /// personnage lorsqu’il passe « derrière » (toit, feuillage, etc.).
+  ///
+  /// Le runtime l’utilise pour le **rendu** (profondeur), pas pour le blocage.
+  /// Indépendant de [collisionMask].
+  @override
+  final ElementCollisionPixelMask? occlusionMask;
   @override
   @JsonKey()
   final WarpTriggerPadding padding;
 
-  /// Format legacy basé sur cellules.
+  /// **Legacy JSON uniquement** : migration / outillage / inspection.
   ///
-  /// Conservé pour compatibilité JSON/projets existants et pour debug.
+  /// Ne pas lire cette liste dans [map_gameplay] pour la collision active.
   final List<GridPos> _cells;
 
-  /// Format legacy basé sur cellules.
+  /// **Legacy JSON uniquement** : migration / outillage / inspection.
   ///
-  /// Conservé pour compatibilité JSON/projets existants et pour debug.
+  /// Ne pas lire cette liste dans [map_gameplay] pour la collision active.
   @override
   @JsonKey()
   List<GridPos> get cells {
@@ -466,7 +563,7 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 
   @override
   String toString() {
-    return 'ElementCollisionProfile(source: $source, pixelMask: $pixelMask, padding: $padding, cells: $cells)';
+    return 'ElementCollisionProfile(source: $source, visualMask: $visualMask, collisionMask: $collisionMask, occlusionMask: $occlusionMask, padding: $padding, cells: $cells)';
   }
 
   @override
@@ -475,15 +572,25 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
         (other.runtimeType == runtimeType &&
             other is _$ElementCollisionProfileImpl &&
             (identical(other.source, source) || other.source == source) &&
-            (identical(other.pixelMask, pixelMask) ||
-                other.pixelMask == pixelMask) &&
+            (identical(other.visualMask, visualMask) ||
+                other.visualMask == visualMask) &&
+            (identical(other.collisionMask, collisionMask) ||
+                other.collisionMask == collisionMask) &&
+            (identical(other.occlusionMask, occlusionMask) ||
+                other.occlusionMask == occlusionMask) &&
             (identical(other.padding, padding) || other.padding == padding) &&
             const DeepCollectionEquality().equals(other._cells, _cells));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, source, pixelMask, padding,
+  int get hashCode => Object.hash(
+      runtimeType,
+      source,
+      visualMask,
+      collisionMask,
+      occlusionMask,
+      padding,
       const DeepCollectionEquality().hash(_cells));
 
   /// Create a copy of ElementCollisionProfile
@@ -506,7 +613,10 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   const factory _ElementCollisionProfile(
       {final ElementCollisionProfileSource source,
-      final ElementCollisionPixelMask? pixelMask,
+      final ElementCollisionPixelMask? visualMask,
+      @JsonKey(name: 'pixelMask')
+      final ElementCollisionPixelMask? collisionMask,
+      final ElementCollisionPixelMask? occlusionMask,
       final WarpTriggerPadding padding,
       final List<GridPos> cells}) = _$ElementCollisionProfileImpl;
 
@@ -516,19 +626,36 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   @override
   ElementCollisionProfileSource get source;
 
-  /// Optionnel: masque pixel-level (nouvelle source de vérité).
+  /// Masque **visuel** : pixels où le sprite est matière affichée (alpha au-dessus du seuil).
   ///
-  /// Stratégie de compatibilité:
-  /// - si présent, le runtime peut en dériver les cellules cache;
-  /// - sinon, on utilise la liste `cells` legacy.
+  /// Sert à l’éditeur (aperçu, légende) et à l’auto-génération ; **ne bloque pas**
+  /// le déplacement par lui-même. Peut être absent : l’éditeur peut retomber sur
+  /// la lecture directe du PNG.
   @override
-  ElementCollisionPixelMask? get pixelMask;
+  ElementCollisionPixelMask? get visualMask;
+
+  /// **Collision gameplay** : pixels qui **bloquent** joueur / PNJ (bitmap monde).
+  ///
+  /// Clé JSON historique : `pixelMask` (compatibilité). Ne doit **pas** être une
+  /// simple copie du visuel : ombres / décoration haute peuvent être exclues par
+  /// l’auto-génération ou l’édition manuelle.
+  @override
+  @JsonKey(name: 'pixelMask')
+  ElementCollisionPixelMask? get collisionMask;
+
+  /// **Occlusion / couverture** : pixels du sprite qui peuvent **recouvrir** un
+  /// personnage lorsqu’il passe « derrière » (toit, feuillage, etc.).
+  ///
+  /// Le runtime l’utilise pour le **rendu** (profondeur), pas pour le blocage.
+  /// Indépendant de [collisionMask].
+  @override
+  ElementCollisionPixelMask? get occlusionMask;
   @override
   WarpTriggerPadding get padding;
 
-  /// Format legacy basé sur cellules.
+  /// **Legacy JSON uniquement** : migration / outillage / inspection.
   ///
-  /// Conservé pour compatibilité JSON/projets existants et pour debug.
+  /// Ne pas lire cette liste dans [map_gameplay] pour la collision active.
   @override
   List<GridPos> get cells;
 

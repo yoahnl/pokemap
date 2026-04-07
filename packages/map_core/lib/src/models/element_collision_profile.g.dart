@@ -36,10 +36,18 @@ _$ElementCollisionProfileImpl _$$ElementCollisionProfileImplFromJson(
       source: $enumDecodeNullable(
               _$ElementCollisionProfileSourceEnumMap, json['source']) ??
           ElementCollisionProfileSource.generated,
-      pixelMask: json['pixelMask'] == null
+      visualMask: json['visualMask'] == null
+          ? null
+          : ElementCollisionPixelMask.fromJson(
+              json['visualMask'] as Map<String, dynamic>),
+      collisionMask: json['pixelMask'] == null
           ? null
           : ElementCollisionPixelMask.fromJson(
               json['pixelMask'] as Map<String, dynamic>),
+      occlusionMask: json['occlusionMask'] == null
+          ? null
+          : ElementCollisionPixelMask.fromJson(
+              json['occlusionMask'] as Map<String, dynamic>),
       padding: json['padding'] == null
           ? const WarpTriggerPadding()
           : WarpTriggerPadding.fromJson(
@@ -54,7 +62,9 @@ Map<String, dynamic> _$$ElementCollisionProfileImplToJson(
         _$ElementCollisionProfileImpl instance) =>
     <String, dynamic>{
       'source': _$ElementCollisionProfileSourceEnumMap[instance.source]!,
-      'pixelMask': instance.pixelMask?.toJson(),
+      'visualMask': instance.visualMask?.toJson(),
+      'pixelMask': instance.collisionMask?.toJson(),
+      'occlusionMask': instance.occlusionMask?.toJson(),
       'padding': instance.padding.toJson(),
       'cells': instance.cells.map((e) => e.toJson()).toList(),
     };

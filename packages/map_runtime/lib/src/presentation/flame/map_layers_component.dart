@@ -875,21 +875,22 @@ class MapLayersComponent extends PositionComponent {
       }
       final worldLeftPx = instance.pos.x * cw;
       final worldTopPx = instance.pos.y * ch;
-      final pixelMask = profile.pixelMask;
-      if (pixelMask != null) {
+      // Overlay debug : masque **collision** (blocage), pas l’occlusion.
+      final collisionMask = profile.collisionMask;
+      if (collisionMask != null) {
         List<bool> maskPixels;
         try {
           maskPixels = ElementCollisionMaskCodec.decodePackedBits(
-            widthPx: pixelMask.widthPx,
-            heightPx: pixelMask.heightPx,
-            dataBase64: pixelMask.dataBase64,
+            widthPx: collisionMask.widthPx,
+            heightPx: collisionMask.heightPx,
+            dataBase64: collisionMask.dataBase64,
           );
         } catch (_) {
           continue;
         }
-        for (var py = 0; py < pixelMask.heightPx; py++) {
-          for (var px = 0; px < pixelMask.widthPx; px++) {
-            final idx = py * pixelMask.widthPx + px;
+        for (var py = 0; py < collisionMask.heightPx; py++) {
+          for (var px = 0; px < collisionMask.widthPx; px++) {
+            final idx = py * collisionMask.widthPx + px;
             if (idx < 0 || idx >= maskPixels.length || !maskPixels[idx]) {
               continue;
             }
@@ -910,7 +911,7 @@ class MapLayersComponent extends PositionComponent {
         continue;
       }
 
-      // Fallback legacy: profils sans pixelMask.
+      // Fallback legacy: profils sans masque collision pixel.
       for (final local in profile.cells) {
         final x = instance.pos.x + local.x;
         final y = instance.pos.y + local.y;

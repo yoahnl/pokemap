@@ -14,13 +14,13 @@ void main() {
     );
     final profile = ElementCollisionProfile(
       source: ElementCollisionProfileSource.generated,
-      pixelMask: mask,
+      collisionMask: mask,
       padding: const WarpTriggerPadding(top: 1),
       cells: const [GridPos(x: 0, y: 0)],
     );
     final decoded = ElementCollisionProfile.fromJson(profile.toJson());
-    expect(decoded.pixelMask, isNotNull);
-    expect(decoded.pixelMask!.widthPx, 16);
+    expect(decoded.collisionMask, isNotNull);
+    expect(decoded.collisionMask!.widthPx, 16);
     expect(decoded.padding.top, 1);
     expect(decoded.cells, const [GridPos(x: 0, y: 0)]);
   });

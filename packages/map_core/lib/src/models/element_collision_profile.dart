@@ -37,11 +37,26 @@ class ElementCollisionProfile with _$ElementCollisionProfile {
     @Default(ElementCollisionProfileSource.generated)
     ElementCollisionProfileSource source,
 
-    /// **Source de vérité** pour la collision runtime des éléments (décodée en bitmap monde).
+    /// Masque **visuel** : pixels où le sprite est matière affichée (alpha au-dessus du seuil).
     ///
-    /// Le gameplay **n’utilise pas** [cells] pour résoudre les collisions : seul
-    /// ce masque (ou une migration explicite depuis [cells]) alimente le moteur.
-    ElementCollisionPixelMask? pixelMask,
+    /// Sert à l’éditeur (aperçu, légende) et à l’auto-génération ; **ne bloque pas**
+    /// le déplacement par lui-même. Peut être absent : l’éditeur peut retomber sur
+    /// la lecture directe du PNG.
+    ElementCollisionPixelMask? visualMask,
+
+    /// **Collision gameplay** : pixels qui **bloquent** joueur / PNJ (bitmap monde).
+    ///
+    /// Clé JSON historique : `pixelMask` (compatibilité). Ne doit **pas** être une
+    /// simple copie du visuel : ombres / décoration haute peuvent être exclues par
+    /// l’auto-génération ou l’édition manuelle.
+    @JsonKey(name: 'pixelMask') ElementCollisionPixelMask? collisionMask,
+
+    /// **Occlusion / couverture** : pixels du sprite qui peuvent **recouvrir** un
+    /// personnage lorsqu’il passe « derrière » (toit, feuillage, etc.).
+    ///
+    /// Le runtime l’utilise pour le **rendu** (profondeur), pas pour le blocage.
+    /// Indépendant de [collisionMask].
+    ElementCollisionPixelMask? occlusionMask,
 
     @Default(WarpTriggerPadding()) WarpTriggerPadding padding,
 

@@ -1,4 +1,5 @@
 import '../exceptions/map_exceptions.dart';
+import '../models/element_collision_profile.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -559,39 +560,49 @@ class ProjectValidator {
       );
     }
     final source = element.frames.primarySource;
-    final pixelMask = profile.pixelMask;
+    final collisionMask = profile.collisionMask;
     // Rupture d’architecture : le runtime gameplay ne lit pas `cells`.
-    // Tout profil avec des cellules legacy doit être migré vers `pixelMask`
-    // (voir [ElementCollisionLegacyMigration]).
-    if (pixelMask == null && profile.cells.isNotEmpty) {
+    // Tout profil avec des cellules legacy doit être migré vers un masque
+    // collision (JSON `pixelMask`, voir [ElementCollisionLegacyMigration]).
+    if (collisionMask == null && profile.cells.isNotEmpty) {
       throw ValidationException(
         'Element ${element.id} collision profile still uses legacy `cells` '
-        'without `pixelMask`. Migrate to a pixel mask before running strict '
-        'validation.',
+        'without a collision pixel mask (`pixelMask` in JSON). Migrate before '
+        'running strict validation.',
       );
     }
-    if (pixelMask != null) {
-      if (pixelMask.widthPx <= 0 || pixelMask.heightPx <= 0) {
+    void validatePackedMask(ElementCollisionPixelMask m, String label) {
+      if (m.widthPx <= 0 || m.heightPx <= 0) {
         throw ValidationException(
-          'Element ${element.id} pixel mask dimensions must be > 0',
+          'Element ${element.id} $label mask dimensions must be > 0',
         );
       }
-      if (pixelMask.dataBase64.trim().isEmpty) {
+      if (m.dataBase64.trim().isEmpty) {
         throw ValidationException(
-          'Element ${element.id} pixel mask payload cannot be empty',
+          'Element ${element.id} $label mask payload cannot be empty',
         );
       }
       try {
         ElementCollisionMaskCodec.decodePackedBits(
-          widthPx: pixelMask.widthPx,
-          heightPx: pixelMask.heightPx,
-          dataBase64: pixelMask.dataBase64,
+          widthPx: m.widthPx,
+          heightPx: m.heightPx,
+          dataBase64: m.dataBase64,
         );
       } catch (e) {
         throw ValidationException(
-          'Element ${element.id} pixel mask payload is invalid: $e',
+          'Element ${element.id} $label mask payload is invalid: $e',
         );
       }
+    }
+
+    if (collisionMask != null) {
+      validatePackedMask(collisionMask, 'collision');
+    }
+    if (profile.visualMask != null) {
+      validatePackedMask(profile.visualMask!, 'visual');
+    }
+    if (profile.occlusionMask != null) {
+      validatePackedMask(profile.occlusionMask!, 'occlusion');
     }
     final seen = <String>{};
     for (final cell in profile.cells) {

@@ -52,6 +52,7 @@ import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
 import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
+import 'placed_element_occlusion_patch_component.dart';
 import 'player_component.dart';
 import 'warp_transition_overlay_component.dart';
 
@@ -3670,6 +3671,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           foregroundLayers: activeLoaded.foregroundLayers,
           npcActors: activeLoaded.npcActors,
           npcActorByEntityId: activeLoaded.npcActorByEntityId,
+          occlusionPatches: activeLoaded.occlusionPatches,
         );
       }
       debugPrint(
@@ -5013,6 +5015,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     loaded.backgroundLayers.removeFromParent();
     loaded.foregroundLayers.removeFromParent();
+    for (final patch in loaded.occlusionPatches) {
+      patch.removeFromParent();
+    }
     for (final actor in loaded.npcActors) {
       actor.removeFromParent();
       _npcActors.remove(actor);
@@ -5097,6 +5102,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     }
 
+    /// Patches d’occlusion : redessinent **uniquement** les pixels du masque
+    /// [ElementCollisionProfile.occlusionMask] au-dessus du joueur (tri Y),
+    /// sans toucher à la collision gameplay (voir [GameplayWorldState]).
+    final occlusionPatches = <PlacedElementOcclusionPatchComponent>[];
+    final elementById = {
+      for (final e in bundle.manifest.elements) e.id: e,
+    };
+    for (final instance in bundle.map.placedElements) {
+      final entry = elementById[instance.elementId];
+      if (entry == null) {
+        continue;
+      }
+      final occ = entry.collisionProfile?.occlusionMask;
+      if (occ == null) {
+        continue;
+      }
+      final frame = entry.frames.primaryFrame;
+      final tilesetId = frame.tilesetId.trim().isNotEmpty
+          ? frame.tilesetId.trim()
+          : entry.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        continue;
+      }
+      final tileImage = tileImagesById[tilesetId];
+      if (tileImage == null) {
+        continue;
+      }
+      final patch = PlacedElementOcclusionPatchComponent(
+        bundle: bundle,
+        instance: instance,
+        element: entry,
+        tileImage: tileImage,
+        mapOriginPx: originPx,
+      );
+      if (patch.size.x <= 0 || patch.size.y <= 0) {
+        continue;
+      }
+      occlusionPatches.add(patch);
+      await world.add(patch);
+    }
+
     final loaded = _LoadedPlayableMap(
       bundle: bundle,
       originCellX: originCellX,
@@ -5105,6 +5151,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       foregroundLayers: foregroundLayers,
       npcActors: npcActors,
       npcActorByEntityId: npcActorByEntityId,
+      occlusionPatches: occlusionPatches,
     );
     _loadedMapsById[bundle.map.id] = loaded;
     _applyNpcVisibilityToLoadedMap(loaded);
@@ -5833,6 +5880,7 @@ class _LoadedPlayableMap {
     required this.foregroundLayers,
     required this.npcActors,
     required this.npcActorByEntityId,
+    required this.occlusionPatches,
   });
 
   final RuntimeMapBundle bundle;
@@ -5842,6 +5890,7 @@ class _LoadedPlayableMap {
   final MapLayersComponent foregroundLayers;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;
+  final List<PlacedElementOcclusionPatchComponent> occlusionPatches;
 }
 
 class _NpcCollisionDebugVisual {

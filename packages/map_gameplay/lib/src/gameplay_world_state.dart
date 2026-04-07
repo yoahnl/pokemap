@@ -905,7 +905,8 @@ List<bool> _buildPixelCollisionCache(
       continue;
     }
     final profile = elementById[instance.elementId]?.collisionProfile;
-    final mask = profile?.pixelMask;
+    // Masque **collision** uniquement (JSON historique : `pixelMask`).
+    final mask = profile?.collisionMask;
     if (mask == null) {
       continue;
     }

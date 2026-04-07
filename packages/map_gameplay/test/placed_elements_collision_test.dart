@@ -129,7 +129,7 @@ void main() {
               ),
             ],
             collisionProfile: ElementCollisionProfile(
-              pixelMask: mask,
+              collisionMask: mask,
               // On met volontairement `cells` vide: le test valide que le
               // gameplay dérive bien la collision depuis le masque.
               cells: const <GridPos>[],
@@ -204,7 +204,7 @@ void main() {
               // `cells` volontairement bloquante: doit être ignorée car un
               // `pixelMask` valide existe.
               cells: [GridPos(x: 0, y: 0)],
-            ).copyWith(pixelMask: mask),
+            ).copyWith(collisionMask: mask),
           ),
         ],
       );
@@ -308,7 +308,7 @@ ProjectManifest _project({
               ],
               collisionProfile: includeCollisionProfile
                   ? ElementCollisionProfile(
-                      pixelMask: _solidTileMask16x16(),
+                      collisionMask: _solidTileMask16x16(),
                       cells: const <GridPos>[],
                     )
                   : null,
