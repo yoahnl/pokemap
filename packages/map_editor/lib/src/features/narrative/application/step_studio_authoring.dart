@@ -1054,6 +1054,35 @@ StepStudioDocument _normalizeDocument(StepStudioDocument document) {
       );
     }
 
+    var normalizedCompletion = step.completion;
+    if (normalizedCompletion.mode == StepStudioCompletionMode.manual &&
+        _trimOrNull(normalizedCompletion.cutsceneId) == null &&
+        _trimOrNull(normalizedCompletion.outcomeId) == null &&
+        _trimOrNull(normalizedCompletion.interactionId) == null &&
+        _trimOrNull(normalizedCompletion.flagName) == null) {
+      String? inferredCutsceneId;
+      for (final link in step.cutscenes) {
+        final cid = link.cutsceneId.trim();
+        if (cid.isEmpty) {
+          continue;
+        }
+        if (link.role == StepStudioCutsceneRole.main) {
+          inferredCutsceneId = cid;
+          break;
+        }
+        inferredCutsceneId ??= cid;
+      }
+      if (inferredCutsceneId != null) {
+        normalizedCompletion = StepStudioCompletionRule(
+          mode: StepStudioCompletionMode.whenCutsceneEnds,
+          cutsceneId: inferredCutsceneId,
+        );
+        debugPrint(
+          '[step_studio_trace] action=normalize_completion_autofix step=$stepId mode=manual->whenCutsceneEnds cutsceneId=$inferredCutsceneId',
+        );
+      }
+    }
+
     normalizedSteps.add(
       step.copyWith(
         id: stepId,
@@ -1066,6 +1095,7 @@ StepStudioDocument _normalizeDocument(StepStudioDocument document) {
         flowValidationLabel: step.flowValidationLabel.trim(),
         flowExitLabel: step.flowExitLabel.trim(),
         flowUnlocksStepId: _trimOrNull(step.flowUnlocksStepId),
+        completion: normalizedCompletion,
       ),
     );
   }

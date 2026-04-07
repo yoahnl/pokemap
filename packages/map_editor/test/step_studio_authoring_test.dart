@@ -330,5 +330,52 @@ void main() {
       expect(step.flowExitLabel, 'Débloquer combat rival.');
       expect(step.flowUnlocksStepId, 'step_rival');
     });
+
+    test(
+      'normalize auto-fix: completion manual + cutscene principale => whenCutsceneEnds',
+      () {
+        const sourceScenario = ScenarioAsset(
+          id: 'global_story',
+          name: 'Global Story',
+          scope: ScenarioScope.globalStory,
+          entryNodeId: 'start',
+        );
+        const document = StepStudioDocument(
+          globalStoryScenarioId: 'global_story',
+          steps: <StepStudioStep>[
+            StepStudioStep(
+              id: 'step_2',
+              name: 'Step 2',
+              description: 'Autofix',
+              order: 0,
+              activation: StepStudioActivationRule(
+                mode: StepStudioActivationMode.atGameStart,
+              ),
+              completion: StepStudioCompletionRule(
+                mode: StepStudioCompletionMode.manual,
+              ),
+              cutscenes: <StepStudioCutsceneLink>[
+                StepStudioCutsceneLink(
+                  cutsceneId: 'premier_dialogue_avec_le_professeur_emma',
+                  role: StepStudioCutsceneRole.main,
+                ),
+              ],
+            ),
+          ],
+        );
+
+        final updated = applyStepStudioDocumentToGlobalScenario(
+          sourceScenario,
+          document,
+        );
+        final parse = parseStepStudioDocumentFromGlobalScenario(updated);
+        final completion = parse.document.steps.single.completion;
+        expect(completion.mode, StepStudioCompletionMode.whenCutsceneEnds);
+        expect(
+          completion.cutsceneId,
+          'premier_dialogue_avec_le_professeur_emma',
+        );
+      },
+    );
   });
 }

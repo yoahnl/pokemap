@@ -1331,6 +1331,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final index = _stepCompletionIndexForCurrentBundle();
     final stepId = index.stepIdToCompleteWhenCutsceneEnds(scenarioId);
     if (stepId != null) {
+      debugPrint(
+        '[step_studio_trace] runtime_mark_step_completed_candidate scenario=$scenarioId step=$stepId before=${progression.completedStepIds}',
+      );
       final nextSteps = appendCompletedStepIdIfAbsent(
         progression.completedStepIds,
         stepId,
@@ -1340,6 +1343,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         changed = true;
         debugPrint(
           '[step_studio] step "$stepId" completed (cutscene "$scenarioId" reached end).',
+        );
+        debugPrint(
+          '[step_studio_trace] runtime_completed_steps_updated scenario=$scenarioId step=$stepId after=${progression.completedStepIds}',
         );
       }
     }
@@ -3990,6 +3996,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (isLoaded) {
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
     }
+    debugPrint(
+      '[step_studio_trace] runtime_save_requested map=$_activeMapId completedStepIds=${_gameState.progression.completedStepIds} completedCutsceneIds=${_gameState.progression.completedCutsceneIds}',
+    );
     return _saveGameUseCase.execute(_gameState);
   }
 

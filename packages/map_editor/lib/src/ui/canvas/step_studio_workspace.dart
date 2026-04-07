@@ -885,6 +885,31 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       _busy = true;
     });
 
+    for (final step in draft.steps) {
+      for (final change in step.worldChanges) {
+        final mapId = change.mapId.trim();
+        final entityId = change.entityId.trim();
+        if (mapId.isEmpty) {
+          continue;
+        }
+        if (entityId.isNotEmpty) {
+          continue;
+        }
+        debugPrint(
+          '[step_studio_trace] action=save_blocked_empty_entity step=${step.id} mapId=$mapId rule=${change.presenceRule.name}',
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _busy = false;
+          _entityLookupError =
+              'Sauvegarde bloquée: la step "${step.id}" contient un worldChange sur "$mapId" sans entité sélectionnée.';
+        });
+        return;
+      }
+    }
+
     final nextScenario =
         applyStepStudioDocumentToGlobalScenario(scenario, draft);
     final selected = _selectedStep;
@@ -2255,6 +2280,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             labelBuilder: stepStudioCompletionModeLabel,
             enabled: _canEdit,
             onChanged: (mode) {
+              debugPrint(
+                '[step_studio_trace] action=completion_mode_changed step=${selectedStep.id} from=${completion.mode.name} to=${mode.name}',
+              );
               _replaceSelectedStep(
                 selectedStep.copyWith(
                   completion: StepStudioCompletionRule(mode: mode),

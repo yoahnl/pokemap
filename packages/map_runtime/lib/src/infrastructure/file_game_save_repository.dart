@@ -32,9 +32,15 @@ class FileGameSaveRepository implements GameSaveRepository {
       final filePath = await getSaveFilePath();
       final json = state.toJson();
       final file = File(filePath);
+      debugPrint(
+        '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${state.progression.completedStepIds}',
+      );
       await file
           .writeAsString(const JsonEncoder.withIndent('  ').convert(json));
       debugPrint('[save] game saved to $filePath');
+      debugPrint(
+        '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${state.progression.completedStepIds}',
+      );
     } catch (e, st) {
       debugPrint('[save] failed: $e\n$st');
       throw GameSaveException('Failed to save game: $e');
