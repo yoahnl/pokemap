@@ -30,6 +30,7 @@ import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
+import '../../application/scenario_runtime_completion_gate.dart';
 import '../../application/step_studio_completion_runtime.dart';
 import '../../application/step_studio_world_presence_runtime.dart';
 import '../../application/global_story_chapter_runtime.dart';
@@ -180,6 +181,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Map<String, _PendingScenarioMoveContinuation>
       _pendingScenarioMoveContinuationsByEntity =
       <String, _PendingScenarioMoveContinuation>{};
+  // File d'attente des scénarios ayant atteint `end` mais dont la complétion
+  // doit attendre la fin réelle des effets runtime visibles.
+  final List<_PendingScenarioReachedEnd> _pendingScenarioReachedEndQueue =
+      <_PendingScenarioReachedEnd>[];
+  String? _lastScenarioCompletionBlockReason;
 
   // Save/Load system
   final GameSaveRepository _saveRepo;
@@ -913,6 +919,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _processPendingScenarioMoveContinuations();
     _processPendingScenarioFollowRequest();
     _processPendingScenarioTransitionMapRequest();
+    _processPendingScenarioReachedEndCompletions();
 
     // Tick runner cutscene MVP (séquentiel).
     _cutsceneRunner.update(dt);
@@ -1228,8 +1235,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       context: _buildScenarioRuntimeExecutionContext(),
     );
 
-    // Step Studio : persistance `whenCutsceneEnds` (nœud `end` → statut reachedEnd).
-    _finalizeScenarioRuntimeResult(result);
+    // Step Studio : on ne complète pas sur "flow reached end" uniquement.
+    // La completion est validée quand les effets runtime visibles sont terminés.
+    _handleScenarioRuntimeCompletionResult(
+      result,
+      origin: 'dispatch:${sourceEvent.type.name}',
+    );
 
     // On maintient une trace explicite en logs pour faciliter le debug.
     if (result.status == ScenarioRuntimeExecutionStatus.noMatchingSource) {
@@ -1318,13 +1329,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return _gameState.progression.completedStepIds.contains(stepId);
   }
 
-  /// Quand l’exécuteur atteint un nœud `end` ([reachedEnd]), on matérialise
-  /// la completion Step Studio `whenCutsceneEnds` dans la sauvegarde logique.
-  ///
-  /// On enregistre aussi les scénarios **locaux** terminés dans
-  /// [PlayerProgression.completedCutsceneIds] pour les prédicats PNJ
-  /// `cutsceneCompleted` / `cutsceneNotCompleted`.
-  void _finalizeScenarioRuntimeResult(ScenarioRuntimeExecutionResult result) {
+  /// Capture un résultat scénario et décide si la completion doit être :
+  /// - appliquée immédiatement;
+  /// - ou différée jusqu'à la fin réelle des effets runtime visibles.
+  void _handleScenarioRuntimeCompletionResult(
+    ScenarioRuntimeExecutionResult result, {
+    required String origin,
+  }) {
     if (result.status != ScenarioRuntimeExecutionStatus.reachedEnd) {
       return;
     }
@@ -1332,6 +1343,37 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (scenarioId == null || scenarioId.isEmpty) {
       return;
     }
+    final blockingReason = _scenarioCompletionBlockingReason();
+    if (blockingReason == null) {
+      _applyScenarioReachedEndCompletion(scenarioId: scenarioId, origin: origin);
+      return;
+    }
+    for (final pending in _pendingScenarioReachedEndQueue) {
+      if (pending.scenarioId == scenarioId) {
+        debugPrint(
+          '[step_studio_trace] completion_deferred_duplicate scenario=$scenarioId origin=$origin reason="$blockingReason"',
+        );
+        return;
+      }
+    }
+    _pendingScenarioReachedEndQueue.add(
+      _PendingScenarioReachedEnd(
+        scenarioId: scenarioId,
+        origin: origin,
+        queuedAtMs: _runtimeClockMs,
+      ),
+    );
+    debugPrint(
+      '[step_studio_trace] completion_deferred scenario=$scenarioId origin=$origin reason="$blockingReason"',
+    );
+  }
+
+  /// Applique réellement la completion progression pour un scénario qui a
+  /// atteint `end` ET dont la mise en scène runtime est terminée.
+  void _applyScenarioReachedEndCompletion({
+    required String scenarioId,
+    required String origin,
+  }) {
     var progression = _gameState.progression;
     var changed = false;
 
@@ -1382,6 +1424,69 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (changed) {
       _gameState = _gameState.copyWith(progression: progression);
       _refreshWorldNpcPresence();
+    }
+    debugPrint(
+      '[step_studio_trace] completion_applied scenario=$scenarioId origin=$origin completedSteps=${_gameState.progression.completedStepIds} completedCutscenes=${_gameState.progression.completedCutsceneIds}',
+    );
+  }
+
+  /// Retourne la raison bloquante empêchant de finaliser la cutscene.
+  ///
+  /// Tant qu'une raison existe, on ne matérialise pas les effects de progression
+  /// (`completedStepIds`, `completedCutsceneIds`).
+  String? _scenarioCompletionBlockingReason() {
+    return scenarioRuntimeCompletionBlockingReason(
+      isOverworldFlow: _flowPhase == _RuntimeFlowPhase.overworld,
+      flowPhaseName: _flowPhase.name,
+      isDialogueOpen: _dialogueOverlay != null,
+      isCutsceneRunnerActive: isCutsceneRunning,
+      hasPendingFollowCharacter: _pendingScenarioFollowRequest != null,
+      hasPendingMoveContinuations:
+          _pendingScenarioMoveContinuationsByEntity.isNotEmpty,
+      hasPendingNpcWarpEntries: _pendingScenarioNpcWarpEntries.isNotEmpty,
+      hasPendingTransitionMapRequest:
+          _pendingScenarioTransitionMapRequest != null,
+      hasPendingRuntimeWarp: _pendingWarp != null,
+      hasPendingRuntimeConnection: _pendingConnection != null,
+      isPlayerStepInProgress: _player.isStepping,
+    );
+  }
+
+  /// Dès que les effets visibles sont terminés, on applique les complétions
+  /// différées dans l'ordre d'arrivée.
+  void _processPendingScenarioReachedEndCompletions() {
+    if (_pendingScenarioReachedEndQueue.isEmpty) {
+      _lastScenarioCompletionBlockReason = null;
+      return;
+    }
+    final blockingReason = _scenarioCompletionBlockingReason();
+    if (blockingReason != null) {
+      if (_lastScenarioCompletionBlockReason != blockingReason) {
+        debugPrint(
+          '[step_studio_trace] completion_gate_blocked reason="$blockingReason" queue=${_pendingScenarioReachedEndQueue.length}',
+        );
+        _lastScenarioCompletionBlockReason = blockingReason;
+      }
+      return;
+    }
+    if (_lastScenarioCompletionBlockReason != null) {
+      debugPrint(
+        '[step_studio_trace] completion_gate_unblocked queue=${_pendingScenarioReachedEndQueue.length}',
+      );
+      _lastScenarioCompletionBlockReason = null;
+    }
+    final pendingItems =
+        List<_PendingScenarioReachedEnd>.from(_pendingScenarioReachedEndQueue);
+    _pendingScenarioReachedEndQueue.clear();
+    for (final pending in pendingItems) {
+      final waitMs = (_runtimeClockMs - pending.queuedAtMs).round();
+      debugPrint(
+        '[step_studio_trace] completion_deferred_flush scenario=${pending.scenarioId} waitedMs=$waitMs origin=${pending.origin}',
+      );
+      _applyScenarioReachedEndCompletion(
+        scenarioId: pending.scenarioId,
+        origin: 'deferred:${pending.origin}',
+      );
     }
   }
 
@@ -1442,7 +1547,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       resumeAfterNodeId: resumeAfterNodeId,
       context: _buildScenarioRuntimeExecutionContext(),
     );
-    _finalizeScenarioRuntimeResult(result);
+    _handleScenarioRuntimeCompletionResult(
+      result,
+      origin: 'continuation:$runtimeSourceId',
+    );
     debugPrint(
       '[scenario_runtime] continuation source=$runtimeSourceId status=${result.status.name} scenario=${result.scenarioId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
     );
@@ -5691,6 +5799,18 @@ class _PendingScenarioMoveContinuation {
   final String entityId;
   final String runtimeSourceId;
   final String targetKind;
+}
+
+class _PendingScenarioReachedEnd {
+  const _PendingScenarioReachedEnd({
+    required this.scenarioId,
+    required this.origin,
+    required this.queuedAtMs,
+  });
+
+  final String scenarioId;
+  final String origin;
+  final double queuedAtMs;
 }
 
 class _FollowPathPlan {
