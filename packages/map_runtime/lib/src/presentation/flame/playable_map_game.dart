@@ -34,6 +34,7 @@ import '../../application/step_studio_completion_runtime.dart';
 import '../../application/step_studio_world_presence_runtime.dart';
 import '../../application/global_story_chapter_runtime.dart';
 import '../../application/map_entity_runtime_predicate_evaluator.dart';
+import '../../application/npc_runtime_presence.dart';
 import '../../application/scripted_entity_movement_controller.dart';
 import '../../application/scripted_entity_movement_models.dart';
 import '../../application/script_runtime_state.dart';
@@ -260,22 +261,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   /// Filtre spatial PNJ : d’abord [MapEntityNpcData.visibilityRule], puis
   /// les `worldChanges` Step Studio (même [mapId] / [entity.id] que l’authoring).
+  ///
+  /// Les règles Step Studio sont relues via [_ensureStepStudioWorldRulesForManifest]
+  /// **à chaque évaluation** pour éviter une liste [worldRules] capturée une fois
+  /// et obsolète si le cache manifeste est invalidé.
   NpcMapPresencePredicate _npcPresencePredicateFor(ProjectManifest manifest) {
-    _ensureStepStudioWorldRulesForManifest(manifest);
-    final worldRules = _cachedStepStudioWorldRules;
     return (String mapId, MapEntity npcEntity) {
-      final base = MapEntityRuntimePredicateEvaluator(
+      _ensureStepStudioWorldRulesForManifest(manifest);
+      return isNpcRuntimePresentOnMap(
         gameState: _gameState,
-        chapterIndex: buildGlobalStoryChapterStepIndex(manifest.scenarios),
-      ).isNpcPresentOnMap(npcEntity);
-      if (!base) {
-        return false;
-      }
-      return entityPassesStepStudioWorldPresence(
+        manifest: manifest,
+        stepStudioWorldRules: _cachedStepStudioWorldRules,
         mapId: mapId,
         entity: npcEntity,
-        completedStepIds: _gameState.progression.completedStepIds,
-        rules: worldRules,
       );
     };
   }
@@ -299,11 +297,72 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _world = _world.withNpcMapPresencePredicate(
       _npcPresencePredicateFor(_bundle.manifest),
     );
+    // Retirer les acteurs Flame des PNJ désormais absents (évite toute dérive
+    // visuelle / hit test si un composant repasse « visible » par défaut).
+    _detachAbsentNpcActorsFromAllLoadedMaps();
     _syncNpcRenderVisibility();
     _syncNpcCollisionDebugOverlay();
     // Patrouilles / réservations / LoS trainer : mêmes règles que le gameplay
     // (un PNJ « absent » ne doit plus consommer ces systèmes parallèles).
     _stopGameplaySideEffectsForAbsentNpcs();
+  }
+
+  /// Retire les [OverworldActorComponent] pour tout PNJ avec personnage dont le
+  /// prédicat de présence est faux (cartes chargées / voisines incluses).
+  void _detachAbsentNpcActorsFromAllLoadedMaps() {
+    for (final loaded in _loadedMapsById.values) {
+      final npcPred = _npcPresencePredicateFor(loaded.bundle.manifest);
+      final mapId = loaded.bundle.map.id;
+      final toRemove = <String>[];
+      for (final entity in loaded.bundle.map.entities) {
+        if (entity.kind != MapEntityKind.npc) {
+          continue;
+        }
+        final charId = resolveNpcCharacterId(entity, loaded.bundle.manifest);
+        if (charId == null || charId.isEmpty) {
+          continue;
+        }
+        if (npcPred(mapId, entity)) {
+          continue;
+        }
+        if (loaded.npcActorByEntityId.containsKey(entity.id)) {
+          toRemove.add(entity.id);
+        }
+      }
+      for (final rawId in toRemove) {
+        final id = rawId.trim();
+        if (id.isEmpty) {
+          continue;
+        }
+        _scriptedEntityMovementController?.stopPatrol(id);
+        _scriptedEntityMovementController?.untrackEntity(id);
+        _scriptedNpcReservedOccupiedCellsByEntity.remove(id);
+        _runtimeNpcPositions.remove(id);
+        _triggeredTrainerBattles.remove(id);
+        if (_pendingScenarioFollowRequest?.leaderEntityId == id) {
+          _pendingScenarioFollowRequest = null;
+        }
+        _pendingScenarioNpcWarpEntries.remove(id);
+        _pendingScenarioMoveContinuationsByEntity.remove(id);
+        _purgeMountedNpcActorForEntity(entityId: id, loaded: loaded);
+      }
+    }
+  }
+
+  void _purgeMountedNpcActorForEntity({
+    required String entityId,
+    required _LoadedPlayableMap loaded,
+  }) {
+    final actor = loaded.npcActorByEntityId.remove(entityId);
+    if (actor != null) {
+      loaded.npcActors.remove(actor);
+      _npcActors.remove(actor);
+      actor.removeFromParent();
+    }
+    final visual = _npcCollisionDebugByEntityId.remove(entityId);
+    visual?.spriteRect.removeFromParent();
+    visual?.collisionRect.removeFromParent();
+    visual?.anchorMarker.removeFromParent();
   }
 
   /// Arrête tout effet runtime **hors** [GameplayWorldState] qui pourrait encore
@@ -1986,16 +2045,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
 
     final loaded = _loadedMapsById[_activeMapId];
-    final actor = loaded?.npcActorByEntityId.remove(normalized);
-    if (actor != null) {
-      loaded?.npcActors.remove(actor);
-      _npcActors.remove(actor);
-      actor.removeFromParent();
+    if (loaded != null) {
+      _purgeMountedNpcActorForEntity(entityId: normalized, loaded: loaded);
     }
-    final visual = _npcCollisionDebugByEntityId.remove(normalized);
-    visual?.spriteRect.removeFromParent();
-    visual?.collisionRect.removeFromParent();
-    visual?.anchorMarker.removeFromParent();
 
     _scriptedNpcReservedOccupiedCellsByEntity.remove(normalized);
     _runtimeNpcPositions.remove(normalized);
@@ -3121,6 +3173,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       gameState: _gameState,
       onGameStateUpdated: (state) {
         _gameState = state;
+        _refreshWorldNpcPresence();
       },
       onDialogueOpened: (dialogue) {
         _openDialogueForScriptSource(runtimeSourceId, dialogue);
@@ -4220,6 +4273,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();
+      _refreshWorldNpcPresence();
       if (transitionSpec.style == _WarpTransitionStyle.fade) {
         debugPrint(
           '[warp] fade in durationMs=${transitionSpec.fadeIn.inMilliseconds}',
@@ -4505,6 +4559,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();
+      _refreshWorldNpcPresence();
       transitionCompleted = true;
     } catch (e, st) {
       debugPrint('[connection] transition failed: $e\n$st');
@@ -4771,6 +4826,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _originPixels(originCellX: originCellX, originCellY: originCellY);
     for (final entity in bundle.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
+      if (!npcPred(bundle.map.id, entity)) {
+        continue;
+      }
       final charId = resolveNpcCharacterId(entity, bundle.manifest);
       if (charId == null || charId.isEmpty) continue;
       final char = charById[charId];
@@ -5164,12 +5222,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (loaded == null) {
       return const <String, GridPos>{};
     }
+    final pred = _npcPresencePredicateFor(_bundle.manifest);
+    final mapId = _world.map.id;
     final byId = <String, GridPos>{};
     for (final entity in _world.map.entities) {
       if (entity.kind != MapEntityKind.npc) {
         continue;
       }
-      // On ne suit que les PNJ effectivement montés visuellement.
+      if (!pred(mapId, entity)) {
+        continue;
+      }
+      // On ne suit que les PNJ présents **et** encore montés en acteur.
       if (!loaded.npcActorByEntityId.containsKey(entity.id)) {
         continue;
       }
