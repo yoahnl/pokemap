@@ -3,22 +3,22 @@ import 'dart:ui' as ui;
 
 import 'package:map_core/map_core.dart';
 
-import 'alpha_collision_grid_builder.dart';
-import 'alpha_collision_params.dart';
+import 'element_ground_blocking_analyzer.dart';
+import 'placed_element_collision_params.dart';
 
-/// Génération automatique de collision pour un **élément** (rectangle dans le
-/// tileset), centrée sur le **canal alpha** : matière visible → cellule
-/// bloquante possible ; transparence → pas de collision.
+/// Orchestre le décodage image et la production d’un [ElementCollisionProfile].
 ///
-/// Le [WarpTriggerPadding] rogne optionnellement la zone analysée (même
-/// rectangle que l’ancien éditeur) ; il n’y a **pas** de padding « magique »
-/// injecté par preset.
+/// Pipeline :
+/// 1. décoder RGBA ;
+/// 2. [ElementGroundBlockingAnalyzer] — zone bloquante **sol / base** uniquement
+///    (bande basse sprite + empreinte basse par cellule), pas toute la silhouette.
 class PlacedElementAutoCollisionGenerator {
   const PlacedElementAutoCollisionGenerator({
-    AlphaCollisionGridBuilder? gridBuilder,
-  }) : _gridBuilder = gridBuilder ?? const AlphaCollisionGridBuilder();
+    ElementGroundBlockingAnalyzer? groundBlockingAnalyzer,
+  }) : _groundBlockingAnalyzer =
+            groundBlockingAnalyzer ?? const ElementGroundBlockingAnalyzer();
 
-  final AlphaCollisionGridBuilder _gridBuilder;
+  final ElementGroundBlockingAnalyzer _groundBlockingAnalyzer;
 
   Future<ElementCollisionProfile> generate({
     required String tilesetImagePath,
@@ -26,7 +26,8 @@ class PlacedElementAutoCollisionGenerator {
     required int tileWidth,
     required int tileHeight,
     WarpTriggerPadding padding = const WarpTriggerPadding(),
-    AlphaCollisionGenerationParams params = AlphaCollisionGenerationParams.defaults,
+    PlacedElementCollisionGenerationParams params =
+        PlacedElementCollisionGenerationParams.defaults,
   }) async {
     final normalizedPath = tilesetImagePath.trim();
     if (normalizedPath.isEmpty) {
@@ -72,7 +73,7 @@ class PlacedElementAutoCollisionGenerator {
       throw const FormatException('Unable to read tileset image pixels');
     }
 
-    final cells = _gridBuilder.buildCells(
+    final cells = _groundBlockingAnalyzer.computeBlockingCells(
       bytesData: bytesData,
       imageWidth: image.width,
       srcLeft: srcLeft,

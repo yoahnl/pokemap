@@ -13,7 +13,7 @@ import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
-import '../../../application/collision_generation/alpha_collision_params.dart';
+import '../../../application/collision_generation/placed_element_collision_params.dart';
 import '../../../application/services/element_collision_profile_generator.dart';
 import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
@@ -1894,7 +1894,8 @@ class EditorNotifier extends _$EditorNotifier {
     required String tilesetId,
     required TilesetSourceRect source,
     WarpTriggerPadding padding = const WarpTriggerPadding(),
-    AlphaCollisionGenerationParams params = AlphaCollisionGenerationParams.defaults,
+    PlacedElementCollisionGenerationParams params =
+        PlacedElementCollisionGenerationParams.defaults,
   }) async {
     final project = state.project;
     if (project == null) {

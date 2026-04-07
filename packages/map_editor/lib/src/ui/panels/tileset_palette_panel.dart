@@ -6122,8 +6122,9 @@ class _ElementCollisionAuthoringSection extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Les pixels visibles (alpha) déterminent les zones bloquantes ; '
-          'vous pouvez corriger ensuite à la main.',
+          'La collision suit la base « solide » du sprite (pas toute la '
+          'silhouette), pour un comportement proche des jeux Pokémon ; '
+          'retouche manuelle possible.',
           style: TextStyle(
             color: secondary,
             fontSize: 11,
@@ -6186,7 +6187,7 @@ class _ElementCollisionAuthoringSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Pixel Alpha = zone sans collision',
+                              'Matière basse = collision (Pokémon-like)',
                               style: TextStyle(
                                 color: label,
                                 fontSize: 11,
@@ -6194,8 +6195,10 @@ class _ElementCollisionAuthoringSection extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              'Évalue directement la transparence du sprite '
-                              '(seuil alpha documenté côté moteur).',
+                              'Seule la partie basse du sprite et le bas de '
+                              'chaque case comptent pour bloquer — le haut '
+                              '(feuillage, toit) peut rester passable pour '
+                              'passer derrière.',
                               style: TextStyle(
                                 color: secondary,
                                 fontSize: 10,

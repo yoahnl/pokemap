@@ -1,10 +1,12 @@
 import 'package:map_core/map_core.dart';
 
-import '../collision_generation/alpha_collision_params.dart';
 import '../collision_generation/placed_element_auto_collision_generator.dart';
+import '../collision_generation/placed_element_collision_params.dart';
 
-/// Point d’entrée stable pour l’éditeur : génère un profil à partir de
-/// l’**alpha** uniquement (voir [AlphaCollisionGenerationParams]).
+/// Façade éditeur : génère un profil via [PlacedElementAutoCollisionGenerator].
+///
+/// Voir [PlacedElementCollisionGenerationParams] pour la sémantique
+/// (bande gameplay basse du sprite + empreinte au sol par cellule).
 class ElementCollisionProfileGenerator {
   const ElementCollisionProfileGenerator();
 
@@ -17,7 +19,8 @@ class ElementCollisionProfileGenerator {
     required int tileWidth,
     required int tileHeight,
     WarpTriggerPadding padding = const WarpTriggerPadding(),
-    AlphaCollisionGenerationParams params = AlphaCollisionGenerationParams.defaults,
+    PlacedElementCollisionGenerationParams params =
+        PlacedElementCollisionGenerationParams.defaults,
   }) {
     return _delegate.generate(
       tilesetImagePath: tilesetImagePath,
