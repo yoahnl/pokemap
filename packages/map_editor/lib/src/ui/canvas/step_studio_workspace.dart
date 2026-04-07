@@ -103,6 +103,18 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
   bool _isLoadingEntities = false;
   String? _entityLookupError;
 
+  void _traceWorldChanges(String phase, StepStudioStep step) {
+    final encoded = step.worldChanges
+        .map(
+          (c) =>
+              '{mapId:${c.mapId},entityId:${c.entityId},rule:${c.presenceRule.name}}',
+        )
+        .join(',');
+    debugPrint(
+      '[step_studio_trace] phase=$phase step=${step.id} worldChanges=[$encoded]',
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Synchronisation sélection (local -> provider parent) en mode "provider-safe".
   // ---------------------------------------------------------------------------
@@ -486,6 +498,15 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     if (_draftDocument == next) {
       return;
     }
+    final selectedId = _selectedStepId;
+    if (selectedId != null) {
+      for (final step in next.steps) {
+        if (step.id == selectedId) {
+          _traceWorldChanges('replace_draft', step);
+          break;
+        }
+      }
+    }
     setState(() {
       _draftDocument = next;
     });
@@ -503,6 +524,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
     if (current != null && current.id == nextStep.id && current == nextStep) {
       return;
     }
+    _traceWorldChanges('replace_selected_step', nextStep);
     final nextSteps = <StepStudioStep>[];
     for (final step in doc.steps) {
       if (step.id == nextStep.id) {
@@ -756,6 +778,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
       presenceRule: StepStudioPresenceRule.visibleAfterStepCompletion,
       note: '',
     );
+    debugPrint(
+      '[step_studio_trace] action=world_change_created step=${selectedStep.id} mapId=${nextChange.mapId} entityId="${nextChange.entityId}" rule=${nextChange.presenceRule.name}',
+    );
     final next = <StepStudioWorldChange>[
       ...selectedStep.worldChanges,
       nextChange,
@@ -862,6 +887,15 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
     final nextScenario =
         applyStepStudioDocumentToGlobalScenario(scenario, draft);
+    final selected = _selectedStep;
+    if (selected != null) {
+      _traceWorldChanges('before_save_selected_step', selected);
+    }
+    final metadataBlob =
+        nextScenario.metadata[kStepStudioDocumentMetadataKey] ?? '';
+    debugPrint(
+      '[step_studio_trace] action=save_draft scenario=${scenario.id} metadata_contains_emma=${metadataBlob.contains("\"entityId\":\"emma\"")} metadata_contains_empty_entity=${metadataBlob.contains("\"entityId\":\"\"")}',
+    );
     await widget.editorNotifier.updateProjectScenario(
       scenarioId: scenario.id,
       scenario: nextScenario,
@@ -1825,6 +1859,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             if (mapId == null) {
               return;
             }
+            debugPrint(
+              '[step_studio_trace] action=world_change_map_changed step=${selectedStep.id} index=$i mapId=$mapId -> reset entityId',
+            );
             unawaited(_ensureEntitiesLoadedForMap(mapId));
             final next = changes.toList(growable: true);
             next[i] = next[i].copyWith(mapId: mapId, entityId: '');
@@ -1834,6 +1871,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             if (entityId == null) {
               return;
             }
+            debugPrint(
+              '[step_studio_trace] action=world_change_entity_selected step=${selectedStep.id} index=$i entityId=$entityId',
+            );
             final next = changes.toList(growable: true);
             next[i] = next[i].copyWith(entityId: entityId);
             _replaceSelectedStep(selectedStep.copyWith(worldChanges: next));
@@ -2393,6 +2433,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                 enabled: _canEdit,
                 onMapChanged: (mapId) {
                   if (mapId == null) return;
+                  debugPrint(
+                    '[step_studio_trace] action=world_change_map_changed step=${selectedStep.id} index=${entry.key} mapId=$mapId -> reset entityId',
+                  );
                   unawaited(_ensureEntitiesLoadedForMap(mapId));
                   final next = worldChanges.toList(growable: true);
                   next[entry.key] = next[entry.key].copyWith(
@@ -2404,6 +2447,9 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                 },
                 onEntityChanged: (entityId) {
                   if (entityId == null) return;
+                  debugPrint(
+                    '[step_studio_trace] action=world_change_entity_selected step=${selectedStep.id} index=${entry.key} entityId=$entityId',
+                  );
                   final next = worldChanges.toList(growable: true);
                   next[entry.key] = next[entry.key].copyWith(entityId: entityId);
                   _replaceSelectedStep(

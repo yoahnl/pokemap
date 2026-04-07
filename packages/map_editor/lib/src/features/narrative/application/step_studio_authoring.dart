@@ -820,11 +820,26 @@ ScenarioAsset applyStepStudioDocumentToGlobalScenario(
   final normalized = _normalizeDocument(
     document.copyWith(globalStoryScenarioId: scenario.id),
   );
+  final traceRows = <String>[];
+  for (final step in normalized.steps) {
+    for (final change in step.worldChanges) {
+      traceRows.add(
+        'step=${step.id}|map=${change.mapId}|entity=${change.entityId}|rule=${change.presenceRule.name}',
+      );
+    }
+  }
+  debugPrint(
+    '[step_studio_trace] action=apply_document scenario=${scenario.id} rows=[${traceRows.join(';')}]',
+  );
   final nextMetadata = <String, String>{
     ...scenario.metadata,
     kStepStudioSchemaMetadataKey: kStepStudioSchemaVersion,
     kStepStudioDocumentMetadataKey: normalized.toMetadataJson(),
   };
+  final blob = nextMetadata[kStepStudioDocumentMetadataKey] ?? '';
+  debugPrint(
+    '[step_studio_trace] action=apply_document_metadata scenario=${scenario.id} contains_emma=${blob.contains("\"entityId\":\"emma\"")} contains_empty_entity=${blob.contains("\"entityId\":\"\"")}',
+  );
 
   // Rétrocompatibilité UI/projection legacy:
   // on continue d'exposer la "première step" via `step.*`.
