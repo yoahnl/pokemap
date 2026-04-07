@@ -1982,9 +1982,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool _isPlayerScriptedMoveAnchorPassable(GridPos anchor) {
     final mode = _world.player.movementMode;
-    if (_world.movementBlockReasonAt(
-          x: anchor.x,
-          y: anchor.y,
+    if (_world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+          cellX: anchor.x,
+          cellY: anchor.y,
           movementMode: mode,
         ) !=
         null) {
@@ -2664,8 +2664,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (_isCellReservedByScriptedNpc(cell)) {
           return false;
         }
-        final trial = _world.withPlayer(_world.player.copyWith(pos: cell));
-        return !trial.isBlocked(x, y);
+        return _world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+              cellX: x,
+              cellY: y,
+              movementMode: _world.player.movementMode,
+            ) ==
+            null;
       },
     );
     if (!result.foundPath) {
@@ -2861,8 +2865,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!_isWithinMapBounds(_world.map, pos)) {
       return false;
     }
-    final trial = _world.withPlayer(_world.player.copyWith(pos: pos));
-    return !trial.isBlocked(pos.x, pos.y);
+    return _world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+          cellX: pos.x,
+          cellY: pos.y,
+          movementMode: _world.player.movementMode,
+        ) ==
+        null;
   }
 
   /// Lance un script projet à partir d'un `scriptId`.
@@ -3965,7 +3973,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// - Depuis entity.pos du NPC
   /// - Axe cardinal uniquement (nord/sud/est/ouest)
   /// - Aucune diagonale
-  /// - Obstacles via world.isBlocked() sur les cases STRICTEMENT entre
+  /// - Obstacles via [GameplayWorldState.isCellCenterBlockedLegacyForGridIndexedSystems]
+  ///   sur les cases STRICTEMENT entre
   ///   le NPC et le joueur (exclut case du NPC et case du joueur)
   void _checkTrainerLineOfSight() {
     // Condition de stabilité runtime stricte
@@ -4443,7 +4452,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileHeight: newBundle.manifest.settings.tileHeight,
         npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
       );
-      if (newWorld.isBlocked(warp.targetPos.x, warp.targetPos.y)) {
+      if (newWorld.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+            cellX: warp.targetPos.x,
+            cellY: warp.targetPos.y,
+            movementMode: newWorld.player.movementMode,
+          ) !=
+          null) {
         throw StateError(
           'warp target blocked map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y})',
         );
@@ -4623,7 +4637,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileHeight: tileHeight,
       npcMapPresencePredicate: _npcPresencePredicateFor(project),
     );
-    if (!world.isBlocked(safePos.x, safePos.y)) {
+    if (world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+          cellX: safePos.x,
+          cellY: safePos.y,
+          movementMode: world.player.movementMode,
+        ) ==
+        null) {
       return world;
     }
 
@@ -4638,14 +4657,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileHeight: tileHeight,
         npcMapPresencePredicate: _npcPresencePredicateFor(project),
       );
-      if (!spawnWorld.isBlocked(spawn.pos.x, spawn.pos.y)) {
+      if (spawnWorld.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+            cellX: spawn.pos.x,
+            cellY: spawn.pos.y,
+            movementMode: spawnWorld.player.movementMode,
+          ) ==
+          null) {
         return spawnWorld;
       }
     } catch (_) {}
 
     for (var y = 0; y < map.size.height; y++) {
       for (var x = 0; x < map.size.width; x++) {
-        if (!world.isBlocked(x, y)) {
+        if (world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+              cellX: x,
+              cellY: y,
+              movementMode: world.player.movementMode,
+            ) ==
+            null) {
           return GameplayWorldState.initial(
             map: map,
             playerPos: GridPos(x: x, y: y),
@@ -4723,7 +4752,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         npcMapPresencePredicate:
             _npcPresencePredicateFor(target.bundle.manifest),
       );
-      if (newWorld.isBlocked(targetPos.x, targetPos.y)) {
+      if (newWorld.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+            cellX: targetPos.x,
+            cellY: targetPos.y,
+            movementMode: newWorld.player.movementMode,
+          ) !=
+          null) {
         debugPrint(
           '[connection] blocked entry map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
         );
@@ -5457,13 +5491,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     final normalizedIgnore = ignoreEntityId?.trim();
     if (normalizedIgnore == null || normalizedIgnore.isEmpty) {
-      return _world.isBlocked(x, y);
+      return _world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+            cellX: x,
+            cellY: y,
+            movementMode: MovementMode.walk,
+          ) !=
+          null;
     }
     if (normalizedIgnore == 'player') {
       final mode = _world.player.movementMode;
-      if (_world.movementBlockReasonAt(
-            x: x,
-            y: y,
+      if (_world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+            cellX: x,
+            cellY: y,
             movementMode: mode,
           ) !=
           null) {
@@ -5506,9 +5545,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     if (entityId.trim() == 'player') {
       final mode = _world.player.movementMode;
-      final block = _world.movementBlockReasonAt(
-        x: to.x,
-        y: to.y,
+      final block = _world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+        cellX: to.x,
+        cellY: to.y,
         movementMode: mode,
       );
       if (block != null) {

@@ -643,6 +643,24 @@ MapData _mapWithBehavior({
   );
 }
 
+ElementCollisionPixelMask _solidMaskForElementFootprint({
+  required GridSize elementSize,
+  int tilePx = 16,
+}) {
+  final w = elementSize.width * tilePx;
+  final h = elementSize.height * tilePx;
+  final solid = List<bool>.filled(w * h, true);
+  return ElementCollisionPixelMask(
+    widthPx: w,
+    heightPx: h,
+    dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      widthPx: w,
+      heightPx: h,
+      solidPixels: solid,
+    ),
+  );
+}
+
 ProjectManifest _project({
   bool includeCollisionProfile = true,
   GridSize elementSize = const GridSize(width: 2, height: 1),
@@ -674,11 +692,10 @@ ProjectManifest _project({
         ],
         collisionProfile: includeCollisionProfile
             ? ElementCollisionProfile(
-                cells: [
-                  for (var y = 0; y < elementSize.height; y++)
-                    for (var x = 0; x < elementSize.width; x++)
-                      GridPos(x: x, y: y),
-                ],
+                pixelMask: _solidMaskForElementFootprint(
+                  elementSize: elementSize,
+                ),
+                cells: const <GridPos>[],
               )
             : null,
       ),

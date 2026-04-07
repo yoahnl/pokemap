@@ -3,27 +3,24 @@ import 'dart:ui' as ui;
 
 import 'package:map_core/map_core.dart';
 
-import 'element_ground_blocking_mask_analyzer.dart';
 import 'element_visual_occupancy_analyzer.dart';
 import 'placed_element_collision_params.dart';
 
-/// Orchestre le décodage image et la production d’un [ElementCollisionProfile].
+/// Orchestre le décodage image → [ElementCollisionProfile] avec **pixelMask** uniquement.
 ///
-/// Pipeline:
-/// 1. Occupation visuelle pixel-level (`ElementVisualOccupancyAnalyzer`);
-/// 2. Masque gameplay pixel-level (`ElementGroundBlockingMaskAnalyzer`);
-/// 3. Encodage `pixelMask` + projection legacy `cells` pour compatibilité.
+/// Pipeline V1 (pas de dérivation grille) :
+/// 1. occupation visuelle (`ElementVisualOccupancyAnalyzer`) ;
+/// 2. **copie directe** visuel → masque gameplay (même géométrie, même taille) ;
+/// 3. encodage `packed_bits_v1`.
+///
+/// [ElementCollisionProfile.cells] reste vide : legacy réservé migration JSON hors runtime.
 class PlacedElementAutoCollisionGenerator {
   const PlacedElementAutoCollisionGenerator({
     ElementVisualOccupancyAnalyzer? visualOccupancyAnalyzer,
-    ElementGroundBlockingMaskAnalyzer? groundBlockingMaskAnalyzer,
-  })  : _visualOccupancyAnalyzer =
-            visualOccupancyAnalyzer ?? const ElementVisualOccupancyAnalyzer(),
-        _groundBlockingMaskAnalyzer =
-            groundBlockingMaskAnalyzer ?? const ElementGroundBlockingMaskAnalyzer();
+  }) : _visualOccupancyAnalyzer =
+            visualOccupancyAnalyzer ?? const ElementVisualOccupancyAnalyzer();
 
   final ElementVisualOccupancyAnalyzer _visualOccupancyAnalyzer;
-  final ElementGroundBlockingMaskAnalyzer _groundBlockingMaskAnalyzer;
 
   Future<ElementCollisionProfile> generate({
     required String tilesetImagePath,
@@ -90,37 +87,22 @@ class PlacedElementAutoCollisionGenerator {
       padding: padding,
       alphaThreshold: params.alphaThreshold,
     );
-    final gameplayMask = _groundBlockingMaskAnalyzer.analyze(
-      occupancy: visual,
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
-      cellCountX: source.width,
-      cellCountY: source.height,
-      params: params,
-    );
+    // Masque gameplay auto = copie directe de l’occupation visuelle (pas de grille).
     final pixelMask = ElementCollisionPixelMask(
       widthPx: maskWidthPx,
       heightPx: maskHeightPx,
       dataBase64: ElementCollisionMaskCodec.encodePackedBits(
         widthPx: maskWidthPx,
         heightPx: maskHeightPx,
-        solidPixels: gameplayMask.solidPixels,
+        solidPixels: List<bool>.from(visual.visiblePixels),
       ),
-    );
-    final cells = ElementCollisionMaskCodec.cellsFromPixelMask(
-      mask: pixelMask,
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
-      sourceWidthInTiles: source.width,
-      sourceHeightInTiles: source.height,
-      minimumSolidRatioPerCell: params.minimumOpaqueRatioInGroundSample,
     );
 
     return ElementCollisionProfile(
       source: ElementCollisionProfileSource.generated,
       pixelMask: pixelMask,
       padding: padding,
-      cells: cells,
+      cells: const [],
     );
   }
 }

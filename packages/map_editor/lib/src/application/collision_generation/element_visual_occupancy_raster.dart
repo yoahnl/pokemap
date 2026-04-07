@@ -4,7 +4,7 @@ import 'dart:typed_data';
 /// pixel (sans décision gameplay).
 ///
 /// Sert à centraliser le test `opaque ?` et à documenter l’accès mémoire.
-/// La décision « bloquant ou non » est dans [ElementGroundBlockingAnalyzer].
+/// Le masque gameplay est produit ailleurs (ex. copie directe occupation → collision).
 class ElementVisualOccupancyRaster {
   const ElementVisualOccupancyRaster();
 

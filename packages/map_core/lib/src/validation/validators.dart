@@ -560,6 +560,16 @@ class ProjectValidator {
     }
     final source = element.frames.primarySource;
     final pixelMask = profile.pixelMask;
+    // Rupture d’architecture : le runtime gameplay ne lit pas `cells`.
+    // Tout profil avec des cellules legacy doit être migré vers `pixelMask`
+    // (voir [ElementCollisionLegacyMigration]).
+    if (pixelMask == null && profile.cells.isNotEmpty) {
+      throw ValidationException(
+        'Element ${element.id} collision profile still uses legacy `cells` '
+        'without `pixelMask`. Migrate to a pixel mask before running strict '
+        'validation.',
+      );
+    }
     if (pixelMask != null) {
       if (pixelMask.widthPx <= 0 || pixelMask.heightPx <= 0) {
         throw ValidationException(

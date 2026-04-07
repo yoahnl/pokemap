@@ -37,18 +37,17 @@ class ElementCollisionProfile with _$ElementCollisionProfile {
     @Default(ElementCollisionProfileSource.generated)
     ElementCollisionProfileSource source,
 
-    /// Optionnel: masque pixel-level (nouvelle source de vérité).
+    /// **Source de vérité** pour la collision runtime des éléments (décodée en bitmap monde).
     ///
-    /// Stratégie de compatibilité:
-    /// - si présent, le runtime peut en dériver les cellules cache;
-    /// - sinon, on utilise la liste `cells` legacy.
+    /// Le gameplay **n’utilise pas** [cells] pour résoudre les collisions : seul
+    /// ce masque (ou une migration explicite depuis [cells]) alimente le moteur.
     ElementCollisionPixelMask? pixelMask,
 
     @Default(WarpTriggerPadding()) WarpTriggerPadding padding,
 
-    /// Format legacy basé sur cellules.
+    /// **Legacy JSON uniquement** : migration / outillage / inspection.
     ///
-    /// Conservé pour compatibilité JSON/projets existants et pour debug.
+    /// Ne pas lire cette liste dans [map_gameplay] pour la collision active.
     @Default([]) List<GridPos> cells,
   }) = _ElementCollisionProfile;
 

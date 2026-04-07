@@ -2,6 +2,19 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
+ElementCollisionPixelMask _solidTileMask16x16() {
+  final maskPixels = List<bool>.filled(16 * 16, true);
+  return ElementCollisionPixelMask(
+    widthPx: 16,
+    heightPx: 16,
+    dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      widthPx: 16,
+      heightPx: 16,
+      solidPixels: maskPixels,
+    ),
+  );
+}
+
 void main() {
   group('GameplayWorldState placed element collisions', () {
     test('applyCollision=true blocks movement cell', () {
@@ -17,7 +30,7 @@ void main() {
         ),
       );
 
-      expect(world.isBlocked(1, 1), isTrue);
+      expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1), isTrue);
     });
 
     test('applyCollision=false does not block movement cell', () {
@@ -33,7 +46,10 @@ void main() {
         ),
       );
 
-      expect(world.isBlocked(1, 1), isFalse);
+      expect(
+        world.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1),
+        isFalse,
+      );
     });
 
     test('unknown element id does not block', () {
@@ -49,7 +65,10 @@ void main() {
         ),
       );
 
-      expect(world.isBlocked(1, 1), isFalse);
+      expect(
+        world.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1),
+        isFalse,
+      );
     });
 
     test('missing collision profile does not block', () {
@@ -65,7 +84,10 @@ void main() {
         ),
       );
 
-      expect(world.isBlocked(1, 1), isFalse);
+      expect(
+        world.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1),
+        isFalse,
+      );
     });
 
     test('pixelMask is used as source-of-truth when provided', () {
@@ -123,7 +145,23 @@ void main() {
         playerPos: const GridPos(x: 1, y: 1),
         project: project,
       );
-      expect(world.isBlocked(1, 1), isTrue);
+      // Le quadrant bas-gauche est plein : un pixel dedans bloque ; le centre de
+      // case (8,8) dans le tile est hors de ce quadrant → pas de blocage au centre.
+      expect(
+        world.worldStaticObstaclesCollidePixelRect(
+          PixelRect(
+            leftPx: 16 + 4,
+            topPx: 16 + 12,
+            widthPx: 1,
+            heightPx: 1,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        world.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1),
+        isFalse,
+      );
     });
 
     test('pixelMask ignore le haut décoratif pour le blocage déplacement', () {
@@ -178,17 +216,40 @@ void main() {
         playerPos: const GridPos(x: 0, y: 0),
         project: project,
       );
-      expect(world.isBlocked(1, 1), isFalse);
       expect(
-        world.movementBlockReasonAt(
-          x: 1,
-          y: 1,
+        world.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1),
+        isFalse,
+      );
+      expect(
+        world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+          cellX: 1,
+          cellY: 1,
           movementMode: MovementMode.walk,
         ),
         isNull,
       );
-      expect(world.isPixelBlocked(16 + 3, 16 + 0), isTrue);
-      expect(world.isPixelBlocked(16 + 3, 16 + 14), isFalse);
+      expect(
+        world.worldStaticObstaclesCollidePixelRect(
+          PixelRect(
+            leftPx: 16 + 3,
+            topPx: 16 + 0,
+            widthPx: 1,
+            heightPx: 1,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        world.worldStaticObstaclesCollidePixelRect(
+          PixelRect(
+            leftPx: 16 + 3,
+            topPx: 16 + 14,
+            widthPx: 1,
+            heightPx: 1,
+          ),
+        ),
+        isFalse,
+      );
     });
   });
 }
@@ -246,8 +307,9 @@ ProjectManifest _project({
                 ),
               ],
               collisionProfile: includeCollisionProfile
-                  ? const ElementCollisionProfile(
-                      cells: [GridPos(x: 0, y: 0)],
+                  ? ElementCollisionProfile(
+                      pixelMask: _solidTileMask16x16(),
+                      cells: const <GridPos>[],
                     )
                   : null,
             ),

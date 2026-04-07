@@ -5,8 +5,8 @@ import '../collision_generation/placed_element_collision_params.dart';
 
 /// Façade éditeur : génère un profil via [PlacedElementAutoCollisionGenerator].
 ///
-/// Voir [PlacedElementCollisionGenerationParams] pour la sémantique
-/// (bande gameplay basse du sprite + empreinte au sol par cellule).
+/// Voir [PlacedElementCollisionGenerationParams] : copie alpha → masque pixel
+/// (aucune heuristique grille dans le générateur).
 class ElementCollisionProfileGenerator {
   const ElementCollisionProfileGenerator();
 
