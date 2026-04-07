@@ -2195,6 +2195,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     var selectedPresetKind = ElementPresetKind.generic;
     ElementCollisionProfile? collisionProfile;
     var collisionPadding = const WarpTriggerPadding();
+    var collisionAutoMode = true;
     var generatingCollision = false;
 
     final groups = List<ProjectMapGroup>.from(project.groups)
@@ -2225,7 +2226,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 
     await showMacosEditorTallSheet<void>(
       context: context,
-      maxWidth: 440,
+      maxWidth: 480,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) => ListView(
           shrinkWrap: true,
@@ -2397,83 +2398,66 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _ElementCollisionPaddingEditor(
-                    padding: collisionPadding,
-                    maxHorizontal: math.max(0, source.width * tileWidth - 1),
-                    maxVertical: math.max(0, source.height * tileHeight - 1),
-                    onChanged: (next) {
+                  _ElementCollisionAuthoringSection(
+                    collisionAutoMode: collisionAutoMode,
+                    onCollisionAutoModeChanged: (v) {
+                      setStateDialog(() => collisionAutoMode = v);
+                    },
+                    paddingEditor: _ElementCollisionPaddingEditor(
+                      padding: collisionPadding,
+                      maxHorizontal:
+                          math.max(0, source.width * tileWidth - 1),
+                      maxVertical:
+                          math.max(0, source.height * tileHeight - 1),
+                      onChanged: (next) {
+                        setStateDialog(() {
+                          collisionPadding = next;
+                          if (collisionProfile != null) {
+                            collisionProfile =
+                                collisionProfile!.copyWith(padding: next);
+                          }
+                        });
+                      },
+                    ),
+                    generatingCollision: generatingCollision,
+                    onRegenerate: () async {
                       setStateDialog(() {
-                        collisionPadding = next;
-                        if (collisionProfile != null) {
-                          collisionProfile =
-                              collisionProfile!.copyWith(padding: next);
+                        generatingCollision = true;
+                      });
+                      final generated =
+                          await notifier.generateElementCollisionProfile(
+                        tilesetId: tilesetId,
+                        source: source,
+                        padding: collisionPadding,
+                      );
+                      if (!mounted) return;
+                      setStateDialog(() {
+                        generatingCollision = false;
+                        if (generated != null) {
+                          collisionProfile = generated;
+                          collisionPadding = generated.padding;
                         }
                       });
                     },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: generatingCollision
-                              ? null
-                              : () async {
-                                  setStateDialog(() {
-                                    generatingCollision = true;
-                                  });
-                                  final generated = await notifier
-                                      .generateElementCollisionProfile(
-                                    tilesetId: tilesetId,
-                                    source: source,
-                                    presetKind: selectedPresetKind,
-                                    padding: collisionPadding,
-                                  );
-                                  if (!mounted) return;
-                                  setStateDialog(() {
-                                    generatingCollision = false;
-                                    if (generated != null) {
-                                      collisionProfile = generated;
-                                      collisionPadding = generated.padding;
-                                    }
-                                  });
-                                },
-                          child: Text(
-                            generatingCollision
-                                ? 'Génération...'
-                                : 'Générer automatiquement la collision',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      PushButton(
-                        controlSize: ControlSize.regular,
-                        secondary: true,
-                        onPressed: () {
-                          setStateDialog(() {
-                            collisionProfile = null;
-                            collisionPadding = const WarpTriggerPadding();
-                          });
-                        },
-                        child: const Text('Effacer'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _ElementCollisionProfileEditor(
-                    image: image,
-                    source: source,
-                    tileWidth: tileWidth,
-                    tileHeight: tileHeight,
-                    profile: collisionProfile,
-                    draftPadding: collisionPadding,
-                    onProfileChanged: (profile) {
+                    onClear: () {
                       setStateDialog(() {
-                        collisionProfile = profile;
+                        collisionProfile = null;
+                        collisionPadding = const WarpTriggerPadding();
                       });
                     },
+                    preview: _ElementCollisionProfileEditor(
+                      image: image,
+                      source: source,
+                      tileWidth: tileWidth,
+                      tileHeight: tileHeight,
+                      profile: collisionProfile,
+                      draftPadding: collisionPadding,
+                      onProfileChanged: (profile) {
+                        setStateDialog(() {
+                          collisionProfile = profile;
+                        });
+                      },
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -2592,6 +2576,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     ElementCollisionProfile? collisionProfile = element.collisionProfile;
     var collisionPadding =
         collisionProfile?.padding ?? const WarpTriggerPadding();
+    var collisionAutoMode = true;
     var generatingCollision = false;
     var frames = List<TilesetVisualFrame>.from(element.frames);
     var shouldSave = false;
@@ -2613,7 +2598,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 
     await showMacosEditorTallSheet<void>(
       context: context,
-      maxWidth: 440,
+      maxWidth: 480,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) => ListView(
           shrinkWrap: true,
@@ -2789,85 +2774,66 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _ElementCollisionPaddingEditor(
-                    padding: collisionPadding,
-                    maxHorizontal:
-                        math.max(0, frames.primarySource.width * tileWidth - 1),
-                    maxVertical: math.max(
-                        0, frames.primarySource.height * tileHeight - 1),
-                    onChanged: (next) {
+                  _ElementCollisionAuthoringSection(
+                    collisionAutoMode: collisionAutoMode,
+                    onCollisionAutoModeChanged: (v) {
+                      setStateDialog(() => collisionAutoMode = v);
+                    },
+                    paddingEditor: _ElementCollisionPaddingEditor(
+                      padding: collisionPadding,
+                      maxHorizontal: math.max(
+                          0, frames.primarySource.width * tileWidth - 1),
+                      maxVertical: math.max(
+                          0, frames.primarySource.height * tileHeight - 1),
+                      onChanged: (next) {
+                        setStateDialog(() {
+                          collisionPadding = next;
+                          if (collisionProfile != null) {
+                            collisionProfile =
+                                collisionProfile!.copyWith(padding: next);
+                          }
+                        });
+                      },
+                    ),
+                    generatingCollision: generatingCollision,
+                    onRegenerate: () async {
                       setStateDialog(() {
-                        collisionPadding = next;
-                        if (collisionProfile != null) {
-                          collisionProfile =
-                              collisionProfile!.copyWith(padding: next);
+                        generatingCollision = true;
+                      });
+                      final generated =
+                          await notifier.generateElementCollisionProfile(
+                        tilesetId: element.tilesetId,
+                        source: frames.primarySource,
+                        padding: collisionPadding,
+                      );
+                      if (!mounted) return;
+                      setStateDialog(() {
+                        generatingCollision = false;
+                        if (generated != null) {
+                          collisionProfile = generated;
+                          collisionPadding = generated.padding;
                         }
                       });
                     },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: generatingCollision
-                              ? null
-                              : () async {
-                                  setStateDialog(() {
-                                    generatingCollision = true;
-                                  });
-                                  final generated = await notifier
-                                      .generateElementCollisionProfile(
-                                    tilesetId: element.tilesetId,
-                                    source: frames.primarySource,
-                                    presetKind: selectedPresetKind,
-                                    padding: collisionPadding,
-                                  );
-                                  if (!mounted) return;
-                                  setStateDialog(() {
-                                    generatingCollision = false;
-                                    if (generated != null) {
-                                      collisionProfile = generated;
-                                      collisionPadding = generated.padding;
-                                    }
-                                  });
-                                },
-                          child: Text(
-                            generatingCollision
-                                ? 'Génération...'
-                                : 'Générer automatiquement la collision',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      PushButton(
-                        controlSize: ControlSize.regular,
-                        secondary: true,
-                        onPressed: () {
-                          setStateDialog(() {
-                            collisionProfile = null;
-                            collisionPadding = const WarpTriggerPadding();
-                          });
-                        },
-                        child: const Text('Effacer'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _ElementCollisionProfileEditor(
-                    image: image,
-                    source: frames.primarySource,
-                    tileWidth: tileWidth,
-                    tileHeight: tileHeight,
-                    profile: collisionProfile,
-                    draftPadding: collisionPadding,
-                    onProfileChanged: (profile) {
+                    onClear: () {
                       setStateDialog(() {
-                        collisionProfile = profile;
+                        collisionProfile = null;
+                        collisionPadding = const WarpTriggerPadding();
                       });
                     },
+                    preview: _ElementCollisionProfileEditor(
+                      image: image,
+                      source: frames.primarySource,
+                      tileWidth: tileWidth,
+                      tileHeight: tileHeight,
+                      profile: collisionProfile,
+                      draftPadding: collisionPadding,
+                      onProfileChanged: (profile) {
+                        setStateDialog(() {
+                          collisionProfile = profile;
+                        });
+                      },
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -6118,6 +6084,188 @@ class _CompactStepperRow extends StatelessWidget {
   }
 }
 
+/// Section « auto-génération + padding + aperçu » alignée sur l’intention UX
+/// (mode Auto/Manuel, méthode alpha, actions Régénérer / Effacer).
+class _ElementCollisionAuthoringSection extends StatelessWidget {
+  const _ElementCollisionAuthoringSection({
+    required this.collisionAutoMode,
+    required this.onCollisionAutoModeChanged,
+    required this.paddingEditor,
+    required this.generatingCollision,
+    required this.onRegenerate,
+    required this.onClear,
+    required this.preview,
+  });
+
+  final bool collisionAutoMode;
+  final ValueChanged<bool> onCollisionAutoModeChanged;
+  final Widget paddingEditor;
+  final bool generatingCollision;
+  final Future<void> Function() onRegenerate;
+  final VoidCallback onClear;
+  final Widget preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Générer automatiquement les collisions',
+          style: TextStyle(
+            color: label,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Les pixels visibles (alpha) déterminent les zones bloquantes ; '
+          'vous pouvez corriger ensuite à la main.',
+          style: TextStyle(
+            color: secondary,
+            fontSize: 11,
+          ),
+        ),
+        const SizedBox(height: 8),
+        CupertinoSlidingSegmentedControl<int>(
+          groupValue: collisionAutoMode ? 0 : 1,
+          children: const {
+            0: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Text('Auto'),
+            ),
+            1: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Text('Manuelle'),
+            ),
+          },
+          onValueChanged: (int? v) {
+            if (v != null) {
+              onCollisionAutoModeChanged(v == 0);
+            }
+          },
+        ),
+        const SizedBox(height: 10),
+        if (collisionAutoMode)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B5E20).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: CupertinoColors.separator.resolveFrom(context),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Analyse automatique',
+                    style: TextStyle(
+                      color: label,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        CupertinoIcons.check_mark_circled_solid,
+                        size: 16,
+                        color: const Color(0xFF2E7D32),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pixel Alpha = zone sans collision',
+                              style: TextStyle(
+                                color: label,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'Évalue directement la transparence du sprite '
+                              '(seuil alpha documenté côté moteur).',
+                              style: TextStyle(
+                                color: secondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Opacity(
+                    opacity: 0.5,
+                    child: Text(
+                      'Preset avancé — bientôt',
+                      style: TextStyle(
+                        color: secondary,
+                        fontSize: 10,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'Mode manuel : peignez les cellules bloquantes dans l’aperçu ci-dessous.',
+              style: TextStyle(
+                color: secondary,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+        paddingEditor,
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: generatingCollision || !collisionAutoMode
+                    ? null
+                    : () => onRegenerate(),
+                child: Text(
+                  generatingCollision ? 'Analyse…' : 'Régénérer la collision',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            PushButton(
+              controlSize: ControlSize.regular,
+              secondary: true,
+              onPressed: onClear,
+              child: const Text('Effacer'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        preview,
+      ],
+    );
+  }
+}
+
 class _ElementCollisionProfileEditor extends StatelessWidget {
   const _ElementCollisionProfileEditor({
     required this.image,
@@ -6158,23 +6306,24 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text(
+            'Aperçu visuel',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  'Collision overlay',
+                  '${cells.length} cellule${cells.length > 1 ? 's' : ''} bloquante${cells.length > 1 ? 's' : ''}',
                   style: TextStyle(
-                    color: label,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    color: secondary,
+                    fontSize: 10,
                   ),
-                ),
-              ),
-              Text(
-                '${cells.length} cellule${cells.length > 1 ? 's' : ''}',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 10,
                 ),
               ),
             ],
@@ -6189,7 +6338,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Zone sombre = exclue par padding, contour cyan = zone active d’analyse.',
+            'Zone assombrie = exclue par padding · cadre cyan = zone analysée.',
             style: TextStyle(
               color: secondary,
               fontSize: 10,
@@ -6268,8 +6417,56 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
             },
           ),
           const SizedBox(height: 6),
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC62828).withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: const Color(0xFFB71C1C),
+                    width: 1,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Rouge = zone bloquante',
+                  style: TextStyle(color: secondary, fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.28),
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: const Color(0xFF1B5E20),
+                    width: 1,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Vert = passable (cliquez pour basculer)',
+                  style: TextStyle(color: secondary, fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           Text(
-            'Clique sur la grille pour activer/désactiver des cellules.',
+            'Cliquez ou tracez pour activer/désactiver la collision sur une case.',
             style: TextStyle(
               color: secondary,
               fontSize: 10,
@@ -6345,7 +6542,7 @@ class _ElementCollisionPaddingEditor extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Ajuste l’auto-génération puis affine manuellement si besoin.',
+            'Rogne la zone analysée (pixels ignorés aux bords) avant le comptage alpha.',
             style: TextStyle(
               color: secondary,
               fontSize: 10,
@@ -6581,26 +6778,48 @@ class _ElementCollisionProfilePainter extends CustomPainter {
 
     final cellWidth = targetRect.width / source.width;
     final cellHeight = targetRect.height / source.height;
-    for (final cell in cells) {
-      final cellRect = Rect.fromLTWH(
-        targetRect.left + cell.x * cellWidth,
-        targetRect.top + cell.y * cellHeight,
-        cellWidth,
-        cellHeight,
-      );
-      canvas.drawRect(
-        cellRect,
-        Paint()
-          ..color = EditorChrome.inspectorJoyCoral.withValues(alpha: 0.32)
-          ..style = PaintingStyle.fill,
-      );
-      canvas.drawRect(
-        cellRect,
-        Paint()
-          ..color = EditorChrome.inspectorJoyCoral
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0,
-      );
+    final blocked = <String>{
+      for (final c in cells) '${c.x}:${c.y}',
+    };
+    for (var cy = 0; cy < source.height; cy++) {
+      for (var cx = 0; cx < source.width; cx++) {
+        final key = '$cx:$cy';
+        final cellRect = Rect.fromLTWH(
+          targetRect.left + cx * cellWidth,
+          targetRect.top + cy * cellHeight,
+          cellWidth,
+          cellHeight,
+        );
+        if (blocked.contains(key)) {
+          canvas.drawRect(
+            cellRect,
+            Paint()
+              ..color = const Color(0xFFC62828).withValues(alpha: 0.35)
+              ..style = PaintingStyle.fill,
+          );
+          canvas.drawRect(
+            cellRect,
+            Paint()
+              ..color = const Color(0xFFB71C1C)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.0,
+          );
+        } else {
+          canvas.drawRect(
+            cellRect,
+            Paint()
+              ..color = const Color(0xFF2E7D32).withValues(alpha: 0.22)
+              ..style = PaintingStyle.fill,
+          );
+          canvas.drawRect(
+            cellRect,
+            Paint()
+              ..color = const Color(0xFF1B5E20).withValues(alpha: 0.55)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.8,
+          );
+        }
+      }
     }
 
     final gridPaint = Paint()
