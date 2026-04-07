@@ -73,8 +73,7 @@ class MapLayersComponent extends PositionComponent {
   final Map<_PathRuleCellKey, _ActivePathRuleOneShot>
       _activePathRuleCellOneShotByKey =
       <_PathRuleCellKey, _ActivePathRuleOneShot>{};
-  final Map<_PathRuleCellKey, double>
-      _activePathRuleCellLoopStartedAtMsByKey =
+  final Map<_PathRuleCellKey, double> _activePathRuleCellLoopStartedAtMsByKey =
       <_PathRuleCellKey, double>{};
 
   late final Map<String, ProjectElementEntry> _elementById = {
@@ -124,7 +123,8 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String ruleId,
     required PathAnimationPlaybackMode mode,
-    PathAnimationActivationScope scope = PathAnimationActivationScope.wholeLayer,
+    PathAnimationActivationScope scope =
+        PathAnimationActivationScope.wholeLayer,
     int cellX = 0,
     int cellY = 0,
   }) {
@@ -188,7 +188,8 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String ruleId,
     required bool active,
-    PathAnimationActivationScope scope = PathAnimationActivationScope.wholeLayer,
+    PathAnimationActivationScope scope =
+        PathAnimationActivationScope.wholeLayer,
     int cellX = 0,
     int cellY = 0,
   }) {
@@ -254,7 +255,8 @@ class MapLayersComponent extends PositionComponent {
     }
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
-        path: (id, name, v, o, presetId, cells, properties, animationMode, animationTriggers) =>
+        path: (id, name, v, o, presetId, cells, properties, animationMode,
+                animationTriggers) =>
             _paintPathLayer(canvas, id, presetId, cells, o),
       );
     }
@@ -856,14 +858,59 @@ class MapLayersComponent extends PositionComponent {
     final ch = bundle.cellHeight;
     final paint = Paint()..color = const Color.fromRGBO(255, 153, 0, 0.30);
     final elementById = _elementById;
+    final tileWidth = bundle.manifest.settings.tileWidth;
+    final tileHeight = bundle.manifest.settings.tileHeight;
+    final pixelScaleX = tileWidth > 0 ? cw / tileWidth : 1.0;
+    final pixelScaleY = tileHeight > 0 ? ch / tileHeight : 1.0;
+    final mapWidthPx = w * cw;
+    final mapHeightPx = h * ch;
     for (final instance in bundle.map.placedElements) {
       if (!instance.applyCollision) {
         continue;
       }
-      final profile = elementById[instance.elementId]?.collisionProfile;
-      if (profile == null || profile.cells.isEmpty) {
+      final element = elementById[instance.elementId];
+      final profile = element?.collisionProfile;
+      if (profile == null) {
         continue;
       }
+      final worldLeftPx = instance.pos.x * cw;
+      final worldTopPx = instance.pos.y * ch;
+      final pixelMask = profile.pixelMask;
+      if (pixelMask != null) {
+        List<bool> maskPixels;
+        try {
+          maskPixels = ElementCollisionMaskCodec.decodePackedBits(
+            widthPx: pixelMask.widthPx,
+            heightPx: pixelMask.heightPx,
+            dataBase64: pixelMask.dataBase64,
+          );
+        } catch (_) {
+          continue;
+        }
+        for (var py = 0; py < pixelMask.heightPx; py++) {
+          for (var px = 0; px < pixelMask.widthPx; px++) {
+            final idx = py * pixelMask.widthPx + px;
+            if (idx < 0 || idx >= maskPixels.length || !maskPixels[idx]) {
+              continue;
+            }
+            final dx = worldLeftPx + px * pixelScaleX;
+            final dy = worldTopPx + py * pixelScaleY;
+            if (dx + pixelScaleX <= 0 ||
+                dy + pixelScaleY <= 0 ||
+                dx >= mapWidthPx ||
+                dy >= mapHeightPx) {
+              continue;
+            }
+            canvas.drawRect(
+              Rect.fromLTWH(dx, dy, pixelScaleX, pixelScaleY),
+              paint,
+            );
+          }
+        }
+        continue;
+      }
+
+      // Fallback legacy: profils sans pixelMask.
       for (final local in profile.cells) {
         final x = instance.pos.x + local.x;
         final y = instance.pos.y + local.y;
@@ -1071,12 +1118,13 @@ class MapLayersComponent extends PositionComponent {
       (l) => l.id == layerId,
       orElse: () => throw StateError('Layer not found: $layerId'),
     );
-    
-    if (layer is PathLayer && layer.animationMode == PathAnimationMode.alwaysActive) {
+
+    if (layer is PathLayer &&
+        layer.animationMode == PathAnimationMode.alwaysActive) {
       // Always active mode: loop animation continuously
       return const _PathLayerPlayback.alwaysLoop();
     }
-    
+
     final allRules = _pathRulesByLayerId[layerId];
     if (allRules == null || allRules.isEmpty) {
       return const _PathLayerPlayback.staticFrame();
@@ -1121,8 +1169,8 @@ class MapLayersComponent extends PositionComponent {
     if (rules == null) return const _PathLayerPlayback.staticFrame();
     for (final rule in rules) {
       if (rule.scope != PathAnimationActivationScope.cellOnly) continue;
-      final cellKey = _PathRuleCellKey(
-          layerId: layerId, ruleId: rule.ruleId, x: x, y: y);
+      final cellKey =
+          _PathRuleCellKey(layerId: layerId, ruleId: rule.ruleId, x: x, y: y);
       final oneShot = _activePathRuleCellOneShotByKey[cellKey];
       if (oneShot != null) {
         if (_isPathRuleOneShotCompleted(oneShot)) {
@@ -1320,10 +1368,9 @@ class MapLayersComponent extends PositionComponent {
       pos: GridPos(x: x, y: y),
     );
     final cellPlayback = _resolvePathCellPlayback(layerId: layerId, x: x, y: y);
-    final playback =
-        cellPlayback.kind != _PathLayerPlaybackKind.staticFrame
-            ? cellPlayback
-            : _resolvePathLayerPlayback(layerId: layerId, presetId: presetId);
+    final playback = cellPlayback.kind != _PathLayerPlaybackKind.staticFrame
+        ? cellPlayback
+        : _resolvePathLayerPlayback(layerId: layerId, presetId: presetId);
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,

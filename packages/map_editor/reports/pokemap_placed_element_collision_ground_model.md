@@ -1,135 +1,134 @@
-# PokeMap — Collision d’éléments : modèle « sol / base » (ground blocking)
+# PokeMap — Refonte collision éléments (pixel-level)
 
-## 1. Résumé exécutif
+## 1. Résumé
 
-L’implémentation **« alpha pur »** (toute cellule touchée par un pixel opaque = bloquant) était **correcte techniquement** pour la lecture du canal alpha, mais **fausse pour le produit** Pokémon-like : elle confondait **occupation visuelle** (où le sprite est dessiné) et **obstacle gameplay** (où le joueur doit s’arrêter). Résultat : grilles pleines sur les arbres, maisons, etc., et impossibilité crédible de **passer derrière** le haut d’un sprite.
+La collision des éléments placés est maintenant construite autour d’un **masque pixel gameplay** (`pixelMask`) et exploitée côté runtime via une **grille monde en pixels**, au lieu d’une exécution fondée sur `cells`.
 
-Ce document décrit le **nouveau modèle** : seule la **matière basse / ancrée** du sprite contribue à la collision automatique, avec des paramètres **nommés, documentés et testés**.
-
----
-
-## 2. Diagnostic de l’ancien comportement (mode alpha intégral)
-
-| Problème | Effet observé |
-|----------|----------------|
-| Une seule notion « opaque = bloquant » | Toute la boîte du sprite devenait un mur, y compris le feuillage haut. |
-| Pas de distinction haut / bas | Aucune sémantique « passer derrière » côté données de collision. |
-| Agrégation par cellule sans verticalité | Une cellule avec un pixel de feuillage en haut pouvait bloquer comme le tronc. |
-
-Le **runtime** (`map_gameplay`, `_buildCollisionCache`) applique fidèlement les cellules du profil : si le profil est un gros rectangle, le jeu bloque en conséquence. La correction doit être **côté génération** du profil, pas dans le moteur de déplacement.
+Point clé produit : un sprite peut rester visuellement haut/large sans bloquer partout. Le blocage est déterminé par la matière gameplay utile (base/sol) puis testé en pixels en runtime.
 
 ---
 
-## 3. Nouveau design : deux notions
+## 2. Diagnostic produit initial
 
-### A. Occupation visuelle (référence)
-
-- **Définition** : où l’image a de l’alpha au-dessus du seuil.
-- **Usage** : lecture pixel dans [ElementVisualOccupancyRaster] (tests / extension future : profondeur, debug).
-- **Non persisté** séparément dans cette version : seul le résultat **bloquant** alimente `ElementCollisionProfile.cells`.
-
-### B. Zone bloquante gameplay (persistée)
-
-- **Définition** : sous-ensemble des pixels **visibles** situés dans :
-  1. la **bande basse du sprite** (fraction de la hauteur utile après padding) ;
-  2. l’**empreinte basse** de chaque cellule (fraction basse des pixels de la case).
-- **Décision** : une cellule est bloquante si la densité d’opacité dans cet **échantillon sol** dépasse `minimumOpaqueRatioInGroundSample`.
+- L’ancien flux mélangeait visuel et collision gameplay.
+- Un feuillage haut pouvait bloquer comme un tronc.
+- Le runtime se comportait essentiellement en logique cellule (`isBlocked(x, y)`), ce qui amplifiait les collisions “rectangles”.
 
 ---
 
-## 4. Algorithme (implémenté dans `ElementGroundBlockingAnalyzer`)
+## 3. Modèle cible appliqué
 
-Pour chaque cellule `(cx, cy)` :
+### A. Données persistées (`map_core`)
 
-1. Clip horizontal/vertical du rectangle source par `WarpTriggerPadding` (rogne **utilisateur**).
-2. **Bande gameplay** : ne garder que les pixels dont la coordonnée locale `Y` vérifie  
-   `Y ≥ clipTop + ⌈(1 − F_sprite) × (clipBottom − clipTop)⌉`  
-   avec `F_sprite = spriteGameplayBandBottomFraction` (défaut **0,52** → bas ~52 % du sprite).
-3. **Empreinte cellule** : ne garder que les pixels avec `py ≥ ⌈(1 − F_cell) × cellPixelHeight⌉`  
-   avec `F_cell = cellGroundFootprintFraction` (défaut **0,5** → moitié basse de la case).
-4. Sur les pixels restants (**échantillon sol**), compter `opaque` avec `alpha > alphaThreshold` (défaut **24**).
-5. Si `échantillon_sol = 0` → cellule non bloquante.  
-   Sinon si `opaque / échantillon_sol ≥ minimumOpaqueRatioInGroundSample` (défaut **0,06**) → bloquant ; si le minimum est **0**, « au moins un pixel » suffit.
+- `ElementCollisionProfile.pixelMask` devient la donnée principale de collision élément.
+- Encodage compact : `ElementCollisionMaskEncoding.packedBitsV1` + `dataBase64`.
+- `cells` reste un fallback legacy pour compatibilité projets anciens / tooling existant.
 
-**Conséquence Pokémon-like** : le feuillage entièrement dans la moitié **haute** du sprite ne remplit pas l’échantillon sol des cellules du haut de la même manière qu’un tronc plein bas — les cellules supérieures tendent à rester **non bloquantes** ; le joueur peut passer « derrière » visuellement tant que la base ne barre pas le passage.
+### B. Génération (`map_editor`)
 
----
+Pipeline explicite:
+1. `ElementVisualOccupancyAnalyzer` lit l’occupation visuelle alpha.
+2. `ElementGroundBlockingMaskAnalyzer` filtre la zone gameplay (bande basse sprite + empreinte basse cellule + densité).
+3. `PlacedElementAutoCollisionGenerator` encode le masque pixel en `pixelMask`.
 
-## 5. Paramètres (`PlacedElementCollisionGenerationParams`)
+Important: le masque gameplay généré n’est plus “cellule pleine”. Il conserve des pixels solides réels issus de l’occupation filtrée.
 
-| Champ | Défaut | Rôle |
-|-------|--------|------|
-| `alphaThreshold` | 24 | Transparent si `alpha ≤ seuil`. |
-| `spriteGameplayBandBottomFraction` | 0,52 | Part basse du **sprite** où la matière peut bloquer. |
-| `cellGroundFootprintFraction` | 0,5 | Part basse de **chaque cellule** utilisée pour l’échantillon. |
-| `minimumOpaqueRatioInGroundSample` | 0,06 | Filtre de densité sur l’échantillon sol (anti-alias / bruit). |
+### C. Runtime (`map_gameplay`)
 
-Aucun preset « arbre / maison » : tout est **explicite** dans ces nombres (réglage futur possible en UI).
+- Nouveau cache `_pixelCollisionCache` en espace monde pixel (`mapWidth * tileWidth` par `mapHeight * tileHeight`).
+- Fusion runtime:
+  - layers collision carte -> tuiles pleines en pixels;
+  - éléments placés -> `pixelMask` décodé et stampé en pixels;
+  - fallback legacy -> `cells` uniquement si `pixelMask` absent ou invalide.
+- `isBlocked(x, y)` s’appuie sur la hitbox de déplacement au bas de la case et teste l’intersection pixel-level.
+- `movementBlockReasonAt(...)` consomme cette même logique.
 
 ---
 
-## 6. Fichiers créés / modifiés / supprimés
+## 4. Détails algorithmiques
 
-### Créés
+### Génération gameplay mask (`ElementGroundBlockingMaskAnalyzer`)
 
-- `lib/src/application/collision_generation/placed_element_collision_params.dart`
-- `lib/src/application/collision_generation/element_visual_occupancy_raster.dart`
-- `lib/src/application/collision_generation/element_ground_blocking_analyzer.dart`
+- Échantillon par cellule dans une zone “sol”:
+  - bas du sprite (`spriteGameplayBandBottomFraction`);
+  - bas de cellule (`cellGroundFootprintFraction`);
+  - alpha > `alphaThreshold`.
+- Une cellule est candidate bloquante selon `minimumOpaqueRatioInGroundSample`.
+- Le masque final active **uniquement** les pixels visibles dans la zone gameplay des cellules retenues.
+
+### Résolution runtime
+
+- Hitbox déplacement cellule -> rect bas (centrée X, ancrée bas Y).
+- Test collision = au moins un pixel du rect qui intersecte `_pixelCollisionCache`.
+- Les entités bloquantes restent gérées en cache entité (inchangé).
+
+---
+
+## 5. Fichiers impactés
+
+### map_core
+
+- `lib/src/models/enums.dart`
+- `lib/src/models/element_collision_profile.dart`
+- `lib/src/models/element_collision_profile.freezed.dart`
+- `lib/src/models/element_collision_profile.g.dart`
+- `lib/src/operations/element_collision_mask_codec.dart` (nouveau)
+- `lib/src/validation/validators.dart`
+- `lib/map_core.dart`
+
+### map_editor
+
+- `lib/src/application/collision_generation/placed_element_collision_params.dart` (nouveau)
+- `lib/src/application/collision_generation/element_visual_occupancy_analyzer.dart` (nouveau)
+- `lib/src/application/collision_generation/element_visual_occupancy_raster.dart` (nouveau)
+- `lib/src/application/collision_generation/element_ground_blocking_mask_analyzer.dart` (nouveau)
+- `lib/src/application/collision_generation/placed_element_auto_collision_generator.dart`
+- `lib/src/ui/panels/tileset_palette_panel.dart`
 - `test/collision_generation/element_ground_blocking_analyzer_test.dart`
-- `reports/pokemap_placed_element_collision_ground_model.md` (ce fichier)
+- `test/collision_generation/element_ground_blocking_mask_analyzer_test.dart` (nouveau)
 
-### Modifiés
+### map_gameplay
 
-- `placed_element_auto_collision_generator.dart` — utilise `ElementGroundBlockingAnalyzer`
-- `element_collision_profile_generator.dart` — nouveau type de params
-- `editor_notifier.dart` — `generateElementCollisionProfile` + import
-- `tileset_palette_panel.dart` — textes UX alignés sur le modèle « base / sol »
+- `lib/src/gameplay_world_state.dart`
+- `test/placed_elements_collision_test.dart`
 
-### Supprimés
+### map_runtime
 
-- `alpha_collision_params.dart`
-- `alpha_collision_grid_builder.dart`
-- `test/collision_generation/alpha_collision_grid_builder_test.dart`
+- `lib/src/presentation/flame/map_layers_component.dart`
 
 ---
 
-## 7. Runtime
+## 6. Validation exécutée
 
-- **Aucun changement requis** : `ElementCollisionProfile` et la fusion dans `_buildCollisionCache` restent identiques.
-- Les critères d’acceptation « passer derrière », « bloquer au tronc », « PNJ devant maison » dépendent **du profil généré** ; le runtime ne distingue pas feuillage et tronc — c’est bien le **générateur** qui doit produire des cellules cohérentes.
-
----
-
-## 8. Tests
-
-Fichier : `test/collision_generation/element_ground_blocking_analyzer_test.dart`
-
-- Sprite vide
-- Opaque **uniquement haut** du sprite → pas de collision
-- Opaque **base basse** → cellules du bas bloquantes
-- Opaque seulement **haut de cellule** (avec bande pleine + empreinte) → pas de blocage
-- **Lit / base** : au moins une cellule bloquante quand la base est remplie
+- `packages/map_core`: tests codec + JSON `pixelMask` passés.
+- `packages/map_editor`: tests analyzeurs collision passés.
+- `packages/map_gameplay`: tests collision éléments passés, incluant:
+  - source-of-truth `pixelMask`;
+  - cas “haut décoratif” non bloquant en déplacement;
+  - vérification `isPixelBlocked`.
 
 ---
 
-## 9. Limites et travail ultérieur
+## 7. Hors périmètre / sécurité
 
-| Limite | Piste |
-|--------|--------|
-| Pas d’exposition UI des 4 paramètres | Sliders dans le panneau collision. |
-| Bâtiments très « plats » en bas | Ajuster `spriteGameplayBandBottomFraction` par projet ou preset **optionnel** documenté. |
-| Profondeur / calque Z | Toujours hors de ce module ; collision = déplacement uniquement. |
+- `packages/map_core/lib/src/models/scenario_asset.freezed.dart` a été explicitement restauré à l’état initial.
+- Aucun changement hors périmètre collision n’est conservé dans le résultat final.
+- Règle appliquée: si une régénération modifie du hors périmètre, ces changements sont signalés puis écartés.
 
 ---
 
-## 10. Critères d’acceptation (produit)
+## 8. Limites connues
 
-1. Passer derrière le haut d’un arbre : **oui** si le générateur ne met pas de cellules bloquantes dans la zone haute (comportement attendu avec les défauts).
-2. Bloquer au tronc / base : **oui** si la matière opaque est dans la bande basse.
-3. Plus de **gros rectangle plein** automatique sur toute la hauteur : réduit par construction.
-4. Approche PNJ : améliorée lorsque la collision décor ne remplit plus toute la façade.
-5. Manuel / persistance : **inchangés**.
+- La séparation collision / profondeur visuelle / interaction est maintenant préparée, mais la profondeur “passer derrière” reste encore un système distinct à implémenter côté rendu/Z-order.
+- Les paramètres de génération ne sont pas encore exposés en sliders complets dans l’UI.
 
 ---
 
-*Aucune opération Git (commit / merge / rebase / push / tag) dans le cadre de cette livraison.*
+## 9. Conclusion produit
+
+Le système n’est plus une simple persistance `pixelMask` avec exécution en cellules.  
+La résolution runtime des collisions d’éléments placés passe désormais par un cache pixel monde et des tests pixel-level sur la hitbox de déplacement.
+
+---
+
+*Aucun commit, amend, merge, rebase, push ou tag n’a été effectué.*

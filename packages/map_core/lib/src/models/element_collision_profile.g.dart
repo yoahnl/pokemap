@@ -6,12 +6,40 @@ part of 'element_collision_profile.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$ElementCollisionPixelMaskImpl _$$ElementCollisionPixelMaskImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ElementCollisionPixelMaskImpl(
+      widthPx: (json['widthPx'] as num).toInt(),
+      heightPx: (json['heightPx'] as num).toInt(),
+      encoding: $enumDecodeNullable(
+              _$ElementCollisionMaskEncodingEnumMap, json['encoding']) ??
+          ElementCollisionMaskEncoding.packedBitsV1,
+      dataBase64: json['dataBase64'] as String? ?? '',
+    );
+
+Map<String, dynamic> _$$ElementCollisionPixelMaskImplToJson(
+        _$ElementCollisionPixelMaskImpl instance) =>
+    <String, dynamic>{
+      'widthPx': instance.widthPx,
+      'heightPx': instance.heightPx,
+      'encoding': _$ElementCollisionMaskEncodingEnumMap[instance.encoding]!,
+      'dataBase64': instance.dataBase64,
+    };
+
+const _$ElementCollisionMaskEncodingEnumMap = {
+  ElementCollisionMaskEncoding.packedBitsV1: 'packed_bits_v1',
+};
+
 _$ElementCollisionProfileImpl _$$ElementCollisionProfileImplFromJson(
         Map<String, dynamic> json) =>
     _$ElementCollisionProfileImpl(
       source: $enumDecodeNullable(
               _$ElementCollisionProfileSourceEnumMap, json['source']) ??
           ElementCollisionProfileSource.generated,
+      pixelMask: json['pixelMask'] == null
+          ? null
+          : ElementCollisionPixelMask.fromJson(
+              json['pixelMask'] as Map<String, dynamic>),
       padding: json['padding'] == null
           ? const WarpTriggerPadding()
           : WarpTriggerPadding.fromJson(
@@ -26,6 +54,7 @@ Map<String, dynamic> _$$ElementCollisionProfileImplToJson(
         _$ElementCollisionProfileImpl instance) =>
     <String, dynamic>{
       'source': _$ElementCollisionProfileSourceEnumMap[instance.source]!,
+      'pixelMask': instance.pixelMask?.toJson(),
       'padding': instance.padding.toJson(),
       'cells': instance.cells.map((e) => e.toJson()).toList(),
     };

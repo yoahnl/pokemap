@@ -14,6 +14,233 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+ElementCollisionPixelMask _$ElementCollisionPixelMaskFromJson(
+    Map<String, dynamic> json) {
+  return _ElementCollisionPixelMask.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ElementCollisionPixelMask {
+  int get widthPx => throw _privateConstructorUsedError;
+  int get heightPx => throw _privateConstructorUsedError;
+  ElementCollisionMaskEncoding get encoding =>
+      throw _privateConstructorUsedError;
+  String get dataBase64 => throw _privateConstructorUsedError;
+
+  /// Serializes this ElementCollisionPixelMask to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ElementCollisionPixelMask
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ElementCollisionPixelMaskCopyWith<ElementCollisionPixelMask> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ElementCollisionPixelMaskCopyWith<$Res> {
+  factory $ElementCollisionPixelMaskCopyWith(ElementCollisionPixelMask value,
+          $Res Function(ElementCollisionPixelMask) then) =
+      _$ElementCollisionPixelMaskCopyWithImpl<$Res, ElementCollisionPixelMask>;
+  @useResult
+  $Res call(
+      {int widthPx,
+      int heightPx,
+      ElementCollisionMaskEncoding encoding,
+      String dataBase64});
+}
+
+/// @nodoc
+class _$ElementCollisionPixelMaskCopyWithImpl<$Res,
+        $Val extends ElementCollisionPixelMask>
+    implements $ElementCollisionPixelMaskCopyWith<$Res> {
+  _$ElementCollisionPixelMaskCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ElementCollisionPixelMask
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? widthPx = null,
+    Object? heightPx = null,
+    Object? encoding = null,
+    Object? dataBase64 = null,
+  }) {
+    return _then(_value.copyWith(
+      widthPx: null == widthPx
+          ? _value.widthPx
+          : widthPx // ignore: cast_nullable_to_non_nullable
+              as int,
+      heightPx: null == heightPx
+          ? _value.heightPx
+          : heightPx // ignore: cast_nullable_to_non_nullable
+              as int,
+      encoding: null == encoding
+          ? _value.encoding
+          : encoding // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionMaskEncoding,
+      dataBase64: null == dataBase64
+          ? _value.dataBase64
+          : dataBase64 // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ElementCollisionPixelMaskImplCopyWith<$Res>
+    implements $ElementCollisionPixelMaskCopyWith<$Res> {
+  factory _$$ElementCollisionPixelMaskImplCopyWith(
+          _$ElementCollisionPixelMaskImpl value,
+          $Res Function(_$ElementCollisionPixelMaskImpl) then) =
+      __$$ElementCollisionPixelMaskImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {int widthPx,
+      int heightPx,
+      ElementCollisionMaskEncoding encoding,
+      String dataBase64});
+}
+
+/// @nodoc
+class __$$ElementCollisionPixelMaskImplCopyWithImpl<$Res>
+    extends _$ElementCollisionPixelMaskCopyWithImpl<$Res,
+        _$ElementCollisionPixelMaskImpl>
+    implements _$$ElementCollisionPixelMaskImplCopyWith<$Res> {
+  __$$ElementCollisionPixelMaskImplCopyWithImpl(
+      _$ElementCollisionPixelMaskImpl _value,
+      $Res Function(_$ElementCollisionPixelMaskImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ElementCollisionPixelMask
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? widthPx = null,
+    Object? heightPx = null,
+    Object? encoding = null,
+    Object? dataBase64 = null,
+  }) {
+    return _then(_$ElementCollisionPixelMaskImpl(
+      widthPx: null == widthPx
+          ? _value.widthPx
+          : widthPx // ignore: cast_nullable_to_non_nullable
+              as int,
+      heightPx: null == heightPx
+          ? _value.heightPx
+          : heightPx // ignore: cast_nullable_to_non_nullable
+              as int,
+      encoding: null == encoding
+          ? _value.encoding
+          : encoding // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionMaskEncoding,
+      dataBase64: null == dataBase64
+          ? _value.dataBase64
+          : dataBase64 // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ElementCollisionPixelMaskImpl implements _ElementCollisionPixelMask {
+  const _$ElementCollisionPixelMaskImpl(
+      {required this.widthPx,
+      required this.heightPx,
+      this.encoding = ElementCollisionMaskEncoding.packedBitsV1,
+      this.dataBase64 = ''});
+
+  factory _$ElementCollisionPixelMaskImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ElementCollisionPixelMaskImplFromJson(json);
+
+  @override
+  final int widthPx;
+  @override
+  final int heightPx;
+  @override
+  @JsonKey()
+  final ElementCollisionMaskEncoding encoding;
+  @override
+  @JsonKey()
+  final String dataBase64;
+
+  @override
+  String toString() {
+    return 'ElementCollisionPixelMask(widthPx: $widthPx, heightPx: $heightPx, encoding: $encoding, dataBase64: $dataBase64)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ElementCollisionPixelMaskImpl &&
+            (identical(other.widthPx, widthPx) || other.widthPx == widthPx) &&
+            (identical(other.heightPx, heightPx) ||
+                other.heightPx == heightPx) &&
+            (identical(other.encoding, encoding) ||
+                other.encoding == encoding) &&
+            (identical(other.dataBase64, dataBase64) ||
+                other.dataBase64 == dataBase64));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, widthPx, heightPx, encoding, dataBase64);
+
+  /// Create a copy of ElementCollisionPixelMask
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ElementCollisionPixelMaskImplCopyWith<_$ElementCollisionPixelMaskImpl>
+      get copyWith => __$$ElementCollisionPixelMaskImplCopyWithImpl<
+          _$ElementCollisionPixelMaskImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ElementCollisionPixelMaskImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ElementCollisionPixelMask implements ElementCollisionPixelMask {
+  const factory _ElementCollisionPixelMask(
+      {required final int widthPx,
+      required final int heightPx,
+      final ElementCollisionMaskEncoding encoding,
+      final String dataBase64}) = _$ElementCollisionPixelMaskImpl;
+
+  factory _ElementCollisionPixelMask.fromJson(Map<String, dynamic> json) =
+      _$ElementCollisionPixelMaskImpl.fromJson;
+
+  @override
+  int get widthPx;
+  @override
+  int get heightPx;
+  @override
+  ElementCollisionMaskEncoding get encoding;
+  @override
+  String get dataBase64;
+
+  /// Create a copy of ElementCollisionPixelMask
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ElementCollisionPixelMaskImplCopyWith<_$ElementCollisionPixelMaskImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ElementCollisionProfile _$ElementCollisionProfileFromJson(
     Map<String, dynamic> json) {
   return _ElementCollisionProfile.fromJson(json);
@@ -23,7 +250,19 @@ ElementCollisionProfile _$ElementCollisionProfileFromJson(
 mixin _$ElementCollisionProfile {
   ElementCollisionProfileSource get source =>
       throw _privateConstructorUsedError;
+
+  /// Optionnel: masque pixel-level (nouvelle source de vérité).
+  ///
+  /// Stratégie de compatibilité:
+  /// - si présent, le runtime peut en dériver les cellules cache;
+  /// - sinon, on utilise la liste `cells` legacy.
+  ElementCollisionPixelMask? get pixelMask =>
+      throw _privateConstructorUsedError;
   WarpTriggerPadding get padding => throw _privateConstructorUsedError;
+
+  /// Format legacy basé sur cellules.
+  ///
+  /// Conservé pour compatibilité JSON/projets existants et pour debug.
   List<GridPos> get cells => throw _privateConstructorUsedError;
 
   /// Serializes this ElementCollisionProfile to a JSON map.
@@ -44,9 +283,11 @@ abstract class $ElementCollisionProfileCopyWith<$Res> {
   @useResult
   $Res call(
       {ElementCollisionProfileSource source,
+      ElementCollisionPixelMask? pixelMask,
       WarpTriggerPadding padding,
       List<GridPos> cells});
 
+  $ElementCollisionPixelMaskCopyWith<$Res>? get pixelMask;
   $WarpTriggerPaddingCopyWith<$Res> get padding;
 }
 
@@ -67,6 +308,7 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
   @override
   $Res call({
     Object? source = null,
+    Object? pixelMask = freezed,
     Object? padding = null,
     Object? cells = null,
   }) {
@@ -75,6 +317,10 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as ElementCollisionProfileSource,
+      pixelMask: freezed == pixelMask
+          ? _value.pixelMask
+          : pixelMask // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionPixelMask?,
       padding: null == padding
           ? _value.padding
           : padding // ignore: cast_nullable_to_non_nullable
@@ -84,6 +330,20 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
           : cells // ignore: cast_nullable_to_non_nullable
               as List<GridPos>,
     ) as $Val);
+  }
+
+  /// Create a copy of ElementCollisionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ElementCollisionPixelMaskCopyWith<$Res>? get pixelMask {
+    if (_value.pixelMask == null) {
+      return null;
+    }
+
+    return $ElementCollisionPixelMaskCopyWith<$Res>(_value.pixelMask!, (value) {
+      return _then(_value.copyWith(pixelMask: value) as $Val);
+    });
   }
 
   /// Create a copy of ElementCollisionProfile
@@ -108,9 +368,12 @@ abstract class _$$ElementCollisionProfileImplCopyWith<$Res>
   @useResult
   $Res call(
       {ElementCollisionProfileSource source,
+      ElementCollisionPixelMask? pixelMask,
       WarpTriggerPadding padding,
       List<GridPos> cells});
 
+  @override
+  $ElementCollisionPixelMaskCopyWith<$Res>? get pixelMask;
   @override
   $WarpTriggerPaddingCopyWith<$Res> get padding;
 }
@@ -131,6 +394,7 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? source = null,
+    Object? pixelMask = freezed,
     Object? padding = null,
     Object? cells = null,
   }) {
@@ -139,6 +403,10 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as ElementCollisionProfileSource,
+      pixelMask: freezed == pixelMask
+          ? _value.pixelMask
+          : pixelMask // ignore: cast_nullable_to_non_nullable
+              as ElementCollisionPixelMask?,
       padding: null == padding
           ? _value.padding
           : padding // ignore: cast_nullable_to_non_nullable
@@ -157,6 +425,7 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
 class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   const _$ElementCollisionProfileImpl(
       {this.source = ElementCollisionProfileSource.generated,
+      this.pixelMask,
       this.padding = const WarpTriggerPadding(),
       final List<GridPos> cells = const []})
       : _cells = cells;
@@ -167,10 +436,26 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   @override
   @JsonKey()
   final ElementCollisionProfileSource source;
+
+  /// Optionnel: masque pixel-level (nouvelle source de vérité).
+  ///
+  /// Stratégie de compatibilité:
+  /// - si présent, le runtime peut en dériver les cellules cache;
+  /// - sinon, on utilise la liste `cells` legacy.
+  @override
+  final ElementCollisionPixelMask? pixelMask;
   @override
   @JsonKey()
   final WarpTriggerPadding padding;
+
+  /// Format legacy basé sur cellules.
+  ///
+  /// Conservé pour compatibilité JSON/projets existants et pour debug.
   final List<GridPos> _cells;
+
+  /// Format legacy basé sur cellules.
+  ///
+  /// Conservé pour compatibilité JSON/projets existants et pour debug.
   @override
   @JsonKey()
   List<GridPos> get cells {
@@ -181,7 +466,7 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 
   @override
   String toString() {
-    return 'ElementCollisionProfile(source: $source, padding: $padding, cells: $cells)';
+    return 'ElementCollisionProfile(source: $source, pixelMask: $pixelMask, padding: $padding, cells: $cells)';
   }
 
   @override
@@ -190,13 +475,15 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
         (other.runtimeType == runtimeType &&
             other is _$ElementCollisionProfileImpl &&
             (identical(other.source, source) || other.source == source) &&
+            (identical(other.pixelMask, pixelMask) ||
+                other.pixelMask == pixelMask) &&
             (identical(other.padding, padding) || other.padding == padding) &&
             const DeepCollectionEquality().equals(other._cells, _cells));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, source, padding,
+  int get hashCode => Object.hash(runtimeType, source, pixelMask, padding,
       const DeepCollectionEquality().hash(_cells));
 
   /// Create a copy of ElementCollisionProfile
@@ -219,6 +506,7 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   const factory _ElementCollisionProfile(
       {final ElementCollisionProfileSource source,
+      final ElementCollisionPixelMask? pixelMask,
       final WarpTriggerPadding padding,
       final List<GridPos> cells}) = _$ElementCollisionProfileImpl;
 
@@ -227,8 +515,20 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
 
   @override
   ElementCollisionProfileSource get source;
+
+  /// Optionnel: masque pixel-level (nouvelle source de vérité).
+  ///
+  /// Stratégie de compatibilité:
+  /// - si présent, le runtime peut en dériver les cellules cache;
+  /// - sinon, on utilise la liste `cells` legacy.
+  @override
+  ElementCollisionPixelMask? get pixelMask;
   @override
   WarpTriggerPadding get padding;
+
+  /// Format legacy basé sur cellules.
+  ///
+  /// Conservé pour compatibilité JSON/projets existants et pour debug.
   @override
   List<GridPos> get cells;
 

@@ -7,6 +7,7 @@ import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
+import '../operations/element_collision_mask_codec.dart';
 import '../operations/map_entities.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
@@ -558,6 +559,30 @@ class ProjectValidator {
       );
     }
     final source = element.frames.primarySource;
+    final pixelMask = profile.pixelMask;
+    if (pixelMask != null) {
+      if (pixelMask.widthPx <= 0 || pixelMask.heightPx <= 0) {
+        throw ValidationException(
+          'Element ${element.id} pixel mask dimensions must be > 0',
+        );
+      }
+      if (pixelMask.dataBase64.trim().isEmpty) {
+        throw ValidationException(
+          'Element ${element.id} pixel mask payload cannot be empty',
+        );
+      }
+      try {
+        ElementCollisionMaskCodec.decodePackedBits(
+          widthPx: pixelMask.widthPx,
+          heightPx: pixelMask.heightPx,
+          dataBase64: pixelMask.dataBase64,
+        );
+      } catch (e) {
+        throw ValidationException(
+          'Element ${element.id} pixel mask payload is invalid: $e',
+        );
+      }
+    }
     final seen = <String>{};
     for (final cell in profile.cells) {
       if (cell.x < 0 || cell.y < 0) {
