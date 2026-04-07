@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../features/map_entities/application/npc_runtime_rules_authoring_catalog.dart';
+import '../../features/map_entities/application/npc_runtime_rules_editor_mapping.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
@@ -95,6 +97,13 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   final _npcMovementStepMs = TextEditingController();
   final _npcWaypointRows = <_NpcWaypointDraft>[];
 
+  // --- Visibilité PNJ + dialogues conditionnels (Map Entities, pas Step Studio) ---
+  NpcRuntimeVisibilityUiMode _npcVisUiMode = NpcRuntimeVisibilityUiMode.always;
+  MapEntityRuntimePredicateKind _npcVisPredicateKind =
+      MapEntityRuntimePredicateKind.storyFlagSet;
+  String _npcVisRefMenuId = kNpcRuntimeRefNoneMenuId;
+  final List<_NpcConditionalDialogueRowDraft> _npcCondRows = [];
+
   final _signTitle = TextEditingController();
   final _signDialogueId = TextEditingController();
   final _signScriptPath = TextEditingController();
@@ -151,6 +160,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     _spawnKey.dispose();
     _spawnCategory.dispose();
     for (final row in _propertyRows) {
+      row.dispose();
+    }
+    for (final row in _npcCondRows) {
       row.dispose();
     }
     super.dispose();
@@ -722,6 +734,542 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       ),
     ]);
     return widgets;
+  }
+
+  /// Recharge l’état local « visibilité + variantes dialogue » depuis le PNJ carte.
+  ///
+  /// Distinct des worldChanges Step Studio : ici ce sont des règles **sur l’entité**
+  /// consommées par le runtime overworld.
+  void _syncNpcRuntimeRulesFromNpc(MapEntityNpcData? npc) {
+    final n = npc ?? const MapEntityNpcData();
+    final vis = parseVisibilityRuleFromNpc(n);
+    _npcVisUiMode = vis.mode;
+    _npcVisPredicateKind = vis.kind;
+    _npcVisRefMenuId = vis.refId.trim().isEmpty
+        ? kNpcRuntimeRefNoneMenuId
+        : vis.refId.trim();
+
+    for (final row in _npcCondRows) {
+      row.dispose();
+    }
+    _npcCondRows
+      ..clear()
+      ..addAll(
+        n.conditionalDialogues.map(_NpcConditionalDialogueRowDraft.fromModel),
+      );
+  }
+
+  /// Sections « Visibilité » et « Dialogues conditionnels » pour un PNJ carte.
+  ///
+  /// Toute la donnée métier (ids) transite par des menus ; les helpers
+  /// [buildVisibilityRuleForSave] / [buildConditionalDialogueRowForSave] font
+  /// le pont vers [MapEntityNpcData] au moment de [_saveSelectedEntity].
+  List<Widget> _npcMapEntityRuntimeRulesSection(
+    BuildContext context,
+    ProjectManifest? project,
+  ) {
+    const accent = EditorChrome.inspectorJoyMint;
+    final catalog = project == null
+        ? null
+        : buildNpcRuntimeAuthoringCatalog(project);
+
+    String visModeLabel(NpcRuntimeVisibilityUiMode m) {
+      return switch (m) {
+        NpcRuntimeVisibilityUiMode.always => _l('Toujours visible', 'Always visible'),
+        NpcRuntimeVisibilityUiMode.visibleOnlyIf =>
+          _l('Visible seulement si…', 'Visible only if…'),
+        NpcRuntimeVisibilityUiMode.hiddenIf => _l('Caché si…', 'Hidden if…'),
+      };
+    }
+
+    final visModeIds = NpcRuntimeVisibilityUiMode.values.map((e) => e.name).toList();
+    final visSelectedId = _npcVisUiMode.name;
+
+    List<NpcRuntimePickOption> optionsForPredicateKind(
+      MapEntityRuntimePredicateKind k,
+    ) {
+      if (catalog == null) {
+        return const [];
+      }
+      return switch (k) {
+        MapEntityRuntimePredicateKind.storyFlagSet ||
+        MapEntityRuntimePredicateKind.storyFlagUnset =>
+          catalog.flags,
+        MapEntityRuntimePredicateKind.stepCompleted ||
+        MapEntityRuntimePredicateKind.stepNotCompleted =>
+          catalog.steps,
+        MapEntityRuntimePredicateKind.chapterCompleted ||
+        MapEntityRuntimePredicateKind.chapterNotCompleted =>
+          catalog.chapters,
+        MapEntityRuntimePredicateKind.cutsceneCompleted ||
+        MapEntityRuntimePredicateKind.cutsceneNotCompleted =>
+          catalog.cutscenes,
+      };
+    }
+
+    final dialogueEntries =
+        project?.dialogues ?? const <ProjectDialogueEntry>[];
+    final sortedDialogues = _sortedDialogueEntries(dialogueEntries);
+
+    return [
+      const SizedBox(height: 10),
+      InspectorEmbeddedFootnote(
+        text: _l(
+          'Règles propres à ce PNJ (runtime carte). '
+          'Ce n’est pas la même chose que les changements de monde du Step Studio.',
+          'Rules for this NPC only (map runtime). '
+          'Not the same as Step Studio world changes.',
+        ),
+        accent: accent,
+      ),
+      const SizedBox(height: 10),
+      InspectorEmbeddedSectionLabel(
+        _l('VISIBILITÉ DU PNJ', 'NPC VISIBILITY'),
+      ),
+      const SizedBox(height: 6),
+      if (widget.embedded)
+        InspectorEmbeddedDropdown(
+          accent: accent,
+          fieldLabel: _l('Quand ce PNJ est visible', 'When this NPC is visible'),
+          valueLabel: visModeLabel(_npcVisUiMode),
+          orderedIds: visModeIds,
+          selectedMenuValue: visSelectedId,
+          selectedIdForCheck: visSelectedId,
+          idToLabel: (id) => visModeLabel(
+            NpcRuntimeVisibilityUiMode.values.firstWhere((e) => e.name == id),
+          ),
+          onSelected: (id) {
+            final m = NpcRuntimeVisibilityUiMode.values.firstWhere(
+              (e) => e.name == id,
+            );
+            setState(() => _npcVisUiMode = m);
+          },
+        )
+      else
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: () async {
+            final picked = await showCupertinoListPicker<NpcRuntimeVisibilityUiMode>(
+              context: context,
+              title: _l('Visibilité', 'Visibility'),
+              items: NpcRuntimeVisibilityUiMode.values,
+              labelOf: visModeLabel,
+            );
+            if (picked != null && context.mounted) {
+              setState(() => _npcVisUiMode = picked);
+            }
+          },
+          child: Text(
+            '${_l('Visibilité', 'Visibility')}: ${visModeLabel(_npcVisUiMode)}',
+          ),
+        ),
+      if (_npcVisUiMode != NpcRuntimeVisibilityUiMode.always) ...[
+        const SizedBox(height: 8),
+        if (widget.embedded)
+          InspectorEmbeddedDropdown(
+            accent: accent,
+            fieldLabel: _l('Condition', 'Condition'),
+            valueLabel: npcRuntimePredicateKindLabelFr(_npcVisPredicateKind),
+            orderedIds:
+                allNpcRuntimePredicateKinds.map((e) => e.name).toList(),
+            selectedMenuValue: _npcVisPredicateKind.name,
+            selectedIdForCheck: _npcVisPredicateKind.name,
+            idToLabel: (id) => npcRuntimePredicateKindLabelFr(
+              parsePredicateKindMenuId(id) ??
+                  MapEntityRuntimePredicateKind.storyFlagSet,
+            ),
+            onSelected: (id) {
+              final k = parsePredicateKindMenuId(id);
+              if (k != null) {
+                setState(() => _npcVisPredicateKind = k);
+              }
+            },
+          )
+        else
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            alignment: Alignment.centerLeft,
+            onPressed: () async {
+              final picked =
+                  await showCupertinoListPicker<MapEntityRuntimePredicateKind>(
+                context: context,
+                title: _l('Type de condition', 'Condition type'),
+                items: allNpcRuntimePredicateKinds,
+                labelOf: npcRuntimePredicateKindLabelFr,
+              );
+              if (picked != null && context.mounted) {
+                setState(() => _npcVisPredicateKind = picked);
+              }
+            },
+            child: Text(
+              '${_l('Condition', 'Condition')}: ${npcRuntimePredicateKindLabelFr(_npcVisPredicateKind)}',
+            ),
+          ),
+        const SizedBox(height: 8),
+        Builder(
+          builder: (context) {
+            final opts = optionsForPredicateKind(_npcVisPredicateKind);
+            final ids = mergeRuntimeRefMenuIds(opts, _npcVisRefMenuId);
+            final noneL = _l('Choisir…', 'Choose…');
+            final orphanL =
+                _l('hors liste projet', 'not listed in project');
+            if (widget.embedded) {
+              return InspectorEmbeddedDropdown(
+                accent: accent,
+                fieldLabel: _l('Cible', 'Target'),
+                valueLabel: runtimeRefValueLabel(
+                  opts,
+                  _npcVisRefMenuId,
+                  noneLabel: noneL,
+                  orphanLabel: orphanL,
+                ),
+                orderedIds: ids,
+                selectedMenuValue: ids.contains(_npcVisRefMenuId)
+                    ? _npcVisRefMenuId
+                    : kNpcRuntimeRefNoneMenuId,
+                selectedIdForCheck: _npcVisRefMenuId,
+                idToLabel: (id) => runtimeRefValueLabel(
+                  opts,
+                  id,
+                  noneLabel: noneL,
+                  orphanLabel: orphanL,
+                ),
+                onSelected: (id) =>
+                    setState(() => _npcVisRefMenuId = id),
+              );
+            }
+            return CupertinoButton(
+              padding: EdgeInsets.zero,
+              alignment: Alignment.centerLeft,
+              onPressed: () async {
+                final picked = await showCupertinoListPicker<String>(
+                  context: context,
+                  title: _l('Cible', 'Target'),
+                  items: ids,
+                  labelOf: (id) => runtimeRefValueLabel(
+                    opts,
+                    id,
+                    noneLabel: noneL,
+                    orphanLabel: orphanL,
+                  ),
+                );
+                if (picked != null && context.mounted) {
+                  setState(() => _npcVisRefMenuId = picked);
+                }
+              },
+              child: Text(
+                '${_l('Cible', 'Target')}: ${runtimeRefValueLabel(opts, _npcVisRefMenuId, noneLabel: noneL, orphanLabel: orphanL)}',
+              ),
+            );
+          },
+        ),
+        if (catalog != null &&
+            optionsForPredicateKind(_npcVisPredicateKind).isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: InspectorEmbeddedFootnote(
+              text: _l(
+                'Aucune entrée indexée pour ce type. '
+                'Créez-en une dans Step Studio, Global Story ou Cutscene Studio, '
+                'ou complétez les flags dans vos scénarios.',
+                'No indexed entries for this type. '
+                'Author them in Step Studio, Global Story, or Cutscene Studio, '
+                'or add flags in your scenarios.',
+              ),
+              accent: EditorChrome.inspectorJoyCoral,
+            ),
+          ),
+      ],
+      const SizedBox(height: 14),
+      InspectorEmbeddedSectionLabel(
+        _l('DIALOGUES CONDITIONNELS', 'CONDITIONAL DIALOGUES'),
+      ),
+      const SizedBox(height: 6),
+      InspectorEmbeddedFootnote(
+        text: _l(
+          'On teste chaque ligne dans l’ordre : la première condition vraie gagne. '
+          'Sinon c’est le dialogue par défaut du PNJ (champ ci-dessus).',
+          'Each line is tested in order: the first true condition wins. '
+          'Otherwise the NPC’s default dialogue (field above) is used.',
+        ),
+        accent: accent,
+      ),
+      const SizedBox(height: 8),
+      if (dialogueEntries.isEmpty)
+        InspectorEmbeddedFootnote(
+          text: _l(
+            'Ajoutez des dialogues dans Dialogue Studio pour configurer des variantes.',
+            'Add dialogues in Dialogue Studio to configure variants.',
+          ),
+          accent: accent,
+        )
+      else ...[
+        for (var i = 0; i < _npcCondRows.length; i++)
+          _buildNpcConditionalDialogueRow(
+            context,
+            index: i,
+            catalog: catalog,
+            sortedDialogues: sortedDialogues,
+            accent: accent,
+          ),
+        const SizedBox(height: 6),
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          alignment: Alignment.centerLeft,
+          onPressed: () {
+            setState(() {
+              _npcCondRows.add(_NpcConditionalDialogueRowDraft.empty());
+            });
+          },
+          child: Text(
+            _l('+ Ajouter une variante de dialogue', '+ Add dialogue variant'),
+          ),
+        ),
+      ],
+    ];
+  }
+
+  Widget _buildNpcConditionalDialogueRow(
+    BuildContext context, {
+    required int index,
+    required NpcRuntimeAuthoringCatalog? catalog,
+    required List<ProjectDialogueEntry> sortedDialogues,
+    required Color accent,
+  }) {
+    final row = _npcCondRows[index];
+
+    List<NpcRuntimePickOption> rowOpts(MapEntityRuntimePredicateKind k) {
+      if (catalog == null) {
+        return const [];
+      }
+      return switch (k) {
+        MapEntityRuntimePredicateKind.storyFlagSet ||
+        MapEntityRuntimePredicateKind.storyFlagUnset =>
+          catalog.flags,
+        MapEntityRuntimePredicateKind.stepCompleted ||
+        MapEntityRuntimePredicateKind.stepNotCompleted =>
+          catalog.steps,
+        MapEntityRuntimePredicateKind.chapterCompleted ||
+        MapEntityRuntimePredicateKind.chapterNotCompleted =>
+          catalog.chapters,
+        MapEntityRuntimePredicateKind.cutsceneCompleted ||
+        MapEntityRuntimePredicateKind.cutsceneNotCompleted =>
+          catalog.cutscenes,
+      };
+    }
+
+    final opts = rowOpts(row.conditionKind);
+    final refIds = mergeRuntimeRefMenuIds(opts, row.refMenuId);
+    final dlgIds = _dialogueDropdownIds(sortedDialogues, row.dialogueMenuId);
+    final noneL = _l('Choisir…', 'Choose…');
+    final orphanL = _l('hors liste projet', 'not listed in project');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _l('Variante ${index + 1}', 'Variant ${index + 1}'),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
+              ),
+              const SizedBox(height: 6),
+              if (widget.embedded)
+                InspectorEmbeddedDropdown(
+                  accent: accent,
+                  fieldLabel: _l('Si…', 'If…'),
+                  valueLabel: npcRuntimePredicateKindLabelFr(row.conditionKind),
+                  orderedIds:
+                      allNpcRuntimePredicateKinds.map((e) => e.name).toList(),
+                  selectedMenuValue: row.conditionKind.name,
+                  selectedIdForCheck: row.conditionKind.name,
+                  idToLabel: (id) => npcRuntimePredicateKindLabelFr(
+                    parsePredicateKindMenuId(id) ??
+                        MapEntityRuntimePredicateKind.storyFlagSet,
+                  ),
+                  onSelected: (id) {
+                    final k = parsePredicateKindMenuId(id);
+                    if (k != null) {
+                      setState(() => row.conditionKind = k);
+                    }
+                  },
+                )
+              else
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  alignment: Alignment.centerLeft,
+                  onPressed: () async {
+                    final picked = await showCupertinoListPicker<
+                        MapEntityRuntimePredicateKind>(
+                      context: context,
+                      title: _l('Condition', 'Condition'),
+                      items: allNpcRuntimePredicateKinds,
+                      labelOf: npcRuntimePredicateKindLabelFr,
+                    );
+                    if (picked != null && context.mounted) {
+                      setState(() => row.conditionKind = picked);
+                    }
+                  },
+                  child: Text(
+                    '${_l('Si…', 'If…')}: ${npcRuntimePredicateKindLabelFr(row.conditionKind)}',
+                  ),
+                ),
+              const SizedBox(height: 6),
+              if (widget.embedded)
+                InspectorEmbeddedDropdown(
+                  accent: accent,
+                  fieldLabel: _l('Cible', 'Target'),
+                  valueLabel: runtimeRefValueLabel(
+                    opts,
+                    row.refMenuId,
+                    noneLabel: noneL,
+                    orphanLabel: orphanL,
+                  ),
+                  orderedIds: refIds,
+                  selectedMenuValue: refIds.contains(row.refMenuId)
+                      ? row.refMenuId
+                      : kNpcRuntimeRefNoneMenuId,
+                  selectedIdForCheck: row.refMenuId,
+                  idToLabel: (id) => runtimeRefValueLabel(
+                    opts,
+                    id,
+                    noneLabel: noneL,
+                    orphanLabel: orphanL,
+                  ),
+                  onSelected: (id) => setState(() => row.refMenuId = id),
+                )
+              else
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  alignment: Alignment.centerLeft,
+                  onPressed: () async {
+                    final picked = await showCupertinoListPicker<String>(
+                      context: context,
+                      title: _l('Cible', 'Target'),
+                      items: refIds,
+                      labelOf: (id) => runtimeRefValueLabel(
+                        opts,
+                        id,
+                        noneLabel: noneL,
+                        orphanLabel: orphanL,
+                      ),
+                    );
+                    if (picked != null && context.mounted) {
+                      setState(() => row.refMenuId = picked);
+                    }
+                  },
+                  child: Text(
+                    '${_l('Cible', 'Target')}: ${runtimeRefValueLabel(opts, row.refMenuId, noneLabel: noneL, orphanLabel: orphanL)}',
+                  ),
+                ),
+              const SizedBox(height: 6),
+              if (widget.embedded)
+                InspectorEmbeddedDropdown(
+                  accent: accent,
+                  fieldLabel: _l('Dialogue à jouer', 'Dialogue to play'),
+                  valueLabel: _dialogueDropdownValueLabel(
+                    sortedDialogues,
+                    row.dialogueMenuId,
+                  ),
+                  orderedIds: dlgIds,
+                  selectedMenuValue: dlgIds.contains(row.dialogueMenuId)
+                      ? row.dialogueMenuId
+                      : _kDialogueNoneMenuId,
+                  selectedIdForCheck: row.dialogueMenuId,
+                  idToLabel: (id) =>
+                      _dialogueDropdownValueLabel(sortedDialogues, id),
+                  onSelected: (id) =>
+                      setState(() => row.dialogueMenuId = id),
+                )
+              else
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  alignment: Alignment.centerLeft,
+                  onPressed: () async {
+                    final picked = await showCupertinoListPicker<String>(
+                      context: context,
+                      title: _l('Dialogue', 'Dialogue'),
+                      items: dlgIds,
+                      labelOf: (id) =>
+                          _dialogueDropdownValueLabel(sortedDialogues, id),
+                    );
+                    if (picked != null && context.mounted) {
+                      setState(() => row.dialogueMenuId = picked);
+                    }
+                  },
+                  child: Text(
+                    '${_l('Dialogue', 'Dialogue')}: ${_dialogueDropdownValueLabel(sortedDialogues, row.dialogueMenuId)}',
+                  ),
+                ),
+              const SizedBox(height: 4),
+              _labeledField(
+                context,
+                label: _l('Nœud Yarn (optionnel)', 'Yarn node (optional)'),
+                controller: row.startNode,
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.only(right: 8),
+                    onPressed: index <= 0
+                        ? null
+                        : () {
+                            setState(() {
+                              final t = _npcCondRows[index - 1];
+                              _npcCondRows[index - 1] = _npcCondRows[index];
+                              _npcCondRows[index] = t;
+                            });
+                          },
+                    child: Text(_l('Monter', 'Up')),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.only(right: 8),
+                    onPressed: index >= _npcCondRows.length - 1
+                        ? null
+                        : () {
+                            setState(() {
+                              final t = _npcCondRows[index + 1];
+                              _npcCondRows[index + 1] = _npcCondRows[index];
+                              _npcCondRows[index] = t;
+                            });
+                          },
+                    child: Text(_l('Descendre', 'Down')),
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      setState(() {
+                        final removed = _npcCondRows.removeAt(index);
+                        removed.dispose();
+                      });
+                    },
+                    child: Text(
+                      _l('Supprimer', 'Remove'),
+                      style: const TextStyle(color: CupertinoColors.destructiveRed),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<({DialogueRef? ref, bool invalid})> _parseDialogueRef(
@@ -1597,6 +2145,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             ),
             const SizedBox(height: 8),
             ..._npcDialogueFields(context, project),
+            ..._npcMapEntityRuntimeRulesSection(context, project),
             const SizedBox(height: 8),
             if (widget.embedded)
               InspectorEmbeddedDropdown(
@@ -2226,6 +2775,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       _npcDefeatStartNode.text = dd.startNode ?? '';
     }
 
+    _syncNpcRuntimeRulesFromNpc(entity?.npc);
+
     final resolvedEv = entity?.resolvedProjectElementIdForEditor;
     _editorVisualMenuId = (resolvedEv == null || resolvedEv.isEmpty)
         ? _kElementNoneMenuId
@@ -2327,7 +2878,6 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     BuildContext context,
     EditorNotifier notifier,
   ) async {
-    final priorNpc = notifier.getSelectedEntity()?.npc;
     final x = int.tryParse(_xController.text.trim());
     final y = int.tryParse(_yController.text.trim());
     final width = int.tryParse(_widthController.text.trim());
@@ -2440,6 +2990,59 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           }
           waypoints.add(GridPos(x: wx, y: wy));
         }
+
+        // Visibilité + variantes : l’état vient du formulaire (pas d’écrasement
+        // silencieux des règles JSON au moment de la sauvegarde).
+        final visErr = validateNpcVisibilityDraft(
+          uiMode: _npcVisUiMode,
+          refMenuId: _npcVisRefMenuId,
+        );
+        if (visErr != null) {
+          if (!context.mounted) {
+            return;
+          }
+          await showCupertinoEditorAlert(context, message: visErr);
+          return;
+        }
+        final condErr = validateConditionalDialogueDrafts(
+          rows: _npcCondRows
+              .map(
+                (r) => (
+                  dialogueMenuId: r.dialogueMenuId,
+                  refMenuId: r.refMenuId,
+                ),
+              )
+              .toList(growable: false),
+          dialogueNoneId: _kDialogueNoneMenuId,
+        );
+        if (condErr != null) {
+          if (!context.mounted) {
+            return;
+          }
+          await showCupertinoEditorAlert(context, message: condErr);
+          return;
+        }
+        final visibilityRule = buildVisibilityRuleForSave(
+          uiMode: _npcVisUiMode,
+          predicateKind: _npcVisPredicateKind,
+          refMenuId: _npcVisRefMenuId,
+        );
+        final conditionalDialogues = <MapEntityConditionalDialogue>[];
+        for (final row in _npcCondRows) {
+          final dlgMenu = row.dialogueMenuId.trim();
+          final built = buildConditionalDialogueRowForSave(
+            conditionKind: row.conditionKind,
+            refMenuId: row.refMenuId,
+            dialogueId: dlgMenu == _kDialogueNoneMenuId ? '' : dlgMenu,
+            startNode: row.startNode.text.trim().isEmpty
+                ? null
+                : row.startNode.text.trim(),
+          );
+          if (built != null) {
+            conditionalDialogues.add(built);
+          }
+        }
+
         npcPayload = MapEntityNpcData(
           displayName: _nameController.text.trim(),
           dialogue: npcDlg,
@@ -2456,10 +3059,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             pauseDurationMs: pauseMs < 0 ? 0 : pauseMs,
             stepDurationMs: stepMs <= 0 ? 200 : stepMs,
           ),
-          // Préservés tant que l’UI dédiée (visibilité / variantes) n’est pas
-          // branchée : évite d’effacer du JSON authoring importé à la main.
-          visibilityRule: priorNpc?.visibilityRule,
-          conditionalDialogues: priorNpc?.conditionalDialogues ?? const [],
+          visibilityRule: visibilityRule,
+          conditionalDialogues: conditionalDialogues,
         );
         break;
       case MapEntityKind.sign:
@@ -2659,5 +3260,54 @@ class _NpcWaypointDraft {
   void dispose() {
     xController.dispose();
     yController.dispose();
+  }
+}
+
+/// Une ligne « dialogue conditionnel » dans l’inspecteur (état mutable).
+///
+/// Les ids métier ([refMenuId], [dialogueMenuId]) viennent des menus — pas de
+/// saisie libre. Seul [startNode] reste un champ texte optionnel (nœud Yarn),
+/// aligné sur le dialogue principal du PNJ.
+class _NpcConditionalDialogueRowDraft {
+  _NpcConditionalDialogueRowDraft({
+    required this.conditionKind,
+    required this.refMenuId,
+    required this.dialogueMenuId,
+    required this.startNode,
+  });
+
+  factory _NpcConditionalDialogueRowDraft.fromModel(
+    MapEntityConditionalDialogue m,
+  ) {
+    final w = m.when;
+    final d = m.dialogue;
+    final dlgId = d.dialogueId.trim();
+    return _NpcConditionalDialogueRowDraft(
+      conditionKind: w.kind,
+      refMenuId: w.refId.trim().isEmpty
+          ? kNpcRuntimeRefNoneMenuId
+          : w.refId.trim(),
+      dialogueMenuId:
+          dlgId.isEmpty ? _kDialogueNoneMenuId : dlgId,
+      startNode: TextEditingController(text: d.startNode ?? ''),
+    );
+  }
+
+  factory _NpcConditionalDialogueRowDraft.empty() {
+    return _NpcConditionalDialogueRowDraft(
+      conditionKind: MapEntityRuntimePredicateKind.storyFlagSet,
+      refMenuId: kNpcRuntimeRefNoneMenuId,
+      dialogueMenuId: _kDialogueNoneMenuId,
+      startNode: TextEditingController(),
+    );
+  }
+
+  MapEntityRuntimePredicateKind conditionKind;
+  String refMenuId;
+  String dialogueMenuId;
+  final TextEditingController startNode;
+
+  void dispose() {
+    startNode.dispose();
   }
 }
