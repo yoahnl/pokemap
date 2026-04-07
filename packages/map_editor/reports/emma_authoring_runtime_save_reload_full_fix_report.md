@@ -187,16 +187,16 @@ Donc :
 2. Vérifier worldChange : `mapId=Bourivka center`, `entityId=emma` (sinon save bloqué).
 3. Sauver Step Studio.
 4. Vérifier dans `project.json` :
-   - `completion.mode` cohérent (`whenCutsceneEnds` si cutscene main),
-   - `worldChanges[].entityId = "emma"`.
+  - `completion.mode` cohérent (`whenCutsceneEnds` si cutscene main),
+  - `worldChanges[].entityId = "emma"`.
 5. Jouer la cutscene `premier_dialogue_avec_le_professeur_emma`.
 6. Vérifier logs runtime :
-   - `runtime_mark_step_completed_candidate ... step=step_2`
-   - `runtime_completed_steps_updated ... after=[..., step_2]`
+  - `runtime_mark_step_completed_candidate ... step=step_2`
+  - `runtime_completed_steps_updated ... after=[..., step_2]`
 7. Sauver puis reloader.
 8. Vérifier logs save/reload :
-   - `runtime_save_requested ... completedStepIds=[..., step_2]`
-   - `save_repo_write_* ... completedStepIds=[..., step_2]`
+  - `runtime_save_requested ... completedStepIds=[..., step_2]`
+  - `save_repo_write_* ... completedStepIds=[..., step_2]`
 9. Retourner à `Bourivka center` et vérifier absence d’Emma.
 
 ---

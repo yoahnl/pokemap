@@ -33,6 +33,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   bool _loading = false;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
+  bool _showFpsOverlay = false;
   bool _surfingEnabled = false;
   bool _saveLoadBusy = false;
   String? _saveLoadStatus;
@@ -238,6 +239,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       nextGame.setCollisionOverlayVisible(_showCollisionOverlay);
       nextGame
           .setNpcCollisionDebugOverlayVisible(_showNpcCollisionDebugOverlay);
+      nextGame.setFpsOverlayVisible(_showFpsOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
       _syncLot50DebugMarker();
       _startRuntimeInfoTicker();
@@ -451,6 +453,25 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                                 : (v) {
                                     setState(() => _showCollisionOverlay = v);
                                     game.setCollisionOverlayVisible(v);
+                                  },
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'FPS',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _showFpsOverlay,
+                            onChanged: _saveLoadBusy
+                                ? null
+                                : (v) {
+                                    setState(() => _showFpsOverlay = v);
+                                    game.setFpsOverlayVisible(v);
                                   },
                           ),
                         ],
