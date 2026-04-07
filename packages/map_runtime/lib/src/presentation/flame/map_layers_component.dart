@@ -291,7 +291,7 @@ class MapLayersComponent extends PositionComponent {
     for (final entity in bundle.map.entities) {
       if (entity.kind == MapEntityKind.npc) {
         final presence = npcMapPresencePredicate;
-        if (presence != null && !presence(entity)) {
+        if (presence != null && !presence(bundle.map.id, entity)) {
           continue;
         }
         final charId = resolveNpcCharacterId(entity, bundle.manifest);

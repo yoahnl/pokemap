@@ -995,6 +995,17 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         ),
         accent: accent,
       ),
+      const SizedBox(height: 6),
+      InspectorEmbeddedFootnote(
+        text: _l(
+          'Transparence produit : le nœud Yarn d’une variante est encore une saisie '
+          'optionnelle (pas de menu des nœuds). Laisser vide utilise le nœud '
+          'défaut du dialogue dans Dialogue Studio.',
+          'The variant Yarn start node is still optional free text (no node picker). '
+          'Leave empty to use the dialogue’s default start node from Dialogue Studio.',
+        ),
+        accent: EditorChrome.inspectorJoyCoral,
+      ),
       const SizedBox(height: 8),
       if (dialogueEntries.isEmpty)
         InspectorEmbeddedFootnote(

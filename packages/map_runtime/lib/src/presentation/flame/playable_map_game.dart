@@ -31,6 +31,7 @@ import '../../application/runtime_story_branching.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
 import '../../application/step_studio_completion_runtime.dart';
+import '../../application/step_studio_world_presence_runtime.dart';
 import '../../application/global_story_chapter_runtime.dart';
 import '../../application/map_entity_runtime_predicate_evaluator.dart';
 import '../../application/scripted_entity_movement_controller.dart';
@@ -124,6 +125,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Cache de l’index Step Studio ↔ cutscenes locales (invalidé quand [_bundle] change).
   StepCompletionCutsceneIndex? _cachedStepCompletionIndex;
   RuntimeMapBundle? _cachedStepCompletionBundleForIndex;
+
+  /// Cache des `worldChanges` parsés (une entrée par ligne JSON) pour le manifeste courant.
+  List<StepStudioWorldPresenceRule> _cachedStepStudioWorldRules =
+      const <StepStudioWorldPresenceRule>[];
+  ProjectManifest? _cachedStepStudioWorldRulesManifest;
+
+  void _ensureStepStudioWorldRulesForManifest(ProjectManifest manifest) {
+    if (identical(_cachedStepStudioWorldRulesManifest, manifest)) {
+      return;
+    }
+    _cachedStepStudioWorldRulesManifest = manifest;
+    _cachedStepStudioWorldRules =
+        buildStepStudioWorldPresenceRuleList(manifest.scenarios);
+  }
   late final CutsceneRuntimeRunner _cutsceneRunner =
       _buildCutsceneRuntimeRunner();
   CutsceneChoiceRequest? _pendingCutsceneChoiceRequest;
@@ -243,14 +258,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
-  /// Filtre spatial PNJ aligné sur [MapEntityRuntimePredicateEvaluator]
-  /// (flags, steps, chapitres, cutscenes locales terminées).
+  /// Filtre spatial PNJ : d’abord [MapEntityNpcData.visibilityRule], puis
+  /// les `worldChanges` Step Studio (même [mapId] / [entity.id] que l’authoring).
   NpcMapPresencePredicate _npcPresencePredicateFor(ProjectManifest manifest) {
-    return (MapEntity npcEntity) {
-      return MapEntityRuntimePredicateEvaluator(
+    _ensureStepStudioWorldRulesForManifest(manifest);
+    final worldRules = _cachedStepStudioWorldRules;
+    return (String mapId, MapEntity npcEntity) {
+      final base = MapEntityRuntimePredicateEvaluator(
         gameState: _gameState,
         chapterIndex: buildGlobalStoryChapterStepIndex(manifest.scenarios),
       ).isNpcPresentOnMap(npcEntity);
+      if (!base) {
+        return false;
+      }
+      return entityPassesStepStudioWorldPresence(
+        mapId: mapId,
+        entity: npcEntity,
+        completedStepIds: _gameState.progression.completedStepIds,
+        rules: worldRules,
+      );
     };
   }
 
@@ -292,7 +318,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         continue;
       }
       loaded.npcActorByEntityId[entity.id]
-          ?.setGameplayVisible(npcPred(entity));
+          ?.setGameplayVisible(npcPred(loaded.bundle.map.id, entity));
     }
   }
 
@@ -3684,7 +3710,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     for (final entity in _world.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
-      if (!_npcPresencePredicateFor(_bundle.manifest)(entity)) {
+      if (!_npcPresencePredicateFor(_bundle.manifest)(
+            _world.map.id,
+            entity,
+          )) {
         continue;
       }
 

@@ -29,13 +29,13 @@ void main() {
     final hidden = GameplayWorldState.initial(
       map: map,
       playerPos: const GridPos(x: 0, y: 0),
-      npcMapPresencePredicate: (_) => false,
+      npcMapPresencePredicate: (_, __) => false,
     );
 
     expect(hidden.isBlocked(5, 5), isFalse);
     expect(hidden.entityAt(5, 5), isNull);
 
-    final visible = hidden.withNpcMapPresencePredicate((_) => true);
+    final visible = hidden.withNpcMapPresencePredicate((_, __) => true);
     expect(visible.isBlocked(5, 5), isTrue);
     expect(visible.entityAt(5, 5)?.id, 'emma');
   });

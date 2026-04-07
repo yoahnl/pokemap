@@ -13,9 +13,16 @@ import 'player_spawn_resolver.dart';
 /// ne le voit pas. Les autres types d'entités (panneaux, objets, etc.) ne
 /// passent jamais par ce filtre.
 ///
-/// Fourni par le runtime (ex. règles de visibilité conditionnelle) sans que
+/// [mapId] doit être [MapData.id] de la carte qui contient [npcEntity], afin
+/// que le runtime puisse appliquer des règles « par carte » (ex. worldChanges
+/// Step Studio : `mapId` authoring).
+///
+/// Fourni par le runtime (visibilité PNJ + progression) sans que
 /// [map_gameplay] ne connaisse les flags / steps.
-typedef NpcMapPresencePredicate = bool Function(MapEntity npcEntity);
+typedef NpcMapPresencePredicate = bool Function(
+  String mapId,
+  MapEntity npcEntity,
+);
 
 class GameplayWorldState {
   GameplayWorldState._({
@@ -814,12 +821,13 @@ Map<int, List<MapWarp>> _buildWarpCandidatesByPos(
 }
 
 bool _includeMapEntityInSpatialCaches(
+  MapData map,
   MapEntity entity,
   NpcMapPresencePredicate? npcPresence,
 ) {
   if (entity.kind != MapEntityKind.npc) return true;
   if (npcPresence == null) return true;
-  return npcPresence(entity);
+  return npcPresence(map.id, entity);
 }
 
 Map<int, MapEntity> _buildBlockingEntityByPos(
@@ -829,7 +837,7 @@ Map<int, MapEntity> _buildBlockingEntityByPos(
   final w = map.size.width;
   final result = <int, MapEntity>{};
   for (final entity in map.entities) {
-    if (!_includeMapEntityInSpatialCaches(entity, npcPresence)) continue;
+    if (!_includeMapEntityInSpatialCaches(map, entity, npcPresence)) continue;
     if (!_isEntityBlockingCandidate(entity)) continue;
     for (final cell in resolveEntityCollisionCells(entity)) {
       if (cell.x < 0 ||
@@ -851,7 +859,7 @@ Map<int, MapEntity> _buildEntityByPos(
   final w = map.size.width;
   final result = <int, MapEntity>{};
   for (final entity in map.entities) {
-    if (!_includeMapEntityInSpatialCaches(entity, npcPresence)) continue;
+    if (!_includeMapEntityInSpatialCaches(map, entity, npcPresence)) continue;
     if (entity.kind == MapEntityKind.spawn) continue;
     for (final cell in resolveEntityCollisionCells(entity)) {
       if (cell.x < 0 ||

@@ -119,6 +119,15 @@ List<String> _collectIndexedFlagNames(ProjectManifest project) {
     }
   }
 
+  // Flags explicitement déclarés dans project.json → globalProperties (opt-in).
+  // Clé stable : documentée dans le rapport Step Studio / Map Entities.
+  final declared = project.globalProperties['authoring.knownStoryFlagIds'];
+  if (declared is List<dynamic>) {
+    for (final e in declared) {
+      addFlag(e?.toString());
+    }
+  }
+
   for (final scenario in project.scenarios) {
     _flagsFromCondition(scenario.activationCondition, out);
     for (final node in scenario.nodes) {
