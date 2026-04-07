@@ -301,6 +301,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _syncNpcRenderVisibility();
     _syncNpcCollisionDebugOverlay();
+    // Patrouilles / réservations / LoS trainer : mêmes règles que le gameplay
+    // (un PNJ « absent » ne doit plus consommer ces systèmes parallèles).
+    _stopGameplaySideEffectsForAbsentNpcs();
+  }
+
+  /// Arrête tout effet runtime **hors** [GameplayWorldState] qui pourrait encore
+  /// cibler un PNJ filtré par [NpcMapPresencePredicate] (patrouille, réservation
+  /// de cases, lock trainer).
+  void _stopGameplaySideEffectsForAbsentNpcs() {
+    final controller = _scriptedEntityMovementController;
+    final pred = _npcPresencePredicateFor(_bundle.manifest);
+    final mapId = _world.map.id;
+    for (final entity in _world.map.entities) {
+      if (entity.kind != MapEntityKind.npc) {
+        continue;
+      }
+      if (pred(mapId, entity)) {
+        continue;
+      }
+      controller?.stopPatrol(entity.id);
+      _scriptedNpcReservedOccupiedCellsByEntity.remove(entity.id);
+      _runtimeNpcPositions.remove(entity.id);
+      _triggeredTrainerBattles.remove(entity.id);
+    }
+    _applyNpcOverworldDefaultMovement();
   }
 
   void _syncNpcRenderVisibility() {
@@ -3447,6 +3472,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       String entityId, DialogueRef? ref, String fallbackLabel) {
     if (_flowPhase != _RuntimeFlowPhase.overworld) return false;
     if (_dialogueOverlay != null) return false;
+    if (!_npcEntityAllowedOnActiveMapForDialogue(entityId)) {
+      debugPrint('[dialogue] blocked: npc absent entityId=$entityId');
+      return false;
+    }
 
     final resolved = resolveDialogue(
       entityId: entityId,
@@ -3574,7 +3603,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  /// Garde-fou : tout dialogue / combat PNJ passe par ici ou [_tryOpenDialogue].
+  bool _npcEntityAllowedOnActiveMapForDialogue(String entityId) {
+    final normalized = entityId.trim();
+    if (normalized.isEmpty) {
+      return true;
+    }
+    MapEntity? found;
+    for (final e in _world.map.entities) {
+      if (e.id == normalized) {
+        found = e;
+        break;
+      }
+    }
+    if (found == null) {
+      return true;
+    }
+    if (found.kind != MapEntityKind.npc) {
+      return true;
+    }
+    return _npcPresencePredicateFor(_bundle.manifest)(
+          _world.map.id,
+          found,
+        );
+  }
+
   void _handleNpcInteraction(MapEntity entity) {
+    if (!_npcPresencePredicateFor(_bundle.manifest)(_world.map.id, entity)) {
+      debugPrint('[interact] ignored absent npc=${entity.id}');
+      return;
+    }
     final trainerId = entity.npc?.trainerId?.trim();
 
     // Cas 1: pas de trainerId → dialogue normal
@@ -3989,6 +4047,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: _bundle.map,
         pos: _world.player.pos,
       );
+
+      _refreshWorldNpcPresence();
 
       debugPrint('[load] game loaded from saveId=${loadedState.saveId}');
       return true;
@@ -5080,8 +5140,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (controller == null) {
       return;
     }
+    final pred = _npcPresencePredicateFor(_bundle.manifest);
+    final mapId = _world.map.id;
     for (final entity in _world.map.entities) {
       if (entity.kind != MapEntityKind.npc) {
+        continue;
+      }
+      if (!pred(mapId, entity)) {
+        controller.stopPatrol(entity.id);
         continue;
       }
       final route = resolveNpcDefaultPatrolRoute(entity);

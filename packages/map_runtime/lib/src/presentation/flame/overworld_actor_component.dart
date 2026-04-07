@@ -44,7 +44,8 @@ class OverworldActorComponent extends PositionComponent {
   CharacterAnimationState _animState;
   double _animElapsed = 0.0;
 
-  /// Masque le sprite sans retirer le composant (visibilité conditionnelle PNJ).
+  /// Aligné sur [NpcMapPresencePredicate] côté [PlayableMapGame] : `false` =
+  /// PNJ **absent du monde** (pas seulement transparent — pas de hit test).
   bool _gameplayVisible = true;
 
   /// Vrai si on affiche une anim « idle » (ou peu de frames) pendant un pas
@@ -70,6 +71,19 @@ class OverworldActorComponent extends PositionComponent {
 
   void setGameplayVisible(bool visible) {
     _gameplayVisible = visible;
+  }
+
+  /// Exposé pour tests / debug : même booléen que le prédicat de présence.
+  bool get isGameplayPresent => _gameplayVisible;
+
+  /// Un PNJ « absent » ne doit pas recevoir de taps ni participer aux hit tests
+  /// Flame (sinon interaction / focus possibles malgré caches gameplay à jour).
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    if (!_gameplayVisible) {
+      return false;
+    }
+    return super.containsLocalPoint(point);
   }
 
   int get frameWidthTiles => _frameWidthTiles;
