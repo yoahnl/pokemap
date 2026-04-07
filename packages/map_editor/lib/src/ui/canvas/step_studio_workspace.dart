@@ -2688,6 +2688,10 @@ class _SimpleDropdown extends StatelessWidget {
     required this.emptyLabel,
     required this.enabled,
     required this.onSelected,
+    /// Si true : quand [selectedId] est vide ou absent des options, on affiche
+    /// [emptyLabel] et **aucune** option n’est pré-sélectionnée (évite le piège
+    /// « la première entité semble choisie » avec `entityId` encore `''`).
+    this.treatInvalidSelectionAsUnset = false,
   });
 
   final Color accent;
@@ -2697,6 +2701,7 @@ class _SimpleDropdown extends StatelessWidget {
   final String emptyLabel;
   final bool enabled;
   final ValueChanged<String?> onSelected;
+  final bool treatInvalidSelectionAsUnset;
 
   @override
   Widget build(BuildContext context) {
@@ -2711,10 +2716,44 @@ class _SimpleDropdown extends StatelessWidget {
         onSelected: (_) {},
       );
     }
-    final selected = options.firstWhere(
-      (entry) => entry.id == selectedId,
-      orElse: () => options.first,
-    );
+    final trimmed = selectedId?.trim();
+    _SimpleOption? match;
+    if (trimmed != null && trimmed.isNotEmpty) {
+      for (final entry in options) {
+        if (entry.id == trimmed) {
+          match = entry;
+          break;
+        }
+      }
+    }
+    final selected = match ??
+        (!treatInvalidSelectionAsUnset ? options.first : null);
+    if (selected == null) {
+      return IgnorePointer(
+        ignoring: !enabled,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.65,
+          child: InspectorEmbeddedDropdown(
+            accent: accent,
+            fieldLabel: fieldLabel,
+            valueLabel: emptyLabel,
+            orderedIds: options.map((entry) => entry.id).toList(growable: false),
+            selectedMenuValue: '',
+            selectedIdForCheck: null,
+            allowUnsetSelection: true,
+            idToLabel: (id) {
+              for (final entry in options) {
+                if (entry.id == id) {
+                  return entry.label;
+                }
+              }
+              return id;
+            },
+            onSelected: (id) => onSelected(id),
+          ),
+        ),
+      );
+    }
     return IgnorePointer(
       ignoring: !enabled,
       child: Opacity(
@@ -2726,6 +2765,7 @@ class _SimpleDropdown extends StatelessWidget {
           orderedIds: options.map((entry) => entry.id).toList(growable: false),
           selectedMenuValue: selected.id,
           selectedIdForCheck: selected.id,
+          allowUnsetSelection: false,
           idToLabel: (id) {
             for (final entry in options) {
               if (entry.id == id) {
@@ -3013,8 +3053,9 @@ class _WorldChangeRow extends StatelessWidget {
             fieldLabel: 'Map',
             options: mapOptions,
             selectedId: change.mapId,
-            emptyLabel: 'Aucune map',
+            emptyLabel: 'Choisir une map',
             enabled: enabled && mapOptions.isNotEmpty,
+            treatInvalidSelectionAsUnset: true,
             onSelected: onMapChanged,
           ),
           const SizedBox(height: 6),
@@ -3023,9 +3064,11 @@ class _WorldChangeRow extends StatelessWidget {
             fieldLabel: 'Entité',
             options: entityOptions,
             selectedId: change.entityId,
-            emptyLabel:
-                loadingEntities ? 'Chargement des entités...' : 'Aucune entité',
+            emptyLabel: loadingEntities
+                ? 'Chargement des entités...'
+                : 'Choisir une entité (PNJ)',
             enabled: enabled && entityOptions.isNotEmpty,
+            treatInvalidSelectionAsUnset: true,
             onSelected: onEntityChanged,
           ),
           const SizedBox(height: 6),

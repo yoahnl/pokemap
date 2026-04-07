@@ -80,6 +80,11 @@ class InspectorEmbeddedDropdown extends StatelessWidget {
     required this.onSelected,
     this.selectedIdForCheck,
     this.tooltip,
+    /// Quand la valeur affichée est un **placeholder** (ex. entité pas encore
+    /// choisie pour une ligne `worldChanges`), on ne doit pas forcer
+    /// `orderedIds.first` comme sélection implicite : sinon l’UI affiche une
+    /// entité « choisie » alors que le modèle a encore `entityId: ''`.
+    this.allowUnsetSelection = false,
   });
 
   final Color accent;
@@ -91,6 +96,7 @@ class InspectorEmbeddedDropdown extends StatelessWidget {
   final String Function(String id) idToLabel;
   final ValueChanged<String> onSelected;
   final String? tooltip;
+  final bool allowUnsetSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -176,7 +182,7 @@ class InspectorEmbeddedDropdown extends StatelessWidget {
         elevation: 3,
         initialValue: orderedIds.contains(selectedMenuValue)
             ? selectedMenuValue
-            : orderedIds.first,
+            : (allowUnsetSelection ? null : orderedIds.first),
         onSelected: onSelected,
         itemBuilder: (menuCtx) => [
           for (final id in orderedIds)
