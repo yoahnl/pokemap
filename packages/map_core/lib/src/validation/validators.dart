@@ -561,6 +561,12 @@ class ProjectValidator {
     _validateCollisionCellsList(
       elementId: element.id,
       source: source,
+      cells: profile.shapeCells,
+      label: 'shape',
+    );
+    _validateCollisionCellsList(
+      elementId: element.id,
+      source: source,
       cells: profile.cells,
       label: 'final',
     );

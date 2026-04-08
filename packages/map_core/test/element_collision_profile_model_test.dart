@@ -3,12 +3,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('ElementCollisionProfile model', () {
-    test('serializes manual overrides while keeping final cells', () {
+    test('serializes shape-authored collisions while keeping final cells', () {
       const profile = ElementCollisionProfile(
         source: ElementCollisionProfileSource.manual,
         padding: WarpTriggerPadding(left: 4, right: 2),
+        shapeCells: <GridPos>[GridPos(x: 0, y: 1)],
         cells: <GridPos>[GridPos(x: 0, y: 1)],
-        manualAddedCells: <GridPos>[GridPos(x: 0, y: 1)],
+        manualAddedCells: <GridPos>[GridPos(x: 1, y: 1)],
         manualRemovedCells: <GridPos>[GridPos(x: 1, y: 1)],
       );
 
@@ -31,6 +32,7 @@ void main() {
         ],
       });
 
+      expect(profile.shapeCells, isEmpty);
       expect(profile.manualAddedCells, isEmpty);
       expect(profile.manualRemovedCells, isEmpty);
       expect(profile.cells, const <GridPos>[GridPos(x: 0, y: 0)]);

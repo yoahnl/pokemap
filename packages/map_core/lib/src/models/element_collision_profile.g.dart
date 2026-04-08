@@ -16,6 +16,10 @@ _$ElementCollisionProfileImpl _$$ElementCollisionProfileImplFromJson(
           ? const WarpTriggerPadding()
           : WarpTriggerPadding.fromJson(
               json['padding'] as Map<String, dynamic>),
+      shapeCells: (json['shapeCells'] as List<dynamic>?)
+              ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       cells: (json['cells'] as List<dynamic>?)
               ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -35,6 +39,7 @@ Map<String, dynamic> _$$ElementCollisionProfileImplToJson(
     <String, dynamic>{
       'source': _$ElementCollisionProfileSourceEnumMap[instance.source]!,
       'padding': instance.padding.toJson(),
+      'shapeCells': instance.shapeCells.map((e) => e.toJson()).toList(),
       'cells': instance.cells.map((e) => e.toJson()).toList(),
       'manualAddedCells':
           instance.manualAddedCells.map((e) => e.toJson()).toList(),

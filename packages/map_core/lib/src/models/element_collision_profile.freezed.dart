@@ -24,6 +24,12 @@ mixin _$ElementCollisionProfile {
   ElementCollisionProfileSource get source =>
       throw _privateConstructorUsedError;
   WarpTriggerPadding get padding =>
+      throw _privateConstructorUsedError; // Authoring base when `source == manual`.
+//
+// This field is editor-facing only. It stores the main collision shape as
+// authored by the user (for example a lasso/polygon around a building).
+// Runtime still ignores it and consumes only `cells`.
+  List<GridPos> get shapeCells =>
       throw _privateConstructorUsedError; // Runtime truth: the gameplay/runtime layers only read these final cells.
 // Editor-only concepts such as base cells or paint modes must be resolved
 // before data reaches this field.
@@ -56,6 +62,7 @@ abstract class $ElementCollisionProfileCopyWith<$Res> {
   $Res call(
       {ElementCollisionProfileSource source,
       WarpTriggerPadding padding,
+      List<GridPos> shapeCells,
       List<GridPos> cells,
       List<GridPos> manualAddedCells,
       List<GridPos> manualRemovedCells});
@@ -81,6 +88,7 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
   $Res call({
     Object? source = null,
     Object? padding = null,
+    Object? shapeCells = null,
     Object? cells = null,
     Object? manualAddedCells = null,
     Object? manualRemovedCells = null,
@@ -94,6 +102,10 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
           ? _value.padding
           : padding // ignore: cast_nullable_to_non_nullable
               as WarpTriggerPadding,
+      shapeCells: null == shapeCells
+          ? _value.shapeCells
+          : shapeCells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
       cells: null == cells
           ? _value.cells
           : cells // ignore: cast_nullable_to_non_nullable
@@ -132,6 +144,7 @@ abstract class _$$ElementCollisionProfileImplCopyWith<$Res>
   $Res call(
       {ElementCollisionProfileSource source,
       WarpTriggerPadding padding,
+      List<GridPos> shapeCells,
       List<GridPos> cells,
       List<GridPos> manualAddedCells,
       List<GridPos> manualRemovedCells});
@@ -157,6 +170,7 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
   $Res call({
     Object? source = null,
     Object? padding = null,
+    Object? shapeCells = null,
     Object? cells = null,
     Object? manualAddedCells = null,
     Object? manualRemovedCells = null,
@@ -170,6 +184,10 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
           ? _value.padding
           : padding // ignore: cast_nullable_to_non_nullable
               as WarpTriggerPadding,
+      shapeCells: null == shapeCells
+          ? _value._shapeCells
+          : shapeCells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
       cells: null == cells
           ? _value._cells
           : cells // ignore: cast_nullable_to_non_nullable
@@ -193,10 +211,12 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   const _$ElementCollisionProfileImpl(
       {this.source = ElementCollisionProfileSource.generated,
       this.padding = const WarpTriggerPadding(),
+      final List<GridPos> shapeCells = const [],
       final List<GridPos> cells = const [],
       final List<GridPos> manualAddedCells = const [],
       final List<GridPos> manualRemovedCells = const []})
-      : _cells = cells,
+      : _shapeCells = shapeCells,
+        _cells = cells,
         _manualAddedCells = manualAddedCells,
         _manualRemovedCells = manualRemovedCells;
 
@@ -209,6 +229,25 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   @override
   @JsonKey()
   final WarpTriggerPadding padding;
+// Authoring base when `source == manual`.
+//
+// This field is editor-facing only. It stores the main collision shape as
+// authored by the user (for example a lasso/polygon around a building).
+// Runtime still ignores it and consumes only `cells`.
+  final List<GridPos> _shapeCells;
+// Authoring base when `source == manual`.
+//
+// This field is editor-facing only. It stores the main collision shape as
+// authored by the user (for example a lasso/polygon around a building).
+// Runtime still ignores it and consumes only `cells`.
+  @override
+  @JsonKey()
+  List<GridPos> get shapeCells {
+    if (_shapeCells is EqualUnmodifiableListView) return _shapeCells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_shapeCells);
+  }
+
 // Runtime truth: the gameplay/runtime layers only read these final cells.
 // Editor-only concepts such as base cells or paint modes must be resolved
 // before data reaches this field.
@@ -258,7 +297,7 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 
   @override
   String toString() {
-    return 'ElementCollisionProfile(source: $source, padding: $padding, cells: $cells, manualAddedCells: $manualAddedCells, manualRemovedCells: $manualRemovedCells)';
+    return 'ElementCollisionProfile(source: $source, padding: $padding, shapeCells: $shapeCells, cells: $cells, manualAddedCells: $manualAddedCells, manualRemovedCells: $manualRemovedCells)';
   }
 
   @override
@@ -268,6 +307,8 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
             other is _$ElementCollisionProfileImpl &&
             (identical(other.source, source) || other.source == source) &&
             (identical(other.padding, padding) || other.padding == padding) &&
+            const DeepCollectionEquality()
+                .equals(other._shapeCells, _shapeCells) &&
             const DeepCollectionEquality().equals(other._cells, _cells) &&
             const DeepCollectionEquality()
                 .equals(other._manualAddedCells, _manualAddedCells) &&
@@ -281,6 +322,7 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
       runtimeType,
       source,
       padding,
+      const DeepCollectionEquality().hash(_shapeCells),
       const DeepCollectionEquality().hash(_cells),
       const DeepCollectionEquality().hash(_manualAddedCells),
       const DeepCollectionEquality().hash(_manualRemovedCells));
@@ -306,6 +348,7 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   const factory _ElementCollisionProfile(
       {final ElementCollisionProfileSource source,
       final WarpTriggerPadding padding,
+      final List<GridPos> shapeCells,
       final List<GridPos> cells,
       final List<GridPos> manualAddedCells,
       final List<GridPos> manualRemovedCells}) = _$ElementCollisionProfileImpl;
@@ -316,8 +359,14 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   @override
   ElementCollisionProfileSource get source;
   @override
-  WarpTriggerPadding
-      get padding; // Runtime truth: the gameplay/runtime layers only read these final cells.
+  WarpTriggerPadding get padding; // Authoring base when `source == manual`.
+//
+// This field is editor-facing only. It stores the main collision shape as
+// authored by the user (for example a lasso/polygon around a building).
+// Runtime still ignores it and consumes only `cells`.
+  @override
+  List<GridPos>
+      get shapeCells; // Runtime truth: the gameplay/runtime layers only read these final cells.
 // Editor-only concepts such as base cells or paint modes must be resolved
 // before data reaches this field.
   @override

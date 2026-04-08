@@ -35,11 +35,17 @@ class ElementCollisionAuthoringService {
     WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
   }) {
     final padding = profile?.padding ?? fallbackPadding;
-    final baseCells = baseCellsFromPaddingService.derive(
+    final paddingBaseCells = baseCellsFromPaddingService.derive(
       source: source,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
       padding: padding,
+    );
+    final sourceMode =
+        profile?.source ?? ElementCollisionProfileSource.generated;
+    final authoredShapeCells = _normalizeWithinSource(
+      profile?.shapeCells ?? const <GridPos>[],
+      source: source,
     );
     final manualAddedCells = _normalizeWithinSource(
       profile?.manualAddedCells ?? const <GridPos>[],
@@ -49,16 +55,29 @@ class ElementCollisionAuthoringService {
       profile?.manualRemovedCells ?? const <GridPos>[],
       source: source,
     );
-    final finalCells = cellsOverlayService.apply(
-      baseCells: baseCells,
+    final resolved = _resolveBaseCells(
+      sourceMode: sourceMode,
+      paddingBaseCells: paddingBaseCells,
+      authoredShapeCells: authoredShapeCells,
+      currentFinalCells: _normalizeWithinSource(
+        profile?.cells ?? const <GridPos>[],
+        source: source,
+      ),
       manualAddedCells: manualAddedCells,
       manualRemovedCells: manualRemovedCells,
     );
+    final finalCells = cellsOverlayService.apply(
+      baseCells: resolved.baseCells,
+      manualAddedCells: resolved.manualAddedCells,
+      manualRemovedCells: resolved.manualRemovedCells,
+    );
     return ElementCollisionAuthoringSnapshot(
+      source: resolved.source,
       padding: padding,
-      baseCells: baseCells,
-      manualAddedCells: manualAddedCells,
-      manualRemovedCells: manualRemovedCells,
+      shapeCells: resolved.shapeCells,
+      baseCells: resolved.baseCells,
+      manualAddedCells: resolved.manualAddedCells,
+      manualRemovedCells: resolved.manualRemovedCells,
       finalCells: finalCells,
     );
   }
@@ -67,10 +86,17 @@ class ElementCollisionAuthoringService {
     required TilesetSourceRect source,
     required int tileWidth,
     required int tileHeight,
+    ElementCollisionProfileSource sourceMode =
+        ElementCollisionProfileSource.generated,
     WarpTriggerPadding padding = const WarpTriggerPadding(),
+    List<GridPos> shapeCells = const <GridPos>[],
     List<GridPos> manualAddedCells = const <GridPos>[],
     List<GridPos> manualRemovedCells = const <GridPos>[],
   }) {
+    final normalizedShapeCells = _normalizeWithinSource(
+      shapeCells,
+      source: source,
+    );
     final manualAdded = _normalizeWithinSource(
       manualAddedCells,
       source: source,
@@ -79,24 +105,23 @@ class ElementCollisionAuthoringService {
       manualRemovedCells,
       source: source,
     );
-    final baseCells = baseCellsFromPaddingService.derive(
-      source: source,
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
-      padding: padding,
-    );
+    final baseCells = sourceMode == ElementCollisionProfileSource.manual
+        ? normalizedShapeCells
+        : baseCellsFromPaddingService.derive(
+            source: source,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+            padding: padding,
+          );
     final finalCells = cellsOverlayService.apply(
       baseCells: baseCells,
       manualAddedCells: manualAdded,
       manualRemovedCells: manualRemoved,
     );
-    final hasManualOverrides =
-        manualAdded.isNotEmpty || manualRemoved.isNotEmpty;
     return ElementCollisionProfile(
-      source: hasManualOverrides
-          ? ElementCollisionProfileSource.manual
-          : ElementCollisionProfileSource.generated,
+      source: sourceMode,
       padding: padding,
+      shapeCells: normalizedShapeCells,
       cells: finalCells,
       manualAddedCells: manualAdded,
       manualRemovedCells: manualRemoved,
@@ -111,16 +136,24 @@ class ElementCollisionAuthoringService {
     ElementCollisionProfile? current,
     bool preserveOverrides = true,
   }) {
+    final snapshot = describe(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      profile: current,
+      fallbackPadding: padding,
+    );
     return rebuild(
       source: source,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
+      sourceMode: snapshot.source,
       padding: padding,
+      shapeCells: snapshot.shapeCells,
       manualAddedCells:
-          preserveOverrides ? current?.manualAddedCells ?? const [] : const [],
-      manualRemovedCells: preserveOverrides
-          ? current?.manualRemovedCells ?? const []
-          : const [],
+          preserveOverrides ? snapshot.manualAddedCells : const [],
+      manualRemovedCells:
+          preserveOverrides ? snapshot.manualRemovedCells : const [],
     );
   }
 
@@ -212,9 +245,48 @@ class ElementCollisionAuthoringService {
       source: source,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
+      sourceMode: snapshot.source,
       padding: snapshot.padding,
+      shapeCells: snapshot.shapeCells,
       manualAddedCells: nextAdded.values.toList(growable: false),
       manualRemovedCells: nextRemoved.values.toList(growable: false),
+    );
+  }
+
+  /// Replaces the authoring base with a shape-authored polygon.
+  ///
+  /// This is the key fix for the reported bug: when the user draws the main
+  /// collision silhouette of a building, that polygon must become the logical
+  /// base shape. It must not be added on top of a full padding-derived
+  /// rectangle.
+  ElementCollisionProfile setPrimaryShape({
+    required TilesetSourceRect source,
+    required int tileWidth,
+    required int tileHeight,
+    required Iterable<GridPos> cells,
+    ElementCollisionProfile? current,
+    WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
+  }) {
+    final snapshot = describe(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      profile: current,
+      fallbackPadding: fallbackPadding,
+    );
+    return rebuild(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      sourceMode: ElementCollisionProfileSource.manual,
+      padding: snapshot.padding,
+      shapeCells: cells.toList(growable: false),
+      // The new polygon becomes the main authored base. We intentionally clear
+      // older overrides so the saved runtime cells match the newly authored
+      // silhouette instead of carrying stale add/remove noise from the former
+      // base model.
+      manualAddedCells: const [],
+      manualRemovedCells: const [],
     );
   }
 
@@ -257,6 +329,16 @@ class ElementCollisionAuthoringService {
       gridWidth: source.width,
       gridHeight: source.height,
     );
+    if (operation == ElementCollisionAuthoringOperation.add) {
+      return setPrimaryShape(
+        source: source,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+        cells: cells,
+        current: current,
+        fallbackPadding: fallbackPadding,
+      );
+    }
     return applyCells(
       source: source,
       tileWidth: tileWidth,
@@ -275,12 +357,20 @@ class ElementCollisionAuthoringService {
     ElementCollisionProfile? current,
     WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
   }) {
-    final padding = current?.padding ?? fallbackPadding;
+    final snapshot = describe(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      profile: current,
+      fallbackPadding: fallbackPadding,
+    );
     return rebuild(
       source: source,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
-      padding: padding,
+      sourceMode: snapshot.source,
+      padding: snapshot.padding,
+      shapeCells: snapshot.shapeCells,
     );
   }
 
@@ -291,12 +381,29 @@ class ElementCollisionAuthoringService {
     ElementCollisionProfile? current,
     WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
   }) {
-    final padding = current?.padding ?? fallbackPadding;
+    final snapshot = describe(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      profile: current,
+      fallbackPadding: fallbackPadding,
+    );
+    if (snapshot.source == ElementCollisionProfileSource.manual) {
+      return rebuild(
+        source: source,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+        sourceMode: ElementCollisionProfileSource.manual,
+        padding: snapshot.padding,
+        shapeCells: const [],
+      );
+    }
     return rebuild(
       source: source,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
-      padding: padding,
+      sourceMode: ElementCollisionProfileSource.generated,
+      padding: snapshot.padding,
       manualRemovedCells: _allCellsForSource(source),
     );
   }
@@ -329,6 +436,81 @@ class ElementCollisionAuthoringService {
   }
 
   String _key(GridPos cell) => '${cell.x}:${cell.y}';
+
+  _ResolvedCollisionBase _resolveBaseCells({
+    required ElementCollisionProfileSource sourceMode,
+    required List<GridPos> paddingBaseCells,
+    required List<GridPos> authoredShapeCells,
+    required List<GridPos> currentFinalCells,
+    required List<GridPos> manualAddedCells,
+    required List<GridPos> manualRemovedCells,
+  }) {
+    if (sourceMode == ElementCollisionProfileSource.manual) {
+      if (authoredShapeCells.isNotEmpty) {
+        return _ResolvedCollisionBase(
+          source: ElementCollisionProfileSource.manual,
+          shapeCells: authoredShapeCells,
+          baseCells: authoredShapeCells,
+          manualAddedCells: manualAddedCells,
+          manualRemovedCells: manualRemovedCells,
+        );
+      }
+
+      // Legacy migration: the broken implementation stored a full padding base
+      // in `cells`, then put the polygon cells into `manualAddedCells`. When
+      // we detect exactly that pattern, we reinterpret the polygon as the real
+      // authored base.
+      if (manualAddedCells.isNotEmpty &&
+          manualRemovedCells.isEmpty &&
+          _sameCells(currentFinalCells, paddingBaseCells)) {
+        return _ResolvedCollisionBase(
+          source: ElementCollisionProfileSource.manual,
+          shapeCells: manualAddedCells,
+          baseCells: manualAddedCells,
+          manualAddedCells: const [],
+          manualRemovedCells: const [],
+        );
+      }
+
+      // Legacy migration: some manual profiles may have been saved directly as
+      // final cells without explicit `shapeCells`. If there are no overrides
+      // and the final cells differ from the padding base, the safest
+      // interpretation is that the final cells themselves are the intended
+      // authored shape.
+      if (manualAddedCells.isEmpty &&
+          manualRemovedCells.isEmpty &&
+          currentFinalCells.isNotEmpty &&
+          !_sameCells(currentFinalCells, paddingBaseCells)) {
+        return _ResolvedCollisionBase(
+          source: ElementCollisionProfileSource.manual,
+          shapeCells: currentFinalCells,
+          baseCells: currentFinalCells,
+          manualAddedCells: const [],
+          manualRemovedCells: const [],
+        );
+      }
+    }
+
+    return _ResolvedCollisionBase(
+      source: ElementCollisionProfileSource.generated,
+      shapeCells: const [],
+      baseCells: paddingBaseCells,
+      manualAddedCells: manualAddedCells,
+      manualRemovedCells: manualRemovedCells,
+    );
+  }
+
+  bool _sameCells(List<GridPos> a, List<GridPos> b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 enum ElementCollisionAuthoringOperation {
@@ -338,16 +520,36 @@ enum ElementCollisionAuthoringOperation {
 
 class ElementCollisionAuthoringSnapshot {
   const ElementCollisionAuthoringSnapshot({
+    required this.source,
     required this.padding,
+    required this.shapeCells,
     required this.baseCells,
     required this.manualAddedCells,
     required this.manualRemovedCells,
     required this.finalCells,
   });
 
+  final ElementCollisionProfileSource source;
   final WarpTriggerPadding padding;
+  final List<GridPos> shapeCells;
   final List<GridPos> baseCells;
   final List<GridPos> manualAddedCells;
   final List<GridPos> manualRemovedCells;
   final List<GridPos> finalCells;
+}
+
+class _ResolvedCollisionBase {
+  const _ResolvedCollisionBase({
+    required this.source,
+    required this.shapeCells,
+    required this.baseCells,
+    required this.manualAddedCells,
+    required this.manualRemovedCells,
+  });
+
+  final ElementCollisionProfileSource source;
+  final List<GridPos> shapeCells;
+  final List<GridPos> baseCells;
+  final List<GridPos> manualAddedCells;
+  final List<GridPos> manualRemovedCells;
 }

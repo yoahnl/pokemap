@@ -16,6 +16,12 @@ class ElementCollisionProfile with _$ElementCollisionProfile {
     @Default(ElementCollisionProfileSource.generated)
     ElementCollisionProfileSource source,
     @Default(WarpTriggerPadding()) WarpTriggerPadding padding,
+    // Authoring base when `source == manual`.
+    //
+    // This field is editor-facing only. It stores the main collision shape as
+    // authored by the user (for example a lasso/polygon around a building).
+    // Runtime still ignores it and consumes only `cells`.
+    @Default([]) List<GridPos> shapeCells,
     // Runtime truth: the gameplay/runtime layers only read these final cells.
     // Editor-only concepts such as base cells or paint modes must be resolved
     // before data reaches this field.

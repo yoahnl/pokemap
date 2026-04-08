@@ -15,6 +15,10 @@ void main() {
       final profile = ElementCollisionProfile(
         source: ElementCollisionProfileSource.manual,
         padding: const WarpTriggerPadding(left: 4, bottom: 2),
+        shapeCells: const <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+        ],
         cells: const <GridPos>[
           GridPos(x: 0, y: 0),
           GridPos(x: 1, y: 0),
@@ -40,6 +44,7 @@ void main() {
       final reloadedProfile = reloaded.elements.single.collisionProfile!;
 
       expect(reloadedProfile.padding, profile.padding);
+      expect(reloadedProfile.shapeCells, profile.shapeCells);
       expect(reloadedProfile.cells, profile.cells);
       expect(reloadedProfile.manualAddedCells, profile.manualAddedCells);
       expect(reloadedProfile.manualRemovedCells, profile.manualRemovedCells);
@@ -65,6 +70,10 @@ void main() {
       final editedProfile = ElementCollisionProfile(
         source: ElementCollisionProfileSource.manual,
         padding: const WarpTriggerPadding(top: 3, right: 5),
+        shapeCells: const <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 0, y: 1),
+        ],
         cells: const <GridPos>[
           GridPos(x: 0, y: 0),
           GridPos(x: 0, y: 1),
@@ -86,10 +95,66 @@ void main() {
       final reloadedProfile = reloaded.elements.single.collisionProfile!;
 
       expect(reloadedProfile.padding, editedProfile.padding);
+      expect(reloadedProfile.shapeCells, editedProfile.shapeCells);
       expect(reloadedProfile.cells, editedProfile.cells);
       expect(reloadedProfile.manualAddedCells, editedProfile.manualAddedCells);
       expect(
           reloadedProfile.manualRemovedCells, editedProfile.manualRemovedCells);
+    });
+
+    test(
+        'shape-authored profile survives json roundtrip without falling back to full padding base',
+        () async {
+      final repo = _FakeProjectRepository();
+      final workspace = _FakeWorkspace();
+      final useCase = CreateProjectElementUseCase(repo);
+      final source = const TilesetSourceRect(x: 0, y: 0, width: 6, height: 7);
+      final profile = ElementCollisionProfile(
+        source: ElementCollisionProfileSource.manual,
+        padding: const WarpTriggerPadding(),
+        shapeCells: const <GridPos>[
+          GridPos(x: 0, y: 3),
+          GridPos(x: 1, y: 3),
+          GridPos(x: 2, y: 3),
+          GridPos(x: 3, y: 3),
+          GridPos(x: 4, y: 3),
+          GridPos(x: 5, y: 3),
+          GridPos(x: 1, y: 4),
+          GridPos(x: 2, y: 4),
+          GridPos(x: 3, y: 4),
+          GridPos(x: 4, y: 4),
+        ],
+        cells: const <GridPos>[
+          GridPos(x: 0, y: 3),
+          GridPos(x: 1, y: 3),
+          GridPos(x: 2, y: 3),
+          GridPos(x: 3, y: 3),
+          GridPos(x: 4, y: 3),
+          GridPos(x: 5, y: 3),
+          GridPos(x: 1, y: 4),
+          GridPos(x: 2, y: 4),
+          GridPos(x: 3, y: 4),
+          GridPos(x: 4, y: 4),
+        ],
+      );
+
+      await useCase.execute(
+        workspace,
+        _projectManifest(),
+        name: 'Maison Bleue',
+        tilesetId: 'tileset_main',
+        categoryId: 'buildings',
+        source: source,
+        collisionProfile: profile,
+      );
+
+      final reloadedProfile =
+          repo.lastSavedProject!.elements.single.collisionProfile!;
+      expect(reloadedProfile.source, ElementCollisionProfileSource.manual);
+      expect(reloadedProfile.shapeCells, profile.shapeCells);
+      expect(reloadedProfile.cells, profile.cells);
+      expect(
+          reloadedProfile.cells.length, lessThan(source.width * source.height));
     });
   });
 }

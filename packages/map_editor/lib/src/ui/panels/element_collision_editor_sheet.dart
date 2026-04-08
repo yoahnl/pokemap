@@ -403,7 +403,9 @@ class _ElementCollisionEditorSheetState
       source: widget.source,
       tileWidth: widget.tileWidth,
       tileHeight: widget.tileHeight,
+      sourceMode: snapshot.source,
       padding: snapshot.padding,
+      shapeCells: snapshot.shapeCells,
       manualAddedCells: snapshot.manualAddedCells,
       manualRemovedCells: snapshot.manualRemovedCells,
     );
@@ -744,7 +746,8 @@ class _EditorSidebar extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _LegendChip(
-                    label: 'Base ${snapshot.baseCells.length}',
+                    label:
+                        '${snapshot.source == ElementCollisionProfileSource.manual ? 'Forme' : 'Base'} ${snapshot.baseCells.length}',
                     color: Colors.cyanAccent,
                   ),
                   _LegendChip(
@@ -771,7 +774,17 @@ class _EditorSidebar extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Source: ${source.width} colonnes × ${source.height} lignes',
+                'Source sprite: ${source.width} colonnes × ${source.height} lignes',
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                snapshot.source == ElementCollisionProfileSource.manual
+                    ? 'Base métier actuelle: forme auteur. Le padding reste stocké, mais la collision principale vient du polygone.'
+                    : 'Base métier actuelle: padding automatique. Le polygone sert à définir une vraie forme principale.',
                 style: TextStyle(
                   color: secondary,
                   fontSize: 11,
@@ -828,7 +841,7 @@ class _EditorSidebar extends StatelessWidget {
         _SidebarSection(
           title: 'Aide',
           child: Text(
-            'Pinceau: cliquez-glissez pour peindre des cellules. Polygone: placez des points, puis fermez la forme en cliquant sur le premier point, avec Entrée, double-clic ou le bouton dédié. Base = padding, final = base + ajouts - retraits.',
+            'Pinceau: cliquez-glissez pour retoucher la collision finale. Polygone forme: dessine la base principale de collision du bâtiment. Polygone retrait: retire une zone de la base courante. Le runtime continue à lire uniquement `collisionProfile.cells`.',
             style: TextStyle(
               color: secondary,
               fontSize: 11,
@@ -1518,8 +1531,9 @@ enum _ElementCollisionEditorTool {
     operation: ElementCollisionAuthoringOperation.remove,
   ),
   polygonAdd(
-    label: 'Polygone +',
-    helpLabel: 'Placez des points, puis appliquez le polygone.',
+    label: 'Polygone forme',
+    helpLabel:
+        'Placez des points, puis fermez le polygone pour remplacer la forme principale.',
     operation: ElementCollisionAuthoringOperation.add,
   ),
   polygonRemove(

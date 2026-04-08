@@ -124,6 +124,7 @@ void main() {
       );
 
       expect(profile.source, ElementCollisionProfileSource.generated);
+      expect(profile.shapeCells, isEmpty);
       expect(profile.manualAddedCells, isEmpty);
       expect(profile.manualRemovedCells, isEmpty);
       expect(
@@ -179,6 +180,36 @@ void main() {
 
       expect(profile.source, ElementCollisionProfileSource.generated);
       expect(profile.cells.length, 6);
+    });
+
+    test('shape-authored rebuild uses shape cells as the real base', () {
+      final profile = service.rebuild(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        sourceMode: ElementCollisionProfileSource.manual,
+        padding: const WarpTriggerPadding(),
+        shapeCells: const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+      );
+
+      expect(profile.source, ElementCollisionProfileSource.manual);
+      expect(
+        profile.shapeCells,
+        const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+      );
+      expect(
+        profile.cells,
+        const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+      );
     });
 
     test('reset overrides restores the base only', () {
@@ -313,6 +344,10 @@ void main() {
           GridPos(x: 2, y: 0),
         ],
       );
+      expect(profile.source, ElementCollisionProfileSource.manual);
+      expect(profile.shapeCells, profile.cells);
+      expect(profile.manualAddedCells, isEmpty);
+      expect(profile.manualRemovedCells, isEmpty);
     });
 
     test('applyBrushStroke removes cells crossed by the stroke', () {
@@ -344,6 +379,177 @@ void main() {
         profile.cells,
         isNot(contains(const GridPos(x: 2, y: 0))),
       );
+    });
+
+    test(
+        'legacy manual profile with full padding base is migrated to shape base',
+        () {
+      const buggyLegacyProfile = ElementCollisionProfile(
+        source: ElementCollisionProfileSource.manual,
+        padding: WarpTriggerPadding(),
+        cells: <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+          GridPos(x: 2, y: 0),
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+        ],
+        manualAddedCells: <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+      );
+
+      final snapshot = service.describe(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        profile: buggyLegacyProfile,
+      );
+
+      expect(snapshot.source, ElementCollisionProfileSource.manual);
+      expect(
+        snapshot.shapeCells,
+        const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+      );
+      expect(snapshot.manualAddedCells, isEmpty);
+      expect(snapshot.manualRemovedCells, isEmpty);
+      expect(
+        snapshot.finalCells,
+        const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+      );
+    });
+
+    test(
+        'real legacy house profile no longer resolves to the full 6x7 padding base',
+        () {
+      const houseSource = TilesetSourceRect(x: 0, y: 0, width: 6, height: 7);
+      const legacyHouseProfile = ElementCollisionProfile(
+        source: ElementCollisionProfileSource.manual,
+        padding: WarpTriggerPadding(),
+        cells: <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+          GridPos(x: 2, y: 0),
+          GridPos(x: 3, y: 0),
+          GridPos(x: 4, y: 0),
+          GridPos(x: 5, y: 0),
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+          GridPos(x: 3, y: 1),
+          GridPos(x: 4, y: 1),
+          GridPos(x: 5, y: 1),
+          GridPos(x: 0, y: 2),
+          GridPos(x: 1, y: 2),
+          GridPos(x: 2, y: 2),
+          GridPos(x: 3, y: 2),
+          GridPos(x: 4, y: 2),
+          GridPos(x: 5, y: 2),
+          GridPos(x: 0, y: 3),
+          GridPos(x: 1, y: 3),
+          GridPos(x: 2, y: 3),
+          GridPos(x: 3, y: 3),
+          GridPos(x: 4, y: 3),
+          GridPos(x: 5, y: 3),
+          GridPos(x: 0, y: 4),
+          GridPos(x: 1, y: 4),
+          GridPos(x: 2, y: 4),
+          GridPos(x: 3, y: 4),
+          GridPos(x: 4, y: 4),
+          GridPos(x: 5, y: 4),
+          GridPos(x: 0, y: 5),
+          GridPos(x: 1, y: 5),
+          GridPos(x: 2, y: 5),
+          GridPos(x: 3, y: 5),
+          GridPos(x: 4, y: 5),
+          GridPos(x: 5, y: 5),
+          GridPos(x: 0, y: 6),
+          GridPos(x: 1, y: 6),
+          GridPos(x: 2, y: 6),
+          GridPos(x: 3, y: 6),
+          GridPos(x: 4, y: 6),
+          GridPos(x: 5, y: 6),
+        ],
+        manualAddedCells: <GridPos>[
+          GridPos(x: 0, y: 3),
+          GridPos(x: 1, y: 3),
+          GridPos(x: 2, y: 3),
+          GridPos(x: 3, y: 3),
+          GridPos(x: 4, y: 3),
+          GridPos(x: 5, y: 3),
+          GridPos(x: 1, y: 4),
+          GridPos(x: 2, y: 4),
+          GridPos(x: 3, y: 4),
+          GridPos(x: 4, y: 4),
+          GridPos(x: 1, y: 5),
+          GridPos(x: 2, y: 5),
+          GridPos(x: 3, y: 5),
+          GridPos(x: 4, y: 5),
+        ],
+      );
+
+      final snapshot = service.describe(
+        source: houseSource,
+        tileWidth: 16,
+        tileHeight: 16,
+        profile: legacyHouseProfile,
+      );
+
+      expect(snapshot.source, ElementCollisionProfileSource.manual);
+      expect(snapshot.finalCells.length, 14);
+      expect(snapshot.finalCells, equals(snapshot.shapeCells));
+      expect(
+        snapshot.finalCells,
+        const <GridPos>[
+          GridPos(x: 0, y: 3),
+          GridPos(x: 1, y: 3),
+          GridPos(x: 2, y: 3),
+          GridPos(x: 3, y: 3),
+          GridPos(x: 4, y: 3),
+          GridPos(x: 5, y: 3),
+          GridPos(x: 1, y: 4),
+          GridPos(x: 2, y: 4),
+          GridPos(x: 3, y: 4),
+          GridPos(x: 4, y: 4),
+          GridPos(x: 1, y: 5),
+          GridPos(x: 2, y: 5),
+          GridPos(x: 3, y: 5),
+          GridPos(x: 4, y: 5),
+        ],
+      );
+    });
+
+    test(
+        'polygon on a 6x7 source with zero padding does not rebuild to the full grid',
+        () {
+      const houseSource = TilesetSourceRect(x: 0, y: 0, width: 6, height: 7);
+      final profile = service.applyPolygon(
+        source: houseSource,
+        tileWidth: 16,
+        tileHeight: 16,
+        vertices: const <Offset>[
+          Offset(0.2, 3.0),
+          Offset(5.8, 3.0),
+          Offset(4.8, 5.8),
+          Offset(1.2, 5.8),
+        ],
+        operation: ElementCollisionAuthoringOperation.add,
+      );
+
+      expect(profile.padding, const WarpTriggerPadding());
+      expect(profile.source, ElementCollisionProfileSource.manual);
+      expect(profile.cells, isNotEmpty);
+      expect(profile.cells.length,
+          lessThan(houseSource.width * houseSource.height));
+      expect(profile.cells, equals(profile.shapeCells));
     });
   });
 }
