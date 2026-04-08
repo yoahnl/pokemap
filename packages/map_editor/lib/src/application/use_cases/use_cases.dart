@@ -3,6 +3,7 @@ export 'collision_use_cases.dart';
 export 'encounter_table_use_cases.dart';
 export 'trainer_use_cases.dart';
 export 'gameplay_zone_use_cases.dart';
+export 'initialize_pokemon_project_storage_use_case.dart';
 export 'layer_use_cases.dart';
 export 'map_use_cases.dart';
 export 'paint_use_cases.dart';
