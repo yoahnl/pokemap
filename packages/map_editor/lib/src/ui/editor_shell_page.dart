@@ -28,9 +28,27 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   Timer? _toastTimer;
   String? _toastMessage;
   bool _toastIsError = false;
+  bool _didAttemptProjectAutoRestore = false;
 
   /// When false, the right ResizablePane (map / tileset / narrative inspector) is omitted so the center stage uses full width.
   bool _rightInspectorVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Provider mutations are intentionally deferred after the first frame:
+    // auto-restore loads a project (state mutation), and Riverpod disallows
+    // mutating providers during build/init lifecycle phases.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _didAttemptProjectAutoRestore) {
+        return;
+      }
+      _didAttemptProjectAutoRestore = true;
+      await ref
+          .read(editorNotifierProvider.notifier)
+          .restoreLastOpenedProjectIfAny();
+    });
+  }
 
   @override
   void dispose() {
@@ -537,13 +555,10 @@ class _WorkspaceStageHeader extends StatelessWidget {
           ),
         ),
         MacosTooltip(
-          message: rightPanelVisible
-              ? 'Hide right panel'
-              : 'Show right panel',
+          message: rightPanelVisible ? 'Hide right panel' : 'Show right panel',
           child: MacosIconButton(
-            semanticLabel: rightPanelVisible
-                ? 'Hide right panel'
-                : 'Show right panel',
+            semanticLabel:
+                rightPanelVisible ? 'Hide right panel' : 'Show right panel',
             icon: MacosIcon(
               rightPanelVisible ? Icons.open_in_full : Icons.close_fullscreen,
               color: label.withValues(alpha: 0.85),

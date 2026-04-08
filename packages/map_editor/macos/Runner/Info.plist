@@ -28,5 +28,11 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>RPG Map Editor a besoin d’accéder au Bureau pour ouvrir et restaurer vos projets.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>RPG Map Editor a besoin d’accéder au dossier Documents pour ouvrir et restaurer vos projets.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>RPG Map Editor peut accéder aux téléchargements pour importer des assets de projet.</string>
 </dict>
 </plist>

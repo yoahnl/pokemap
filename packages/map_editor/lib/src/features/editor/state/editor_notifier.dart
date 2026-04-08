@@ -1,8 +1,11 @@
-import 'dart:ui' show Offset;
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/providers/core_providers.dart';
@@ -33,6 +36,10 @@ part 'editor_notifier.g.dart';
 
 /// Valeur sentinelle pour les paramètres optionnels nullable dans [EditorNotifier].
 const Object _trainerUnset = Object();
+const String _lastOpenedProjectManifestKey = 'lastOpenedProjectManifestPath';
+const String _editorSessionFileName = 'editor_session_state.json';
+const MethodChannel _macOsFileAccessChannel =
+    MethodChannel('map_editor/file_access');
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
@@ -109,6 +116,90 @@ class EditorNotifier extends _$EditorNotifier {
     return const EditorState();
   }
 
+  /// Returns the persisted manifest path of the most recently opened project.
+  ///
+  /// This is intentionally tiny and file-based (single JSON file in app support)
+  /// to keep startup deterministic and avoid introducing extra dependencies.
+  Future<String?> getLastOpenedProjectManifestPath() async {
+    try {
+      final file = await _sessionStateFile();
+      if (!await file.exists()) {
+        return null;
+      }
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) {
+        return null;
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return null;
+      }
+      final value = decoded[_lastOpenedProjectManifestKey];
+      if (value is! String) {
+        return null;
+      }
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    } catch (_) {
+      // Startup memory should never crash the editor. Any corrupted or
+      // unreadable state is treated as "no remembered project".
+      return null;
+    }
+  }
+
+  /// Attempts to load the last opened project (if any).
+  ///
+  /// Returns true only when a project was actually restored.
+  Future<bool> restoreLastOpenedProjectIfAny() async {
+    // Do not override an already loaded project.
+    if (state.project != null) {
+      return false;
+    }
+    // On macOS sandbox, a plain path is not enough after restart.
+    // We first ask native code to resolve a security-scoped bookmark if any.
+    final manifestPath = await _resolveLastProjectManifestFromMacOsBookmark() ??
+        await getLastOpenedProjectManifestPath();
+    if (manifestPath == null) {
+      return false;
+    }
+    if (!await File(manifestPath).exists()) {
+      // Clear stale memory so the app won't re-check a dead path forever.
+      await _clearLastOpenedProjectMemory();
+      return false;
+    }
+    if (!await _isManifestReadable(manifestPath)) {
+      // macOS can report that the path exists but still deny read access
+      // (Desktop/Documents permission not granted to the app process).
+      //
+      // In that case we do NOT call `loadProject`, otherwise we'd surface a
+      // noisy PathAccessException on every launch.
+      await _clearLastOpenedProjectMemory();
+      state = state.copyWith(
+        errorMessage: null,
+        statusMessage:
+            'Dernier projet détecté, mais accès refusé par macOS. Ouvrez-le manuellement pour réautoriser l’accès.',
+      );
+      return false;
+    }
+    // Auto-restore must be resilient:
+    // - no noisy startup error toast if macOS denies access to remembered path
+    //   (common when the path is on Desktop/Documents and the app lost grant).
+    // - no endless retry loop on next launch if access is denied.
+    await loadProject(
+      manifestPath,
+      silentOnError: true,
+      rememberAsRecent: false,
+    );
+    final restored = state.project != null;
+    if (!restored) {
+      // Important anti-loop guard:
+      // if we failed to restore (permissions / deleted file / parse error),
+      // drop the remembered path so startup stays clean next launch.
+      await _clearLastOpenedProjectMemory();
+    }
+    return restored;
+  }
+
   Future<void> createProject(String name, String directory) async {
     debugPrint('EditorNotifier: createProject($name, $directory)');
     try {
@@ -153,14 +244,25 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Project "$name" created successfully',
         errorMessage: null,
       );
+      await _rememberLastOpenedProjectManifest(
+        p.join(directory, 'project.json'),
+      );
     } catch (e) {
       debugPrint('EditorNotifier: Error creating project: $e');
       state = state.copyWith(errorMessage: 'Failed to create project: $e');
     }
   }
 
-  Future<void> loadProject(String manifestPath) async {
-    debugPrint('EditorNotifier: loadProject($manifestPath)');
+  Future<void> loadProject(
+    String manifestPath, {
+    bool silentOnError = false,
+    bool rememberAsRecent = true,
+  }) async {
+    // Keep this trace for explicit user actions, but avoid noisy startup logs
+    // when running a silent auto-restore attempt.
+    if (!silentOnError) {
+      debugPrint('EditorNotifier: loadProject($manifestPath)');
+    }
     try {
       final useCase = ref.read(loadProjectUseCaseProvider);
       final manifest = await useCase.execute(manifestPath);
@@ -204,9 +306,119 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Project "${manifest.name}" loaded',
         errorMessage: null,
       );
+      if (rememberAsRecent) {
+        await _rememberLastOpenedProjectManifest(manifestPath);
+      }
     } catch (e) {
-      debugPrint('EditorNotifier: Error loading project: $e');
-      state = state.copyWith(errorMessage: 'Failed to load project: $e');
+      if (!silentOnError) {
+        debugPrint('EditorNotifier: Error loading project: $e');
+      }
+      if (silentOnError) {
+        // Silent mode is used by startup auto-restore.
+        // We intentionally avoid surfacing an intrusive error toast at launch.
+        state = state.copyWith(
+          errorMessage: null,
+          statusMessage:
+              'Impossible de rouvrir automatiquement le dernier projet. Ouvrez-le manuellement une fois pour réautoriser l’accès.',
+        );
+      } else {
+        state = state.copyWith(errorMessage: 'Failed to load project: $e');
+      }
+    }
+  }
+
+  Future<bool> _isManifestReadable(String manifestPath) async {
+    final file = File(manifestPath);
+    try {
+      // A tiny read is enough to validate real OS-level authorization.
+      // We do not rely only on `exists()` because TCC can still block reads.
+      await file.openRead(0, 1).first;
+      return true;
+    } on FileSystemException {
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<File> _sessionStateFile() async {
+    final appSupportDir = await getApplicationSupportDirectory();
+    final editorDir = Directory(
+      p.join(appSupportDir.path, 'rpg_map_editor'),
+    );
+    if (!await editorDir.exists()) {
+      await editorDir.create(recursive: true);
+    }
+    return File(p.join(editorDir.path, _editorSessionFileName));
+  }
+
+  Future<void> _rememberLastOpenedProjectManifest(String manifestPath) async {
+    try {
+      final file = await _sessionStateFile();
+      final payload = <String, dynamic>{
+        _lastOpenedProjectManifestKey: manifestPath,
+      };
+      await file.writeAsString(jsonEncode(payload));
+      // Also remember a security-scoped bookmark when running on macOS.
+      // This is the durable way to re-open a user-selected folder under sandbox.
+      await _rememberMacOsProjectBookmark(manifestPath);
+    } catch (_) {
+      // Non-critical: failing to persist recent project must not block editing.
+    }
+  }
+
+  Future<void> _clearLastOpenedProjectMemory() async {
+    try {
+      final file = await _sessionStateFile();
+      if (await file.exists()) {
+        await file.delete();
+      }
+      await _clearMacOsProjectBookmark();
+    } catch (_) {
+      // Best effort cleanup only.
+    }
+  }
+
+  Future<void> _rememberMacOsProjectBookmark(String manifestPath) async {
+    if (!Platform.isMacOS) {
+      return;
+    }
+    try {
+      await _macOsFileAccessChannel.invokeMethod<void>(
+        'rememberProjectPath',
+        <String, dynamic>{'manifestPath': manifestPath},
+      );
+    } catch (_) {
+      // Best effort only: path JSON persistence remains as fallback.
+    }
+  }
+
+  Future<String?> _resolveLastProjectManifestFromMacOsBookmark() async {
+    if (!Platform.isMacOS) {
+      return null;
+    }
+    try {
+      final path = await _macOsFileAccessChannel
+          .invokeMethod<String>('resolveLastProjectManifestPath');
+      if (path == null) {
+        return null;
+      }
+      final trimmed = path.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _clearMacOsProjectBookmark() async {
+    if (!Platform.isMacOS) {
+      return;
+    }
+    try {
+      await _macOsFileAccessChannel
+          .invokeMethod<void>('clearRememberedProjectPath');
+    } catch (_) {
+      // Ignore cleanup failures.
     }
   }
 
