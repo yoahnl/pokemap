@@ -6101,7 +6101,9 @@ class _ElementCollisionProfileSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Édition dédiée plein cadre: pinceau, polygone et padding auto. Le runtime continue à lire uniquement la forme finale en cellules.',
+            snapshot.usesManualPrimaryShape
+                ? 'Forme principale auteur active. Le polygone définit la base métier, les retouches la corrigent, et le runtime lit uniquement la forme finale en cellules.'
+                : 'Base padding automatique active. Le polygone peut remplacer cette base pour définir une vraie forme principale de bâtiment.',
             style: TextStyle(
               color: secondary,
               fontSize: 10,
@@ -6113,7 +6115,9 @@ class _ElementCollisionProfileSummaryCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _CollisionLegendChip(
-                label: 'Base ${snapshot.baseCells.length}',
+                label: snapshot.usesManualPrimaryShape
+                    ? 'Forme ${snapshot.baseCells.length}'
+                    : 'Base ${snapshot.baseCells.length}',
                 color: Colors.cyanAccent,
               ),
               _CollisionLegendChip(

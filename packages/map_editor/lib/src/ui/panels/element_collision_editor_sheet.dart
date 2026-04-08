@@ -165,13 +165,11 @@ class _ElementCollisionEditorSheetState
                   },
                   onRestoreBase: () {
                     setState(() {
-                      _draftProfile = _authoringService.recalculateFromPadding(
+                      _draftProfile = _authoringService.usePaddingAsPrimaryBase(
                         source: widget.source,
                         tileWidth: widget.tileWidth,
                         tileHeight: widget.tileHeight,
                         padding: _draftPadding,
-                        current: _draftProfile,
-                        preserveOverrides: false,
                       );
                     });
                   },
@@ -342,6 +340,8 @@ class _ElementCollisionEditorSheetState
                               setState(() => _showOverrides = value),
                           paddingEditor: ElementCollisionPaddingEditor(
                             padding: _draftPadding,
+                            usesManualPrimaryShape:
+                                snapshot.usesManualPrimaryShape,
                             maxHorizontal: math.max(
                                 0, widget.source.width * widget.tileWidth - 1),
                             maxVertical: math.max(0,
@@ -689,7 +689,7 @@ class _EditorToolbar extends StatelessWidget {
           onPressed: onResetOverrides,
         ),
         _ToolbarAction(
-          label: 'Restaurer base padding',
+          label: 'Utiliser le padding comme base',
           onPressed: onRestoreBase,
         ),
         _ToolbarAction(
@@ -746,8 +746,9 @@ class _EditorSidebar extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _LegendChip(
-                    label:
-                        '${snapshot.source == ElementCollisionProfileSource.manual ? 'Forme' : 'Base'} ${snapshot.baseCells.length}',
+                    label: snapshot.usesManualPrimaryShape
+                        ? 'Forme principale ${snapshot.baseCells.length}'
+                        : 'Base padding ${snapshot.baseCells.length}',
                     color: Colors.cyanAccent,
                   ),
                   _LegendChip(
@@ -783,8 +784,8 @@ class _EditorSidebar extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 snapshot.source == ElementCollisionProfileSource.manual
-                    ? 'Base métier actuelle: forme auteur. Le padding reste stocké, mais la collision principale vient du polygone.'
-                    : 'Base métier actuelle: padding automatique. Le polygone sert à définir une vraie forme principale.',
+                    ? 'Base métier actuelle: forme principale auteur. Le padding reste disponible comme aide secondaire, mais il ne reprend pas la main au rebuild.'
+                    : 'Base métier actuelle: padding automatique. Utilisez un polygone forme si vous voulez remplacer cette base par une vraie silhouette de bâtiment.',
                 style: TextStyle(
                   color: secondary,
                   fontSize: 11,
@@ -820,7 +821,9 @@ class _EditorSidebar extends StatelessWidget {
                 onChanged: onShowGridChanged,
               ),
               _DisplayToggle(
-                label: 'Base auto',
+                label: snapshot.usesManualPrimaryShape
+                    ? 'Forme principale'
+                    : 'Base padding',
                 value: showBase,
                 onChanged: onShowBaseChanged,
               ),
@@ -841,7 +844,7 @@ class _EditorSidebar extends StatelessWidget {
         _SidebarSection(
           title: 'Aide',
           child: Text(
-            'Pinceau: cliquez-glissez pour retoucher la collision finale. Polygone forme: dessine la base principale de collision du bâtiment. Polygone retrait: retire une zone de la base courante. Le runtime continue à lire uniquement `collisionProfile.cells`.',
+            'Polygone forme: définit la forme principale d’un bâtiment. Pinceau + / -: applique des retouches locales. Le padding auto reste un outil secondaire pour les cas simples. Le runtime continue à lire uniquement `collisionProfile.cells`.',
             style: TextStyle(
               color: secondary,
               fontSize: 11,
@@ -857,12 +860,14 @@ class ElementCollisionPaddingEditor extends StatelessWidget {
   const ElementCollisionPaddingEditor({
     super.key,
     required this.padding,
+    required this.usesManualPrimaryShape,
     required this.maxHorizontal,
     required this.maxVertical,
     required this.onChanged,
   });
 
   final WarpTriggerPadding padding;
+  final bool usesManualPrimaryShape;
   final int maxHorizontal;
   final int maxVertical;
   final ValueChanged<WarpTriggerPadding> onChanged;
@@ -875,7 +880,9 @@ class ElementCollisionPaddingEditor extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Le padding génère la base automatique, puis les retouches manuelles sont réappliquées par-dessus.',
+          usesManualPrimaryShape
+              ? 'Le padding reste stocké comme réglage secondaire. Tant qu’une forme principale auteur existe, il ne redéfinit pas la base métier.'
+              : 'Le padding génère la base automatique actuelle. Vous pouvez ensuite ajouter ou retirer quelques cellules localement.',
           style: TextStyle(
             color: secondary,
             fontSize: 11,
@@ -1518,16 +1525,16 @@ Rect _fitCollisionPreviewRect({
 enum _ElementCollisionEditorTool {
   preview(
     label: 'Aperçu',
-    helpLabel: 'Visualiser la forme finale et les retouches.',
+    helpLabel: 'Visualiser la forme finale exacte qui sera sauvegardée.',
   ),
   brushAdd(
     label: 'Pinceau +',
-    helpLabel: 'Cliquez-glissez pour ajouter des cellules.',
+    helpLabel: 'Cliquez-glissez pour ajouter des retouches locales.',
     operation: ElementCollisionAuthoringOperation.add,
   ),
   brushRemove(
     label: 'Pinceau -',
-    helpLabel: 'Cliquez-glissez pour retirer des cellules.',
+    helpLabel: 'Cliquez-glissez pour retirer des retouches locales.',
     operation: ElementCollisionAuthoringOperation.remove,
   ),
   polygonAdd(

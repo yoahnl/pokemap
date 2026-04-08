@@ -9,8 +9,9 @@ import 'element_collision_shape_rasterizer_service.dart';
 /// Editor-facing facade for element collision authoring.
 ///
 /// Responsibilities:
-/// - derive the base shape from padding
-/// - preserve explicit author intent (manual add/remove)
+/// - derive the automatic base from padding for simple/generated cases
+/// - treat the author shape as the true base for complex/manual cases
+/// - preserve explicit local add/remove retouches
 /// - rebuild the final runtime truth (`profile.cells`)
 ///
 /// Runtime/gameplay must never need to understand base cells or overrides.
@@ -154,6 +155,30 @@ class ElementCollisionAuthoringService {
           preserveOverrides ? snapshot.manualAddedCells : const [],
       manualRemovedCells:
           preserveOverrides ? snapshot.manualRemovedCells : const [],
+    );
+  }
+
+  /// Explicitly switches the profile back to a generated/padding-driven base.
+  ///
+  /// This is intentionally separate from [recalculateFromPadding]. Recomputing
+  /// the stored padding should not silently steal control back from a manual
+  /// author shape. The editor can call this only when the user explicitly says
+  /// "use padding as the main base again".
+  ElementCollisionProfile usePaddingAsPrimaryBase({
+    required TilesetSourceRect source,
+    required int tileWidth,
+    required int tileHeight,
+    required WarpTriggerPadding padding,
+  }) {
+    return rebuild(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      sourceMode: ElementCollisionProfileSource.generated,
+      padding: padding,
+      shapeCells: const [],
+      manualAddedCells: const [],
+      manualRemovedCells: const [],
     );
   }
 
@@ -536,6 +561,9 @@ class ElementCollisionAuthoringSnapshot {
   final List<GridPos> manualAddedCells;
   final List<GridPos> manualRemovedCells;
   final List<GridPos> finalCells;
+
+  bool get usesManualPrimaryShape =>
+      source == ElementCollisionProfileSource.manual;
 }
 
 class _ResolvedCollisionBase {

@@ -169,6 +169,74 @@ void main() {
       );
     });
 
+    test(
+        'recalculateFromPadding does not replace a manual primary shape with the padding base',
+        () {
+      final manual = service.rebuild(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        sourceMode: ElementCollisionProfileSource.manual,
+        padding: const WarpTriggerPadding(),
+        shapeCells: const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+        manualAddedCells: const <GridPos>[GridPos(x: 2, y: 1)],
+      );
+
+      final updated = service.recalculateFromPadding(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        padding: const WarpTriggerPadding(left: 16, top: 16),
+        current: manual,
+      );
+
+      expect(updated.source, ElementCollisionProfileSource.manual);
+      expect(
+        updated.shapeCells,
+        const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+      );
+      expect(updated.padding, const WarpTriggerPadding(left: 16, top: 16));
+      expect(updated.manualAddedCells, const <GridPos>[GridPos(x: 2, y: 1)]);
+      expect(
+        updated.cells,
+        const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+        ],
+      );
+    });
+
+    test('usePaddingAsPrimaryBase explicitly switches back to generated mode',
+        () {
+      final generated = service.usePaddingAsPrimaryBase(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        padding: const WarpTriggerPadding(left: 16),
+      );
+
+      expect(generated.source, ElementCollisionProfileSource.generated);
+      expect(generated.shapeCells, isEmpty);
+      expect(generated.manualAddedCells, isEmpty);
+      expect(generated.manualRemovedCells, isEmpty);
+      expect(
+        generated.cells,
+        const <GridPos>[
+          GridPos(x: 1, y: 0),
+          GridPos(x: 2, y: 0),
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+        ],
+      );
+    });
+
     test('empty overrides behave like no overrides', () {
       final profile = service.rebuild(
         source: source,
