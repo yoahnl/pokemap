@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/element_collision_authoring_service.dart';
 import 'package:map_editor/src/application/services/element_collision_base_cells_from_padding_service.dart';
 import 'package:map_editor/src/application/services/element_collision_cells_overlay_service.dart';
+import 'package:map_editor/src/application/services/element_collision_shape_rasterizer_service.dart';
 
 void main() {
   group('ElementCollisionBaseCellsFromPaddingService', () {
@@ -109,7 +110,9 @@ void main() {
   });
 
   group('ElementCollisionAuthoringService', () {
-    const service = ElementCollisionAuthoringService();
+    const service = ElementCollisionAuthoringService(
+      shapeRasterizerService: ElementCollisionShapeRasterizerService(),
+    );
     const source = TilesetSourceRect(x: 0, y: 0, width: 3, height: 2);
 
     test('rebuilds a coherent final profile with no overrides', () {
@@ -247,6 +250,100 @@ void main() {
       expect(profile.cells, isEmpty);
       expect(profile.manualAddedCells, isEmpty);
       expect(profile.manualRemovedCells.length, source.width * source.height);
+    });
+
+    test('applyCells combines add and remove deterministically', () {
+      final initial = service.rebuild(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      final removed = service.applyCells(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        cells: const <GridPos>[GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+        operation: ElementCollisionAuthoringOperation.remove,
+        current: initial,
+      );
+      final addedBack = service.applyCells(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        cells: const <GridPos>[GridPos(x: 1, y: 0)],
+        operation: ElementCollisionAuthoringOperation.add,
+        current: removed,
+      );
+
+      expect(
+        addedBack.cells,
+        isNot(contains(const GridPos(x: 0, y: 0))),
+      );
+      expect(
+        addedBack.cells,
+        contains(const GridPos(x: 1, y: 0)),
+      );
+    });
+
+    test('applyPolygon adds a rasterized polygon to the final profile', () {
+      final profile = service.applyPolygon(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        vertices: const <Offset>[
+          Offset(0, 0),
+          Offset(3, 0),
+          Offset(3, 1),
+          Offset(0, 1),
+        ],
+        operation: ElementCollisionAuthoringOperation.add,
+        current: service.clearAllCollision(
+          source: source,
+          tileWidth: 16,
+          tileHeight: 16,
+        ),
+      );
+
+      expect(
+        profile.cells,
+        const <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+          GridPos(x: 2, y: 0),
+        ],
+      );
+    });
+
+    test('applyBrushStroke removes cells crossed by the stroke', () {
+      final profile = service.applyBrushStroke(
+        source: source,
+        tileWidth: 16,
+        tileHeight: 16,
+        points: const <Offset>[
+          Offset(0.2, 0.2),
+          Offset(2.7, 0.2),
+        ],
+        operation: ElementCollisionAuthoringOperation.remove,
+        current: service.rebuild(
+          source: source,
+          tileWidth: 16,
+          tileHeight: 16,
+        ),
+      );
+
+      expect(
+        profile.cells,
+        isNot(contains(const GridPos(x: 0, y: 0))),
+      );
+      expect(
+        profile.cells,
+        isNot(contains(const GridPos(x: 1, y: 0))),
+      );
+      expect(
+        profile.cells,
+        isNot(contains(const GridPos(x: 2, y: 0))),
+      );
     });
   });
 }

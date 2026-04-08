@@ -25,6 +25,7 @@ import '../../application/services/element_collision_authoring_service.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import 'element_collision_editor_sheet.dart';
 
 const ElementCollisionAuthoringService _elementCollisionAuthoringService =
     ElementCollisionAuthoringService();
@@ -2400,72 +2401,37 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _ElementCollisionPaddingEditor(
-                    padding: collisionPadding,
-                    maxHorizontal: math.max(0, source.width * tileWidth - 1),
-                    maxVertical: math.max(0, source.height * tileHeight - 1),
-                    onChanged: (next) {
-                      setStateDialog(() {
-                        collisionPadding = next;
-                        collisionProfile = _elementCollisionAuthoringService
-                            .recalculateFromPadding(
-                          source: source,
-                          tileWidth: tileWidth,
-                          tileHeight: tileHeight,
-                          padding: next,
-                          current: collisionProfile,
-                        );
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: () {
-                            setStateDialog(() {
-                              collisionProfile =
-                                  _elementCollisionAuthoringService
-                                      .recalculateFromPadding(
-                                source: source,
-                                tileWidth: tileWidth,
-                                tileHeight: tileHeight,
-                                padding: collisionPadding,
-                                current: collisionProfile,
-                              );
-                            });
-                          },
-                          child: const Text('Recalculer + retouches'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      PushButton(
-                        controlSize: ControlSize.regular,
-                        secondary: true,
-                        onPressed: () {
-                          setStateDialog(() {
-                            collisionProfile = null;
-                            collisionPadding = const WarpTriggerPadding();
-                          });
-                        },
-                        child: const Text('Effacer'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _ElementCollisionProfileEditor(
-                    image: image,
+                  _ElementCollisionProfileSummaryCard(
                     source: source,
                     tileWidth: tileWidth,
                     tileHeight: tileHeight,
                     profile: collisionProfile,
                     draftPadding: collisionPadding,
-                    onProfileChanged: (profile) {
+                    onOpenEditor: () async {
+                      final edited = await showElementCollisionEditorSheet(
+                        context: ctx,
+                        elementName: nameController.text.trim().isEmpty
+                            ? 'Nouvel élément'
+                            : nameController.text.trim(),
+                        image: image,
+                        source: source,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                        initialProfile: collisionProfile,
+                        fallbackPadding: collisionPadding,
+                      );
+                      if (edited == null) {
+                        return;
+                      }
                       setStateDialog(() {
-                        collisionProfile = profile;
+                        collisionProfile = edited;
+                        collisionPadding = edited.padding;
+                      });
+                    },
+                    onClearProfile: () {
+                      setStateDialog(() {
+                        collisionProfile = null;
+                        collisionPadding = const WarpTriggerPadding();
                       });
                     },
                   ),
@@ -2782,74 +2748,37 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _ElementCollisionPaddingEditor(
-                    padding: collisionPadding,
-                    maxHorizontal:
-                        math.max(0, frames.primarySource.width * tileWidth - 1),
-                    maxVertical: math.max(
-                        0, frames.primarySource.height * tileHeight - 1),
-                    onChanged: (next) {
-                      setStateDialog(() {
-                        collisionPadding = next;
-                        collisionProfile = _elementCollisionAuthoringService
-                            .recalculateFromPadding(
-                          source: frames.primarySource,
-                          tileWidth: tileWidth,
-                          tileHeight: tileHeight,
-                          padding: next,
-                          current: collisionProfile,
-                        );
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: () {
-                            setStateDialog(() {
-                              collisionProfile =
-                                  _elementCollisionAuthoringService
-                                      .recalculateFromPadding(
-                                source: frames.primarySource,
-                                tileWidth: tileWidth,
-                                tileHeight: tileHeight,
-                                padding: collisionPadding,
-                                current: collisionProfile,
-                              );
-                            });
-                          },
-                          child: const Text('Recalculer + retouches'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      PushButton(
-                        controlSize: ControlSize.regular,
-                        secondary: true,
-                        onPressed: () {
-                          setStateDialog(() {
-                            collisionProfile = null;
-                            collisionPadding = const WarpTriggerPadding();
-                          });
-                        },
-                        child: const Text('Effacer'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _ElementCollisionProfileEditor(
-                    image: image,
+                  _ElementCollisionProfileSummaryCard(
                     source: frames.primarySource,
                     tileWidth: tileWidth,
                     tileHeight: tileHeight,
                     profile: collisionProfile,
                     draftPadding: collisionPadding,
-                    onProfileChanged: (profile) {
+                    onOpenEditor: () async {
+                      final edited = await showElementCollisionEditorSheet(
+                        context: ctx,
+                        elementName: nameController.text.trim().isEmpty
+                            ? element.name
+                            : nameController.text.trim(),
+                        image: image,
+                        source: frames.primarySource,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                        initialProfile: collisionProfile,
+                        fallbackPadding: collisionPadding,
+                      );
+                      if (edited == null) {
+                        return;
+                      }
                       setStateDialog(() {
-                        collisionProfile = profile;
+                        collisionProfile = edited;
+                        collisionPadding = edited.padding;
+                      });
+                    },
+                    onClearProfile: () {
+                      setStateDialog(() {
+                        collisionProfile = null;
+                        collisionPadding = const WarpTriggerPadding();
                       });
                     },
                   ),
@@ -6104,6 +6033,129 @@ class _CompactStepperRow extends StatelessWidget {
 
 enum _ElementCollisionPaintMode { preview, add, remove }
 
+class _ElementCollisionProfileSummaryCard extends StatelessWidget {
+  const _ElementCollisionProfileSummaryCard({
+    required this.source,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.profile,
+    required this.draftPadding,
+    required this.onOpenEditor,
+    required this.onClearProfile,
+  });
+
+  final TilesetSourceRect source;
+  final int tileWidth;
+  final int tileHeight;
+  final ElementCollisionProfile? profile;
+  final WarpTriggerPadding draftPadding;
+  final VoidCallback onOpenEditor;
+  final VoidCallback onClearProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    final snapshot = _elementCollisionAuthoringService.describe(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      profile: profile,
+      fallbackPadding: draftPadding,
+    );
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.015),
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Collision de l’élément',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '${snapshot.finalCells.length} cellule${snapshot.finalCells.length > 1 ? 's' : ''}',
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Édition dédiée plein cadre: pinceau, polygone et padding auto. Le runtime continue à lire uniquement la forme finale en cellules.',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _CollisionLegendChip(
+                label: 'Base ${snapshot.baseCells.length}',
+                color: Colors.cyanAccent,
+              ),
+              _CollisionLegendChip(
+                label: '+ ${snapshot.manualAddedCells.length}',
+                color: Colors.greenAccent,
+              ),
+              _CollisionLegendChip(
+                label: '- ${snapshot.manualRemovedCells.length}',
+                color: Colors.redAccent,
+              ),
+              _CollisionLegendChip(
+                label: 'Final ${snapshot.finalCells.length}',
+                color: EditorChrome.inspectorJoyCoral,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: PushButton(
+                  controlSize: ControlSize.regular,
+                  secondary: true,
+                  onPressed: onOpenEditor,
+                  child: const Text('Ouvrir l’éditeur de collision'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              PushButton(
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: onClearProfile,
+                child: const Text('Effacer'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ElementCollisionProfileEditor extends StatefulWidget {
   const _ElementCollisionProfileEditor({
     required this.image,
@@ -6499,6 +6551,7 @@ class _CollisionActionButton extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ElementCollisionPaddingEditor extends StatelessWidget {
   const _ElementCollisionPaddingEditor({
     required this.padding,

@@ -1,7 +1,10 @@
+import 'dart:ui' show Offset;
+
 import 'package:map_core/map_core.dart';
 
 import 'element_collision_base_cells_from_padding_service.dart';
 import 'element_collision_cells_overlay_service.dart';
+import 'element_collision_shape_rasterizer_service.dart';
 
 /// Editor-facing facade for element collision authoring.
 ///
@@ -16,10 +19,13 @@ class ElementCollisionAuthoringService {
     this.baseCellsFromPaddingService =
         const ElementCollisionBaseCellsFromPaddingService(),
     this.cellsOverlayService = const ElementCollisionCellsOverlayService(),
+    this.shapeRasterizerService =
+        const ElementCollisionShapeRasterizerService(),
   });
 
   final ElementCollisionBaseCellsFromPaddingService baseCellsFromPaddingService;
   final ElementCollisionCellsOverlayService cellsOverlayService;
+  final ElementCollisionShapeRasterizerService shapeRasterizerService;
 
   ElementCollisionAuthoringSnapshot describe({
     required TilesetSourceRect source,
@@ -126,6 +132,55 @@ class ElementCollisionAuthoringService {
     ElementCollisionProfile? current,
     WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
   }) {
+    return applyCells(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      cells: <GridPos>[cell],
+      operation: ElementCollisionAuthoringOperation.add,
+      current: current,
+      fallbackPadding: fallbackPadding,
+    );
+  }
+
+  ElementCollisionProfile applyRemoveModeTap({
+    required TilesetSourceRect source,
+    required int tileWidth,
+    required int tileHeight,
+    required GridPos cell,
+    ElementCollisionProfile? current,
+    WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
+  }) {
+    return applyCells(
+      source: source,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      cells: <GridPos>[cell],
+      operation: ElementCollisionAuthoringOperation.remove,
+      current: current,
+      fallbackPadding: fallbackPadding,
+    );
+  }
+
+  /// Applies an explicit list of authored cells in a stable/idempotent way.
+  ///
+  /// This is the main building block used by the dedicated collision editor:
+  /// - brush drags resolve to a list of cells
+  /// - polygons resolve to a list of cells
+  /// - this method folds those cells into author overrides
+  ///
+  /// Importantly, repeated application of the same stroke must *not* toggle
+  /// cells on and off. The editor is shape-oriented, so the operation means
+  /// "make these cells present" or "make these cells absent".
+  ElementCollisionProfile applyCells({
+    required TilesetSourceRect source,
+    required int tileWidth,
+    required int tileHeight,
+    required Iterable<GridPos> cells,
+    required ElementCollisionAuthoringOperation operation,
+    ElementCollisionProfile? current,
+    WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
+  }) {
     final snapshot = describe(
       source: source,
       tileWidth: tileWidth,
@@ -133,7 +188,6 @@ class ElementCollisionAuthoringService {
       profile: current,
       fallbackPadding: fallbackPadding,
     );
-    final addKey = _key(cell);
     final nextAdded = <String, GridPos>{
       for (final value in snapshot.manualAddedCells) _key(value): value,
     };
@@ -141,11 +195,17 @@ class ElementCollisionAuthoringService {
       for (final value in snapshot.manualRemovedCells) _key(value): value,
     };
 
-    if (nextAdded.containsKey(addKey)) {
-      nextAdded.remove(addKey);
-    } else {
-      nextAdded[addKey] = GridPos(x: cell.x, y: cell.y);
-      nextRemoved.remove(addKey);
+    for (final cell in _normalizeWithinSource(cells.toList(growable: false),
+        source: source)) {
+      final key = _key(cell);
+      switch (operation) {
+        case ElementCollisionAuthoringOperation.add:
+          nextAdded[key] = cell;
+          nextRemoved.remove(key);
+        case ElementCollisionAuthoringOperation.remove:
+          nextRemoved[key] = cell;
+          nextAdded.remove(key);
+      }
     }
 
     return rebuild(
@@ -158,43 +218,53 @@ class ElementCollisionAuthoringService {
     );
   }
 
-  ElementCollisionProfile applyRemoveModeTap({
+  ElementCollisionProfile applyBrushStroke({
     required TilesetSourceRect source,
     required int tileWidth,
     required int tileHeight,
-    required GridPos cell,
+    required List<Offset> points,
+    required ElementCollisionAuthoringOperation operation,
     ElementCollisionProfile? current,
     WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
   }) {
-    final snapshot = describe(
+    final cells = shapeRasterizerService.rasterizeBrushStroke(
+      points: points,
+      gridWidth: source.width,
+      gridHeight: source.height,
+    );
+    return applyCells(
       source: source,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
-      profile: current,
+      cells: cells,
+      operation: operation,
+      current: current,
       fallbackPadding: fallbackPadding,
     );
-    final removeKey = _key(cell);
-    final nextAdded = <String, GridPos>{
-      for (final value in snapshot.manualAddedCells) _key(value): value,
-    };
-    final nextRemoved = <String, GridPos>{
-      for (final value in snapshot.manualRemovedCells) _key(value): value,
-    };
+  }
 
-    if (nextRemoved.containsKey(removeKey)) {
-      nextRemoved.remove(removeKey);
-    } else {
-      nextRemoved[removeKey] = GridPos(x: cell.x, y: cell.y);
-      nextAdded.remove(removeKey);
-    }
-
-    return rebuild(
+  ElementCollisionProfile applyPolygon({
+    required TilesetSourceRect source,
+    required int tileWidth,
+    required int tileHeight,
+    required List<Offset> vertices,
+    required ElementCollisionAuthoringOperation operation,
+    ElementCollisionProfile? current,
+    WarpTriggerPadding fallbackPadding = const WarpTriggerPadding(),
+  }) {
+    final cells = shapeRasterizerService.rasterizePolygon(
+      vertices: vertices,
+      gridWidth: source.width,
+      gridHeight: source.height,
+    );
+    return applyCells(
       source: source,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
-      padding: snapshot.padding,
-      manualAddedCells: nextAdded.values.toList(growable: false),
-      manualRemovedCells: nextRemoved.values.toList(growable: false),
+      cells: cells,
+      operation: operation,
+      current: current,
+      fallbackPadding: fallbackPadding,
     );
   }
 
@@ -259,6 +329,11 @@ class ElementCollisionAuthoringService {
   }
 
   String _key(GridPos cell) => '${cell.x}:${cell.y}';
+}
+
+enum ElementCollisionAuthoringOperation {
+  add,
+  remove,
 }
 
 class ElementCollisionAuthoringSnapshot {
