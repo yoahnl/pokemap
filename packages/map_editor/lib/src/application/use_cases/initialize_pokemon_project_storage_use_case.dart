@@ -14,6 +14,24 @@ import '../ports/project_workspace.dart';
 class InitializePokemonProjectStorageUseCase {
   const InitializePokemonProjectStorageUseCase();
 
+  static const Map<String, String> _catalogDescriptions = <String, String>{
+    'moves': 'Move catalog for the local Pokemon project database.',
+    'abilities': 'Ability catalog for the local Pokemon project database.',
+    'items': 'Item catalog for the local Pokemon project database.',
+    'types': 'Type catalog for the local Pokemon project database.',
+    'growth_rates':
+        'Growth rate catalog for the local Pokemon project database.',
+    'natures': 'Nature catalog for the local Pokemon project database.',
+    'egg_groups': 'Egg group catalog for the local Pokemon project database.',
+    'habitats': 'Habitat catalog for the local Pokemon project database.',
+    'generations':
+        'Generation catalog for the local Pokemon project database.',
+    'version_groups':
+        'Version group catalog for the local Pokemon project database.',
+    'encounter_rules':
+        'Encounter rule catalog for the local Pokemon project database.',
+  };
+
   static const Map<String, String> _catalogFiles = <String, String>{
     'moves': 'catalogs/moves.json',
     'abilities': 'catalogs/abilities.json',
@@ -52,18 +70,35 @@ class InitializePokemonProjectStorageUseCase {
       <String, Object?>{
         'schemaVersion': 1,
         'kind': 'pokemon_data_manifest',
+        'meta': <String, Object?>{
+          'description':
+              'Root manifest for the local Pokemon data stored inside a project workspace.',
+          'notes': const <Object?>[],
+        },
         'catalogFiles': _catalogFiles,
+        'futureDataFolders': const <String, String>{
+          'species': 'species/',
+          'learnsets': 'learnsets/',
+          'evolutions': 'evolutions/',
+          'spriteSets': 'sprite_sets/',
+        },
       },
     );
 
     for (final entry in _catalogFiles.entries) {
+      final catalogName = _catalogNameForManifestKey(entry.key);
       await _writeJsonIfAbsent(
         workspace,
         'data/pokemon/${entry.value}',
         <String, Object?>{
           'schemaVersion': 1,
           'kind': 'pokemon_catalog',
-          'catalog': _catalogNameForManifestKey(entry.key),
+          'catalog': catalogName,
+          'meta': <String, Object?>{
+            'description': _catalogDescriptions[catalogName]!,
+            'sourcePriority': const <String>['internal'],
+            'notes': const <Object?>[],
+          },
           'entries': const <Object?>[],
         },
       );

@@ -109,6 +109,17 @@ void main() {
       );
       expect(manifest['schemaVersion'], 1);
       expect(manifest['kind'], 'pokemon_data_manifest');
+      expect(manifest['meta'], <String, Object?>{
+        'description':
+            'Root manifest for the local Pokemon data stored inside a project workspace.',
+        'notes': <Object?>[],
+      });
+      expect(manifest['futureDataFolders'], <String, Object?>{
+        'species': 'species/',
+        'learnsets': 'learnsets/',
+        'evolutions': 'evolutions/',
+        'spriteSets': 'sprite_sets/',
+      });
 
       final catalogFiles = manifest['catalogFiles'] as Map<String, dynamic>;
       expect(catalogFiles.keys, containsAll(<String>[
@@ -132,8 +143,34 @@ void main() {
         expect(catalog['schemaVersion'], 1);
         expect(catalog['kind'], 'pokemon_catalog');
         expect(catalog['catalog'], entry.key);
+        expect(catalog['meta'], <String, Object?>{
+          'description': _expectedCatalogDescriptions[entry.key]!,
+          'sourcePriority': <Object?>['internal'],
+          'notes': <Object?>[],
+        });
         expect(catalog['entries'], isEmpty);
       }
+    });
+
+    test('keeps enriched contract absent from the monorepo root', () async {
+      await useCase.execute(workspace);
+
+      final rootManifest = File(
+        p.join(Directory.current.path, 'data', 'pokemon',
+            'pokemon_data_manifest.json'),
+      );
+      final rootMoves = File(
+        p.join(
+          Directory.current.path,
+          'data',
+          'pokemon',
+          'catalogs',
+          'moves.json',
+        ),
+      );
+
+      expect(await rootManifest.exists(), isFalse);
+      expect(await rootMoves.exists(), isFalse);
     });
 
     test('is idempotent and never overwrites an existing json file', () async {
@@ -240,6 +277,22 @@ const Map<String, String> _expectedCatalogs = <String, String>{
   'generations': 'data/pokemon/catalogs/generations.json',
   'version_groups': 'data/pokemon/catalogs/version_groups.json',
   'encounter_rules': 'data/pokemon/catalogs/encounter_rules.json',
+};
+
+const Map<String, String> _expectedCatalogDescriptions = <String, String>{
+  'moves': 'Move catalog for the local Pokemon project database.',
+  'abilities': 'Ability catalog for the local Pokemon project database.',
+  'items': 'Item catalog for the local Pokemon project database.',
+  'types': 'Type catalog for the local Pokemon project database.',
+  'growth_rates': 'Growth rate catalog for the local Pokemon project database.',
+  'natures': 'Nature catalog for the local Pokemon project database.',
+  'egg_groups': 'Egg group catalog for the local Pokemon project database.',
+  'habitats': 'Habitat catalog for the local Pokemon project database.',
+  'generations': 'Generation catalog for the local Pokemon project database.',
+  'version_groups':
+      'Version group catalog for the local Pokemon project database.',
+  'encounter_rules':
+      'Encounter rule catalog for the local Pokemon project database.',
 };
 
 Future<Map<String, dynamic>> _readJsonMap(String path) async {
