@@ -23,8 +23,19 @@ ElementCollisionProfile _$ElementCollisionProfileFromJson(
 mixin _$ElementCollisionProfile {
   ElementCollisionProfileSource get source =>
       throw _privateConstructorUsedError;
-  WarpTriggerPadding get padding => throw _privateConstructorUsedError;
-  List<GridPos> get cells => throw _privateConstructorUsedError;
+  WarpTriggerPadding get padding =>
+      throw _privateConstructorUsedError; // Runtime truth: the gameplay/runtime layers only read these final cells.
+// Editor-only concepts such as base cells or paint modes must be resolved
+// before data reaches this field.
+  List<GridPos> get cells =>
+      throw _privateConstructorUsedError; // Authoring intent: cells explicitly added on top of the base shape derived
+// from padding. Keeping this intent lets the editor recompute `cells`
+// deterministically whenever padding changes.
+  List<GridPos> get manualAddedCells =>
+      throw _privateConstructorUsedError; // Authoring intent: cells explicitly removed from the base shape derived
+// from padding. Runtime ignores this field; the editor folds it into
+// `cells` before save/use.
+  List<GridPos> get manualRemovedCells => throw _privateConstructorUsedError;
 
   /// Serializes this ElementCollisionProfile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -45,7 +56,9 @@ abstract class $ElementCollisionProfileCopyWith<$Res> {
   $Res call(
       {ElementCollisionProfileSource source,
       WarpTriggerPadding padding,
-      List<GridPos> cells});
+      List<GridPos> cells,
+      List<GridPos> manualAddedCells,
+      List<GridPos> manualRemovedCells});
 
   $WarpTriggerPaddingCopyWith<$Res> get padding;
 }
@@ -69,6 +82,8 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
     Object? source = null,
     Object? padding = null,
     Object? cells = null,
+    Object? manualAddedCells = null,
+    Object? manualRemovedCells = null,
   }) {
     return _then(_value.copyWith(
       source: null == source
@@ -82,6 +97,14 @@ class _$ElementCollisionProfileCopyWithImpl<$Res,
       cells: null == cells
           ? _value.cells
           : cells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
+      manualAddedCells: null == manualAddedCells
+          ? _value.manualAddedCells
+          : manualAddedCells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
+      manualRemovedCells: null == manualRemovedCells
+          ? _value.manualRemovedCells
+          : manualRemovedCells // ignore: cast_nullable_to_non_nullable
               as List<GridPos>,
     ) as $Val);
   }
@@ -109,7 +132,9 @@ abstract class _$$ElementCollisionProfileImplCopyWith<$Res>
   $Res call(
       {ElementCollisionProfileSource source,
       WarpTriggerPadding padding,
-      List<GridPos> cells});
+      List<GridPos> cells,
+      List<GridPos> manualAddedCells,
+      List<GridPos> manualRemovedCells});
 
   @override
   $WarpTriggerPaddingCopyWith<$Res> get padding;
@@ -133,6 +158,8 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
     Object? source = null,
     Object? padding = null,
     Object? cells = null,
+    Object? manualAddedCells = null,
+    Object? manualRemovedCells = null,
   }) {
     return _then(_$ElementCollisionProfileImpl(
       source: null == source
@@ -147,6 +174,14 @@ class __$$ElementCollisionProfileImplCopyWithImpl<$Res>
           ? _value._cells
           : cells // ignore: cast_nullable_to_non_nullable
               as List<GridPos>,
+      manualAddedCells: null == manualAddedCells
+          ? _value._manualAddedCells
+          : manualAddedCells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
+      manualRemovedCells: null == manualRemovedCells
+          ? _value._manualRemovedCells
+          : manualRemovedCells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
     ));
   }
 }
@@ -158,8 +193,12 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   const _$ElementCollisionProfileImpl(
       {this.source = ElementCollisionProfileSource.generated,
       this.padding = const WarpTriggerPadding(),
-      final List<GridPos> cells = const []})
-      : _cells = cells;
+      final List<GridPos> cells = const [],
+      final List<GridPos> manualAddedCells = const [],
+      final List<GridPos> manualRemovedCells = const []})
+      : _cells = cells,
+        _manualAddedCells = manualAddedCells,
+        _manualRemovedCells = manualRemovedCells;
 
   factory _$ElementCollisionProfileImpl.fromJson(Map<String, dynamic> json) =>
       _$$ElementCollisionProfileImplFromJson(json);
@@ -170,7 +209,13 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
   @override
   @JsonKey()
   final WarpTriggerPadding padding;
+// Runtime truth: the gameplay/runtime layers only read these final cells.
+// Editor-only concepts such as base cells or paint modes must be resolved
+// before data reaches this field.
   final List<GridPos> _cells;
+// Runtime truth: the gameplay/runtime layers only read these final cells.
+// Editor-only concepts such as base cells or paint modes must be resolved
+// before data reaches this field.
   @override
   @JsonKey()
   List<GridPos> get cells {
@@ -179,9 +224,41 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
     return EqualUnmodifiableListView(_cells);
   }
 
+// Authoring intent: cells explicitly added on top of the base shape derived
+// from padding. Keeping this intent lets the editor recompute `cells`
+// deterministically whenever padding changes.
+  final List<GridPos> _manualAddedCells;
+// Authoring intent: cells explicitly added on top of the base shape derived
+// from padding. Keeping this intent lets the editor recompute `cells`
+// deterministically whenever padding changes.
+  @override
+  @JsonKey()
+  List<GridPos> get manualAddedCells {
+    if (_manualAddedCells is EqualUnmodifiableListView)
+      return _manualAddedCells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_manualAddedCells);
+  }
+
+// Authoring intent: cells explicitly removed from the base shape derived
+// from padding. Runtime ignores this field; the editor folds it into
+// `cells` before save/use.
+  final List<GridPos> _manualRemovedCells;
+// Authoring intent: cells explicitly removed from the base shape derived
+// from padding. Runtime ignores this field; the editor folds it into
+// `cells` before save/use.
+  @override
+  @JsonKey()
+  List<GridPos> get manualRemovedCells {
+    if (_manualRemovedCells is EqualUnmodifiableListView)
+      return _manualRemovedCells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_manualRemovedCells);
+  }
+
   @override
   String toString() {
-    return 'ElementCollisionProfile(source: $source, padding: $padding, cells: $cells)';
+    return 'ElementCollisionProfile(source: $source, padding: $padding, cells: $cells, manualAddedCells: $manualAddedCells, manualRemovedCells: $manualRemovedCells)';
   }
 
   @override
@@ -191,13 +268,22 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
             other is _$ElementCollisionProfileImpl &&
             (identical(other.source, source) || other.source == source) &&
             (identical(other.padding, padding) || other.padding == padding) &&
-            const DeepCollectionEquality().equals(other._cells, _cells));
+            const DeepCollectionEquality().equals(other._cells, _cells) &&
+            const DeepCollectionEquality()
+                .equals(other._manualAddedCells, _manualAddedCells) &&
+            const DeepCollectionEquality()
+                .equals(other._manualRemovedCells, _manualRemovedCells));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, source, padding,
-      const DeepCollectionEquality().hash(_cells));
+  int get hashCode => Object.hash(
+      runtimeType,
+      source,
+      padding,
+      const DeepCollectionEquality().hash(_cells),
+      const DeepCollectionEquality().hash(_manualAddedCells),
+      const DeepCollectionEquality().hash(_manualRemovedCells));
 
   /// Create a copy of ElementCollisionProfile
   /// with the given fields replaced by the non-null parameter values.
@@ -220,7 +306,9 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   const factory _ElementCollisionProfile(
       {final ElementCollisionProfileSource source,
       final WarpTriggerPadding padding,
-      final List<GridPos> cells}) = _$ElementCollisionProfileImpl;
+      final List<GridPos> cells,
+      final List<GridPos> manualAddedCells,
+      final List<GridPos> manualRemovedCells}) = _$ElementCollisionProfileImpl;
 
   factory _ElementCollisionProfile.fromJson(Map<String, dynamic> json) =
       _$ElementCollisionProfileImpl.fromJson;
@@ -228,9 +316,22 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
   @override
   ElementCollisionProfileSource get source;
   @override
-  WarpTriggerPadding get padding;
+  WarpTriggerPadding
+      get padding; // Runtime truth: the gameplay/runtime layers only read these final cells.
+// Editor-only concepts such as base cells or paint modes must be resolved
+// before data reaches this field.
   @override
-  List<GridPos> get cells;
+  List<GridPos>
+      get cells; // Authoring intent: cells explicitly added on top of the base shape derived
+// from padding. Keeping this intent lets the editor recompute `cells`
+// deterministically whenever padding changes.
+  @override
+  List<GridPos>
+      get manualAddedCells; // Authoring intent: cells explicitly removed from the base shape derived
+// from padding. Runtime ignores this field; the editor folds it into
+// `cells` before save/use.
+  @override
+  List<GridPos> get manualRemovedCells;
 
   /// Create a copy of ElementCollisionProfile
   /// with the given fields replaced by the non-null parameter values.

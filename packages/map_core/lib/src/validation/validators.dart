@@ -558,22 +558,48 @@ class ProjectValidator {
       );
     }
     final source = element.frames.primarySource;
+    _validateCollisionCellsList(
+      elementId: element.id,
+      source: source,
+      cells: profile.cells,
+      label: 'final',
+    );
+    _validateCollisionCellsList(
+      elementId: element.id,
+      source: source,
+      cells: profile.manualAddedCells,
+      label: 'manualAdded',
+    );
+    _validateCollisionCellsList(
+      elementId: element.id,
+      source: source,
+      cells: profile.manualRemovedCells,
+      label: 'manualRemoved',
+    );
+  }
+
+  static void _validateCollisionCellsList({
+    required String elementId,
+    required TilesetSourceRect source,
+    required List<GridPos> cells,
+    required String label,
+  }) {
     final seen = <String>{};
-    for (final cell in profile.cells) {
+    for (final cell in cells) {
       if (cell.x < 0 || cell.y < 0) {
         throw ValidationException(
-          'Element ${element.id} collision profile contains negative cell coordinates',
+          'Element $elementId collision profile contains negative $label cell coordinates',
         );
       }
       if (cell.x >= source.width || cell.y >= source.height) {
         throw ValidationException(
-          'Element ${element.id} collision cell (${cell.x}, ${cell.y}) is outside source bounds ${source.width}x${source.height}',
+          'Element $elementId $label collision cell (${cell.x}, ${cell.y}) is outside source bounds ${source.width}x${source.height}',
         );
       }
       final key = '${cell.x}:${cell.y}';
       if (!seen.add(key)) {
         throw ValidationException(
-          'Element ${element.id} collision profile contains duplicate cell ($key)',
+          'Element $elementId collision profile contains duplicate $label cell ($key)',
         );
       }
     }

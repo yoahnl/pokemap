@@ -20,6 +20,14 @@ _$ElementCollisionProfileImpl _$$ElementCollisionProfileImplFromJson(
               ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      manualAddedCells: (json['manualAddedCells'] as List<dynamic>?)
+              ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      manualRemovedCells: (json['manualRemovedCells'] as List<dynamic>?)
+              ?.map((e) => GridPos.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$ElementCollisionProfileImplToJson(
@@ -28,6 +36,10 @@ Map<String, dynamic> _$$ElementCollisionProfileImplToJson(
       'source': _$ElementCollisionProfileSourceEnumMap[instance.source]!,
       'padding': instance.padding.toJson(),
       'cells': instance.cells.map((e) => e.toJson()).toList(),
+      'manualAddedCells':
+          instance.manualAddedCells.map((e) => e.toJson()).toList(),
+      'manualRemovedCells':
+          instance.manualRemovedCells.map((e) => e.toJson()).toList(),
     };
 
 const _$ElementCollisionProfileSourceEnumMap = {

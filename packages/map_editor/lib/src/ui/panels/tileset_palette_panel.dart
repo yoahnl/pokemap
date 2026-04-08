@@ -21,9 +21,13 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
+import '../../application/services/element_collision_authoring_service.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
+
+const ElementCollisionAuthoringService _elementCollisionAuthoringService =
+    ElementCollisionAuthoringService();
 
 class _InspectorPulldownAction {
   const _InspectorPulldownAction({
@@ -2195,7 +2199,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     var selectedPresetKind = ElementPresetKind.generic;
     ElementCollisionProfile? collisionProfile;
     var collisionPadding = const WarpTriggerPadding();
-    var generatingCollision = false;
 
     final groups = List<ProjectMapGroup>.from(project.groups)
       ..sort((a, b) {
@@ -2404,10 +2407,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     onChanged: (next) {
                       setStateDialog(() {
                         collisionPadding = next;
-                        if (collisionProfile != null) {
-                          collisionProfile =
-                              collisionProfile!.copyWith(padding: next);
-                        }
+                        collisionProfile = _elementCollisionAuthoringService
+                            .recalculateFromPadding(
+                          source: source,
+                          tileWidth: tileWidth,
+                          tileHeight: tileHeight,
+                          padding: next,
+                          current: collisionProfile,
+                        );
                       });
                     },
                   ),
@@ -2418,33 +2425,20 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         child: PushButton(
                           controlSize: ControlSize.regular,
                           secondary: true,
-                          onPressed: generatingCollision
-                              ? null
-                              : () async {
-                                  setStateDialog(() {
-                                    generatingCollision = true;
-                                  });
-                                  final generated = await notifier
-                                      .generateElementCollisionProfile(
-                                    tilesetId: tilesetId,
-                                    source: source,
-                                    presetKind: selectedPresetKind,
-                                    padding: collisionPadding,
-                                  );
-                                  if (!mounted) return;
-                                  setStateDialog(() {
-                                    generatingCollision = false;
-                                    if (generated != null) {
-                                      collisionProfile = generated;
-                                      collisionPadding = generated.padding;
-                                    }
-                                  });
-                                },
-                          child: Text(
-                            generatingCollision
-                                ? 'Génération...'
-                                : 'Générer automatiquement la collision',
-                          ),
+                          onPressed: () {
+                            setStateDialog(() {
+                              collisionProfile =
+                                  _elementCollisionAuthoringService
+                                      .recalculateFromPadding(
+                                source: source,
+                                tileWidth: tileWidth,
+                                tileHeight: tileHeight,
+                                padding: collisionPadding,
+                                current: collisionProfile,
+                              );
+                            });
+                          },
+                          child: const Text('Recalculer + retouches'),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -2592,7 +2586,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     ElementCollisionProfile? collisionProfile = element.collisionProfile;
     var collisionPadding =
         collisionProfile?.padding ?? const WarpTriggerPadding();
-    var generatingCollision = false;
     var frames = List<TilesetVisualFrame>.from(element.frames);
     var shouldSave = false;
 
@@ -2798,10 +2791,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     onChanged: (next) {
                       setStateDialog(() {
                         collisionPadding = next;
-                        if (collisionProfile != null) {
-                          collisionProfile =
-                              collisionProfile!.copyWith(padding: next);
-                        }
+                        collisionProfile = _elementCollisionAuthoringService
+                            .recalculateFromPadding(
+                          source: frames.primarySource,
+                          tileWidth: tileWidth,
+                          tileHeight: tileHeight,
+                          padding: next,
+                          current: collisionProfile,
+                        );
                       });
                     },
                   ),
@@ -2812,33 +2809,20 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         child: PushButton(
                           controlSize: ControlSize.regular,
                           secondary: true,
-                          onPressed: generatingCollision
-                              ? null
-                              : () async {
-                                  setStateDialog(() {
-                                    generatingCollision = true;
-                                  });
-                                  final generated = await notifier
-                                      .generateElementCollisionProfile(
-                                    tilesetId: element.tilesetId,
-                                    source: frames.primarySource,
-                                    presetKind: selectedPresetKind,
-                                    padding: collisionPadding,
-                                  );
-                                  if (!mounted) return;
-                                  setStateDialog(() {
-                                    generatingCollision = false;
-                                    if (generated != null) {
-                                      collisionProfile = generated;
-                                      collisionPadding = generated.padding;
-                                    }
-                                  });
-                                },
-                          child: Text(
-                            generatingCollision
-                                ? 'Génération...'
-                                : 'Générer automatiquement la collision',
-                          ),
+                          onPressed: () {
+                            setStateDialog(() {
+                              collisionProfile =
+                                  _elementCollisionAuthoringService
+                                      .recalculateFromPadding(
+                                source: frames.primarySource,
+                                tileWidth: tileWidth,
+                                tileHeight: tileHeight,
+                                padding: collisionPadding,
+                                current: collisionProfile,
+                              );
+                            });
+                          },
+                          child: const Text('Recalculer + retouches'),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -6118,7 +6102,9 @@ class _CompactStepperRow extends StatelessWidget {
   }
 }
 
-class _ElementCollisionProfileEditor extends StatelessWidget {
+enum _ElementCollisionPaintMode { preview, add, remove }
+
+class _ElementCollisionProfileEditor extends StatefulWidget {
   const _ElementCollisionProfileEditor({
     required this.image,
     required this.source,
@@ -6138,11 +6124,26 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
   final ValueChanged<ElementCollisionProfile?> onProfileChanged;
 
   @override
+  State<_ElementCollisionProfileEditor> createState() =>
+      _ElementCollisionProfileEditorState();
+}
+
+class _ElementCollisionProfileEditorState
+    extends State<_ElementCollisionProfileEditor> {
+  _ElementCollisionPaintMode _paintMode = _ElementCollisionPaintMode.preview;
+
+  @override
   Widget build(BuildContext context) {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
-    final cells = _normalizedCells(profile?.cells ?? const []);
-    final padding = profile?.padding ?? draftPadding;
+    final snapshot = _elementCollisionAuthoringService.describe(
+      source: widget.source,
+      tileWidth: widget.tileWidth,
+      tileHeight: widget.tileHeight,
+      profile: widget.profile,
+      fallbackPadding: widget.draftPadding,
+    );
+    final padding = snapshot.padding;
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       decoration: BoxDecoration(
@@ -6162,7 +6163,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Collision overlay',
+                  'Collision par cases',
                   style: TextStyle(
                     color: label,
                     fontSize: 11,
@@ -6171,7 +6172,7 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
                 ),
               ),
               Text(
-                '${cells.length} cellule${cells.length > 1 ? 's' : ''}',
+                '${snapshot.finalCells.length} cellule${snapshot.finalCells.length > 1 ? 's' : ''}',
                 style: TextStyle(
                   color: secondary,
                   fontSize: 10,
@@ -6189,13 +6190,119 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Zone sombre = exclue par padding, contour cyan = zone active d’analyse.',
+            'Base = padding. Final = base + ajouts - suppressions.',
             style: TextStyle(
               color: secondary,
               fontSize: 10,
             ),
           ),
           const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _CollisionLegendChip(
+                label: 'Base ${snapshot.baseCells.length}',
+                color: Colors.cyanAccent,
+              ),
+              _CollisionLegendChip(
+                label: '+ Ajouts ${snapshot.manualAddedCells.length}',
+                color: Colors.greenAccent,
+              ),
+              _CollisionLegendChip(
+                label: '- Retraits ${snapshot.manualRemovedCells.length}',
+                color: Colors.redAccent,
+              ),
+              _CollisionLegendChip(
+                label: 'Final ${snapshot.finalCells.length}',
+                color: EditorChrome.inspectorJoyCoral,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _CollisionModeButton(
+                  label: 'Apercu',
+                  selected: _paintMode == _ElementCollisionPaintMode.preview,
+                  onPressed: () => setState(
+                    () => _paintMode = _ElementCollisionPaintMode.preview,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _CollisionModeButton(
+                  label: 'Ajouter',
+                  selected: _paintMode == _ElementCollisionPaintMode.add,
+                  onPressed: () => setState(
+                    () => _paintMode = _ElementCollisionPaintMode.add,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _CollisionModeButton(
+                  label: 'Retirer',
+                  selected: _paintMode == _ElementCollisionPaintMode.remove,
+                  onPressed: () => setState(
+                    () => _paintMode = _ElementCollisionPaintMode.remove,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _CollisionActionButton(
+                label: 'Reinitialiser retouches',
+                onPressed: () {
+                  widget.onProfileChanged(
+                    _elementCollisionAuthoringService.resetOverrides(
+                      source: widget.source,
+                      tileWidth: widget.tileWidth,
+                      tileHeight: widget.tileHeight,
+                      current: widget.profile,
+                      fallbackPadding: widget.draftPadding,
+                    ),
+                  );
+                },
+              ),
+              _CollisionActionButton(
+                label: 'Restaurer base seule',
+                onPressed: () {
+                  widget.onProfileChanged(
+                    _elementCollisionAuthoringService.resetOverrides(
+                      source: widget.source,
+                      tileWidth: widget.tileWidth,
+                      tileHeight: widget.tileHeight,
+                      current: widget.profile,
+                      fallbackPadding: widget.draftPadding,
+                    ),
+                  );
+                },
+              ),
+              _CollisionActionButton(
+                label: 'Vider toute la collision',
+                onPressed: () {
+                  widget.onProfileChanged(
+                    _elementCollisionAuthoringService.clearAllCollision(
+                      source: widget.source,
+                      tileWidth: widget.tileWidth,
+                      tileHeight: widget.tileHeight,
+                      current: widget.profile,
+                      fallbackPadding: widget.draftPadding,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           LayoutBuilder(
             builder: (context, constraints) {
               final boxHeight = math
@@ -6207,43 +6314,61 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (details) {
+                    if (_paintMode == _ElementCollisionPaintMode.preview) {
+                      return;
+                    }
                     final local = details.localPosition;
                     final size = Size(constraints.maxWidth, boxHeight);
                     final targetRect = _fitCollisionPreviewRect(
                       size: size,
-                      source: source,
-                      tileWidth: tileWidth,
-                      tileHeight: tileHeight,
+                      source: widget.source,
+                      tileWidth: widget.tileWidth,
+                      tileHeight: widget.tileHeight,
                     );
                     if (!targetRect.contains(local)) {
                       return;
                     }
                     final localX = local.dx - targetRect.left;
                     final localY = local.dy - targetRect.top;
-                    final cellWidth = targetRect.width / source.width;
-                    final cellHeight = targetRect.height / source.height;
-                    final cellX =
-                        (localX / cellWidth).floor().clamp(0, source.width - 1);
+                    final cellWidth = targetRect.width / widget.source.width;
+                    final cellHeight = targetRect.height / widget.source.height;
+                    final cellX = (localX / cellWidth)
+                        .floor()
+                        .clamp(0, widget.source.width - 1);
                     final cellY = (localY / cellHeight)
                         .floor()
-                        .clamp(0, source.height - 1);
-                    final key = '$cellX:$cellY';
-                    final next = <String, GridPos>{
-                      for (final cell in cells) '${cell.x}:${cell.y}': cell,
+                        .clamp(0, widget.source.height - 1);
+                    final tappedCell = GridPos(x: cellX, y: cellY);
+                    final next = switch (_paintMode) {
+                      _ElementCollisionPaintMode.add =>
+                        _elementCollisionAuthoringService.applyAddModeTap(
+                          source: widget.source,
+                          tileWidth: widget.tileWidth,
+                          tileHeight: widget.tileHeight,
+                          cell: tappedCell,
+                          current: widget.profile,
+                          fallbackPadding: widget.draftPadding,
+                        ),
+                      _ElementCollisionPaintMode.remove =>
+                        _elementCollisionAuthoringService.applyRemoveModeTap(
+                          source: widget.source,
+                          tileWidth: widget.tileWidth,
+                          tileHeight: widget.tileHeight,
+                          cell: tappedCell,
+                          current: widget.profile,
+                          fallbackPadding: widget.draftPadding,
+                        ),
+                      _ElementCollisionPaintMode.preview =>
+                        _elementCollisionAuthoringService
+                            .recalculateFromPadding(
+                          source: widget.source,
+                          tileWidth: widget.tileWidth,
+                          tileHeight: widget.tileHeight,
+                          padding: padding,
+                          current: widget.profile,
+                        ),
                     };
-                    if (next.containsKey(key)) {
-                      next.remove(key);
-                    } else {
-                      next[key] = GridPos(x: cellX, y: cellY);
-                    }
-                    onProfileChanged(
-                      ElementCollisionProfile(
-                        source: ElementCollisionProfileSource.manual,
-                        padding: padding,
-                        cells: _normalizedCells(
-                            next.values.toList(growable: false)),
-                      ),
-                    );
+                    widget.onProfileChanged(next);
                   },
                   child: DecoratedBox(
                     decoration: BoxDecoration(
@@ -6254,12 +6379,15 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
                     ),
                     child: CustomPaint(
                       painter: _ElementCollisionProfilePainter(
-                        image: image,
-                        source: source,
-                        tileWidth: tileWidth,
-                        tileHeight: tileHeight,
+                        image: widget.image,
+                        source: widget.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
                         padding: padding,
-                        cells: cells,
+                        baseCells: snapshot.baseCells,
+                        manualAddedCells: snapshot.manualAddedCells,
+                        manualRemovedCells: snapshot.manualRemovedCells,
+                        finalCells: snapshot.finalCells,
                       ),
                     ),
                   ),
@@ -6269,7 +6397,14 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Clique sur la grille pour activer/désactiver des cellules.',
+            switch (_paintMode) {
+              _ElementCollisionPaintMode.preview =>
+                'Apercu uniquement. Passe en mode Ajouter ou Retirer pour peindre les cellules.',
+              _ElementCollisionPaintMode.add =>
+                'Mode ajout: clique une case pour l’ajouter explicitement a la collision.',
+              _ElementCollisionPaintMode.remove =>
+                'Mode retrait: clique une case pour la retirer explicitement de la collision.',
+            },
             style: TextStyle(
               color: secondary,
               fontSize: 10,
@@ -6279,27 +6414,88 @@ class _ElementCollisionProfileEditor extends StatelessWidget {
       ),
     );
   }
+}
 
-  List<GridPos> _normalizedCells(List<GridPos> cells) {
-    final unique = <String, GridPos>{};
-    for (final cell in cells) {
-      if (cell.x < 0 || cell.y < 0) {
-        continue;
-      }
-      if (cell.x >= source.width || cell.y >= source.height) {
-        continue;
-      }
-      unique['${cell.x}:${cell.y}'] = GridPos(x: cell.x, y: cell.y);
-    }
-    final out = unique.values.toList(growable: false)
-      ..sort((a, b) {
-        final yCompare = a.y.compareTo(b.y);
-        if (yCompare != 0) {
-          return yCompare;
-        }
-        return a.x.compareTo(b.x);
-      });
-    return out;
+class _CollisionLegendChip extends StatelessWidget {
+  const _CollisionLegendChip({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: CupertinoColors.label.resolveFrom(context),
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _CollisionModeButton extends StatelessWidget {
+  const _CollisionModeButton({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = EditorChrome.inspectorJoyCoral;
+    final labelColor = CupertinoColors.label.resolveFrom(context);
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      minimumSize: Size.zero,
+      onPressed: onPressed,
+      color: selected ? accent.withValues(alpha: 0.18) : Colors.black26,
+      borderRadius: BorderRadius.circular(8),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected ? accent : labelColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _CollisionActionButton extends StatelessWidget {
+  const _CollisionActionButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return PushButton(
+      controlSize: ControlSize.small,
+      secondary: true,
+      onPressed: onPressed,
+      child: Text(label),
+    );
   }
 }
 
@@ -6476,7 +6672,10 @@ class _ElementCollisionProfilePainter extends CustomPainter {
     required this.tileWidth,
     required this.tileHeight,
     required this.padding,
-    required this.cells,
+    required this.baseCells,
+    required this.manualAddedCells,
+    required this.manualRemovedCells,
+    required this.finalCells,
   });
 
   final ui.Image image;
@@ -6484,7 +6683,10 @@ class _ElementCollisionProfilePainter extends CustomPainter {
   final int tileWidth;
   final int tileHeight;
   final WarpTriggerPadding padding;
-  final List<GridPos> cells;
+  final List<GridPos> baseCells;
+  final List<GridPos> manualAddedCells;
+  final List<GridPos> manualRemovedCells;
+  final List<GridPos> finalCells;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -6581,7 +6783,7 @@ class _ElementCollisionProfilePainter extends CustomPainter {
 
     final cellWidth = targetRect.width / source.width;
     final cellHeight = targetRect.height / source.height;
-    for (final cell in cells) {
+    for (final cell in baseCells) {
       final cellRect = Rect.fromLTWH(
         targetRect.left + cell.x * cellWidth,
         targetRect.top + cell.y * cellHeight,
@@ -6591,7 +6793,22 @@ class _ElementCollisionProfilePainter extends CustomPainter {
       canvas.drawRect(
         cellRect,
         Paint()
-          ..color = EditorChrome.inspectorJoyCoral.withValues(alpha: 0.32)
+          ..color = Colors.cyanAccent.withValues(alpha: 0.18)
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+    for (final cell in finalCells) {
+      final cellRect = Rect.fromLTWH(
+        targetRect.left + cell.x * cellWidth,
+        targetRect.top + cell.y * cellHeight,
+        cellWidth,
+        cellHeight,
+      );
+      canvas.drawRect(
+        cellRect,
+        Paint()
+          ..color = EditorChrome.inspectorJoyCoral.withValues(alpha: 0.18)
           ..style = PaintingStyle.fill,
       );
       canvas.drawRect(
@@ -6601,6 +6818,43 @@ class _ElementCollisionProfilePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.0,
       );
+    }
+
+    for (final cell in manualAddedCells) {
+      final cellRect = Rect.fromLTWH(
+        targetRect.left + cell.x * cellWidth,
+        targetRect.top + cell.y * cellHeight,
+        cellWidth,
+        cellHeight,
+      );
+      canvas.drawRect(
+        cellRect.deflate(1.5),
+        Paint()
+          ..color = Colors.greenAccent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4,
+      );
+    }
+
+    for (final cell in manualRemovedCells) {
+      final cellRect = Rect.fromLTWH(
+        targetRect.left + cell.x * cellWidth,
+        targetRect.top + cell.y * cellHeight,
+        cellWidth,
+        cellHeight,
+      );
+      canvas.drawRect(
+        cellRect,
+        Paint()
+          ..color = Colors.redAccent.withValues(alpha: 0.14)
+          ..style = PaintingStyle.fill,
+      );
+      final strikePaint = Paint()
+        ..color = Colors.redAccent.withValues(alpha: 0.9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.3;
+      canvas.drawLine(cellRect.topLeft, cellRect.bottomRight, strikePaint);
+      canvas.drawLine(cellRect.topRight, cellRect.bottomLeft, strikePaint);
     }
 
     final gridPaint = Paint()
@@ -6632,15 +6886,25 @@ class _ElementCollisionProfilePainter extends CustomPainter {
         oldDelegate.tileWidth != tileWidth ||
         oldDelegate.tileHeight != tileHeight ||
         oldDelegate.padding != padding ||
-        oldDelegate.cells.length != cells.length) {
+        !_sameCells(oldDelegate.baseCells, baseCells) ||
+        !_sameCells(oldDelegate.manualAddedCells, manualAddedCells) ||
+        !_sameCells(oldDelegate.manualRemovedCells, manualRemovedCells) ||
+        !_sameCells(oldDelegate.finalCells, finalCells)) {
       return true;
     }
-    for (var i = 0; i < cells.length; i++) {
-      if (cells[i] != oldDelegate.cells[i]) {
-        return true;
+    return false;
+  }
+
+  bool _sameCells(List<GridPos> a, List<GridPos> b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        return false;
       }
     }
-    return false;
+    return true;
   }
 }
 
