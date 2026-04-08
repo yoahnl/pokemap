@@ -12,10 +12,11 @@ Le contrat produit reste volontairement simple :
 - cette forme est convertie en cellules de collision
 - aucune logique pixel-perfect ou d’analyse d’image n’est introduite
 
-La refonte se concentre donc sur deux points :
+La refonte se concentre donc sur trois points :
 
-1. une couche applicative propre pour convertir des gestes auteur en cellules
-2. une vraie UI dédiée, large, lisible et outillée, au lieu d’un mini bloc compressé dans le formulaire d’élément
+1. une couche d’authoring où l’auteur dessine temporairement une forme
+2. une couche applicative propre qui convertit cette forme en cellules runtime
+3. une vraie UI dédiée, large, lisible et outillée, au lieu d’un mini bloc compressé dans le formulaire d’élément
 
 ## 2. Diagnostic du problème initial
 
@@ -33,7 +34,24 @@ Le projet disposait déjà de bonnes bases :
 
 Cette direction était saine, parce qu’elle gardait une seule vérité runtime.
 
-### 2.2 L’UX d’édition restait trop petite et trop “grille brute”
+### 2.2 Le backend de conversion restait trop brutal
+
+Le vrai échec métier du premier lot n’était pas la fermeture du polygone ni la seule persistance JSON.
+
+Le problème était plus profond :
+
+- l’auteur dessinait une silhouette plausible
+- puis la conversion vers la grille reprenait trop vite la main
+- le résultat final redevenait une masse de grosses cellules
+- la silhouette perçue du bâtiment était dégradée
+
+Autrement dit, on avait encore un “éditeur de cases avec décoration polygonale”, alors que le besoin produit est l’inverse :
+
+- UX = forme
+- backend = conversion
+- runtime = cellules
+
+### 2.3 L’UX d’édition restait trop petite et trop “grille brute”
 
 Le vrai point faible était l’expérience d’édition :
 
@@ -77,7 +95,7 @@ Les invariants suivants restent vrais après ce lot :
 
 - la vérité runtime reste `ElementCollisionProfile.cells`
 - le runtime/gameplay ne connaît pas le pinceau, le polygone, ni les overrides auteur
-- le `padding` continue à représenter la base automatique
+- le `padding` continue à représenter la base automatique, mais il redevient un mécanisme secondaire d’ajustement
 - les retouches auteur restent des corrections locales et déterministes
 - un rechargement d’élément reconstruit toujours la même forme finale
 - changer le padding recalcule la base, puis réapplique les retouches
@@ -161,16 +179,22 @@ Le flux complet est maintenant le suivant :
    - `padding`
    - `manualAddedCells`
    - `manualRemovedCells`
-4. `ElementCollisionAuthoringService.describe(...)` calcule :
+4. l’auteur manipule une forme transitoire côté éditeur :
+   - points de pinceau
+   - sommets de polygone
+5. `ElementCollisionAuthoringService.describe(...)` calcule :
    - `baseCells`
    - `finalCells`
-5. les interactions UI produisent soit :
-   - une liste de points de stroke
-   - une liste de sommets de polygone
 6. `ElementCollisionShapeRasterizerService` convertit ces formes en `GridPos`
 7. `ElementCollisionAuthoringService` applique les cellules en mode ajout/retrait
 8. le profil sauvegardé contient toujours `cells` comme vérité finale
 9. le runtime continue à lire uniquement `cells`
+
+Important :
+
+- la forme auteur est aujourd’hui une vérité **transitoire d’édition**
+- elle n’est pas persistée comme vérité runtime
+- la persistance reste volontairement alignée sur le contrat du moteur : `collisionProfile.cells`
 
 ## 7. Fonctionnement du pinceau
 
@@ -237,31 +261,39 @@ Le mode polygone reprend désormais une interaction explicitement inspirée de T
 
 ### Règle de rasterisation retenue
 
-Une cellule est retenue si au moins une de ces conditions est vraie :
+La logique retenue n’est plus :
 
-- le centre de la cellule est dans le polygone
-- un sommet du polygone est dans l’intérieur utile de la cellule
-- une arête du polygone coupe l’intérieur utile de la cellule
+- “toute cellule touchée par la forme est prise”
 
-Détail important :
+Cette règle était précisément la cause des gros débordements visuels.
 
-- l’intersection ne se fait pas sur le bord exact de la cellule
-- on travaille sur un rectangle légèrement dégonflé
-- cela évite de remplir des cellules simplement “touchées” par la frontière
-- ce choix améliore le comportement sur les formes concaves
+La logique livrée est maintenant une règle hybride :
+
+- une cellule est retenue si son **centre** est dans le polygone
+- ou si sa **couverture estimée** par le polygone atteint un seuil minimal
+
+La couverture est estimée par supersampling :
+
+- `sampleResolution = 7`
+- donc `49` sous-échantillons par cellule
+- `minimumCoverage = 0.32`
+
+Ce compromis a été retenu parce qu’il règle les deux extrêmes :
+
+- les cellules juste effleurées par un coin du polygone restent vides
+- une silhouette fine ne s’élargit plus en gros bloc 3x3
+- les parties étroites mais réellement portées par la forme restent possibles via le test du centre
 
 Extrait clé :
 
 ```dart
-final interiorRect = cellRect.deflate(0.02);
+final center = Offset(cellRect.left + 0.5, cellRect.top + 0.5);
 if (_pointInPolygon(center, vertices)) {
   return true;
 }
-for (final vertex in vertices) {
-  if (interiorRect.contains(vertex)) {
-    return true;
-  }
-}
+
+final coverage = _estimateCellCoverage(vertices, cellRect);
+return coverage >= polygonPolicy.minimumCoverage;
 ```
 
 ## 9. Stratégie de conversion forme -> cellules
@@ -281,8 +313,10 @@ Sortie :
 1. clamp des points dans la zone source
 2. calcul de la bounding box du polygone
 3. balayage uniquement des cellules dans cette boîte
-4. test d’inclusion/intersection
-5. tri stable par `y`, puis `x`
+4. test du centre
+5. si besoin, estimation de couverture par supersampling
+6. sélection si la couverture atteint le seuil
+7. tri stable par `y`, puis `x`
 
 ## 9.2 Pinceau
 
@@ -372,6 +406,7 @@ L’éditeur dédié adopte une structure explicite :
 - contour du polygone en cours
 - premier point du polygone identifiable
 - feedback visuel de fermeture
+- preview des cellules backend que le polygone fermé produira
 
 ### Panneau latéral
 
@@ -484,6 +519,8 @@ Cas couverts :
 
 - rectangle simple
 - polygone concave
+- polygone très ras qui ne doit pas capturer de cellules effleurées
+- silhouette étroite qui doit rester plus fine qu’un remplissage “tout contact”
 - stroke continu
 - clamp + unicité + tri
 

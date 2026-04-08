@@ -15,17 +15,33 @@ import 'package:map_core/map_core.dart';
 /// - `(width, height)` is the bottom-right corner
 /// - a cell `(x, y)` occupies the rectangle `[x, x + 1] x [y, y + 1]`
 class ElementCollisionShapeRasterizerService {
-  const ElementCollisionShapeRasterizerService();
+  const ElementCollisionShapeRasterizerService({
+    this.polygonPolicy = const ElementCollisionPolygonRasterizationPolicy(),
+  });
+
+  final ElementCollisionPolygonRasterizationPolicy polygonPolicy;
 
   /// Rasterizes a polygon into cells.
   ///
-  /// We consider a cell selected when any of these is true:
-  /// - the cell center is inside the polygon
-  /// - a polygon vertex is inside the cell
-  /// - a polygon edge intersects the cell rectangle
+  /// The author manipulates a *shape*, not runtime cells. Conversion to grid
+  /// cells therefore uses a coverage rule rather than a blunt "any touch wins"
+  /// rule. That is the critical difference with the previous behaviour:
   ///
-  /// This makes the tool feel much more natural than a strict "center only"
-  /// fill, while still staying fully grid-based and predictable.
+  /// - cells lightly grazed by the polygon should usually stay empty
+  /// - cells meaningfully covered by the polygon should be retained
+  /// - narrow silhouettes should stay plausible instead of expanding into
+  ///   bulky blocks
+  ///
+  /// The default policy uses supersampling inside each cell and selects the
+  /// cell when:
+  /// - the cell center is inside the polygon, or
+  /// - the measured coverage ratio reaches [polygonPolicy.minimumCoverage]
+  ///
+  /// This hybrid rule matches the author intent better than either extreme:
+  /// - edge-touch alone is far too blocky
+  /// - coverage-only can erase very thin but intentional silhouette parts
+  /// - center-or-coverage keeps thin authored structures while ignoring
+  ///   meaningless corner grazes
   List<GridPos> rasterizePolygon({
     required List<Offset> vertices,
     required int gridWidth,
@@ -57,7 +73,7 @@ class ElementCollisionShapeRasterizerService {
     for (var y = minY; y <= maxY; y++) {
       for (var x = minX; x <= maxX; x++) {
         final cellRect = Rect.fromLTWH(x.toDouble(), y.toDouble(), 1, 1);
-        if (_polygonTouchesCell(normalizedVertices, cellRect)) {
+        if (_polygonCoversCell(normalizedVertices, cellRect)) {
           cells.add(GridPos(x: x, y: y));
         }
       }
@@ -114,48 +130,40 @@ class ElementCollisionShapeRasterizerService {
     return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
 
-  bool _polygonTouchesCell(List<Offset> vertices, Rect cellRect) {
+  bool _polygonCoversCell(List<Offset> vertices, Rect cellRect) {
     final center = Offset(cellRect.left + 0.5, cellRect.top + 0.5);
     if (_pointInPolygon(center, vertices)) {
       return true;
     }
 
-    // We intentionally test boundary interactions against a slightly deflated
-    // cell rectangle. This prevents "border only" contact from filling a cell
-    // that the polygon merely grazes on its edge, which keeps concave shapes
-    // much closer to the author's visual intent.
-    final interiorRect = cellRect.deflate(0.02);
-    if (interiorRect.width <= 0 || interiorRect.height <= 0) {
-      return false;
-    }
+    final coverage = _estimateCellCoverage(vertices, cellRect);
+    return coverage >= polygonPolicy.minimumCoverage;
+  }
 
-    for (final vertex in vertices) {
-      if (interiorRect.contains(vertex)) {
-        return true;
-      }
-    }
+  double _estimateCellCoverage(List<Offset> vertices, Rect cellRect) {
+    final resolution = polygonPolicy.sampleResolution;
+    final stepX = cellRect.width / resolution;
+    final stepY = cellRect.height / resolution;
+    var coveredSamples = 0;
+    var totalSamples = 0;
 
-    final cellEdges = <_Segment>[
-      _Segment(interiorRect.topLeft, interiorRect.topRight),
-      _Segment(interiorRect.topRight, interiorRect.bottomRight),
-      _Segment(interiorRect.bottomRight, interiorRect.bottomLeft),
-      _Segment(interiorRect.bottomLeft, interiorRect.topLeft),
-    ];
-
-    for (var i = 0; i < vertices.length; i++) {
-      final start = vertices[i];
-      final end = vertices[(i + 1) % vertices.length];
-      final polygonEdge = _Segment(start, end);
-      if (interiorRect.contains(start) || interiorRect.contains(end)) {
-        return true;
-      }
-      for (final cellEdge in cellEdges) {
-        if (_segmentsIntersect(polygonEdge, cellEdge)) {
-          return true;
+    for (var sampleY = 0; sampleY < resolution; sampleY++) {
+      for (var sampleX = 0; sampleX < resolution; sampleX++) {
+        totalSamples += 1;
+        final point = Offset(
+          cellRect.left + (sampleX + 0.5) * stepX,
+          cellRect.top + (sampleY + 0.5) * stepY,
+        );
+        if (_pointInPolygon(point, vertices)) {
+          coveredSamples += 1;
         }
       }
     }
-    return false;
+
+    if (totalSamples == 0) {
+      return 0;
+    }
+    return coveredSamples / totalSamples;
   }
 
   bool _pointInPolygon(Offset point, List<Offset> vertices) {
@@ -176,40 +184,6 @@ class ElementCollisionShapeRasterizerService {
       }
     }
     return inside;
-  }
-
-  bool _segmentsIntersect(_Segment a, _Segment b) {
-    final o1 = _orientation(a.start, a.end, b.start);
-    final o2 = _orientation(a.start, a.end, b.end);
-    final o3 = _orientation(b.start, b.end, a.start);
-    final o4 = _orientation(b.start, b.end, a.end);
-
-    if (o1 != o2 && o3 != o4) {
-      return true;
-    }
-
-    if (o1 == 0 && _onSegment(a.start, b.start, a.end)) return true;
-    if (o2 == 0 && _onSegment(a.start, b.end, a.end)) return true;
-    if (o3 == 0 && _onSegment(b.start, a.start, b.end)) return true;
-    if (o4 == 0 && _onSegment(b.start, a.end, b.end)) return true;
-
-    return false;
-  }
-
-  int _orientation(Offset a, Offset b, Offset c) {
-    final value = (b.dy - a.dy) * (c.dx - b.dx) - (b.dx - a.dx) * (c.dy - b.dy);
-    const epsilon = 1e-9;
-    if (value.abs() < epsilon) {
-      return 0;
-    }
-    return value > 0 ? 1 : 2;
-  }
-
-  bool _onSegment(Offset a, Offset b, Offset c) {
-    return b.dx <= math.max(a.dx, c.dx) + 1e-9 &&
-        b.dx + 1e-9 >= math.min(a.dx, c.dx) &&
-        b.dy <= math.max(a.dy, c.dy) + 1e-9 &&
-        b.dy + 1e-9 >= math.min(a.dy, c.dy);
   }
 
   GridPos _toCell(
@@ -283,9 +257,27 @@ class ElementCollisionShapeRasterizerService {
   }
 }
 
-class _Segment {
-  const _Segment(this.start, this.end);
+/// Backend conversion policy from an author polygon to runtime cells.
+///
+/// This stays editor-side only. Runtime still consumes only the final cells.
+class ElementCollisionPolygonRasterizationPolicy {
+  const ElementCollisionPolygonRasterizationPolicy({
+    this.sampleResolution = 7,
+    this.minimumCoverage = 0.32,
+  })  : assert(sampleResolution > 0),
+        assert(minimumCoverage >= 0),
+        assert(minimumCoverage <= 1);
 
-  final Offset start;
-  final Offset end;
+  /// Number of samples per axis used to estimate cell coverage.
+  ///
+  /// `7` means 49 sub-samples per cell, which stays cheap at editor scale
+  /// while giving a much more shape-faithful estimate than edge-touch logic.
+  final int sampleResolution;
+
+  /// Minimum coverage ratio required to keep a cell.
+  ///
+  /// The value is deliberately below 0.5 because runtime cells are still
+  /// coarse. We want narrow roofs or walls to survive conversion without
+  /// collapsing, but not so low that a corner graze selects a full cell.
+  final double minimumCoverage;
 }

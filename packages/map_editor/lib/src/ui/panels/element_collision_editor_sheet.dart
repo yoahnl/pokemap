@@ -86,6 +86,7 @@ class _ElementCollisionEditorSheetState
   @override
   Widget build(BuildContext context) {
     final snapshot = _describe();
+    final pendingPolygonPreviewCells = _buildPendingPolygonPreviewCells();
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     return LayoutBuilder(
@@ -302,6 +303,8 @@ class _ElementCollisionEditorSheetState
                                               showFinal: _showFinal,
                                               showOverrides: _showOverrides,
                                               pendingPolygon: _pendingPolygon,
+                                              pendingPolygonPreviewCells:
+                                                  pendingPolygonPreviewCells,
                                               hoverGridPoint: _hoverGridPoint,
                                               highlightPolygonClosure:
                                                   _shouldHighlightPolygonClosure,
@@ -327,6 +330,8 @@ class _ElementCollisionEditorSheetState
                           showBase: _showBase,
                           showFinal: _showFinal,
                           showOverrides: _showOverrides,
+                          pendingPolygonPreviewCount:
+                              pendingPolygonPreviewCells.length,
                           onShowGridChanged: (value) =>
                               setState(() => _showGrid = value),
                           onShowBaseChanged: (value) =>
@@ -375,6 +380,20 @@ class _ElementCollisionEditorSheetState
       tileHeight: widget.tileHeight,
       profile: _draftProfile,
       fallbackPadding: _draftPadding,
+    );
+  }
+
+  List<GridPos> _buildPendingPolygonPreviewCells() {
+    if (!_isPolygonTool(_tool) || _pendingPolygon.length < 3) {
+      return const <GridPos>[];
+    }
+    // The polygon itself is the authoring truth while editing. These preview
+    // cells are the backend projection that will actually reach runtime after
+    // closing/saving, so the author can judge the conversion before commit.
+    return _authoringService.shapeRasterizerService.rasterizePolygon(
+      vertices: _pendingPolygon,
+      gridWidth: widget.source.width,
+      gridHeight: widget.source.height,
     );
   }
 
@@ -692,6 +711,7 @@ class _EditorSidebar extends StatelessWidget {
     required this.onShowBaseChanged,
     required this.onShowFinalChanged,
     required this.onShowOverridesChanged,
+    this.pendingPolygonPreviewCount = 0,
     required this.paddingEditor,
   });
 
@@ -705,6 +725,7 @@ class _EditorSidebar extends StatelessWidget {
   final ValueChanged<bool> onShowBaseChanged;
   final ValueChanged<bool> onShowFinalChanged;
   final ValueChanged<bool> onShowOverridesChanged;
+  final int pendingPolygonPreviewCount;
   final Widget paddingEditor;
 
   @override
@@ -756,6 +777,17 @@ class _EditorSidebar extends StatelessWidget {
                   fontSize: 11,
                 ),
               ),
+              if (pendingPolygonPreviewCount > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Preview backend polygone: $pendingPolygonPreviewCount cellule${pendingPolygonPreviewCount > 1 ? 's' : ''}',
+                  style: TextStyle(
+                    color: Colors.yellowAccent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1128,6 +1160,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
     required this.showFinal,
     required this.showOverrides,
     required this.pendingPolygon,
+    required this.pendingPolygonPreviewCells,
     required this.hoverGridPoint,
     required this.highlightPolygonClosure,
   });
@@ -1142,6 +1175,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
   final bool showFinal;
   final bool showOverrides;
   final List<Offset> pendingPolygon;
+  final List<GridPos> pendingPolygonPreviewCells;
   final Offset? hoverGridPoint;
   final bool highlightPolygonClosure;
 
@@ -1203,6 +1237,20 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
           cellHeight: cellHeight,
           color: EditorChrome.inspectorJoyCoral.withValues(alpha: 0.18),
           strokeColor: EditorChrome.inspectorJoyCoral,
+        );
+      }
+    }
+
+    if (pendingPolygonPreviewCells.isNotEmpty) {
+      for (final cell in pendingPolygonPreviewCells) {
+        _fillCell(
+          canvas,
+          cell: cell,
+          targetRect: targetRect,
+          cellWidth: cellWidth,
+          cellHeight: cellHeight,
+          color: Colors.yellowAccent.withValues(alpha: 0.14),
+          strokeColor: Colors.yellowAccent.withValues(alpha: 0.85),
         );
       }
     }
@@ -1389,12 +1437,26 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
         oldDelegate.showBase != showBase ||
         oldDelegate.showFinal != showFinal ||
         oldDelegate.showOverrides != showOverrides ||
+        !_sameCells(oldDelegate.pendingPolygonPreviewCells,
+            pendingPolygonPreviewCells) ||
         oldDelegate.hoverGridPoint != hoverGridPoint ||
         oldDelegate.highlightPolygonClosure != highlightPolygonClosure ||
         !_sameOffsets(oldDelegate.pendingPolygon, pendingPolygon);
   }
 
   bool _sameOffsets(List<Offset> a, List<Offset> b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _sameCells(List<GridPos> a, List<GridPos> b) {
     if (a.length != b.length) {
       return false;
     }

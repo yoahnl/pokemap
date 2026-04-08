@@ -57,6 +57,62 @@ void main() {
       );
     });
 
+    test('keeps cells empty when the polygon only grazes them lightly', () {
+      final cells = service.rasterizePolygon(
+        vertices: const <Offset>[
+          Offset(0.0, 0.0),
+          Offset(3.0, 0.0),
+          Offset(0.4, 0.35),
+        ],
+        gridWidth: 4,
+        gridHeight: 3,
+      );
+
+      expect(
+        cells,
+        isEmpty,
+      );
+    });
+
+    test('keeps a narrow silhouette tighter than a touch-based fill', () {
+      final cells = service.rasterizePolygon(
+        vertices: const <Offset>[
+          Offset(1.5, 0.0),
+          Offset(2.2, 0.4),
+          Offset(2.8, 1.5),
+          Offset(2.2, 2.6),
+          Offset(1.5, 3.0),
+          Offset(0.8, 2.6),
+          Offset(0.2, 1.5),
+          Offset(0.8, 0.4),
+        ],
+        gridWidth: 4,
+        gridHeight: 4,
+      );
+
+      expect(
+        cells,
+        const <GridPos>[
+          GridPos(x: 1, y: 0),
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+          GridPos(x: 1, y: 2),
+        ],
+      );
+      expect(
+        cells,
+        isNot(
+          containsAll(const <GridPos>[
+            GridPos(x: 0, y: 0),
+            GridPos(x: 2, y: 0),
+            GridPos(x: 0, y: 2),
+            GridPos(x: 2, y: 2),
+          ]),
+        ),
+      );
+    });
+
     test('rasterizes a brush stroke continuously across dragged cells', () {
       final cells = service.rasterizeBrushStroke(
         points: const <Offset>[
