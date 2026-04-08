@@ -5,6 +5,7 @@ export 'trainer_use_cases.dart';
 export 'gameplay_zone_use_cases.dart';
 export 'initialize_pokemon_project_storage_use_case.dart';
 export 'layer_use_cases.dart';
+export 'list_pokedex_entries_use_case.dart';
 export 'map_use_cases.dart';
 export 'paint_use_cases.dart';
 export 'path_layer_use_cases.dart';
