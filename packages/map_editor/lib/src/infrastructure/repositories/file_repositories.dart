@@ -4,6 +4,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/pokemon_project_data_models.dart';
+import '../../application/ports/pokemon_read_repository.dart';
+import '../../application/ports/project_workspace.dart';
+import '../../application/services/pokemon_project_data_reader.dart';
 import '../../domain/repositories/repositories.dart';
 
 class FileProjectRepository implements ProjectRepository {
@@ -120,5 +124,61 @@ class FileTilesetRepository implements TilesetRepository {
     } catch (e) {
       throw const ValidationException('Failed to load tileset');
     }
+  }
+}
+
+/// Implémentation filesystem/workspace de la lecture locale Pokémon.
+///
+/// Cette classe sert de frontière infrastructurelle pour les use cases :
+/// la mécanique JSON concrète reste déléguée au lecteur local existant.
+class FilePokemonReadRepository implements PokemonReadRepository {
+  const FilePokemonReadRepository({
+    this.reader = const PokemonProjectDataReader(),
+  });
+
+  final PokemonProjectDataReader reader;
+
+  @override
+  Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) {
+    return reader.readManifest(workspace);
+  }
+
+  @override
+  Future<PokemonCatalogFile> readCatalogByKey(
+    ProjectWorkspace workspace,
+    String catalogKey,
+  ) {
+    return reader.readCatalogByKey(workspace, catalogKey);
+  }
+
+  @override
+  Future<List<PokemonSpeciesIndexEntry>> listSpeciesIndexEntries(
+    ProjectWorkspace workspace,
+  ) {
+    return reader.listSpeciesIndexEntries(workspace);
+  }
+
+  @override
+  Future<PokemonSpeciesFile> readSpeciesById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    return reader.readSpeciesById(workspace, speciesId);
+  }
+
+  @override
+  Future<PokemonLearnsetFile> readLearnsetById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    return reader.readLearnsetById(workspace, speciesId);
+  }
+
+  @override
+  Future<PokemonEvolutionFile> readEvolutionById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    return reader.readEvolutionById(workspace, speciesId);
   }
 }

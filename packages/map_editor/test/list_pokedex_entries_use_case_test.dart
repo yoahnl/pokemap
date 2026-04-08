@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokedex_list_entry.dart';
+import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
+import 'package:map_editor/src/application/ports/pokemon_read_repository.dart';
+import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/list_pokedex_entries_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
@@ -13,14 +16,10 @@ import 'package:path/path.dart' as p;
 void main() {
   late Directory tempProjectRoot;
   late ProjectFileSystem workspace;
-  late SeedPokemonDemoDataUseCase seedUseCase;
-  late ListPokedexEntriesUseCase useCase;
 
   setUp(() async {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokedex_list_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    seedUseCase = const SeedPokemonDemoDataUseCase();
-    useCase = const ListPokedexEntriesUseCase();
   });
 
   tearDown(() async {
@@ -29,9 +28,41 @@ void main() {
     }
   });
 
-  group('ListPokedexEntriesUseCase', () {
+  group('ListPokedexEntriesUseCase with abstract repository', () {
     test('returns a sorted pokedex list from the project workspace', () async {
-      await seedUseCase.execute(workspace);
+      final repository = _RecordingPokemonReadRepository(
+        indexEntries: <PokemonSpeciesIndexEntry>[
+          const PokemonSpeciesIndexEntry(
+            id: 'ivysaur',
+            nationalDex: 2,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            relativePath: 'data/pokemon/species/0002-ivysaur.json',
+          ),
+          const PokemonSpeciesIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            relativePath: 'data/pokemon/species/0001-bulbasaur.json',
+          ),
+        ],
+        speciesById: <String, PokemonSpeciesFile>{
+          'bulbasaur': _species(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            starterEligible: true,
+            genIntroduced: 1,
+          ),
+          'ivysaur': _species(
+            id: 'ivysaur',
+            nationalDex: 2,
+            starterEligible: false,
+            genIntroduced: 1,
+          ),
+        },
+      );
+      final useCase = ListPokedexEntriesUseCase(repository);
 
       final entries = await useCase.execute(workspace);
 
@@ -46,17 +77,117 @@ void main() {
       expect(bulbasaur.primaryName, 'Bulbasaur');
       expect(bulbasaur.types, <String>['grass', 'poison']);
       expect(bulbasaur.isStarterEligible, isTrue);
+      expect(repository.workspacesSeen, everyElement(same(workspace)));
     });
 
     test('does not expose filesystem concerns in the application model',
         () async {
-      await seedUseCase.execute(workspace);
+      final repository = _RecordingPokemonReadRepository(
+        indexEntries: <PokemonSpeciesIndexEntry>[
+          const PokemonSpeciesIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            relativePath: 'data/pokemon/species/0001-bulbasaur.json',
+          ),
+        ],
+        speciesById: <String, PokemonSpeciesFile>{
+          'bulbasaur': _species(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            starterEligible: true,
+            genIntroduced: 1,
+          ),
+        },
+      );
+      final useCase = ListPokedexEntriesUseCase(repository);
 
       final entries = await useCase.execute(workspace);
       final PokedexListEntry entry = entries.first;
       final dynamic dynamicEntry = entry;
 
       expect(() => dynamicEntry.relativePath, throwsA(isA<NoSuchMethodError>()));
+    });
+
+    test('returns starter eligibility from species gameplay flags', () async {
+      final repository = _RecordingPokemonReadRepository(
+        indexEntries: <PokemonSpeciesIndexEntry>[
+          const PokemonSpeciesIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            relativePath: 'data/pokemon/species/0001-bulbasaur.json',
+          ),
+          const PokemonSpeciesIndexEntry(
+            id: 'ivysaur',
+            nationalDex: 2,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            relativePath: 'data/pokemon/species/0002-ivysaur.json',
+          ),
+        ],
+        speciesById: <String, PokemonSpeciesFile>{
+          'bulbasaur': _species(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            starterEligible: true,
+            genIntroduced: 1,
+          ),
+          'ivysaur': _species(
+            id: 'ivysaur',
+            nationalDex: 2,
+            starterEligible: false,
+            genIntroduced: 1,
+          ),
+        },
+      );
+      final useCase = ListPokedexEntriesUseCase(repository);
+
+      final entries = await useCase.execute(workspace);
+
+      final bulbasaur = entries.firstWhere((entry) => entry.id == 'bulbasaur');
+      final ivysaur = entries.firstWhere((entry) => entry.id == 'ivysaur');
+      expect(bulbasaur.isStarterEligible, isTrue);
+      expect(ivysaur.isStarterEligible, isFalse);
+    });
+
+    test('fails explicitly when repository species data is invalid', () async {
+      final repository = _RecordingPokemonReadRepository(
+        indexEntries: <PokemonSpeciesIndexEntry>[
+          const PokemonSpeciesIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            relativePath: 'data/pokemon/species/0001-bulbasaur.json',
+          ),
+        ],
+        speciesError: const EditorPersistenceException('Invalid JSON in species'),
+      );
+      final useCase = ListPokedexEntriesUseCase(repository);
+
+      expect(
+        () => useCase.execute(workspace),
+        throwsA(
+          isA<EditorPersistenceException>().having(
+            (error) => error.message,
+            'message',
+            contains('Invalid JSON'),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('ListPokedexEntriesUseCase with filesystem repository', () {
+    late SeedPokemonDemoDataUseCase seedUseCase;
+    late ListPokedexEntriesUseCase useCase;
+
+    setUp(() {
+      seedUseCase = const SeedPokemonDemoDataUseCase();
+      useCase = const ListPokedexEntriesUseCase(FilePokemonReadRepository());
     });
 
     test('uses the workspace project data and not the monorepo root', () async {
@@ -101,7 +232,10 @@ void main() {
         FileProjectRepository(),
         const FileProjectWorkspaceFactory(),
       );
-      await createProjectUseCase.execute('Pokedex List Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+        'Pokedex List Project',
+        tempProjectRoot.path,
+      );
       await seedUseCase.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);
@@ -112,39 +246,129 @@ void main() {
       final after = await projectFile.readAsString();
       expect(after, before);
     });
-
-    test('returns starter eligibility from species gameplay flags', () async {
-      await seedUseCase.execute(workspace);
-
-      final entries = await useCase.execute(workspace);
-
-      final bulbasaur = entries.firstWhere((entry) => entry.id == 'bulbasaur');
-      final ivysaur = entries.firstWhere((entry) => entry.id == 'ivysaur');
-
-      expect(bulbasaur.isStarterEligible, isTrue);
-      expect(ivysaur.isStarterEligible, isFalse);
-    });
-
-    test('fails explicitly when species data is invalid', () async {
-      await seedUseCase.execute(workspace);
-
-      final speciesFile = File(
-        workspace.resolveProjectRelativePath(
-          'data/pokemon/species/0002-ivysaur.json',
-        ),
-      );
-      await speciesFile.writeAsString('{ invalid json');
-
-      expect(
-        () => useCase.execute(workspace),
-        throwsA(
-          isA<EditorPersistenceException>().having(
-            (error) => error.message,
-            'message',
-            contains('Invalid JSON'),
-          ),
-        ),
-      );
-    });
   });
+}
+
+class _RecordingPokemonReadRepository implements PokemonReadRepository {
+  _RecordingPokemonReadRepository({
+    required this.indexEntries,
+    this.speciesById = const <String, PokemonSpeciesFile>{},
+    this.speciesError,
+  });
+
+  final List<PokemonSpeciesIndexEntry> indexEntries;
+  final Map<String, PokemonSpeciesFile> speciesById;
+  final EditorApplicationException? speciesError;
+  final List<ProjectWorkspace> workspacesSeen = <ProjectWorkspace>[];
+
+  @override
+  Future<List<PokemonSpeciesIndexEntry>> listSpeciesIndexEntries(
+    ProjectWorkspace workspace,
+  ) async {
+    workspacesSeen.add(workspace);
+    return indexEntries;
+  }
+
+  @override
+  Future<PokemonSpeciesFile> readSpeciesById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) async {
+    workspacesSeen.add(workspace);
+    if (speciesError != null) {
+      throw speciesError!;
+    }
+    final species = speciesById[speciesId];
+    if (species == null) {
+      throw EditorNotFoundException('Pokemon species not found: $speciesId');
+    }
+    return species;
+  }
+
+  @override
+  Future<PokemonCatalogFile> readCatalogByKey(
+    ProjectWorkspace workspace,
+    String catalogKey,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<PokemonEvolutionFile> readEvolutionById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<PokemonLearnsetFile> readLearnsetById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) {
+    throw UnimplementedError();
+  }
+}
+
+PokemonSpeciesFile _species({
+  required String id,
+  required int nationalDex,
+  required bool starterEligible,
+  required int genIntroduced,
+}) {
+  return PokemonSpeciesFile(
+    id: id,
+    slug: id,
+    nationalDex: nationalDex,
+    names: <String, String>{'en': id == 'bulbasaur' ? 'Bulbasaur' : 'Ivysaur'},
+    speciesName: const <String, String>{'en': 'Seed Pokemon'},
+    genIntroduced: genIntroduced,
+    typing: const PokemonSpeciesTyping(types: <String>['grass', 'poison']),
+    baseStats: const PokemonSpeciesBaseStats(
+      hp: 45,
+      atk: 49,
+      def: 49,
+      spa: 65,
+      spd: 65,
+      spe: 45,
+      bst: 318,
+    ),
+    abilities: const PokemonSpeciesAbilities(
+      primary: 'overgrow',
+      hidden: 'chlorophyll',
+    ),
+    breeding: const PokemonSpeciesBreeding(
+      genderRatio: <String, double>{'male': 0.875, 'female': 0.125},
+      eggGroups: <String>['monster', 'grass'],
+      hatchCycles: 20,
+    ),
+    progression: const PokemonSpeciesProgression(
+      growthRateId: 'medium_slow',
+      baseExp: 64,
+      catchRate: 45,
+      baseFriendship: 50,
+    ),
+    evolutionRef: id,
+    learnsetRef: id,
+    spriteSetRef: id,
+    cryRef: id,
+    dexContent: const PokemonSpeciesDexContent(
+      heightM: 0.7,
+      weightKg: 6.9,
+      color: 'green',
+      flavorText: 'Demo entry',
+    ),
+    gameplayFlags: PokemonSpeciesGameplayFlags(
+      starterEligible: starterEligible,
+    ),
+    sourceMeta: const PokemonSpeciesSourceMeta(
+      seededBy: 'test',
+      seedVersion: 1,
+    ),
+  );
 }
