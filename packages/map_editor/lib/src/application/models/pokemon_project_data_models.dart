@@ -20,6 +20,14 @@ class PokemonDataMeta {
       notes: _readStringList(json['notes']),
     );
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'description': description,
+      'sourcePriority': List<String>.from(sourcePriority),
+      'notes': List<String>.from(notes),
+    };
+  }
 }
 
 class PokemonDataManifest {
@@ -48,6 +56,16 @@ class PokemonDataManifest {
       catalogFiles: _readStringMap(json['catalogFiles']),
       futureDataFolders: _readStringMap(json['futureDataFolders']),
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'schemaVersion': schemaVersion,
+      'kind': kind,
+      'meta': meta.toJson(),
+      'catalogFiles': Map<String, String>.from(catalogFiles),
+      'futureDataFolders': Map<String, String>.from(futureDataFolders),
+    };
   }
 }
 
@@ -86,6 +104,18 @@ class PokemonCatalogFile {
           .map((entry) => entry.cast<String, dynamic>())
           .toList(growable: false),
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'schemaVersion': schemaVersion,
+      'kind': kind,
+      'catalog': catalog,
+      'meta': meta.toJson(),
+      'entries': entries
+          .map((entry) => _deepCopyJsonMap(entry))
+          .toList(growable: false),
+    };
   }
 }
 
@@ -140,6 +170,12 @@ class PokemonSpeciesTyping {
   factory PokemonSpeciesTyping.fromJson(Map<String, dynamic> json) {
     return PokemonSpeciesTyping(types: _readStringList(json['types']));
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'types': List<String>.from(types),
+    };
+  }
 }
 
 class PokemonSpeciesBaseStats {
@@ -172,6 +208,18 @@ class PokemonSpeciesBaseStats {
       bst: (json['bst'] as num?)?.toInt() ?? 0,
     );
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'hp': hp,
+      'atk': atk,
+      'def': def,
+      'spa': spa,
+      'spd': spd,
+      'spe': spe,
+      'bst': bst,
+    };
+  }
 }
 
 class PokemonSpeciesAbilities {
@@ -191,6 +239,14 @@ class PokemonSpeciesAbilities {
       secondary: (json['secondary'] as String?)?.trim(),
       hidden: (json['hidden'] as String?)?.trim(),
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'primary': primary,
+      'secondary': secondary,
+      'hidden': hidden,
+    };
   }
 }
 
@@ -217,6 +273,16 @@ class PokemonSpeciesBreeding {
       hatchCycles: (json['hatchCycles'] as num?)?.toInt() ?? 0,
     );
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'genderRatio': genderRatio.map(
+        (key, value) => MapEntry(key, value),
+      ),
+      'eggGroups': List<String>.from(eggGroups),
+      'hatchCycles': hatchCycles,
+    };
+  }
 }
 
 class PokemonSpeciesProgression {
@@ -239,6 +305,15 @@ class PokemonSpeciesProgression {
       catchRate: (json['catchRate'] as num?)?.toInt() ?? 0,
       baseFriendship: (json['baseFriendship'] as num?)?.toInt() ?? 0,
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'growthRateId': growthRateId,
+      'baseExp': baseExp,
+      'catchRate': catchRate,
+      'baseFriendship': baseFriendship,
+    };
   }
 }
 
@@ -263,6 +338,15 @@ class PokemonSpeciesDexContent {
       flavorText: _readOptionalTrimmedString(json['flavorText']),
     );
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'heightM': heightM,
+      'weightKg': weightKg,
+      'color': color,
+      'flavorText': flavorText,
+    };
+  }
 }
 
 class PokemonSpeciesGameplayFlags {
@@ -283,6 +367,14 @@ class PokemonSpeciesGameplayFlags {
       tradeOnly: _readBool(json['tradeOnly']),
     );
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'starterEligible': starterEligible,
+      'giftOnly': giftOnly,
+      'tradeOnly': tradeOnly,
+    };
+  }
 }
 
 class PokemonSpeciesSourceMeta {
@@ -299,6 +391,13 @@ class PokemonSpeciesSourceMeta {
       seededBy: _readOptionalTrimmedString(json['seededBy']),
       seedVersion: (json['seedVersion'] as num?)?.toInt(),
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'seededBy': seededBy,
+      'seedVersion': seedVersion,
+    };
   }
 }
 
@@ -389,6 +488,29 @@ class PokemonSpeciesFile {
       ),
     );
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'slug': slug,
+      'nationalDex': nationalDex,
+      'names': Map<String, String>.from(names),
+      'speciesName': Map<String, String>.from(speciesName),
+      'genIntroduced': genIntroduced,
+      'typing': typing.toJson(),
+      'baseStats': baseStats.toJson(),
+      'abilities': abilities.toJson(),
+      'breeding': breeding.toJson(),
+      'progression': progression.toJson(),
+      'evolutionRef': evolutionRef,
+      'learnsetRef': learnsetRef,
+      'spriteSetRef': spriteSetRef,
+      'cryRef': cryRef,
+      'dexContent': dexContent.toJson(),
+      'gameplayFlags': gameplayFlags.toJson(),
+      'sourceMeta': sourceMeta.toJson(),
+    };
+  }
 }
 
 class PokemonLearnsetLevelUpEntry {
@@ -411,6 +533,15 @@ class PokemonLearnsetLevelUpEntry {
       source: (json['source'] as String?)?.trim() ?? '',
       versionGroup: (json['versionGroup'] as String?)?.trim() ?? '',
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'moveId': moveId,
+      'level': level,
+      'source': source,
+      'versionGroup': versionGroup,
+    };
   }
 }
 
@@ -444,6 +575,15 @@ class PokemonLearnsetFile {
           .toList(growable: false),
     );
   }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'speciesId': speciesId,
+      'startingMoves': List<String>.from(startingMoves),
+      'relearnMoves': List<String>.from(relearnMoves),
+      'levelUp': levelUp.map((entry) => entry.toJson()).toList(growable: false),
+    };
+  }
 }
 
 class PokemonEvolutionEntry {
@@ -463,6 +603,14 @@ class PokemonEvolutionEntry {
       method: (json['method'] as String?)?.trim() ?? '',
       minLevel: (json['minLevel'] as num?)?.toInt(),
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'targetSpeciesId': targetSpeciesId,
+      'method': method,
+      'minLevel': minLevel,
+    };
   }
 }
 
@@ -490,6 +638,16 @@ class PokemonEvolutionFile {
           )
           .toList(growable: false),
     );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'speciesId': speciesId,
+      'preEvolution': preEvolution,
+      'evolutions': evolutions
+          .map((entry) => entry.toJson())
+          .toList(growable: false),
+    };
   }
 }
 
@@ -550,4 +708,25 @@ double? _readDouble(Object? raw) {
 
 bool _readBool(Object? raw) {
   return raw == true;
+}
+
+Map<String, dynamic> _deepCopyJsonMap(Map<String, dynamic> source) {
+  return source.map(
+    (key, value) => MapEntry(key, _deepCopyJsonValue(value)),
+  );
+}
+
+Object? _deepCopyJsonValue(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return _deepCopyJsonMap(value);
+  }
+  if (value is Map) {
+    return value.map(
+      (key, nestedValue) => MapEntry(key.toString(), _deepCopyJsonValue(nestedValue)),
+    );
+  }
+  if (value is List) {
+    return value.map(_deepCopyJsonValue).toList(growable: false);
+  }
+  return value;
 }

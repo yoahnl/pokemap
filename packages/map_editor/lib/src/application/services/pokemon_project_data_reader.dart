@@ -132,6 +132,52 @@ class PokemonProjectDataReader {
     return _buildSpeciesIndexEntries(workspace);
   }
 
+  Future<String?> resolveSpeciesRelativePathById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) async {
+    final trimmedId = speciesId.trim();
+    if (trimmedId.isEmpty) {
+      throw const EditorValidationException('Pokemon species id cannot be empty');
+    }
+
+    final speciesDir = _speciesDirectory(workspace);
+    if (!await speciesDir.exists()) {
+      return null;
+    }
+
+    final normalizedId = _sanitizeSpeciesFileSegment(trimmedId);
+    final matches = <String>[];
+
+    await for (final entity in speciesDir.list(recursive: false)) {
+      if (entity is! File) continue;
+      if (p.extension(entity.path).toLowerCase() != '.json') continue;
+
+      final basename = p.basename(entity.path).toLowerCase();
+      if (basename == '$normalizedId.json' ||
+          basename.endsWith('-$normalizedId.json')) {
+        matches.add(
+          p.normalize(p.relative(entity.path, from: workspace.projectRoot)),
+        );
+      }
+    }
+
+    matches.sort();
+
+    if (matches.length > 1) {
+      throw EditorConflictException(
+        'Multiple Pokemon species files match the id "$trimmedId": '
+        '${matches.join(', ')}',
+      );
+    }
+
+    if (matches.isEmpty) {
+      return null;
+    }
+
+    return matches.single;
+  }
+
   Future<List<PokemonSpeciesIndexEntry>> _buildSpeciesIndexEntries(
     ProjectWorkspace workspace,
   ) async {
@@ -192,6 +238,13 @@ class PokemonProjectDataReader {
     return Directory(
       workspace.resolveProjectRelativePath('data/pokemon/species'),
     );
+  }
+
+  String _sanitizeSpeciesFileSegment(String value) {
+    final normalized = value.trim().toLowerCase();
+    final safe = normalized.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
+    final collapsed = safe.replaceAll(RegExp(r'_+'), '_');
+    return collapsed.replaceAll(RegExp(r'^_|_$'), '');
   }
 
   Future<Map<String, dynamic>> _readJsonFile(
