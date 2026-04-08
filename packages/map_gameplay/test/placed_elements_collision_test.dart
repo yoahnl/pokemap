@@ -68,6 +68,30 @@ void main() {
       expect(world.isBlocked(1, 1), isFalse);
     });
 
+    test('one GridPos blocks one full world cell and nothing sub-tile exists',
+        () {
+      final world = GameplayWorldState.initial(
+        map: _baseMap(
+          applyCollision: true,
+          elementId: 'tree',
+        ),
+        playerPos: const GridPos(x: 0, y: 0),
+        project: _project(
+          includeElement: true,
+          includeCollisionProfile: true,
+        ),
+      );
+
+      // Gameplay exposes collision strictly at integer cell coordinates.
+      // There is no API for partial-cell collision queries because the runtime
+      // cache itself is a List<bool> indexed by whole map cells.
+      expect(world.isBlocked(1, 1), isTrue);
+      expect(world.isBlocked(0, 1), isFalse);
+      expect(world.isBlocked(1, 0), isFalse);
+      expect(world.isBlocked(2, 1), isFalse);
+      expect(world.isBlocked(1, 2), isFalse);
+    });
+
     test(
         'legacy broken manual profile is migrated before gameplay reads placed element cells',
         () {
@@ -163,6 +187,85 @@ void main() {
       expect(world.isBlocked(3, 2), isFalse);
       expect(world.isBlocked(3, 5), isTrue);
       expect(world.isBlocked(0, 0), isFalse);
+    });
+
+    test(
+        'roof-like coarse cell set blocks the exact whole world cells it names',
+        () {
+      const roofCells = <GridPos>[
+        GridPos(x: 1, y: 0),
+        GridPos(x: 2, y: 0),
+        GridPos(x: 3, y: 0),
+        GridPos(x: 4, y: 0),
+        GridPos(x: 1, y: 1),
+        GridPos(x: 2, y: 1),
+        GridPos(x: 3, y: 1),
+        GridPos(x: 4, y: 1),
+        GridPos(x: 1, y: 2),
+        GridPos(x: 2, y: 2),
+        GridPos(x: 3, y: 2),
+        GridPos(x: 4, y: 2),
+      ];
+
+      final world = GameplayWorldState.initial(
+        map: MapData(
+          id: 'map',
+          name: 'Map',
+          size: const GridSize(width: 12, height: 12),
+          layers: [
+            MapLayer.tile(
+              id: 'tile',
+              name: 'Tile',
+              tiles: List<int>.filled(144, 0),
+            ),
+          ],
+          placedElements: const [
+            MapPlacedElement(
+              id: 'roof::3::4',
+              layerId: 'tile',
+              elementId: 'roof_house',
+              pos: GridPos(x: 3, y: 4),
+              applyCollision: true,
+            ),
+          ],
+        ),
+        playerPos: const GridPos(x: 0, y: 0),
+        project: ProjectManifest(
+          name: 'project',
+          maps: const [],
+          tilesets: const [
+            ProjectTilesetEntry(id: 'ts', name: 'ts', relativePath: 'ts.png'),
+          ],
+          elementCategories: const [
+            ProjectElementCategory(id: 'cat', name: 'cat'),
+          ],
+          elements: const [
+            ProjectElementEntry(
+              id: 'roof_house',
+              name: 'Roof House',
+              tilesetId: 'ts',
+              categoryId: 'cat',
+              frames: [
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 6, height: 7),
+                ),
+              ],
+              collisionProfile: ElementCollisionProfile(cells: roofCells),
+            ),
+          ],
+        ),
+      );
+
+      // World-space blocking is the direct translation of GridPos to whole
+      // world cells. The slope cannot survive beyond this lattice.
+      expect(world.isBlocked(4, 4), isTrue);
+      expect(world.isBlocked(5, 4), isTrue);
+      expect(world.isBlocked(6, 4), isTrue);
+      expect(world.isBlocked(7, 4), isTrue);
+      expect(world.isBlocked(3, 4), isFalse);
+      expect(world.isBlocked(8, 4), isFalse);
+      expect(world.isBlocked(4, 3), isFalse);
+      expect(world.isBlocked(4, 7), isFalse);
     });
   });
 }

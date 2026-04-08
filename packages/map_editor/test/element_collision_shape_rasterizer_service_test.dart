@@ -136,6 +136,45 @@ void main() {
       );
     });
 
+    test('roof-like polygon on a 6x7 source resolves to a coarse top block',
+        () {
+      final cells = service.rasterizePolygon(
+        vertices: const <Offset>[
+          Offset(1.7, 0.2),
+          Offset(4.3, 0.2),
+          Offset(5.5, 2.1),
+          Offset(4.9, 2.9),
+          Offset(1.1, 2.9),
+          Offset(0.5, 2.1),
+        ],
+        gridWidth: 6,
+        gridHeight: 7,
+      );
+
+      // This test documents the real structural limit of the current system:
+      // even with a visually sloped roof polygon, the runtime projection can
+      // only choose whole cells on a 6x7 lattice. The resulting top roof area
+      // therefore becomes a 4x3 block of GridPos, not a smooth slope.
+      expect(
+        cells,
+        const <GridPos>[
+          GridPos(x: 1, y: 0),
+          GridPos(x: 2, y: 0),
+          GridPos(x: 3, y: 0),
+          GridPos(x: 4, y: 0),
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+          GridPos(x: 3, y: 1),
+          GridPos(x: 4, y: 1),
+          GridPos(x: 1, y: 2),
+          GridPos(x: 2, y: 2),
+          GridPos(x: 3, y: 2),
+          GridPos(x: 4, y: 2),
+        ],
+      );
+      expect(cells.length, 12);
+    });
+
     test('clamps out-of-bounds points and keeps output unique + sorted', () {
       final cells = service.rasterizeBrushStroke(
         points: const <Offset>[
