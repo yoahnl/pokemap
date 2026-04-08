@@ -220,13 +220,20 @@ ElementCollisionProfile applyBrushStroke({
 
 ## 8. Fonctionnement du polygone / lasso
 
-Le mode polygone est volontairement simple et explicable :
+Le mode polygone reprend désormais une interaction explicitement inspirée de Tiled :
 
 - clic pour poser des points
 - l’utilisateur visualise le contour en cours
-- un bouton “Appliquer le polygone” ferme logiquement la forme
-- la zone du polygone est rasterisée en cellules
+- le premier point reste visuellement identifiable
+- si le curseur revient près du premier point, un feedback de fermeture apparaît
+- la fermeture peut se faire de quatre façons :
+  - cliquer près du premier point
+  - double-clic
+  - touche `Enter`
+  - bouton `Fermer le polygone`
+- une fois fermé, le polygone est immédiatement rasterisé en cellules
 - ces cellules sont appliquées en ajout ou en retrait
+- `Escape` annule le polygone en cours
 
 ### Règle de rasterisation retenue
 
@@ -294,7 +301,46 @@ Sortie :
 3. déduplication
 4. tri stable
 
-## 10. Choix UI
+## 10. Persistance de `cells`
+
+Le point le plus sensible de ce lot est la garantie suivante :
+
+> la forme finale affichée dans l’éditeur est exactement celle qui est persistée dans `collisionProfile.cells`
+
+Pour verrouiller cela, la sauvegarde ne renvoie plus directement `_draftProfile`.
+
+Au moment du clic sur `Sauvegarder`, l’éditeur :
+
+1. reconstruit un snapshot métier via `describe(...)`
+2. relit :
+   - `padding`
+   - `manualAddedCells`
+   - `manualRemovedCells`
+3. reconstruit un `ElementCollisionProfile` neuf via `rebuild(...)`
+4. ce `rebuild(...)` recalcule `cells` depuis :
+   - base padding
+   - ajouts
+   - retraits
+
+Ainsi, `cells` est réaligné sur le snapshot visible au moment exact de la sauvegarde.
+
+Extrait clé :
+
+```dart
+ElementCollisionProfile _buildSavedProfile() {
+  final snapshot = _describe();
+  return _authoringService.rebuild(
+    source: widget.source,
+    tileWidth: widget.tileWidth,
+    tileHeight: widget.tileHeight,
+    padding: snapshot.padding,
+    manualAddedCells: snapshot.manualAddedCells,
+    manualRemovedCells: snapshot.manualRemovedCells,
+  );
+}
+```
+
+## 11. Choix UI
 
 L’éditeur dédié adopte une structure explicite :
 
@@ -312,7 +358,7 @@ L’éditeur dédié adopte une structure explicite :
 - pinceau -
 - polygone +
 - polygone -
-- appliquer/effacer le polygone
+- fermer/effacer le polygone
 - réinitialiser retouches
 - restaurer base padding
 - vider toute collision
@@ -324,6 +370,8 @@ L’éditeur dédié adopte une structure explicite :
 - grille discrète
 - overlays lisibles
 - contour du polygone en cours
+- premier point du polygone identifiable
+- feedback visuel de fermeture
 
 ### Panneau latéral
 
@@ -332,7 +380,7 @@ L’éditeur dédié adopte une structure explicite :
 - options d’affichage
 - aide contextuelle
 
-## 11. Pourquoi le formulaire d’élément a été simplifié
+## 12. Pourquoi le formulaire d’élément a été simplifié
 
 Le formulaire d’élément dans `tileset_palette_panel.dart` n’essaie plus d’éditer toute la collision inline.
 
@@ -349,14 +397,15 @@ Ce choix est important produit :
 - la collision devient un workflow spécialisé
 - l’auteur n’est plus contraint dans un petit bloc vertical
 
-## 12. Fichiers créés
+## 13. Fichiers créés
 
 - [/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/application/services/element_collision_shape_rasterizer_service.dart](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/application/services/element_collision_shape_rasterizer_service.dart)
 - [/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart)
 - [/Users/karim/Project/pokemonProject/packages/map_editor/test/element_collision_shape_rasterizer_service_test.dart](/Users/karim/Project/pokemonProject/packages/map_editor/test/element_collision_shape_rasterizer_service_test.dart)
+- [/Users/karim/Project/pokemonProject/packages/map_editor/test/project_element_collision_persistence_test.dart](/Users/karim/Project/pokemonProject/packages/map_editor/test/project_element_collision_persistence_test.dart)
 - [/Users/karim/Project/pokemonProject/reports/element-collision-fullscreen-shape-editor-report.md](/Users/karim/Project/pokemonProject/reports/element-collision-fullscreen-shape-editor-report.md)
 
-## 13. Fichiers modifiés
+## 14. Fichiers modifiés
 
 ### [/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/application/services/element_collision_authoring_service.dart](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/application/services/element_collision_authoring_service.dart)
 
@@ -384,7 +433,17 @@ Raison :
   - `applyPolygon`
   - `applyBrushStroke`
 
-## 14. Ce que le runtime lit toujours
+### [/Users/karim/Project/pokemonProject/packages/map_editor/test/project_element_collision_persistence_test.dart](/Users/karim/Project/pokemonProject/packages/map_editor/test/project_element_collision_persistence_test.dart)
+
+Raison :
+
+- ajout de tests de persistance JSON sur :
+  - création d’élément
+  - mise à jour d’élément
+  - conservation de `padding`
+  - conservation de `cells`
+
+## 15. Ce que le runtime lit toujours
 
 Le runtime n’a pas été modifié dans ce lot.
 
@@ -397,7 +456,7 @@ Références utiles :
 
 Ce lot change donc l’authoring, pas le contrat runtime.
 
-## 15. Cas limites couverts
+## 16. Cas limites couverts
 
 Les cas suivants sont gérés explicitement :
 
@@ -407,12 +466,13 @@ Les cas suivants sont gérés explicitement :
 - doublons de cellules
 - ordre stable des cellules
 - rechargement après changement de padding
+- fermeture de polygone près du premier point
 - clear all
 - reset overrides
 - restore base
 - formes concaves simples
 
-## 16. Tests ajoutés / renforcés
+## 17. Tests ajoutés / renforcés
 
 ### Rasterizer
 
@@ -444,6 +504,24 @@ Cas couverts :
 - application d’un polygone
 - application d’un stroke
 
+### Persistance
+
+Fichier :
+
+- [/Users/karim/Project/pokemonProject/packages/map_editor/test/project_element_collision_persistence_test.dart](/Users/karim/Project/pokemonProject/packages/map_editor/test/project_element_collision_persistence_test.dart)
+
+Cas couverts :
+
+- création d’un élément avec `collisionProfile`
+- sérialisation `toJson()`
+- relecture `fromJson()`
+- conservation de :
+  - `padding`
+  - `cells`
+  - `manualAddedCells`
+  - `manualRemovedCells`
+- mise à jour d’un élément existant avec roundtrip JSON
+
 ### Non-régression gameplay
 
 Fichier exécuté :
@@ -454,7 +532,7 @@ Objectif :
 
 - confirmer que les collisions d’éléments restent consommées de la même façon côté gameplay
 
-## 17. Validations réellement exécutées
+## 18. Validations réellement exécutées
 
 ### Format
 
@@ -474,7 +552,7 @@ dart format test/element_collision_shape_rasterizer_service_test.dart
 
 ```bash
 cd /Users/karim/Project/pokemonProject/packages/map_editor
-flutter test test/element_collision_shape_rasterizer_service_test.dart test/element_collision_authoring_service_test.dart
+flutter test test/element_collision_shape_rasterizer_service_test.dart test/element_collision_authoring_service_test.dart test/project_element_collision_persistence_test.dart
 ```
 
 Résultat :
@@ -492,6 +570,7 @@ flutter analyze \
   lib/src/ui/panels/tileset_palette_panel.dart \
   test/element_collision_authoring_service_test.dart \
   test/element_collision_shape_rasterizer_service_test.dart \
+  test/project_element_collision_persistence_test.dart \
   --no-fatal-infos
 ```
 
@@ -514,7 +593,7 @@ Résultat :
 
 - OK, tous les tests passent
 
-## 18. Ce qui a été explicitement refusé
+## 19. Ce qui a été explicitement refusé
 
 Ce lot refuse explicitement :
 
@@ -527,16 +606,16 @@ Ce lot refuse explicitement :
 - deuxième système de collision runtime
 - dépendance lourde supplémentaire
 
-## 19. Limites connues
+## 20. Limites connues
 
 Les limites restantes sont assumées :
 
-- le polygone est validé via bouton, pas via un système de fermeture plus sophistiqué
 - le canevas reste basé sur une grille discrète, même si l’UX la masque mieux
 - il n’y a pas encore d’historique undo/redo local spécifique à cet éditeur
 - les anciens widgets inline sont encore présents dans `tileset_palette_panel.dart` pour limiter le risque de refonte trop large, même s’ils ne sont plus utilisés par le flux principal
+- il n’y a pas encore de test widget automatisé pilotant la sheet au clic près ; la chaîne de persistance est verrouillée par les tests de use case + roundtrip JSON
 
-## 20. Ce que je n’ai volontairement pas changé
+## 21. Ce que je n’ai volontairement pas changé
 
 - aucun contrat runtime
 - aucune consommation gameplay
@@ -545,7 +624,7 @@ Les limites restantes sont assumées :
 - aucune tentative d’analyse automatique du sprite
 - aucune migration de modèle supplémentaire
 
-## 21. Checklist de validation manuelle
+## 22. Checklist de validation manuelle
 
 À vérifier dans l’éditeur :
 
@@ -553,8 +632,8 @@ Les limites restantes sont assumées :
 2. ouvrir “Ouvrir l’éditeur de collision”
 3. peindre au pinceau en ajout
 4. peindre au pinceau en retrait
-5. tracer un polygone, puis l’appliquer en ajout
-6. tracer un polygone, puis l’appliquer en retrait
+5. tracer un polygone, le fermer en cliquant le premier point, puis vérifier l’ajout
+6. tracer un polygone, le fermer avec `Enter` ou double-clic, puis vérifier le retrait
 7. modifier le padding et vérifier que les retouches restent cohérentes
 8. utiliser “Réinitialiser retouches”
 9. utiliser “Restaurer base padding”
@@ -563,7 +642,24 @@ Les limites restantes sont assumées :
 12. vérifier que la collision affichée est identique
 13. placer l’élément sur une map et confirmer que le runtime bloque selon `cells`
 
-## 22. Conclusion
+## 23. Checklist de fin demandée
+
+- [x] le polygone est un vrai polygone fermé
+- [x] le pinceau add fonctionne en drag
+- [x] le pinceau remove fonctionne en drag
+- [x] le padding produit une base visible
+- [x] les retouches s’appliquent sur cette base
+- [x] la forme finale affichée est reconstruite dans `collisionProfile.cells` au save
+- [x] après sauvegarde logique, le JSON conserve bien les cellules finales
+- [x] après rechargement logique, la forme est identique
+- [x] le runtime bloque effectivement selon cette forme
+- [x] aucun système parasite ne remplace `cells`
+
+Note honnête :
+
+- la vérification “UI complète ouverte puis projet réécrit sur disque puis rechargé via interaction widget” n’a pas été automatisée en test widget ; elle est couverte par les tests de persistance JSON, la reconstruction au save, et le test gameplay ciblé.
+
+## 24. Conclusion
 
 Le lot apporte exactement ce qui manquait :
 

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -73,6 +74,7 @@ class _ElementCollisionEditorSheetState
   bool _showOverrides = true;
   final List<Offset> _pendingPolygon = <Offset>[];
   Offset? _lastBrushPoint;
+  Offset? _hoverGridPoint;
 
   @override
   void initState() {
@@ -87,225 +89,279 @@ class _ElementCollisionEditorSheetState
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     return LayoutBuilder(
-      builder: (context, constraints) => SizedBox(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _EditorHeader(
-                elementName: widget.elementName,
-                source: widget.source,
-                finalCellCount: snapshot.finalCells.length,
-                onCancel: () => Navigator.of(context).pop(),
-                onSave: () => Navigator.of(context).pop(_buildSavedProfile()),
-              ),
-              const SizedBox(height: 14),
-              _EditorToolbar(
-                tool: _tool,
-                pendingPolygonCount: _pendingPolygon.length,
-                onToolChanged: (tool) {
-                  setState(() {
-                    _tool = tool;
-                    _lastBrushPoint = null;
-                    if (!_isPolygonTool(tool)) {
-                      _pendingPolygon.clear();
-                    }
-                  });
-                },
-                onApplyPolygon:
-                    _pendingPolygon.length >= 3 ? _applyPendingPolygon : null,
-                onClearPolygon: _pendingPolygon.isNotEmpty
-                    ? () => setState(_pendingPolygon.clear)
-                    : null,
-                onResetOverrides: () {
-                  setState(() {
-                    _draftProfile = _authoringService.resetOverrides(
-                      source: widget.source,
-                      tileWidth: widget.tileWidth,
-                      tileHeight: widget.tileHeight,
-                      current: _draftProfile,
-                      fallbackPadding: _draftPadding,
-                    );
-                    _draftPadding = _draftProfile?.padding ?? _draftPadding;
-                  });
-                },
-                onRestoreBase: () {
-                  setState(() {
-                    _draftProfile = _authoringService.recalculateFromPadding(
-                      source: widget.source,
-                      tileWidth: widget.tileWidth,
-                      tileHeight: widget.tileHeight,
-                      padding: _draftPadding,
-                      current: _draftProfile,
-                      preserveOverrides: false,
-                    );
-                  });
-                },
-                onClearAll: () {
-                  setState(() {
-                    _draftProfile = _authoringService.clearAllCollision(
-                      source: widget.source,
-                      tileWidth: widget.tileWidth,
-                      tileHeight: widget.tileHeight,
-                      current: _draftProfile,
-                      fallbackPadding: _draftPadding,
-                    );
-                  });
-                },
-              ),
-              const SizedBox(height: 14),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: EditorChrome.largeIslandSurfaceColor(
-                            context,
-                            tint: Colors.white.withValues(alpha: 0.02),
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color:
-                                CupertinoColors.separator.resolveFrom(context),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  'Forme de collision',
-                                  style: TextStyle(
-                                    color: label,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  _tool.helpLabel,
-                                  style: TextStyle(
-                                    color: secondary,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Expanded(
-                              child: LayoutBuilder(
-                                builder: (context, canvasConstraints) {
-                                  final canvasSize = Size(
-                                    canvasConstraints.maxWidth,
-                                    canvasConstraints.maxHeight,
-                                  );
-                                  return MouseRegion(
-                                    cursor: _tool ==
-                                            _ElementCollisionEditorTool.preview
-                                        ? SystemMouseCursors.basic
-                                        : SystemMouseCursors.precise,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTapUp: (details) => _handleCanvasTap(
-                                          details.localPosition, canvasSize),
-                                      onPanStart: (details) =>
-                                          _handleCanvasPanStart(
-                                        details.localPosition,
-                                        canvasSize,
-                                      ),
-                                      onPanUpdate: (details) =>
-                                          _handleCanvasPanUpdate(
-                                        details.localPosition,
-                                        canvasSize,
-                                      ),
-                                      onPanEnd: (_) => _lastBrushPoint = null,
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                          color: Colors.black
-                                              .withValues(alpha: 0.14),
-                                          border: Border.all(
-                                            color: CupertinoColors.separator
-                                                .resolveFrom(context),
-                                          ),
-                                        ),
-                                        child: CustomPaint(
-                                          painter:
-                                              _ElementCollisionCanvasPainter(
-                                            image: widget.image,
-                                            source: widget.source,
-                                            tileWidth: widget.tileWidth,
-                                            tileHeight: widget.tileHeight,
-                                            snapshot: snapshot,
-                                            showGrid: _showGrid,
-                                            showBase: _showBase,
-                                            showFinal: _showFinal,
-                                            showOverrides: _showOverrides,
-                                            pendingPolygon: _pendingPolygon,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    SizedBox(
-                      width: 320,
-                      child: _EditorSidebar(
-                        source: widget.source,
-                        snapshot: snapshot,
-                        showGrid: _showGrid,
-                        showBase: _showBase,
-                        showFinal: _showFinal,
-                        showOverrides: _showOverrides,
-                        onShowGridChanged: (value) =>
-                            setState(() => _showGrid = value),
-                        onShowBaseChanged: (value) =>
-                            setState(() => _showBase = value),
-                        onShowFinalChanged: (value) =>
-                            setState(() => _showFinal = value),
-                        onShowOverridesChanged: (value) =>
-                            setState(() => _showOverrides = value),
-                        paddingEditor: ElementCollisionPaddingEditor(
-                          padding: _draftPadding,
-                          maxHorizontal: math.max(
-                              0, widget.source.width * widget.tileWidth - 1),
-                          maxVertical: math.max(
-                              0, widget.source.height * widget.tileHeight - 1),
-                          onChanged: (next) {
-                            setState(() {
-                              _draftPadding = next;
-                              _draftProfile =
-                                  _authoringService.recalculateFromPadding(
-                                source: widget.source,
-                                tileWidth: widget.tileWidth,
-                                tileHeight: widget.tileHeight,
-                                padding: next,
-                                current: _draftProfile,
-                              );
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+      builder: (context, constraints) => Focus(
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) {
+            return KeyEventResult.ignored;
+          }
+          if (_isPolygonTool(_tool) &&
+              event.logicalKey == LogicalKeyboardKey.enter &&
+              _pendingPolygon.length >= 3) {
+            _closeAndApplyPendingPolygon();
+            return KeyEventResult.handled;
+          }
+          if (_isPolygonTool(_tool) &&
+              event.logicalKey == LogicalKeyboardKey.escape &&
+              _pendingPolygon.isNotEmpty) {
+            setState(() {
+              _pendingPolygon.clear();
+              _hoverGridPoint = null;
+            });
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: SizedBox(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _EditorHeader(
+                  elementName: widget.elementName,
+                  source: widget.source,
+                  finalCellCount: snapshot.finalCells.length,
+                  onCancel: () => Navigator.of(context).pop(),
+                  onSave: () => Navigator.of(context).pop(_buildSavedProfile()),
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                _EditorToolbar(
+                  tool: _tool,
+                  pendingPolygonCount: _pendingPolygon.length,
+                  onToolChanged: (tool) {
+                    setState(() {
+                      _tool = tool;
+                      _lastBrushPoint = null;
+                      _hoverGridPoint = null;
+                      if (!_isPolygonTool(tool)) {
+                        _pendingPolygon.clear();
+                      }
+                    });
+                  },
+                  onClosePolygon: _pendingPolygon.length >= 3
+                      ? _closeAndApplyPendingPolygon
+                      : null,
+                  onClearPolygon: _pendingPolygon.isNotEmpty
+                      ? () => setState(() {
+                            _pendingPolygon.clear();
+                            _hoverGridPoint = null;
+                          })
+                      : null,
+                  onResetOverrides: () {
+                    setState(() {
+                      _draftProfile = _authoringService.resetOverrides(
+                        source: widget.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
+                        current: _draftProfile,
+                        fallbackPadding: _draftPadding,
+                      );
+                      _draftPadding = _draftProfile?.padding ?? _draftPadding;
+                    });
+                  },
+                  onRestoreBase: () {
+                    setState(() {
+                      _draftProfile = _authoringService.recalculateFromPadding(
+                        source: widget.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
+                        padding: _draftPadding,
+                        current: _draftProfile,
+                        preserveOverrides: false,
+                      );
+                    });
+                  },
+                  onClearAll: () {
+                    setState(() {
+                      _draftProfile = _authoringService.clearAllCollision(
+                        source: widget.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
+                        current: _draftProfile,
+                        fallbackPadding: _draftPadding,
+                      );
+                    });
+                  },
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: EditorChrome.largeIslandSurfaceColor(
+                              context,
+                              tint: Colors.white.withValues(alpha: 0.02),
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: CupertinoColors.separator
+                                  .resolveFrom(context),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'Forme de collision',
+                                    style: TextStyle(
+                                      color: label,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    _tool.helpLabel,
+                                    style: TextStyle(
+                                      color: secondary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Expanded(
+                                child: LayoutBuilder(
+                                  builder: (context, canvasConstraints) {
+                                    final canvasSize = Size(
+                                      canvasConstraints.maxWidth,
+                                      canvasConstraints.maxHeight,
+                                    );
+                                    return MouseRegion(
+                                      cursor: _tool ==
+                                              _ElementCollisionEditorTool
+                                                  .preview
+                                          ? SystemMouseCursors.basic
+                                          : SystemMouseCursors.precise,
+                                      onHover: (event) {
+                                        final next = _localToGridPoint(
+                                          event.localPosition,
+                                          canvasSize,
+                                        );
+                                        if (next == _hoverGridPoint) {
+                                          return;
+                                        }
+                                        setState(() => _hoverGridPoint = next);
+                                      },
+                                      onExit: (_) {
+                                        if (_hoverGridPoint != null) {
+                                          setState(
+                                              () => _hoverGridPoint = null);
+                                        }
+                                      },
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTapUp: (details) => _handleCanvasTap(
+                                            details.localPosition, canvasSize),
+                                        onDoubleTapDown: (details) =>
+                                            _handleCanvasDoubleTap(
+                                          details.localPosition,
+                                          canvasSize,
+                                        ),
+                                        onPanStart: (details) =>
+                                            _handleCanvasPanStart(
+                                          details.localPosition,
+                                          canvasSize,
+                                        ),
+                                        onPanUpdate: (details) =>
+                                            _handleCanvasPanUpdate(
+                                          details.localPosition,
+                                          canvasSize,
+                                        ),
+                                        onPanEnd: (_) => _lastBrushPoint = null,
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.14),
+                                            border: Border.all(
+                                              color: CupertinoColors.separator
+                                                  .resolveFrom(context),
+                                            ),
+                                          ),
+                                          child: CustomPaint(
+                                            painter:
+                                                _ElementCollisionCanvasPainter(
+                                              image: widget.image,
+                                              source: widget.source,
+                                              tileWidth: widget.tileWidth,
+                                              tileHeight: widget.tileHeight,
+                                              snapshot: snapshot,
+                                              showGrid: _showGrid,
+                                              showBase: _showBase,
+                                              showFinal: _showFinal,
+                                              showOverrides: _showOverrides,
+                                              pendingPolygon: _pendingPolygon,
+                                              hoverGridPoint: _hoverGridPoint,
+                                              highlightPolygonClosure:
+                                                  _shouldHighlightPolygonClosure,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      SizedBox(
+                        width: 320,
+                        child: _EditorSidebar(
+                          source: widget.source,
+                          snapshot: snapshot,
+                          showGrid: _showGrid,
+                          showBase: _showBase,
+                          showFinal: _showFinal,
+                          showOverrides: _showOverrides,
+                          onShowGridChanged: (value) =>
+                              setState(() => _showGrid = value),
+                          onShowBaseChanged: (value) =>
+                              setState(() => _showBase = value),
+                          onShowFinalChanged: (value) =>
+                              setState(() => _showFinal = value),
+                          onShowOverridesChanged: (value) =>
+                              setState(() => _showOverrides = value),
+                          paddingEditor: ElementCollisionPaddingEditor(
+                            padding: _draftPadding,
+                            maxHorizontal: math.max(
+                                0, widget.source.width * widget.tileWidth - 1),
+                            maxVertical: math.max(0,
+                                widget.source.height * widget.tileHeight - 1),
+                            onChanged: (next) {
+                              setState(() {
+                                _draftPadding = next;
+                                _draftProfile =
+                                    _authoringService.recalculateFromPadding(
+                                  source: widget.source,
+                                  tileWidth: widget.tileWidth,
+                                  tileHeight: widget.tileHeight,
+                                  padding: next,
+                                  current: _draftProfile,
+                                );
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -323,16 +379,18 @@ class _ElementCollisionEditorSheetState
   }
 
   ElementCollisionProfile _buildSavedProfile() {
-    return _draftProfile ??
-        _authoringService.rebuild(
-          source: widget.source,
-          tileWidth: widget.tileWidth,
-          tileHeight: widget.tileHeight,
-          padding: _draftPadding,
-        );
+    final snapshot = _describe();
+    return _authoringService.rebuild(
+      source: widget.source,
+      tileWidth: widget.tileWidth,
+      tileHeight: widget.tileHeight,
+      padding: snapshot.padding,
+      manualAddedCells: snapshot.manualAddedCells,
+      manualRemovedCells: snapshot.manualRemovedCells,
+    );
   }
 
-  void _applyPendingPolygon() {
+  void _closeAndApplyPendingPolygon() {
     if (_pendingPolygon.length < 3) {
       return;
     }
@@ -351,6 +409,7 @@ class _ElementCollisionEditorSheetState
         fallbackPadding: _draftPadding,
       );
       _pendingPolygon.clear();
+      _hoverGridPoint = null;
     });
   }
 
@@ -363,6 +422,11 @@ class _ElementCollisionEditorSheetState
       return;
     }
     if (_isPolygonTool(_tool)) {
+      if (_pendingPolygon.length >= 3 &&
+          _isNearPolygonStart(gridPoint, _pendingPolygon.first)) {
+        _closeAndApplyPendingPolygon();
+        return;
+      }
       setState(() {
         _pendingPolygon.add(gridPoint);
       });
@@ -384,6 +448,18 @@ class _ElementCollisionEditorSheetState
         fallbackPadding: _draftPadding,
       );
     });
+  }
+
+  void _handleCanvasDoubleTap(Offset localPosition, Size canvasSize) {
+    if (!_isPolygonTool(_tool) || _pendingPolygon.length < 3) {
+      return;
+    }
+    final gridPoint = _localToGridPoint(localPosition, canvasSize);
+    if (gridPoint == null) {
+      return;
+    }
+    setState(() => _hoverGridPoint = gridPoint);
+    _closeAndApplyPendingPolygon();
   }
 
   void _handleCanvasPanStart(Offset localPosition, Size canvasSize) {
@@ -470,6 +546,19 @@ class _ElementCollisionEditorSheetState
     return tool == _ElementCollisionEditorTool.polygonAdd ||
         tool == _ElementCollisionEditorTool.polygonRemove;
   }
+
+  bool get _shouldHighlightPolygonClosure {
+    if (!_isPolygonTool(_tool) ||
+        _pendingPolygon.length < 3 ||
+        _hoverGridPoint == null) {
+      return false;
+    }
+    return _isNearPolygonStart(_hoverGridPoint!, _pendingPolygon.first);
+  }
+
+  bool _isNearPolygonStart(Offset point, Offset start) {
+    return (point - start).distance <= 0.45;
+  }
 }
 
 class _EditorHeader extends StatelessWidget {
@@ -533,7 +622,7 @@ class _EditorToolbar extends StatelessWidget {
     required this.tool,
     required this.pendingPolygonCount,
     required this.onToolChanged,
-    required this.onApplyPolygon,
+    required this.onClosePolygon,
     required this.onClearPolygon,
     required this.onResetOverrides,
     required this.onRestoreBase,
@@ -543,7 +632,7 @@ class _EditorToolbar extends StatelessWidget {
   final _ElementCollisionEditorTool tool;
   final int pendingPolygonCount;
   final ValueChanged<_ElementCollisionEditorTool> onToolChanged;
-  final VoidCallback? onApplyPolygon;
+  final VoidCallback? onClosePolygon;
   final VoidCallback? onClearPolygon;
   final VoidCallback onResetOverrides;
   final VoidCallback onRestoreBase;
@@ -565,8 +654,8 @@ class _EditorToolbar extends StatelessWidget {
         if (tool == _ElementCollisionEditorTool.polygonAdd ||
             tool == _ElementCollisionEditorTool.polygonRemove)
           _ToolbarAction(
-            label: 'Appliquer le polygone ($pendingPolygonCount)',
-            onPressed: onApplyPolygon,
+            label: 'Fermer le polygone ($pendingPolygonCount)',
+            onPressed: onClosePolygon,
           ),
         if (tool == _ElementCollisionEditorTool.polygonAdd ||
             tool == _ElementCollisionEditorTool.polygonRemove)
@@ -707,7 +796,7 @@ class _EditorSidebar extends StatelessWidget {
         _SidebarSection(
           title: 'Aide',
           child: Text(
-            'Pinceau: cliquez-glissez pour peindre des cellules. Polygone: placez des points sur le canevas puis appliquez la zone. Base = padding, final = base + ajouts - retraits.',
+            'Pinceau: cliquez-glissez pour peindre des cellules. Polygone: placez des points, puis fermez la forme en cliquant sur le premier point, avec Entrée, double-clic ou le bouton dédié. Base = padding, final = base + ajouts - retraits.',
             style: TextStyle(
               color: secondary,
               fontSize: 11,
@@ -1039,6 +1128,8 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
     required this.showFinal,
     required this.showOverrides,
     required this.pendingPolygon,
+    required this.hoverGridPoint,
+    required this.highlightPolygonClosure,
   });
 
   final ui.Image image;
@@ -1051,6 +1142,8 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
   final bool showFinal;
   final bool showOverrides;
   final List<Offset> pendingPolygon;
+  final Offset? hoverGridPoint;
+  final bool highlightPolygonClosure;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1201,6 +1294,32 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
           Paint()..color = Colors.yellowAccent,
         );
       }
+      canvas.drawCircle(
+        points.first,
+        highlightPolygonClosure ? 9 : 6,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = highlightPolygonClosure ? 3 : 1.5
+          ..color = highlightPolygonClosure
+              ? Colors.greenAccent
+              : Colors.yellowAccent.withValues(alpha: 0.8),
+      );
+      if (hoverGridPoint != null && highlightPolygonClosure) {
+        final hoverPoint = Offset(
+          targetRect.left +
+              (hoverGridPoint!.dx / source.width) * targetRect.width,
+          targetRect.top +
+              (hoverGridPoint!.dy / source.height) * targetRect.height,
+        );
+        canvas.drawLine(
+          hoverPoint,
+          points.first,
+          Paint()
+            ..color = Colors.greenAccent.withValues(alpha: 0.85)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+      }
       if (points.length >= 3) {
         final preview = Path.from(path)..close();
         canvas.drawPath(
@@ -1270,6 +1389,8 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
         oldDelegate.showBase != showBase ||
         oldDelegate.showFinal != showFinal ||
         oldDelegate.showOverrides != showOverrides ||
+        oldDelegate.hoverGridPoint != hoverGridPoint ||
+        oldDelegate.highlightPolygonClosure != highlightPolygonClosure ||
         !_sameOffsets(oldDelegate.pendingPolygon, pendingPolygon);
   }
 
