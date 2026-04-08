@@ -124,6 +124,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeStoryBranching _storyBranching = const RuntimeStoryBranching();
   final ScenarioRuntimeExecutor _scenarioRuntime =
       const ScenarioRuntimeExecutor();
+
   /// Cache de l’index Step Studio ↔ cutscenes locales (invalidé quand [_bundle] change).
   StepCompletionCutsceneIndex? _cachedStepCompletionIndex;
   RuntimeMapBundle? _cachedStepCompletionBundleForIndex;
@@ -141,6 +142,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _cachedStepStudioWorldRules =
         buildStepStudioWorldPresenceRuleList(manifest.scenarios);
   }
+
   late final CutsceneRuntimeRunner _cutsceneRunner =
       _buildCutsceneRuntimeRunner();
   CutsceneChoiceRequest? _pendingCutsceneChoiceRequest;
@@ -161,7 +163,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
+  bool _showFpsOverlay = false;
   TextComponent? _behaviorDebugOverlay;
+  TextComponent? _fpsOverlay;
+  double _fpsAccumulatorSeconds = 0.0;
+  int _fpsFrameCount = 0;
+  double _currentFps = 0.0;
   String _lastBehaviorDebugLine = 'Aucun behavior déclenché';
   GridPos? _debugTileMarkerPos;
   String? _debugTileMarkerLabel;
@@ -224,6 +231,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool get showBehaviorDebugOverlay => _showBehaviorDebugOverlay;
+  bool get showFpsOverlay => _showFpsOverlay;
+  double get currentFps => _currentFps;
+
+  /// Active/désactive l'affichage du compteur FPS dans le viewport runtime.
+  ///
+  /// Ce toggle est utilisé par l'example host pour un contrôle manuel.
+  /// Le compteur est volontairement optionnel pour éviter toute pollution
+  /// visuelle par défaut.
+  void setFpsOverlayVisible(bool visible) {
+    _showFpsOverlay = visible;
+    if (!_showFpsOverlay) {
+      _fpsOverlay?.removeFromParent();
+      _fpsOverlay = null;
+      return;
+    }
+    if (!isLoaded) {
+      return;
+    }
+    _ensureFpsOverlay();
+  }
 
   MovementMode get playerMovementMode {
     if (isLoaded) {
@@ -292,7 +319,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     return MapEntityRuntimePredicateEvaluator(
       gameState: _gameState,
-      chapterIndex: buildGlobalStoryChapterStepIndex(_bundle.manifest.scenarios),
+      chapterIndex:
+          buildGlobalStoryChapterStepIndex(_bundle.manifest.scenarios),
     ).resolveNpcDialogue(npc);
   }
 
@@ -414,8 +442,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[step_studio_trace] npc_presence_applied map=${loaded.bundle.map.id} entity=${entity.id} present=$present',
       );
-      loaded.npcActorByEntityId[entity.id]
-          ?.setGameplayVisible(present);
+      loaded.npcActorByEntityId[entity.id]?.setGameplayVisible(present);
     }
   }
 
@@ -658,6 +685,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _syncCameraToPlayer();
     _preloadActiveMapConnections();
     _ensureBehaviorDebugOverlay();
+    _ensureFpsOverlay();
     _applyDebugTileMarker();
     _resetScriptedNpcMovementController();
     _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
@@ -867,6 +895,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
+    _updateFps(dt);
     _runtimeClockMs += dt * 1000;
     _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
     _updateActorDepthOrdering();
@@ -1345,7 +1374,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final blockingReason = _scenarioCompletionBlockingReason();
     if (blockingReason == null) {
-      _applyScenarioReachedEndCompletion(scenarioId: scenarioId, origin: origin);
+      _applyScenarioReachedEndCompletion(
+          scenarioId: scenarioId, origin: origin);
       return;
     }
     for (final pending in _pendingScenarioReachedEndQueue) {
@@ -3797,9 +3827,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return true;
     }
     return _npcPresencePredicateFor(_bundle.manifest)(
-          _world.map.id,
-          found,
-        );
+      _world.map.id,
+      found,
+    );
   }
 
   void _handleNpcInteraction(MapEntity entity) {
@@ -3943,9 +3973,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     for (final entity in _world.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
       if (!_npcPresencePredicateFor(_bundle.manifest)(
-            _world.map.id,
-            entity,
-          )) {
+        _world.map.id,
+        entity,
+      )) {
         continue;
       }
 
@@ -4297,6 +4327,51 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     camera.viewport.add(overlay);
     _behaviorDebugOverlay = overlay;
+  }
+
+  void _ensureFpsOverlay() {
+    if (!_showFpsOverlay) {
+      return;
+    }
+    final existing = _fpsOverlay;
+    if (existing != null) {
+      existing.text = 'FPS ${_currentFps.toStringAsFixed(1)}';
+      return;
+    }
+    final overlay = TextComponent(
+      text: 'FPS ${_currentFps.toStringAsFixed(1)}',
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.lightGreenAccent,
+          backgroundColor: Color(0xAA111111),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      anchor: Anchor.topLeft,
+      position: Vector2(10, 28),
+      priority: 30000,
+    );
+    camera.viewport.add(overlay);
+    _fpsOverlay = overlay;
+  }
+
+  void _updateFps(double dt) {
+    _fpsAccumulatorSeconds += dt;
+    _fpsFrameCount += 1;
+
+    // Fenêtre courte de 250ms: stable sans être trop lente.
+    if (_fpsAccumulatorSeconds < 0.25) {
+      return;
+    }
+    _currentFps = _fpsFrameCount / _fpsAccumulatorSeconds;
+    _fpsAccumulatorSeconds = 0.0;
+    _fpsFrameCount = 0;
+
+    if (_showFpsOverlay) {
+      _ensureFpsOverlay();
+      _fpsOverlay?.text = 'FPS ${_currentFps.toStringAsFixed(1)}';
+    }
   }
 
   void _updateBehaviorDebugLine(String line) {
