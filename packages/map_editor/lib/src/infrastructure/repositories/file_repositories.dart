@@ -162,6 +162,19 @@ class FilePokemonReadRepository implements PokemonReadRepository {
   }
 
   @override
+  Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) {
+    return reader.listSpeciesFiles(workspace);
+  }
+
+  @override
+  Future<PokemonSpeciesFile> readSpeciesByRelativePath(
+    ProjectWorkspace workspace,
+    String relativePath,
+  ) {
+    return reader.readSpeciesByRelativePath(workspace, relativePath);
+  }
+
+  @override
   Future<PokemonSpeciesFile> readSpeciesById(
     ProjectWorkspace workspace,
     String speciesId,
@@ -178,11 +191,21 @@ class FilePokemonReadRepository implements PokemonReadRepository {
   }
 
   @override
+  Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) {
+    return reader.listLearnsetIds(workspace);
+  }
+
+  @override
   Future<PokemonEvolutionFile> readEvolutionById(
     ProjectWorkspace workspace,
     String speciesId,
   ) {
     return reader.readEvolutionById(workspace, speciesId);
+  }
+
+  @override
+  Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) {
+    return reader.listEvolutionIds(workspace);
   }
 }
 

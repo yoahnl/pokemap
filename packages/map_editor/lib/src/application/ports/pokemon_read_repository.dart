@@ -17,15 +17,26 @@ abstract class PokemonReadRepository {
     ProjectWorkspace workspace,
   );
 
+  Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace);
+
+  Future<PokemonSpeciesFile> readSpeciesByRelativePath(
+    ProjectWorkspace workspace,
+    String relativePath,
+  );
+
   Future<PokemonSpeciesFile> readSpeciesById(
     ProjectWorkspace workspace,
     String speciesId,
   );
 
+  Future<List<String>> listLearnsetIds(ProjectWorkspace workspace);
+
   Future<PokemonLearnsetFile> readLearnsetById(
     ProjectWorkspace workspace,
     String speciesId,
   );
+
+  Future<List<String>> listEvolutionIds(ProjectWorkspace workspace);
 
   Future<PokemonEvolutionFile> readEvolutionById(
     ProjectWorkspace workspace,

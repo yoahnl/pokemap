@@ -106,30 +106,40 @@ class PokemonProjectDataReader {
   }
 
   Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) async {
-    final speciesDir = _speciesDirectory(workspace);
-    if (!await speciesDir.exists()) {
-      throw const EditorNotFoundException(
-        'Pokemon species directory not found in project workspace',
-      );
-    }
-
-    final relativePaths = <String>[];
-    await for (final entity in speciesDir.list(recursive: false)) {
-      if (entity is! File) continue;
-      if (p.extension(entity.path).toLowerCase() != '.json') continue;
-      final relativePath = p.normalize(
-        p.relative(entity.path, from: workspace.projectRoot),
-      );
-      relativePaths.add(relativePath);
-    }
-    relativePaths.sort();
-    return relativePaths;
+    return _listJsonRelativePaths(
+      workspace,
+      'data/pokemon/species',
+      label: 'Pokemon species directory',
+    );
   }
 
   Future<List<PokemonSpeciesIndexEntry>> listSpeciesIndexEntries(
     ProjectWorkspace workspace,
   ) async {
     return _buildSpeciesIndexEntries(workspace);
+  }
+
+  Future<PokemonSpeciesFile> readSpeciesByRelativePath(
+    ProjectWorkspace workspace,
+    String relativePath,
+  ) {
+    return _readSpeciesAtRelativePath(workspace, relativePath);
+  }
+
+  Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) async {
+    return _listJsonFileStemIds(
+      workspace,
+      'data/pokemon/learnsets',
+      label: 'Pokemon learnsets directory',
+    );
+  }
+
+  Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) async {
+    return _listJsonFileStemIds(
+      workspace,
+      'data/pokemon/evolutions',
+      label: 'Pokemon evolutions directory',
+    );
   }
 
   Future<String?> resolveSpeciesRelativePathById(
@@ -238,6 +248,45 @@ class PokemonProjectDataReader {
     return Directory(
       workspace.resolveProjectRelativePath('data/pokemon/species'),
     );
+  }
+
+  Future<List<String>> _listJsonRelativePaths(
+    ProjectWorkspace workspace,
+    String relativeDirectory, {
+    required String label,
+  }) async {
+    final directory = Directory(
+      workspace.resolveProjectRelativePath(relativeDirectory),
+    );
+    if (!await directory.exists()) {
+      throw EditorNotFoundException('$label not found in project workspace');
+    }
+
+    final relativePaths = <String>[];
+    await for (final entity in directory.list(recursive: false)) {
+      if (entity is! File) continue;
+      if (p.extension(entity.path).toLowerCase() != '.json') continue;
+      relativePaths.add(
+        p.normalize(p.relative(entity.path, from: workspace.projectRoot)),
+      );
+    }
+    relativePaths.sort();
+    return relativePaths;
+  }
+
+  Future<List<String>> _listJsonFileStemIds(
+    ProjectWorkspace workspace,
+    String relativeDirectory, {
+    required String label,
+  }) async {
+    final relativePaths = await _listJsonRelativePaths(
+      workspace,
+      relativeDirectory,
+      label: label,
+    );
+    return relativePaths
+        .map((relativePath) => p.basenameWithoutExtension(relativePath))
+        .toList(growable: false);
   }
 
   String _sanitizeSpeciesFileSegment(String value) {
