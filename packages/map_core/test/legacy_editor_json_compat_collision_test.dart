@@ -30,6 +30,13 @@ void main() {
       expect(
           manifest.elements.single.collisionProfile!.cells, _houseShapeCells);
     });
+
+    test('missing pokemon config still falls back to the manifest default', () {
+      final migrated = migrateProjectManifestJson(_legacyBrokenProjectJson());
+      final manifest = ProjectManifest.fromJson(migrated);
+
+      expect(manifest.pokemon, const ProjectPokemonConfig());
+    });
   });
 }
 

@@ -12,9 +12,6 @@ Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
   if (!next.containsKey('characters')) {
     next['characters'] = <dynamic>[];
   }
-  if (!next.containsKey('pokemon')) {
-    next['pokemon'] = <String, dynamic>{};
-  }
   final settings = raw['settings'];
   if (settings is Map) {
     final migratedSettings =
