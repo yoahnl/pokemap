@@ -94,6 +94,10 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
+      pokemon: json['pokemon'] == null
+          ? const ProjectPokemonConfig()
+          : ProjectPokemonConfig.fromJson(
+              json['pokemon'] as Map<String, dynamic>),
       globalProperties:
           json['globalProperties'] as Map<String, dynamic>? ?? const {},
     );
@@ -125,12 +129,41 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'trainers': instance.trainers.map((e) => e.toJson()).toList(),
       'characters': instance.characters.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
+      'pokemon': instance.pokemon.toJson(),
       'globalProperties': instance.globalProperties,
     };
 
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
 };
+
+_$ProjectPokemonConfigImpl _$$ProjectPokemonConfigImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectPokemonConfigImpl(
+      enabled: json['enabled'] as bool? ?? true,
+      dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
+      speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
+      learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',
+      evolutionsDir:
+          json['evolutionsDir'] as String? ?? 'data/pokemon/evolutions',
+      mediaDir: json['mediaDir'] as String? ?? 'data/pokemon/media',
+      catalogFiles: (json['catalogFiles'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          _defaultPokemonCatalogFiles,
+    );
+
+Map<String, dynamic> _$$ProjectPokemonConfigImplToJson(
+        _$ProjectPokemonConfigImpl instance) =>
+    <String, dynamic>{
+      'enabled': instance.enabled,
+      'dataRoot': instance.dataRoot,
+      'speciesDir': instance.speciesDir,
+      'learnsetsDir': instance.learnsetsDir,
+      'evolutionsDir': instance.evolutionsDir,
+      'mediaDir': instance.mediaDir,
+      'catalogFiles': instance.catalogFiles,
+    };
 
 _$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
         Map<String, dynamic> json) =>

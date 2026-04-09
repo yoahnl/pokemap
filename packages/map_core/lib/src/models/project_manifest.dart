@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_annotation_target
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'element_collision_profile.dart';
 import 'enums.dart';
@@ -12,6 +14,15 @@ part 'project_manifest.g.dart';
 Object? _readDefaultPlayerCharacterId(Map json, String _) {
   return json['defaultPlayerCharacterId'] ?? json['playerCharacterId'];
 }
+
+const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
+  'moves': 'data/pokemon/catalogs/moves.json',
+  'abilities': 'data/pokemon/catalogs/abilities.json',
+  'items': 'data/pokemon/catalogs/items.json',
+  'types': 'data/pokemon/catalogs/types.json',
+  'growth_rates': 'data/pokemon/catalogs/growth_rates.json',
+  'natures': 'data/pokemon/catalogs/natures.json',
+};
 
 @freezed
 class ProjectManifest with _$ProjectManifest {
@@ -37,11 +48,29 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectSettings()) ProjectSettings settings,
+    @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
     @Default({}) Map<String, dynamic> globalProperties,
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) =>
       _$ProjectManifestFromJson(json);
+}
+
+@freezed
+class ProjectPokemonConfig with _$ProjectPokemonConfig {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectPokemonConfig({
+    @Default(true) bool enabled,
+    @Default('data/pokemon') String dataRoot,
+    @Default('data/pokemon/species') String speciesDir,
+    @Default('data/pokemon/learnsets') String learnsetsDir,
+    @Default('data/pokemon/evolutions') String evolutionsDir,
+    @Default('data/pokemon/media') String mediaDir,
+    @Default(_defaultPokemonCatalogFiles) Map<String, String> catalogFiles,
+  }) = _ProjectPokemonConfig;
+
+  factory ProjectPokemonConfig.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPokemonConfigFromJson(json);
 }
 
 @freezed

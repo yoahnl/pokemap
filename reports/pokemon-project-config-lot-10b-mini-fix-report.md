@@ -1,3 +1,1411 @@
+# Rapport — Lot 10b mini-fix — configuration Pokémon de projet
+
+## 1. Résumé exécutif
+Ce mini-fix corrige deux points de cohérence du lot 10 sans élargir le périmètre.
+
+Ce qui a été corrigé :
+- la valeur par défaut de `ProjectPokemonConfig.mediaDir` est réalignée sur la convention produit retenue : `data/pokemon/media` ;
+- la modification hors périmètre sur `packages/map_core/analysis_options.yaml` a été retirée.
+
+Ce qui n’a pas été changé :
+- aucune lecture des données Pokémon détaillées au chargement du projet ;
+- aucune validation métier Pokémon supplémentaire ;
+- aucune UI, aucun runtime, aucun import externe, aucun provider.
+
+## 2. Problème exact corrigé
+Le lot 10 avait deux défauts résiduels :
+
+1. `mediaDir` pointait vers `data/pokemon/sprite_sets`, alors que le cadrage produit retenu pour la base Pokédex vise `data/pokemon/media`.
+2. `packages/map_core/analysis_options.yaml` avait été modifié pour contourner un warning d’annotations générées. Cette modification élargissait inutilement le périmètre du lot 10, qui devait rester centré sur `project.json` et sa config légère Pokémon.
+
+## 3. Périmètre exact du mini-fix
+Inclus :
+- correction de la valeur par défaut de `ProjectPokemonConfig.mediaDir` ;
+- mise à jour du test projet qui vérifie la config Pokémon par défaut ;
+- régénération des fichiers `freezed/json_serializable` impactés ;
+- retrait du changement hors périmètre sur `analysis_options.yaml`.
+
+Exclus volontairement :
+- aucune modification de la structure générale du bloc `pokemon` hors ce réalignement ;
+- aucune lecture des JSON Pokémon depuis `data/pokemon/...` ;
+- aucune validation de contenu Pokémon ;
+- aucune UI, aucun runtime, aucun import.
+
+## 4. Décisions prises
+### 4.1 `mediaDir`
+La valeur par défaut a été changée de `data/pokemon/sprite_sets` vers `data/pokemon/media` pour réaligner le manifest projet sur la convention produit déjà retenue pour les métadonnées média Pokémon.
+
+### 4.2 `analysis_options.yaml`
+La modification package-wide sur `packages/map_core/analysis_options.yaml` a été retirée. Pour garder l’analyse ciblée propre sans réintroduire ce débordement de périmètre, le warning `invalid_annotation_target` est géré localement dans `project_manifest.dart` via un `ignore_for_file` au niveau du fichier source annoté.
+
+Ce choix garde le lot 10b concentré sur la config projet Pokémon, tout en évitant de laisser une modification de configuration globale du package dans le diff final.
+
+## 5. Structure retenue pour le bloc `pokemon` dans `project.json`
+La structure reste légère et strictement déclarative :
+
+```json
+{
+  "pokemon": {
+    "enabled": true,
+    "dataRoot": "data/pokemon",
+    "speciesDir": "data/pokemon/species",
+    "learnsetsDir": "data/pokemon/learnsets",
+    "evolutionsDir": "data/pokemon/evolutions",
+    "mediaDir": "data/pokemon/media",
+    "catalogFiles": {
+      "moves": "data/pokemon/catalogs/moves.json",
+      "abilities": "data/pokemon/catalogs/abilities.json",
+      "items": "data/pokemon/catalogs/items.json",
+      "types": "data/pokemon/catalogs/types.json",
+      "growth_rates": "data/pokemon/catalogs/growth_rates.json",
+      "natures": "data/pokemon/catalogs/natures.json"
+    }
+  }
+}
+```
+
+Important : ce bloc ne contient toujours que de la configuration de chemins. Aucune donnée Pokémon détaillée n’est embarquée inline dans `project.json`.
+
+## 6. Liste exacte des fichiers modifiés
+Fichiers modifiés dans ce mini-fix :
+- `packages/map_core/lib/src/models/project_manifest.dart`
+- `packages/map_core/lib/src/models/project_manifest.freezed.dart`
+- `packages/map_core/lib/src/models/project_manifest.g.dart`
+- `packages/map_editor/test/project_pokemon_config_test.dart`
+- `reports/pokemon-project-config-lot-10b-mini-fix-report.md`
+
+Fichier explicitement retiré du périmètre final :
+- `packages/map_core/analysis_options.yaml`
+
+Fichier encore présent dans l’état Git du lot 10 mais non modifié par ce mini-fix :
+- `packages/map_core/lib/src/io/legacy_editor_json_compat.dart`
+
+## 7. Commandes réellement exécutées
+### 7.1 Génération des fichiers annotés
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_core
+dart run build_runner build --delete-conflicting-outputs
+```
+
+Résultat réel : succès.
+Sortie notable :
+```text
+  Generating the build script.
+  Reading the asset graph.
+  Checking for updates.
+  Updating the asset graph.
+  Building, incremental build.
+  0s freezed on 45 inputs; ...
+  0s json_serializable on 90 inputs; ...
+  Running the post build.
+  Writing the asset graph.
+  Built with build_runner in 6s; wrote 12 outputs.
+```
+
+Avertissements observés pendant `build_runner` :
+```text
+W SDK language version 3.10.0 is newer than `analyzer` language version 3.9.0. Run `dart pub upgrade`.
+W json_serializable on lib/src/models/element_collision_profile.dart:
+  The version constraint "^4.8.1" on json_annotation allows versions before 4.9.0 which is not allowed.
+```
+
+Ces avertissements préexistaient au mini-fix et n’ont pas été traités ici, par respect du périmètre.
+
+### 7.2 Tests `map_core`
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_core
+dart test test/legacy_editor_json_compat_collision_test.dart
+```
+
+Résultat réel :
+```text
+00:00 +0: loading test/legacy_editor_json_compat_collision_test.dart
+00:00 +0: legacy collision profile compat migrates broken manual house profile from full padding base to authored silhouette
+00:00 +1: legacy collision profile compat migrates broken manual house profile from full padding base to authored silhouette
+00:00 +1: legacy collision profile compat unknown legacy keys do not prevent manifest parsing
+00:00 +2: legacy collision profile compat unknown legacy keys do not prevent manifest parsing
+00:00 +2: All tests passed!
+```
+
+### 7.3 Analyse `map_core`
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_core
+dart analyze lib/src/models/project_manifest.dart lib/src/io/legacy_editor_json_compat.dart test/legacy_editor_json_compat_collision_test.dart
+```
+
+Résultat réel :
+```text
+Analyzing project_manifest.dart, legacy_editor_json_compat.dart, legacy_editor_json_compat_collision_test.dart...
+No issues found!
+```
+
+### 7.4 Tests `map_editor`
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_editor
+flutter test test/project_pokemon_config_test.dart
+```
+
+Résultat réel :
+```text
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/project_pokemon_config_test.dart
+00:01 +0: Project pokemon config loads an older project without pokemon config and applies defaults
+00:01 +1: Project pokemon config creates a new project with the default lightweight pokemon config
+00:01 +2: Project pokemon config round-trips pokemon config through save and load without corruption
+00:01 +3: Project pokemon config loads project config without reading pokemon data files
+00:01 +4: Project pokemon config does not recreate data or assets at the monorepo root
+00:01 +5: All tests passed!
+```
+
+### 7.5 Analyse `map_editor`
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_editor
+flutter analyze --no-pub test/project_pokemon_config_test.dart
+```
+
+Résultat réel :
+```text
+Analyzing project_pokemon_config_test.dart...
+No issues found! (ran in 0.9s)
+```
+
+### 7.6 Vérification racine monorepo
+```bash
+cd /Users/karim/Project/pokemonProject
+find . -maxdepth 2 \( -path './data' -o -path './assets' \) -print
+```
+
+Résultat réel :
+```text
+
+```
+
+## 8. Résultats et vérifications de périmètre
+### 8.1 `project.json` reste léger
+Les tests vérifient explicitement que le bloc `pokemon` ne contient que :
+- `enabled`
+- `dataRoot`
+- `speciesDir`
+- `learnsetsDir`
+- `evolutionsDir`
+- `mediaDir`
+- `catalogFiles`
+
+Les clés métier détaillées comme `species`, `learnsets`, `evolutions`, `entries` restent absentes.
+
+### 8.2 Compatibilité anciens projets
+Le test `loads an older project without pokemon config and applies defaults` prouve qu’un ancien `project.json` sans bloc `pokemon` reste lisible et récupère une config par défaut stable.
+
+### 8.3 Aucun chargement des données Pokémon détaillées
+Le test `loads project config without reading pokemon data files` vérifie que charger le manifest projet ne crée ni `data/pokemon`, ni `assets/pokemon` dans le workspace cible.
+
+### 8.4 Rien n’est recréé à la racine du monorepo
+La commande `find` ci-dessus ne retourne rien. Le garde-fou de test côté `map_editor` confirme aussi que `./data` et `./assets` n’apparaissent pas à la racine du dépôt.
+
+### 8.5 Aucun impact UI / runtime / import
+Aucun fichier UI, runtime, provider ou import externe n’a été touché.
+
+## 9. État Git utile
+### 9.1 `git status --short`
+```text
+ M packages/map_core/lib/src/io/legacy_editor_json_compat.dart
+ M packages/map_core/lib/src/models/project_manifest.dart
+ M packages/map_core/lib/src/models/project_manifest.freezed.dart
+ M packages/map_core/lib/src/models/project_manifest.g.dart
+?? packages/map_editor/test/project_pokemon_config_test.dart
+?? reports/pokemon-project-config-lot-10-report.md
+?? reports/pokemon-project-config-lot-10b-mini-fix-report.md
+```
+
+### 9.2 `git diff --stat -- ...`
+```text
+ .../map_core/lib/src/models/project_manifest.dart  |  29 ++
+ .../lib/src/models/project_manifest.freezed.dart   | 341 ++++++++++++++++++++-
+ .../lib/src/models/project_manifest.g.dart         |  33 ++
+ 3 files changed, 402 insertions(+), 1 deletion(-)
+```
+
+### 9.3 `git ls-files --others --exclude-standard ...`
+```text
+packages/map_editor/test/project_pokemon_config_test.dart
+reports/pokemon-project-config-lot-10b-mini-fix-report.md
+```
+
+### 9.4 Notes honnêtes sur l’état Git
+- `packages/map_core/lib/src/io/legacy_editor_json_compat.dart` apparaît encore modifié dans l’arbre de travail, car il fait partie du lot 10 initial sur la compatibilité du manifest. Ce mini-fix 10b n’y a pas ajouté de changement.
+- `reports/pokemon-project-config-lot-10-report.md` reste présent comme fichier non suivi issu du lot 10 précédent.
+- `packages/map_core/analysis_options.yaml` n’apparaît plus dans l’état Git final, ce qui confirme que le débordement de périmètre a bien été retiré.
+- Le `git diff --stat` ciblé n’affiche pas les fichiers non suivis (`project_pokemon_config_test.dart` et ce nouveau rapport), ce qui est normal avec Git.
+
+## 10. Bundle de review
+Commande exécutée :
+```bash
+cd /Users/karim/Project/pokemonProject
+./review_bundle.sh
+```
+
+Chemin du bundle généré :
+```text
+.review/review-20260409-225644.txt
+```
+
+Contenu intégral du bundle :
+
+```text
+# REVIEW BUNDLE
+
+Generated at: 2026-04-09 22:56:45
+Repository: pokemonProject
+Branch: main
+Base ref: HEAD
+Head commit: ed6ceb11b63f970058aa6c998c57993df87a5a3f
+
+## GIT STATUS --SHORT
+
+ M packages/map_core/lib/src/io/legacy_editor_json_compat.dart
+ M packages/map_core/lib/src/models/project_manifest.dart
+ M packages/map_core/lib/src/models/project_manifest.freezed.dart
+ M packages/map_core/lib/src/models/project_manifest.g.dart
+?? packages/map_editor/test/project_pokemon_config_test.dart
+?? reports/pokemon-project-config-lot-10-report.md
+?? reports/pokemon-project-config-lot-10b-mini-fix-report.md
+
+## GIT DIFF --STAT
+
+ .../lib/src/io/legacy_editor_json_compat.dart      |   3 +
+ .../map_core/lib/src/models/project_manifest.dart  |  29 ++
+ .../lib/src/models/project_manifest.freezed.dart   | 341 ++++++++++++++++++++-
+ .../lib/src/models/project_manifest.g.dart         |  33 ++
+ 4 files changed, 405 insertions(+), 1 deletion(-)
+
+## CHANGED FILES
+
+packages/map_core/lib/src/io/legacy_editor_json_compat.dart
+packages/map_core/lib/src/models/project_manifest.dart
+packages/map_core/lib/src/models/project_manifest.freezed.dart
+packages/map_core/lib/src/models/project_manifest.g.dart
+
+## RECENT COMMITS
+
+ed6ceb1 LOT 9: Introduce `PokemonProjectValidator` for comprehensive Pokémon project validation
+318a544 LOT 8: Add `PokemonWriteRepository` with integration tests for local Pokémon data saving
+ff4a928 LOT 7: Introduce `PokemonReadRepository` abstraction and add tests
+b4e651b LOT 6: Add Pokedex list use case and application model for minimal UI projection
+c700532 LOT 5: Add Pokémon data models and reader service for structured JSON operations
+f808d3f Seed Pokémon demo data use case with idempotent JSON generation
+c4d2983 Enrich Pokémon JSON storage contract with manifest and minimal catalog structures
+e266743 Add use case to initialize Pokémon project storage structure
+c41fe7e Add data and assets folder structure with .gitkeep placeholders for future Pokémon content
+3d81349 Add tests to confirm grid-based collision granularity limitations and document runtime constraints
+8675f74 Add migration for broken legacy manual collision profiles
+59dce2a Audit runtime collision logic to validate `cells` as the active source of truth
+2aa52f4 Fix collision base model to support authored shapes and resolve padding-based overcapture issues
+fc7cf31 Enhance polygon rasterization logic and add backend cell preview to collision editor
+fe5da3e Add tests for project collision profile persistence and enhance UI behavior in element collision editor
+
+## FULL DIFF
+
+diff --git a/packages/map_core/lib/src/io/legacy_editor_json_compat.dart b/packages/map_core/lib/src/io/legacy_editor_json_compat.dart
+index 3adfdd6..0b2933d 100644
+--- a/packages/map_core/lib/src/io/legacy_editor_json_compat.dart
++++ b/packages/map_core/lib/src/io/legacy_editor_json_compat.dart
+@@ -12,6 +12,9 @@ Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
+   if (!next.containsKey('characters')) {
+     next['characters'] = <dynamic>[];
+   }
++  if (!next.containsKey('pokemon')) {
++    next['pokemon'] = <String, dynamic>{};
++  }
+   final settings = raw['settings'];
+   if (settings is Map) {
+     final migratedSettings =
+diff --git a/packages/map_core/lib/src/models/project_manifest.dart b/packages/map_core/lib/src/models/project_manifest.dart
+index 04ae9e0..951c33a 100644
+--- a/packages/map_core/lib/src/models/project_manifest.dart
++++ b/packages/map_core/lib/src/models/project_manifest.dart
+@@ -1,3 +1,5 @@
++// ignore_for_file: invalid_annotation_target
++
+ import 'package:freezed_annotation/freezed_annotation.dart';
+ import 'element_collision_profile.dart';
+ import 'enums.dart';
+@@ -13,6 +15,15 @@ Object? _readDefaultPlayerCharacterId(Map json, String _) {
+   return json['defaultPlayerCharacterId'] ?? json['playerCharacterId'];
+ }
+ 
++const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
++  'moves': 'data/pokemon/catalogs/moves.json',
++  'abilities': 'data/pokemon/catalogs/abilities.json',
++  'items': 'data/pokemon/catalogs/items.json',
++  'types': 'data/pokemon/catalogs/types.json',
++  'growth_rates': 'data/pokemon/catalogs/growth_rates.json',
++  'natures': 'data/pokemon/catalogs/natures.json',
++};
++
+ @freezed
+ class ProjectManifest with _$ProjectManifest {
+   @JsonSerializable(explicitToJson: true)
+@@ -37,6 +48,7 @@ class ProjectManifest with _$ProjectManifest {
+     @Default([]) List<ProjectTrainerEntry> trainers,
+     @Default([]) List<ProjectCharacterEntry> characters,
+     @Default(ProjectSettings()) ProjectSettings settings,
++    @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
+     @Default({}) Map<String, dynamic> globalProperties,
+   }) = _ProjectManifest;
+ 
+@@ -44,6 +56,23 @@ class ProjectManifest with _$ProjectManifest {
+       _$ProjectManifestFromJson(json);
+ }
+ 
++@freezed
++class ProjectPokemonConfig with _$ProjectPokemonConfig {
++  @JsonSerializable(explicitToJson: true)
++  const factory ProjectPokemonConfig({
++    @Default(true) bool enabled,
++    @Default('data/pokemon') String dataRoot,
++    @Default('data/pokemon/species') String speciesDir,
++    @Default('data/pokemon/learnsets') String learnsetsDir,
++    @Default('data/pokemon/evolutions') String evolutionsDir,
++    @Default('data/pokemon/media') String mediaDir,
++    @Default(_defaultPokemonCatalogFiles) Map<String, String> catalogFiles,
++  }) = _ProjectPokemonConfig;
++
++  factory ProjectPokemonConfig.fromJson(Map<String, dynamic> json) =>
++      _$ProjectPokemonConfigFromJson(json);
++}
++
+ @freezed
+ class ProjectSettings with _$ProjectSettings {
+   @JsonSerializable(explicitToJson: true)
+diff --git a/packages/map_core/lib/src/models/project_manifest.freezed.dart b/packages/map_core/lib/src/models/project_manifest.freezed.dart
+index 4f95385..528a748 100644
+--- a/packages/map_core/lib/src/models/project_manifest.freezed.dart
++++ b/packages/map_core/lib/src/models/project_manifest.freezed.dart
+@@ -49,6 +49,7 @@ mixin _$ProjectManifest {
+   List<ProjectCharacterEntry> get characters =>
+       throw _privateConstructorUsedError;
+   ProjectSettings get settings => throw _privateConstructorUsedError;
++  ProjectPokemonConfig get pokemon => throw _privateConstructorUsedError;
+   Map<String, dynamic> get globalProperties =>
+       throw _privateConstructorUsedError;
+ 
+@@ -89,9 +90,11 @@ abstract class $ProjectManifestCopyWith<$Res> {
+       List<ProjectTrainerEntry> trainers,
+       List<ProjectCharacterEntry> characters,
+       ProjectSettings settings,
++      ProjectPokemonConfig pokemon,
+       Map<String, dynamic> globalProperties});
+ 
+   $ProjectSettingsCopyWith<$Res> get settings;
++  $ProjectPokemonConfigCopyWith<$Res> get pokemon;
+ }
+ 
+ /// @nodoc
+@@ -129,6 +132,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
+     Object? trainers = null,
+     Object? characters = null,
+     Object? settings = null,
++    Object? pokemon = null,
+     Object? globalProperties = null,
+   }) {
+     return _then(_value.copyWith(
+@@ -212,6 +216,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
+           ? _value.settings
+           : settings // ignore: cast_nullable_to_non_nullable
+               as ProjectSettings,
++      pokemon: null == pokemon
++          ? _value.pokemon
++          : pokemon // ignore: cast_nullable_to_non_nullable
++              as ProjectPokemonConfig,
+       globalProperties: null == globalProperties
+           ? _value.globalProperties
+           : globalProperties // ignore: cast_nullable_to_non_nullable
+@@ -228,6 +236,16 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
+       return _then(_value.copyWith(settings: value) as $Val);
+     });
+   }
++
++  /// Create a copy of ProjectManifest
++  /// with the given fields replaced by the non-null parameter values.
++  @override
++  @pragma('vm:prefer-inline')
++  $ProjectPokemonConfigCopyWith<$Res> get pokemon {
++    return $ProjectPokemonConfigCopyWith<$Res>(_value.pokemon, (value) {
++      return _then(_value.copyWith(pokemon: value) as $Val);
++    });
++  }
+ }
+ 
+ /// @nodoc
+@@ -259,10 +277,13 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
+       List<ProjectTrainerEntry> trainers,
+       List<ProjectCharacterEntry> characters,
+       ProjectSettings settings,
++      ProjectPokemonConfig pokemon,
+       Map<String, dynamic> globalProperties});
+ 
+   @override
+   $ProjectSettingsCopyWith<$Res> get settings;
++  @override
++  $ProjectPokemonConfigCopyWith<$Res> get pokemon;
+ }
+ 
+ /// @nodoc
+@@ -298,6 +319,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
+     Object? trainers = null,
+     Object? characters = null,
+     Object? settings = null,
++    Object? pokemon = null,
+     Object? globalProperties = null,
+   }) {
+     return _then(_$ProjectManifestImpl(
+@@ -381,6 +403,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
+           ? _value.settings
+           : settings // ignore: cast_nullable_to_non_nullable
+               as ProjectSettings,
++      pokemon: null == pokemon
++          ? _value.pokemon
++          : pokemon // ignore: cast_nullable_to_non_nullable
++              as ProjectPokemonConfig,
+       globalProperties: null == globalProperties
+           ? _value._globalProperties
+           : globalProperties // ignore: cast_nullable_to_non_nullable
+@@ -414,6 +440,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
+       final List<ProjectTrainerEntry> trainers = const [],
+       final List<ProjectCharacterEntry> characters = const [],
+       this.settings = const ProjectSettings(),
++      this.pokemon = const ProjectPokemonConfig(),
+       final Map<String, dynamic> globalProperties = const {}})
+       : _maps = maps,
+         _groups = groups,
+@@ -598,6 +625,9 @@ class _$ProjectManifestImpl implements _ProjectManifest {
+   @override
+   @JsonKey()
+   final ProjectSettings settings;
++  @override
++  @JsonKey()
++  final ProjectPokemonConfig pokemon;
+   final Map<String, dynamic> _globalProperties;
+   @override
+   @JsonKey()
+@@ -609,7 +639,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
+ 
+   @override
+   String toString() {
+-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, globalProperties: $globalProperties)';
++    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties)';
+   }
+ 
+   @override
+@@ -649,6 +679,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
+                 .equals(other._characters, _characters) &&
+             (identical(other.settings, settings) ||
+                 other.settings == settings) &&
++            (identical(other.pokemon, pokemon) || other.pokemon == pokemon) &&
+             const DeepCollectionEquality()
+                 .equals(other._globalProperties, _globalProperties));
+   }
+@@ -677,6 +708,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
+         const DeepCollectionEquality().hash(_trainers),
+         const DeepCollectionEquality().hash(_characters),
+         settings,
++        pokemon,
+         const DeepCollectionEquality().hash(_globalProperties)
+       ]);
+ 
+@@ -719,6 +751,7 @@ abstract class _ProjectManifest implements ProjectManifest {
+       final List<ProjectTrainerEntry> trainers,
+       final List<ProjectCharacterEntry> characters,
+       final ProjectSettings settings,
++      final ProjectPokemonConfig pokemon,
+       final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
+ 
+   factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
+@@ -765,6 +798,8 @@ abstract class _ProjectManifest implements ProjectManifest {
+   @override
+   ProjectSettings get settings;
+   @override
++  ProjectPokemonConfig get pokemon;
++  @override
+   Map<String, dynamic> get globalProperties;
+ 
+   /// Create a copy of ProjectManifest
+@@ -775,6 +810,310 @@ abstract class _ProjectManifest implements ProjectManifest {
+       throw _privateConstructorUsedError;
+ }
+ 
++ProjectPokemonConfig _$ProjectPokemonConfigFromJson(Map<String, dynamic> json) {
++  return _ProjectPokemonConfig.fromJson(json);
++}
++
++/// @nodoc
++mixin _$ProjectPokemonConfig {
++  bool get enabled => throw _privateConstructorUsedError;
++  String get dataRoot => throw _privateConstructorUsedError;
++  String get speciesDir => throw _privateConstructorUsedError;
++  String get learnsetsDir => throw _privateConstructorUsedError;
++  String get evolutionsDir => throw _privateConstructorUsedError;
++  String get mediaDir => throw _privateConstructorUsedError;
++  Map<String, String> get catalogFiles => throw _privateConstructorUsedError;
++
++  /// Serializes this ProjectPokemonConfig to a JSON map.
++  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
++
++  /// Create a copy of ProjectPokemonConfig
++  /// with the given fields replaced by the non-null parameter values.
++  @JsonKey(includeFromJson: false, includeToJson: false)
++  $ProjectPokemonConfigCopyWith<ProjectPokemonConfig> get copyWith =>
++      throw _privateConstructorUsedError;
++}
++
++/// @nodoc
++abstract class $ProjectPokemonConfigCopyWith<$Res> {
++  factory $ProjectPokemonConfigCopyWith(ProjectPokemonConfig value,
++          $Res Function(ProjectPokemonConfig) then) =
++      _$ProjectPokemonConfigCopyWithImpl<$Res, ProjectPokemonConfig>;
++  @useResult
++  $Res call(
++      {bool enabled,
++      String dataRoot,
++      String speciesDir,
++      String learnsetsDir,
++      String evolutionsDir,
++      String mediaDir,
++      Map<String, String> catalogFiles});
++}
++
++/// @nodoc
++class _$ProjectPokemonConfigCopyWithImpl<$Res,
++        $Val extends ProjectPokemonConfig>
++    implements $ProjectPokemonConfigCopyWith<$Res> {
++  _$ProjectPokemonConfigCopyWithImpl(this._value, this._then);
++
++  // ignore: unused_field
++  final $Val _value;
++  // ignore: unused_field
++  final $Res Function($Val) _then;
++
++  /// Create a copy of ProjectPokemonConfig
++  /// with the given fields replaced by the non-null parameter values.
++  @pragma('vm:prefer-inline')
++  @override
++  $Res call({
++    Object? enabled = null,
++    Object? dataRoot = null,
++    Object? speciesDir = null,
++    Object? learnsetsDir = null,
++    Object? evolutionsDir = null,
++    Object? mediaDir = null,
++    Object? catalogFiles = null,
++  }) {
++    return _then(_value.copyWith(
++      enabled: null == enabled
++          ? _value.enabled
++          : enabled // ignore: cast_nullable_to_non_nullable
++              as bool,
++      dataRoot: null == dataRoot
++          ? _value.dataRoot
++          : dataRoot // ignore: cast_nullable_to_non_nullable
++              as String,
++      speciesDir: null == speciesDir
++          ? _value.speciesDir
++          : speciesDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      learnsetsDir: null == learnsetsDir
++          ? _value.learnsetsDir
++          : learnsetsDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      evolutionsDir: null == evolutionsDir
++          ? _value.evolutionsDir
++          : evolutionsDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      mediaDir: null == mediaDir
++          ? _value.mediaDir
++          : mediaDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      catalogFiles: null == catalogFiles
++          ? _value.catalogFiles
++          : catalogFiles // ignore: cast_nullable_to_non_nullable
++              as Map<String, String>,
++    ) as $Val);
++  }
++}
++
++/// @nodoc
++abstract class _$$ProjectPokemonConfigImplCopyWith<$Res>
++    implements $ProjectPokemonConfigCopyWith<$Res> {
++  factory _$$ProjectPokemonConfigImplCopyWith(_$ProjectPokemonConfigImpl value,
++          $Res Function(_$ProjectPokemonConfigImpl) then) =
++      __$$ProjectPokemonConfigImplCopyWithImpl<$Res>;
++  @override
++  @useResult
++  $Res call(
++      {bool enabled,
++      String dataRoot,
++      String speciesDir,
++      String learnsetsDir,
++      String evolutionsDir,
++      String mediaDir,
++      Map<String, String> catalogFiles});
++}
++
++/// @nodoc
++class __$$ProjectPokemonConfigImplCopyWithImpl<$Res>
++    extends _$ProjectPokemonConfigCopyWithImpl<$Res, _$ProjectPokemonConfigImpl>
++    implements _$$ProjectPokemonConfigImplCopyWith<$Res> {
++  __$$ProjectPokemonConfigImplCopyWithImpl(_$ProjectPokemonConfigImpl _value,
++      $Res Function(_$ProjectPokemonConfigImpl) _then)
++      : super(_value, _then);
++
++  /// Create a copy of ProjectPokemonConfig
++  /// with the given fields replaced by the non-null parameter values.
++  @pragma('vm:prefer-inline')
++  @override
++  $Res call({
++    Object? enabled = null,
++    Object? dataRoot = null,
++    Object? speciesDir = null,
++    Object? learnsetsDir = null,
++    Object? evolutionsDir = null,
++    Object? mediaDir = null,
++    Object? catalogFiles = null,
++  }) {
++    return _then(_$ProjectPokemonConfigImpl(
++      enabled: null == enabled
++          ? _value.enabled
++          : enabled // ignore: cast_nullable_to_non_nullable
++              as bool,
++      dataRoot: null == dataRoot
++          ? _value.dataRoot
++          : dataRoot // ignore: cast_nullable_to_non_nullable
++              as String,
++      speciesDir: null == speciesDir
++          ? _value.speciesDir
++          : speciesDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      learnsetsDir: null == learnsetsDir
++          ? _value.learnsetsDir
++          : learnsetsDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      evolutionsDir: null == evolutionsDir
++          ? _value.evolutionsDir
++          : evolutionsDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      mediaDir: null == mediaDir
++          ? _value.mediaDir
++          : mediaDir // ignore: cast_nullable_to_non_nullable
++              as String,
++      catalogFiles: null == catalogFiles
++          ? _value._catalogFiles
++          : catalogFiles // ignore: cast_nullable_to_non_nullable
++              as Map<String, String>,
++    ));
++  }
++}
++
++/// @nodoc
++
++@JsonSerializable(explicitToJson: true)
++class _$ProjectPokemonConfigImpl implements _ProjectPokemonConfig {
++  const _$ProjectPokemonConfigImpl(
++      {this.enabled = true,
++      this.dataRoot = 'data/pokemon',
++      this.speciesDir = 'data/pokemon/species',
++      this.learnsetsDir = 'data/pokemon/learnsets',
++      this.evolutionsDir = 'data/pokemon/evolutions',
++      this.mediaDir = 'data/pokemon/media',
++      final Map<String, String> catalogFiles = _defaultPokemonCatalogFiles})
++      : _catalogFiles = catalogFiles;
++
++  factory _$ProjectPokemonConfigImpl.fromJson(Map<String, dynamic> json) =>
++      _$$ProjectPokemonConfigImplFromJson(json);
++
++  @override
++  @JsonKey()
++  final bool enabled;
++  @override
++  @JsonKey()
++  final String dataRoot;
++  @override
++  @JsonKey()
++  final String speciesDir;
++  @override
++  @JsonKey()
++  final String learnsetsDir;
++  @override
++  @JsonKey()
++  final String evolutionsDir;
++  @override
++  @JsonKey()
++  final String mediaDir;
++  final Map<String, String> _catalogFiles;
++  @override
++  @JsonKey()
++  Map<String, String> get catalogFiles {
++    if (_catalogFiles is EqualUnmodifiableMapView) return _catalogFiles;
++    // ignore: implicit_dynamic_type
++    return EqualUnmodifiableMapView(_catalogFiles);
++  }
++
++  @override
++  String toString() {
++    return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
++  }
++
++  @override
++  bool operator ==(Object other) {
++    return identical(this, other) ||
++        (other.runtimeType == runtimeType &&
++            other is _$ProjectPokemonConfigImpl &&
++            (identical(other.enabled, enabled) || other.enabled == enabled) &&
++            (identical(other.dataRoot, dataRoot) ||
++                other.dataRoot == dataRoot) &&
++            (identical(other.speciesDir, speciesDir) ||
++                other.speciesDir == speciesDir) &&
++            (identical(other.learnsetsDir, learnsetsDir) ||
++                other.learnsetsDir == learnsetsDir) &&
++            (identical(other.evolutionsDir, evolutionsDir) ||
++                other.evolutionsDir == evolutionsDir) &&
++            (identical(other.mediaDir, mediaDir) ||
++                other.mediaDir == mediaDir) &&
++            const DeepCollectionEquality()
++                .equals(other._catalogFiles, _catalogFiles));
++  }
++
++  @JsonKey(includeFromJson: false, includeToJson: false)
++  @override
++  int get hashCode => Object.hash(
++      runtimeType,
++      enabled,
++      dataRoot,
++      speciesDir,
++      learnsetsDir,
++      evolutionsDir,
++      mediaDir,
++      const DeepCollectionEquality().hash(_catalogFiles));
++
++  /// Create a copy of ProjectPokemonConfig
++  /// with the given fields replaced by the non-null parameter values.
++  @JsonKey(includeFromJson: false, includeToJson: false)
++  @override
++  @pragma('vm:prefer-inline')
++  _$$ProjectPokemonConfigImplCopyWith<_$ProjectPokemonConfigImpl>
++      get copyWith =>
++          __$$ProjectPokemonConfigImplCopyWithImpl<_$ProjectPokemonConfigImpl>(
++              this, _$identity);
++
++  @override
++  Map<String, dynamic> toJson() {
++    return _$$ProjectPokemonConfigImplToJson(
++      this,
++    );
++  }
++}
++
++abstract class _ProjectPokemonConfig implements ProjectPokemonConfig {
++  const factory _ProjectPokemonConfig(
++      {final bool enabled,
++      final String dataRoot,
++      final String speciesDir,
++      final String learnsetsDir,
++      final String evolutionsDir,
++      final String mediaDir,
++      final Map<String, String> catalogFiles}) = _$ProjectPokemonConfigImpl;
++
++  factory _ProjectPokemonConfig.fromJson(Map<String, dynamic> json) =
++      _$ProjectPokemonConfigImpl.fromJson;
++
++  @override
++  bool get enabled;
++  @override
++  String get dataRoot;
++  @override
++  String get speciesDir;
++  @override
++  String get learnsetsDir;
++  @override
++  String get evolutionsDir;
++  @override
++  String get mediaDir;
++  @override
++  Map<String, String> get catalogFiles;
++
++  /// Create a copy of ProjectPokemonConfig
++  /// with the given fields replaced by the non-null parameter values.
++  @override
++  @JsonKey(includeFromJson: false, includeToJson: false)
++  _$$ProjectPokemonConfigImplCopyWith<_$ProjectPokemonConfigImpl>
++      get copyWith => throw _privateConstructorUsedError;
++}
++
+ ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) {
+   return _ProjectSettings.fromJson(json);
+ }
+diff --git a/packages/map_core/lib/src/models/project_manifest.g.dart b/packages/map_core/lib/src/models/project_manifest.g.dart
+index 5455204..7a2f799 100644
+--- a/packages/map_core/lib/src/models/project_manifest.g.dart
++++ b/packages/map_core/lib/src/models/project_manifest.g.dart
+@@ -94,6 +94,10 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
+       settings: json['settings'] == null
+           ? const ProjectSettings()
+           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
++      pokemon: json['pokemon'] == null
++          ? const ProjectPokemonConfig()
++          : ProjectPokemonConfig.fromJson(
++              json['pokemon'] as Map<String, dynamic>),
+       globalProperties:
+           json['globalProperties'] as Map<String, dynamic>? ?? const {},
+     );
+@@ -125,6 +129,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
+       'trainers': instance.trainers.map((e) => e.toJson()).toList(),
+       'characters': instance.characters.map((e) => e.toJson()).toList(),
+       'settings': instance.settings.toJson(),
++      'pokemon': instance.pokemon.toJson(),
+       'globalProperties': instance.globalProperties,
+     };
+ 
+@@ -132,6 +137,34 @@ const _$ProjectVersionEnumMap = {
+   ProjectVersion.v1: 'v1',
+ };
+ 
++_$ProjectPokemonConfigImpl _$$ProjectPokemonConfigImplFromJson(
++        Map<String, dynamic> json) =>
++    _$ProjectPokemonConfigImpl(
++      enabled: json['enabled'] as bool? ?? true,
++      dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
++      speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
++      learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',
++      evolutionsDir:
++          json['evolutionsDir'] as String? ?? 'data/pokemon/evolutions',
++      mediaDir: json['mediaDir'] as String? ?? 'data/pokemon/media',
++      catalogFiles: (json['catalogFiles'] as Map<String, dynamic>?)?.map(
++            (k, e) => MapEntry(k, e as String),
++          ) ??
++          _defaultPokemonCatalogFiles,
++    );
++
++Map<String, dynamic> _$$ProjectPokemonConfigImplToJson(
++        _$ProjectPokemonConfigImpl instance) =>
++    <String, dynamic>{
++      'enabled': instance.enabled,
++      'dataRoot': instance.dataRoot,
++      'speciesDir': instance.speciesDir,
++      'learnsetsDir': instance.learnsetsDir,
++      'evolutionsDir': instance.evolutionsDir,
++      'mediaDir': instance.mediaDir,
++      'catalogFiles': instance.catalogFiles,
++    };
++
+ _$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
+         Map<String, dynamic> json) =>
+     _$ProjectSettingsImpl(
+```
+
+Note honnête : le bundle reflète l’état Git, donc il ne montre pas le contenu complet des fichiers non suivis. C’est pour cela que le code complet est recopié plus bas dans ce rapport.
+
+## 11. Code intégral des fichiers modifiés ou créés dans ce mini-fix
+### 11.1 `packages/map_core/lib/src/models/project_manifest.dart`
+```dart
+// ignore_for_file: invalid_annotation_target
+
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'element_collision_profile.dart';
+import 'enums.dart';
+import 'project_trainer.dart';
+import 'scenario_asset.dart';
+import 'script_asset.dart';
+import 'visual_frame_json.dart';
+
+part 'project_manifest.freezed.dart';
+part 'project_manifest.g.dart';
+
+Object? _readDefaultPlayerCharacterId(Map json, String _) {
+  return json['defaultPlayerCharacterId'] ?? json['playerCharacterId'];
+}
+
+const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
+  'moves': 'data/pokemon/catalogs/moves.json',
+  'abilities': 'data/pokemon/catalogs/abilities.json',
+  'items': 'data/pokemon/catalogs/items.json',
+  'types': 'data/pokemon/catalogs/types.json',
+  'growth_rates': 'data/pokemon/catalogs/growth_rates.json',
+  'natures': 'data/pokemon/catalogs/natures.json',
+};
+
+@freezed
+class ProjectManifest with _$ProjectManifest {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectManifest({
+    required String name,
+    @Default(ProjectVersion.v1) ProjectVersion version,
+    required List<ProjectMapEntry> maps,
+    @Default([]) List<ProjectMapGroup> groups,
+    @Default([]) List<ProjectTilesetFolder> tilesetFolders,
+    required List<ProjectTilesetEntry> tilesets,
+    @Default([]) List<ProjectElementCategory> elementCategories,
+    @Default([]) List<ProjectElementEntry> elements,
+    @Default([]) List<ProjectPresetCategory> terrainCategories,
+    @Default([]) List<ProjectPresetCategory> pathCategories,
+    @Default([]) List<ProjectTerrainPreset> terrainPresets,
+    @Default([]) List<ProjectPathPreset> pathPresets,
+    @Default([]) List<ProjectEncounterTable> encounterTables,
+    @Default([]) List<ProjectDialogueFolder> dialogueFolders,
+    @Default([]) List<ProjectDialogueEntry> dialogues,
+    @Default([]) List<ProjectScriptEntry> scripts,
+    @Default([]) List<ScenarioAsset> scenarios,
+    @Default([]) List<ProjectTrainerEntry> trainers,
+    @Default([]) List<ProjectCharacterEntry> characters,
+    @Default(ProjectSettings()) ProjectSettings settings,
+    @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
+    @Default({}) Map<String, dynamic> globalProperties,
+  }) = _ProjectManifest;
+
+  factory ProjectManifest.fromJson(Map<String, dynamic> json) =>
+      _$ProjectManifestFromJson(json);
+}
+
+@freezed
+class ProjectPokemonConfig with _$ProjectPokemonConfig {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectPokemonConfig({
+    @Default(true) bool enabled,
+    @Default('data/pokemon') String dataRoot,
+    @Default('data/pokemon/species') String speciesDir,
+    @Default('data/pokemon/learnsets') String learnsetsDir,
+    @Default('data/pokemon/evolutions') String evolutionsDir,
+    @Default('data/pokemon/media') String mediaDir,
+    @Default(_defaultPokemonCatalogFiles) Map<String, String> catalogFiles,
+  }) = _ProjectPokemonConfig;
+
+  factory ProjectPokemonConfig.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPokemonConfigFromJson(json);
+}
+
+@freezed
+class ProjectSettings with _$ProjectSettings {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectSettings({
+    @Default(16) int tileWidth,
+    @Default(16) int tileHeight,
+    @Default(2.0) double displayScale,
+    @Default(20) int defaultMapWidth,
+    @Default(15) int defaultMapHeight,
+    @JsonKey(
+      name: 'defaultPlayerCharacterId',
+      readValue: _readDefaultPlayerCharacterId,
+    )
+    String? defaultPlayerCharacterId,
+
+    /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+    ///
+    /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
+    /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
+    @JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey,
+  }) = _ProjectSettings;
+
+  factory ProjectSettings.fromJson(Map<String, dynamic> json) =>
+      _$ProjectSettingsFromJson(json);
+}
+
+@freezed
+class ProjectMapGroup with _$ProjectMapGroup {
+  const factory ProjectMapGroup({
+    required String id,
+    required String name,
+    required MapGroupType type,
+    String? parentGroupId,
+    @Default(0) int sortOrder,
+    @Default([]) List<String> tags,
+    @Default({}) Map<String, dynamic> properties,
+  }) = _ProjectMapGroup;
+
+  factory ProjectMapGroup.fromJson(Map<String, dynamic> json) =>
+      _$ProjectMapGroupFromJson(json);
+}
+
+@freezed
+class ProjectMapEntry with _$ProjectMapEntry {
+  const factory ProjectMapEntry({
+    required String id,
+    required String name,
+    required String relativePath,
+    String? groupId,
+    @Default(MapRole.exterior) MapRole role,
+    @Default(0) int sortOrder,
+  }) = _ProjectMapEntry;
+
+  factory ProjectMapEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectMapEntryFromJson(json);
+}
+
+@freezed
+class ProjectDialogueFolder with _$ProjectDialogueFolder {
+  const factory ProjectDialogueFolder({
+    required String id,
+    required String name,
+    String? parentFolderId,
+    @Default(0) int sortOrder,
+  }) = _ProjectDialogueFolder;
+
+  factory ProjectDialogueFolder.fromJson(Map<String, dynamic> json) =>
+      _$ProjectDialogueFolderFromJson(json);
+}
+
+@freezed
+class ProjectDialogueEntry with _$ProjectDialogueEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectDialogueEntry({
+    required String id,
+    required String name,
+
+    /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
+    required String relativePath,
+    @Default([]) List<String> tags,
+    @Default('') String description,
+
+    /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
+    String? defaultStartNode,
+
+    /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
+    String? folderId,
+    @Default(0) int sortOrder,
+  }) = _ProjectDialogueEntry;
+
+  factory ProjectDialogueEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectDialogueEntryFromJson(json);
+}
+
+@freezed
+class ProjectTilesetFolder with _$ProjectTilesetFolder {
+  const factory ProjectTilesetFolder({
+    required String id,
+    required String name,
+    String? parentFolderId,
+    @Default(0) int sortOrder,
+  }) = _ProjectTilesetFolder;
+
+  factory ProjectTilesetFolder.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTilesetFolderFromJson(json);
+}
+
+@freezed
+class ProjectTilesetEntry with _$ProjectTilesetEntry {
+  const factory ProjectTilesetEntry({
+    required String id,
+    required String name,
+    required String relativePath,
+    @Default(TilesetScope.global) TilesetScope scope,
+    String? groupId,
+
+    /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
+    String? folderId,
+    @Default(0) int sortOrder,
+    @Default(false) bool isWorldTileset,
+    @Default([]) List<TilesetElementGroup> elementGroups,
+    @Default([]) List<TilesetPaletteEntry> paletteEntries,
+  }) = _ProjectTilesetEntry;
+
+  factory ProjectTilesetEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTilesetEntryFromJson(json);
+}
+
+@freezed
+class TilesetPaletteEntry with _$TilesetPaletteEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory TilesetPaletteEntry({
+    required String id,
+    @Default('') String name,
+    @Default(PaletteCategory.uncategorized) PaletteCategory category,
+
+    /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
+    required List<TilesetVisualFrame> frames,
+    String? recommendedLayerId,
+  }) = _TilesetPaletteEntry;
+
+  factory TilesetPaletteEntry.fromJson(Map<String, dynamic> json) =>
+      _$TilesetPaletteEntryFromJson(jsonCoerceLegacySourceToFrames(json));
+}
+
+@freezed
+class TilesetSourceRect with _$TilesetSourceRect {
+  const factory TilesetSourceRect({
+    required int x,
+    required int y,
+    @Default(1) int width,
+    @Default(1) int height,
+  }) = _TilesetSourceRect;
+
+  factory TilesetSourceRect.fromJson(Map<String, dynamic> json) =>
+      _$TilesetSourceRectFromJson(json);
+}
+
+/// Une frame d'animation ou l'unique frame d'un visuel statique dans un tileset.
+///
+/// [tilesetId] vide = utiliser le tileset du contexte parent (élément, preset, entrée palette).
+@freezed
+class TilesetVisualFrame with _$TilesetVisualFrame {
+  @JsonSerializable(explicitToJson: true)
+  const factory TilesetVisualFrame({
+    @Default('') String tilesetId,
+    required TilesetSourceRect source,
+
+    /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
+    int? durationMs,
+  }) = _TilesetVisualFrame;
+
+  factory TilesetVisualFrame.fromJson(Map<String, dynamic> json) =>
+      _$TilesetVisualFrameFromJson(json);
+}
+
+@freezed
+class TilesetElementGroup with _$TilesetElementGroup {
+  const factory TilesetElementGroup({
+    required String id,
+    required String name,
+    String? parentGroupId,
+    @Default(0) int sortOrder,
+  }) = _TilesetElementGroup;
+
+  factory TilesetElementGroup.fromJson(Map<String, dynamic> json) =>
+      _$TilesetElementGroupFromJson(json);
+}
+
+@freezed
+class ProjectElementCategory with _$ProjectElementCategory {
+  const factory ProjectElementCategory({
+    required String id,
+    required String name,
+    String? parentCategoryId,
+    @Default(0) int sortOrder,
+  }) = _ProjectElementCategory;
+
+  factory ProjectElementCategory.fromJson(Map<String, dynamic> json) =>
+      _$ProjectElementCategoryFromJson(json);
+}
+
+@freezed
+class ProjectElementEntry with _$ProjectElementEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectElementEntry({
+    required String id,
+    required String name,
+    required String tilesetId,
+    required String categoryId,
+    String? tilesetGroupId,
+
+    /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
+    required List<TilesetVisualFrame> frames,
+    @Default(ElementPresetKind.generic) ElementPresetKind presetKind,
+    ElementCollisionProfile? collisionProfile,
+    String? groupId,
+    String? recommendedLayerId,
+    @Default([]) List<String> tags,
+    @Default(0) int sortOrder,
+  }) = _ProjectElementEntry;
+
+  factory ProjectElementEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectElementEntryFromJson(jsonCoerceLegacySourceToFrames(json));
+}
+
+@freezed
+class ProjectTerrainPreset with _$ProjectTerrainPreset {
+  const factory ProjectTerrainPreset({
+    required String id,
+    required String name,
+    required TerrainType terrainType,
+    String? categoryId,
+    @Default('') String tilesetId,
+    @Default([]) List<TerrainPresetVariant> variants,
+    @Default(0) int sortOrder,
+  }) = _ProjectTerrainPreset;
+
+  factory ProjectTerrainPreset.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTerrainPresetFromJson(json);
+}
+
+@freezed
+class TerrainPresetVariant with _$TerrainPresetVariant {
+  @JsonSerializable(explicitToJson: true)
+  const factory TerrainPresetVariant({
+    /// Au moins une frame ; rendu éditeur = première frame.
+    required List<TilesetVisualFrame> frames,
+    @Default(1) int weight,
+  }) = _TerrainPresetVariant;
+
+  factory TerrainPresetVariant.fromJson(Map<String, dynamic> json) =>
+      _$TerrainPresetVariantFromJson(jsonCoerceLegacySourceToFrames(json));
+}
+
+@freezed
+class ProjectPathPreset with _$ProjectPathPreset {
+  const factory ProjectPathPreset({
+    required String id,
+    required String name,
+    @Default(PathSurfaceKind.path) PathSurfaceKind surfaceKind,
+    String? categoryId,
+    @Default('') String tilesetId,
+    @Default([]) List<PathPresetVariantMapping> variants,
+    @Default(0) int sortOrder,
+  }) = _ProjectPathPreset;
+
+  factory ProjectPathPreset.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPathPresetFromJson(json);
+}
+
+@freezed
+class PathPresetVariantMapping with _$PathPresetVariantMapping {
+  @JsonSerializable(explicitToJson: true)
+  const factory PathPresetVariantMapping({
+    required TerrainPathVariant variant,
+
+    /// Au moins une frame ; rendu éditeur / autotile = première frame.
+    required List<TilesetVisualFrame> frames,
+  }) = _PathPresetVariantMapping;
+
+  factory PathPresetVariantMapping.fromJson(Map<String, dynamic> json) =>
+      _$PathPresetVariantMappingFromJson(jsonCoerceLegacySourceToFrames(json));
+}
+
+@freezed
+class PathAnimationTriggerRule with _$PathAnimationTriggerRule {
+  @JsonSerializable(explicitToJson: true)
+  const factory PathAnimationTriggerRule({
+    @Default('') String id,
+    @Default(true) bool enabled,
+    @Default(PathAnimationTriggerType.onStep) PathAnimationTriggerType trigger,
+    @Default(PathAnimationPlaybackMode.restartOnTrigger)
+    PathAnimationPlaybackMode mode,
+    @Default(PathAnimationActivationScope.wholeLayer)
+    PathAnimationActivationScope scope,
+  }) = _PathAnimationTriggerRule;
+
+  factory PathAnimationTriggerRule.fromJson(Map<String, dynamic> json) =>
+      _$PathAnimationTriggerRuleFromJson(json);
+}
+
+@freezed
+class ProjectPresetCategory with _$ProjectPresetCategory {
+  const factory ProjectPresetCategory({
+    required String id,
+    required String name,
+    String? parentCategoryId,
+    @Default(0) int sortOrder,
+  }) = _ProjectPresetCategory;
+
+  factory ProjectPresetCategory.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPresetCategoryFromJson(json);
+}
+
+// ---------------------------------------------------------------------------
+// ProjectEncounterEntry / ProjectEncounterTable
+// ---------------------------------------------------------------------------
+
+/// Entrée pondérée dans une table de rencontres.
+@freezed
+class ProjectEncounterEntry with _$ProjectEncounterEntry {
+  const factory ProjectEncounterEntry({
+    /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
+    required String speciesId,
+    required int minLevel,
+    required int maxLevel,
+
+    /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
+    @Default(1) int weight,
+  }) = _ProjectEncounterEntry;
+
+  factory ProjectEncounterEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectEncounterEntryFromJson(json);
+}
+
+/// Table de rencontres réutilisable au niveau projet.
+///
+/// Une [MapGameplayZone] peut y faire référence via [MapGameplayZone.encounterTableId].
+/// Le runtime choisit une entrée au tirage pondéré et déclenche le système de combat.
+@freezed
+class ProjectEncounterTable with _$ProjectEncounterTable {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectEncounterTable({
+    required String id,
+    required String name,
+    required EncounterKind encounterKind,
+    @Default([]) List<ProjectEncounterEntry> entries,
+    @Default([]) List<String> tags,
+  }) = _ProjectEncounterTable;
+
+  factory ProjectEncounterTable.fromJson(Map<String, dynamic> json) =>
+      _$ProjectEncounterTableFromJson(json);
+}
+
+extension TilesetVisualFrameListX on List<TilesetVisualFrame> {
+  TilesetVisualFrame get primaryFrame {
+    if (isEmpty) {
+      throw StateError('At least one TilesetVisualFrame is required');
+    }
+    return first;
+  }
+
+  TilesetSourceRect get primarySource => primaryFrame.source;
+}
+
+@freezed
+class ProjectScriptEntry with _$ProjectScriptEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectScriptEntry({
+    required String id,
+    required String name,
+    required ScriptAsset asset,
+    @Default([]) List<String> tags,
+  }) = _ProjectScriptEntry;
+
+  factory ProjectScriptEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectScriptEntryFromJson(json);
+}
+
+@freezed
+class ProjectCharacterEntry with _$ProjectCharacterEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectCharacterEntry({
+    required String id,
+    required String name,
+    required String tilesetId,
+    @Default(1) int frameWidth,
+    @Default(2) int frameHeight,
+    @Default([]) List<CharacterAnimation> animations,
+    @Default([]) List<String> tags,
+    @Default(0) int sortOrder,
+  }) = _ProjectCharacterEntry;
+
+  factory ProjectCharacterEntry.fromJson(Map<String, dynamic> json) =>
+      _$ProjectCharacterEntryFromJson(json);
+}
+
+@freezed
+class CharacterAnimation with _$CharacterAnimation {
+  @JsonSerializable(explicitToJson: true)
+  const factory CharacterAnimation({
+    required CharacterAnimationState state,
+    required EntityFacing direction,
+    @Default([]) List<CharacterAnimationFrame> frames,
+  }) = _CharacterAnimation;
+
+  factory CharacterAnimation.fromJson(Map<String, dynamic> json) =>
+      _$CharacterAnimationFromJson(json);
+}
+
+@freezed
+class CharacterAnimationFrame with _$CharacterAnimationFrame {
+  @JsonSerializable(explicitToJson: true)
+  const factory CharacterAnimationFrame({
+    required TilesetSourceRect source,
+    @Default(150) int durationMs,
+  }) = _CharacterAnimationFrame;
+
+  factory CharacterAnimationFrame.fromJson(Map<String, dynamic> json) =>
+      _$CharacterAnimationFrameFromJson(json);
+}
+```
+
+### 11.2 `packages/map_core/lib/src/models/project_manifest.freezed.dart`
+```dart
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -7570,3 +8978,1080 @@ abstract class _CharacterAnimationFrame implements CharacterAnimationFrame {
   _$$CharacterAnimationFrameImplCopyWith<_$CharacterAnimationFrameImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
+```
+
+### 11.3 `packages/map_core/lib/src/models/project_manifest.g.dart`
+```dart
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'project_manifest.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$ProjectManifestImpl _$$ProjectManifestImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectManifestImpl(
+      name: json['name'] as String,
+      version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
+          ProjectVersion.v1,
+      maps: (json['maps'] as List<dynamic>)
+          .map((e) => ProjectMapEntry.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      groups: (json['groups'] as List<dynamic>?)
+              ?.map((e) => ProjectMapGroup.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      tilesetFolders: (json['tilesetFolders'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectTilesetFolder.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      tilesets: (json['tilesets'] as List<dynamic>)
+          .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      elementCategories: (json['elementCategories'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectElementCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      elements: (json['elements'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectElementEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      terrainCategories: (json['terrainCategories'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectPresetCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      pathCategories: (json['pathCategories'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectPresetCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      terrainPresets: (json['terrainPresets'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectTerrainPreset.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      pathPresets: (json['pathPresets'] as List<dynamic>?)
+              ?.map(
+                  (e) => ProjectPathPreset.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      encounterTables: (json['encounterTables'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectEncounterTable.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      dialogueFolders: (json['dialogueFolders'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectDialogueFolder.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      dialogues: (json['dialogues'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectDialogueEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      scripts: (json['scripts'] as List<dynamic>?)
+              ?.map(
+                  (e) => ProjectScriptEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      scenarios: (json['scenarios'] as List<dynamic>?)
+              ?.map((e) => ScenarioAsset.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      trainers: (json['trainers'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      characters: (json['characters'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectCharacterEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      settings: json['settings'] == null
+          ? const ProjectSettings()
+          : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
+      pokemon: json['pokemon'] == null
+          ? const ProjectPokemonConfig()
+          : ProjectPokemonConfig.fromJson(
+              json['pokemon'] as Map<String, dynamic>),
+      globalProperties:
+          json['globalProperties'] as Map<String, dynamic>? ?? const {},
+    );
+
+Map<String, dynamic> _$$ProjectManifestImplToJson(
+        _$ProjectManifestImpl instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'version': _$ProjectVersionEnumMap[instance.version]!,
+      'maps': instance.maps.map((e) => e.toJson()).toList(),
+      'groups': instance.groups.map((e) => e.toJson()).toList(),
+      'tilesetFolders': instance.tilesetFolders.map((e) => e.toJson()).toList(),
+      'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
+      'elementCategories':
+          instance.elementCategories.map((e) => e.toJson()).toList(),
+      'elements': instance.elements.map((e) => e.toJson()).toList(),
+      'terrainCategories':
+          instance.terrainCategories.map((e) => e.toJson()).toList(),
+      'pathCategories': instance.pathCategories.map((e) => e.toJson()).toList(),
+      'terrainPresets': instance.terrainPresets.map((e) => e.toJson()).toList(),
+      'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
+      'encounterTables':
+          instance.encounterTables.map((e) => e.toJson()).toList(),
+      'dialogueFolders':
+          instance.dialogueFolders.map((e) => e.toJson()).toList(),
+      'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
+      'scripts': instance.scripts.map((e) => e.toJson()).toList(),
+      'scenarios': instance.scenarios.map((e) => e.toJson()).toList(),
+      'trainers': instance.trainers.map((e) => e.toJson()).toList(),
+      'characters': instance.characters.map((e) => e.toJson()).toList(),
+      'settings': instance.settings.toJson(),
+      'pokemon': instance.pokemon.toJson(),
+      'globalProperties': instance.globalProperties,
+    };
+
+const _$ProjectVersionEnumMap = {
+  ProjectVersion.v1: 'v1',
+};
+
+_$ProjectPokemonConfigImpl _$$ProjectPokemonConfigImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectPokemonConfigImpl(
+      enabled: json['enabled'] as bool? ?? true,
+      dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
+      speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
+      learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',
+      evolutionsDir:
+          json['evolutionsDir'] as String? ?? 'data/pokemon/evolutions',
+      mediaDir: json['mediaDir'] as String? ?? 'data/pokemon/media',
+      catalogFiles: (json['catalogFiles'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          _defaultPokemonCatalogFiles,
+    );
+
+Map<String, dynamic> _$$ProjectPokemonConfigImplToJson(
+        _$ProjectPokemonConfigImpl instance) =>
+    <String, dynamic>{
+      'enabled': instance.enabled,
+      'dataRoot': instance.dataRoot,
+      'speciesDir': instance.speciesDir,
+      'learnsetsDir': instance.learnsetsDir,
+      'evolutionsDir': instance.evolutionsDir,
+      'mediaDir': instance.mediaDir,
+      'catalogFiles': instance.catalogFiles,
+    };
+
+_$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectSettingsImpl(
+      tileWidth: (json['tileWidth'] as num?)?.toInt() ?? 16,
+      tileHeight: (json['tileHeight'] as num?)?.toInt() ?? 16,
+      displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
+      defaultMapWidth: (json['defaultMapWidth'] as num?)?.toInt() ?? 20,
+      defaultMapHeight: (json['defaultMapHeight'] as num?)?.toInt() ?? 15,
+      defaultPlayerCharacterId:
+          _readDefaultPlayerCharacterId(json, 'defaultPlayerCharacterId')
+              as String?,
+      mistralApiKey: json['mistralApiKey'] as String?,
+    );
+
+Map<String, dynamic> _$$ProjectSettingsImplToJson(
+        _$ProjectSettingsImpl instance) =>
+    <String, dynamic>{
+      'tileWidth': instance.tileWidth,
+      'tileHeight': instance.tileHeight,
+      'displayScale': instance.displayScale,
+      'defaultMapWidth': instance.defaultMapWidth,
+      'defaultMapHeight': instance.defaultMapHeight,
+      'defaultPlayerCharacterId': instance.defaultPlayerCharacterId,
+      if (instance.mistralApiKey case final value?) 'mistralApiKey': value,
+    };
+
+_$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectMapGroupImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      type: $enumDecode(_$MapGroupTypeEnumMap, json['type']),
+      parentGroupId: json['parentGroupId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      properties: json['properties'] as Map<String, dynamic>? ?? const {},
+    );
+
+Map<String, dynamic> _$$ProjectMapGroupImplToJson(
+        _$ProjectMapGroupImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'type': _$MapGroupTypeEnumMap[instance.type]!,
+      'parentGroupId': instance.parentGroupId,
+      'sortOrder': instance.sortOrder,
+      'tags': instance.tags,
+      'properties': instance.properties,
+    };
+
+const _$MapGroupTypeEnumMap = {
+  MapGroupType.city: 'city',
+  MapGroupType.village: 'village',
+  MapGroupType.route: 'route',
+  MapGroupType.dungeon: 'dungeon',
+  MapGroupType.cave: 'cave',
+  MapGroupType.forest: 'forest',
+  MapGroupType.tower: 'tower',
+  MapGroupType.facility: 'facility',
+  MapGroupType.special: 'special',
+};
+
+_$ProjectMapEntryImpl _$$ProjectMapEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectMapEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      relativePath: json['relativePath'] as String,
+      groupId: json['groupId'] as String?,
+      role: $enumDecodeNullable(_$MapRoleEnumMap, json['role']) ??
+          MapRole.exterior,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectMapEntryImplToJson(
+        _$ProjectMapEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'relativePath': instance.relativePath,
+      'groupId': instance.groupId,
+      'role': _$MapRoleEnumMap[instance.role]!,
+      'sortOrder': instance.sortOrder,
+    };
+
+const _$MapRoleEnumMap = {
+  MapRole.exterior: 'exterior',
+  MapRole.interior: 'interior',
+  MapRole.basement: 'basement',
+  MapRole.upper_floor: 'upper_floor',
+  MapRole.connector: 'connector',
+  MapRole.gate: 'gate',
+  MapRole.room: 'room',
+  MapRole.section: 'section',
+  MapRole.sub_area: 'sub_area',
+};
+
+_$ProjectDialogueFolderImpl _$$ProjectDialogueFolderImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectDialogueFolderImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentFolderId: json['parentFolderId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectDialogueFolderImplToJson(
+        _$ProjectDialogueFolderImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentFolderId': instance.parentFolderId,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$ProjectDialogueEntryImpl _$$ProjectDialogueEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectDialogueEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      relativePath: json['relativePath'] as String,
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      description: json['description'] as String? ?? '',
+      defaultStartNode: json['defaultStartNode'] as String?,
+      folderId: json['folderId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectDialogueEntryImplToJson(
+        _$ProjectDialogueEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'relativePath': instance.relativePath,
+      'tags': instance.tags,
+      'description': instance.description,
+      'defaultStartNode': instance.defaultStartNode,
+      'folderId': instance.folderId,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$ProjectTilesetFolderImpl _$$ProjectTilesetFolderImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTilesetFolderImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentFolderId: json['parentFolderId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectTilesetFolderImplToJson(
+        _$ProjectTilesetFolderImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentFolderId': instance.parentFolderId,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTilesetEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      relativePath: json['relativePath'] as String,
+      scope: $enumDecodeNullable(_$TilesetScopeEnumMap, json['scope']) ??
+          TilesetScope.global,
+      groupId: json['groupId'] as String?,
+      folderId: json['folderId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+      isWorldTileset: json['isWorldTileset'] as bool? ?? false,
+      elementGroups: (json['elementGroups'] as List<dynamic>?)
+              ?.map((e) =>
+                  TilesetElementGroup.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      paletteEntries: (json['paletteEntries'] as List<dynamic>?)
+              ?.map((e) =>
+                  TilesetPaletteEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
+        _$ProjectTilesetEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'relativePath': instance.relativePath,
+      'scope': _$TilesetScopeEnumMap[instance.scope]!,
+      'groupId': instance.groupId,
+      'folderId': instance.folderId,
+      'sortOrder': instance.sortOrder,
+      'isWorldTileset': instance.isWorldTileset,
+      'elementGroups': instance.elementGroups,
+      'paletteEntries': instance.paletteEntries,
+    };
+
+const _$TilesetScopeEnumMap = {
+  TilesetScope.global: 'global',
+  TilesetScope.group: 'group',
+};
+
+_$TilesetPaletteEntryImpl _$$TilesetPaletteEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetPaletteEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String? ?? '',
+      category:
+          $enumDecodeNullable(_$PaletteCategoryEnumMap, json['category']) ??
+              PaletteCategory.uncategorized,
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      recommendedLayerId: json['recommendedLayerId'] as String?,
+    );
+
+Map<String, dynamic> _$$TilesetPaletteEntryImplToJson(
+        _$TilesetPaletteEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'category': _$PaletteCategoryEnumMap[instance.category]!,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
+      'recommendedLayerId': instance.recommendedLayerId,
+    };
+
+const _$PaletteCategoryEnumMap = {
+  PaletteCategory.floors: 'floors',
+  PaletteCategory.paths: 'paths',
+  PaletteCategory.water: 'water',
+  PaletteCategory.buildings: 'buildings',
+  PaletteCategory.roofs: 'roofs',
+  PaletteCategory.plants: 'plants',
+  PaletteCategory.trees: 'trees',
+  PaletteCategory.cliffs: 'cliffs',
+  PaletteCategory.decorations: 'decorations',
+  PaletteCategory.interiors: 'interiors',
+  PaletteCategory.objects: 'objects',
+  PaletteCategory.uncategorized: 'uncategorized',
+};
+
+_$TilesetSourceRectImpl _$$TilesetSourceRectImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetSourceRectImpl(
+      x: (json['x'] as num).toInt(),
+      y: (json['y'] as num).toInt(),
+      width: (json['width'] as num?)?.toInt() ?? 1,
+      height: (json['height'] as num?)?.toInt() ?? 1,
+    );
+
+Map<String, dynamic> _$$TilesetSourceRectImplToJson(
+        _$TilesetSourceRectImpl instance) =>
+    <String, dynamic>{
+      'x': instance.x,
+      'y': instance.y,
+      'width': instance.width,
+      'height': instance.height,
+    };
+
+_$TilesetVisualFrameImpl _$$TilesetVisualFrameImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetVisualFrameImpl(
+      tilesetId: json['tilesetId'] as String? ?? '',
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      durationMs: (json['durationMs'] as num?)?.toInt(),
+    );
+
+Map<String, dynamic> _$$TilesetVisualFrameImplToJson(
+        _$TilesetVisualFrameImpl instance) =>
+    <String, dynamic>{
+      'tilesetId': instance.tilesetId,
+      'source': instance.source.toJson(),
+      'durationMs': instance.durationMs,
+    };
+
+_$TilesetElementGroupImpl _$$TilesetElementGroupImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TilesetElementGroupImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentGroupId: json['parentGroupId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$TilesetElementGroupImplToJson(
+        _$TilesetElementGroupImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentGroupId': instance.parentGroupId,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$ProjectElementCategoryImpl _$$ProjectElementCategoryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectElementCategoryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentCategoryId: json['parentCategoryId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectElementCategoryImplToJson(
+        _$ProjectElementCategoryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentCategoryId': instance.parentCategoryId,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectElementEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      tilesetId: json['tilesetId'] as String,
+      categoryId: json['categoryId'] as String,
+      tilesetGroupId: json['tilesetGroupId'] as String?,
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      presetKind:
+          $enumDecodeNullable(_$ElementPresetKindEnumMap, json['presetKind']) ??
+              ElementPresetKind.generic,
+      collisionProfile: json['collisionProfile'] == null
+          ? null
+          : ElementCollisionProfile.fromJson(
+              json['collisionProfile'] as Map<String, dynamic>),
+      groupId: json['groupId'] as String?,
+      recommendedLayerId: json['recommendedLayerId'] as String?,
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectElementEntryImplToJson(
+        _$ProjectElementEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'tilesetId': instance.tilesetId,
+      'categoryId': instance.categoryId,
+      'tilesetGroupId': instance.tilesetGroupId,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
+      'presetKind': _$ElementPresetKindEnumMap[instance.presetKind]!,
+      'collisionProfile': instance.collisionProfile?.toJson(),
+      'groupId': instance.groupId,
+      'recommendedLayerId': instance.recommendedLayerId,
+      'tags': instance.tags,
+      'sortOrder': instance.sortOrder,
+    };
+
+const _$ElementPresetKindEnumMap = {
+  ElementPresetKind.generic: 'generic',
+  ElementPresetKind.tree: 'tree',
+  ElementPresetKind.building: 'building',
+  ElementPresetKind.rock: 'rock',
+  ElementPresetKind.cliff: 'cliff',
+  ElementPresetKind.tallDecoration: 'tall_decoration',
+};
+
+_$ProjectTerrainPresetImpl _$$ProjectTerrainPresetImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTerrainPresetImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      terrainType: $enumDecode(_$TerrainTypeEnumMap, json['terrainType']),
+      categoryId: json['categoryId'] as String?,
+      tilesetId: json['tilesetId'] as String? ?? '',
+      variants: (json['variants'] as List<dynamic>?)
+              ?.map((e) =>
+                  TerrainPresetVariant.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectTerrainPresetImplToJson(
+        _$ProjectTerrainPresetImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'terrainType': _$TerrainTypeEnumMap[instance.terrainType]!,
+      'categoryId': instance.categoryId,
+      'tilesetId': instance.tilesetId,
+      'variants': instance.variants,
+      'sortOrder': instance.sortOrder,
+    };
+
+const _$TerrainTypeEnumMap = {
+  TerrainType.none: 'none',
+  TerrainType.grass: 'grass',
+  TerrainType.dirt: 'dirt',
+  TerrainType.sand: 'sand',
+  TerrainType.rock: 'rock',
+  TerrainType.stone: 'stone',
+  TerrainType.indoor: 'indoor',
+};
+
+_$TerrainPresetVariantImpl _$$TerrainPresetVariantImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TerrainPresetVariantImpl(
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      weight: (json['weight'] as num?)?.toInt() ?? 1,
+    );
+
+Map<String, dynamic> _$$TerrainPresetVariantImplToJson(
+        _$TerrainPresetVariantImpl instance) =>
+    <String, dynamic>{
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
+      'weight': instance.weight,
+    };
+
+_$ProjectPathPresetImpl _$$ProjectPathPresetImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectPathPresetImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      surfaceKind:
+          $enumDecodeNullable(_$PathSurfaceKindEnumMap, json['surfaceKind']) ??
+              PathSurfaceKind.path,
+      categoryId: json['categoryId'] as String?,
+      tilesetId: json['tilesetId'] as String? ?? '',
+      variants: (json['variants'] as List<dynamic>?)
+              ?.map((e) =>
+                  PathPresetVariantMapping.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectPathPresetImplToJson(
+        _$ProjectPathPresetImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'surfaceKind': _$PathSurfaceKindEnumMap[instance.surfaceKind]!,
+      'categoryId': instance.categoryId,
+      'tilesetId': instance.tilesetId,
+      'variants': instance.variants,
+      'sortOrder': instance.sortOrder,
+    };
+
+const _$PathSurfaceKindEnumMap = {
+  PathSurfaceKind.path: 'path',
+  PathSurfaceKind.road: 'road',
+  PathSurfaceKind.water: 'water',
+  PathSurfaceKind.tallGrass: 'tall_grass',
+  PathSurfaceKind.ice: 'ice',
+  PathSurfaceKind.lava: 'lava',
+  PathSurfaceKind.swamp: 'swamp',
+  PathSurfaceKind.rails: 'rails',
+  PathSurfaceKind.bridge: 'bridge',
+  PathSurfaceKind.special: 'special',
+  PathSurfaceKind.custom: 'custom',
+};
+
+_$PathPresetVariantMappingImpl _$$PathPresetVariantMappingImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PathPresetVariantMappingImpl(
+      variant: $enumDecode(_$TerrainPathVariantEnumMap, json['variant']),
+      frames: (json['frames'] as List<dynamic>)
+          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$$PathPresetVariantMappingImplToJson(
+        _$PathPresetVariantMappingImpl instance) =>
+    <String, dynamic>{
+      'variant': _$TerrainPathVariantEnumMap[instance.variant]!,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
+    };
+
+const _$TerrainPathVariantEnumMap = {
+  TerrainPathVariant.isolated: 'isolated',
+  TerrainPathVariant.endNorth: 'endNorth',
+  TerrainPathVariant.endEast: 'endEast',
+  TerrainPathVariant.endSouth: 'endSouth',
+  TerrainPathVariant.endWest: 'endWest',
+  TerrainPathVariant.horizontal: 'horizontal',
+  TerrainPathVariant.vertical: 'vertical',
+  TerrainPathVariant.cornerNE: 'cornerNE',
+  TerrainPathVariant.cornerSE: 'cornerSE',
+  TerrainPathVariant.cornerSW: 'cornerSW',
+  TerrainPathVariant.cornerNW: 'cornerNW',
+  TerrainPathVariant.innerCornerNE: 'innerCornerNE',
+  TerrainPathVariant.innerCornerSE: 'innerCornerSE',
+  TerrainPathVariant.innerCornerSW: 'innerCornerSW',
+  TerrainPathVariant.innerCornerNW: 'innerCornerNW',
+  TerrainPathVariant.teeNorth: 'teeNorth',
+  TerrainPathVariant.teeEast: 'teeEast',
+  TerrainPathVariant.teeSouth: 'teeSouth',
+  TerrainPathVariant.teeWest: 'teeWest',
+  TerrainPathVariant.cross: 'cross',
+};
+
+_$PathAnimationTriggerRuleImpl _$$PathAnimationTriggerRuleImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PathAnimationTriggerRuleImpl(
+      id: json['id'] as String? ?? '',
+      enabled: json['enabled'] as bool? ?? true,
+      trigger: $enumDecodeNullable(
+              _$PathAnimationTriggerTypeEnumMap, json['trigger']) ??
+          PathAnimationTriggerType.onStep,
+      mode: $enumDecodeNullable(
+              _$PathAnimationPlaybackModeEnumMap, json['mode']) ??
+          PathAnimationPlaybackMode.restartOnTrigger,
+      scope: $enumDecodeNullable(
+              _$PathAnimationActivationScopeEnumMap, json['scope']) ??
+          PathAnimationActivationScope.wholeLayer,
+    );
+
+Map<String, dynamic> _$$PathAnimationTriggerRuleImplToJson(
+        _$PathAnimationTriggerRuleImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'enabled': instance.enabled,
+      'trigger': _$PathAnimationTriggerTypeEnumMap[instance.trigger]!,
+      'mode': _$PathAnimationPlaybackModeEnumMap[instance.mode]!,
+      'scope': _$PathAnimationActivationScopeEnumMap[instance.scope]!,
+    };
+
+const _$PathAnimationTriggerTypeEnumMap = {
+  PathAnimationTriggerType.onEnter: 'on_enter',
+  PathAnimationTriggerType.onStep: 'on_step',
+  PathAnimationTriggerType.onNear: 'on_near',
+  PathAnimationTriggerType.onAction: 'on_action',
+  PathAnimationTriggerType.whileInside: 'while_inside',
+  PathAnimationTriggerType.onBump: 'on_bump',
+};
+
+const _$PathAnimationPlaybackModeEnumMap = {
+  PathAnimationPlaybackMode.playOnce: 'play_once',
+  PathAnimationPlaybackMode.loopWhileActive: 'loop_while_active',
+  PathAnimationPlaybackMode.restartOnTrigger: 'restart_on_trigger',
+};
+
+const _$PathAnimationActivationScopeEnumMap = {
+  PathAnimationActivationScope.wholeLayer: 'whole_layer',
+  PathAnimationActivationScope.cellOnly: 'cell_only',
+};
+
+_$ProjectPresetCategoryImpl _$$ProjectPresetCategoryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectPresetCategoryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      parentCategoryId: json['parentCategoryId'] as String?,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectPresetCategoryImplToJson(
+        _$ProjectPresetCategoryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'parentCategoryId': instance.parentCategoryId,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$ProjectEncounterEntryImpl _$$ProjectEncounterEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectEncounterEntryImpl(
+      speciesId: json['speciesId'] as String,
+      minLevel: (json['minLevel'] as num).toInt(),
+      maxLevel: (json['maxLevel'] as num).toInt(),
+      weight: (json['weight'] as num?)?.toInt() ?? 1,
+    );
+
+Map<String, dynamic> _$$ProjectEncounterEntryImplToJson(
+        _$ProjectEncounterEntryImpl instance) =>
+    <String, dynamic>{
+      'speciesId': instance.speciesId,
+      'minLevel': instance.minLevel,
+      'maxLevel': instance.maxLevel,
+      'weight': instance.weight,
+    };
+
+_$ProjectEncounterTableImpl _$$ProjectEncounterTableImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectEncounterTableImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      encounterKind: $enumDecode(_$EncounterKindEnumMap, json['encounterKind']),
+      entries: (json['entries'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectEncounterEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+    );
+
+Map<String, dynamic> _$$ProjectEncounterTableImplToJson(
+        _$ProjectEncounterTableImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
+      'entries': instance.entries.map((e) => e.toJson()).toList(),
+      'tags': instance.tags,
+    };
+
+const _$EncounterKindEnumMap = {
+  EncounterKind.walk: 'walk',
+  EncounterKind.surf: 'surf',
+  EncounterKind.headbutt: 'headbutt',
+  EncounterKind.oldRod: 'old_rod',
+  EncounterKind.goodRod: 'good_rod',
+  EncounterKind.superRod: 'super_rod',
+  EncounterKind.gift: 'gift',
+  EncounterKind.special: 'special',
+};
+
+_$ProjectScriptEntryImpl _$$ProjectScriptEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectScriptEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      asset: ScriptAsset.fromJson(json['asset'] as Map<String, dynamic>),
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+    );
+
+Map<String, dynamic> _$$ProjectScriptEntryImplToJson(
+        _$ProjectScriptEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'asset': instance.asset.toJson(),
+      'tags': instance.tags,
+    };
+
+_$ProjectCharacterEntryImpl _$$ProjectCharacterEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectCharacterEntryImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      tilesetId: json['tilesetId'] as String,
+      frameWidth: (json['frameWidth'] as num?)?.toInt() ?? 1,
+      frameHeight: (json['frameHeight'] as num?)?.toInt() ?? 2,
+      animations: (json['animations'] as List<dynamic>?)
+              ?.map(
+                  (e) => CharacterAnimation.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectCharacterEntryImplToJson(
+        _$ProjectCharacterEntryImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'tilesetId': instance.tilesetId,
+      'frameWidth': instance.frameWidth,
+      'frameHeight': instance.frameHeight,
+      'animations': instance.animations.map((e) => e.toJson()).toList(),
+      'tags': instance.tags,
+      'sortOrder': instance.sortOrder,
+    };
+
+_$CharacterAnimationImpl _$$CharacterAnimationImplFromJson(
+        Map<String, dynamic> json) =>
+    _$CharacterAnimationImpl(
+      state: $enumDecode(_$CharacterAnimationStateEnumMap, json['state']),
+      direction: $enumDecode(_$EntityFacingEnumMap, json['direction']),
+      frames: (json['frames'] as List<dynamic>?)
+              ?.map((e) =>
+                  CharacterAnimationFrame.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$CharacterAnimationImplToJson(
+        _$CharacterAnimationImpl instance) =>
+    <String, dynamic>{
+      'state': _$CharacterAnimationStateEnumMap[instance.state]!,
+      'direction': _$EntityFacingEnumMap[instance.direction]!,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
+    };
+
+const _$CharacterAnimationStateEnumMap = {
+  CharacterAnimationState.idle: 'idle',
+  CharacterAnimationState.walk: 'walk',
+  CharacterAnimationState.run: 'run',
+};
+
+const _$EntityFacingEnumMap = {
+  EntityFacing.north: 'north',
+  EntityFacing.south: 'south',
+  EntityFacing.east: 'east',
+  EntityFacing.west: 'west',
+};
+
+_$CharacterAnimationFrameImpl _$$CharacterAnimationFrameImplFromJson(
+        Map<String, dynamic> json) =>
+    _$CharacterAnimationFrameImpl(
+      source:
+          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      durationMs: (json['durationMs'] as num?)?.toInt() ?? 150,
+    );
+
+Map<String, dynamic> _$$CharacterAnimationFrameImplToJson(
+        _$CharacterAnimationFrameImpl instance) =>
+    <String, dynamic>{
+      'source': instance.source.toJson(),
+      'durationMs': instance.durationMs,
+    };
+```
+
+### 11.4 `packages/map_editor/test/project_pokemon_config_test.dart`
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
+import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
+import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
+import 'package:path/path.dart' as p;
+
+void main() {
+  late Directory tempProjectRoot;
+  late String repoRootPath;
+  late FileProjectRepository repository;
+  late CreateProjectUseCase createProjectUseCase;
+  late LoadProjectUseCase loadProjectUseCase;
+
+  setUp(() async {
+    tempProjectRoot = await Directory.systemTemp.createTemp('project_pokemon_');
+    repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
+    repository = FileProjectRepository();
+    createProjectUseCase = CreateProjectUseCase(
+      repository,
+      const FileProjectWorkspaceFactory(),
+    );
+    loadProjectUseCase = LoadProjectUseCase(repository);
+  });
+
+  tearDown(() async {
+    if (await tempProjectRoot.exists()) {
+      await tempProjectRoot.delete(recursive: true);
+    }
+  });
+
+  group('Project pokemon config', () {
+    test('loads an older project without pokemon config and applies defaults',
+        () async {
+      await createProjectUseCase.execute('Legacy Pokemon Project', tempProjectRoot.path);
+
+      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+      final json = jsonDecode(await projectFile.readAsString())
+          as Map<String, dynamic>;
+      json.remove('pokemon');
+      await projectFile.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(json),
+      );
+
+      final loaded = await loadProjectUseCase.execute(projectFile.path);
+
+      expect(loaded.pokemon, const ProjectPokemonConfig());
+    });
+
+    test('creates a new project with the default lightweight pokemon config',
+        () async {
+      final manifest = await createProjectUseCase.execute(
+        'Pokemon Config Project',
+        tempProjectRoot.path,
+      );
+
+      expect(manifest.pokemon, const ProjectPokemonConfig());
+
+      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+      final json = jsonDecode(await projectFile.readAsString())
+          as Map<String, dynamic>;
+      final pokemon = json['pokemon'] as Map<String, dynamic>;
+
+      expect(
+        pokemon.keys.toSet(),
+        equals(<String>{
+          'enabled',
+          'dataRoot',
+          'speciesDir',
+          'learnsetsDir',
+          'evolutionsDir',
+          'mediaDir',
+          'catalogFiles',
+        }),
+      );
+      expect(pokemon['enabled'], isTrue);
+      expect(pokemon['dataRoot'], 'data/pokemon');
+      expect(pokemon['speciesDir'], 'data/pokemon/species');
+      expect(pokemon['learnsetsDir'], 'data/pokemon/learnsets');
+      expect(pokemon['evolutionsDir'], 'data/pokemon/evolutions');
+      expect(pokemon['mediaDir'], 'data/pokemon/media');
+      expect(
+        pokemon['catalogFiles'],
+        <String, Object?>{
+          'moves': 'data/pokemon/catalogs/moves.json',
+          'abilities': 'data/pokemon/catalogs/abilities.json',
+          'items': 'data/pokemon/catalogs/items.json',
+          'types': 'data/pokemon/catalogs/types.json',
+          'growth_rates': 'data/pokemon/catalogs/growth_rates.json',
+          'natures': 'data/pokemon/catalogs/natures.json',
+        },
+      );
+
+      expect(pokemon.containsKey('species'), isFalse);
+      expect(pokemon.containsKey('learnsets'), isFalse);
+      expect(pokemon.containsKey('evolutions'), isFalse);
+      expect(pokemon.containsKey('entries'), isFalse);
+    });
+
+    test('round-trips pokemon config through save and load without corruption',
+        () async {
+      await createProjectUseCase.execute('Pokemon Roundtrip Project', tempProjectRoot.path);
+
+      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+      final before = await projectFile.readAsString();
+
+      final loaded = await loadProjectUseCase.execute(projectFile.path);
+      await repository.saveProject(loaded, projectFile.path);
+
+      final after = await projectFile.readAsString();
+
+      expect(after, before);
+    });
+
+    test('loads project config without reading pokemon data files', () async {
+      await createProjectUseCase.execute('Pokemon Lazy Config Project', tempProjectRoot.path);
+
+      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+      final loaded = await loadProjectUseCase.execute(projectFile.path);
+
+      expect(loaded.pokemon, const ProjectPokemonConfig());
+      expect(
+        Directory(p.join(tempProjectRoot.path, 'data', 'pokemon')).existsSync(),
+        isFalse,
+      );
+      expect(
+        Directory(p.join(tempProjectRoot.path, 'assets', 'pokemon')).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('does not recreate data or assets at the monorepo root', () async {
+      await createProjectUseCase.execute('Pokemon Root Guard Project', tempProjectRoot.path);
+
+      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+      await loadProjectUseCase.execute(projectFile.path);
+
+      expect(Directory(p.join(repoRootPath, 'data')).existsSync(), isFalse);
+      expect(Directory(p.join(repoRootPath, 'assets')).existsSync(), isFalse);
+    });
+  });
+}
+
+String _resolveRepositoryRootFromCurrentDirectory() {
+  var current = Directory.current.absolute;
+
+  while (true) {
+    final agentsFile = File(p.join(current.path, 'AGENTS.md'));
+    final mapEditorDir = Directory(p.join(current.path, 'packages', 'map_editor'));
+    if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
+      return current.path;
+    }
+
+    final parent = current.parent;
+    if (parent.path == current.path) {
+      throw StateError(
+        'Could not resolve repository root from Directory.current: '
+        '${Directory.current.path}',
+      );
+    }
+    current = parent;
+  }
+}
+```
+
+## 12. Explication rapide de chaque fichier touché
+- `project_manifest.dart` : source manuelle du modèle projet. Le mini-fix y corrige la valeur par défaut de `mediaDir` et remplace la modification globale d’analyse par un `ignore_for_file` local.
+- `project_manifest.freezed.dart` : fichier régénéré pour propager le modèle `ProjectPokemonConfig` mis à jour.
+- `project_manifest.g.dart` : fichier régénéré pour propager la sérialisation JSON avec `mediaDir = data/pokemon/media`.
+- `project_pokemon_config_test.dart` : test ciblé mis à jour pour vérifier la convention produit correcte et les garde-fous de périmètre.
+
+## 13. Mini conclusion honnête
+Le mini-fix 10b garde le lot 10 dans le bon périmètre : `project.json` apprend seulement où se trouvent les données Pokémon locales, sans jamais embarquer leur contenu. La correction la plus importante est le réalignement de `mediaDir` sur `data/pokemon/media`, ce qui remet le manifest en cohérence avec le cadrage produit. L’autre correction utile est le retrait de la modification package-wide sur `analysis_options.yaml`, afin de ne pas laisser un débordement de périmètre dans ce lot.
+
+Ce qui reste volontairement inchangé : aucune lecture des JSON Pokémon détaillés, aucune validation métier supplémentaire, aucun lien UI/runtime/import. On reste bien sur une petite config déclarative de projet, et rien de plus.
