@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import 'character_library_panel.dart';
 import 'narrative_library_panel.dart';
@@ -373,9 +374,9 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(editorNotifierProvider);
+    final snapshot = ref.watch(editorProjectExplorerSnapshotProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final project = state.project;
+    final project = snapshot.project;
 
     return SizedBox(
       width: double.infinity,
@@ -414,7 +415,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                       children: [
                         _buildHeader(context),
                         const SizedBox(height: 10),
-                        _buildTree(context, project, state, notifier),
+                        _buildTree(context, project, snapshot, notifier),
                       ],
                     ),
                   ),
@@ -496,7 +497,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   Widget _buildTree(
     BuildContext context,
     ProjectManifest project,
-    dynamic state,
+    EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) {
     final rootMaps = project.maps.where((m) => m.groupId == null).toList();
@@ -508,7 +509,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         (g) => _GroupNode(
           group: g,
           project: project,
-          state: state,
+          snapshot: snapshot,
           notifier: notifier,
           depth: 0,
         ),
@@ -518,7 +519,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ...rootMaps.map(
           (m) => _MapNode(
             map: m,
-            state: state,
+            snapshot: snapshot,
             notifier: notifier,
             depth: 0,
           ),
@@ -583,7 +584,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 icon: CupertinoIcons.photo_on_rectangle,
                 tooltip: 'Import tileset',
                 onPressed: () =>
-                    _showImportTilesetDialog(context, state, notifier),
+                    _showImportTilesetDialog(context, snapshot, notifier),
                 iconColor: actionIcon,
                 hoverFill: actionHover,
               ),
@@ -599,7 +600,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
               ),
             ],
           ),
-          child: _buildTilesetsIsland(context, project, state, notifier),
+          child: _buildTilesetsIsland(context, project, snapshot, notifier),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
@@ -614,7 +615,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           expanded: _expandPokedex,
           onToggle: () => setState(() => _expandPokedex = !_expandPokedex),
           expandedHeight: hPokedex,
-          child: _buildPokedexPlaceholderCard(context, state, notifier),
+          child: _buildPokedexPlaceholderCard(context, snapshot, notifier),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
@@ -711,22 +712,22 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   Widget _buildTilesetsIsland(
     BuildContext context,
     ProjectManifest project,
-    dynamic state,
+    EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) {
     return SingleChildScrollView(
       primary: false,
       padding: const EdgeInsets.only(bottom: 8),
-      child: _buildTilesetsSection(context, project, state, notifier),
+      child: _buildTilesetsSection(context, project, snapshot, notifier),
     );
   }
 
   Widget _buildPokedexPlaceholderCard(
     BuildContext context,
-    dynamic state,
+    EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) {
-    final selected = state.workspaceMode == EditorWorkspaceMode.pokedex;
+    final selected = snapshot.workspaceMode == EditorWorkspaceMode.pokedex;
     final subtle = CupertinoColors.placeholderText.resolveFrom(context);
 
     return SingleChildScrollView(
@@ -785,11 +786,10 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   Widget _buildTilesetsSection(
     BuildContext context,
     ProjectManifest project,
-    dynamic state,
+    EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) {
-    final selectedTilesetId =
-        state.selectedTilesetEditorId ?? notifier.getSelectedTilesetEntry()?.id;
+    final selectedTilesetId = snapshot.selectedTilesetEntry?.id;
     final tree = buildTilesetLibraryTree(project);
 
     String scopeLabel(ProjectTilesetEntry t) {
@@ -843,10 +843,10 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
 
   Future<void> _showImportTilesetDialog(
     BuildContext context,
-    dynamic state,
+    EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) async {
-    final project = state.project as ProjectManifest?;
+    final project = snapshot.project;
     if (project == null) return;
 
     final picked = await FilePicker.platform.pickFiles(
@@ -1172,14 +1172,14 @@ class _SidebarHeaderActionState extends State<_SidebarHeaderAction> {
 class _GroupNode extends StatelessWidget {
   final ProjectMapGroup group;
   final ProjectManifest project;
-  final dynamic state;
+  final EditorProjectExplorerSnapshot snapshot;
   final EditorNotifier notifier;
   final int depth;
 
   const _GroupNode({
     required this.group,
     required this.project,
-    required this.state,
+    required this.snapshot,
     required this.notifier,
     required this.depth,
   });
@@ -1235,7 +1235,7 @@ class _GroupNode extends StatelessWidget {
           (g) => _GroupNode(
             group: g,
             project: project,
-            state: state,
+            snapshot: snapshot,
             notifier: notifier,
             depth: depth + 1,
           ),
@@ -1243,7 +1243,7 @@ class _GroupNode extends StatelessWidget {
         ...childrenMaps.map(
           (m) => _MapNode(
             map: m,
-            state: state,
+            snapshot: snapshot,
             notifier: notifier,
             depth: depth + 1,
           ),
@@ -1306,7 +1306,7 @@ class _GroupNode extends StatelessWidget {
   ) {
     final controller = TextEditingController();
     var selectedRole = MapRole.exterior;
-    final settings = state.project?.settings ?? const ProjectSettings();
+    final settings = snapshot.settings;
 
     showMacosEditorModalSheet<void>(
       context: context,
@@ -1472,20 +1472,20 @@ class _GroupNode extends StatelessWidget {
 
 class _MapNode extends StatelessWidget {
   final ProjectMapEntry map;
-  final dynamic state;
+  final EditorProjectExplorerSnapshot snapshot;
   final EditorNotifier notifier;
   final int depth;
 
   const _MapNode({
     required this.map,
-    required this.state,
+    required this.snapshot,
     required this.notifier,
     required this.depth,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = state.activeMap?.id == map.id;
+    final isSelected = snapshot.activeMapId == map.id;
 
     return EditorSidebarListRow(
       selected: isSelected,

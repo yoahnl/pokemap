@@ -12,6 +12,7 @@ import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_selectors.dart';
 
 class TerrainEditorPanel extends ConsumerWidget {
   const TerrainEditorPanel({
@@ -25,13 +26,10 @@ class TerrainEditorPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(editorNotifierProvider);
-    final notifier = ref.read(editorNotifierProvider.notifier);
-    final project = state.project;
-    final settings = project?.settings ?? const ProjectSettings();
-    final tilesets = project?.tilesets ?? const <ProjectTilesetEntry>[];
-    final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
-    final selectedPathPreset = notifier.getSelectedPathPreset();
+    final snapshot = ref.watch(editorTerrainLibrarySnapshotProvider);
+    final project = snapshot.project;
+    final settings = snapshot.settings;
+    final tilesets = snapshot.tilesets;
 
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final subtle = CupertinoColors.placeholderText.resolveFrom(context);
@@ -99,7 +97,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '${(selectedTerrainPreset != null ? 1 : 0) + (selectedPathPreset != null ? 1 : 0)} active',
+                    '${(snapshot.selectedTerrainPresetId != null ? 1 : 0) + (snapshot.selectedPathPresetId != null ? 1 : 0)} active',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -134,7 +132,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                         icon: CupertinoIcons.map,
                         settings: settings,
                         tilesets: tilesets,
-                        selectedPresetId: selectedTerrainPreset?.id,
+                        selectedPresetId: snapshot.selectedTerrainPresetId,
                       ),
                       const SizedBox(height: 12),
                       _LibraryRoot(
@@ -146,7 +144,7 @@ class TerrainEditorPanel extends ConsumerWidget {
                         icon: CupertinoIcons.arrow_branch,
                         settings: settings,
                         tilesets: tilesets,
-                        selectedPresetId: selectedPathPreset?.id,
+                        selectedPresetId: snapshot.selectedPathPresetId,
                       ),
                     ],
                   ),
@@ -4476,12 +4474,8 @@ class TerrainLibraryPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(editorNotifierProvider);
-    final notifier = ref.read(editorNotifierProvider.notifier);
-    final project = state.project;
-    final settings = project?.settings ?? const ProjectSettings();
-    final tilesets = project?.tilesets ?? const <ProjectTilesetEntry>[];
-    final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
+    final snapshot = ref.watch(editorTerrainLibrarySnapshotProvider);
+    final project = snapshot.project;
 
     return project == null
         ? Center(
@@ -4491,9 +4485,9 @@ class TerrainLibraryPanel extends ConsumerWidget {
             ),
           )
         : _TerrainLibraryContent(
-            settings: settings,
-            tilesets: tilesets,
-            selectedPresetId: selectedTerrainPreset?.id,
+            settings: snapshot.settings,
+            tilesets: snapshot.tilesets,
+            selectedPresetId: snapshot.selectedTerrainPresetId,
           );
   }
 }
@@ -4795,12 +4789,8 @@ class PathLibraryPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(editorNotifierProvider);
-    final notifier = ref.read(editorNotifierProvider.notifier);
-    final project = state.project;
-    final settings = project?.settings ?? const ProjectSettings();
-    final tilesets = project?.tilesets ?? const <ProjectTilesetEntry>[];
-    final selectedPathPreset = notifier.getSelectedPathPreset();
+    final snapshot = ref.watch(editorTerrainLibrarySnapshotProvider);
+    final project = snapshot.project;
 
     return project == null
         ? Center(
@@ -4810,9 +4800,9 @@ class PathLibraryPanel extends ConsumerWidget {
             ),
           )
         : _PathLibraryContent(
-            settings: settings,
-            tilesets: tilesets,
-            selectedPresetId: selectedPathPreset?.id,
+            settings: snapshot.settings,
+            tilesets: snapshot.tilesets,
+            selectedPresetId: snapshot.selectedPathPresetId,
           );
   }
 }

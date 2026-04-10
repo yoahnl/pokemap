@@ -23,7 +23,8 @@ import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
 import '../../application/services/element_collision_authoring_service.dart';
 import '../../features/editor/state/editor_notifier.dart';
-import '../../features/editor/state/editor_state.dart';
+import '../../features/editor/state/editor_selectors.dart';
+import '../../features/editor/state/models/editor_ui_modes.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import 'element_collision_editor_sheet.dart';
 
@@ -306,11 +307,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(editorNotifierProvider);
+    final paletteSnapshot = ref.watch(editorTilesetPaletteSnapshotProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final map = state.activeMap;
-    final project = state.project;
-    final settings = project?.settings ?? const ProjectSettings();
+    final map = paletteSnapshot.activeMap;
+    final project = paletteSnapshot.project;
+    final settings = paletteSnapshot.settings;
 
     if (project == null) {
       return Center(
@@ -323,7 +324,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       );
     }
 
-    final selectedTileset = notifier.getSelectedTilesetEntry();
+    final selectedTileset = paletteSnapshot.selectedTilesetEntry;
     final selectedTilesetPath = notifier.getSelectedTilesetAbsolutePath();
     if (selectedTileset == null || selectedTilesetPath == null) {
       return Center(
@@ -352,8 +353,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 
     return FutureBuilder<ui.Image?>(
       future: _PaletteImageCache.load(selectedTilesetPath),
-      builder: (context, snapshot) {
-        final image = snapshot.data;
+      builder: (context, imageSnapshot) {
+        final image = imageSnapshot.data;
         if (image == null) {
           return Padding(
             padding: const EdgeInsets.all(12),
@@ -447,7 +448,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             const SizedBox(height: 4),
             Expanded(
               child: _buildElementsTab(
-                state: state,
+                snapshot: paletteSnapshot,
                 notifier: notifier,
                 image: image,
                 project: project,
@@ -467,7 +468,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 
   // ignore: unused_element
   Widget _buildTilesTab({
-    required EditorState state,
+    required EditorTilesetPaletteSnapshot snapshot,
     required EditorNotifier notifier,
     required ui.Image image,
     required ProjectManifest project,
@@ -487,7 +488,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       }
     }
 
-    final filter = state.paletteCategoryFilter;
+    final filter = snapshot.paletteCategoryFilter;
     final filteredTileIds = <int>[];
     for (var tileId = 1; tileId <= columns * rows; tileId++) {
       if (filter == null) {
@@ -504,7 +505,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       }
     }
 
-    final selectedTileId = state.activeBrush.maybeMap(
+    final selectedTileId = snapshot.activeBrush.maybeMap(
       tile: (brush) =>
           brush.tilesetId == activeTileset.id ? brush.tileId : null,
       orElse: () => null,
@@ -609,7 +610,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           source: selectionRect,
                           tileWidth: settings.tileWidth,
                           tileHeight: settings.tileHeight,
-                          activeLayerId: state.activeLayerId,
+                          activeLayerId: snapshot.activeLayerId,
                           tileLayers: tileLayers,
                         ),
                 child: const Text('Save'),
@@ -775,7 +776,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                       tileId: selectedTileId,
                                       columns: columns,
                                       category: picked,
-                                      recommendedLayerId: state.activeLayerId,
+                                      recommendedLayerId: snapshot.activeLayerId,
                                     );
                                   }
                                 },
@@ -809,7 +810,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }
 
   Widget _buildElementsTab({
-    required EditorState state,
+    required EditorTilesetPaletteSnapshot snapshot,
     required EditorNotifier notifier,
     required ui.Image image,
     required ProjectManifest project,
@@ -853,7 +854,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
     }
-    final selectedTilesetGroupId = state.selectedTilesetElementGroupId;
+    final selectedTilesetGroupId = snapshot.selectedTilesetElementGroupId;
     final validSelectedTilesetGroupId = selectedTilesetGroupId != null &&
             tilesetGroupById.containsKey(selectedTilesetGroupId)
         ? selectedTilesetGroupId
@@ -1014,21 +1015,21 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       ),
     ];
 
-    final panelMode = state.tilesElementsPanelMode;
+    final panelMode = snapshot.tilesElementsPanelMode;
     final placedInstancesScope = _resolvePlacedElementInstances(
-      state: state,
+      snapshot: snapshot,
       activeTileset: activeTileset,
       project: project,
       tilesetColumns: columns,
     );
     final selectedPlacedInstance = _findPlacedElementInstanceById(
       instances: placedInstancesScope.instances,
-      instanceId: state.selectedPlacedElementInstanceId,
+      instanceId: snapshot.selectedPlacedElementInstanceId,
     );
 
     if (panelMode == TilesElementsPanelMode.placedInstances) {
       _logPlacedInstancesSnapshot(placedInstancesScope);
-      if (state.selectedPlacedElementInstanceId != null &&
+      if (snapshot.selectedPlacedElementInstanceId != null &&
           selectedPlacedInstance == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) {
@@ -1263,9 +1264,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       tileWidth: tileWidth,
                       tileHeight: tileHeight,
                       selectionAccent: tilesAccent,
-                      selected: state.activeBrush.maybeMap(
-                        projectElement: (brush) =>
-                            brush.elementId == element.id,
+                      selected: snapshot.activeBrush.maybeMap(
+                        projectElement: (brush) => brush.elementId == element.id,
                         orElse: () => false,
                       ),
                       categoryPath: categoryPath,
@@ -1275,7 +1275,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       onTap: () {
                         notifier.selectProjectElement(element.id);
                         if (element.recommendedLayerId != null &&
-                            (state.activeMap?.layers.any(
+                            (snapshot.activeMap?.layers.any(
                                   (layer) =>
                                       layer is TileLayer &&
                                       layer.id == element.recommendedLayerId,
@@ -1332,10 +1332,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             tileWidth: tileWidth,
             tileHeight: tileHeight,
             scope: placedInstancesScope,
-            selectedInstanceId: state.selectedPlacedElementInstanceId,
+            selectedInstanceId: snapshot.selectedPlacedElementInstanceId,
             selectedInstance: selectedPlacedInstance,
             dialogues: project.dialogues,
-            projectRootPath: state.projectRootPath,
+            projectRootPath: snapshot.projectRootPath,
             onSelectInstance: (instance) {
               notifier.selectPlacedElementInstance(
                 instanceId: instance?.instanceId,
@@ -1439,12 +1439,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }
 
   _PlacedElementInstancesScope _resolvePlacedElementInstances({
-    required EditorState state,
+    required EditorTilesetPaletteSnapshot snapshot,
     required ProjectManifest project,
     required ProjectTilesetEntry activeTileset,
     required int tilesetColumns,
   }) {
-    final map = state.activeMap;
+    final map = snapshot.activeMap;
     if (map == null) {
       return const _PlacedElementInstancesScope(
         layerId: null,
@@ -1454,7 +1454,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         emptyMessage: 'Charge une map pour parcourir les éléments posés.',
       );
     }
-    final layerId = state.activeLayerId;
+    final layerId = snapshot.activeLayerId;
     if (layerId == null || layerId.isEmpty) {
       return const _PlacedElementInstancesScope(
         layerId: null,

@@ -43,6 +43,50 @@ Le but est de rendre le projet :
 
 ---
 
+## État d’avancement réel
+
+Statut mis à jour après exécution effective des premiers lots.
+
+### Synthèse par phase
+
+| Phase | Statut | Note |
+| --- | --- | --- |
+| Phase 1 — Sécuriser les non-régressions | Fait | Lots 1-2 terminés, tests shell/chrome et smoke panels en place |
+| Phase 2 — Réparer les frontières d’architecture | Fait | Lots 3-5 terminés |
+| Phase 3 — Casser progressivement `EditorNotifier` | Fait | Lots 6-9 terminés |
+| Phase 4 — Moderniser Riverpod et la composition root | En cours | Lot 10 terminé, lot 11 = prochaine étape |
+| Phase 5 — Découper et ranger les surfaces UI | Non commencé | Dépend des gains Riverpod/composition root |
+
+### Statut lot par lot
+
+| Lot | Statut | Commentaire |
+| --- | --- | --- |
+| Lot 1 | Fait | Filet de sécurité sur `EditorShellPage`, `TopToolbar`, `StatusBar` |
+| Lot 2 | Fait | Smoke tests sur `ProjectExplorerPanel`, `TerrainEditorPanel`, `TilesetPalettePanel`, `DialogueStudioWorkspace`, `CutsceneStudioWorkspace` |
+| Lot 3 | Fait | Retrait de la fuite UI -> infra Pokédex via providers dédiés |
+| Lot 4 | Fait | Retrait du `dart:io` direct des use cases application derrière `ProjectWorkspace` |
+| Lot 5 | Fait | Sortie des types UI/platform hors application (`TerrainSelectionMode`, helper visuel entité) |
+| Lot 6 | Fait | Première cartographie de `EditorState` avec groupes et helpers cohérents |
+| Lot 7 | Fait | Extraction de la tranche session projet / document map hors `EditorNotifier` |
+| Lot 8 | Fait | Extraction sélection/outils + mutations map/historique hors `EditorNotifier` |
+| Lot 9 | Fait | Extraction des flux secondaires dialogue/cutscene + routeur de workspace + wiring thématique Riverpod |
+| Lot 10 | Fait | Sélecteurs ciblés en place sur shell, canvas host, toolbar, project explorer, terrain root et tileset root |
+| Lot 11 | À faire | Réorganiser `app/providers` par thèmes |
+| Lot 12 | À faire | Découpage toolbar + project explorer |
+| Lot 13 | À faire | Découpage des workspaces narratifs |
+| Lot 14 | À faire | Découpage de `dialogue_studio_workspace` |
+| Lot 15 | À faire | Découpage de `map_canvas` + `entity_properties_panel` |
+| Lot 16 | À faire | Découpage de `terrain_editor_panel` + `tileset_palette_panel` |
+
+### Note honnête sur l’état courant
+
+- Les lots 1 à 9 ont bien été exécutés et validés sur leur périmètre ciblé.
+- Le lot 10 est maintenant réalisé sur son objectif strict : les grosses surfaces principales n’observent plus `editorNotifierProvider` en bloc quand un snapshot ciblé suffit.
+- Une passe de non-régression élargie après le lot 9 a révélé une casse sur [`global_story_studio_workspace_test.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/test/global_story_studio_workspace_test.dart), sur une interaction UI narrative non directement retouchée par le lot 9.
+- Cette casse n’invalide pas le cœur du lot 9, mais elle signale qu’un lot ultérieur devra ré-auditer plus finement le sous-système narratif lors des découpages UI de phase 5.
+
+---
+
 ## Ce qui fonde ce masterplan
 
 Ce plan s’appuie sur trois angles d’analyse menés en parallèle :
@@ -611,6 +655,17 @@ Chaque lot doit embarquer :
 
 **Critère de sortie**
 - Les grosses surfaces ne rebuildent plus sur l’ensemble de l’état.
+
+**État réel**
+- Fait.
+- Sélecteurs/snapshots ajoutés pour :
+  - le shell global ;
+  - le canvas host ;
+  - la toolbar ;
+  - le project explorer ;
+  - les racines `TerrainEditorPanel`, `TerrainLibraryPanel`, `PathLibraryPanel` ;
+  - la racine `TilesetPalettePanel`.
+- L’effet recherché est atteint sans refonte interne des gros panneaux : on a réduit le scope de rebuild au niveau des racines, tout en conservant la logique métier et UI existante.
 
 ---
 

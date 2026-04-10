@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../../application/models/terrain_selection_mode.dart';
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import 'cupertino_editor_widgets.dart';
@@ -54,28 +55,19 @@ class TopToolbar extends ConsumerWidget {
   }
 
   static ToolBar buildToolBar(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(editorNotifierProvider);
+    final toolbar = ref.watch(editorToolbarSnapshotProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final settings = state.project?.settings ?? const ProjectSettings();
+    final settings = toolbar.settings;
     final subtle = EditorChrome.subtleLabel(context);
 
-    final map = state.activeMap;
-    final isMapWorkspace = state.workspaceMode == EditorWorkspaceMode.map;
-    final hasTilesets = (state.project?.tilesets.isNotEmpty ?? false);
+    final map = toolbar.activeMap;
+    final isMapWorkspace = toolbar.workspaceMode == EditorWorkspaceMode.map;
+    final hasTilesets = (toolbar.project?.tilesets.isNotEmpty ?? false);
     final firstTilesetId =
-        hasTilesets ? state.project!.tilesets.first.id : null;
+        hasTilesets ? toolbar.project!.tilesets.first.id : null;
     final hasMapCanvas = map != null;
     final showWorldTools = isMapWorkspace && hasMapCanvas;
-
-    MapLayer? activeLayer;
-    if (map != null && state.activeLayerId != null) {
-      for (final layer in map.layers) {
-        if (layer.id == state.activeLayerId) {
-          activeLayer = layer;
-          break;
-        }
-      }
-    }
+    final activeLayer = toolbar.activeLayer;
 
     final canEraseOnActiveLayer = activeLayer is TileLayer ||
         activeLayer is CollisionLayer ||
@@ -83,16 +75,16 @@ class TopToolbar extends ConsumerWidget {
         activeLayer is PathLayer;
 
     final showTerrainTypePulldown = activeLayer is TerrainLayer &&
-        state.activeTool == EditorToolType.terrainPaint &&
-        state.terrainSelectionMode == TerrainSelectionMode.terrain;
+        toolbar.activeTool == EditorToolType.terrainPaint &&
+        toolbar.terrainSelectionMode == TerrainSelectionMode.terrain;
     final showEntityKindPulldown =
-        state.activeTool == EditorToolType.entityPlacement;
+        toolbar.activeTool == EditorToolType.entityPlacement;
     final showContextStrip =
         showWorldTools && (showTerrainTypePulldown || showEntityKindPulldown);
 
     final showCollisionBrushSize = activeLayer is CollisionLayer &&
-        (state.activeTool == EditorToolType.collisionPaint ||
-            state.activeTool == EditorToolType.eraser);
+        (toolbar.activeTool == EditorToolType.collisionPaint ||
+            toolbar.activeTool == EditorToolType.eraser);
 
     final actions = <ToolbarItem>[
       _groupItem(
@@ -122,7 +114,8 @@ class TopToolbar extends ConsumerWidget {
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.placemark,
             tooltip: 'New Map',
-            onPressed: state.project != null && state.projectRootPath != null
+            onPressed: toolbar.project != null &&
+                    toolbar.projectRootPath != null
                 ? () => TopToolbar._showNewMapDialog(
                       context,
                       notifier,
@@ -134,23 +127,23 @@ class TopToolbar extends ConsumerWidget {
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.gear,
             tooltip: 'Project Settings',
-            onPressed: state.project != null
+            onPressed: toolbar.project != null
                 ? () => TopToolbar._showProjectSettingsDialog(
                       context,
                       notifier,
-                      state.project!,
+                      toolbar.project!,
                     )
                 : null,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.rectangle_arrow_up_right_arrow_down_left,
             tooltip: 'Resize Map',
-            onPressed: isMapWorkspace && state.activeMap != null
+            onPressed: isMapWorkspace && toolbar.activeMap != null
                 ? () => TopToolbar._showResizeMapDialog(
                       context,
                       notifier,
-                      currentWidth: state.activeMap!.size.width,
-                      currentHeight: state.activeMap!.size.height,
+                      currentWidth: toolbar.activeMap!.size.width,
+                      currentHeight: toolbar.activeMap!.size.height,
                     )
                 : null,
           ),
@@ -160,7 +153,7 @@ class TopToolbar extends ConsumerWidget {
         context,
         overflowLabel: 'History',
         children: [
-          if (state.isSaving)
+          if (toolbar.isSaving)
             const SizedBox(
               width: 32,
               height: 32,
@@ -172,20 +165,20 @@ class TopToolbar extends ConsumerWidget {
             _ToolbarCapsuleButton(
               icon: CupertinoIcons.floppy_disk,
               tooltip: 'Save Map',
-              selected: state.isDirty,
-              onPressed: state.activeMap != null
+              selected: toolbar.isDirty,
+              onPressed: toolbar.activeMap != null
                   ? () => notifier.saveActiveMap()
                   : null,
             ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.arrow_uturn_left,
             tooltip: 'Undo',
-            onPressed: state.canUndoMap ? notifier.undoMap : null,
+            onPressed: toolbar.canUndoMap ? notifier.undoMap : null,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.arrow_uturn_right,
             tooltip: 'Redo',
-            onPressed: state.canRedoMap ? notifier.redoMap : null,
+            onPressed: toolbar.canRedoMap ? notifier.redoMap : null,
           ),
         ],
       ),
@@ -202,45 +195,46 @@ class TopToolbar extends ConsumerWidget {
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.square_grid_2x2,
             tooltip: 'Switch to tileset workspace',
-            selected: state.workspaceMode == EditorWorkspaceMode.tileset,
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.tileset,
             onPressed: hasTilesets
                 ? () => notifier.selectTilesetWorkspace(
-                      state.selectedTilesetEditorId ?? firstTilesetId,
+                      toolbar.selectedTilesetEntry?.id ?? firstTilesetId,
                     )
                 : null,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.book,
             tooltip: 'Switch to Pokédex species list',
-            selected: state.workspaceMode == EditorWorkspaceMode.pokedex,
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.pokedex,
             // Lot 13: simple navigation UI vers une liste lecture seule.
             // Aucun filtre, aucune recherche ni action d'édition n'est ajouté
             // dans cette toolbar.
-            onPressed:
-                state.project != null ? notifier.selectPokedexWorkspace : null,
+            onPressed: toolbar.project != null
+                ? notifier.selectPokedexWorkspace
+                : null,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.link,
             tooltip: 'Switch to global story workspace',
-            selected: state.workspaceMode == EditorWorkspaceMode.globalStory,
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.globalStory,
             onPressed: notifier.selectGlobalStoryWorkspace,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.flag,
             tooltip: 'Switch to Step Studio',
-            selected: state.workspaceMode == EditorWorkspaceMode.step,
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.step,
             onPressed: notifier.selectStepWorkspace,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.play_rectangle,
             tooltip: 'Switch to Cutscene Studio',
-            selected: state.workspaceMode == EditorWorkspaceMode.cutscene,
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.cutscene,
             onPressed: notifier.selectCutsceneWorkspace,
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.text_bubble,
             tooltip: 'Switch to dialogue studio',
-            selected: state.workspaceMode == EditorWorkspaceMode.dialogue,
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.dialogue,
             onPressed: notifier.selectDialogueWorkspace,
           ),
         ],
@@ -253,22 +247,22 @@ class TopToolbar extends ConsumerWidget {
             _ToolbarCapsuleButton(
               icon: CupertinoIcons.selection_pin_in_out,
               tooltip: 'Selection Tool',
-              selected: state.activeTool == EditorToolType.selection,
+              selected: toolbar.activeTool == EditorToolType.selection,
               onPressed: () => notifier.selectTool(EditorToolType.selection),
             ),
             if (activeLayer is TileLayer)
               _ToolbarCapsuleButton(
                 icon: CupertinoIcons.paintbrush,
                 tooltip: 'Tile Paint Tool',
-                selected: state.activeTool == EditorToolType.tilePaint,
+                selected: toolbar.activeTool == EditorToolType.tilePaint,
                 onPressed: () => notifier.selectTool(EditorToolType.tilePaint),
               ),
             if (activeLayer is TerrainLayer)
               _ToolbarCapsuleButton(
                 icon: CupertinoIcons.tree,
                 tooltip: 'Terrain Paint Tool',
-                selected: state.activeTool == EditorToolType.terrainPaint &&
-                    state.terrainSelectionMode == TerrainSelectionMode.terrain,
+                selected: toolbar.activeTool == EditorToolType.terrainPaint &&
+                    toolbar.terrainSelectionMode == TerrainSelectionMode.terrain,
                 onPressed: () =>
                     notifier.selectTool(EditorToolType.terrainPaint),
               ),
@@ -276,31 +270,32 @@ class TopToolbar extends ConsumerWidget {
               _ToolbarCapsuleButton(
                 icon: CupertinoIcons.map,
                 tooltip: 'Path Paint Tool',
-                selected: state.activeTool == EditorToolType.terrainPaint &&
-                    state.terrainSelectionMode == TerrainSelectionMode.path,
+                selected: toolbar.activeTool == EditorToolType.terrainPaint &&
+                    toolbar.terrainSelectionMode == TerrainSelectionMode.path,
                 onPressed: notifier.selectPathPaintMode,
               ),
             if (activeLayer is CollisionLayer) ...[
               _ToolbarCapsuleButton(
                 icon: CupertinoIcons.square_grid_2x2,
                 tooltip: 'Collision Paint Tool',
-                selected: state.activeTool == EditorToolType.collisionPaint,
+                selected: toolbar.activeTool == EditorToolType.collisionPaint,
                 onPressed: () => notifier.selectTool(
                   EditorToolType.collisionPaint,
                 ),
               ),
               if (showCollisionBrushSize)
                 _ToolbarCapsuleButton(
-                  icon: state.collisionBrushSizeMode ==
+                  icon: toolbar.collisionBrushSizeMode ==
                           CollisionBrushSizeMode.singleTile
                       ? CupertinoIcons.number
                       : CupertinoIcons.square_grid_3x2,
-                  tooltip: state.collisionBrushSizeMode ==
+                  tooltip: toolbar.collisionBrushSizeMode ==
                           CollisionBrushSizeMode.singleTile
                       ? 'Collision Brush Size: 1x1'
                       : 'Collision Brush Size: Brush Footprint',
-                  selected: state.activeTool == EditorToolType.collisionPaint ||
-                      state.activeTool == EditorToolType.eraser,
+                  selected:
+                      toolbar.activeTool == EditorToolType.collisionPaint ||
+                          toolbar.activeTool == EditorToolType.eraser,
                   onPressed: notifier.toggleCollisionBrushSizeMode,
                 ),
             ],
@@ -308,7 +303,7 @@ class TopToolbar extends ConsumerWidget {
               _ToolbarCapsuleButton(
                 icon: CupertinoIcons.delete,
                 tooltip: 'Eraser Tool',
-                selected: state.activeTool == EditorToolType.eraser,
+                selected: toolbar.activeTool == EditorToolType.eraser,
                 onPressed: () => notifier.selectTool(EditorToolType.eraser),
               ),
           ],
@@ -321,7 +316,7 @@ class TopToolbar extends ConsumerWidget {
             _ToolbarCapsuleButton(
               icon: CupertinoIcons.sparkles,
               tooltip: 'Entity Tool',
-              selected: state.activeTool == EditorToolType.entityPlacement,
+              selected: toolbar.activeTool == EditorToolType.entityPlacement,
               onPressed: () => notifier.selectTool(
                 EditorToolType.entityPlacement,
               ),
@@ -329,7 +324,7 @@ class TopToolbar extends ConsumerWidget {
             _ToolbarCapsuleButton(
               icon: CupertinoIcons.flag,
               tooltip: 'Event Tool',
-              selected: state.activeTool == EditorToolType.eventPlacement,
+              selected: toolbar.activeTool == EditorToolType.eventPlacement,
               onPressed: () => notifier.selectTool(
                 EditorToolType.eventPlacement,
               ),
@@ -337,7 +332,7 @@ class TopToolbar extends ConsumerWidget {
             _ToolbarCapsuleButton(
               icon: CupertinoIcons.square,
               tooltip: 'Trigger Tool',
-              selected: state.activeTool == EditorToolType.triggerPlacement,
+              selected: toolbar.activeTool == EditorToolType.triggerPlacement,
               onPressed: () => notifier.selectTool(
                 EditorToolType.triggerPlacement,
               ),
@@ -345,7 +340,7 @@ class TopToolbar extends ConsumerWidget {
             _ToolbarCapsuleButton(
               icon: CupertinoIcons.arrow_branch,
               tooltip: 'Warp Tool',
-              selected: state.activeTool == EditorToolType.warpPlacement,
+              selected: toolbar.activeTool == EditorToolType.warpPlacement,
               onPressed: () => notifier.selectTool(
                 EditorToolType.warpPlacement,
               ),
@@ -354,7 +349,7 @@ class TopToolbar extends ConsumerWidget {
               icon: CupertinoIcons.leaf_arrow_circlepath,
               tooltip: 'Gameplay Zone Tool',
               selected:
-                  state.activeTool == EditorToolType.gameplayZonePlacement,
+                  toolbar.activeTool == EditorToolType.gameplayZonePlacement,
               onPressed: () => notifier.selectTool(
                 EditorToolType.gameplayZonePlacement,
               ),
@@ -368,12 +363,12 @@ class TopToolbar extends ConsumerWidget {
           children: [
             if (showTerrainTypePulldown)
               _ToolbarCapsulePulldown(
-                label: _terrainTypeLabel(state.selectedTerrainType),
+                label: _terrainTypeLabel(toolbar.selectedTerrainType),
                 items: _terrainPulldownItems(notifier),
               ),
             if (showEntityKindPulldown)
               _ToolbarCapsulePulldown(
-                label: _entityKindLabel(state.selectedEntityKind),
+                label: _entityKindLabel(toolbar.selectedEntityKind),
                 items: _entityKindPulldownItems(notifier),
               ),
           ],
@@ -395,7 +390,7 @@ class TopToolbar extends ConsumerWidget {
         ],
       ),
       const ToolBarSpacer(spacerUnits: 4),
-      if (state.statusMessage != null)
+      if (toolbar.statusMessage != null)
         CustomToolbarItem(
           inToolbarBuilder: (_) => Container(
             margin: const EdgeInsets.only(left: 6),
@@ -409,7 +404,7 @@ class TopToolbar extends ConsumerWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              state.statusMessage!,
+              toolbar.statusMessage!,
               style: TextStyle(
                 color: subtle,
                 fontSize: 11,
@@ -427,8 +422,8 @@ class TopToolbar extends ConsumerWidget {
 
     return ToolBar(
       title: _ToolbarBrand(
-        projectName: state.project?.name,
-        workspaceLabel: switch (state.workspaceMode) {
+        projectName: toolbar.project?.name,
+        workspaceLabel: switch (toolbar.workspaceMode) {
           EditorWorkspaceMode.map => 'World Editor',
           EditorWorkspaceMode.tileset => 'Tileset Studio',
           EditorWorkspaceMode.pokedex => 'Pokédex',

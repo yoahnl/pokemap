@@ -15,6 +15,7 @@ import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
 
 import '../features/editor/state/editor_notifier.dart';
+import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
 
 class EditorShellPage extends ConsumerStatefulWidget {
@@ -71,41 +72,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(editorNotifierProvider);
-    final workspaceMode = state.workspaceMode;
+    final shell = ref.watch(editorShellSnapshotProvider);
+    final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final selectedTileset = notifier.getSelectedTilesetEntry();
-    final workspaceTitle = switch (workspaceMode) {
-      EditorWorkspaceMode.map => state.activeMap?.name ?? 'Map Workspace',
-      EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
-      // Lot 13: on affiche enfin une vraie liste simple, mais on reste sur une
-      // surface de lecture minimale.
-      EditorWorkspaceMode.pokedex => 'Pokédex',
-      EditorWorkspaceMode.globalStory => 'Global Story Workspace',
-      EditorWorkspaceMode.step => 'Step Studio',
-      EditorWorkspaceMode.cutscene => 'Cutscene Studio',
-      EditorWorkspaceMode.dialogue => 'Dialogue Studio',
-    };
-    final workspaceSubtitle = switch (workspaceMode) {
-      EditorWorkspaceMode.map => state.activeMap == null
-          ? 'Open a map to start building your world.'
-          : '${state.activeMap!.size.width} x ${state.activeMap!.size.height} tiles  •  ${state.activeMap!.layers.length} layers',
-      EditorWorkspaceMode.tileset => selectedTileset == null
-          ? 'Select a tileset to browse and curate your library.'
-          : 'Visual library editing for tiles, elements and groups.',
-      // Lot 13 : simple consultation locale des espèces importées.
-      // On n'annonce volontairement ni détail, ni édition, ni outils riches.
-      EditorWorkspaceMode.pokedex =>
-        'Simple species list from local project data: number, name, id and types.',
-      EditorWorkspaceMode.globalStory =>
-        'Macro narrative progression: arcs, milestones and high-level branches.',
-      EditorWorkspaceMode.step =>
-        'Step logic workspace: progression rules, expected outcomes, linked cutscenes.',
-      EditorWorkspaceMode.cutscene =>
-        'Scene execution workspace: dialogue, movement, waits, local branching.',
-      EditorWorkspaceMode.dialogue =>
-        'Conversation authoring: visual blocks, preview, Yarn export — not a raw script IDE.',
-    };
 
     ref.listen(editorNotifierProvider.select((s) => s.errorMessage),
         (prev, next) {
@@ -148,7 +117,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
           _UndoIntent: CallbackAction<_UndoIntent>(
             onInvoke: (_) {
               if (_isTextInputFocused()) return null;
-              if (!state.canUndoMap) return null;
+              if (!shell.canUndoMap) return null;
               notifier.undoMap();
               return null;
             },
@@ -156,7 +125,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
           _RedoIntent: CallbackAction<_RedoIntent>(
             onInvoke: (_) {
               if (_isTextInputFocused()) return null;
-              if (!state.canRedoMap) return null;
+              if (!shell.canRedoMap) return null;
               notifier.redoMap();
               return null;
             },
@@ -164,7 +133,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
           _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) {
               if (_isTextInputFocused()) return null;
-              if (state.activeMap == null || state.isSaving) return null;
+              if (!shell.canSaveMap) return null;
               notifier.saveActiveMap();
               return null;
             },
@@ -276,8 +245,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                 CrossAxisAlignment.stretch,
                                             children: [
                                               _WorkspaceStageHeader(
-                                                title: workspaceTitle,
-                                                subtitle: workspaceSubtitle,
+                                                title: shell.workspaceTitle,
+                                                subtitle: shell.workspaceSubtitle,
                                                 workspaceMode: workspaceMode,
                                                 rightPanelVisible:
                                                     _rightInspectorVisible,

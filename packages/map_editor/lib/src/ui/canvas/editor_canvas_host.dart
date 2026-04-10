@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import 'map_canvas.dart';
 import 'narrative_workspace_canvas.dart';
@@ -13,9 +13,9 @@ class EditorCanvasHost extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(editorNotifierProvider);
+    final workspaceMode = ref.watch(editorWorkspaceModeProvider);
 
-    return switch (state.workspaceMode) {
+    return switch (workspaceMode) {
       EditorWorkspaceMode.map => const MapCanvas(),
       EditorWorkspaceMode.tileset => const TilesetEditorCanvas(),
       // Lot 13: on remplace le placeholder vide du lot 12 par une première
