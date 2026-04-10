@@ -8,7 +8,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../app/providers/content_studio_providers.dart';
 import '../../../app/providers/core_providers.dart';
+import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
 import '../../../application/models/map_tool_preview.dart';
@@ -28,9 +30,10 @@ import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
+import '../application/editor_workspace_controller.dart';
 import '../application/map_editing_controller.dart';
 import '../application/map_selection_controller.dart';
-import '../../../application/use_cases/project_scenario_use_cases.dart';
+import '../application/project_content_controller.dart';
 import '../application/project_session_controller.dart';
 import '../application/project_session_models.dart';
 import '../tools/editor_tool.dart';
@@ -47,12 +50,16 @@ const MethodChannel _macOsFileAccessChannel =
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
+  EditorWorkspaceController get _editorWorkspaceController =>
+      ref.read(editorWorkspaceControllerProvider);
   MapEditingController get _mapEditingController => MapEditingController(
         mutationCoordinator: _editorMapMutationCoordinator,
       );
   MapSelectionController get _mapSelectionController => MapSelectionController(
         terrainPresetSelectionCoordinator: _terrainPresetSelectionCoordinator,
       );
+  ProjectContentController get _projectContentController =>
+      ref.read(projectContentControllerProvider);
   ProjectSessionController get _projectSessionController =>
       const ProjectSessionController();
   TerrainPresetResolver get _terrainPresetResolver =>
@@ -1313,9 +1320,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void selectMapWorkspace() {
-    state = state.copyWith(
-      workspaceMode: EditorWorkspaceMode.map,
-    );
+    state = _editorWorkspaceController.selectMapWorkspace(state);
   }
 
   void selectTilesetWorkspace(String? tilesetId) {
@@ -1343,10 +1348,7 @@ class EditorNotifier extends _$EditorNotifier {
   /// Cela garde la responsabilite du notifier tres claire :
   /// il route vers un workspace, mais ne commence pas une logique Pokédex riche.
   void selectPokedexWorkspace() {
-    state = state.copyWith(
-      workspaceMode: EditorWorkspaceMode.pokedex,
-      errorMessage: null,
-    );
+    state = _editorWorkspaceController.selectPokedexWorkspace(state);
   }
 
   /// Ouvre le workspace central "Global Story".
@@ -1355,34 +1357,22 @@ class EditorNotifier extends _$EditorNotifier {
   /// - aucune mutation map/tileset n'est exécutée,
   /// - aucune donnée narrative n'est modifiée ici.
   void selectGlobalStoryWorkspace() {
-    state = state.copyWith(
-      workspaceMode: EditorWorkspaceMode.globalStory,
-      errorMessage: null,
-    );
+    state = _editorWorkspaceController.selectGlobalStoryWorkspace(state);
   }
 
   /// Ouvre le workspace central "Step".
   void selectStepWorkspace() {
-    state = state.copyWith(
-      workspaceMode: EditorWorkspaceMode.step,
-      errorMessage: null,
-    );
+    state = _editorWorkspaceController.selectStepWorkspace(state);
   }
 
   /// Ouvre le workspace central "Cutscene".
   void selectCutsceneWorkspace() {
-    state = state.copyWith(
-      workspaceMode: EditorWorkspaceMode.cutscene,
-      errorMessage: null,
-    );
+    state = _editorWorkspaceController.selectCutsceneWorkspace(state);
   }
 
   /// Bascule vers Dialogue Studio (bibliothèque + canvas + inspecteur).
   void selectDialogueWorkspace() {
-    state = state.copyWith(
-      workspaceMode: EditorWorkspaceMode.dialogue,
-      errorMessage: null,
-    );
+    state = _editorWorkspaceController.selectDialogueWorkspace(state);
   }
 
   /// Écrit uniquement le fichier `.yarn` (le manifest projet reste inchangé).
@@ -1390,26 +1380,12 @@ class EditorNotifier extends _$EditorNotifier {
     required String dialogueId,
     required String yarnBody,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(saveDialogueYarnBodyUseCaseProvider);
-      await useCase.execute(
-        fs,
-        project,
-        dialogueId: dialogueId,
-        yarnBody: yarnBody,
-      );
-      state = state.copyWith(
-        statusMessage: 'Dialogue .yarn enregistré sur disque',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Échec enregistrement dialogue: $e',
-      );
-    }
+    state = await _projectContentController.saveProjectDialogueYarnBody(
+      current: state,
+      workspace: _projectWorkspace,
+      dialogueId: dialogueId,
+      yarnBody: yarnBody,
+    );
   }
 
   void selectTilesetEditorContext(String? tilesetId) {
@@ -5135,34 +5111,19 @@ class EditorNotifier extends _$EditorNotifier {
   // ---------------------------------------------------------------------------
 
   void selectProjectDialogue(String? dialogueId) {
-    state = state.copyWith(selectedProjectDialogueId: dialogueId);
+    state = _projectContentController.selectProjectDialogue(state, dialogueId);
   }
 
   Future<void> createProjectDialogue({
     required String name,
     String? folderId,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(createProjectDialogueUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        name: name,
-        folderId: folderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        selectedProjectDialogueId:
-            updated.dialogues.isNotEmpty ? updated.dialogues.last.id : null,
-        statusMessage: 'Dialogue created',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to create dialogue: $e');
-    }
+    state = await _projectContentController.createProjectDialogue(
+      current: state,
+      workspace: _projectWorkspace,
+      name: name,
+      folderId: folderId,
+    );
   }
 
   Future<void> importProjectDialogue({
@@ -5170,232 +5131,97 @@ class EditorNotifier extends _$EditorNotifier {
     required String displayName,
     String? folderId,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(importProjectDialogueUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        absoluteSourcePath: absoluteSourcePath,
-        displayName: displayName,
-        folderId: folderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        selectedProjectDialogueId:
-            updated.dialogues.isNotEmpty ? updated.dialogues.last.id : null,
-        statusMessage: 'Dialogue imported',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to import dialogue: $e');
-    }
+    state = await _projectContentController.importProjectDialogue(
+      current: state,
+      workspace: _projectWorkspace,
+      absoluteSourcePath: absoluteSourcePath,
+      displayName: displayName,
+      folderId: folderId,
+    );
   }
 
   Future<void> renameProjectDialogue({
     required String dialogueId,
     required String newName,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(updateProjectDialogueUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        dialogueId: dialogueId,
-        name: newName,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Dialogue renamed',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to rename dialogue: $e');
-    }
+    state = await _projectContentController.renameProjectDialogue(
+      current: state,
+      workspace: _projectWorkspace,
+      dialogueId: dialogueId,
+      newName: newName,
+    );
   }
 
   Future<void> deleteProjectDialogue(String dialogueId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(deleteProjectDialogueUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        dialogueId: dialogueId,
-        alsoScanUnsavedMap: state.activeMap,
-      );
-      state = state.copyWith(
-        project: updated,
-        selectedProjectDialogueId: state.selectedProjectDialogueId == dialogueId
-            ? null
-            : state.selectedProjectDialogueId,
-        statusMessage: 'Dialogue deleted',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to delete dialogue: $e');
-    }
+    state = await _projectContentController.deleteProjectDialogue(
+      current: state,
+      workspace: _projectWorkspace,
+      dialogueId: dialogueId,
+    );
   }
 
   Future<void> createDialogueLibraryFolder({
     required String name,
     String? parentFolderId,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(createDialogueLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        name: name,
-        parentFolderId: parentFolderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Script folder created',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to create script folder: $e',
-      );
-    }
+    state = await _projectContentController.createDialogueLibraryFolder(
+      current: state,
+      workspace: _projectWorkspace,
+      name: name,
+      parentFolderId: parentFolderId,
+    );
   }
 
   Future<void> renameDialogueLibraryFolder({
     required String folderId,
     required String name,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(renameDialogueLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        folderId: folderId,
-        name: name,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Script folder renamed',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to rename script folder: $e',
-      );
-    }
+    state = await _projectContentController.renameDialogueLibraryFolder(
+      current: state,
+      workspace: _projectWorkspace,
+      folderId: folderId,
+      name: name,
+    );
   }
 
   Future<void> moveDialogueLibraryFolder({
     required String folderId,
     String? newParentFolderId,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(moveDialogueLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        folderId: folderId,
-        newParentFolderId: newParentFolderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Script folder moved',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to move script folder: $e',
-      );
-    }
+    state = await _projectContentController.moveDialogueLibraryFolder(
+      current: state,
+      workspace: _projectWorkspace,
+      folderId: folderId,
+      newParentFolderId: newParentFolderId,
+    );
   }
 
   Future<void> deleteDialogueLibraryFolder(String folderId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(deleteDialogueLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        folderId: folderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Script folder deleted',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to delete script folder: $e',
-      );
-    }
+    state = await _projectContentController.deleteDialogueLibraryFolder(
+      current: state,
+      workspace: _projectWorkspace,
+      folderId: folderId,
+    );
   }
 
   Future<void> assignDialogueToLibraryFolder({
     required String dialogueId,
     required String folderId,
   }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(assignDialogueToLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        dialogueId: dialogueId,
-        folderId: folderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Script moved to folder',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to move script to folder: $e',
-      );
-    }
+    state = await _projectContentController.assignDialogueToLibraryFolder(
+      current: state,
+      workspace: _projectWorkspace,
+      dialogueId: dialogueId,
+      folderId: folderId,
+    );
   }
 
   Future<void> moveDialogueToLibraryRoot(String dialogueId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(moveDialogueToLibraryRootUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        dialogueId: dialogueId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Script moved to library root',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to move script to root: $e',
-      );
-    }
+    state = await _projectContentController.moveDialogueToLibraryRoot(
+      current: state,
+      workspace: _projectWorkspace,
+      dialogueId: dialogueId,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -5414,82 +5240,31 @@ class EditorNotifier extends _$EditorNotifier {
   // ---------------------------------------------------------------------------
 
   Future<void> createProjectScenario(ScenarioAsset scenario) async {
-    final workspace = _projectWorkspace;
-    final project = state.project;
-    if (workspace == null || project == null) return;
-    try {
-      final useCase = CreateProjectScenarioUseCase(
-        ref.read(projectRepositoryProvider),
-      );
-      final updated = await useCase.execute(
-        workspace,
-        project,
-        scenario: scenario,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Cutscene "${scenario.name}" created',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to create cutscene: $e',
-      );
-    }
+    state = await _projectContentController.createProjectScenario(
+      current: state,
+      workspace: _projectWorkspace,
+      scenario: scenario,
+    );
   }
 
   Future<void> updateProjectScenario({
     required String scenarioId,
     required ScenarioAsset scenario,
   }) async {
-    final workspace = _projectWorkspace;
-    final project = state.project;
-    if (workspace == null || project == null) return;
-    try {
-      final useCase = UpdateProjectScenarioUseCase(
-        ref.read(projectRepositoryProvider),
-      );
-      final updated = await useCase.execute(
-        workspace,
-        project,
-        scenarioId: scenarioId,
-        nextScenario: scenario,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Cutscene "${scenario.name}" saved',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to save cutscene: $e',
-      );
-    }
+    state = await _projectContentController.updateProjectScenario(
+      current: state,
+      workspace: _projectWorkspace,
+      scenarioId: scenarioId,
+      scenario: scenario,
+    );
   }
 
   Future<void> deleteProjectScenario(String scenarioId) async {
-    final workspace = _projectWorkspace;
-    final project = state.project;
-    if (workspace == null || project == null) return;
-    try {
-      final useCase = DeleteProjectScenarioUseCase(
-        ref.read(projectRepositoryProvider),
-      );
-      final updated = await useCase.execute(
-        workspace,
-        project,
-        scenarioId: scenarioId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Cutscene "$scenarioId" deleted',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to delete cutscene: $e',
-      );
-    }
+    state = await _projectContentController.deleteProjectScenario(
+      current: state,
+      workspace: _projectWorkspace,
+      scenarioId: scenarioId,
+    );
   }
 
   Future<void> addEncounterEntry({
