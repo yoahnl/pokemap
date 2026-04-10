@@ -23,7 +23,7 @@ void main() {
     }
   });
 
-  ProjectManifest _base() {
+  ProjectManifest baseManifest() {
     return const ProjectManifest(
       name: 'p',
       maps: <ProjectMapEntry>[],
@@ -35,7 +35,7 @@ void main() {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     final uc = CreateProjectDialogueUseCase(repo);
-    final updated = await uc.execute(ws, _base(), name: 'Intro');
+    final updated = await uc.execute(ws, baseManifest(), name: 'Intro');
     expect(updated.dialogues.single.relativePath, 'dialogues/intro.yarn');
     expect(
       await File(ws.resolveProjectRelativePath('dialogues/intro.yarn')).exists(),
@@ -51,7 +51,7 @@ void main() {
     final assign = AssignDialogueToLibraryFolderUseCase(repo);
     final toRoot = MoveDialogueToLibraryRootUseCase(repo);
 
-    var project = await createFolder.execute(ws, _base(), name: 'Nest');
+    var project = await createFolder.execute(ws, baseManifest(), name: 'Nest');
     final folderId = project.dialogueFolders.single.id;
     project = await createDlg.execute(ws, project, name: 'Item');
     final lineId = project.dialogues.single.id;
@@ -78,7 +78,8 @@ void main() {
     final createDlg = CreateProjectDialogueUseCase(repo);
     final assign = AssignDialogueToLibraryFolderUseCase(repo);
 
-    var project = await createFolder.execute(ws, _base(), name: 'Chapter1');
+    var project =
+        await createFolder.execute(ws, baseManifest(), name: 'Chapter1');
     final folderId = project.dialogueFolders.single.id;
     project = await createDlg.execute(ws, project, name: 'Line');
     final id = project.dialogues.single.id;
@@ -105,7 +106,7 @@ void main() {
     final createDlg = CreateProjectDialogueUseCase(repo);
     final toRoot = MoveDialogueToLibraryRootUseCase(repo);
 
-    var project = await createFolder.execute(ws, _base(), name: 'Sub');
+    var project = await createFolder.execute(ws, baseManifest(), name: 'Sub');
     final folderId = project.dialogueFolders.single.id;
     project = await createDlg.execute(ws, project, name: 'D', folderId: folderId);
     final id = project.dialogues.single.id;
@@ -127,7 +128,7 @@ void main() {
     final mkDlg = CreateProjectDialogueUseCase(repo);
     final rename = RenameDialogueLibraryFolderUseCase(repo);
 
-    var project = await mkFolder.execute(ws, _base(), name: 'OldName');
+    var project = await mkFolder.execute(ws, baseManifest(), name: 'OldName');
     final folderId = project.dialogueFolders.single.id;
     project = await mkDlg.execute(ws, project, name: 'X', folderId: folderId);
     expect(project.dialogues.single.relativePath, contains('dialogues/oldname/'));
@@ -149,7 +150,7 @@ void main() {
     final mkDlg = CreateProjectDialogueUseCase(repo);
     final moveFolder = MoveDialogueLibraryFolderUseCase(repo);
 
-    var project = await mkFolder.execute(ws, _base(), name: 'Outer');
+    var project = await mkFolder.execute(ws, baseManifest(), name: 'Outer');
     final outerId = project.dialogueFolders.single.id;
     project = await mkFolder.execute(ws, project, name: 'Inner', parentFolderId: outerId);
     final innerId =
@@ -182,7 +183,7 @@ void main() {
     final mkDlg = CreateProjectDialogueUseCase(repo);
     final del = DeleteDialogueLibraryFolderUseCase(repo);
 
-    var project = await mkFolder.execute(ws, _base(), name: 'Full');
+    var project = await mkFolder.execute(ws, baseManifest(), name: 'Full');
     final folderId = project.dialogueFolders.single.id;
     project = await mkDlg.execute(ws, project, name: 'Keep', folderId: folderId);
 
@@ -196,7 +197,7 @@ void main() {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     final uc = CreateProjectDialogueUseCase(repo);
-    final project = await uc.execute(ws, _base(), name: 'One');
+    final project = await uc.execute(ws, baseManifest(), name: 'One');
     final dup = project.copyWith(
       dialogues: [
         project.dialogues.single,
@@ -216,7 +217,7 @@ void main() {
     await File(p.join(tmp.path, 'dialogues', 'hello.yarn')).writeAsString('x');
     final uc = CreateProjectDialogueUseCase(repo);
     await expectLater(
-      uc.execute(ws, _base(), name: 'Hello'),
+      uc.execute(ws, baseManifest(), name: 'Hello'),
       throwsA(isA<EditorValidationException>()),
     );
   });
@@ -228,7 +229,7 @@ void main() {
     final mkDlg = CreateProjectDialogueUseCase(repo);
     final assign = AssignDialogueToLibraryFolderUseCase(repo);
 
-    var project = await mkFolder.execute(ws, _base(), name: 'Box');
+    var project = await mkFolder.execute(ws, baseManifest(), name: 'Box');
     final folderId = project.dialogueFolders.single.id;
     project = await mkDlg.execute(ws, project, name: 'Alpha');
     final id = project.dialogues.single.id;
@@ -250,7 +251,7 @@ void main() {
     final ws = _TempProjectWorkspace(tmp.path);
     final mkFolder = CreateDialogueLibraryFolderUseCase(repo);
     final imp = ImportProjectDialogueUseCase(repo);
-    var project = await mkFolder.execute(ws, _base(), name: 'Maman');
+    var project = await mkFolder.execute(ws, baseManifest(), name: 'Maman');
     final folderId = project.dialogueFolders.single.id;
     project = await imp.execute(
       ws,
@@ -294,9 +295,26 @@ class _TempProjectWorkspace implements ProjectWorkspace {
   }
 
   @override
+  Future<void> deleteDirectoryIfEmpty(String path) async {
+    final directory = Directory(path);
+    if (!await directory.exists()) return;
+    try {
+      await directory.delete(recursive: false);
+    } on FileSystemException {
+      // ignore non-empty directories in tests as the real implementation does
+    }
+  }
+
+  @override
+  Future<bool> directoryExists(String path) => Directory(path).exists();
+
+  @override
   Future<void> ensureDirectoryExists(String path) async {
     await Directory(p.dirname(path)).create(recursive: true);
   }
+
+  @override
+  Future<bool> fileExists(String path) => File(path).exists();
 
   @override
   String getMapPath(String mapId) => p.join(root, 'maps', '$mapId.json');
@@ -312,6 +330,31 @@ class _TempProjectWorkspace implements ProjectWorkspace {
       p.join(root, 'tilesets', 'x.png');
 
   @override
+  Future<void> copyFile(String sourcePath, String destinationPath) async {
+    await ensureDirectoryExists(destinationPath);
+    await File(sourcePath).copy(destinationPath);
+  }
+
+  @override
+  Future<void> moveDirectory(String sourcePath, String destinationPath) async {
+    final directory = Directory(sourcePath);
+    if (!await directory.exists()) {
+      return;
+    }
+    await Directory(p.dirname(destinationPath)).create(recursive: true);
+    await directory.rename(destinationPath);
+  }
+
+  @override
+  Future<void> moveFile(String sourcePath, String destinationPath) async {
+    await ensureDirectoryExists(destinationPath);
+    await File(sourcePath).rename(destinationPath);
+  }
+
+  @override
+  Future<String> readTextFile(String path) => File(path).readAsString();
+
+  @override
   String resolveMapPath(String relativePath) => p.join(root, relativePath);
 
   @override
@@ -321,4 +364,10 @@ class _TempProjectWorkspace implements ProjectWorkspace {
   @override
   String resolveTilesetPath(String relativePath) =>
       p.join(root, relativePath);
+
+  @override
+  Future<void> writeTextFile(String path, String contents) async {
+    await ensureDirectoryExists(path);
+    await File(path).writeAsString(contents);
+  }
 }

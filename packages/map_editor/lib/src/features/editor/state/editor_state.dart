@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../application/models/map_history_snapshot.dart';
+import '../../../application/models/terrain_selection_mode.dart';
 import '../tools/editor_tool.dart';
 
 part 'editor_state.freezed.dart';
@@ -44,11 +45,6 @@ enum EditorWorkspaceMode {
 enum CollisionBrushSizeMode {
   brushFootprint,
   singleTile,
-}
-
-enum TerrainSelectionMode {
-  terrain,
-  path,
 }
 
 enum TilesElementsPanelMode {

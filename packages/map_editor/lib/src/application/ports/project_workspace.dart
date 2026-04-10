@@ -9,6 +9,14 @@ abstract class ProjectWorkspace {
   String resolveProjectRelativePath(String relativePath);
 
   Future<void> ensureDirectoryExists(String path);
+  Future<bool> fileExists(String path);
+  Future<bool> directoryExists(String path);
+  Future<String> readTextFile(String path);
+  Future<void> writeTextFile(String path, String contents);
+  Future<void> copyFile(String sourcePath, String destinationPath);
+  Future<void> moveFile(String sourcePath, String destinationPath);
+  Future<void> moveDirectory(String sourcePath, String destinationPath);
+  Future<void> deleteDirectoryIfEmpty(String path);
   Future<String> importTilesetImage(
     String sourcePath, {
     String? preferredName,

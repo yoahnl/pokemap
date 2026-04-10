@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import '../ports/project_workspace.dart';
 
@@ -111,14 +110,13 @@ class InitializePokemonProjectStorageUseCase {
     Map<String, Object?> payload,
   ) async {
     final absolutePath = workspace.resolveProjectRelativePath(relativePath);
-    final file = File(absolutePath);
-    if (await file.exists()) {
+    if (await workspace.fileExists(absolutePath)) {
       // Garde-fou central : un fichier existant appartient deja au projet
       // utilisateur et ne doit pas etre ecrase par ce bootstrap.
       return;
     }
-    await workspace.ensureDirectoryExists(absolutePath);
-    await file.writeAsString(
+    await workspace.writeTextFile(
+      absolutePath,
       const JsonEncoder.withIndent('  ').convert(payload),
     );
   }

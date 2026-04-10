@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/terrain_selection_mode.dart';
 import '../../features/editor/state/editor_notifier.dart';
-import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
@@ -298,7 +298,8 @@ class TerrainMapPanel extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 10),
-            _PathLayerPropertiesBlock(layer: activePathLayer, notifier: notifier),
+            _PathLayerPropertiesBlock(
+                layer: activePathLayer, notifier: notifier),
             const SizedBox(height: 10),
             _InfoStrip(
               text: activePathLayer == null
@@ -1159,8 +1160,10 @@ String _pathAnimationModeLabel(PathAnimationMode mode) {
 
 String _pathAnimationModeHint(PathAnimationMode mode) {
   return switch (mode) {
-    PathAnimationMode.alwaysActive => 'Animation runs continuously without triggers',
-    PathAnimationMode.triggered => 'Animation requires specific triggers to activate',
+    PathAnimationMode.alwaysActive =>
+      'Animation runs continuously without triggers',
+    PathAnimationMode.triggered =>
+      'Animation requires specific triggers to activate',
   };
 }
 
@@ -1199,27 +1202,30 @@ class _PathLayerAnimationTriggersSectionState
           ),
         ),
         const SizedBox(height: 4),
-        
+
         // Animation Mode Selector
         _PathTriggerField(
           label: 'Mode',
           value: _pathAnimationModeLabel(animationMode),
           onChanged: (value) {
-            final newMode = PathAnimationMode.values.firstWhere((m) => _pathAnimationModeLabel(m) == value);
+            final newMode = PathAnimationMode.values
+                .firstWhere((m) => _pathAnimationModeLabel(m) == value);
             widget.notifier.setPathLayerAnimationMode(
               layerId: widget.layer.id,
               mode: newMode,
             );
             setState(() {});
           },
-          options: PathAnimationMode.values.map((m) => _pathAnimationModeLabel(m)).toList(),
+          options: PathAnimationMode.values
+              .map((m) => _pathAnimationModeLabel(m))
+              .toList(),
         ),
         const SizedBox(height: 4),
         Text(
           _pathAnimationModeHint(animationMode),
           style: TextStyle(fontSize: 11, color: secondary),
         ),
-        
+
         // Only show triggers section if mode is "Triggered"
         if (animationMode == PathAnimationMode.triggered) ...[
           const SizedBox(height: 12),
@@ -1323,7 +1329,8 @@ class _PathLayerTriggerEditor extends StatelessWidget {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
-                  final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers)
+                  final updated = List<PathAnimationTriggerRule>.from(
+                      layer.animationTriggers)
                     ..removeAt(index);
                   notifier.applyPathLayerAnimationTriggers(
                     layerId: layer.id,
@@ -1340,7 +1347,8 @@ class _PathLayerTriggerEditor extends StatelessWidget {
             label: 'Enabled',
             value: rule.enabled.toString(),
             onChanged: (value) {
-              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              final updated =
+                  List<PathAnimationTriggerRule>.from(layer.animationTriggers);
               updated[index] = rule.copyWith(enabled: value == 'true');
               notifier.applyPathLayerAnimationTriggers(
                 layerId: layer.id,
@@ -1355,45 +1363,57 @@ class _PathLayerTriggerEditor extends StatelessWidget {
             label: 'Trigger',
             value: rule.trigger.name,
             onChanged: (value) {
-              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
-              updated[index] = rule.copyWith(trigger: PathAnimationTriggerType.values.firstWhere((e) => e.name == value));
+              final updated =
+                  List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              updated[index] = rule.copyWith(
+                  trigger: PathAnimationTriggerType.values
+                      .firstWhere((e) => e.name == value));
               notifier.applyPathLayerAnimationTriggers(
                 layerId: layer.id,
                 triggers: updated,
               );
               onChanged();
             },
-            options: PathAnimationTriggerType.values.map((e) => e.name).toList(),
+            options:
+                PathAnimationTriggerType.values.map((e) => e.name).toList(),
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
             label: 'Mode',
             value: rule.mode.name,
             onChanged: (value) {
-              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
-              updated[index] = rule.copyWith(mode: PathAnimationPlaybackMode.values.firstWhere((e) => e.name == value));
+              final updated =
+                  List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              updated[index] = rule.copyWith(
+                  mode: PathAnimationPlaybackMode.values
+                      .firstWhere((e) => e.name == value));
               notifier.applyPathLayerAnimationTriggers(
                 layerId: layer.id,
                 triggers: updated,
               );
               onChanged();
             },
-            options: PathAnimationPlaybackMode.values.map((e) => e.name).toList(),
+            options:
+                PathAnimationPlaybackMode.values.map((e) => e.name).toList(),
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
             label: 'Scope',
             value: rule.scope.name,
             onChanged: (value) {
-              final updated = List<PathAnimationTriggerRule>.from(layer.animationTriggers);
-              updated[index] = rule.copyWith(scope: PathAnimationActivationScope.values.firstWhere((e) => e.name == value));
+              final updated =
+                  List<PathAnimationTriggerRule>.from(layer.animationTriggers);
+              updated[index] = rule.copyWith(
+                  scope: PathAnimationActivationScope.values
+                      .firstWhere((e) => e.name == value));
               notifier.applyPathLayerAnimationTriggers(
                 layerId: layer.id,
                 triggers: updated,
               );
               onChanged();
             },
-            options: PathAnimationActivationScope.values.map((e) => e.name).toList(),
+            options:
+                PathAnimationActivationScope.values.map((e) => e.name).toList(),
           ),
         ],
       ),
@@ -1422,14 +1442,18 @@ class _PathTriggerField extends StatelessWidget {
         children: [
           Text(
             '$label: ',
-            style: TextStyle(fontSize: 11, color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+            style: TextStyle(
+                fontSize: 11,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context)),
           ),
           Expanded(
             child: Row(
               children: [
                 Text(
                   value.toString(),
-                  style: TextStyle(fontSize: 11, color: CupertinoColors.label.resolveFrom(context)),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: CupertinoColors.label.resolveFrom(context)),
                 ),
                 if (options.isNotEmpty) ...[
                   const SizedBox(width: 4),
@@ -1452,10 +1476,12 @@ class _PathTriggerField extends StatelessWidget {
       context: context,
       builder: (context) => CupertinoActionSheet(
         title: Text('Select $label'),
-        actions: options.map((option) => CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context, option),
-          child: Text(option),
-        )).toList(),
+        actions: options
+            .map((option) => CupertinoActionSheetAction(
+                  onPressed: () => Navigator.pop(context, option),
+                  child: Text(option),
+                ))
+            .toList(),
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
@@ -1469,8 +1495,11 @@ class _PathTriggerField extends StatelessWidget {
   }
 }
 
-PathAnimationTriggerRule _normalizePathAnimationTriggerRule(PathAnimationTriggerRule rule) {
+PathAnimationTriggerRule _normalizePathAnimationTriggerRule(
+    PathAnimationTriggerRule rule) {
   return rule.copyWith(
-    id: rule.id.trim().isEmpty ? 'rule_${DateTime.now().microsecondsSinceEpoch}' : rule.id,
+    id: rule.id.trim().isEmpty
+        ? 'rule_${DateTime.now().microsecondsSinceEpoch}'
+        : rule.id,
   );
 }

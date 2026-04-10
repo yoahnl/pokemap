@@ -163,7 +163,16 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<void> deleteRelativeFile(String relativePath) async {}
 
   @override
+  Future<void> deleteDirectoryIfEmpty(String path) async {}
+
+  @override
+  Future<bool> directoryExists(String path) async => false;
+
+  @override
   Future<void> ensureDirectoryExists(String path) async {}
+
+  @override
+  Future<bool> fileExists(String path) async => false;
 
   @override
   String getMapPath(String mapId) => '/tmp/maps/$mapId.json';
@@ -180,6 +189,18 @@ class _FakeWorkspace implements ProjectWorkspace {
   }
 
   @override
+  Future<void> copyFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> moveDirectory(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> moveFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<String> readTextFile(String path) async => '';
+
+  @override
   String resolveMapPath(String relativePath) => '/tmp/$relativePath';
 
   @override
@@ -188,4 +209,7 @@ class _FakeWorkspace implements ProjectWorkspace {
 
   @override
   String resolveTilesetPath(String relativePath) => '/tmp/$relativePath';
+
+  @override
+  Future<void> writeTextFile(String path, String contents) async {}
 }

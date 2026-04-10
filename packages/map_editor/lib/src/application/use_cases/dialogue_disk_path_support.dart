@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -143,7 +141,7 @@ Future<void> assertDestinationFileAvailable(
   String relativePath,
 ) async {
   final abs = ws.resolveProjectRelativePath(relativePath);
-  if (await File(abs).exists()) {
+  if (await ws.fileExists(abs)) {
     throw EditorValidationException(
       'Target file already exists: $relativePath',
     );
@@ -158,24 +156,17 @@ Future<void> moveProjectRelativeFile(
 ) async {
   final fromAbs = ws.resolveProjectRelativePath(fromRelative);
   final toAbs = ws.resolveProjectRelativePath(toRelative);
-  final fromF = File(fromAbs);
-  if (!await fromF.exists()) {
+  if (!await ws.fileExists(fromAbs)) {
     throw EditorValidationException(
       'Cannot move dialogue file: missing source $fromRelative',
     );
   }
-  if (await File(toAbs).exists()) {
+  if (await ws.fileExists(toAbs)) {
     throw EditorValidationException(
       'Cannot move dialogue file: destination exists $toRelative',
     );
   }
-  await Directory(p.dirname(toAbs)).create(recursive: true);
-  try {
-    await fromF.rename(toAbs);
-  } on FileSystemException {
-    await fromF.copy(toAbs);
-    await fromF.delete();
-  }
+  await ws.moveFile(fromAbs, toAbs);
 }
 
 /// Renomme / déplace un répertoire projet (préfixes relatifs POSIX).
@@ -186,34 +177,15 @@ Future<void> moveProjectRelativeDirectory(
 ) async {
   final fromAbs = ws.resolveProjectRelativePath(fromDirRelative);
   final toAbs = ws.resolveProjectRelativePath(toDirRelative);
-  final fromD = Directory(fromAbs);
-  if (!await fromD.exists()) {
+  if (!await ws.directoryExists(fromAbs)) {
     return;
   }
-  if (await Directory(toAbs).exists()) {
+  if (await ws.directoryExists(toAbs)) {
     throw EditorValidationException(
       'Cannot move dialogue folder: target exists $toDirRelative',
     );
   }
-  await Directory(p.dirname(toAbs)).create(recursive: true);
-  try {
-    await fromD.rename(toAbs);
-  } on FileSystemException {
-    await _copyDirectoryRecursive(fromD, Directory(toAbs));
-    await fromD.delete(recursive: true);
-  }
-}
-
-Future<void> _copyDirectoryRecursive(Directory from, Directory to) async {
-  await to.create(recursive: true);
-  await for (final entity in from.list(recursive: false)) {
-    final name = p.basename(entity.path);
-    if (entity is File) {
-      await entity.copy(p.join(to.path, name));
-    } else if (entity is Directory) {
-      await _copyDirectoryRecursive(entity, Directory(p.join(to.path, name)));
-    }
-  }
+  await ws.moveDirectory(fromAbs, toAbs);
 }
 
 /// Supprime un répertoire vide s’il existe (pas d’erreur si absent).
@@ -222,13 +194,7 @@ Future<void> deleteEmptyProjectRelativeDirectory(
   String dirRelative,
 ) async {
   final abs = ws.resolveProjectRelativePath(dirRelative);
-  final d = Directory(abs);
-  if (!await d.exists()) return;
-  try {
-    await d.delete(recursive: false);
-  } on FileSystemException {
-    // non vide ou verrou : ignorer — le manifeste reste la source d’interdiction
-  }
+  await ws.deleteDirectoryIfEmpty(abs);
 }
 
 /// Crée le répertoire du dossier logique sur disque (après ajout au manifeste).
@@ -240,5 +206,5 @@ Future<void> ensureDialogueFolderDirectoryExists(
 ) async {
   final rel = dialogueFolderDirectoryRelativePath(project, segments, folderId);
   final abs = ws.resolveProjectRelativePath(rel);
-  await Directory(abs).create(recursive: true);
+  await ws.ensureDirectoryExists(p.join(abs, '.keep'));
 }

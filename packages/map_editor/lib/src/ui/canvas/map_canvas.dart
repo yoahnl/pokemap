@@ -12,9 +12,9 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
-import '../../application/services/entity_editor_element_visual.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import 'entity_editor_element_visual.dart';
 
 class MapCanvas extends ConsumerStatefulWidget {
   const MapCanvas({super.key});

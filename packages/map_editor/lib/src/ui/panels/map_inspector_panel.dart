@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/terrain_selection_mode.dart';
 import '../../features/editor/state/editor_notifier.dart';
-import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';

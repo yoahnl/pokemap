@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import '../ports/project_workspace.dart';
 import 'initialize_pokemon_project_storage_use_case.dart';
@@ -66,13 +65,12 @@ class SeedPokemonDemoDataUseCase {
     required Map<String, Object?> payload,
   }) async {
     final absolutePath = workspace.resolveProjectRelativePath(relativePath);
-    final file = File(absolutePath);
-    if (!await file.exists()) {
+    if (!await workspace.fileExists(absolutePath)) {
       await _writeJsonIfAbsent(workspace, relativePath, payload);
       return;
     }
 
-    final currentRaw = await file.readAsString();
+    final currentRaw = await workspace.readTextFile(absolutePath);
     final dynamic decoded = jsonDecode(currentRaw);
     if (decoded is! Map<String, dynamic>) {
       return;
@@ -85,7 +83,8 @@ class SeedPokemonDemoDataUseCase {
       return;
     }
 
-    await file.writeAsString(
+    await workspace.writeTextFile(
+      absolutePath,
       const JsonEncoder.withIndent('  ').convert(payload),
     );
   }
@@ -118,12 +117,11 @@ class SeedPokemonDemoDataUseCase {
     Map<String, Object?> payload,
   ) async {
     final absolutePath = workspace.resolveProjectRelativePath(relativePath);
-    final file = File(absolutePath);
-    if (await file.exists()) {
+    if (await workspace.fileExists(absolutePath)) {
       return;
     }
-    await workspace.ensureDirectoryExists(absolutePath);
-    await file.writeAsString(
+    await workspace.writeTextFile(
+      absolutePath,
       const JsonEncoder.withIndent('  ').convert(payload),
     );
   }

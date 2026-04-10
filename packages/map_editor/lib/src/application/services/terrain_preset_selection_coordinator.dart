@@ -1,6 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-import '../../features/editor/state/editor_state.dart';
+import '../models/terrain_selection_mode.dart';
 import 'terrain_preset_resolver.dart';
 
 class TerrainPresetSelection {

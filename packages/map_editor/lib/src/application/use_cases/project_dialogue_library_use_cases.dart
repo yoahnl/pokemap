@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -143,7 +141,7 @@ class RenameDialogueLibraryFolderUseCase {
 
     if (oldDirRel != newDirRel) {
       final oldAbs = workspace.resolveProjectRelativePath(oldDirRel);
-      if (await Directory(oldAbs).exists()) {
+      if (await workspace.directoryExists(oldAbs)) {
         await moveProjectRelativeDirectory(workspace, oldDirRel, newDirRel);
         final nextDialogues = updated.dialogues.map((d) {
           final nextPath =
@@ -226,7 +224,7 @@ class MoveDialogueLibraryFolderUseCase {
 
     if (oldDirRel != newDirRel) {
       final oldAbs = workspace.resolveProjectRelativePath(oldDirRel);
-      if (await Directory(oldAbs).exists()) {
+      if (await workspace.directoryExists(oldAbs)) {
         await moveProjectRelativeDirectory(workspace, oldDirRel, newDirRel);
         final nextDialogues = updated.dialogues.map((d) {
           final nextPath =

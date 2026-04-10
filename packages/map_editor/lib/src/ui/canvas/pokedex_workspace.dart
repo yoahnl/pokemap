@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers/pokedex_providers.dart';
 import '../../application/models/pokemon_database_index.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../infrastructure/filesystem/project_filesystem.dart';
@@ -23,23 +24,25 @@ const String _allGenerationsFilterValue = '__all_generations__';
 class PokedexWorkspace extends ConsumerWidget {
   const PokedexWorkspace({
     super.key,
-    this.loader = loadPokedexEntriesForWorkspace,
+    this.loader,
   });
 
   /// Injection locale utile aux tests ciblés du lot 13.
   ///
   /// On garde cette extension volontairement minimale : elle permet de tester
-  /// le rendu des états UI sans introduire de provider ou de notifier dédié.
-  final PokedexEntryLoader loader;
+  /// le rendu des états UI sans introduire de notifier dédié supplémentaire.
+  final PokedexEntryLoader? loader;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectRootPath =
         ref.watch(editorNotifierProvider.select((s) => s.projectRootPath));
+    final PokedexEntryLoader resolvedLoader =
+        loader ?? ref.watch(pokedexEntryLoaderProvider);
 
     return _PokedexWorkspaceBody(
       projectRootPath: projectRootPath,
-      loader: loader,
+      loader: resolvedLoader,
     );
   }
 }

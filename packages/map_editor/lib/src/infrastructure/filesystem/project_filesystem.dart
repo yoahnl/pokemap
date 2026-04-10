@@ -59,6 +59,101 @@ class ProjectFileSystem implements ProjectWorkspace {
   }
 
   @override
+  Future<bool> fileExists(String path) {
+    return File(path).exists();
+  }
+
+  @override
+  Future<bool> directoryExists(String path) {
+    return Directory(path).exists();
+  }
+
+  @override
+  Future<String> readTextFile(String path) {
+    return File(path).readAsString();
+  }
+
+  @override
+  Future<void> writeTextFile(String path, String contents) async {
+    await ensureDirectoryExists(path);
+    await File(path).writeAsString(contents);
+  }
+
+  @override
+  Future<void> copyFile(String sourcePath, String destinationPath) async {
+    final sourceFile = File(sourcePath);
+    if (!await sourceFile.exists()) {
+      throw FileSystemException(
+        'Source file not found',
+        sourcePath,
+      );
+    }
+    await ensureDirectoryExists(destinationPath);
+    await sourceFile.copy(destinationPath);
+  }
+
+  @override
+  Future<void> moveFile(String sourcePath, String destinationPath) async {
+    final sourceFile = File(sourcePath);
+    if (!await sourceFile.exists()) {
+      throw FileSystemException(
+        'Source file not found',
+        sourcePath,
+      );
+    }
+    if (await File(destinationPath).exists()) {
+      throw FileSystemException(
+        'Destination file already exists',
+        destinationPath,
+      );
+    }
+    await ensureDirectoryExists(destinationPath);
+    try {
+      await sourceFile.rename(destinationPath);
+    } on FileSystemException {
+      await sourceFile.copy(destinationPath);
+      await sourceFile.delete();
+    }
+  }
+
+  @override
+  Future<void> moveDirectory(String sourcePath, String destinationPath) async {
+    final sourceDirectory = Directory(sourcePath);
+    if (!await sourceDirectory.exists()) {
+      return;
+    }
+    if (await Directory(destinationPath).exists()) {
+      throw FileSystemException(
+        'Destination directory already exists',
+        destinationPath,
+      );
+    }
+    await Directory(p.dirname(destinationPath)).create(recursive: true);
+    try {
+      await sourceDirectory.rename(destinationPath);
+    } on FileSystemException {
+      await _copyDirectoryRecursive(
+        sourceDirectory,
+        Directory(destinationPath),
+      );
+      await sourceDirectory.delete(recursive: true);
+    }
+  }
+
+  @override
+  Future<void> deleteDirectoryIfEmpty(String path) async {
+    final directory = Directory(path);
+    if (!await directory.exists()) {
+      return;
+    }
+    try {
+      await directory.delete(recursive: false);
+    } on FileSystemException {
+      // Non-empty or locked directories are intentionally ignored here.
+    }
+  }
+
+  @override
   Future<String> importTilesetImage(String sourcePath,
       {String? preferredName}) async {
     final sourceFile = File(sourcePath);
@@ -106,6 +201,21 @@ class ProjectFileSystem implements ProjectWorkspace {
     final normalized = value.trim().toLowerCase();
     final safe = normalized.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
     return safe.replaceAll(RegExp(r'_+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+  }
+
+  Future<void> _copyDirectoryRecursive(Directory from, Directory to) async {
+    await to.create(recursive: true);
+    await for (final entity in from.list(recursive: false)) {
+      final name = p.basename(entity.path);
+      if (entity is File) {
+        await entity.copy(p.join(to.path, name));
+      } else if (entity is Directory) {
+        await _copyDirectoryRecursive(
+          entity,
+          Directory(p.join(to.path, name)),
+        );
+      }
+    }
   }
 }
 

@@ -7,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/pokedex_providers.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
+import 'package:map_editor/src/application/services/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -118,6 +120,93 @@ void main() {
     expect(find.byKey(const Key('pokedex-explorer-entry')), findsOneWidget);
     expect(find.text('Pokédex'), findsWidgets);
     expect(find.textContaining('Species list only'), findsOneWidget);
+  });
+
+  testWidgets(
+      'uses the provider-backed loader by default when no explicit loader is injected',
+      (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => <PokemonDatabaseIndexEntry>[
+            buildEntry(
+              id: 'treecko',
+              nationalDex: 252,
+              primaryName: 'Treecko',
+              types: <String>['grass'],
+              genIntroduced: 3,
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: const PokedexWorkspace(),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Treecko'), findsOneWidget);
+    expect(find.text('treecko'), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-species-list')), findsOneWidget);
+  });
+
+  testWidgets(
+      'prefers the explicitly injected loader over the provider-backed default',
+      (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => <PokemonDatabaseIndexEntry>[
+            buildEntry(
+              id: 'treecko',
+              nationalDex: 252,
+              primaryName: 'Treecko',
+              types: <String>['grass'],
+              genIntroduced: 3,
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'torchic',
+            nationalDex: 255,
+            primaryName: 'Torchic',
+            types: <String>['fire'],
+            genIntroduced: 3,
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Torchic'), findsOneWidget);
+    expect(find.text('torchic'), findsOneWidget);
+    expect(find.text('Treecko'), findsNothing);
+    expect(find.text('treecko'), findsNothing);
   });
 
   testWidgets(
@@ -868,10 +957,18 @@ void main() {
           tempProjectRoot.path,
         );
 
+        final loader = createPokedexEntryLoader(
+          projectRepository: FileProjectRepository(),
+          databaseIndex: PokemonDatabaseIndex(
+            projectRepository: FileProjectRepository(),
+            pokemonReadRepository: const FilePokemonReadRepository(),
+          ),
+        );
+
         // Ce test verrouille le vrai nettoyage du mini-fix :
         // l'absence du dossier `species/` doit produire une liste vide
         // explicitement, sans dépendre du texte d'une exception remontée.
-        final entries = await loadPokedexEntriesForWorkspace(workspace);
+        final entries = await loader(workspace);
         expect(entries, isEmpty);
       } finally {
         if (await tempProjectRoot.exists()) {

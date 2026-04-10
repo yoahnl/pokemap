@@ -3,8 +3,17 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:map_core/map_core.dart';
 
+/// Valeur par défaut commune quand une frame ne précise pas sa durée.
+///
+/// Ce helper est purement visuel et n'appartient pas à l'application métier :
+/// il ne sert qu'au rendu éditeur dans le canvas.
 const int kEntityEditorFrameDurationFallbackMs = 200;
 
+/// Résolution minimale nécessaire au canvas pour peindre une entité.
+///
+/// Le type reste local à la couche UI : il transporte directement une image
+/// Flutter et un `Rect` de découpe, donc il ne doit pas vivre dans
+/// `application/services`.
 class ResolvedEntityElementVisual {
   const ResolvedEntityElementVisual({
     required this.image,
@@ -70,10 +79,7 @@ Rect? _sourceRectForFrameInImage({
   final py = src.y * sourceTileHeight;
   final pw = wTiles * sourceTileWidth;
   final ph = hTiles * sourceTileHeight;
-  if (px < 0 ||
-      py < 0 ||
-      px + pw > image.width ||
-      py + ph > image.height) {
+  if (px < 0 || py < 0 || px + pw > image.width || py + ph > image.height) {
     return null;
   }
   return Rect.fromLTWH(
@@ -101,10 +107,7 @@ Rect? _sourceRectForCharacterFrameInImage({
   final py = src.y * hTiles * sourceTileHeight;
   final pw = wTiles * sourceTileWidth;
   final ph = hTiles * sourceTileHeight;
-  if (px < 0 ||
-      py < 0 ||
-      px + pw > image.width ||
-      py + ph > image.height) {
+  if (px < 0 || py < 0 || px + pw > image.width || py + ph > image.height) {
     return null;
   }
   return Rect.fromLTWH(
@@ -254,11 +257,13 @@ ResolvedEntityElementVisual? resolveEntityElementVisualForEditor({
   if (entry == null || entry.frames.isEmpty) {
     return null;
   }
-  final frame =
-      entityEditorPickFrame(entry.frames, editorAnimationTimeMs);
-  final tilesetId = frame.tilesetId.trim().isNotEmpty
-      ? frame.tilesetId.trim()
-      : entry.tilesetId.trim();
+  final frame = entityEditorPickFrame(
+    entry.frames,
+    editorAnimationTimeMs,
+  );
+  final tilesetId = frame.tilesetId.trim().isEmpty
+      ? entry.tilesetId.trim()
+      : frame.tilesetId.trim();
   if (tilesetId.isEmpty) {
     return null;
   }

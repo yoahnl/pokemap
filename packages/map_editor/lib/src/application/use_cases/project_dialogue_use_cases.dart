@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -87,9 +85,7 @@ class CreateProjectDialogueUseCase {
     );
     await assertDestinationFileAvailable(ws, relativePath);
     final abs = ws.resolveProjectRelativePath(relativePath);
-    await ws.ensureDirectoryExists(abs);
-    final file = File(abs);
-    await file.writeAsString(minimalYarnStub(trimmed));
+    await ws.writeTextFile(abs, minimalYarnStub(trimmed));
     final sortOrder = nextDialogueLibrarySortOrder(
       project,
       parent == null || parent.isEmpty ? null : parent,
@@ -124,8 +120,7 @@ class ImportProjectDialogueUseCase {
     required String displayName,
     String? folderId,
   }) async {
-    final src = File(absoluteSourcePath);
-    if (!await src.exists()) {
+    if (!await ws.fileExists(absoluteSourcePath)) {
       throw const EditorValidationException('Source file not found');
     }
     final ext = p.extension(absoluteSourcePath).toLowerCase();
@@ -155,8 +150,7 @@ class ImportProjectDialogueUseCase {
     );
     await assertDestinationFileAvailable(ws, relativePath);
     final destAbs = ws.resolveProjectRelativePath(relativePath);
-    await ws.ensureDirectoryExists(destAbs);
-    await src.copy(destAbs);
+    await ws.copyFile(absoluteSourcePath, destAbs);
     final sortOrder = nextDialogueLibrarySortOrder(
       project,
       parent == null || parent.isEmpty ? null : parent,
@@ -293,6 +287,6 @@ class SaveDialogueYarnBodyUseCase {
     }
     final entry = project.dialogues[index];
     final abs = ws.resolveProjectRelativePath(entry.relativePath);
-    await File(abs).writeAsString(yarnBody);
+    await ws.writeTextFile(abs, yarnBody);
   }
 }

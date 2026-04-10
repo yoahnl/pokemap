@@ -13,6 +13,7 @@ import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
 import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/path_autotile_set.dart';
+import '../../../application/models/terrain_selection_mode.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';

@@ -138,9 +138,19 @@ class _TempProjectWorkspace implements ProjectWorkspace {
   Future<void> deleteRelativeFile(String relativePath) async {}
 
   @override
+  Future<void> deleteDirectoryIfEmpty(String path) async {}
+
+  @override
+  Future<bool> directoryExists(String path) async =>
+      Directory(path).exists();
+
+  @override
   Future<void> ensureDirectoryExists(String path) async {
     await Directory(p.dirname(path)).create(recursive: true);
   }
+
+  @override
+  Future<bool> fileExists(String path) async => File(path).exists();
 
   @override
   String getMapPath(String mapId) => p.join(root, 'maps', '$mapId.json');
@@ -156,6 +166,31 @@ class _TempProjectWorkspace implements ProjectWorkspace {
       p.join(root, 'tilesets', 'x.png');
 
   @override
+  Future<void> copyFile(String sourcePath, String destinationPath) async {
+    await ensureDirectoryExists(destinationPath);
+    await File(sourcePath).copy(destinationPath);
+  }
+
+  @override
+  Future<void> moveDirectory(String sourcePath, String destinationPath) async {
+    final directory = Directory(sourcePath);
+    if (!await directory.exists()) {
+      return;
+    }
+    await Directory(p.dirname(destinationPath)).create(recursive: true);
+    await directory.rename(destinationPath);
+  }
+
+  @override
+  Future<void> moveFile(String sourcePath, String destinationPath) async {
+    await ensureDirectoryExists(destinationPath);
+    await File(sourcePath).rename(destinationPath);
+  }
+
+  @override
+  Future<String> readTextFile(String path) => File(path).readAsString();
+
+  @override
   String resolveMapPath(String relativePath) => p.join(root, relativePath);
 
   @override
@@ -165,4 +200,10 @@ class _TempProjectWorkspace implements ProjectWorkspace {
   @override
   String resolveTilesetPath(String relativePath) =>
       p.join(root, relativePath);
+
+  @override
+  Future<void> writeTextFile(String path, String contents) async {
+    await ensureDirectoryExists(path);
+    await File(path).writeAsString(contents);
+  }
 }
