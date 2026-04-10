@@ -55,7 +55,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Phase 2 — Réparer les frontières d’architecture | Fait | Lots 3-5 terminés |
 | Phase 3 — Casser progressivement `EditorNotifier` | Fait | Lots 6-9 terminés |
 | Phase 4 — Moderniser Riverpod et la composition root | Fait | Lots 10-11 terminés |
-| Phase 5 — Découper et ranger les surfaces UI | En cours | Lots 12-15 terminés, lot 16 engagé ; terrain déjà fortement réduit, première extraction palette faite |
+| Phase 5 — Découper et ranger les surfaces UI | Fait | Lots 12-16 terminés ; terrain et palette sont maintenant réduits en shells avec extractions thématiques validées |
 
 ### Statut lot par lot
 
@@ -76,7 +76,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Lot 13 | Fait | Découpage mécanique des workspaces narratifs avec extraction en fichiers support et nettoyage du legacy non branché |
 | Lot 14 | Fait | `dialogue_studio_workspace` réduit en shell avec extraction des dialogs, de l’arbre bibliothèque et des cartes canvas |
 | Lot 15 | Fait | `MapCanvas` est devenu un shell lisible, `EntityPropertiesPanel` a perdu ses helpers/drafts/bindings de support |
-| Lot 16 | En cours | `terrain_editor_panel` largement découpé et validé ; `tileset_palette_panel` a commencé à être extrait mais garde encore ses warnings historiques |
+| Lot 16 | Fait | `terrain_editor_panel` et `tileset_palette_panel` sont désormais des shells plus lisibles avec sous-systèmes extraits et validations vertes |
 
 ### Note honnête sur l’état courant
 
@@ -92,6 +92,18 @@ Statut mis à jour après exécution effective des premiers lots.
   - [`global_story_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart) est descendu à environ 1130 lignes après retrait du reliquat legacy non branché et suppression du mini-sous-système de widgets morts ;
   - [`cutscene_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/cutscene_studio_workspace.dart) est descendu à environ 2444 lignes avec extraction du support UI local ;
   - les tests narratifs ciblés repassent au vert après réalignement d’un test `GlobalStoryStudioWorkspace` sur l’UI réellement supportée par le shell actuel.
+- Le lot 16 est maintenant fermé :
+  - [`terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart) reste à environ 1594 lignes avec ses dialogs et son workspace de mapping sortis ;
+  - [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart) est descendu à environ 4290 lignes ;
+  - les sous-systèmes palette extraits et validés sont maintenant :
+    - [`tileset_palette/dialogs/element_frame_picker_dialog.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/dialogs/element_frame_picker_dialog.dart) ;
+    - [`tileset_palette/widgets/animation/placed_element_animation_widgets.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/animation/placed_element_animation_widgets.dart) ;
+    - [`tileset_palette/widgets/collision/element_collision_editor.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/collision/element_collision_editor.dart) ;
+    - [`tileset_palette/widgets/collision/element_collision_profile_painter.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/collision/element_collision_profile_painter.dart) ;
+    - [`tileset_palette/widgets/library/tileset_palette_library_widgets.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/library/tileset_palette_library_widgets.dart) ;
+    - [`tileset_palette/widgets/palette/tileset_palette_preview.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/palette/tileset_palette_preview.dart) ;
+    - [`tileset_palette/widgets/placed_instances/placed_instances_section.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/placed_instances/placed_instances_section.dart) ;
+  - l’analyse ciblée finale du lot 16 et le smoke test UI repassent au vert.
 
 ---
 
@@ -119,7 +131,7 @@ Ce plan s’appuie sur trois angles d’analyse menés en parallèle :
 
 | Fichier | Taille approximative |
 | --- | ---: |
-| [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart) | 7573 lignes |
+| [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart) | 4290 lignes |
 | [`editor_notifier.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart) | 6951 lignes |
 | [`terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart) | 1594 lignes |
 | [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart) | 2324 lignes |
@@ -917,20 +929,23 @@ Chaque lot doit embarquer :
 - Traiter les plus grosses dettes restantes en dernier, quand les frontières, l’état et les tests sont déjà sécurisés.
 
 **État réel**
-- En cours.
-- La moitié `terrain_editor_panel` est déjà passée de plus de 5000 lignes à environ 1594 lignes.
-- Extractions déjà réalisées et validées :
+- Fait.
+- [`terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart) reste à environ 1594 lignes.
+- [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart) est maintenant descendu à environ 4290 lignes.
+- Extractions réalisées et validées côté terrain :
   - [`terrain_editor/dialogs/terrain_preset_dialogs.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor/dialogs/terrain_preset_dialogs.dart)
   - [`terrain_editor/widgets/terrain_mapping_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor/widgets/terrain_mapping_workspace.dart)
-- Première extraction `tileset_palette_panel` déjà posée :
+- Extractions réalisées et validées côté palette :
+  - [`tileset_palette/dialogs/element_frame_picker_dialog.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/dialogs/element_frame_picker_dialog.dart)
+  - [`tileset_palette/widgets/animation/placed_element_animation_widgets.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/animation/placed_element_animation_widgets.dart)
+  - [`tileset_palette/widgets/collision/element_collision_editor.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/collision/element_collision_editor.dart)
+  - [`tileset_palette/widgets/collision/element_collision_profile_painter.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/collision/element_collision_profile_painter.dart)
+  - [`tileset_palette/widgets/library/tileset_palette_library_widgets.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/library/tileset_palette_library_widgets.dart)
   - [`tileset_palette/widgets/palette/tileset_palette_preview.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/palette/tileset_palette_preview.dart)
-- Validations déjà vertes sur cette tranche :
+  - [`tileset_palette/widgets/placed_instances/placed_instances_section.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/placed_instances/placed_instances_section.dart)
+- Validations vertes finales :
+  - `flutter analyze --no-pub lib/src/ui/panels/terrain_editor_panel.dart lib/src/ui/panels/terrain_editor/dialogs/terrain_preset_dialogs.dart lib/src/ui/panels/terrain_editor/widgets/terrain_mapping_workspace.dart lib/src/ui/panels/tileset_palette_panel.dart lib/src/ui/panels/tileset_palette/dialogs/element_frame_picker_dialog.dart lib/src/ui/panels/tileset_palette/widgets/animation/placed_element_animation_widgets.dart lib/src/ui/panels/tileset_palette/widgets/collision/element_collision_editor.dart lib/src/ui/panels/tileset_palette/widgets/collision/element_collision_profile_painter.dart lib/src/ui/panels/tileset_palette/widgets/library/tileset_palette_library_widgets.dart lib/src/ui/panels/tileset_palette/widgets/palette/tileset_palette_preview.dart lib/src/ui/panels/tileset_palette/widgets/placed_instances/placed_instances_section.dart test/ui_panels_smoke_test.dart`
   - `flutter test test/ui_panels_smoke_test.dart`
-  - `flutter analyze --no-pub lib/src/ui/panels/terrain_editor_panel.dart lib/src/ui/panels/terrain_editor/dialogs/terrain_preset_dialogs.dart lib/src/ui/panels/terrain_editor/widgets/terrain_mapping_workspace.dart test/ui_panels_smoke_test.dart`
-- Le sous-lot restant est maintenant concentré sur [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart).
-- Note honnête :
-  - le smoke test palette reste vert ;
-  - l’analyse ciblée du panneau palette remonte encore des warnings historiques (`prefer_const_*`, `deprecated_member_use`) déjà présents dans le fichier massif et non traités dans cette tranche.
 
 **Fichiers à modifier**
 - [`packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart)
@@ -943,11 +958,11 @@ Chaque lot doit embarquer :
 - [`packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart)
 - nouveaux sous-dossiers à créer :
   - [`packages/map_editor/lib/src/ui/panels/tileset_palette/dialogs/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/dialogs/)
-  - [`packages/map_editor/lib/src/ui/panels/tileset_palette/painters/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/painters/)
+  - [`packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/animation/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/animation/)
   - [`packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/placed_instances/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/placed_instances/)
   - [`packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/collision/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/collision/)
+  - [`packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/library/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/library/)
   - [`packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/palette/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/palette/)
-  - [`packages/map_editor/lib/src/ui/panels/tileset_palette/cache/`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/cache/)
 - tests à adapter :
   - `terrain_editor_panel_smoke_test.dart`
   - `tileset_palette_panel_smoke_test.dart`
@@ -958,7 +973,7 @@ Chaque lot doit embarquer :
   - sortir dialogs, painters, path editor, bibliothèque, cache.
 - `tileset_palette_panel.dart`
   - shell principal uniquement ;
-  - sortir dialogs, painters, widgets de collision, widgets de palette, cache.
+  - sortir dialogs, widgets d’animation, widgets d’instances posées, widgets de collision, widgets de bibliothèque et widgets de palette.
 
 **Critère de sortie**
 - Les deux plus gros fichiers du projet passent sous contrôle, avec une structure lisible par thème.
