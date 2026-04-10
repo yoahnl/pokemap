@@ -55,7 +55,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Phase 2 — Réparer les frontières d’architecture | Fait | Lots 3-5 terminés |
 | Phase 3 — Casser progressivement `EditorNotifier` | Fait | Lots 6-9 terminés |
 | Phase 4 — Moderniser Riverpod et la composition root | Fait | Lots 10-11 terminés |
-| Phase 5 — Découper et ranger les surfaces UI | En cours | Lots 12-14 terminés, lot 15 entamé et sécurisé, lot 16 ensuite |
+| Phase 5 — Découper et ranger les surfaces UI | En cours | Lots 12-15 terminés, lot 16 ensuite |
 
 ### Statut lot par lot
 
@@ -75,7 +75,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Lot 12 | Fait | `TopToolbar` et `ProjectExplorerPanel` réduits en shells avec extractions thématiques |
 | Lot 13 | Fait | Découpage mécanique des workspaces narratifs avec extraction en fichiers support et nettoyage du legacy non branché |
 | Lot 14 | Fait | `dialogue_studio_workspace` réduit en shell avec extraction des dialogs, de l’arbre bibliothèque et des cartes canvas |
-| Lot 15 | En cours | Tranche 1 faite : helpers/support sortis + smoke tests directs ajoutés ; gros painter `MapCanvas` encore à sortir |
+| Lot 15 | Fait | `MapCanvas` est devenu un shell lisible, `EntityPropertiesPanel` a perdu ses helpers/drafts/bindings de support |
 | Lot 16 | À faire | Découpage de `terrain_editor_panel` + `tileset_palette_panel` |
 
 ### Note honnête sur l’état courant
@@ -122,11 +122,11 @@ Ce plan s’appuie sur trois angles d’analyse menés en parallèle :
 | [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart) | 7573 lignes |
 | [`editor_notifier.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart) | 6951 lignes |
 | [`terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart) | 5105 lignes |
-| [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart) | 2968 lignes |
+| [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart) | 2324 lignes |
 | [`step_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/step_studio_workspace.dart) | 2534 lignes |
 | [`cutscene_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/cutscene_studio_workspace.dart) | 2444 lignes |
 | [`global_story_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart) | 1130 lignes |
-| [`map_canvas.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas.dart) | 2597 lignes |
+| [`map_canvas.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas.dart) | 672 lignes |
 | [`dialogue_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/dialogue_studio_workspace.dart) | 1704 lignes |
 | [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart) | 2013 lignes |
 | [`top_toolbar.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/shared/top_toolbar.dart) | 1164 lignes |
@@ -888,28 +888,26 @@ Chaque lot doit embarquer :
 - Le canvas et les propriétés d’entité deviennent lisibles et révisables.
 
 **État réel**
-- En cours.
-- Tranche 1 déjà faite et validée :
-  - [`map_canvas.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas.dart)
-    - garde le widget principal et le flux d’interaction ;
-    - a déjà perdu les helpers de cache/chargement image vers [`map_canvas_assets.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas/map_canvas_assets.dart) ;
-    - est descendu à environ 2597 lignes.
-  - [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart)
-    - garde le shell du panneau et la logique d’édition ;
-    - a déjà perdu les drafts locaux vers [`entity_properties_drafts.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties/entity_properties_drafts.dart) ;
-    - a déjà perdu les helpers de support dialogue vers [`entity_properties_dialogue_support.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties/entity_properties_dialogue_support.dart) ;
-    - a déjà sorti le bloc waypoints/mouvement PNJ vers [`entity_properties_npc_runtime.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties/entity_properties_npc_runtime.dart) ;
-    - est descendu à environ 2968 lignes.
+- Fait.
+- [`map_canvas.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas.dart)
+  - garde désormais le widget principal, le flux d’interaction et la synchronisation locale ;
+  - a sorti le cache/chargement image vers [`map_canvas_assets.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas/map_canvas_assets.dart) ;
+  - a sorti le gros painter vers [`map_grid_painter.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas/map_grid_painter.dart) ;
+  - est descendu à environ 672 lignes.
+- [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart)
+  - garde le shell du panneau et la logique d’édition principale ;
+  - a sorti les drafts locaux vers [`entity_properties_drafts.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties/entity_properties_drafts.dart) ;
+  - a sorti les helpers de support dialogue vers [`entity_properties_dialogue_support.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties/entity_properties_dialogue_support.dart) ;
+  - a sorti le binding UI dialogue/Yarn vers [`entity_properties_dialogue_bindings.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties/entity_properties_dialogue_bindings.dart) ;
+  - a sorti le bloc waypoints/mouvement PNJ vers [`entity_properties_npc_runtime.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties/entity_properties_npc_runtime.dart) ;
+  - est descendu à environ 2324 lignes.
 - Test direct ajouté :
   - [`map_canvas_entity_properties_smoke_test.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/test/map_canvas_entity_properties_smoke_test.dart)
     - couvre un rendu direct de `MapCanvas` avec `MapData` réel ;
     - couvre un rendu direct de `EntityPropertiesPanel` avec une entité PNJ sélectionnée.
-- Validations vertes sur cette tranche :
+- Validations vertes :
   - `flutter test test/map_canvas_entity_properties_smoke_test.dart test/ui_panels_smoke_test.dart`
-  - `flutter analyze --no-pub lib/src/ui/canvas/map_canvas.dart lib/src/ui/canvas/map_canvas/map_canvas_assets.dart lib/src/ui/panels/entity_properties_panel.dart lib/src/ui/panels/entity_properties/entity_properties_dialogue_support.dart lib/src/ui/panels/entity_properties/entity_properties_drafts.dart lib/src/ui/panels/entity_properties/entity_properties_npc_runtime.dart test/map_canvas_entity_properties_smoke_test.dart test/ui_panels_smoke_test.dart`
-- Reste volontairement ouvert pour la tranche suivante :
-  - extraction du gros `MapGridPainter` hors de [`map_canvas.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas.dart) ;
-  - extraction d’autres sections métier/UI de [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart) si le gain reste sûr et reviewable.
+  - `flutter analyze --no-pub lib/src/ui/canvas/map_canvas.dart lib/src/ui/canvas/map_canvas/map_canvas_assets.dart lib/src/ui/canvas/map_canvas/map_grid_painter.dart lib/src/ui/panels/entity_properties_panel.dart lib/src/ui/panels/entity_properties/entity_properties_dialogue_support.dart lib/src/ui/panels/entity_properties/entity_properties_drafts.dart lib/src/ui/panels/entity_properties/entity_properties_dialogue_bindings.dart lib/src/ui/panels/entity_properties/entity_properties_npc_runtime.dart test/map_canvas_entity_properties_smoke_test.dart test/ui_panels_smoke_test.dart`
 
 ---
 
