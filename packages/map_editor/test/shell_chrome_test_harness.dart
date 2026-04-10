@@ -1,0 +1,187 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/editor_shell_page.dart';
+import 'package:map_editor/src/ui/shared/status_bar.dart';
+import 'package:map_editor/src/ui/shared/top_toolbar.dart';
+
+ProjectManifest buildShellChromeProject({
+  String name = 'Demo Project',
+  List<ProjectMapEntry> maps = const <ProjectMapEntry>[],
+  List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
+}) {
+  return ProjectManifest(
+    name: name,
+    maps: maps,
+    tilesets: tilesets,
+  );
+}
+
+MapData buildShellChromeMap({
+  String id = 'route_1',
+  String name = 'Route 1',
+  int width = 20,
+  int height = 15,
+  List<MapLayer> layers = const <MapLayer>[],
+}) {
+  return MapData(
+    id: id,
+    name: name,
+    size: GridSize(width: width, height: height),
+    layers: layers,
+  );
+}
+
+Future<ProviderContainer> pumpEditorShellPage(
+  WidgetTester tester, {
+  required EditorState initialState,
+  Size surfaceSize = const Size(1600, 1000),
+}) async {
+  final container = ProviderContainer();
+  final editorStateSubscription = container.listen<EditorState>(
+    editorNotifierProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  addTearDown(() async {
+    editorStateSubscription.close();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump();
+    container.dispose();
+  });
+
+  await tester.binding.setSurfaceSize(surfaceSize);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  // The shell auto-restore schedules a post-frame call into the notifier.
+  // Tests seed a concrete editor state up front so the restore path exits
+  // immediately and the shell stays focused on UI contracts only.
+  container.read(editorNotifierProvider.notifier).state = initialState;
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const MacosApp(
+        home: EditorShellPage(),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  return container;
+}
+
+Future<ProviderContainer> pumpTopToolbarHarness(
+  WidgetTester tester, {
+  required EditorState initialState,
+  Size surfaceSize = const Size(1280, 220),
+}) async {
+  final container = ProviderContainer();
+  final editorStateSubscription = container.listen<EditorState>(
+    editorNotifierProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  addTearDown(() async {
+    editorStateSubscription.close();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump();
+    container.dispose();
+  });
+
+  await tester.binding.setSurfaceSize(surfaceSize);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  container.read(editorNotifierProvider.notifier).state = initialState;
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const MacosApp(
+        home: _TopToolbarHarness(),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  return container;
+}
+
+Future<ProviderContainer> pumpStatusBarHarness(
+  WidgetTester tester, {
+  required EditorState initialState,
+  Size surfaceSize = const Size(900, 180),
+}) async {
+  final container = ProviderContainer();
+  final editorStateSubscription = container.listen<EditorState>(
+    editorNotifierProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  addTearDown(() async {
+    editorStateSubscription.close();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump();
+    container.dispose();
+  });
+
+  await tester.binding.setSurfaceSize(surfaceSize);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  container.read(editorNotifierProvider.notifier).state = initialState;
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const MacosApp(
+        home: _StatusBarHarness(),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  return container;
+}
+
+class _TopToolbarHarness extends ConsumerWidget {
+  const _TopToolbarHarness();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const CupertinoPageScaffold(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          width: 1200,
+          child: TopToolbar(
+            key: Key('top-toolbar-under-test'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusBarHarness extends StatelessWidget {
+  const _StatusBarHarness();
+
+  @override
+  Widget build(BuildContext context) {
+    return const CupertinoPageScaffold(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SizedBox(
+          width: 860,
+          child: StatusBar(),
+        ),
+      ),
+    );
+  }
+}
