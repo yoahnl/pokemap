@@ -55,7 +55,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Phase 2 — Réparer les frontières d’architecture | Fait | Lots 3-5 terminés |
 | Phase 3 — Casser progressivement `EditorNotifier` | Fait | Lots 6-9 terminés |
 | Phase 4 — Moderniser Riverpod et la composition root | Fait | Lots 10-11 terminés |
-| Phase 5 — Découper et ranger les surfaces UI | En cours | Lot 12 engagé : toolbar nettoyée, explorer déjà allégé |
+| Phase 5 — Découper et ranger les surfaces UI | En cours | Lot 12 terminé, lot 13 = prochaine étape |
 
 ### Statut lot par lot
 
@@ -72,7 +72,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Lot 9 | Fait | Extraction des flux secondaires dialogue/cutscene + routeur de workspace + wiring thématique Riverpod |
 | Lot 10 | Fait | Sélecteurs ciblés en place sur shell, canvas host, toolbar, project explorer, terrain root et tileset root |
 | Lot 11 | Fait | Composition root Riverpod réorganisée par thèmes, avec barrels de compatibilité conservés |
-| Lot 12 | En cours | `TopToolbar` découpée, bloc tilesets/dialogs/DnD extrait du haut de `ProjectExplorerPanel` |
+| Lot 12 | Fait | `TopToolbar` et `ProjectExplorerPanel` réduits en shells avec extractions thématiques |
 | Lot 13 | À faire | Découpage des workspaces narratifs |
 | Lot 14 | À faire | Découpage de `dialogue_studio_workspace` |
 | Lot 15 | À faire | Découpage de `map_canvas` + `entity_properties_panel` |
@@ -83,10 +83,10 @@ Statut mis à jour après exécution effective des premiers lots.
 - Les lots 1 à 9 ont bien été exécutés et validés sur leur périmètre ciblé.
 - Le lot 10 est maintenant réalisé sur son objectif strict : les grosses surfaces principales n’observent plus `editorNotifierProvider` en bloc quand un snapshot ciblé suffit.
 - Le lot 11 est terminé : `app/providers` est désormais organisé par thèmes (`core`, `editor`, `dialogue`, `pokedex`) avec des barrels de compatibilité pour éviter un blast radius inutile.
-- Le lot 12 est engagé de manière utile mais encore partiel :
+- Le lot 12 est maintenant terminé sur son périmètre :
   - [`top_toolbar.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/shared/top_toolbar.dart) est passé d’environ 1160 lignes à environ 486 lignes via extraction des widgets et dialogs ;
-  - [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart) est passé d’environ 2013 lignes à environ 1687 lignes via extraction du bloc tilesets drag-and-drop/dialogs ;
-  - le reste du panneau explorer n’est pas encore découpé, donc le lot 12 ne doit pas être considéré comme fermé.
+  - [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart) est passé d’environ 2013 lignes à environ 510 lignes ;
+  - l’arbre monde, les nœuds tilesets, les dialogs d’import/renommage/création et les actions d’entête sont maintenant sortis dans des sous-dossiers dédiés.
 - Une passe de non-régression élargie après le lot 9 a révélé une casse sur [`global_story_studio_workspace_test.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/test/global_story_studio_workspace_test.dart), sur une interaction UI narrative non directement retouchée par le lot 9.
 - Cette casse n’invalide pas le cœur du lot 9, mais elle signale qu’un lot ultérieur devra ré-auditer plus finement le sous-système narratif lors des découpages UI de phase 5.
 
@@ -747,16 +747,16 @@ Chaque lot doit embarquer :
 - Ces deux fichiers doivent passer sous une taille raisonnable et ne plus mêler tout leur sous-système dans un seul fichier.
 
 **État réel**
-- En cours.
+- Fait.
 - [`top_toolbar.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/shared/top_toolbar.dart)
   - devenu un shell d’assemblage ;
   - widgets extraits sous `ui/shared/top_toolbar/widgets/` ;
   - dialogs extraits sous `ui/shared/top_toolbar/dialogs/`.
 - [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart)
-  - début de découpage effectué ;
-  - bloc drag-and-drop tilesets extrait sous `ui/panels/project_explorer/dnd/` ;
-  - dialogs tilesets extraits sous `ui/panels/project_explorer/dialogs/`.
-- Le lot n’est pas terminé tant que l’arbre, les lignes de nodes et le reste des dialogs explorer restent concentrés dans le même fichier.
+  - devenu un shell d’assemblage ;
+  - drag-and-drop tilesets extrait sous `ui/panels/project_explorer/dnd/` ;
+  - dialogs explorer extraits sous `ui/panels/project_explorer/dialogs/` ;
+  - actions d’entête et nœuds d’arbre extraits sous `ui/panels/project_explorer/widgets/`.
 
 ---
 
@@ -905,7 +905,8 @@ Ordre strict recommandé :
 9. Lot 9
 10. Lot 10
 11. Lot 11
-12. Lot 12 (en cours)
+12. Lot 12
+13. Lot 13 (prochaine étape)
 12. Lot 12
 13. Lot 13
 14. Lot 14
