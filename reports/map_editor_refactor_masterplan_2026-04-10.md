@@ -25,7 +25,7 @@ Ce document propose :
 - un diagnostic clair des causes de la dette actuelle ;
 - une architecture cible pragmatique ;
 - une stratégie de tests de non-régression ;
-- un découpage en **5 phases** et **14 lots** ;
+- un découpage en **5 phases** et **16 lots** ;
 - pour chaque lot :
   - l’objectif ;
   - les fichiers à modifier ;
@@ -55,7 +55,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Phase 2 — Réparer les frontières d’architecture | Fait | Lots 3-5 terminés |
 | Phase 3 — Casser progressivement `EditorNotifier` | Fait | Lots 6-9 terminés |
 | Phase 4 — Moderniser Riverpod et la composition root | Fait | Lots 10-11 terminés |
-| Phase 5 — Découper et ranger les surfaces UI | En cours | Lots 12-15 terminés, lot 16 ensuite |
+| Phase 5 — Découper et ranger les surfaces UI | En cours | Lots 12-15 terminés, lot 16 engagé ; terrain déjà fortement réduit, première extraction palette faite |
 
 ### Statut lot par lot
 
@@ -76,7 +76,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Lot 13 | Fait | Découpage mécanique des workspaces narratifs avec extraction en fichiers support et nettoyage du legacy non branché |
 | Lot 14 | Fait | `dialogue_studio_workspace` réduit en shell avec extraction des dialogs, de l’arbre bibliothèque et des cartes canvas |
 | Lot 15 | Fait | `MapCanvas` est devenu un shell lisible, `EntityPropertiesPanel` a perdu ses helpers/drafts/bindings de support |
-| Lot 16 | À faire | Découpage de `terrain_editor_panel` + `tileset_palette_panel` |
+| Lot 16 | En cours | `terrain_editor_panel` largement découpé et validé ; `tileset_palette_panel` a commencé à être extrait mais garde encore ses warnings historiques |
 
 ### Note honnête sur l’état courant
 
@@ -121,15 +121,15 @@ Ce plan s’appuie sur trois angles d’analyse menés en parallèle :
 | --- | ---: |
 | [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart) | 7573 lignes |
 | [`editor_notifier.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart) | 6951 lignes |
-| [`terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart) | 5105 lignes |
+| [`terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart) | 1594 lignes |
 | [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart) | 2324 lignes |
 | [`step_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/step_studio_workspace.dart) | 2534 lignes |
 | [`cutscene_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/cutscene_studio_workspace.dart) | 2444 lignes |
 | [`global_story_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart) | 1130 lignes |
 | [`map_canvas.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas.dart) | 672 lignes |
 | [`dialogue_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/dialogue_studio_workspace.dart) | 1704 lignes |
-| [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart) | 2013 lignes |
-| [`top_toolbar.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/shared/top_toolbar.dart) | 1164 lignes |
+| [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart) | 510 lignes |
+| [`top_toolbar.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/shared/top_toolbar.dart) | 486 lignes |
 | [`use_case_providers.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/app/providers/use_case_providers.dart) | 972 lignes |
 
 ### Défauts structurels principaux
@@ -915,6 +915,22 @@ Chaque lot doit embarquer :
 
 **Objectif**
 - Traiter les plus grosses dettes restantes en dernier, quand les frontières, l’état et les tests sont déjà sécurisés.
+
+**État réel**
+- En cours.
+- La moitié `terrain_editor_panel` est déjà passée de plus de 5000 lignes à environ 1594 lignes.
+- Extractions déjà réalisées et validées :
+  - [`terrain_editor/dialogs/terrain_preset_dialogs.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor/dialogs/terrain_preset_dialogs.dart)
+  - [`terrain_editor/widgets/terrain_mapping_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor/widgets/terrain_mapping_workspace.dart)
+- Première extraction `tileset_palette_panel` déjà posée :
+  - [`tileset_palette/widgets/palette/tileset_palette_preview.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/palette/tileset_palette_preview.dart)
+- Validations déjà vertes sur cette tranche :
+  - `flutter test test/ui_panels_smoke_test.dart`
+  - `flutter analyze --no-pub lib/src/ui/panels/terrain_editor_panel.dart lib/src/ui/panels/terrain_editor/dialogs/terrain_preset_dialogs.dart lib/src/ui/panels/terrain_editor/widgets/terrain_mapping_workspace.dart test/ui_panels_smoke_test.dart`
+- Le sous-lot restant est maintenant concentré sur [`tileset_palette_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/tileset_palette_panel.dart).
+- Note honnête :
+  - le smoke test palette reste vert ;
+  - l’analyse ciblée du panneau palette remonte encore des warnings historiques (`prefer_const_*`, `deprecated_member_use`) déjà présents dans le fichier massif et non traités dans cette tranche.
 
 **Fichiers à modifier**
 - [`packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart)
