@@ -36,6 +36,7 @@ class PokemonDatabaseIndexEntry {
     required this.id,
     required this.nationalDex,
     required this.primaryName,
+    required this.genIntroduced,
     required this.types,
     required this.refs,
   });
@@ -43,6 +44,7 @@ class PokemonDatabaseIndexEntry {
   final String id;
   final int nationalDex;
   final String primaryName;
+  final int genIntroduced;
   final List<String> types;
   final PokemonDatabaseIndexRefs refs;
 
@@ -64,10 +66,19 @@ class PokemonDatabaseIndexEntry {
   /// - `PokemonSpeciesIndexEntry` les possède déjà sans nouvelle lecture disque ;
   /// - les propager ici évite d’inventer un second pipeline UI parallèle.
   ///
+  /// Le lot 15 ajoute `genIntroduced` à la même projection légère.
+  /// Pourquoi ce petit élargissement reste légitime :
+  /// - le filtre génération a été demandé sur la liste existante ;
+  /// - `PokemonSpeciesFile` expose déjà `genIntroduced` comme donnée locale
+  ///   lecture seule ;
+  /// - on continue à réutiliser le pipeline d’index courant au lieu de créer une
+  ///   nouvelle façade ou de relire autre chose depuis la UI.
+  ///
   /// Le scope reste strict :
   /// - on ne charge toujours ni learnsets, ni évolutions, ni médias ;
   /// - on n’ajoute aucun détail riche de fiche Pokémon ;
-  /// - on complète seulement la projection minimale utile à la première liste.
+  /// - on complète seulement la projection minimale utile à la liste locale et
+  ///   à ses filtres simples.
   factory PokemonDatabaseIndexEntry.fromSpeciesEntry({
     required PokemonSpeciesIndexEntry speciesIndexEntry,
     required PokemonSpeciesFile species,
@@ -76,6 +87,7 @@ class PokemonDatabaseIndexEntry {
       id: speciesIndexEntry.id,
       nationalDex: speciesIndexEntry.nationalDex,
       primaryName: speciesIndexEntry.primaryName,
+      genIntroduced: species.genIntroduced,
       types: List<String>.from(speciesIndexEntry.types),
       refs: PokemonDatabaseIndexRefs(
         learnset: species.learnsetRef.trim(),

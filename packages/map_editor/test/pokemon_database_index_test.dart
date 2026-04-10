@@ -97,6 +97,10 @@ void main() {
       // Pokédex simple. On y expose donc aussi les types, déjà disponibles dans
       // la projection légère d'espèce, sans créer un pipeline parallèle.
       expect(bulbasaur.types, <String>['grass', 'poison']);
+      // Lot 15 : la génération est déjà lisible dans `PokemonSpeciesFile`.
+      // L'exposer ici permet un filtre UI local sans inventer un nouveau
+      // pipeline ni relire autrement les species depuis le workspace Pokédex.
+      expect(bulbasaur.genIntroduced, 1);
       expect(bulbasaur.id, bulbasaurSpeciesIndex.id);
       expect(bulbasaur.nationalDex, bulbasaurSpeciesIndex.nationalDex);
       expect(bulbasaur.primaryName, bulbasaurSpeciesIndex.primaryName);

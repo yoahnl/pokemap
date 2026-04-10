@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:macos_ui/macos_ui.dart' show MacosIcon, ProgressCircle;
+import 'package:macos_ui/macos_ui.dart'
+    show MacosIcon, MacosPopupButton, MacosPopupMenuItem, ProgressCircle;
 
 import '../../application/errors/application_errors.dart';
 import '../../application/models/pokemon_database_index.dart';
@@ -89,31 +90,42 @@ class PokedexWorkspaceErrorState extends StatelessWidget {
   }
 }
 
-/// Etat dédié du lot 14 quand la recherche ne matche aucune entrée.
+/// Etat dédié des lots 14/15 quand les critères locaux ne matchent aucune entrée.
 ///
 /// Il doit rester distinct de l'état "aucune espèce importée" :
 /// - ici, la base locale contient des espèces ;
-/// - c'est uniquement la query courante qui n'a trouvé aucun match.
+/// - ce sont uniquement les critères courants (recherche et/ou filtres) qui
+///   n'ont trouvé aucun match.
 /// On garde donc un message sobre, non anxiogène, et différent d'une erreur.
 class PokedexWorkspaceNoResultsState extends StatelessWidget {
   const PokedexWorkspaceNoResultsState({
     super.key,
     required this.query,
+    this.selectedType,
+    this.selectedGeneration,
   });
 
   final String query;
+  final String? selectedType;
+  final String? selectedGeneration;
 
   @override
   Widget build(BuildContext context) {
     final normalizedQuery = query.trim();
-    final suffix = normalizedQuery.isEmpty
+    final activeCriteriaLines = <String>[
+      if (normalizedQuery.isNotEmpty)
+        'Recherche actuelle : "$normalizedQuery".',
+      if (selectedType != null) 'Type : $selectedType.',
+      if (selectedGeneration != null) 'Génération : $selectedGeneration.',
+    ];
+    final suffix = activeCriteriaLines.isEmpty
         ? ''
-        : '\nRecherche actuelle : "$normalizedQuery".';
+        : '\n${activeCriteriaLines.join('\n')}';
 
     return PokedexWorkspaceStateCard(
       key: const Key('pokedex-no-results-state'),
       title: 'Pokédex',
-      message: 'Aucun résultat pour cette recherche.$suffix',
+      message: 'Aucun résultat avec les critères actuels.$suffix',
     );
   }
 }
@@ -130,12 +142,24 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
     required this.entries,
     required this.query,
     required this.onQueryChanged,
+    required this.availableTypes,
+    required this.selectedType,
+    required this.onTypeChanged,
+    required this.availableGenerations,
+    required this.selectedGeneration,
+    required this.onGenerationChanged,
     this.emptyResultsChild,
   });
 
   final List<PokemonDatabaseIndexEntry> entries;
   final String query;
   final ValueChanged<String> onQueryChanged;
+  final List<String> availableTypes;
+  final String selectedType;
+  final ValueChanged<String> onTypeChanged;
+  final List<String> availableGenerations;
+  final String selectedGeneration;
+  final ValueChanged<String> onGenerationChanged;
   final Widget? emptyResultsChild;
 
   @override
@@ -162,7 +186,7 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Liste simple des espèces importées dans le projet. Le lot 14 ajoute uniquement une recherche texte locale : pas de détail, pas d’édition, pas de filtres avancés.',
+                'Liste simple des espèces importées dans le projet. Les lots 14 et 15 ajoutent uniquement une recherche texte locale et des filtres simples par type/génération : pas de détail, pas d’édition, pas d’import.',
                 style: TextStyle(
                   color: subtle,
                   fontSize: 13,
@@ -182,6 +206,23 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
                 query: query,
                 onChanged: onQueryChanged,
               ),
+              const SizedBox(height: 12),
+              // Lot 15 : filtres simples, purement locaux, sur la liste déjà
+              // chargée en mémoire.
+              //
+              // On reste volontairement minimal :
+              // - type ;
+              // - génération ;
+              // - pas de filtre activé/désactivé tant qu'aucune donnée lecture
+              //   seule stable n'existe côté projet sans anticiper le lot 29.
+              _PokedexSimpleFiltersBar(
+                availableTypes: availableTypes,
+                selectedType: selectedType,
+                onTypeChanged: onTypeChanged,
+                availableGenerations: availableGenerations,
+                selectedGeneration: selectedGeneration,
+                onGenerationChanged: onGenerationChanged,
+              ),
             ],
           ),
         ),
@@ -197,6 +238,66 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
                   return _PokedexListRow(entry: entries[index]);
                 },
               ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PokedexSimpleFiltersBar extends StatelessWidget {
+  const _PokedexSimpleFiltersBar({
+    required this.availableTypes,
+    required this.selectedType,
+    required this.onTypeChanged,
+    required this.availableGenerations,
+    required this.selectedGeneration,
+    required this.onGenerationChanged,
+  });
+
+  final List<String> availableTypes;
+  final String selectedType;
+  final ValueChanged<String> onTypeChanged;
+  final List<String> availableGenerations;
+  final String selectedGeneration;
+  final ValueChanged<String> onGenerationChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _PokedexFilterDropdown(
+          label: 'Type',
+          popupKey: const Key('pokedex-type-filter'),
+          value: selectedType,
+          onChanged: onTypeChanged,
+          items: <String>[
+            _PokedexFilterDropdown.allTypesValue,
+            ...availableTypes,
+          ],
+          itemLabelBuilder: (value) {
+            if (value == _PokedexFilterDropdown.allTypesValue) {
+              return 'Tous les types';
+            }
+            return value;
+          },
+        ),
+        _PokedexFilterDropdown(
+          label: 'Génération',
+          popupKey: const Key('pokedex-generation-filter'),
+          value: selectedGeneration,
+          onChanged: onGenerationChanged,
+          items: <String>[
+            _PokedexFilterDropdown.allGenerationsValue,
+            ...availableGenerations,
+          ],
+          itemLabelBuilder: (value) {
+            if (value == _PokedexFilterDropdown.allGenerationsValue) {
+              return 'Toutes les générations';
+            }
+            return 'Génération $value';
+          },
         ),
       ],
     );
@@ -276,6 +377,86 @@ class _PokedexSearchFieldState extends State<_PokedexSearchField> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PokedexFilterDropdown extends StatelessWidget {
+  const _PokedexFilterDropdown({
+    required this.label,
+    required this.popupKey,
+    required this.value,
+    required this.onChanged,
+    required this.items,
+    required this.itemLabelBuilder,
+  });
+
+  static const String allTypesValue = '__all_types__';
+  static const String allGenerationsValue = '__all_generations__';
+
+  final String label;
+  final Key popupKey;
+  final String value;
+  final ValueChanged<String> onChanged;
+  final List<String> items;
+  final String Function(String value) itemLabelBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final surface = EditorChrome.islandFillElevated(context);
+    final border = EditorChrome.accentWarm.withValues(alpha: 0.28);
+
+    return SizedBox(
+      // `MacosPopupButton` réserve de la place pour le libellé et l'icône
+      // interne. On donne donc une largeur volontairement confortable pour
+      // éviter les overflows de layout, notamment avec les libellés français
+      // "Toutes les générations" / "Tous les types".
+      width: 360,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: subtle,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: border, width: 1),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              child: SizedBox(
+                width: double.infinity,
+                child: MacosPopupButton<String>(
+                  key: popupKey,
+                  value: value,
+                  onChanged: (nextValue) {
+                    if (nextValue != null) {
+                      onChanged(nextValue);
+                    }
+                  },
+                  items: [
+                    for (final item in items)
+                      MacosPopupMenuItem<String>(
+                        value: item,
+                        child: Text(itemLabelBuilder(item)),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
