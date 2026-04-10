@@ -15,6 +15,7 @@ import '../../application/models/path_autotile_set.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import 'entity_editor_element_visual.dart';
+part 'map_canvas/map_canvas_assets.dart';
 
 class MapCanvas extends ConsumerStatefulWidget {
   const MapCanvas({super.key});
@@ -2592,52 +2593,5 @@ class MapGridPainter extends CustomPainter {
       }
     }
     return true;
-  }
-}
-
-class _ResolvedTerrainFrame {
-  const _ResolvedTerrainFrame({
-    required this.tilesetId,
-    required this.source,
-  });
-
-  final String tilesetId;
-  final TilesetSourceRect source;
-}
-
-class _TilesetImageCache {
-  static final Map<String, Future<ui.Image?>> _cache = {};
-
-  static Future<ui.Image?> load(String? path) {
-    if (path == null || path.isEmpty) return Future.value(null);
-    return _cache.putIfAbsent(path, () async {
-      try {
-        final file = File(path);
-        if (!await file.exists()) return null;
-        final bytes = await file.readAsBytes();
-        if (bytes.isEmpty) return null;
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        return frame.image;
-      } catch (_) {
-        return null;
-      }
-    });
-  }
-
-  static Future<Map<String, ui.Image?>> loadMany(Map<String, String> paths) {
-    final futures = <Future<MapEntry<String, ui.Image?>>>[];
-    paths.forEach((tilesetId, path) {
-      futures.add(
-        load(path).then((image) => MapEntry(tilesetId, image)),
-      );
-    });
-    return Future.wait(futures).then((entries) {
-      final result = <String, ui.Image?>{};
-      for (final entry in entries) {
-        result[entry.key] = entry.value;
-      }
-      return result;
-    });
   }
 }
