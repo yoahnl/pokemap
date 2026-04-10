@@ -22,6 +22,11 @@ const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
   'types': 'data/pokemon/catalogs/types.json',
   'growth_rates': 'data/pokemon/catalogs/growth_rates.json',
   'natures': 'data/pokemon/catalogs/natures.json',
+  'egg_groups': 'data/pokemon/catalogs/egg_groups.json',
+  'habitats': 'data/pokemon/catalogs/habitats.json',
+  'encounter_rules': 'data/pokemon/catalogs/encounter_rules.json',
+  'generations': 'data/pokemon/catalogs/generations.json',
+  'version_groups': 'data/pokemon/catalogs/version_groups.json',
 };
 
 @freezed

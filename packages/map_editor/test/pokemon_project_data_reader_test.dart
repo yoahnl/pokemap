@@ -54,8 +54,9 @@ void main() {
       expect(species.id, 'bulbasaur');
       expect(species.nationalDex, 1);
       expect(species.typing.types, <String>['grass', 'poison']);
-      expect(species.learnsetRef, 'bulbasaur');
-      expect(species.evolutionRef, 'bulbasaur');
+      expect(species.refs.learnset, 'bulbasaur');
+      expect(species.refs.evolution, 'bulbasaur');
+      expect(species.refs.media, 'bulbasaur');
       expect(species.dexContent.heightM, 0.7);
       expect(species.gameplayFlags.starterEligible, isTrue);
       expect(species.sourceMeta.seededBy, 'SeedPokemonDemoDataUseCase');
@@ -86,6 +87,25 @@ void main() {
       expect(evolution.evolutions.single.targetSpeciesId, 'ivysaur');
       expect(evolution.evolutions.single.method, 'level_up');
       expect(evolution.evolutions.single.minLevel, 16);
+      expect(
+        evolution.evolutions.single.conditionText['en'],
+        'Evolves at level 16',
+      );
+    });
+
+    test('reads a media file', () async {
+      await seedUseCase.execute(workspace);
+
+      final media = await reader.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.speciesId, 'bulbasaur');
+      expect(media.defaultFormId, 'base');
+      expect(media.variants['base']?.frontStatic,
+          'assets/pokemon/sprites/bulbasaur/front.png');
+      expect(
+        media.variants['base']?.animations['battleFront']?.animationId,
+        'battle_front',
+      );
     });
 
     test('reads a catalog by logical key', () async {
@@ -156,7 +176,8 @@ void main() {
       final species = await reader.readSpeciesById(workspace, 'mystery_mon');
 
       expect(mystery.primaryName, 'mystery_mon');
-      expect(mystery.relativePath, 'data/pokemon/species/9999-not-the-display-name.json');
+      expect(mystery.relativePath,
+          'data/pokemon/species/9999-not-the-display-name.json');
       expect(species.id, 'mystery_mon');
       expect(species.slug, isEmpty);
     });
@@ -168,7 +189,8 @@ void main() {
       final bulbasaurEntry = entries.firstWhere(
         (entry) => entry.id == 'bulbasaur',
       );
-      final species = await reader.readSpeciesById(workspace, bulbasaurEntry.id);
+      final species =
+          await reader.readSpeciesById(workspace, bulbasaurEntry.id);
 
       expect(species.id, bulbasaurEntry.id);
       expect(species.nationalDex, bulbasaurEntry.nationalDex);
@@ -289,7 +311,8 @@ void main() {
           isA<EditorConflictException>().having(
             (error) => error.message,
             'message',
-            contains('Multiple Pokemon species files share the same id "bulbasaur"'),
+            contains(
+                'Multiple Pokemon species files share the same id "bulbasaur"'),
           ),
         ),
       );
@@ -299,7 +322,8 @@ void main() {
         () async {
       await seedUseCase.execute(workspace);
 
-      final decoy = await Directory.systemTemp.createTemp('pokemon_reader_decoy_');
+      final decoy =
+          await Directory.systemTemp.createTemp('pokemon_reader_decoy_');
       final originalCurrent = Directory.current;
       try {
         await Directory(
@@ -332,7 +356,8 @@ void main() {
         FileProjectRepository(),
         const FileProjectWorkspaceFactory(),
       );
-      await createProjectUseCase.execute('Pokemon Reader Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Reader Project', tempProjectRoot.path);
       await seedUseCase.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);

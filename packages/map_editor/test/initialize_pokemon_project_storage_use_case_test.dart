@@ -27,11 +27,13 @@ void main() {
   });
 
   group('InitializePokemonProjectStorageUseCase', () {
-    test('creates the expected structure inside the project workspace', () async {
+    test('creates the expected structure inside the project workspace',
+        () async {
       await useCase.execute(workspace);
 
       for (final relativeDir in _expectedDirectories) {
-        final dir = Directory(workspace.resolveProjectRelativePath(relativeDir));
+        final dir =
+            Directory(workspace.resolveProjectRelativePath(relativeDir));
         expect(
           await dir.exists(),
           isTrue,
@@ -63,11 +65,12 @@ void main() {
         await Directory(
           workspace.resolveProjectRelativePath('data/pokemon/media'),
         ).exists(),
-        isFalse,
+        isTrue,
       );
     });
 
-    test('writes only inside workspace projectRoot and not from cwd-relative paths',
+    test(
+        'writes only inside workspace projectRoot and not from cwd-relative paths',
         () async {
       final cwd = Directory.current.path;
       final cwdManifest = File(
@@ -118,23 +121,25 @@ void main() {
         'species': 'species/',
         'learnsets': 'learnsets/',
         'evolutions': 'evolutions/',
-        'spriteSets': 'sprite_sets/',
+        'media': 'media/',
       });
 
       final catalogFiles = manifest['catalogFiles'] as Map<String, dynamic>;
-      expect(catalogFiles.keys, containsAll(<String>[
-        'moves',
-        'abilities',
-        'items',
-        'types',
-        'growthRates',
-        'natures',
-        'eggGroups',
-        'habitats',
-        'generations',
-        'versionGroups',
-        'encounterRules',
-      ]));
+      expect(
+          catalogFiles.keys,
+          containsAll(<String>[
+            'moves',
+            'abilities',
+            'items',
+            'types',
+            'growth_rates',
+            'natures',
+            'egg_groups',
+            'habitats',
+            'generations',
+            'version_groups',
+            'encounter_rules',
+          ]));
 
       for (final entry in _expectedCatalogs.entries) {
         final catalog = await _readJsonMap(
@@ -193,7 +198,8 @@ void main() {
         FileProjectRepository(),
         const FileProjectWorkspaceFactory(),
       );
-      await createProjectUseCase.execute('Pokemon Workspace Test', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Workspace Test', tempProjectRoot.path);
 
       final manifestFile = File(workspace.projectManifestPath);
       final before = await manifestFile.readAsString();
@@ -210,7 +216,8 @@ void main() {
         const FileProjectWorkspaceFactory(),
       );
 
-      await createProjectUseCase.execute('Manual Pokemon Bootstrap', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Manual Pokemon Bootstrap', tempProjectRoot.path);
 
       expect(
         await Directory(
@@ -243,7 +250,7 @@ const List<String> _expectedDirectories = <String>[
   'data/pokemon/species',
   'data/pokemon/learnsets',
   'data/pokemon/evolutions',
-  'data/pokemon/sprite_sets',
+  'data/pokemon/media',
   'data/pokemon/catalogs',
   'assets/pokemon/sprites',
   'assets/pokemon/cries',

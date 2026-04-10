@@ -15,6 +15,7 @@ class PokemonProjectValidator {
     final speciesRecords = await _loadSpecies(workspace, collector);
     final learnsetRecords = await _loadLearnsets(workspace, collector);
     final evolutionRecords = await _loadEvolutions(workspace, collector);
+    final mediaRecords = await _loadMedia(workspace, collector);
 
     final speciesIds = <String, int>{};
     for (final record in speciesRecords) {
@@ -44,24 +45,37 @@ class PokemonProjectValidator {
         .map((record) => record.evolution.speciesId.trim())
         .where((id) => id.isNotEmpty)
         .toSet();
+    final validMediaIds = mediaRecords
+        .map((record) => record.media.speciesId.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
 
     for (final record in speciesRecords) {
       final species = record.species;
-      if (species.learnsetRef.trim().isNotEmpty &&
-          !validLearnsetIds.contains(species.learnsetRef.trim())) {
+      if (species.refs.learnset.trim().isNotEmpty &&
+          !validLearnsetIds.contains(species.refs.learnset.trim())) {
         collector.addError(
           'species.learnset_ref_missing',
           'Species "${species.id}" references a missing learnset '
-          '"${species.learnsetRef}".',
+              '"${species.refs.learnset}".',
           record.location,
         );
       }
-      if (species.evolutionRef.trim().isNotEmpty &&
-          !validEvolutionIds.contains(species.evolutionRef.trim())) {
+      if (species.refs.evolution.trim().isNotEmpty &&
+          !validEvolutionIds.contains(species.refs.evolution.trim())) {
         collector.addError(
           'species.evolution_ref_missing',
           'Species "${species.id}" references a missing evolution '
-          '"${species.evolutionRef}".',
+              '"${species.refs.evolution}".',
+          record.location,
+        );
+      }
+      if (species.refs.media.trim().isNotEmpty &&
+          !validMediaIds.contains(species.refs.media.trim())) {
+        collector.addError(
+          'species.media_ref_missing',
+          'Species "${species.id}" references a missing media '
+              '"${species.refs.media}".',
           record.location,
         );
       }
@@ -96,10 +110,21 @@ class PokemonProjectValidator {
           collector.addError(
             'evolution.target_species_missing',
             'Evolution "${speciesId.isEmpty ? record.fileId : speciesId}" '
-            'targets missing species "$targetSpeciesId".',
+                'targets missing species "$targetSpeciesId".',
             record.location,
           );
         }
+      }
+    }
+
+    for (final record in mediaRecords) {
+      final speciesId = record.media.speciesId.trim();
+      if (speciesId.isNotEmpty && !validSpeciesIds.contains(speciesId)) {
+        collector.addError(
+          'media.species_missing',
+          'Media "${record.fileId}" references missing species "$speciesId".',
+          record.location,
+        );
       }
     }
 
@@ -122,6 +147,11 @@ class PokemonProjectValidator {
           ...record.learnset.startingMoves.map((value) => value.trim()),
           ...record.learnset.relearnMoves.map((value) => value.trim()),
           ...record.learnset.levelUp.map((entry) => entry.moveId.trim()),
+          ...record.learnset.tm.map((entry) => entry.moveId.trim()),
+          ...record.learnset.tutor.map((entry) => entry.moveId.trim()),
+          ...record.learnset.egg.map((entry) => entry.moveId.trim()),
+          ...record.learnset.event.map((entry) => entry.moveId.trim()),
+          ...record.learnset.transfer.map((entry) => entry.moveId.trim()),
         }..remove('');
 
         for (final moveId in usedMoveIds) {
@@ -129,7 +159,7 @@ class PokemonProjectValidator {
             collector.addError(
               'learnset.move_missing_in_catalog',
               'Learnset "${record.fileId}" references move "$moveId" '
-              'which is absent from the moves catalog.',
+                  'which is absent from the moves catalog.',
               record.location,
             );
           }
@@ -152,7 +182,8 @@ class PokemonProjectValidator {
 
     if (typesCatalogIds != null) {
       for (final record in speciesRecords) {
-        for (final typeId in record.species.typing.types.map((value) => value.trim())) {
+        for (final typeId
+            in record.species.typing.types.map((value) => value.trim())) {
           if (typeId.isEmpty) {
             continue;
           }
@@ -160,7 +191,7 @@ class PokemonProjectValidator {
             collector.addError(
               'species.type_missing_in_catalog',
               'Species "${record.species.id}" references type "$typeId" '
-              'which is absent from the types catalog.',
+                  'which is absent from the types catalog.',
               record.location,
             );
           }
@@ -287,6 +318,43 @@ class PokemonProjectValidator {
     return records;
   }
 
+  Future<List<_LoadedMediaRecord>> _loadMedia(
+    ProjectWorkspace workspace,
+    _PokemonValidationIssueCollector collector,
+  ) async {
+    final mediaIds = await _safeListFiles(
+      collector,
+      code: 'media.directory_unreadable',
+      message:
+          'Pokemon media directory could not be listed; media validation may be incomplete.',
+      location: 'media',
+      loader: () => repository.listMediaIds(workspace),
+    );
+
+    final records = <_LoadedMediaRecord>[];
+    for (final fileId in mediaIds) {
+      try {
+        final media = await repository.readMediaById(workspace, fileId);
+        final location = 'media:$fileId';
+        _validateMedia(media, location, collector);
+        records.add(
+          _LoadedMediaRecord(
+            fileId: fileId,
+            location: location,
+            media: media,
+          ),
+        );
+      } on EditorApplicationException catch (error) {
+        collector.addError(
+          'media.read_error',
+          error.message,
+          'media:$fileId',
+        );
+      }
+    }
+    return records;
+  }
+
   Future<List<String>> _safeListFiles(
     _PokemonValidationIssueCollector collector, {
     required String code,
@@ -390,18 +458,26 @@ class PokemonProjectValidator {
       );
     }
 
-    if (species.learnsetRef.trim().isEmpty) {
+    if (species.refs.learnset.trim().isEmpty) {
       collector.addError(
         'species.learnset_ref_empty',
-        'Species "${species.id}" must define a learnsetRef.',
+        'Species "${species.id}" must define a learnset ref.',
         location,
       );
     }
 
-    if (species.evolutionRef.trim().isEmpty) {
+    if (species.refs.evolution.trim().isEmpty) {
       collector.addError(
         'species.evolution_ref_empty',
-        'Species "${species.id}" must define an evolutionRef.',
+        'Species "${species.id}" must define an evolution ref.',
+        location,
+      );
+    }
+
+    if (species.refs.media.trim().isEmpty) {
+      collector.addError(
+        'species.media_ref_empty',
+        'Species "${species.id}" must define a media ref.',
         location,
       );
     }
@@ -457,17 +533,44 @@ class PokemonProjectValidator {
         );
       }
 
-      final key = '${entry.moveId.trim()}|${entry.level}|${entry.source.trim()}|'
+      final key =
+          '${entry.moveId.trim()}|${entry.level}|${entry.source.trim()}|'
           '${entry.versionGroup.trim()}';
       if (!levelUpKeys.add(key)) {
         collector.addError(
           'learnset.level_up_duplicate',
           'Learnset "${learnset.speciesId}" contains a duplicate level-up entry '
-          'for (${entry.moveId}, ${entry.level}, ${entry.source}, ${entry.versionGroup}).',
+              'for (${entry.moveId}, ${entry.level}, ${entry.source}, ${entry.versionGroup}).',
           location,
         );
       }
     }
+
+    void validateMoveEntries(
+      List<PokemonLearnsetMoveEntry> entries,
+      String code,
+      String label,
+    ) {
+      for (final entry in entries) {
+        if (entry.moveId.trim().isEmpty) {
+          collector.addError(
+            code,
+            'Learnset "${learnset.speciesId}" contains an empty $label move id.',
+            location,
+          );
+        }
+      }
+    }
+
+    validateMoveEntries(learnset.tm, 'learnset.tm_move_empty', 'TM');
+    validateMoveEntries(learnset.tutor, 'learnset.tutor_move_empty', 'tutor');
+    validateMoveEntries(learnset.egg, 'learnset.egg_move_empty', 'egg');
+    validateMoveEntries(learnset.event, 'learnset.event_move_empty', 'event');
+    validateMoveEntries(
+      learnset.transfer,
+      'learnset.transfer_move_empty',
+      'transfer',
+    );
   }
 
   void _validateEvolution(
@@ -509,6 +612,36 @@ class PokemonProjectValidator {
           location,
         );
       }
+    }
+  }
+
+  void _validateMedia(
+    PokemonMediaFile media,
+    String location,
+    _PokemonValidationIssueCollector collector,
+  ) {
+    if (media.speciesId.trim().isEmpty) {
+      collector.addError(
+        'media.species_id_empty',
+        'Media speciesId cannot be empty.',
+        location,
+      );
+    }
+
+    if (media.defaultFormId.trim().isEmpty) {
+      collector.addError(
+        'media.default_form_empty',
+        'Media "${media.speciesId}" must define a defaultFormId.',
+        location,
+      );
+    }
+
+    if (media.variants.isEmpty) {
+      collector.addError(
+        'media.variants_empty',
+        'Media "${media.speciesId}" must define at least one variant.',
+        location,
+      );
     }
   }
 
@@ -577,6 +710,18 @@ class _LoadedEvolutionRecord {
   final String fileId;
   final String location;
   final PokemonEvolutionFile evolution;
+}
+
+class _LoadedMediaRecord {
+  const _LoadedMediaRecord({
+    required this.fileId,
+    required this.location,
+    required this.media,
+  });
+
+  final String fileId;
+  final String location;
+  final PokemonMediaFile media;
 }
 
 class _PokemonValidationIssueCollector {

@@ -37,4 +37,10 @@ abstract class PokemonWriteRepository {
     ProjectWorkspace workspace,
     PokemonEvolutionFile evolution,
   );
+
+  /// Écrit un média dans `data/pokemon/media/<speciesId>.json`.
+  Future<void> saveMedia(
+    ProjectWorkspace workspace,
+    PokemonMediaFile media,
+  );
 }

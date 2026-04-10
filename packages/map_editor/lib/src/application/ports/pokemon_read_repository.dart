@@ -54,4 +54,11 @@ abstract class PokemonReadRepository {
     ProjectWorkspace workspace,
     String speciesId,
   );
+
+  Future<List<String>> listMediaIds(ProjectWorkspace workspace);
+
+  Future<PokemonMediaFile> readMediaById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  );
 }

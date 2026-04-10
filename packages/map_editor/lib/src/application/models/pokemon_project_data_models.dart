@@ -189,8 +189,7 @@ class PokemonSpeciesIndexEntry {
     return PokemonSpeciesIndexEntry(
       id: species.id.trim(),
       nationalDex: species.nationalDex,
-      primaryName:
-          _pickPrimaryName(species.names) ?? species.id.trim(),
+      primaryName: _pickPrimaryName(species.names) ?? species.id.trim(),
       types: List<String>.from(species.typing.types),
       relativePath: relativePath,
     );
@@ -354,6 +353,47 @@ class PokemonSpeciesProgression {
   }
 }
 
+/// References croisées minimales d'une espèce Pokémon.
+///
+/// On converge ici vers un seul point de vérité lisible :
+/// - `learnset`
+/// - `evolution`
+/// - `media`
+///
+/// Important :
+/// - l'ancien contrat historique du projet utilisait `learnsetRef`,
+///   `evolutionRef`, `spriteSetRef` et `cryRef` au niveau racine ;
+/// - le mémo produit plus récent retient désormais un bloc `refs` unique ;
+/// - cette classe permet donc de réaligner le schéma tout en gardant une
+///   compatibilité de lecture dans `PokemonSpeciesFile.fromJson(...)`.
+class PokemonSpeciesRefs {
+  const PokemonSpeciesRefs({
+    required this.learnset,
+    required this.evolution,
+    required this.media,
+  });
+
+  final String learnset;
+  final String evolution;
+  final String media;
+
+  factory PokemonSpeciesRefs.fromJson(Map<String, dynamic> json) {
+    return PokemonSpeciesRefs(
+      learnset: (json['learnset'] as String?)?.trim() ?? '',
+      evolution: (json['evolution'] as String?)?.trim() ?? '',
+      media: (json['media'] as String?)?.trim() ?? '',
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'learnset': learnset,
+      'evolution': evolution,
+      'media': media,
+    };
+  }
+}
+
 class PokemonSpeciesDexContent {
   const PokemonSpeciesDexContent({
     this.heightM,
@@ -451,10 +491,7 @@ class PokemonSpeciesFile {
     required this.abilities,
     required this.breeding,
     required this.progression,
-    required this.evolutionRef,
-    required this.learnsetRef,
-    required this.spriteSetRef,
-    required this.cryRef,
+    required this.refs,
     required this.dexContent,
     required this.gameplayFlags,
     required this.sourceMeta,
@@ -471,15 +508,24 @@ class PokemonSpeciesFile {
   final PokemonSpeciesAbilities abilities;
   final PokemonSpeciesBreeding breeding;
   final PokemonSpeciesProgression progression;
-  final String evolutionRef;
-  final String learnsetRef;
-  final String spriteSetRef;
-  final String cryRef;
+  final PokemonSpeciesRefs refs;
   final PokemonSpeciesDexContent dexContent;
   final PokemonSpeciesGameplayFlags gameplayFlags;
   final PokemonSpeciesSourceMeta sourceMeta;
 
+  /// Compatibilité de lecture pour le code existant tant que tous les call sites
+  /// ne sont pas encore repassés explicitement par `refs`.
+  String get learnsetRef => refs.learnset;
+  String get evolutionRef => refs.evolution;
+  String get mediaRef => refs.media;
+
   factory PokemonSpeciesFile.fromJson(Map<String, dynamic> json) {
+    final refsJson = (json['refs'] as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{
+          'learnset': (json['learnsetRef'] as String?)?.trim() ?? '',
+          'evolution': (json['evolutionRef'] as String?)?.trim() ?? '',
+          'media': _readLegacySpeciesMediaRef(json),
+        };
     return PokemonSpeciesFile(
       id: (json['id'] as String?)?.trim() ?? '',
       slug: (json['slug'] as String?)?.trim() ?? '',
@@ -507,10 +553,7 @@ class PokemonSpeciesFile {
         (json['progression'] as Map?)?.cast<String, dynamic>() ??
             const <String, dynamic>{},
       ),
-      evolutionRef: (json['evolutionRef'] as String?)?.trim() ?? '',
-      learnsetRef: (json['learnsetRef'] as String?)?.trim() ?? '',
-      spriteSetRef: (json['spriteSetRef'] as String?)?.trim() ?? '',
-      cryRef: (json['cryRef'] as String?)?.trim() ?? '',
+      refs: PokemonSpeciesRefs.fromJson(refsJson),
       dexContent: PokemonSpeciesDexContent.fromJson(
         (json['dexContent'] as Map?)?.cast<String, dynamic>() ??
             const <String, dynamic>{},
@@ -539,13 +582,187 @@ class PokemonSpeciesFile {
       'abilities': abilities.toJson(),
       'breeding': breeding.toJson(),
       'progression': progression.toJson(),
-      'evolutionRef': evolutionRef,
-      'learnsetRef': learnsetRef,
-      'spriteSetRef': spriteSetRef,
-      'cryRef': cryRef,
+      'refs': refs.toJson(),
       'dexContent': dexContent.toJson(),
       'gameplayFlags': gameplayFlags.toJson(),
       'sourceMeta': sourceMeta.toJson(),
+    };
+  }
+}
+
+/// Référence d'animation média Pokémon.
+///
+/// Ce contrat reste volontairement petit :
+/// - on pointe une sheet locale ;
+/// - on référence un `animationId` interprété par le système d'animation
+///   existant du projet ;
+/// - on ne stocke jamais de GIF.
+class PokemonMediaAnimationRef {
+  const PokemonMediaAnimationRef({
+    required this.sheet,
+    required this.animationId,
+  });
+
+  final String sheet;
+  final String animationId;
+
+  factory PokemonMediaAnimationRef.fromJson(Map<String, dynamic> json) {
+    return PokemonMediaAnimationRef(
+      sheet: (json['sheet'] as String?)?.trim() ?? '',
+      animationId: (json['animationId'] as String?)?.trim() ?? '',
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'sheet': sheet,
+      'animationId': animationId,
+    };
+  }
+}
+
+/// Variante média d'une forme Pokémon.
+///
+/// Tous les chemins restent de simples références locales vers `assets/...`.
+/// Le modèle n'impose aucune existence disque immédiate : ce point relève
+/// d'autres couches de validation/curation, pas du contrat JSON lui-même.
+class PokemonMediaVariant {
+  const PokemonMediaVariant({
+    this.frontStatic,
+    this.backStatic,
+    this.frontShinyStatic,
+    this.backShinyStatic,
+    this.icon,
+    this.party,
+    this.overworld,
+    this.portrait,
+    this.cry,
+    this.animations = const <String, PokemonMediaAnimationRef>{},
+  });
+
+  final String? frontStatic;
+  final String? backStatic;
+  final String? frontShinyStatic;
+  final String? backShinyStatic;
+  final String? icon;
+  final String? party;
+  final String? overworld;
+  final String? portrait;
+  final String? cry;
+  final Map<String, PokemonMediaAnimationRef> animations;
+
+  factory PokemonMediaVariant.fromJson(Map<String, dynamic> json) {
+    final rawAnimations =
+        (json['animations'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+    return PokemonMediaVariant(
+      frontStatic: _readOptionalTrimmedString(json['frontStatic']),
+      backStatic: _readOptionalTrimmedString(json['backStatic']),
+      frontShinyStatic: _readOptionalTrimmedString(json['frontShinyStatic']),
+      backShinyStatic: _readOptionalTrimmedString(json['backShinyStatic']),
+      icon: _readOptionalTrimmedString(json['icon']),
+      party: _readOptionalTrimmedString(json['party']),
+      overworld: _readOptionalTrimmedString(json['overworld']),
+      portrait: _readOptionalTrimmedString(json['portrait']),
+      cry: _readOptionalTrimmedString(json['cry']),
+      animations: rawAnimations.map(
+        (key, value) => MapEntry(
+          key,
+          PokemonMediaAnimationRef.fromJson(
+            (value as Map?)?.cast<String, dynamic>() ??
+                const <String, dynamic>{},
+          ),
+        ),
+      ),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'frontStatic': frontStatic,
+      'backStatic': backStatic,
+      'frontShinyStatic': frontShinyStatic,
+      'backShinyStatic': backShinyStatic,
+      'icon': icon,
+      'party': party,
+      'overworld': overworld,
+      'portrait': portrait,
+      'cry': cry,
+      'animations': animations.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
+    };
+  }
+}
+
+/// Fichier média Pokémon local.
+///
+/// Cette structure formalise enfin la couche média séparée voulue par le
+/// produit :
+/// - données JSON sous `data/pokemon/media/...`
+/// - assets sous `assets/pokemon/...`
+/// - aucune donnée binaire inline
+/// - aucune animation GIF
+class PokemonMediaFile {
+  const PokemonMediaFile({
+    required this.speciesId,
+    required this.defaultFormId,
+    this.variants = const <String, PokemonMediaVariant>{},
+  });
+
+  final String speciesId;
+  final String defaultFormId;
+  final Map<String, PokemonMediaVariant> variants;
+
+  factory PokemonMediaFile.fromJson(Map<String, dynamic> json) {
+    final rawVariants = (json['variants'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
+    return PokemonMediaFile(
+      speciesId: (json['speciesId'] as String?)?.trim() ?? '',
+      defaultFormId: (json['defaultFormId'] as String?)?.trim() ?? '',
+      variants: rawVariants.map(
+        (key, value) => MapEntry(
+          key,
+          PokemonMediaVariant.fromJson(
+            (value as Map?)?.cast<String, dynamic>() ??
+                const <String, dynamic>{},
+          ),
+        ),
+      ),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'speciesId': speciesId,
+      'defaultFormId': defaultFormId,
+      'variants': variants.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
+    };
+  }
+}
+
+class PokemonLearnsetMoveEntry {
+  const PokemonLearnsetMoveEntry({
+    required this.moveId,
+    required this.versionGroup,
+  });
+
+  final String moveId;
+  final String versionGroup;
+
+  factory PokemonLearnsetMoveEntry.fromJson(Map<String, dynamic> json) {
+    return PokemonLearnsetMoveEntry(
+      moveId: (json['moveId'] as String?)?.trim() ?? '',
+      versionGroup: (json['versionGroup'] as String?)?.trim() ?? '',
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'moveId': moveId,
+      'versionGroup': versionGroup,
     };
   }
 }
@@ -588,15 +805,36 @@ class PokemonLearnsetFile {
     this.startingMoves = const <String>[],
     this.relearnMoves = const <String>[],
     this.levelUp = const <PokemonLearnsetLevelUpEntry>[],
+    this.tm = const <PokemonLearnsetMoveEntry>[],
+    this.tutor = const <PokemonLearnsetMoveEntry>[],
+    this.egg = const <PokemonLearnsetMoveEntry>[],
+    this.event = const <PokemonLearnsetMoveEntry>[],
+    this.transfer = const <PokemonLearnsetMoveEntry>[],
   });
 
   final String speciesId;
   final List<String> startingMoves;
   final List<String> relearnMoves;
   final List<PokemonLearnsetLevelUpEntry> levelUp;
+  final List<PokemonLearnsetMoveEntry> tm;
+  final List<PokemonLearnsetMoveEntry> tutor;
+  final List<PokemonLearnsetMoveEntry> egg;
+  final List<PokemonLearnsetMoveEntry> event;
+  final List<PokemonLearnsetMoveEntry> transfer;
 
   factory PokemonLearnsetFile.fromJson(Map<String, dynamic> json) {
     final rawLevelUp = (json['levelUp'] as List?) ?? const <Object?>[];
+    List<PokemonLearnsetMoveEntry> readMoveEntries(String key) {
+      final raw = (json[key] as List?) ?? const <Object?>[];
+      return raw
+          .whereType<Map>()
+          .map(
+            (entry) => PokemonLearnsetMoveEntry.fromJson(
+                entry.cast<String, dynamic>()),
+          )
+          .toList(growable: false);
+    }
+
     return PokemonLearnsetFile(
       speciesId: (json['speciesId'] as String?)?.trim() ?? '',
       startingMoves: _readStringList(json['startingMoves']),
@@ -604,12 +842,16 @@ class PokemonLearnsetFile {
       levelUp: rawLevelUp
           .whereType<Map>()
           .map(
-            (entry) =>
-                PokemonLearnsetLevelUpEntry.fromJson(
-                  entry.cast<String, dynamic>(),
-                ),
+            (entry) => PokemonLearnsetLevelUpEntry.fromJson(
+              entry.cast<String, dynamic>(),
+            ),
           )
           .toList(growable: false),
+      tm: readMoveEntries('tm'),
+      tutor: readMoveEntries('tutor'),
+      egg: readMoveEntries('egg'),
+      event: readMoveEntries('event'),
+      transfer: readMoveEntries('transfer'),
     );
   }
 
@@ -619,6 +861,12 @@ class PokemonLearnsetFile {
       'startingMoves': List<String>.from(startingMoves),
       'relearnMoves': List<String>.from(relearnMoves),
       'levelUp': levelUp.map((entry) => entry.toJson()).toList(growable: false),
+      'tm': tm.map((entry) => entry.toJson()).toList(growable: false),
+      'tutor': tutor.map((entry) => entry.toJson()).toList(growable: false),
+      'egg': egg.map((entry) => entry.toJson()).toList(growable: false),
+      'event': event.map((entry) => entry.toJson()).toList(growable: false),
+      'transfer':
+          transfer.map((entry) => entry.toJson()).toList(growable: false),
     };
   }
 }
@@ -628,17 +876,26 @@ class PokemonEvolutionEntry {
     required this.targetSpeciesId,
     required this.method,
     this.minLevel,
+    this.itemId,
+    this.requiredMoveId,
+    this.conditionText = const <String, String>{},
   });
 
   final String targetSpeciesId;
   final String method;
   final int? minLevel;
+  final String? itemId;
+  final String? requiredMoveId;
+  final Map<String, String> conditionText;
 
   factory PokemonEvolutionEntry.fromJson(Map<String, dynamic> json) {
     return PokemonEvolutionEntry(
       targetSpeciesId: (json['targetSpeciesId'] as String?)?.trim() ?? '',
       method: (json['method'] as String?)?.trim() ?? '',
       minLevel: (json['minLevel'] as num?)?.toInt(),
+      itemId: _readOptionalTrimmedString(json['itemId']),
+      requiredMoveId: _readOptionalTrimmedString(json['requiredMoveId']),
+      conditionText: _readStringMap(json['conditionText']),
     );
   }
 
@@ -647,6 +904,9 @@ class PokemonEvolutionEntry {
       'targetSpeciesId': targetSpeciesId,
       'method': method,
       'minLevel': minLevel,
+      'itemId': itemId,
+      'requiredMoveId': requiredMoveId,
+      'conditionText': Map<String, String>.from(conditionText),
     };
   }
 }
@@ -681,9 +941,8 @@ class PokemonEvolutionFile {
     return <String, Object?>{
       'speciesId': speciesId,
       'preEvolution': preEvolution,
-      'evolutions': evolutions
-          .map((entry) => entry.toJson())
-          .toList(growable: false),
+      'evolutions':
+          evolutions.map((entry) => entry.toJson()).toList(growable: false),
     };
   }
 }
@@ -738,6 +997,21 @@ String? _readOptionalTrimmedString(Object? raw) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
+String _readLegacySpeciesMediaRef(Map<String, dynamic> json) {
+  final spriteSetRef = (json['spriteSetRef'] as String?)?.trim() ?? '';
+  final cryRef = (json['cryRef'] as String?)?.trim() ?? '';
+  if (spriteSetRef.isNotEmpty && cryRef.isNotEmpty && spriteSetRef == cryRef) {
+    return spriteSetRef;
+  }
+  if (spriteSetRef.isNotEmpty) {
+    return spriteSetRef;
+  }
+  if (cryRef.isNotEmpty) {
+    return cryRef;
+  }
+  return '';
+}
+
 double? _readDouble(Object? raw) {
   final value = raw as num?;
   return value?.toDouble();
@@ -759,7 +1033,8 @@ Object? _deepCopyJsonValue(Object? value) {
   }
   if (value is Map) {
     return value.map(
-      (key, nestedValue) => MapEntry(key.toString(), _deepCopyJsonValue(nestedValue)),
+      (key, nestedValue) =>
+          MapEntry(key.toString(), _deepCopyJsonValue(nestedValue)),
     );
   }
   if (value is List) {

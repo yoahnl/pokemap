@@ -19,7 +19,8 @@ void main() {
   late ValidatePokemonProjectDataUseCase validateUseCase;
 
   setUp(() async {
-    tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_validate_');
+    tempProjectRoot =
+        await Directory.systemTemp.createTemp('pokemon_validate_');
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     seedUseCase = const SeedPokemonDemoDataUseCase();
@@ -52,7 +53,8 @@ void main() {
         FileProjectRepository(),
         const FileProjectWorkspaceFactory(),
       );
-      await createProjectUseCase.execute('Pokemon Validation Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Validation Project', tempProjectRoot.path);
       await seedUseCase.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);
@@ -69,14 +71,16 @@ void main() {
         () async {
       await seedUseCase.execute(workspace);
 
-      final decoy = await Directory.systemTemp.createTemp('pokemon_validate_decoy_');
+      final decoy =
+          await Directory.systemTemp.createTemp('pokemon_validate_decoy_');
       final originalCurrent = Directory.current;
       try {
         await Directory(
           p.join(decoy.path, 'data', 'pokemon', 'species'),
         ).create(recursive: true);
         await File(
-          p.join(decoy.path, 'data', 'pokemon', 'species', '0001-bulbasaur.json'),
+          p.join(
+              decoy.path, 'data', 'pokemon', 'species', '0001-bulbasaur.json'),
         ).writeAsString('{ invalid json');
 
         Directory.current = decoy.path;
@@ -112,8 +116,10 @@ void main() {
       await _mutateJsonFile(
         workspace,
         'data/pokemon/species/0001-bulbasaur.json',
-        (json) => (json['typing'] as Map<String, dynamic>)['types'] =
-            <String>['grass', 'grass'],
+        (json) => (json['typing'] as Map<String, dynamic>)['types'] = <String>[
+          'grass',
+          'grass'
+        ],
       );
 
       final report = await validateUseCase.execute(workspace);
@@ -169,7 +175,8 @@ void main() {
       await _mutateJsonFile(
         workspace,
         'data/pokemon/species/0001-bulbasaur.json',
-        (json) => json['learnsetRef'] = 'missing_learnset',
+        (json) => (json['refs'] as Map<String, dynamic>)['learnset'] =
+            'missing_learnset',
       );
 
       final report = await validateUseCase.execute(workspace);
@@ -183,7 +190,8 @@ void main() {
       await _mutateJsonFile(
         workspace,
         'data/pokemon/species/0001-bulbasaur.json',
-        (json) => json['evolutionRef'] = 'missing_evolution',
+        (json) => (json['refs'] as Map<String, dynamic>)['evolution'] =
+            'missing_evolution',
       );
 
       final report = await validateUseCase.execute(workspace);
@@ -191,7 +199,23 @@ void main() {
       expect(_hasIssue(report, 'species.evolution_ref_missing'), isTrue);
     });
 
-    test('reports an error when an evolution target species is absent', () async {
+    test('reports an error when a species media ref is missing locally',
+        () async {
+      await seedUseCase.execute(workspace);
+      await _mutateJsonFile(
+        workspace,
+        'data/pokemon/species/0001-bulbasaur.json',
+        (json) =>
+            (json['refs'] as Map<String, dynamic>)['media'] = 'missing_media',
+      );
+
+      final report = await validateUseCase.execute(workspace);
+
+      expect(_hasIssue(report, 'species.media_ref_missing'), isTrue);
+    });
+
+    test('reports an error when an evolution target species is absent',
+        () async {
       await seedUseCase.execute(workspace);
       await _mutateJsonFile(
         workspace,
@@ -205,7 +229,8 @@ void main() {
       expect(_hasIssue(report, 'evolution.target_species_missing'), isTrue);
     });
 
-    test('reports an error when a learnset uses a move absent from moves catalog',
+    test(
+        'reports an error when a learnset uses a move absent from moves catalog',
         () async {
       await seedUseCase.execute(workspace);
       await _mutateJsonFile(
@@ -220,14 +245,16 @@ void main() {
       expect(_hasIssue(report, 'learnset.move_missing_in_catalog'), isTrue);
     });
 
-    test('reports an error when a species uses a type absent from types catalog',
+    test(
+        'reports an error when a species uses a type absent from types catalog',
         () async {
       await seedUseCase.execute(workspace);
       await _mutateJsonFile(
         workspace,
         'data/pokemon/species/0001-bulbasaur.json',
-        (json) => (json['typing'] as Map<String, dynamic>)['types'] =
-            <String>['shadow'],
+        (json) => (json['typing'] as Map<String, dynamic>)['types'] = <String>[
+          'shadow'
+        ],
       );
 
       final report = await validateUseCase.execute(workspace);
@@ -254,11 +281,13 @@ void main() {
       );
     });
 
-    test('adds a warning when moves catalog is absent and skips that validation',
+    test(
+        'adds a warning when moves catalog is absent and skips that validation',
         () async {
       await seedUseCase.execute(workspace);
       final movesCatalog = File(
-        workspace.resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
       );
       await movesCatalog.delete();
 
@@ -273,11 +302,13 @@ void main() {
       );
     });
 
-    test('adds a warning when types catalog is absent and skips that validation',
+    test(
+        'adds a warning when types catalog is absent and skips that validation',
         () async {
       await seedUseCase.execute(workspace);
       final typesCatalog = File(
-        workspace.resolveProjectRelativePath('data/pokemon/catalogs/types.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/catalogs/types.json'),
       );
       await typesCatalog.delete();
 
@@ -303,7 +334,8 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir = Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir =
+        Directory(p.join(current.path, 'packages', 'map_editor'));
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }

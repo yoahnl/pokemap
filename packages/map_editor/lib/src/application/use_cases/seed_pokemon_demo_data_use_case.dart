@@ -55,6 +55,14 @@ class SeedPokemonDemoDataUseCase {
         entry.value,
       );
     }
+
+    for (final entry in _mediaSeeds.entries) {
+      await _writeJsonIfAbsent(
+        workspace,
+        'data/pokemon/media/${entry.key}',
+        entry.value,
+      );
+    }
   }
 
   Future<void> _writeCatalogIfSeedable(
@@ -202,8 +210,7 @@ const Map<String, Map<String, Object?>> _catalogSeeds =
           'fr': 'Engrais',
           'en': 'Overgrow',
         },
-        'shortDesc':
-            'Boosts Grass-type moves when the Pokemon is low on HP.',
+        'shortDesc': 'Boosts Grass-type moves when the Pokemon is low on HP.',
         'generation': 3,
       },
       <String, Object?>{
@@ -369,10 +376,11 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
       'catchRate': 45,
       'baseFriendship': 50,
     },
-    'evolutionRef': 'bulbasaur',
-    'learnsetRef': 'bulbasaur',
-    'spriteSetRef': 'bulbasaur',
-    'cryRef': 'bulbasaur',
+    'refs': <String, Object?>{
+      'learnset': 'bulbasaur',
+      'evolution': 'bulbasaur',
+      'media': 'bulbasaur',
+    },
     'dexContent': <String, Object?>{
       'heightM': 0.7,
       'weightKg': 6.9,
@@ -434,10 +442,11 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
       'catchRate': 45,
       'baseFriendship': 50,
     },
-    'evolutionRef': 'ivysaur',
-    'learnsetRef': 'ivysaur',
-    'spriteSetRef': 'ivysaur',
-    'cryRef': 'ivysaur',
+    'refs': <String, Object?>{
+      'learnset': 'ivysaur',
+      'evolution': 'ivysaur',
+      'media': 'ivysaur',
+    },
     'dexContent': <String, Object?>{
       'heightM': 1.0,
       'weightKg': 13.0,
@@ -489,6 +498,16 @@ const Map<String, Map<String, Object?>> _learnsetSeeds =
         'versionGroup': 'demo',
       },
     ],
+    'tm': <Object?>[
+      <String, Object?>{
+        'moveId': 'growl',
+        'versionGroup': 'demo',
+      },
+    ],
+    'tutor': <Object?>[],
+    'egg': <Object?>[],
+    'event': <Object?>[],
+    'transfer': <Object?>[],
   },
   'ivysaur.json': <String, Object?>{
     'speciesId': 'ivysaur',
@@ -520,6 +539,11 @@ const Map<String, Map<String, Object?>> _learnsetSeeds =
         'versionGroup': 'demo',
       },
     ],
+    'tm': <Object?>[],
+    'tutor': <Object?>[],
+    'egg': <Object?>[],
+    'event': <Object?>[],
+    'transfer': <Object?>[],
   },
 };
 
@@ -533,6 +557,12 @@ const Map<String, Map<String, Object?>> _evolutionSeeds =
         'targetSpeciesId': 'ivysaur',
         'method': 'level_up',
         'minLevel': 16,
+        'itemId': null,
+        'requiredMoveId': null,
+        'conditionText': <String, String>{
+          'fr': 'Évolue au niveau 16',
+          'en': 'Evolves at level 16',
+        },
       },
     ],
   },
@@ -540,5 +570,57 @@ const Map<String, Map<String, Object?>> _evolutionSeeds =
     'speciesId': 'ivysaur',
     'preEvolution': 'bulbasaur',
     'evolutions': <Object?>[],
+  },
+};
+
+const Map<String, Map<String, Object?>> _mediaSeeds =
+    <String, Map<String, Object?>>{
+  'bulbasaur.json': <String, Object?>{
+    'speciesId': 'bulbasaur',
+    'defaultFormId': 'base',
+    'variants': <String, Object?>{
+      'base': <String, Object?>{
+        'frontStatic': 'assets/pokemon/sprites/bulbasaur/front.png',
+        'backStatic': 'assets/pokemon/sprites/bulbasaur/back.png',
+        'frontShinyStatic': 'assets/pokemon/sprites/bulbasaur/front_shiny.png',
+        'backShinyStatic': 'assets/pokemon/sprites/bulbasaur/back_shiny.png',
+        'icon': 'assets/pokemon/sprites/bulbasaur/icon.png',
+        'party': 'assets/pokemon/sprites/bulbasaur/party.png',
+        'overworld': 'assets/pokemon/sprites/bulbasaur/overworld.png',
+        'portrait': 'assets/pokemon/portraits/bulbasaur.png',
+        'cry': 'assets/pokemon/cries/bulbasaur.ogg',
+        'animations': <String, Object?>{
+          'battleFront': <String, Object?>{
+            'sheet': 'assets/pokemon/sprites/bulbasaur/battle_front_sheet.png',
+            'animationId': 'battle_front',
+          },
+          'battleBack': <String, Object?>{
+            'sheet': 'assets/pokemon/sprites/bulbasaur/battle_back_sheet.png',
+            'animationId': 'battle_back',
+          },
+        },
+      },
+    },
+  },
+  'ivysaur.json': <String, Object?>{
+    'speciesId': 'ivysaur',
+    'defaultFormId': 'base',
+    'variants': <String, Object?>{
+      'base': <String, Object?>{
+        'frontStatic': 'assets/pokemon/sprites/ivysaur/front.png',
+        'backStatic': 'assets/pokemon/sprites/ivysaur/back.png',
+        'icon': 'assets/pokemon/sprites/ivysaur/icon.png',
+        'party': 'assets/pokemon/sprites/ivysaur/party.png',
+        'overworld': 'assets/pokemon/sprites/ivysaur/overworld.png',
+        'portrait': 'assets/pokemon/portraits/ivysaur.png',
+        'cry': 'assets/pokemon/cries/ivysaur.ogg',
+        'animations': <String, Object?>{
+          'battleFront': <String, Object?>{
+            'sheet': 'assets/pokemon/sprites/ivysaur/battle_front_sheet.png',
+            'animationId': 'battle_front',
+          },
+        },
+      },
+    },
   },
 };

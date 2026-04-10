@@ -32,7 +32,8 @@ void main() {
 
       for (final relativePath in _expectedDatasetFiles) {
         expect(
-          await File(workspace.resolveProjectRelativePath(relativePath)).exists(),
+          await File(workspace.resolveProjectRelativePath(relativePath))
+              .exists(),
           isTrue,
           reason: 'Missing demo dataset file $relativePath',
         );
@@ -75,8 +76,14 @@ void main() {
           'data/pokemon/species/0002-ivysaur.json',
         ),
       );
+      final bulbasaurMedia = await _readJsonMap(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/media/bulbasaur.json',
+        ),
+      );
       final movesCatalog = await _readJsonMap(
-        workspace.resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
       );
       final abilitiesCatalog = await _readJsonMap(
         workspace.resolveProjectRelativePath(
@@ -84,7 +91,8 @@ void main() {
         ),
       );
       final typesCatalog = await _readJsonMap(
-        workspace.resolveProjectRelativePath('data/pokemon/catalogs/types.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/catalogs/types.json'),
       );
       final growthRatesCatalog = await _readJsonMap(
         workspace.resolveProjectRelativePath(
@@ -92,12 +100,35 @@ void main() {
         ),
       );
 
-      expect(bulbasaurSpecies['learnsetRef'], 'bulbasaur');
+      expect(
+        (bulbasaurSpecies['refs'] as Map<String, dynamic>)['learnset'],
+        'bulbasaur',
+      );
       expect(bulbasaurLearnset['speciesId'], 'bulbasaur');
-      expect(bulbasaurSpecies['evolutionRef'], 'bulbasaur');
+      expect(
+        (bulbasaurSpecies['refs'] as Map<String, dynamic>)['evolution'],
+        'bulbasaur',
+      );
       expect(bulbasaurEvolution['speciesId'], 'bulbasaur');
-      expect(ivysaurSpecies['evolutionRef'], 'ivysaur');
-      expect(ivysaurSpecies['learnsetRef'], 'ivysaur');
+      expect(
+        (ivysaurSpecies['refs'] as Map<String, dynamic>)['evolution'],
+        'ivysaur',
+      );
+      expect(
+        (ivysaurSpecies['refs'] as Map<String, dynamic>)['learnset'],
+        'ivysaur',
+      );
+      expect(
+        (bulbasaurSpecies['refs'] as Map<String, dynamic>)['media'],
+        'bulbasaur',
+      );
+      expect(bulbasaurMedia['speciesId'], 'bulbasaur');
+      expect(bulbasaurMedia['defaultFormId'], 'base');
+      expect(
+        (bulbasaurMedia['variants'] as Map<String, dynamic>)
+            .containsKey('base'),
+        isTrue,
+      );
 
       final levelUp = bulbasaurLearnset['levelUp'] as List<dynamic>;
       expect(levelUp, isNotEmpty);
@@ -105,6 +136,8 @@ void main() {
       expect(levelUp.first, contains('level'));
       expect(levelUp.first, containsPair('source', 'level_up'));
       expect(levelUp.first, containsPair('versionGroup', 'demo'));
+      expect((bulbasaurLearnset['tm'] as List<dynamic>).first,
+          containsPair('moveId', 'growl'));
 
       expect(
         (movesCatalog['entries'] as List<dynamic>).map((e) => e['id']).toSet(),
@@ -128,7 +161,8 @@ void main() {
       );
     });
 
-    test('is idempotent and does not overwrite an existing demo file', () async {
+    test('is idempotent and does not overwrite an existing demo file',
+        () async {
       await useCase.execute(workspace);
 
       final speciesPath = workspace.resolveProjectRelativePath(
@@ -142,7 +176,8 @@ void main() {
       expect(await File(speciesPath).readAsString(), customPayload);
     });
 
-    test('enriches scaffold catalogs once but preserves a manually edited catalog',
+    test(
+        'enriches scaffold catalogs once but preserves a manually edited catalog',
         () async {
       await useCase.execute(workspace);
 
@@ -192,6 +227,8 @@ const List<String> _expectedDatasetFiles = <String>[
   'data/pokemon/learnsets/ivysaur.json',
   'data/pokemon/evolutions/bulbasaur.json',
   'data/pokemon/evolutions/ivysaur.json',
+  'data/pokemon/media/bulbasaur.json',
+  'data/pokemon/media/ivysaur.json',
 ];
 
 const List<String> _expectedRootLeakChecks = <String>[

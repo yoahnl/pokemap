@@ -30,17 +30,20 @@ void main() {
   });
 
   group('FilePokemonReadRepository', () {
-    test('reads from the workspace project and not the monorepo root', () async {
+    test('reads from the workspace project and not the monorepo root',
+        () async {
       await seedUseCase.execute(workspace);
 
-      final decoy = await Directory.systemTemp.createTemp('pokemon_repo_decoy_');
+      final decoy =
+          await Directory.systemTemp.createTemp('pokemon_repo_decoy_');
       final originalCurrent = Directory.current;
       try {
         await Directory(
           p.join(decoy.path, 'data', 'pokemon', 'species'),
         ).create(recursive: true);
         await File(
-          p.join(decoy.path, 'data', 'pokemon', 'species', '0003-venusaur.json'),
+          p.join(
+              decoy.path, 'data', 'pokemon', 'species', '0003-venusaur.json'),
         ).writeAsString('''
 {
   "id": "venusaur",
@@ -53,7 +56,8 @@ void main() {
         Directory.current = decoy.path;
 
         final entries = await repository.listSpeciesIndexEntries(workspace);
-        final species = await repository.readSpeciesById(workspace, 'bulbasaur');
+        final species =
+            await repository.readSpeciesById(workspace, 'bulbasaur');
 
         expect(entries.map((entry) => entry.id), isNot(contains('venusaur')));
         expect(species.id, 'bulbasaur');
@@ -71,14 +75,19 @@ void main() {
 
       final manifest = await repository.readManifest(workspace);
       final species = await repository.readSpeciesById(workspace, 'bulbasaur');
-      final learnset = await repository.readLearnsetById(workspace, 'bulbasaur');
-      final evolution = await repository.readEvolutionById(workspace, 'bulbasaur');
+      final learnset =
+          await repository.readLearnsetById(workspace, 'bulbasaur');
+      final evolution =
+          await repository.readEvolutionById(workspace, 'bulbasaur');
+      final media = await repository.readMediaById(workspace, 'bulbasaur');
       final moves = await repository.readCatalogByKey(workspace, 'moves');
 
       expect(manifest.kind, 'pokemon_data_manifest');
       expect(species.id, 'bulbasaur');
       expect(learnset.speciesId, 'bulbasaur');
       expect(evolution.evolutions.single.targetSpeciesId, 'ivysaur');
+      expect(media.speciesId, 'bulbasaur');
+      expect(media.variants['base']?.cry, 'assets/pokemon/cries/bulbasaur.ogg');
       expect(
         moves.entries.map((entry) => entry['id']),
         containsAll(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
@@ -127,7 +136,8 @@ void main() {
         FileProjectRepository(),
         const FileProjectWorkspaceFactory(),
       );
-      await createProjectUseCase.execute('Pokemon Repo Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Repo Project', tempProjectRoot.path);
       await seedUseCase.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);
@@ -156,7 +166,8 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir = Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir =
+        Directory(p.join(current.path, 'packages', 'map_editor'));
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }

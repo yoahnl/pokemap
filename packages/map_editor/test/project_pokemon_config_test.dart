@@ -35,11 +35,12 @@ void main() {
   group('Project pokemon config', () {
     test('loads an older project without pokemon config and applies defaults',
         () async {
-      await createProjectUseCase.execute('Legacy Pokemon Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Legacy Pokemon Project', tempProjectRoot.path);
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
-      final json = jsonDecode(await projectFile.readAsString())
-          as Map<String, dynamic>;
+      final json =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
       json.remove('pokemon');
       await projectFile.writeAsString(
         const JsonEncoder.withIndent('  ').convert(json),
@@ -60,8 +61,8 @@ void main() {
       expect(manifest.pokemon, const ProjectPokemonConfig());
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
-      final json = jsonDecode(await projectFile.readAsString())
-          as Map<String, dynamic>;
+      final json =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
       final pokemon = json['pokemon'] as Map<String, dynamic>;
 
       expect(
@@ -91,6 +92,11 @@ void main() {
           'types': 'data/pokemon/catalogs/types.json',
           'growth_rates': 'data/pokemon/catalogs/growth_rates.json',
           'natures': 'data/pokemon/catalogs/natures.json',
+          'egg_groups': 'data/pokemon/catalogs/egg_groups.json',
+          'habitats': 'data/pokemon/catalogs/habitats.json',
+          'encounter_rules': 'data/pokemon/catalogs/encounter_rules.json',
+          'generations': 'data/pokemon/catalogs/generations.json',
+          'version_groups': 'data/pokemon/catalogs/version_groups.json',
         },
       );
 
@@ -102,7 +108,8 @@ void main() {
 
     test('round-trips pokemon config through save and load without corruption',
         () async {
-      await createProjectUseCase.execute('Pokemon Roundtrip Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Roundtrip Project', tempProjectRoot.path);
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
       final before = await projectFile.readAsString();
@@ -116,7 +123,8 @@ void main() {
     });
 
     test('loads project config without reading pokemon data files', () async {
-      await createProjectUseCase.execute('Pokemon Lazy Config Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Lazy Config Project', tempProjectRoot.path);
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
       final loaded = await loadProjectUseCase.execute(projectFile.path);
@@ -127,13 +135,15 @@ void main() {
         isFalse,
       );
       expect(
-        Directory(p.join(tempProjectRoot.path, 'assets', 'pokemon')).existsSync(),
+        Directory(p.join(tempProjectRoot.path, 'assets', 'pokemon'))
+            .existsSync(),
         isFalse,
       );
     });
 
     test('does not recreate data or assets at the monorepo root', () async {
-      await createProjectUseCase.execute('Pokemon Root Guard Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Root Guard Project', tempProjectRoot.path);
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
       await loadProjectUseCase.execute(projectFile.path);
@@ -149,7 +159,8 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir = Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir =
+        Directory(p.join(current.path, 'packages', 'map_editor'));
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }

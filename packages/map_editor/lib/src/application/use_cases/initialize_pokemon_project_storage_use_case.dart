@@ -23,8 +23,7 @@ class InitializePokemonProjectStorageUseCase {
     'natures': 'Nature catalog for the local Pokemon project database.',
     'egg_groups': 'Egg group catalog for the local Pokemon project database.',
     'habitats': 'Habitat catalog for the local Pokemon project database.',
-    'generations':
-        'Generation catalog for the local Pokemon project database.',
+    'generations': 'Generation catalog for the local Pokemon project database.',
     'version_groups':
         'Version group catalog for the local Pokemon project database.',
     'encounter_rules':
@@ -36,20 +35,20 @@ class InitializePokemonProjectStorageUseCase {
     'abilities': 'catalogs/abilities.json',
     'items': 'catalogs/items.json',
     'types': 'catalogs/types.json',
-    'growthRates': 'catalogs/growth_rates.json',
+    'growth_rates': 'catalogs/growth_rates.json',
     'natures': 'catalogs/natures.json',
-    'eggGroups': 'catalogs/egg_groups.json',
+    'egg_groups': 'catalogs/egg_groups.json',
     'habitats': 'catalogs/habitats.json',
     'generations': 'catalogs/generations.json',
-    'versionGroups': 'catalogs/version_groups.json',
-    'encounterRules': 'catalogs/encounter_rules.json',
+    'version_groups': 'catalogs/version_groups.json',
+    'encounter_rules': 'catalogs/encounter_rules.json',
   };
 
   static const List<String> _projectDirectories = <String>[
     'data/pokemon/species/.keep',
     'data/pokemon/learnsets/.keep',
     'data/pokemon/evolutions/.keep',
-    'data/pokemon/sprite_sets/.keep',
+    'data/pokemon/media/.keep',
     'data/pokemon/catalogs/.keep',
     'assets/pokemon/sprites/.keep',
     'assets/pokemon/cries/.keep',
@@ -79,22 +78,21 @@ class InitializePokemonProjectStorageUseCase {
           'species': 'species/',
           'learnsets': 'learnsets/',
           'evolutions': 'evolutions/',
-          'spriteSets': 'sprite_sets/',
+          'media': 'media/',
         },
       },
     );
 
     for (final entry in _catalogFiles.entries) {
-      final catalogName = _catalogNameForManifestKey(entry.key);
       await _writeJsonIfAbsent(
         workspace,
         'data/pokemon/${entry.value}',
         <String, Object?>{
           'schemaVersion': 1,
           'kind': 'pokemon_catalog',
-          'catalog': catalogName,
+          'catalog': entry.key,
           'meta': <String, Object?>{
-            'description': _catalogDescriptions[catalogName]!,
+            'description': _catalogDescriptions[entry.key]!,
             'sourcePriority': const <String>['internal'],
             'notes': const <Object?>[],
           },
@@ -119,20 +117,5 @@ class InitializePokemonProjectStorageUseCase {
       absolutePath,
       const JsonEncoder.withIndent('  ').convert(payload),
     );
-  }
-
-  String _catalogNameForManifestKey(String manifestKey) {
-    switch (manifestKey) {
-      case 'growthRates':
-        return 'growth_rates';
-      case 'eggGroups':
-        return 'egg_groups';
-      case 'versionGroups':
-        return 'version_groups';
-      case 'encounterRules':
-        return 'encounter_rules';
-      default:
-        return manifestKey;
-    }
   }
 }

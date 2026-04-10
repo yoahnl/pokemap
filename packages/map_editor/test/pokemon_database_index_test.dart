@@ -110,8 +110,7 @@ void main() {
         isA<PokemonDatabaseIndexRefs>()
             .having((refs) => refs.learnset, 'learnset', 'bulbasaur')
             .having((refs) => refs.evolution, 'evolution', 'bulbasaur')
-            .having((refs) => refs.spriteSet, 'spriteSet', 'bulbasaur')
-            .having((refs) => refs.cry, 'cry', 'bulbasaur'),
+            .having((refs) => refs.media, 'media', 'bulbasaur'),
       );
     });
 
@@ -135,10 +134,11 @@ void main() {
   "nationalDex": 0,
   "names": {},
   "typing": {"types": ["grass"]},
-  "learnsetRef": "",
-  "evolutionRef": "",
-  "spriteSetRef": "",
-  "cryRef": ""
+  "refs": {
+    "learnset": "",
+    "evolution": "",
+    "media": ""
+  }
 }
 ''');
 
@@ -202,10 +202,11 @@ void main() {
   "names": {
     "en": "Decoy"
   },
-  "learnsetRef": "decoy",
-  "evolutionRef": "decoy",
-  "spriteSetRef": "decoy",
-  "cryRef": "decoy"
+  "refs": {
+    "learnset": "decoy",
+    "evolution": "decoy",
+    "media": "decoy"
+  }
 }
 ''');
 
@@ -342,10 +343,11 @@ void main() {
   "names": {
     "en": "Decoy"
   },
-  "learnsetRef": "decoy",
-  "evolutionRef": "decoy",
-  "spriteSetRef": "decoy",
-  "cryRef": "decoy"
+  "refs": {
+    "learnset": "decoy",
+    "evolution": "decoy",
+    "media": "decoy"
+  }
 }
 ''');
 

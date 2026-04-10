@@ -219,6 +219,19 @@ class FilePokemonReadRepository implements PokemonReadRepository {
   Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) {
     return reader.listEvolutionIds(workspace);
   }
+
+  @override
+  Future<PokemonMediaFile> readMediaById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    return reader.readMediaById(workspace, speciesId);
+  }
+
+  @override
+  Future<List<String>> listMediaIds(ProjectWorkspace workspace) {
+    return reader.listMediaIds(workspace);
+  }
 }
 
 /// Implémentation filesystem/workspace de l'écriture locale Pokémon.
@@ -324,6 +337,24 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     );
   }
 
+  @override
+  Future<void> saveMedia(
+    ProjectWorkspace workspace,
+    PokemonMediaFile media,
+  ) async {
+    final speciesId = media.speciesId.trim();
+    if (speciesId.isEmpty) {
+      throw const EditorValidationException(
+        'Pokemon media speciesId cannot be empty',
+      );
+    }
+    await _writeJsonObject(
+      workspace,
+      'data/pokemon/media/$speciesId.json',
+      media.toJson(),
+    );
+  }
+
   Future<void> _writeJsonObject(
     ProjectWorkspace workspace,
     String relativePath,
@@ -343,7 +374,8 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
   ) async {
     final trimmedId = species.id.trim();
     if (trimmedId.isEmpty) {
-      throw const EditorValidationException('Pokemon species id cannot be empty');
+      throw const EditorValidationException(
+          'Pokemon species id cannot be empty');
     }
 
     final speciesDirectory = Directory(
@@ -366,7 +398,8 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
 
   String _speciesFileName(PokemonSpeciesFile species) {
     final dex = species.nationalDex.toString().padLeft(4, '0');
-    final slug = _sanitizeFileSegment(species.slug.isNotEmpty ? species.slug : species.id);
+    final slug = _sanitizeFileSegment(
+        species.slug.isNotEmpty ? species.slug : species.id);
     return '$dex-$slug.json';
   }
 

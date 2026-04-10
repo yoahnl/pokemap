@@ -53,10 +53,12 @@ class PokemonProjectDataReader {
   ) async {
     final trimmedId = speciesId.trim();
     if (trimmedId.isEmpty) {
-      throw const EditorValidationException('Pokemon species id cannot be empty');
+      throw const EditorValidationException(
+          'Pokemon species id cannot be empty');
     }
 
-    final speciesPathEntry = await _resolveSpeciesIndexEntryById(workspace, trimmedId);
+    final speciesPathEntry =
+        await _resolveSpeciesIndexEntryById(workspace, trimmedId);
     final species = await _readSpeciesAtRelativePath(
       workspace,
       speciesPathEntry.relativePath,
@@ -104,6 +106,24 @@ class PokemonProjectDataReader {
       label: 'Pokemon evolution "$trimmedId"',
     );
     return PokemonEvolutionFile.fromJson(json);
+  }
+
+  Future<PokemonMediaFile> readMediaById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) async {
+    final trimmedId = speciesId.trim();
+    if (trimmedId.isEmpty) {
+      throw const EditorValidationException(
+        'Pokemon media id cannot be empty',
+      );
+    }
+    final json = await _readJsonFile(
+      workspace,
+      'data/pokemon/media/$trimmedId.json',
+      label: 'Pokemon media "$trimmedId"',
+    );
+    return PokemonMediaFile.fromJson(json);
   }
 
   Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) async {
@@ -195,13 +215,22 @@ class PokemonProjectDataReader {
     );
   }
 
+  Future<List<String>> listMediaIds(ProjectWorkspace workspace) async {
+    return _listJsonFileStemIds(
+      workspace,
+      'data/pokemon/media',
+      label: 'Pokemon media directory',
+    );
+  }
+
   Future<String?> resolveSpeciesRelativePathById(
     ProjectWorkspace workspace,
     String speciesId,
   ) async {
     final trimmedId = speciesId.trim();
     if (trimmedId.isEmpty) {
-      throw const EditorValidationException('Pokemon species id cannot be empty');
+      throw const EditorValidationException(
+          'Pokemon species id cannot be empty');
     }
 
     final speciesDir = _speciesDirectory(workspace);
@@ -302,23 +331,18 @@ class PokemonProjectDataReader {
     }
 
     _validateDatabaseIndexRef(
-      value: species.learnsetRef,
-      refName: 'learnsetRef',
+      value: species.refs.learnset,
+      refName: 'refs.learnset',
       relativePath: relativePath,
     );
     _validateDatabaseIndexRef(
-      value: species.evolutionRef,
-      refName: 'evolutionRef',
+      value: species.refs.evolution,
+      refName: 'refs.evolution',
       relativePath: relativePath,
     );
     _validateDatabaseIndexRef(
-      value: species.spriteSetRef,
-      refName: 'spriteSetRef',
-      relativePath: relativePath,
-    );
-    _validateDatabaseIndexRef(
-      value: species.cryRef,
-      refName: 'cryRef',
+      value: species.refs.media,
+      refName: 'refs.media',
       relativePath: relativePath,
     );
   }

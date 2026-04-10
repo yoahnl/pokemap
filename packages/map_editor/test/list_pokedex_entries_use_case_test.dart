@@ -108,7 +108,8 @@ void main() {
       final PokedexListEntry entry = entries.first;
       final dynamic dynamicEntry = entry;
 
-      expect(() => dynamicEntry.relativePath, throwsA(isA<NoSuchMethodError>()));
+      expect(
+          () => dynamicEntry.relativePath, throwsA(isA<NoSuchMethodError>()));
     });
 
     test('returns starter eligibility from species gameplay flags', () async {
@@ -165,7 +166,8 @@ void main() {
             relativePath: 'data/pokemon/species/0001-bulbasaur.json',
           ),
         ],
-        speciesError: const EditorPersistenceException('Invalid JSON in species'),
+        speciesError:
+            const EditorPersistenceException('Invalid JSON in species'),
       );
       final useCase = ListPokedexEntriesUseCase(repository);
 
@@ -201,7 +203,8 @@ void main() {
           p.join(decoy.path, 'data', 'pokemon', 'species'),
         ).create(recursive: true);
         await File(
-          p.join(decoy.path, 'data', 'pokemon', 'species', '0003-venusaur.json'),
+          p.join(
+              decoy.path, 'data', 'pokemon', 'species', '0003-venusaur.json'),
         ).writeAsString('''
 {
   "id": "venusaur",
@@ -216,10 +219,12 @@ void main() {
         final entries = await useCase.execute(workspace);
 
         expect(entries.map((entry) => entry.id), isNot(contains('venusaur')));
-        expect(entries.map((entry) => entry.id), containsAll(<String>[
-          'bulbasaur',
-          'ivysaur',
-        ]));
+        expect(
+            entries.map((entry) => entry.id),
+            containsAll(<String>[
+              'bulbasaur',
+              'ivysaur',
+            ]));
       } finally {
         Directory.current = originalCurrent.path;
         if (await decoy.exists()) {
@@ -311,6 +316,14 @@ class _RecordingPokemonReadRepository implements PokemonReadRepository {
   }
 
   @override
+  Future<PokemonMediaFile> readMediaById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<PokemonLearnsetFile> readLearnsetById(
     ProjectWorkspace workspace,
     String speciesId,
@@ -330,6 +343,11 @@ class _RecordingPokemonReadRepository implements PokemonReadRepository {
 
   @override
   Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<String>> listMediaIds(ProjectWorkspace workspace) {
     throw UnimplementedError();
   }
 
@@ -385,10 +403,11 @@ PokemonSpeciesFile _species({
       catchRate: 45,
       baseFriendship: 50,
     ),
-    evolutionRef: id,
-    learnsetRef: id,
-    spriteSetRef: id,
-    cryRef: id,
+    refs: PokemonSpeciesRefs(
+      learnset: id,
+      evolution: id,
+      media: id,
+    ),
     dexContent: const PokemonSpeciesDexContent(
       heightM: 0.7,
       weightKg: 6.9,

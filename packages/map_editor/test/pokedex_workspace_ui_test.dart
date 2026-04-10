@@ -67,8 +67,7 @@ void main() {
       refs: PokemonDatabaseIndexRefs(
         learnset: id,
         evolution: id,
-        spriteSet: id,
-        cry: id,
+        media: id,
       ),
     );
   }

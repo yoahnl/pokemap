@@ -19,7 +19,8 @@ void main() {
   late FilePokemonReadRepository readRepository;
 
   setUp(() async {
-    tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_write_repo_');
+    tempProjectRoot =
+        await Directory.systemTemp.createTemp('pokemon_write_repo_');
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     initializeStorage = const InitializePokemonProjectStorageUseCase();
@@ -46,10 +47,12 @@ void main() {
       );
       expect(await file.exists(), isTrue);
 
-      final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final decoded =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       expect(decoded['id'], 'bulbasaur');
 
-      final readBack = await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      final readBack =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
       expect(readBack.id, 'bulbasaur');
       expect(readBack.gameplayFlags.starterEligible, isTrue);
     });
@@ -66,7 +69,8 @@ void main() {
       );
       expect(await file.exists(), isTrue);
 
-      final readBack = await readRepository.readLearnsetById(workspace, 'bulbasaur');
+      final readBack =
+          await readRepository.readLearnsetById(workspace, 'bulbasaur');
       expect(readBack.speciesId, 'bulbasaur');
       expect(readBack.levelUp.first.moveId, 'tackle');
       expect(readBack.levelUp.first.level, 1);
@@ -84,10 +88,32 @@ void main() {
       );
       expect(await file.exists(), isTrue);
 
-      final readBack = await readRepository.readEvolutionById(workspace, 'bulbasaur');
+      final readBack =
+          await readRepository.readEvolutionById(workspace, 'bulbasaur');
       expect(readBack.speciesId, 'bulbasaur');
       expect(readBack.evolutions.single.targetSpeciesId, 'ivysaur');
       expect(readBack.evolutions.single.minLevel, 16);
+    });
+
+    test('saves a media file in the project workspace', () async {
+      final media = _bulbasaurMedia();
+
+      await writeRepository.saveMedia(workspace, media);
+
+      final file = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/media/bulbasaur.json',
+        ),
+      );
+      expect(await file.exists(), isTrue);
+
+      final readBack =
+          await readRepository.readMediaById(workspace, 'bulbasaur');
+      expect(readBack.speciesId, 'bulbasaur');
+      expect(
+        readBack.variants['base']?.frontStatic,
+        'assets/pokemon/sprites/bulbasaur/front.png',
+      );
     });
 
     test('saves a catalog file in the project workspace', () async {
@@ -97,11 +123,13 @@ void main() {
       await writeRepository.saveCatalogByKey(workspace, 'moves', movesCatalog);
 
       final file = File(
-        workspace.resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
       );
       expect(await file.exists(), isTrue);
 
-      final readBack = await readRepository.readCatalogByKey(workspace, 'moves');
+      final readBack =
+          await readRepository.readCatalogByKey(workspace, 'moves');
       expect(readBack.catalog, 'moves');
       expect(
         readBack.entries.map((entry) => entry['id']),
@@ -112,7 +140,8 @@ void main() {
     test('writes in the workspace project and not at the monorepo root',
         () async {
       final species = _bulbasaurSpecies();
-      final decoy = await Directory.systemTemp.createTemp('pokemon_write_decoy_');
+      final decoy =
+          await Directory.systemTemp.createTemp('pokemon_write_decoy_');
       final originalCurrent = Directory.current;
       try {
         Directory.current = decoy.path;
@@ -142,7 +171,8 @@ void main() {
         FileProjectRepository(),
         const FileProjectWorkspaceFactory(),
       );
-      await createProjectUseCase.execute('Pokemon Write Repo Project', tempProjectRoot.path);
+      await createProjectUseCase.execute(
+          'Pokemon Write Repo Project', tempProjectRoot.path);
       await initializeStorage.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);
@@ -151,7 +181,9 @@ void main() {
       await writeRepository.saveSpecies(workspace, _bulbasaurSpecies());
       await writeRepository.saveLearnset(workspace, _bulbasaurLearnset());
       await writeRepository.saveEvolution(workspace, _bulbasaurEvolution());
-      await writeRepository.saveCatalogByKey(workspace, 'moves', _movesCatalog());
+      await writeRepository.saveMedia(workspace, _bulbasaurMedia());
+      await writeRepository.saveCatalogByKey(
+          workspace, 'moves', _movesCatalog());
 
       final after = await projectFile.readAsString();
       expect(after, before);
@@ -191,10 +223,11 @@ void main() {
           catchRate: 45,
           baseFriendship: 50,
         ),
-        evolutionRef: 'bulbasaur',
-        learnsetRef: 'bulbasaur',
-        spriteSetRef: 'bulbasaur',
-        cryRef: 'bulbasaur',
+        refs: PokemonSpeciesRefs(
+          learnset: 'bulbasaur',
+          evolution: 'bulbasaur',
+          media: 'bulbasaur',
+        ),
         dexContent: PokemonSpeciesDexContent(
           heightM: 0.7,
           weightKg: 6.9,
@@ -213,7 +246,8 @@ void main() {
       await writeRepository.saveSpecies(workspace, originalSpecies);
       await writeRepository.saveSpecies(workspace, updatedSpecies);
 
-      final readBack = await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      final readBack =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
       expect(readBack.names['en'], 'Bulbasaur Updated');
       expect(readBack.gameplayFlags.starterEligible, isFalse);
       expect(readBack.sourceMeta.seedVersion, 2);
@@ -254,10 +288,11 @@ void main() {
           catchRate: 45,
           baseFriendship: 50,
         ),
-        evolutionRef: 'bulbasaur',
-        learnsetRef: 'bulbasaur',
-        spriteSetRef: 'bulbasaur',
-        cryRef: 'bulbasaur',
+        refs: PokemonSpeciesRefs(
+          learnset: 'bulbasaur',
+          evolution: 'bulbasaur',
+          media: 'bulbasaur',
+        ),
         dexContent: PokemonSpeciesDexContent(
           heightM: 0.7,
           weightKg: 6.9,
@@ -281,14 +316,16 @@ void main() {
       );
       final speciesFiles = await speciesDir
           .list()
-          .where((entity) => entity is File && p.extension(entity.path) == '.json')
+          .where(
+              (entity) => entity is File && p.extension(entity.path) == '.json')
           .cast<File>()
           .toList();
 
       expect(speciesFiles, hasLength(1));
       expect(p.basename(speciesFiles.single.path), '0001-bulbasaur.json');
 
-      final readBack = await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      final readBack =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
       expect(readBack.id, 'bulbasaur');
       expect(readBack.slug, 'bulbizarre-custom');
       expect(readBack.names['en'], 'Bulbasaur Custom');
@@ -331,10 +368,11 @@ void main() {
           catchRate: 45,
           baseFriendship: 50,
         ),
-        evolutionRef: 'bulbasaur',
-        learnsetRef: 'bulbasaur',
-        spriteSetRef: 'bulbasaur',
-        cryRef: 'bulbasaur',
+        refs: PokemonSpeciesRefs(
+          learnset: 'bulbasaur',
+          evolution: 'bulbasaur',
+          media: 'bulbasaur',
+        ),
         dexContent: PokemonSpeciesDexContent(
           heightM: 0.7,
           weightKg: 6.9,
@@ -371,14 +409,16 @@ void main() {
           as Map<String, dynamic>;
 
       expect(decoded['id'], 'bulbasaur');
-      expect((decoded['names'] as Map<String, dynamic>)['en'], 'Bulbasaur Rewritten');
+      expect((decoded['names'] as Map<String, dynamic>)['en'],
+          'Bulbasaur Rewritten');
       expect(
         (decoded['sourceMeta'] as Map<String, dynamic>)['seedVersion'],
         4,
       );
     });
 
-    test('throws explicit conflict when multiple species files match the same id',
+    test(
+        'throws explicit conflict when multiple species files match the same id',
         () async {
       final originalSpecies = _bulbasaurSpecies();
       await writeRepository.saveSpecies(workspace, originalSpecies);
@@ -430,10 +470,11 @@ void main() {
               catchRate: 45,
               baseFriendship: 50,
             ),
-            evolutionRef: 'bulbasaur',
-            learnsetRef: 'bulbasaur',
-            spriteSetRef: 'bulbasaur',
-            cryRef: 'bulbasaur',
+            refs: PokemonSpeciesRefs(
+              learnset: 'bulbasaur',
+              evolution: 'bulbasaur',
+              media: 'bulbasaur',
+            ),
             dexContent: PokemonSpeciesDexContent(
               heightM: 0.7,
               weightKg: 6.9,
@@ -459,10 +500,12 @@ void main() {
       );
     });
 
-    test('throws explicit error when catalog key does not match payload', () async {
+    test('throws explicit error when catalog key does not match payload',
+        () async {
       await initializeStorage.execute(workspace);
       final before = await File(
-        workspace.resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
       ).readAsString();
 
       const abilitiesCatalog = PokemonCatalogFile(
@@ -498,7 +541,8 @@ void main() {
       );
 
       final after = await File(
-        workspace.resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
       ).readAsString();
       expect(after, before);
     });
@@ -510,7 +554,8 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir = Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir =
+        Directory(p.join(current.path, 'packages', 'map_editor'));
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }
@@ -559,10 +604,11 @@ PokemonSpeciesFile _bulbasaurSpecies() {
       catchRate: 45,
       baseFriendship: 50,
     ),
-    evolutionRef: 'bulbasaur',
-    learnsetRef: 'bulbasaur',
-    spriteSetRef: 'bulbasaur',
-    cryRef: 'bulbasaur',
+    refs: PokemonSpeciesRefs(
+      learnset: 'bulbasaur',
+      evolution: 'bulbasaur',
+      media: 'bulbasaur',
+    ),
     dexContent: PokemonSpeciesDexContent(
       heightM: 0.7,
       weightKg: 6.9,
@@ -598,6 +644,12 @@ PokemonLearnsetFile _bulbasaurLearnset() {
         versionGroup: 'demo',
       ),
     ],
+    tm: <PokemonLearnsetMoveEntry>[
+      PokemonLearnsetMoveEntry(
+        moveId: 'growl',
+        versionGroup: 'demo',
+      ),
+    ],
   );
 }
 
@@ -610,8 +662,35 @@ PokemonEvolutionFile _bulbasaurEvolution() {
         targetSpeciesId: 'ivysaur',
         method: 'level_up',
         minLevel: 16,
+        conditionText: <String, String>{
+          'en': 'Evolves at level 16',
+        },
       ),
     ],
+  );
+}
+
+PokemonMediaFile _bulbasaurMedia() {
+  return const PokemonMediaFile(
+    speciesId: 'bulbasaur',
+    defaultFormId: 'base',
+    variants: <String, PokemonMediaVariant>{
+      'base': PokemonMediaVariant(
+        frontStatic: 'assets/pokemon/sprites/bulbasaur/front.png',
+        backStatic: 'assets/pokemon/sprites/bulbasaur/back.png',
+        icon: 'assets/pokemon/sprites/bulbasaur/icon.png',
+        party: 'assets/pokemon/sprites/bulbasaur/party.png',
+        overworld: 'assets/pokemon/sprites/bulbasaur/overworld.png',
+        portrait: 'assets/pokemon/portraits/bulbasaur.png',
+        cry: 'assets/pokemon/cries/bulbasaur.ogg',
+        animations: <String, PokemonMediaAnimationRef>{
+          'battleFront': PokemonMediaAnimationRef(
+            sheet: 'assets/pokemon/sprites/bulbasaur/battle_front_sheet.png',
+            animationId: 'battle_front',
+          ),
+        },
+      ),
+    },
   );
 }
 

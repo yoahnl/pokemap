@@ -10,14 +10,12 @@ class PokemonDatabaseIndexRefs {
   const PokemonDatabaseIndexRefs({
     required this.learnset,
     required this.evolution,
-    required this.spriteSet,
-    required this.cry,
+    required this.media,
   });
 
   final String learnset;
   final String evolution;
-  final String spriteSet;
-  final String cry;
+  final String media;
 }
 
 /// Projection minimale d'une espece pour une future liste Pokédex.
@@ -90,10 +88,9 @@ class PokemonDatabaseIndexEntry {
       genIntroduced: species.genIntroduced,
       types: List<String>.from(speciesIndexEntry.types),
       refs: PokemonDatabaseIndexRefs(
-        learnset: species.learnsetRef.trim(),
-        evolution: species.evolutionRef.trim(),
-        spriteSet: species.spriteSetRef.trim(),
-        cry: species.cryRef.trim(),
+        learnset: species.refs.learnset.trim(),
+        evolution: species.refs.evolution.trim(),
+        media: species.refs.media.trim(),
       ),
     );
   }
