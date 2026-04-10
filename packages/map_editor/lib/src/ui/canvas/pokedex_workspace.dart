@@ -56,6 +56,7 @@ class _PokedexWorkspaceBody extends StatefulWidget {
 
 class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   late Future<List<PokemonDatabaseIndexEntry>> _entriesFuture;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -69,6 +70,11 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
     if (oldWidget.projectRootPath != widget.projectRootPath ||
         oldWidget.loader != widget.loader) {
       _entriesFuture = _buildEntriesFuture();
+      // La recherche du lot 14 reste un raffinement purement local de la vue :
+      // quand on change de workspace projet ou de source de chargement, on
+      // réinitialise la query pour éviter de conserver un filtre devenu
+      // trompeur sur une autre liste déjà chargée.
+      _searchQuery = '';
     }
   }
 
@@ -116,8 +122,90 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
           );
         }
 
-        return PokedexWorkspaceSpeciesList(entries: entries);
+        // Le lot 14 reste volontairement local à la UI :
+        // - on ne recharge pas le disque à chaque frappe ;
+        // - on ne crée pas de provider/notifier Pokédex dédié ;
+        // - on filtre simplement la liste déjà chargée en mémoire.
+        final filteredEntries = _filterEntries(entries, _searchQuery);
+        if (filteredEntries.isEmpty) {
+          // Important produit :
+          // - "aucune espèce importée" = la liste source est réellement vide ;
+          // - "aucun résultat" = la liste source existe mais la recherche ne
+          //   matche rien.
+          //
+          // On garde donc deux états distincts, mais on laisse le champ de
+          // recherche visible ici pour que la correction de la query reste
+          // immédiate et naturelle.
+          return PokedexWorkspaceSpeciesList(
+            entries: filteredEntries,
+            query: _searchQuery,
+            onQueryChanged: _updateSearchQuery,
+            emptyResultsChild:
+                PokedexWorkspaceNoResultsState(query: _searchQuery),
+          );
+        }
+
+        return PokedexWorkspaceSpeciesList(
+          entries: filteredEntries,
+          query: _searchQuery,
+          onQueryChanged: _updateSearchQuery,
+        );
       },
     );
+  }
+
+  void _updateSearchQuery(String value) {
+    if (value == _searchQuery) return;
+    setState(() => _searchQuery = value);
+  }
+
+  List<PokemonDatabaseIndexEntry> _filterEntries(
+    List<PokemonDatabaseIndexEntry> entries,
+    String query,
+  ) {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty) {
+      return entries;
+    }
+
+    final normalizedTextQuery = normalizedQuery.toLowerCase();
+    final normalizedDexQuery = _normalizeDexQuery(normalizedQuery);
+    final hasExactDexQuery = RegExp(r'^\d+$').hasMatch(normalizedDexQuery);
+
+    return entries.where((entry) {
+      final matchesName =
+          entry.primaryName.toLowerCase().contains(normalizedTextQuery);
+      final matchesId = entry.id.toLowerCase().contains(normalizedTextQuery);
+
+      // Règle produit explicite du lot 14 :
+      // - si la query ressemble à un numéro dex, on ne fait pas un `contains`
+      //   numérique ;
+      // - on compare exactement `1`, `0001`, `#1`, `#0001` au dex courant ;
+      // - cela évite qu'une recherche "1" remonte 10, 11, 21, etc.
+      final matchesDex = hasExactDexQuery &&
+          _matchesExactDexQuery(
+            entry: entry,
+            normalizedDexQuery: normalizedDexQuery,
+          );
+
+      return matchesName || matchesId || matchesDex;
+    }).toList(growable: false);
+  }
+
+  String _normalizeDexQuery(String query) {
+    final trimmed = query.trim();
+    if (!trimmed.startsWith('#')) {
+      return trimmed;
+    }
+    return trimmed.substring(1).trim();
+  }
+
+  bool _matchesExactDexQuery({
+    required PokemonDatabaseIndexEntry entry,
+    required String normalizedDexQuery,
+  }) {
+    final rawDex = entry.nationalDex.toString();
+    final paddedDex = entry.nationalDex.toString().padLeft(4, '0');
+    return normalizedDexQuery == rawDex || normalizedDexQuery == paddedDex;
   }
 }

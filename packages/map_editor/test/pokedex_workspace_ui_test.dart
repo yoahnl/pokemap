@@ -150,6 +150,320 @@ void main() {
     expect(find.textContaining('Delete'), findsNothing);
   });
 
+  testWidgets('shows the search field in the Pokédex workspace',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[
+          PokemonDatabaseIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'bulbasaur',
+              evolution: 'bulbasaur',
+              spriteSet: 'bulbasaur',
+              cry: 'bulbasaur',
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('pokedex-search-field')), findsOneWidget);
+    expect(
+      find.text('Rechercher par nom, id ou numéro dex'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('filters instantly by species primary name', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[
+          PokemonDatabaseIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'bulbasaur',
+              evolution: 'bulbasaur',
+              spriteSet: 'bulbasaur',
+              cry: 'bulbasaur',
+            ),
+          ),
+          PokemonDatabaseIndexEntry(
+            id: 'ivysaur',
+            nationalDex: 2,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'ivysaur',
+              evolution: 'ivysaur',
+              spriteSet: 'ivysaur',
+              cry: 'ivysaur',
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      'ivy',
+    );
+    await tester.pump();
+
+    expect(find.text('Ivysaur'), findsOneWidget);
+    expect(find.text('Bulbasaur'), findsNothing);
+  });
+
+  testWidgets('filters instantly by species id', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[
+          PokemonDatabaseIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'bulbasaur',
+              evolution: 'bulbasaur',
+              spriteSet: 'bulbasaur',
+              cry: 'bulbasaur',
+            ),
+          ),
+          PokemonDatabaseIndexEntry(
+            id: 'ivysaur',
+            nationalDex: 2,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'ivysaur',
+              evolution: 'ivysaur',
+              spriteSet: 'ivysaur',
+              cry: 'ivysaur',
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      'bulb',
+    );
+    await tester.pump();
+
+    expect(find.text('Bulbasaur'), findsOneWidget);
+    expect(find.text('Ivysaur'), findsNothing);
+  });
+
+  testWidgets('filters instantly by dex number with exact matching only',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[
+          PokemonDatabaseIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'bulbasaur',
+              evolution: 'bulbasaur',
+              spriteSet: 'bulbasaur',
+              cry: 'bulbasaur',
+            ),
+          ),
+          PokemonDatabaseIndexEntry(
+            id: 'ivysaur',
+            nationalDex: 10,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'ivysaur',
+              evolution: 'ivysaur',
+              spriteSet: 'ivysaur',
+              cry: 'ivysaur',
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      '#0001',
+    );
+    await tester.pump();
+
+    expect(find.text('Bulbasaur'), findsOneWidget);
+    expect(find.text('Ivysaur'), findsNothing);
+  });
+
+  testWidgets('empty query restores the full list', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[
+          PokemonDatabaseIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'bulbasaur',
+              evolution: 'bulbasaur',
+              spriteSet: 'bulbasaur',
+              cry: 'bulbasaur',
+            ),
+          ),
+          PokemonDatabaseIndexEntry(
+            id: 'ivysaur',
+            nationalDex: 2,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'ivysaur',
+              evolution: 'ivysaur',
+              spriteSet: 'ivysaur',
+              cry: 'ivysaur',
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      'ivy',
+    );
+    await tester.pump();
+    expect(find.text('Ivysaur'), findsOneWidget);
+    expect(find.text('Bulbasaur'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      '   ',
+    );
+    await tester.pump();
+
+    expect(find.text('Bulbasaur'), findsOneWidget);
+    expect(find.text('Ivysaur'), findsOneWidget);
+  });
+
+  testWidgets('shows a dedicated no results state when search matches nothing',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[
+          PokemonDatabaseIndexEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            refs: PokemonDatabaseIndexRefs(
+              learnset: 'bulbasaur',
+              evolution: 'bulbasaur',
+              spriteSet: 'bulbasaur',
+              cry: 'bulbasaur',
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      'zzz',
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('pokedex-no-results-state')), findsOneWidget);
+    expect(
+      find.textContaining('Aucun résultat pour cette recherche.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Recherche actuelle : "zzz"'), findsOneWidget);
+    // Le champ reste visible pour corriger immédiatement la query.
+    expect(find.byKey(const Key('pokedex-search-field')), findsOneWidget);
+  });
+
   testWidgets('shows a loading state before the species list resolves',
       (tester) async {
     final container = ProviderContainer();

@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:macos_ui/macos_ui.dart' show MacosIcon, ProgressCircle;
 
 import '../../application/errors/application_errors.dart';
 import '../../application/models/pokemon_database_index.dart';
@@ -89,6 +89,35 @@ class PokedexWorkspaceErrorState extends StatelessWidget {
   }
 }
 
+/// Etat dédié du lot 14 quand la recherche ne matche aucune entrée.
+///
+/// Il doit rester distinct de l'état "aucune espèce importée" :
+/// - ici, la base locale contient des espèces ;
+/// - c'est uniquement la query courante qui n'a trouvé aucun match.
+/// On garde donc un message sobre, non anxiogène, et différent d'une erreur.
+class PokedexWorkspaceNoResultsState extends StatelessWidget {
+  const PokedexWorkspaceNoResultsState({
+    super.key,
+    required this.query,
+  });
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedQuery = query.trim();
+    final suffix = normalizedQuery.isEmpty
+        ? ''
+        : '\nRecherche actuelle : "$normalizedQuery".';
+
+    return PokedexWorkspaceStateCard(
+      key: const Key('pokedex-no-results-state'),
+      title: 'Pokédex',
+      message: 'Aucun résultat pour cette recherche.$suffix',
+    );
+  }
+}
+
 /// Vue succès du lot 13.
 ///
 /// Elle reste volontairement limitée à la lecture :
@@ -99,9 +128,15 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
   const PokedexWorkspaceSpeciesList({
     super.key,
     required this.entries,
+    required this.query,
+    required this.onQueryChanged,
+    this.emptyResultsChild,
   });
 
   final List<PokemonDatabaseIndexEntry> entries;
+  final String query;
+  final ValueChanged<String> onQueryChanged;
+  final Widget? emptyResultsChild;
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +162,7 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Liste simple des espèces importées dans le projet. Le lot 13 s’arrête volontairement ici : pas de détail, pas d’édition, pas de filtres.',
+                'Liste simple des espèces importées dans le projet. Le lot 14 ajoute uniquement une recherche texte locale : pas de détail, pas d’édition, pas de filtres avancés.',
                 style: TextStyle(
                   color: subtle,
                   fontSize: 13,
@@ -135,22 +170,113 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
                   height: 1.45,
                 ),
               ),
+              const SizedBox(height: 14),
+              // Lot 14 : recherche texte simple, locale et instantanée.
+              //
+              // Intention volontairement stricte :
+              // - aucun aller-retour disque ;
+              // - aucun appel service/repository par frappe ;
+              // - aucun faux panneau de filtres ;
+              // - aucun outillage avancé des lots suivants.
+              _PokedexSearchField(
+                query: query,
+                onChanged: onQueryChanged,
+              ),
             ],
           ),
         ),
         const _PokedexListHeader(),
         const SizedBox(height: 8),
         Expanded(
-          child: ListView.separated(
-            key: const Key('pokedex-species-list'),
-            itemCount: entries.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              return _PokedexListRow(entry: entries[index]);
-            },
-          ),
+          child: emptyResultsChild ??
+              ListView.separated(
+                key: const Key('pokedex-species-list'),
+                itemCount: entries.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  return _PokedexListRow(entry: entries[index]);
+                },
+              ),
         ),
       ],
+    );
+  }
+}
+
+class _PokedexSearchField extends StatefulWidget {
+  const _PokedexSearchField({
+    required this.query,
+    required this.onChanged,
+  });
+
+  final String query;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_PokedexSearchField> createState() => _PokedexSearchFieldState();
+}
+
+class _PokedexSearchFieldState extends State<_PokedexSearchField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.query);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PokedexSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.query != _controller.text) {
+      _controller.value = TextEditingValue(
+        text: widget.query,
+        selection: TextSelection.collapsed(offset: widget.query.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final surface = EditorChrome.islandFillElevated(context);
+    final border = EditorChrome.accentWarm.withValues(alpha: 0.28);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              CupertinoIcons.search,
+              color: subtle,
+              size: 16,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: CupertinoTextField.borderless(
+                key: const Key('pokedex-search-field'),
+                controller: _controller,
+                onChanged: widget.onChanged,
+                clearButtonMode: OverlayVisibilityMode.editing,
+                placeholder: 'Rechercher par nom, id ou numéro dex',
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
