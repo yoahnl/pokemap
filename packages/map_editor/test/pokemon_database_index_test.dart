@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
+import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
@@ -41,6 +42,34 @@ void main() {
     if (await tempProjectRoot.exists()) {
       await tempProjectRoot.delete(recursive: true);
     }
+  });
+
+  group('PokemonSpeciesIndexEntry.fromJson', () {
+    test('keeps the historical lightweight projection local to the model', () {
+      // Ce test verrouille explicitement la retenue demandee pour le mini-fix
+      // final du lot 11 :
+      // - la projection legacy continue de lire du JSON brut ;
+      // - elle ne depend pas du contrat complet de `PokemonSpeciesFile` ;
+      // - le durcissement du lot 11 reste local au pipeline
+      //   `PokemonDatabaseIndex`, pas a ce modele historique.
+      final entry = PokemonSpeciesIndexEntry.fromJson(
+        <String, dynamic>{
+          'id': 'bulbasaur',
+          'nationalDex': 1,
+          'names': <String, String>{'en': 'Bulbasaur'},
+          'typing': <String, dynamic>{
+            'types': <String>['grass', 'poison'],
+          },
+        },
+        relativePath: 'data/pokemon/species/0001-bulbasaur.json',
+      );
+
+      expect(entry.id, 'bulbasaur');
+      expect(entry.nationalDex, 1);
+      expect(entry.primaryName, 'Bulbasaur');
+      expect(entry.types, <String>['grass', 'poison']);
+      expect(entry.relativePath, 'data/pokemon/species/0001-bulbasaur.json');
+    });
   });
 
   group('PokemonDatabaseIndex', () {

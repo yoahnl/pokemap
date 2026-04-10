@@ -146,21 +146,42 @@ class PokemonSpeciesIndexEntry {
     Map<String, dynamic> json, {
     required String relativePath,
   }) {
-    // Cette factory legacy reste disponible pour les call sites qui ont
-    // encore du JSON brut, mais elle délègue désormais au vrai modèle espèce.
+    // Cette factory garde volontairement son contrat historique le plus proche
+    // possible de l'etat pre-lot-11 :
+    // - elle accepte encore du JSON brut ;
+    // - elle ne force pas les call sites legacy a passer par
+    //   `PokemonSpeciesFile.fromJson(...)` ;
+    // - elle ne "profite" pas du nettoyage du lot 11 pour durcir une
+    //   projection legere deja existante ailleurs dans l'application.
     //
-    // On évite ainsi d'entretenir deux projections concurrentes du même JSON :
-    // la version détaillée `PokemonSpeciesFile` reste la source de vérité.
-    return PokemonSpeciesIndexEntry.fromSpeciesFile(
-      PokemonSpeciesFile.fromJson(json),
+    // Le nettoyage du lot 11 reste local au pipeline
+    // `PokemonProjectDataReader.listDatabaseIndexEntries(...)`, qui travaille
+    // deja a partir d'une espece detaillee parsee une seule fois. Ici, on
+    // preserve donc la lecture legere historique au lieu de deplacer son
+    // contrat vers le modele detaille.
+    final names = _readStringMap(json['names']);
+    return PokemonSpeciesIndexEntry(
+      id: (json['id'] as String?)?.trim() ?? '',
+      nationalDex: (json['nationalDex'] as num?)?.toInt() ?? 0,
+      primaryName:
+          _pickPrimaryName(names) ?? (json['id'] as String?)?.trim() ?? '',
+      types: PokemonSpeciesTyping.fromJson(
+        (json['typing'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ).types,
       relativePath: relativePath,
     );
   }
 
   /// Construit la projection légère à partir d'une espèce déjà parsée.
   ///
-  /// Le but est de centraliser la logique de projection liste sur une source
-  /// de vérité unique, plutôt que de reparser le JSON dans plusieurs modèles.
+  /// Cette aide existe uniquement pour les call sites qui ont deja parse
+  /// `PokemonSpeciesFile`, notamment le pipeline d'indexation local du lot 11.
+  ///
+  /// Elle ne remplace pas la factory legacy `fromJson(...)` ci-dessus :
+  /// on garde volontairement les deux points d'entree pour eviter que le
+  /// mini-fix du lot 11 change inutilement le contrat historique de
+  /// `PokemonSpeciesIndexEntry`.
   factory PokemonSpeciesIndexEntry.fromSpeciesFile(
     PokemonSpeciesFile species, {
     required String relativePath,
