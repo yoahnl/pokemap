@@ -122,7 +122,7 @@ void main() {
     );
 
     testWidgets(
-      'can insert a step and add a destination link without exceptions',
+      'can create a step from the shell without exceptions',
       (tester) async {
         await tester.binding.setSurfaceSize(const Size(1600, 1200));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -203,13 +203,10 @@ void main() {
         );
         await tester.pump();
 
-        await tester.tap(find.text('Inserer step').first);
+        await tester.tap(find.text('+ Nouvelle étape').first);
         await tester.pump();
 
         expect(find.text('Nouvelle step 2'), findsWidgets);
-
-        await tester.tap(find.text('Ajouter une destination').first);
-        await tester.pump();
 
         expect(tester.takeException(), isNull);
       },

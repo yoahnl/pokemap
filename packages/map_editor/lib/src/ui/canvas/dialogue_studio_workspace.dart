@@ -26,6 +26,9 @@ import '../../features/dialogue/application/mistral_dialogue_client.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
+part 'dialogue_studio/dialogs/dialogue_studio_dialogs.dart';
+part 'dialogue_studio/widgets/library/dialogue_library_tree.dart';
+part 'dialogue_studio/widgets/canvas/dialogue_canvas_cards.dart';
 
 /// Sélection d’un bloc dans le graphe (racine d’un nœud ou branche de choix).
 @immutable
@@ -65,7 +68,8 @@ class DialogueStudioWorkspace extends ConsumerStatefulWidget {
       _DialogueStudioWorkspaceState();
 }
 
-class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspace> {
+class _DialogueStudioWorkspaceState
+    extends ConsumerState<DialogueStudioWorkspace> {
   DialogueEditorDocument? _doc;
   String? _loadedDialogueId;
   bool _loading = false;
@@ -181,17 +185,21 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
 
     final project = editor.project;
     if (project == null) {
-      return const Center(child: Text('Charger un projet pour Dialogue Studio.'));
+      return const Center(
+          child: Text('Charger un projet pour Dialogue Studio.'));
     }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(width: 300, child: _buildLibraryColumn(context, editor, notifier)),
+        SizedBox(
+            width: 300, child: _buildLibraryColumn(context, editor, notifier)),
         const SizedBox(width: 10),
         Expanded(child: _buildCenterColumn(context, editor, notifier)),
         const SizedBox(width: 10),
-        SizedBox(width: 320, child: _buildInspectorColumn(context, editor, notifier)),
+        SizedBox(
+            width: 320,
+            child: _buildInspectorColumn(context, editor, notifier)),
       ],
     );
   }
@@ -268,10 +276,12 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                 const SizedBox(height: 6),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  onPressed: () => setState(() => _sidebarTargetFolderId = null),
+                  onPressed: () =>
+                      setState(() => _sidebarTargetFolderId = null),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
@@ -304,7 +314,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ],
@@ -445,30 +456,31 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                   ),
                 ),
                 ...tree.rootDialogues.where(matchEntry).map(
-                  (d) => _DialogueEntryRow(
-                    entry: d,
-                    selected: editor.selectedProjectDialogueId == d.id,
-                    depth: 0,
-                    onTap: () {
-                      notifier.selectProjectDialogue(d.id);
-                      setState(() {
-                        final p = d.folderId?.trim() ?? '';
-                        _sidebarTargetFolderId = p.isEmpty ? null : p;
-                      });
-                    },
-                    onMenuButton: (btnCtx) => _openStudioDialogueEntryMenu(
-                      context,
-                      project,
-                      notifier,
-                      d,
-                      editorMenuAnchorBelowWidget(btnCtx),
+                      (d) => _DialogueEntryRow(
+                        entry: d,
+                        selected: editor.selectedProjectDialogueId == d.id,
+                        depth: 0,
+                        onTap: () {
+                          notifier.selectProjectDialogue(d.id);
+                          setState(() {
+                            final p = d.folderId?.trim() ?? '';
+                            _sidebarTargetFolderId = p.isEmpty ? null : p;
+                          });
+                        },
+                        onMenuButton: (btnCtx) => _openStudioDialogueEntryMenu(
+                          context,
+                          project,
+                          notifier,
+                          d,
+                          editorMenuAnchorBelowWidget(btnCtx),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
               ],
             ),
           ),
-          if (editor.selectedProjectDialogueId != null) _selectionInfoCard(context, editor, notifier),
+          if (editor.selectedProjectDialogueId != null)
+            _selectionInfoCard(context, editor, notifier),
         ],
       ),
     );
@@ -538,7 +550,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     minimumSize: Size.zero,
                     onPressed: () => _promptRename(context, notifier, entry!),
-                    child: const Text('Renommer', style: TextStyle(fontSize: 12)),
+                    child:
+                        const Text('Renommer', style: TextStyle(fontSize: 12)),
                   ),
                 ),
                 Expanded(
@@ -551,7 +564,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                       editor.project!,
                       entry!,
                     ),
-                    child: const Text('Déplacer…', style: TextStyle(fontSize: 12)),
+                    child:
+                        const Text('Déplacer…', style: TextStyle(fontSize: 12)),
                   ),
                 ),
               ],
@@ -563,7 +577,7 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     minimumSize: Size.zero,
                     onPressed: () => notifier.deleteProjectDialogue(entry!.id),
-                    child: Text(
+                    child: const Text(
                       'Supprimer',
                       style: TextStyle(
                         fontSize: 12,
@@ -624,7 +638,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
               children: [
                 Text(
                   'Dialogue : $entryName',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 15),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -649,18 +664,23 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                 const Spacer(),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  onPressed: _aiBusy ? null : () => _runAiGeneration(notifier, append: false),
+                  onPressed: _aiBusy
+                      ? null
+                      : () => _runAiGeneration(notifier, append: false),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: EditorChrome.inspectorJoyBlue,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: _aiBusy
-                        ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+                        ? const CupertinoActivityIndicator(
+                            color: CupertinoColors.white)
                         : const Text(
                             'Générer avec IA',
-                            style: TextStyle(color: CupertinoColors.white, fontSize: 12),
+                            style: TextStyle(
+                                color: CupertinoColors.white, fontSize: 12),
                           ),
                   ),
                 ),
@@ -668,22 +688,27 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                 CupertinoButton(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  onPressed: _aiBusy ? null : () => _runAiGeneration(notifier, append: true),
-                  child: const Text('Continuer avec IA', style: TextStyle(fontSize: 12)),
+                  onPressed: _aiBusy
+                      ? null
+                      : () => _runAiGeneration(notifier, append: true),
+                  child: const Text('Continuer avec IA',
+                      style: TextStyle(fontSize: 12)),
                 ),
                 const SizedBox(width: 6),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: () => _save(notifier, id),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: EditorChrome.accentJade,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       'Sauvegarder',
-                      style: TextStyle(color: CupertinoColors.white, fontSize: 12),
+                      style:
+                          TextStyle(color: CupertinoColors.white, fontSize: 12),
                     ),
                   ),
                 ),
@@ -730,7 +755,7 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                   const SizedBox(height: 8),
                   Text(
                     _iaError!,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       color: EditorChrome.inspectorJoyCoral,
                     ),
@@ -803,7 +828,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
       decoration: BoxDecoration(
         color: CupertinoColors.systemBackground.resolveFrom(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+        border:
+            Border.all(color: CupertinoColors.separator.resolveFrom(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -831,7 +857,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
               ],
             ),
           ),
-          Container(height: 1, color: CupertinoColors.separator.resolveFrom(context)),
+          Container(
+              height: 1, color: CupertinoColors.separator.resolveFrom(context)),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -865,13 +892,19 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
         child: Row(
           children: [
             _addLabel(context, 'Ajouter :'),
-            _addKindButton(context, 'Réplique', () => _appendNewStep(_newLine())),
-            _addKindButton(context, 'Narration', () => _appendNewStep(_newNarration())),
-            _addKindButton(context, 'Choix', () => _appendNewStep(_newChoice())),
-            _addKindButton(context, 'Condition', () => _appendNewStep(_newCondition())),
+            _addKindButton(
+                context, 'Réplique', () => _appendNewStep(_newLine())),
+            _addKindButton(
+                context, 'Narration', () => _appendNewStep(_newNarration())),
+            _addKindButton(
+                context, 'Choix', () => _appendNewStep(_newChoice())),
+            _addKindButton(
+                context, 'Condition', () => _appendNewStep(_newCondition())),
             _addKindButton(context, 'Jump', () => _appendNewStep(_newJump())),
-            _addKindButton(context, 'Fin', () => _appendNewStep(DeEndStep(id: newDialogueEditorId()))),
-            _addKindButton(context, 'Commande', () => _appendNewStep(_newCommand())),
+            _addKindButton(context, 'Fin',
+                () => _appendNewStep(DeEndStep(id: newDialogueEditorId()))),
+            _addKindButton(
+                context, 'Commande', () => _appendNewStep(_newCommand())),
           ],
         ),
       ),
@@ -892,7 +925,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
     );
   }
 
-  Widget _addKindButton(BuildContext context, String label, VoidCallback onTap) {
+  Widget _addKindButton(
+      BuildContext context, String label, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: CupertinoButton(
@@ -901,7 +935,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
         color: CupertinoColors.white,
         borderRadius: BorderRadius.circular(8),
         onPressed: onTap,
-        child: Text(label, style: const TextStyle(fontSize: 11, color: Colors.black87)),
+        child: Text(label,
+            style: const TextStyle(fontSize: 11, color: Colors.black87)),
       ),
     );
   }
@@ -913,7 +948,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
       decoration: BoxDecoration(
         color: CupertinoColors.systemBackground.resolveFrom(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+        border:
+            Border.all(color: CupertinoColors.separator.resolveFrom(context)),
       ),
       child: Column(
         children: [
@@ -925,18 +961,21 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                   padding: EdgeInsets.zero,
                   onPressed: () {
                     setState(() {
-                      _preview = DialoguePreviewSession(_doc!, startNodeTitle: null);
+                      _preview =
+                          DialoguePreviewSession(_doc!, startNodeTitle: null);
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: EditorChrome.inspectorJoyBlue,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       'Rejouer depuis le début',
-                      style: TextStyle(color: CupertinoColors.white, fontSize: 12),
+                      style:
+                          TextStyle(color: CupertinoColors.white, fontSize: 12),
                     ),
                   ),
                 ),
@@ -952,7 +991,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                 return switch (ev) {
                   DialoguePreviewLine(:final displayText) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(displayText, style: const TextStyle(fontSize: 14)),
+                      child: Text(displayText,
+                          style: const TextStyle(fontSize: 14)),
                     ),
                   DialoguePreviewChoicePrompt(:final options) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -971,9 +1011,11 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                                 },
                                 child: Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.25),
+                                    color: EditorChrome.inspectorJoyMint
+                                        .withValues(alpha: 0.25),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   alignment: Alignment.center,
@@ -997,7 +1039,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                         style: TextStyle(
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
-                          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                          color: CupertinoColors.secondaryLabel
+                              .resolveFrom(context),
                         ),
                       ),
                     ),
@@ -1017,7 +1060,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
       decoration: BoxDecoration(
         color: CupertinoColors.systemBackground.resolveFrom(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+        border:
+            Border.all(color: CupertinoColors.separator.resolveFrom(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1061,7 +1105,9 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
     EditorState editor,
     EditorNotifier notifier,
   ) {
-    final issues = _doc == null ? <DialogueValidationIssue>[] : validateDialogueDocument(_doc!);
+    final issues = _doc == null
+        ? <DialogueValidationIssue>[]
+        : validateDialogueDocument(_doc!);
 
     return EditorPaneSurface(
       radius: 20,
@@ -1097,7 +1143,7 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
           else
             _buildInspectorBody(context, notifier),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Validation',
             style: TextStyle(
               fontWeight: FontWeight.w800,
@@ -1156,7 +1202,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
             _fieldLabel(context, 'Interlocuteur'),
             CupertinoTextField(
               controller: TextEditingController(text: speaker ?? ''),
-              onChanged: (v) => _patchLine(sel, speaker: v.trim().isEmpty ? null : v.trim(), body: body),
+              onChanged: (v) => _patchLine(sel,
+                  speaker: v.trim().isEmpty ? null : v.trim(), body: body),
               placeholder: 'hero, professor…',
               padding: const EdgeInsets.all(10),
             ),
@@ -1196,7 +1243,9 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
             ),
             const SizedBox(height: 8),
             for (var i = 0; i < branches.length; i++) ...[
-              Text('Option ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11)),
+              Text('Option ${i + 1}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 11)),
               CupertinoTextField(
                 controller: TextEditingController(text: branches[i].label),
                 onChanged: (v) => _patchChoiceLabel(sel, branches[i].id, v),
@@ -1209,7 +1258,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
               onPressed: () => _addChoiceOption(sel),
               child: const Align(
                 alignment: Alignment.centerLeft,
-                child: Text('+ Ajouter une option', style: TextStyle(fontSize: 12)),
+                child: Text('+ Ajouter une option',
+                    style: TextStyle(fontSize: 12)),
               ),
             ),
             const SizedBox(height: 8),
@@ -1251,7 +1301,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
             ),
           ],
         ),
-      DeEndStep() => const Text('Fin de conversation (marqueur pour le montage).'),
+      DeEndStep() =>
+        const Text('Fin de conversation (marqueur pour le montage).'),
     };
   }
 
@@ -1269,11 +1320,12 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
     );
   }
 
-  Widget _aiMiniActions(BuildContext context, _StepSelection sel, {required String kind}) {
+  Widget _aiMiniActions(BuildContext context, _StepSelection sel,
+      {required String kind}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
+        const Text(
           'Actions IA',
           style: TextStyle(
             fontSize: 10,
@@ -1294,17 +1346,21 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
-              child: const Text('Générer 3 libellés', style: TextStyle(fontSize: 12)),
+              child: const Text('Générer 3 libellés',
+                  style: TextStyle(fontSize: 12)),
             ),
           ),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          onPressed: _aiBusy ? null : () => _runBlockRephrase(sel, tone: 'warmer'),
-          child: const Text('Rendre plus chaleureux', style: TextStyle(fontSize: 12)),
+          onPressed:
+              _aiBusy ? null : () => _runBlockRephrase(sel, tone: 'warmer'),
+          child: const Text('Rendre plus chaleureux',
+              style: TextStyle(fontSize: 12)),
         ),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          onPressed: _aiBusy ? null : () => _runBlockRephrase(sel, tone: 'shorter'),
+          onPressed:
+              _aiBusy ? null : () => _runBlockRephrase(sel, tone: 'shorter'),
           child: const Text('Raccourcir', style: TextStyle(fontSize: 12)),
         ),
       ],
@@ -1313,7 +1369,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
 
   // --- Mutations document ---------------------------------------------------
 
-  DialogueEditorStep? _findStep(DialogueEditorDocument doc, _StepSelection sel) {
+  DialogueEditorStep? _findStep(
+      DialogueEditorDocument doc, _StepSelection sel) {
     final node = doc.nodeById(sel.nodeId);
     if (node == null) return null;
     if (sel.branchId == null) {
@@ -1484,7 +1541,8 @@ class _DialogueStudioWorkspaceState extends ConsumerState<DialogueStudioWorkspac
         ],
       );
 
-  DeJumpStep _newJump() => DeJumpStep(id: newDialogueEditorId(), targetTitle: '');
+  DeJumpStep _newJump() =>
+      DeJumpStep(id: newDialogueEditorId(), targetTitle: '');
 
   DeConditionStep _newCondition() =>
       DeConditionStep(id: newDialogueEditorId(), raw: '<<if \$flag>>');
@@ -1503,7 +1561,8 @@ Règles strictes :
 - Réponds en français. Pas de markdown, pas de commentaire hors du Yarn.
 ''';
 
-  Future<void> _runAiGeneration(EditorNotifier notifier, {required bool append}) async {
+  Future<void> _runAiGeneration(EditorNotifier notifier,
+      {required bool append}) async {
     final key = _resolveMistralApiKey();
     final instr = _instructionController.text.trim();
     if (instr.isEmpty) {
@@ -1553,7 +1612,8 @@ Règles strictes :
     }
   }
 
-  Future<void> _runBlockRephrase(_StepSelection sel, {required String tone}) async {
+  Future<void> _runBlockRephrase(_StepSelection sel,
+      {required String tone}) async {
     final step = _findStep(_doc!, sel);
     if (step == null) return;
     final key = _resolveMistralApiKey();
@@ -1641,714 +1701,4 @@ Règles strictes :
       if (mounted) setState(() => _aiBusy = false);
     }
   }
-
-  // --- Menus dossiers / déplacement (use cases réels du notifier) -----------
-
-  Future<void> _openStudioDialogueFolderMenu(
-    BuildContext hostContext,
-    ProjectManifest project,
-    EditorNotifier notifier,
-    ProjectDialogueFolder folder, {
-    required Offset anchorGlobal,
-  }) async {
-    final action = await showMacosEditorContextMenu<String>(
-      context: hostContext,
-      globalPosition: anchorGlobal,
-      actions: const [
-        MacosEditorSheetAction(label: 'Renommer le dossier', value: 'rename'),
-        MacosEditorSheetAction(label: 'Nouveau sous-dossier', value: 'sub'),
-        MacosEditorSheetAction(label: 'Déplacer le dossier…', value: 'move'),
-        MacosEditorSheetAction(
-          label: 'Supprimer le dossier',
-          value: 'delete',
-          isDestructive: true,
-        ),
-      ],
-    );
-    if (!hostContext.mounted || action == null) return;
-    switch (action) {
-      case 'rename':
-        await _promptRenameDialogueFolder(hostContext, notifier, folder);
-      case 'sub':
-        await _promptNewFolder(hostContext, notifier, parentFolderId: folder.id);
-      case 'move':
-        await _pickMoveDialogueLibraryFolder(hostContext, project, notifier, folder.id);
-      case 'delete':
-        final ok = await showMacosEditorTwoChoiceAlert(
-          hostContext,
-          title: 'Supprimer le dossier ?',
-          message:
-              'Les dialogues qu’il contient doivent être déplacés ailleurs avant suppression.',
-          primaryLabel: 'Supprimer',
-          primaryIsDestructive: true,
-        );
-        if (ok && hostContext.mounted) {
-          await notifier.deleteDialogueLibraryFolder(folder.id);
-        }
-    }
-  }
-
-  Future<void> _openStudioDialogueEntryMenu(
-    BuildContext hostContext,
-    ProjectManifest project,
-    EditorNotifier notifier,
-    ProjectDialogueEntry entry,
-    Offset anchor,
-  ) async {
-    final inFolder = entry.folderId != null && entry.folderId!.trim().isNotEmpty;
-    final action = await showMacosEditorContextMenu<String>(
-      context: hostContext,
-      globalPosition: anchor,
-      actions: [
-        const MacosEditorSheetAction(label: 'Renommer', value: 'rename'),
-        const MacosEditorSheetAction(label: 'Déplacer vers un dossier…', value: 'move'),
-        if (inFolder)
-          const MacosEditorSheetAction(
-            label: 'Mettre à la racine',
-            value: 'root',
-          ),
-      ],
-    );
-    if (!hostContext.mounted || action == null) return;
-    switch (action) {
-      case 'rename':
-        await _promptRename(hostContext, notifier, entry);
-      case 'move':
-        await _promptMoveDialogueToFolder(hostContext, notifier, project, entry);
-      case 'root':
-        await notifier.moveDialogueToLibraryRoot(entry.id);
-    }
-  }
-
-  Future<void> _promptRenameDialogueFolder(
-    BuildContext context,
-    EditorNotifier notifier,
-    ProjectDialogueFolder folder,
-  ) async {
-    final c = TextEditingController(text: folder.name);
-    final ok = await showMacosEditorPromptSheet(
-      context,
-      title: 'Renommer le dossier',
-      controller: c,
-      confirmLabel: 'Enregistrer',
-      placeholder: 'Nom',
-      compact: true,
-    );
-    if (!ok || !context.mounted) return;
-    final name = c.text.trim();
-    if (name.isEmpty) return;
-    await notifier.renameDialogueLibraryFolder(folderId: folder.id, name: name);
-  }
-
-  Future<void> _pickMoveDialogueLibraryFolder(
-    BuildContext context,
-    ProjectManifest project,
-    EditorNotifier notifier,
-    String folderId,
-  ) async {
-    final blocked = dialogueFolderSubtreeIds(project, folderId);
-    final options = <_DialogueFolderMoveOption>[
-      const _DialogueFolderMoveOption('Racine des dossiers', null),
-    ];
-    for (final row in flattenDialogueFoldersForPicker(project)) {
-      if (row.id == folderId) continue;
-      if (blocked.contains(row.id)) continue;
-      options.add(_DialogueFolderMoveOption(row.label, row.id));
-    }
-    final picked = await showCupertinoListPicker<_DialogueFolderMoveOption>(
-      context: context,
-      title: 'Déplacer le dossier vers…',
-      items: options,
-      labelOf: (o) => o.label,
-    );
-    if (picked == null || !context.mounted) return;
-    await notifier.moveDialogueLibraryFolder(
-      folderId: folderId,
-      newParentFolderId: picked.newParentId,
-    );
-  }
-
-  Future<void> _promptMoveDialogueToFolder(
-    BuildContext context,
-    EditorNotifier notifier,
-    ProjectManifest project,
-    ProjectDialogueEntry entry,
-  ) async {
-    final options = <_AssignDialogueFolderDest>[
-      const _AssignDialogueFolderDest('Racine (hors dossier)', null),
-      ...flattenDialogueFoldersForPicker(project)
-          .map((r) => _AssignDialogueFolderDest(r.label, r.id)),
-    ];
-    final picked = await showCupertinoListPicker<_AssignDialogueFolderDest>(
-      context: context,
-      title: 'Ranger le dialogue dans…',
-      items: options,
-      labelOf: (o) => o.label,
-    );
-    if (picked == null || !context.mounted) return;
-    if (picked.folderId == null) {
-      await notifier.moveDialogueToLibraryRoot(entry.id);
-    } else {
-      await notifier.assignDialogueToLibraryFolder(
-        dialogueId: entry.id,
-        folderId: picked.folderId!,
-      );
-    }
-  }
-
-  // --- Persistance / prompts ------------------------------------------------
-
-  Future<void> _save(EditorNotifier notifier, String dialogueId) async {
-    if (_doc == null) return;
-    final yarn = emitDocumentToYarn(_doc!);
-    await notifier.saveProjectDialogueYarnBody(
-      dialogueId: dialogueId,
-      yarnBody: yarn,
-    );
-  }
-
-  Future<void> _promptNewDialogue(BuildContext context, EditorNotifier n) async {
-    final c = TextEditingController();
-    final ok = await showMacosEditorPromptSheet(
-      context,
-      title: 'Nouveau dialogue',
-      controller: c,
-      confirmLabel: 'Créer',
-      placeholder: 'Nom affiché',
-    );
-    if (!ok || !context.mounted) return;
-    final name = c.text.trim();
-    if (name.isEmpty) return;
-    await n.createProjectDialogue(
-      name: name,
-      folderId: _sidebarTargetFolderId,
-    );
-    n.selectDialogueWorkspace();
-  }
-
-  Future<void> _promptNewFolder(
-    BuildContext context,
-    EditorNotifier n, {
-    String? parentFolderId,
-  }) async {
-    final c = TextEditingController();
-    final ok = await showMacosEditorPromptSheet(
-      context,
-      title: parentFolderId == null ? 'Nouveau dossier' : 'Nouveau sous-dossier',
-      controller: c,
-      confirmLabel: 'Créer',
-      placeholder: 'Nom du dossier',
-    );
-    if (!ok || !context.mounted) return;
-    final name = c.text.trim();
-    if (name.isEmpty) return;
-    await n.createDialogueLibraryFolder(
-      name: name,
-      parentFolderId: parentFolderId ?? _sidebarTargetFolderId,
-    );
-  }
-
-  Future<void> _importProjectDialogue(
-    BuildContext context,
-    EditorNotifier notifier,
-  ) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['yarn', 'txt'],
-    );
-    if (result == null || result.files.single.path == null) return;
-    final path = result.files.single.path!;
-    if (!context.mounted) return;
-    final baseName =
-        p.basenameWithoutExtension(path).replaceAll(RegExp(r'[^\w\-]+'), '_');
-    final nameController = TextEditingController(text: baseName);
-    final ok = await showMacosEditorPromptSheet(
-      context,
-      title: 'Importer un dialogue',
-      controller: nameController,
-      confirmLabel: 'Importer',
-      placeholder: 'Nom dans le projet',
-    );
-    if (!ok || !context.mounted) return;
-    final displayName = nameController.text.trim();
-    if (displayName.isEmpty) return;
-    await notifier.importProjectDialogue(
-      absoluteSourcePath: path,
-      displayName: displayName,
-      folderId: _sidebarTargetFolderId,
-    );
-  }
-
-  Future<void> _promptRename(
-    BuildContext context,
-    EditorNotifier n,
-    ProjectDialogueEntry entry,
-  ) async {
-    final c = TextEditingController(text: entry.name);
-    final ok = await showMacosEditorPromptSheet(
-      context,
-      title: 'Renommer le dialogue',
-      controller: c,
-      confirmLabel: 'Enregistrer',
-      placeholder: 'Nom',
-    );
-    if (!ok || !context.mounted) return;
-    final name = c.text.trim();
-    if (name.isEmpty) return;
-    await n.renameProjectDialogue(dialogueId: entry.id, newName: name);
-  }
-}
-
-// --- Sous-widgets canvas ----------------------------------------------------
-
-/// Nœud dossier : repliable, cible d’import/création au tap sur le nom, menu ⋯ branché au notifier.
-class _StudioDialogueFolderTreeNode extends StatefulWidget {
-  const _StudioDialogueFolderTreeNode({
-    required this.branch,
-    required this.depth,
-    required this.project,
-    required this.selectedDialogueId,
-    required this.targetFolderId,
-    required this.filter,
-    required this.onDialogueTap,
-    required this.onFolderTargetTap,
-    required this.onFolderMenu,
-    required this.onDialogueEntryMenuButton,
-  });
-
-  final DialogueLibraryBranch branch;
-  final int depth;
-  final ProjectManifest project;
-  final String? selectedDialogueId;
-  final String? targetFolderId;
-  final bool Function(ProjectDialogueEntry) filter;
-  final void Function(String dialogueId, String? parentFolderId) onDialogueTap;
-  final ValueChanged<String> onFolderTargetTap;
-  final void Function(BuildContext buttonContext, ProjectDialogueFolder folder)
-      onFolderMenu;
-  /// Bouton ⋯ : [BuildContext] du bouton sert à ancrer le menu macOS.
-  final void Function(ProjectDialogueEntry entry, BuildContext menuButtonContext)
-      onDialogueEntryMenuButton;
-
-  @override
-  State<_StudioDialogueFolderTreeNode> createState() =>
-      _StudioDialogueFolderTreeNodeState();
-}
-
-class _StudioDialogueFolderTreeNodeState extends State<_StudioDialogueFolderTreeNode> {
-  /// État UI local de repli — ne duplique pas la hiérarchie manifeste.
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final f = widget.branch.folder;
-    final isTarget = widget.targetFolderId == f.id;
-    final left = widget.depth * 12.0 + 4;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(left: left, top: 4, bottom: 2),
-          child: Row(
-            children: [
-              CupertinoButton(
-                padding: const EdgeInsets.all(4),
-                minimumSize: Size.zero,
-                onPressed: () => setState(() => _expanded = !_expanded),
-                child: AnimatedRotation(
-                  turns: _expanded ? 0.25 : 0,
-                  duration: const Duration(milliseconds: 140),
-                  child: MacosIcon(
-                    CupertinoIcons.chevron_right,
-                    size: 14,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                  minimumSize: Size.zero,
-                  alignment: Alignment.centerLeft,
-                  onPressed: () => widget.onFolderTargetTap(f.id),
-                  child: Row(
-                    children: [
-                      MacosIcon(
-                        CupertinoIcons.folder_fill,
-                        size: 15,
-                        color: isTarget
-                            ? EditorChrome.inspectorJoyBlue
-                            : CupertinoColors.secondaryLabel.resolveFrom(context),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          f.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: isTarget
-                                ? EditorChrome.inspectorJoyBlue
-                                : CupertinoColors.label.resolveFrom(context),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Builder(
-                builder: (btnContext) => EditorToolbarIconButton(
-                  icon: CupertinoIcons.ellipsis_vertical,
-                  tooltip: 'Actions dossier',
-                  iconSize: 16,
-                  onPressed: () => widget.onFolderMenu(btnContext, f),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (_expanded) ...[
-          ...widget.branch.childFolders.map(
-            (c) => _StudioDialogueFolderTreeNode(
-              branch: c,
-              depth: widget.depth + 1,
-              project: widget.project,
-              selectedDialogueId: widget.selectedDialogueId,
-              targetFolderId: widget.targetFolderId,
-              filter: widget.filter,
-              onDialogueTap: widget.onDialogueTap,
-              onFolderTargetTap: widget.onFolderTargetTap,
-              onFolderMenu: widget.onFolderMenu,
-              onDialogueEntryMenuButton: widget.onDialogueEntryMenuButton,
-            ),
-          ),
-          ...widget.branch.dialogues.where(widget.filter).map(
-                (d) => _DialogueEntryRow(
-                  entry: d,
-                  selected: widget.selectedDialogueId == d.id,
-                  depth: widget.depth + 1,
-                  onTap: () => widget.onDialogueTap(d.id, d.folderId),
-                  onMenuButton: (btnCtx) =>
-                      widget.onDialogueEntryMenuButton(d, btnCtx),
-                ),
-              ),
-        ],
-      ],
-    );
-  }
-}
-
-class _DialogueEntryRow extends StatelessWidget {
-  const _DialogueEntryRow({
-    required this.entry,
-    required this.selected,
-    required this.depth,
-    required this.onTap,
-    this.onMenuButton,
-  });
-
-  final ProjectDialogueEntry entry;
-  final bool selected;
-  final int depth;
-  final VoidCallback onTap;
-  final void Function(BuildContext menuButtonContext)? onMenuButton;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(left: depth * 12.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: CupertinoButton(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              minimumSize: Size.zero,
-              onPressed: onTap,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? EditorChrome.inspectorJoyBlue.withValues(alpha: 0.14)
-                      : null,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: selected
-                        ? EditorChrome.inspectorJoyBlue
-                        : CupertinoColors.separator
-                            .resolveFrom(context)
-                            .withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Text(
-                  entry.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (onMenuButton != null)
-            Builder(
-              builder: (btnContext) => EditorToolbarIconButton(
-                icon: CupertinoIcons.ellipsis_vertical,
-                tooltip: 'Actions dialogue',
-                iconSize: 16,
-                onPressed: () => onMenuButton!(btnContext),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NodeCanvasCard extends StatelessWidget {
-  const _NodeCanvasCard({
-    required this.node,
-    required this.selection,
-    required this.onSelectStep,
-    required this.onDeleteStep,
-  });
-
-  final DialogueEditorNode node;
-  final _StepSelection? selection;
-  final void Function(_StepSelection sel) onSelectStep;
-  final void Function(_StepSelection sel) onDeleteStep;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CupertinoColors.separator.resolveFrom(context)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey6.resolveFrom(context),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-              ),
-              child: Text(
-                'Nœud : ${node.title}',
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final s in node.steps) ...[
-                    _StepBlockTile(
-                      step: s,
-                      nodeId: node.id,
-                      branchId: null,
-                      selected: selection?.nodeId == node.id &&
-                          selection?.branchId == null &&
-                          selection?.stepId == s.id,
-                      onTap: () => onSelectStep(
-                            _StepSelection(nodeId: node.id, stepId: s.id),
-                          ),
-                      onDelete: () => onDeleteStep(
-                            _StepSelection(nodeId: node.id, stepId: s.id),
-                          ),
-                    ),
-                    if (s is DeChoiceStep)
-                      ...s.branches.map(
-                        (b) => Padding(
-                          padding: const EdgeInsets.only(left: 12, top: 8),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Branche : ${b.label}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                for (final inner in b.steps)
-                                  _StepBlockTile(
-                                    step: inner,
-                                    nodeId: node.id,
-                                    branchId: b.id,
-                                    selected: selection?.nodeId == node.id &&
-                                        selection?.branchId == b.id &&
-                                        selection?.stepId == inner.id,
-                                    onTap: () => onSelectStep(
-                                          _StepSelection(
-                                            nodeId: node.id,
-                                            branchId: b.id,
-                                            stepId: inner.id,
-                                          ),
-                                        ),
-                                    onDelete: () => onDeleteStep(
-                                          _StepSelection(
-                                            nodeId: node.id,
-                                            branchId: b.id,
-                                            stepId: inner.id,
-                                          ),
-                                        ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StepBlockTile extends StatelessWidget {
-  const _StepBlockTile({
-    required this.step,
-    required this.nodeId,
-    required this.branchId,
-    required this.selected,
-    required this.onTap,
-    required this.onDelete,
-  });
-
-  final DialogueEditorStep step;
-  final String nodeId;
-  final String? branchId;
-  final bool selected;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final (String title, String subtitle) = switch (step) {
-      DeStartStep() => ('Début', 'Point d’entrée visuel'),
-      DeLineStep(:final speaker, :final body) => (
-          'Réplique',
-          '${speaker ?? '?' }: $body',
-        ),
-      DeNarrationStep(:final text) => ('Narration', text),
-      DeChoiceStep() => ('Choix joueur', 'Plusieurs branches'),
-      DeJumpStep(:final targetTitle) => ('Jump', '→ $targetTitle'),
-      DeConditionStep(:final raw) => ('Condition', raw),
-      DeCommandStep(:final raw) => ('Commande', raw),
-      DeEndStep() => ('Fin', 'Termine ici'),
-    };
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: CupertinoButton(
-        padding: EdgeInsets.zero,
-        onPressed: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: selected
-                ? EditorChrome.inspectorJoyBlue.withValues(alpha: 0.12)
-                : CupertinoColors.systemBackground.resolveFrom(context),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected
-                  ? EditorChrome.inspectorJoyBlue
-                  : CupertinoColors.separator.resolveFrom(context),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                        color: EditorChrome.inspectorJoyBlue,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, height: 1.25),
-                    ),
-                  ],
-                ),
-              ),
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(28, 28),
-                onPressed: onDelete,
-                child: Icon(
-                  CupertinoIcons.trash,
-                  size: 16,
-                  color: EditorChrome.inspectorJoyCoral,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-({int nodes, int choices, int ends}) _docStats(DialogueEditorDocument? doc) {
-  if (doc == null) return (nodes: 0, choices: 0, ends: 0);
-  var choices = 0;
-  var ends = 0;
-  void walk(List<DialogueEditorStep> list) {
-    for (final s in list) {
-      if (s is DeChoiceStep) {
-        choices++;
-        for (final b in s.branches) {
-          walk(b.steps);
-        }
-      }
-      if (s is DeEndStep) ends++;
-    }
-  }
-  for (final n in doc.nodes) {
-    walk(n.steps);
-  }
-  return (nodes: doc.nodes.length, choices: choices, ends: ends);
-}
-
-String _dialogueName(ProjectManifest project, String id) {
-  for (final d in project.dialogues) {
-    if (d.id == id) return d.name;
-  }
-  return id;
 }

@@ -29,11 +29,11 @@ void main() {
     }
   });
 
-  final sampleProject = ProjectManifest(
+  const sampleProject = ProjectManifest(
     name: 'widget_test_proj',
-    maps: const <ProjectMapEntry>[],
-    tilesets: const <ProjectTilesetEntry>[],
-    dialogueFolders: const [
+    maps: <ProjectMapEntry>[],
+    tilesets: <ProjectTilesetEntry>[],
+    dialogueFolders: [
       ProjectDialogueFolder(id: 'f_npc', name: 'PNJ'),
     ],
     dialogues: [

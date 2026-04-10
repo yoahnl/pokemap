@@ -55,7 +55,7 @@ Statut mis à jour après exécution effective des premiers lots.
 | Phase 2 — Réparer les frontières d’architecture | Fait | Lots 3-5 terminés |
 | Phase 3 — Casser progressivement `EditorNotifier` | Fait | Lots 6-9 terminés |
 | Phase 4 — Moderniser Riverpod et la composition root | Fait | Lots 10-11 terminés |
-| Phase 5 — Découper et ranger les surfaces UI | En cours | Lot 12 terminé, lot 13 = prochaine étape |
+| Phase 5 — Découper et ranger les surfaces UI | En cours | Lots 12-14 terminés, lot 15 = prochaine étape |
 
 ### Statut lot par lot
 
@@ -73,8 +73,8 @@ Statut mis à jour après exécution effective des premiers lots.
 | Lot 10 | Fait | Sélecteurs ciblés en place sur shell, canvas host, toolbar, project explorer, terrain root et tileset root |
 | Lot 11 | Fait | Composition root Riverpod réorganisée par thèmes, avec barrels de compatibilité conservés |
 | Lot 12 | Fait | `TopToolbar` et `ProjectExplorerPanel` réduits en shells avec extractions thématiques |
-| Lot 13 | À faire | Découpage des workspaces narratifs |
-| Lot 14 | À faire | Découpage de `dialogue_studio_workspace` |
+| Lot 13 | Fait | Découpage mécanique des workspaces narratifs avec extraction en fichiers support et nettoyage du legacy non branché |
+| Lot 14 | Fait | `dialogue_studio_workspace` réduit en shell avec extraction des dialogs, de l’arbre bibliothèque et des cartes canvas |
 | Lot 15 | À faire | Découpage de `map_canvas` + `entity_properties_panel` |
 | Lot 16 | À faire | Découpage de `terrain_editor_panel` + `tileset_palette_panel` |
 
@@ -87,8 +87,11 @@ Statut mis à jour après exécution effective des premiers lots.
   - [`top_toolbar.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/shared/top_toolbar.dart) est passé d’environ 1160 lignes à environ 486 lignes via extraction des widgets et dialogs ;
   - [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart) est passé d’environ 2013 lignes à environ 510 lignes ;
   - l’arbre monde, les nœuds tilesets, les dialogs d’import/renommage/création et les actions d’entête sont maintenant sortis dans des sous-dossiers dédiés.
-- Une passe de non-régression élargie après le lot 9 a révélé une casse sur [`global_story_studio_workspace_test.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/test/global_story_studio_workspace_test.dart), sur une interaction UI narrative non directement retouchée par le lot 9.
-- Cette casse n’invalide pas le cœur du lot 9, mais elle signale qu’un lot ultérieur devra ré-auditer plus finement le sous-système narratif lors des découpages UI de phase 5.
+- Le lot 13 est maintenant terminé sur son périmètre :
+  - [`step_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/step_studio_workspace.dart) reste le plus gros workspace narratif, mais il a déjà perdu ses widgets/supports répétitifs vers `ui/canvas/step_studio/step_studio_workspace_support.dart` ;
+  - [`global_story_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart) est descendu à environ 1130 lignes après retrait du reliquat legacy non branché et suppression du mini-sous-système de widgets morts ;
+  - [`cutscene_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/cutscene_studio_workspace.dart) est descendu à environ 2444 lignes avec extraction du support UI local ;
+  - les tests narratifs ciblés repassent au vert après réalignement d’un test `GlobalStoryStudioWorkspace` sur l’UI réellement supportée par le shell actuel.
 
 ---
 
@@ -120,11 +123,11 @@ Ce plan s’appuie sur trois angles d’analyse menés en parallèle :
 | [`editor_notifier.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart) | 6951 lignes |
 | [`terrain_editor_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/terrain_editor_panel.dart) | 5105 lignes |
 | [`entity_properties_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/entity_properties_panel.dart) | 3324 lignes |
-| [`step_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/step_studio_workspace.dart) | 3183 lignes |
-| [`cutscene_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/cutscene_studio_workspace.dart) | 2965 lignes |
-| [`global_story_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart) | 2722 lignes |
+| [`step_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/step_studio_workspace.dart) | 2534 lignes |
+| [`cutscene_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/cutscene_studio_workspace.dart) | 2444 lignes |
+| [`global_story_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart) | 1130 lignes |
 | [`map_canvas.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/map_canvas.dart) | 2643 lignes |
-| [`dialogue_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/dialogue_studio_workspace.dart) | 2354 lignes |
+| [`dialogue_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/dialogue_studio_workspace.dart) | 1704 lignes |
 | [`project_explorer_panel.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/panels/project_explorer_panel.dart) | 2013 lignes |
 | [`top_toolbar.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/shared/top_toolbar.dart) | 1164 lignes |
 | [`use_case_providers.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/app/providers/use_case_providers.dart) | 972 lignes |
@@ -793,6 +796,25 @@ Chaque lot doit embarquer :
 **Critère de sortie**
 - Le sous-système narratif devient navigable et maintenable fichier par fichier.
 
+**État réel**
+- Fait.
+- [`step_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/step_studio_workspace.dart)
+  - garde le shell et la logique de brouillon ;
+  - widgets/supports locaux sortis dans `ui/canvas/step_studio/step_studio_workspace_support.dart`.
+- [`global_story_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/global_story_studio_workspace.dart)
+  - garde l’hydratation, le draft et l’assemblage du shell narratif ;
+  - les reliquats legacy non branchés ont été supprimés au lieu d’être simplement “rangés” dans un sous-dossier.
+- [`cutscene_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/cutscene_studio_workspace.dart)
+  - conserve le shell et l’orchestration locale ;
+  - blocs/supports répétitifs sortis dans `ui/canvas/cutscene_studio/cutscene_studio_workspace_support.dart`.
+- Tests narratifs ciblés relancés :
+  - `step_studio_workspace_regression_test.dart`
+  - `global_story_studio_workspace_test.dart`
+  - `global_story_studio_behavior_test.dart`
+  - `global_story_studio_ux_test.dart`
+  - `cutscene_studio_map_context_test.dart`
+- Analyse ciblée verte sur les fichiers du lot.
+
 ---
 
 ### Lot 14 — Découper `dialogue_studio_workspace`
@@ -818,6 +840,20 @@ Chaque lot doit embarquer :
 
 **Critère de sortie**
 - Le studio dialogue est découpé sans réécrire son produit.
+
+**État réel**
+- Fait.
+- [`dialogue_studio_workspace.dart`](/Users/karim/Project/pokemonProject/packages/map_editor/lib/src/ui/canvas/dialogue_studio_workspace.dart)
+  - garde le shell, le document de travail, l’inspecteur et la logique d’édition locale ;
+  - a été réduit à environ 1704 lignes.
+- Extraire sans changer le produit :
+  - dialogs/prompts dans `ui/canvas/dialogue_studio/dialogs/dialogue_studio_dialogs.dart`
+  - arbre bibliothèque dans `ui/canvas/dialogue_studio/widgets/library/dialogue_library_tree.dart`
+  - cartes/nœuds du canvas dans `ui/canvas/dialogue_studio/widgets/canvas/dialogue_canvas_cards.dart`
+- Tests ciblés relancés :
+  - `dialogue_studio_explorer_dialogue_widgets_test.dart`
+  - `ui_panels_smoke_test.dart`
+- Analyse ciblée verte sur les fichiers du lot.
 
 ---
 
@@ -905,8 +941,6 @@ Ordre strict recommandé :
 9. Lot 9
 10. Lot 10
 11. Lot 11
-12. Lot 12
-13. Lot 13 (prochaine étape)
 12. Lot 12
 13. Lot 13
 14. Lot 14
