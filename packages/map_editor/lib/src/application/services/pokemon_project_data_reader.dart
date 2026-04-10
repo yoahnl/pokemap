@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
+import '../models/pokemon_database_index.dart';
 import '../models/pokemon_project_data_models.dart';
 import '../ports/project_workspace.dart';
 
@@ -119,6 +120,58 @@ class PokemonProjectDataReader {
     return _buildSpeciesIndexEntries(workspace);
   }
 
+  Future<List<PokemonDatabaseIndexEntry>> listDatabaseIndexEntries(
+    ProjectWorkspace workspace, {
+    required String speciesDirectoryRelativePath,
+  }) async {
+    final trimmedDirectory = speciesDirectoryRelativePath.trim();
+    if (trimmedDirectory.isEmpty) {
+      throw const EditorValidationException(
+        'Pokemon species directory cannot be empty',
+      );
+    }
+
+    final entries = <PokemonDatabaseIndexEntry>[];
+    for (final relativePath in await _listJsonRelativePaths(
+      workspace,
+      trimmedDirectory,
+      label: 'Pokemon species directory',
+    )) {
+      final species = await _readSpeciesAtRelativePath(
+        workspace,
+        relativePath,
+      );
+      final speciesIndexEntry = PokemonSpeciesIndexEntry.fromSpeciesFile(
+        species,
+        relativePath: relativePath,
+      );
+
+      // Le lot 11 ne doit plus accepter silencieusement une espèce parseable
+      // mais inutilisable pour la future liste. On vérifie donc ici le contrat
+      // minimal exact de l'index local.
+      _validateSpeciesForDatabaseIndex(
+        species: species,
+        speciesIndexEntry: speciesIndexEntry,
+        relativePath: relativePath,
+      );
+
+      entries.add(
+        PokemonDatabaseIndexEntry.fromSpeciesEntry(
+          speciesIndexEntry: speciesIndexEntry,
+          species: species,
+        ),
+      );
+    }
+
+    entries.sort((left, right) {
+      final dexCompare = left.nationalDex.compareTo(right.nationalDex);
+      if (dexCompare != 0) return dexCompare;
+      return left.id.compareTo(right.id);
+    });
+
+    return entries;
+  }
+
   Future<PokemonSpeciesFile> readSpeciesByRelativePath(
     ProjectWorkspace workspace,
     String relativePath,
@@ -193,14 +246,10 @@ class PokemonProjectDataReader {
   ) async {
     final entries = <PokemonSpeciesIndexEntry>[];
     for (final relativePath in await listSpeciesFiles(workspace)) {
-      final json = await _readJsonFile(
-        workspace,
-        relativePath,
-        label: 'Pokemon species index file',
-      );
+      final species = await _readSpeciesAtRelativePath(workspace, relativePath);
       entries.add(
-        PokemonSpeciesIndexEntry.fromJson(
-          json,
+        PokemonSpeciesIndexEntry.fromSpeciesFile(
+          species,
           relativePath: relativePath,
         ),
       );
@@ -223,6 +272,68 @@ class PokemonProjectDataReader {
       label: 'Pokemon species file',
     );
     return PokemonSpeciesFile.fromJson(json);
+  }
+
+  void _validateSpeciesForDatabaseIndex({
+    required PokemonSpeciesFile species,
+    required PokemonSpeciesIndexEntry speciesIndexEntry,
+    required String relativePath,
+  }) {
+    // Cette validation reste volontairement petite. Elle ne remplace pas le
+    // validateur Pokémon global : elle protège seulement le contrat minimal
+    // exigé par l'index local du lot 11.
+    if (speciesIndexEntry.id.trim().isEmpty) {
+      throw EditorPersistenceException(
+        'Pokemon species index file must define a non-empty id: $relativePath',
+      );
+    }
+
+    if (speciesIndexEntry.nationalDex <= 0) {
+      throw EditorPersistenceException(
+        'Pokemon species index file must define nationalDex > 0: $relativePath',
+      );
+    }
+
+    if (speciesIndexEntry.primaryName.trim().isEmpty) {
+      throw EditorPersistenceException(
+        'Pokemon species index file must define an exploitable primary name: '
+        '$relativePath',
+      );
+    }
+
+    _validateDatabaseIndexRef(
+      value: species.learnsetRef,
+      refName: 'learnsetRef',
+      relativePath: relativePath,
+    );
+    _validateDatabaseIndexRef(
+      value: species.evolutionRef,
+      refName: 'evolutionRef',
+      relativePath: relativePath,
+    );
+    _validateDatabaseIndexRef(
+      value: species.spriteSetRef,
+      refName: 'spriteSetRef',
+      relativePath: relativePath,
+    );
+    _validateDatabaseIndexRef(
+      value: species.cryRef,
+      refName: 'cryRef',
+      relativePath: relativePath,
+    );
+  }
+
+  void _validateDatabaseIndexRef({
+    required String value,
+    required String refName,
+    required String relativePath,
+  }) {
+    if (value.trim().isEmpty) {
+      throw EditorPersistenceException(
+        'Pokemon species index file must define a non-empty $refName: '
+        '$relativePath',
+      );
+    }
   }
 
   Future<PokemonSpeciesIndexEntry> _resolveSpeciesIndexEntryById(

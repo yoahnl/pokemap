@@ -1,3 +1,4 @@
+import '../models/pokemon_database_index.dart';
 import '../models/pokemon_project_data_models.dart';
 import 'project_workspace.dart';
 
@@ -16,6 +17,17 @@ abstract class PokemonReadRepository {
   Future<List<PokemonSpeciesIndexEntry>> listSpeciesIndexEntries(
     ProjectWorkspace workspace,
   );
+
+  /// Construit un index leger oriente liste a partir du dossier species
+  /// configure par le projet.
+  ///
+  /// Cette methode ne charge ni learnsets, ni evolutions, ni media detaille.
+  /// Elle projette seulement les champs minimaux utiles a une future liste
+  /// Pokédex locale.
+  Future<List<PokemonDatabaseIndexEntry>> listDatabaseIndexEntries(
+    ProjectWorkspace workspace, {
+    required String speciesDirectoryRelativePath,
+  });
 
   Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace);
 

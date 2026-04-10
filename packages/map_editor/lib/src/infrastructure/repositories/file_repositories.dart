@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../application/errors/application_errors.dart';
+import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokemon_project_data_models.dart';
 import '../../application/ports/pokemon_read_repository.dart';
 import '../../application/ports/pokemon_write_repository.dart';
@@ -159,6 +160,17 @@ class FilePokemonReadRepository implements PokemonReadRepository {
     ProjectWorkspace workspace,
   ) {
     return reader.listSpeciesIndexEntries(workspace);
+  }
+
+  @override
+  Future<List<PokemonDatabaseIndexEntry>> listDatabaseIndexEntries(
+    ProjectWorkspace workspace, {
+    required String speciesDirectoryRelativePath,
+  }) {
+    return reader.listDatabaseIndexEntries(
+      workspace,
+      speciesDirectoryRelativePath: speciesDirectoryRelativePath,
+    );
   }
 
   @override

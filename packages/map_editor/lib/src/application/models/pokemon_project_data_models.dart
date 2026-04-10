@@ -146,15 +146,31 @@ class PokemonSpeciesIndexEntry {
     Map<String, dynamic> json, {
     required String relativePath,
   }) {
-    final names = _readStringMap(json['names']);
+    // Cette factory legacy reste disponible pour les call sites qui ont
+    // encore du JSON brut, mais elle délègue désormais au vrai modèle espèce.
+    //
+    // On évite ainsi d'entretenir deux projections concurrentes du même JSON :
+    // la version détaillée `PokemonSpeciesFile` reste la source de vérité.
+    return PokemonSpeciesIndexEntry.fromSpeciesFile(
+      PokemonSpeciesFile.fromJson(json),
+      relativePath: relativePath,
+    );
+  }
+
+  /// Construit la projection légère à partir d'une espèce déjà parsée.
+  ///
+  /// Le but est de centraliser la logique de projection liste sur une source
+  /// de vérité unique, plutôt que de reparser le JSON dans plusieurs modèles.
+  factory PokemonSpeciesIndexEntry.fromSpeciesFile(
+    PokemonSpeciesFile species, {
+    required String relativePath,
+  }) {
     return PokemonSpeciesIndexEntry(
-      id: (json['id'] as String?)?.trim() ?? '',
-      nationalDex: (json['nationalDex'] as num?)?.toInt() ?? 0,
-      primaryName: _pickPrimaryName(names) ?? (json['id'] as String?)?.trim() ?? '',
-      types: PokemonSpeciesTyping.fromJson(
-        (json['typing'] as Map?)?.cast<String, dynamic>() ??
-            const <String, dynamic>{},
-      ).types,
+      id: species.id.trim(),
+      nationalDex: species.nationalDex,
+      primaryName:
+          _pickPrimaryName(species.names) ?? species.id.trim(),
+      types: List<String>.from(species.typing.types),
       relativePath: relativePath,
     );
   }

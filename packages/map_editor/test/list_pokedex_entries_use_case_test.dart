@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
+import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/models/pokedex_list_entry.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/pokemon_read_repository.dart';
@@ -270,6 +271,14 @@ class _RecordingPokemonReadRepository implements PokemonReadRepository {
   }
 
   @override
+  Future<List<PokemonDatabaseIndexEntry>> listDatabaseIndexEntries(
+    ProjectWorkspace workspace, {
+    required String speciesDirectoryRelativePath,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<PokemonSpeciesFile> readSpeciesById(
     ProjectWorkspace workspace,
     String speciesId,
@@ -311,6 +320,29 @@ class _RecordingPokemonReadRepository implements PokemonReadRepository {
 
   @override
   Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<PokemonSpeciesFile> readSpeciesByRelativePath(
+    ProjectWorkspace workspace,
+    String relativePath,
+  ) {
     throw UnimplementedError();
   }
 }
