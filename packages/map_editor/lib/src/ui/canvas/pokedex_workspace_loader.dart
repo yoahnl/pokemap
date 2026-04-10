@@ -1,12 +1,18 @@
 import 'dart:io';
 
 import '../../application/models/pokemon_database_index.dart';
+import '../../application/models/pokedex_species_detail.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/services/pokemon_database_index.dart';
 import '../../domain/repositories/repositories.dart';
 
 typedef PokedexEntryLoader = Future<List<PokemonDatabaseIndexEntry>> Function(
   ProjectWorkspace workspace,
+);
+
+typedef PokedexSpeciesDetailLoader = Future<PokedexSpeciesDetail> Function(
+  ProjectWorkspace workspace,
+  String speciesId,
 );
 
 /// Construit un chargeur d'entrées Pokédex à partir de dépendances injectées.

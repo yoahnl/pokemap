@@ -10,6 +10,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/pokedex_providers.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
+import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
+import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -68,6 +70,146 @@ void main() {
         learnset: id,
         evolution: id,
         media: id,
+      ),
+    );
+  }
+
+  PokedexSpeciesDetail buildDetail({
+    required String id,
+    String primaryAbility = 'overgrow',
+    String? secondaryAbility,
+    String? hiddenAbility = 'chlorophyll',
+    List<String> otherForms = const <String>[],
+  }) {
+    return PokedexSpeciesDetail(
+      species: PokemonSpeciesFile(
+        id: id,
+        slug: id,
+        nationalDex: 1,
+        names: const <String, String>{
+          'fr': 'Bulbizarre',
+          'en': 'Bulbasaur',
+        },
+        speciesName: const <String, String>{
+          'fr': 'Pokémon Graine',
+          'en': 'Seed Pokemon',
+        },
+        genIntroduced: 1,
+        typing: const PokemonSpeciesTyping(
+          types: <String>['grass', 'poison'],
+        ),
+        baseStats: const PokemonSpeciesBaseStats(
+          hp: 45,
+          atk: 49,
+          def: 49,
+          spa: 65,
+          spd: 65,
+          spe: 45,
+          bst: 318,
+        ),
+        abilities: PokemonSpeciesAbilities(
+          primary: primaryAbility,
+          secondary: secondaryAbility,
+          hidden: hiddenAbility,
+        ),
+        breeding: const PokemonSpeciesBreeding(
+          genderRatio: <String, double>{'male': 0.875, 'female': 0.125},
+          eggGroups: <String>['monster', 'grass'],
+          hatchCycles: 20,
+        ),
+        progression: const PokemonSpeciesProgression(
+          growthRateId: 'medium_slow',
+          baseExp: 64,
+          catchRate: 45,
+          baseFriendship: 50,
+        ),
+        forms: PokemonSpeciesForms(
+          baseFormId: id,
+          isBaseForm: true,
+          formId: 'base',
+          otherForms: otherForms,
+        ),
+        classification: const PokemonSpeciesClassification(
+          isEnabledInProject: true,
+          isObtainable: true,
+        ),
+        refs: PokemonSpeciesRefs(
+          learnset: id,
+          evolution: id,
+          media: id,
+        ),
+        dexContent: const PokemonSpeciesDexContent(
+          heightM: 0.7,
+          weightKg: 6.9,
+          color: 'green',
+          flavorText:
+              'Une étrange graine a été plantée sur son dos à la naissance.',
+        ),
+        gameplayFlags: const PokemonSpeciesGameplayFlags(
+          starterEligible: true,
+        ),
+        sourceMeta: const PokemonSpeciesSourceMeta(
+          seededBy: 'ui-test',
+          seedVersion: 1,
+        ),
+      ),
+      learnset: const PokemonLearnsetFile(
+        speciesId: 'bulbasaur',
+        startingMoves: <String>['tackle', 'growl'],
+        relearnMoves: <String>['vine_whip'],
+        levelUp: <PokemonLearnsetLevelUpEntry>[
+          PokemonLearnsetLevelUpEntry(
+            moveId: 'vine_whip',
+            level: 7,
+            source: 'level_up',
+            versionGroup: 'scarlet-violet',
+          ),
+        ],
+        tm: <PokemonLearnsetMoveEntry>[
+          PokemonLearnsetMoveEntry(
+            moveId: 'protect',
+            versionGroup: 'scarlet-violet',
+          ),
+        ],
+      ),
+      evolution: const PokemonEvolutionFile(
+        speciesId: 'bulbasaur',
+        preEvolution: null,
+        evolutions: <PokemonEvolutionEntry>[
+          PokemonEvolutionEntry(
+            targetSpeciesId: 'ivysaur',
+            method: 'level_up',
+            minLevel: 16,
+            conditionText: <String, String>{
+              'fr': 'Évolue au niveau 16',
+              'en': 'Evolves at level 16',
+            },
+          ),
+        ],
+      ),
+      media: const PokemonMediaFile(
+        speciesId: 'bulbasaur',
+        defaultFormId: 'base',
+        variants: <String, PokemonMediaVariant>{
+          'base': PokemonMediaVariant(
+            frontStatic: 'assets/pokemon/sprites/bulbasaur/front.png',
+            backStatic: 'assets/pokemon/sprites/bulbasaur/back.png',
+            frontShinyStatic:
+                'assets/pokemon/sprites/bulbasaur/front_shiny.png',
+            backShinyStatic: 'assets/pokemon/sprites/bulbasaur/back_shiny.png',
+            icon: 'assets/pokemon/sprites/bulbasaur/icon.png',
+            party: 'assets/pokemon/sprites/bulbasaur/party.png',
+            portrait: 'assets/pokemon/sprites/bulbasaur/portrait.png',
+            cry: 'assets/pokemon/cries/bulbasaur.ogg',
+            animations: <String, PokemonMediaAnimationRef>{
+              'battleFront': PokemonMediaAnimationRef(
+                sheet:
+                    'assets/pokemon/sprites/bulbasaur/battle_front_sheet.png',
+                animationId: 'battle_front',
+              ),
+            },
+          ),
+        },
       ),
     );
   }
@@ -263,6 +405,256 @@ void main() {
     expect(find.textContaining('Generation'), findsNothing);
     expect(find.textContaining('Edit'), findsNothing);
     expect(find.textContaining('Delete'), findsNothing);
+    expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
+  });
+
+  testWidgets('selects a species row and shows the overview detail pane',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            genIntroduced: 1,
+          ),
+          buildEntry(
+            id: 'ivysaur',
+            nationalDex: 2,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            genIntroduced: 1,
+          ),
+        ],
+        detailLoader: (_, speciesId) async => buildDetail(id: speciesId),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('pokedex-detail-pane')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-overview-tab')), findsOneWidget);
+    expect(find.text('Nom principal'), findsOneWidget);
+    expect(find.text('Bulbasaur'), findsWidgets);
+    expect(find.text('Talent principal'), findsOneWidget);
+    expect(find.text('overgrow'), findsOneWidget);
+    expect(find.text('Références locales'), findsOneWidget);
+    expect(find.text('bulbasaur'), findsWidgets);
+  });
+
+  testWidgets('switches to forms learnset evolutions and media tabs',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            genIntroduced: 1,
+          ),
+        ],
+        detailLoader: (_, speciesId) async => buildDetail(
+          id: speciesId,
+          otherForms: const <String>['mega'],
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-tab-forms')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-forms-tab')), findsOneWidget);
+    expect(find.text('Forme courante'), findsOneWidget);
+    expect(find.textContaining('mega'), findsOneWidget);
+    expect(find.text('Classification'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pokedex-tab-learnset')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-learnset-tab')), findsOneWidget);
+    expect(find.text('vine_whip • niveau 7'), findsOneWidget);
+    expect(find.text('scarlet-violet • source level_up'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pokedex-tab-evolutions')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-evolutions-tab')), findsOneWidget);
+    expect(find.text('Pré-évolution'), findsOneWidget);
+    expect(find.text('Évolue au niveau 16'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pokedex-tab-media')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-media-tab')), findsOneWidget);
+    expect(
+      find.text('assets/pokemon/sprites/bulbasaur/front.png'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('battle_front'), findsWidgets);
+    expect(find.textContaining('battle_front_sheet.png'), findsWidgets);
+  });
+
+  testWidgets(
+      'clears the selection and resets the detail pane when search hides it',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            genIntroduced: 1,
+          ),
+          buildEntry(
+            id: 'ivysaur',
+            nationalDex: 2,
+            primaryName: 'Ivysaur',
+            types: <String>['grass', 'poison'],
+            genIntroduced: 1,
+          ),
+        ],
+        detailLoader: (_, speciesId) async => buildDetail(id: speciesId),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-tab-media')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-media-tab')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      'ivy',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-detail-pane')), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-search-field')),
+      '',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pokedex-overview-tab')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-media-tab')), findsNothing);
+  });
+
+  testWidgets(
+      'clears the selection and resets the detail pane when filters hide it',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            genIntroduced: 1,
+          ),
+          buildEntry(
+            id: 'treecko',
+            nationalDex: 252,
+            primaryName: 'Treecko',
+            types: <String>['grass'],
+            genIntroduced: 3,
+          ),
+        ],
+        detailLoader: (_, speciesId) async => buildDetail(id: speciesId),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-tab-learnset')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-learnset-tab')), findsOneWidget);
+
+    await selectPopupFilter(
+      tester,
+      popupKey: const Key('pokedex-generation-filter'),
+      itemLabel: 'Génération 3',
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-detail-pane')), findsNothing);
+
+    await selectPopupFilter(
+      tester,
+      popupKey: const Key('pokedex-generation-filter'),
+      itemLabel: 'Toutes gén.',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pokedex-overview-tab')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-learnset-tab')), findsNothing);
   });
 
   testWidgets(
@@ -791,7 +1183,7 @@ void main() {
     await selectPopupFilter(
       tester,
       popupKey: const Key('pokedex-generation-filter'),
-      itemLabel: 'Toutes les générations',
+      itemLabel: 'Toutes gén.',
     );
 
     expect(find.text('Bulbasaur'), findsOneWidget);

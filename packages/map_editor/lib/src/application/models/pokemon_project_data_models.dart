@@ -394,6 +394,94 @@ class PokemonSpeciesRefs {
   }
 }
 
+/// Informations de formes locales, volontairement minimales.
+///
+/// Le but ici n'est pas de modéliser toutes les subtilités Pokémon dès
+/// maintenant. On ajoute juste le strict nécessaire pour que la fiche
+/// Pokédex puisse exposer une lecture honnête du lot 19 :
+/// - forme courante ;
+/// - forme de base ;
+/// - autres formes locales déjà déclarées.
+class PokemonSpeciesForms {
+  const PokemonSpeciesForms({
+    this.baseFormId = '',
+    this.isBaseForm = true,
+    this.formId = '',
+    this.formName,
+    this.otherForms = const <String>[],
+  });
+
+  final String baseFormId;
+  final bool isBaseForm;
+  final String formId;
+  final String? formName;
+  final List<String> otherForms;
+
+  factory PokemonSpeciesForms.fromJson(Map<String, dynamic> json) {
+    return PokemonSpeciesForms(
+      baseFormId: (json['baseFormId'] as String?)?.trim() ?? '',
+      isBaseForm: _readBool(json['isBaseForm'], fallback: true),
+      formId: (json['formId'] as String?)?.trim() ?? '',
+      formName: _readOptionalTrimmedString(json['formName']),
+      otherForms: _readStringList(json['otherForms']),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'baseFormId': baseFormId,
+      'isBaseForm': isBaseForm,
+      'formId': formId,
+      'formName': formName,
+      'otherForms': List<String>.from(otherForms),
+    };
+  }
+}
+
+/// Classification Pokédex locale simple.
+///
+/// Cette structure sert uniquement à afficher des drapeaux métier lisibles dans
+/// la fiche détail. Elle reste volontairement petite pour éviter de devancer
+/// les futurs lots d'override/curation.
+class PokemonSpeciesClassification {
+  const PokemonSpeciesClassification({
+    this.isEnabledInProject = true,
+    this.isObtainable = true,
+    this.isLegendary = false,
+    this.isMythical = false,
+    this.isBaby = false,
+  });
+
+  final bool isEnabledInProject;
+  final bool isObtainable;
+  final bool isLegendary;
+  final bool isMythical;
+  final bool isBaby;
+
+  factory PokemonSpeciesClassification.fromJson(Map<String, dynamic> json) {
+    return PokemonSpeciesClassification(
+      isEnabledInProject: _readBool(
+        json['isEnabledInProject'],
+        fallback: true,
+      ),
+      isObtainable: _readBool(json['isObtainable'], fallback: true),
+      isLegendary: _readBool(json['isLegendary']),
+      isMythical: _readBool(json['isMythical']),
+      isBaby: _readBool(json['isBaby']),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'isEnabledInProject': isEnabledInProject,
+      'isObtainable': isObtainable,
+      'isLegendary': isLegendary,
+      'isMythical': isMythical,
+      'isBaby': isBaby,
+    };
+  }
+}
+
 class PokemonSpeciesDexContent {
   const PokemonSpeciesDexContent({
     this.heightM,
@@ -491,6 +579,8 @@ class PokemonSpeciesFile {
     required this.abilities,
     required this.breeding,
     required this.progression,
+    this.forms = const PokemonSpeciesForms(),
+    this.classification = const PokemonSpeciesClassification(),
     required this.refs,
     required this.dexContent,
     required this.gameplayFlags,
@@ -508,6 +598,8 @@ class PokemonSpeciesFile {
   final PokemonSpeciesAbilities abilities;
   final PokemonSpeciesBreeding breeding;
   final PokemonSpeciesProgression progression;
+  final PokemonSpeciesForms forms;
+  final PokemonSpeciesClassification classification;
   final PokemonSpeciesRefs refs;
   final PokemonSpeciesDexContent dexContent;
   final PokemonSpeciesGameplayFlags gameplayFlags;
@@ -553,6 +645,14 @@ class PokemonSpeciesFile {
         (json['progression'] as Map?)?.cast<String, dynamic>() ??
             const <String, dynamic>{},
       ),
+      forms: PokemonSpeciesForms.fromJson(
+        (json['forms'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ),
+      classification: PokemonSpeciesClassification.fromJson(
+        (json['classification'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ),
       refs: PokemonSpeciesRefs.fromJson(refsJson),
       dexContent: PokemonSpeciesDexContent.fromJson(
         (json['dexContent'] as Map?)?.cast<String, dynamic>() ??
@@ -582,6 +682,8 @@ class PokemonSpeciesFile {
       'abilities': abilities.toJson(),
       'breeding': breeding.toJson(),
       'progression': progression.toJson(),
+      'forms': forms.toJson(),
+      'classification': classification.toJson(),
       'refs': refs.toJson(),
       'dexContent': dexContent.toJson(),
       'gameplayFlags': gameplayFlags.toJson(),
@@ -1017,8 +1119,14 @@ double? _readDouble(Object? raw) {
   return value?.toDouble();
 }
 
-bool _readBool(Object? raw) {
-  return raw == true;
+bool _readBool(
+  Object? raw, {
+  bool fallback = false,
+}) {
+  if (raw is bool) {
+    return raw;
+  }
+  return fallback;
 }
 
 Map<String, dynamic> _deepCopyJsonMap(Map<String, dynamic> source) {

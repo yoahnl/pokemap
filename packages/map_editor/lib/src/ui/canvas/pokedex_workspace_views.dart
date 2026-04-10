@@ -4,6 +4,8 @@ import 'package:macos_ui/macos_ui.dart'
 
 import '../../application/errors/application_errors.dart';
 import '../../application/models/pokemon_database_index.dart';
+import '../../application/models/pokedex_species_detail.dart';
+import '../../application/models/pokemon_project_data_models.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 /// Vue de chargement minimale du lot 13.
@@ -132,14 +134,14 @@ class PokedexWorkspaceNoResultsState extends StatelessWidget {
 
 /// Vue succès du lot 13.
 ///
-/// Elle reste volontairement limitée à la lecture :
-/// - aucune action de ligne ;
-/// - aucun clic ouvrant une fiche ;
-/// - aucune colonne supplémentaire au-delà du lot.
+/// Elle reste volontairement en lecture seule, mais la phase 5 ajoute une
+/// vraie sélection locale de ligne pour ouvrir la fiche détail.
 class PokedexWorkspaceSpeciesList extends StatelessWidget {
   const PokedexWorkspaceSpeciesList({
     super.key,
     required this.entries,
+    required this.selectedSpeciesId,
+    required this.onEntrySelected,
     required this.query,
     required this.onQueryChanged,
     required this.availableTypes,
@@ -152,6 +154,8 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
   });
 
   final List<PokemonDatabaseIndexEntry> entries;
+  final String? selectedSpeciesId;
+  final ValueChanged<PokemonDatabaseIndexEntry> onEntrySelected;
   final String query;
   final ValueChanged<String> onQueryChanged;
   final List<String> availableTypes;
@@ -186,7 +190,7 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Liste simple des espèces importées dans le projet. Les lots 14 et 15 ajoutent uniquement une recherche texte locale et des filtres simples par type/génération : pas de détail, pas d’édition, pas d’import.',
+                'Liste locale des espèces importées dans le projet. La phase 5 ajoute une sélection et une fiche détail en lecture seule, sans édition ni import.',
                 style: TextStyle(
                   color: subtle,
                   fontSize: 13,
@@ -229,15 +233,21 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
         const _PokedexListHeader(),
         const SizedBox(height: 8),
         Expanded(
-          child: emptyResultsChild ??
-              ListView.separated(
-                key: const Key('pokedex-species-list'),
-                itemCount: entries.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  return _PokedexListRow(entry: entries[index]);
-                },
-              ),
+          child: emptyResultsChild != null
+              ? SingleChildScrollView(child: emptyResultsChild)
+              : ListView.separated(
+                  key: const Key('pokedex-species-list'),
+                  itemCount: entries.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final entry = entries[index];
+                    return _PokedexListRow(
+                      entry: entry,
+                      isSelected: selectedSpeciesId == entry.id,
+                      onPressed: () => onEntrySelected(entry),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -278,7 +288,7 @@ class _PokedexSimpleFiltersBar extends StatelessWidget {
           ],
           itemLabelBuilder: (value) {
             if (value == _PokedexFilterDropdown.allTypesValue) {
-              return 'Tous les types';
+              return 'Tous types';
             }
             return value;
           },
@@ -294,7 +304,7 @@ class _PokedexSimpleFiltersBar extends StatelessWidget {
           ],
           itemLabelBuilder: (value) {
             if (value == _PokedexFilterDropdown.allGenerationsValue) {
-              return 'Toutes les générations';
+              return 'Toutes gén.';
             }
             return 'Génération $value';
           },
@@ -413,7 +423,7 @@ class _PokedexFilterDropdown extends StatelessWidget {
       // interne. On donne donc une largeur volontairement confortable pour
       // éviter les overflows de layout, notamment avec les libellés français
       // "Toutes les générations" / "Tous les types".
-      width: 360,
+      width: 240,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -520,76 +530,95 @@ class _PokedexListHeader extends StatelessWidget {
 }
 
 class _PokedexListRow extends StatelessWidget {
-  const _PokedexListRow({required this.entry});
+  const _PokedexListRow({
+    required this.entry,
+    required this.isSelected,
+    required this.onPressed,
+  });
 
   final PokemonDatabaseIndexEntry entry;
+  final bool isSelected;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final surface = EditorChrome.islandFillElevated(context);
-    final border = EditorChrome.accentWarm.withValues(alpha: 0.35);
+    final surface = isSelected
+        ? Color.lerp(
+            EditorChrome.islandFillElevated(context),
+            EditorChrome.accentJade,
+            0.12,
+          )!
+        : EditorChrome.islandFillElevated(context);
+    final border = isSelected
+        ? EditorChrome.accentJade.withValues(alpha: 0.65)
+        : EditorChrome.accentWarm.withValues(alpha: 0.35);
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: border, width: 1),
-        boxShadow: EditorChrome.sectionCardShadows(context),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 88,
-              child: Text(
-                '#${entry.nationalDex.toString().padLeft(4, '0')}',
-                style: TextStyle(
-                  color: label,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+    return CupertinoButton(
+      key: Key('pokedex-row-${entry.id}'),
+      padding: EdgeInsets.zero,
+      onPressed: onPressed,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: border, width: isSelected ? 1.4 : 1),
+          boxShadow: EditorChrome.sectionCardShadows(context),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 88,
+                child: Text(
+                  '#${entry.nationalDex.toString().padLeft(4, '0')}',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 3,
-              child: Text(
-                entry.primaryName,
-                style: TextStyle(
-                  color: label,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  entry.primaryName,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: Text(
-                entry.id,
-                style: TextStyle(
-                  color: subtle,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  entry.id,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 3,
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: entry.types
-                    .map((type) => _PokedexTypeChip(label: type))
-                    .toList(growable: false),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: entry.types
+                      .map((type) => _PokedexTypeChip(label: type))
+                      .toList(growable: false),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -632,6 +661,905 @@ class _PokedexTypeChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class PokedexWorkspaceDetailPane extends StatelessWidget {
+  const PokedexWorkspaceDetailPane({
+    super.key,
+    required this.selectedEntry,
+    required this.selectedTabId,
+    required this.onTabChanged,
+    required this.detailFuture,
+  });
+
+  final PokemonDatabaseIndexEntry? selectedEntry;
+  final String selectedTabId;
+  final ValueChanged<String> onTabChanged;
+  final Future<PokedexSpeciesDetail>? detailFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    final entry = selectedEntry;
+    if (entry == null || detailFuture == null) {
+      return const PokedexWorkspaceStateCard(
+        key: Key('pokedex-detail-empty-state'),
+        title: 'Fiche espèce',
+        message:
+            'Sélectionnez une espèce dans la liste pour afficher son overview, ses formes, son learnset, ses évolutions et ses médias.',
+      );
+    }
+
+    return FutureBuilder<PokedexSpeciesDetail>(
+      future: detailFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const PokedexWorkspaceStateCard(
+            key: Key('pokedex-detail-loading-state'),
+            title: 'Fiche espèce',
+            message: 'Chargement de la fiche Pokédex locale…',
+          );
+        }
+
+        if (snapshot.hasError) {
+          final message = switch (snapshot.error) {
+            final EditorApplicationException applicationError =>
+              applicationError.message,
+            _ => snapshot.error?.toString() ?? 'Erreur inconnue',
+          };
+          return PokedexWorkspaceStateCard(
+            key: const Key('pokedex-detail-error-state'),
+            title: 'Fiche espèce',
+            accent: EditorChrome.inspectorJoyCoral,
+            message: 'Impossible de charger la fiche de ${entry.id}.\n$message',
+          );
+        }
+
+        final detail = snapshot.data;
+        if (detail == null) {
+          return const PokedexWorkspaceStateCard(
+            title: 'Fiche espèce',
+            message: 'Aucune donnée Pokédex détaillée disponible.',
+          );
+        }
+
+        return _PokedexSpeciesDetailView(
+          entry: entry,
+          detail: detail,
+          selectedTabId: selectedTabId,
+          onTabChanged: onTabChanged,
+        );
+      },
+    );
+  }
+}
+
+class _PokedexSpeciesDetailView extends StatelessWidget {
+  const _PokedexSpeciesDetailView({
+    required this.entry,
+    required this.detail,
+    required this.selectedTabId,
+    required this.onTabChanged,
+  });
+
+  final PokemonDatabaseIndexEntry entry;
+  final PokedexSpeciesDetail detail;
+  final String selectedTabId;
+  final ValueChanged<String> onTabChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final surface = EditorChrome.islandFillElevated(context);
+    final border = EditorChrome.accentWarm.withValues(alpha: 0.35);
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return DecoratedBox(
+      key: const Key('pokedex-detail-pane'),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: border, width: 1),
+        boxShadow: EditorChrome.sectionCardShadows(context),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              entry.primaryName,
+              style: TextStyle(
+                color: label,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.35,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '#${entry.nationalDex.toString().padLeft(4, '0')} • ${entry.id}',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: entry.types
+                  .map((type) => _PokedexTypeChip(label: type))
+                  .toList(growable: false),
+            ),
+            const SizedBox(height: 16),
+            CupertinoSlidingSegmentedControl<String>(
+              key: const Key('pokedex-detail-tabs'),
+              groupValue: selectedTabId,
+              onValueChanged: (value) {
+                if (value != null) {
+                  onTabChanged(value);
+                }
+              },
+              children: const <String, Widget>{
+                'overview': Padding(
+                  key: Key('pokedex-tab-overview'),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text('Overview'),
+                ),
+                'forms': Padding(
+                  key: Key('pokedex-tab-forms'),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text('Formes'),
+                ),
+                'learnset': Padding(
+                  key: Key('pokedex-tab-learnset'),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text('Learnset'),
+                ),
+                'evolutions': Padding(
+                  key: Key('pokedex-tab-evolutions'),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text('Évolutions'),
+                ),
+                'media': Padding(
+                  key: Key('pokedex-tab-media'),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text('Médias'),
+                ),
+              },
+            ),
+            const SizedBox(height: 18),
+            Expanded(
+              child: _PokedexDetailTabBody(
+                entry: entry,
+                detail: detail,
+                selectedTabId: selectedTabId,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PokedexDetailTabBody extends StatelessWidget {
+  const _PokedexDetailTabBody({
+    required this.entry,
+    required this.detail,
+    required this.selectedTabId,
+  });
+
+  final PokemonDatabaseIndexEntry entry;
+  final PokedexSpeciesDetail detail;
+  final String selectedTabId;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (selectedTabId) {
+      'forms' => _PokedexFormsTab(detail: detail),
+      'learnset' => _PokedexLearnsetTab(detail: detail),
+      'evolutions' => _PokedexEvolutionTab(detail: detail),
+      'media' => _PokedexMediaTab(detail: detail),
+      _ => _PokedexOverviewTab(entry: entry, detail: detail),
+    };
+  }
+}
+
+class _PokedexOverviewTab extends StatelessWidget {
+  const _PokedexOverviewTab({
+    required this.entry,
+    required this.detail,
+  });
+
+  final PokemonDatabaseIndexEntry entry;
+  final PokedexSpeciesDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final species = detail.species;
+
+    return SingleChildScrollView(
+      key: const Key('pokedex-overview-tab'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        _PokedexDetailSectionCard(
+          title: 'Identité',
+          child: Column(
+            children: [
+              _PokedexPropertyLine(
+                label: 'Nom principal',
+                value: entry.primaryName,
+              ),
+              _PokedexPropertyLine(label: 'ID', value: species.id),
+              _PokedexPropertyLine(
+                label: 'Numéro national',
+                value: species.nationalDex.toString(),
+              ),
+              _PokedexPropertyLine(
+                label: 'Nom espèce',
+                value: _localizedValue(species.speciesName),
+              ),
+              _PokedexPropertyLine(
+                label: 'Génération',
+                value: species.genIntroduced.toString(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Stats',
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _StatChip(label: 'HP', value: species.baseStats.hp),
+              _StatChip(label: 'ATK', value: species.baseStats.atk),
+              _StatChip(label: 'DEF', value: species.baseStats.def),
+              _StatChip(label: 'SPA', value: species.baseStats.spa),
+              _StatChip(label: 'SPD', value: species.baseStats.spd),
+              _StatChip(label: 'SPE', value: species.baseStats.spe),
+              _StatChip(label: 'BST', value: species.baseStats.bst),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Talents',
+          child: Column(
+            children: [
+              _PokedexPropertyLine(
+                label: 'Talent principal',
+                value: species.abilities.primary,
+              ),
+              _PokedexPropertyLine(
+                label: 'Talent secondaire',
+                value: species.abilities.secondary ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'Talent caché',
+                value: species.abilities.hidden ?? 'Aucun',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Références locales',
+          child: Column(
+            children: [
+              _PokedexPropertyLine(
+                label: 'Learnset',
+                value: species.refs.learnset,
+              ),
+              _PokedexPropertyLine(
+                label: 'Évolution',
+                value: species.refs.evolution,
+              ),
+              _PokedexPropertyLine(
+                label: 'Média',
+                value: species.refs.media,
+              ),
+            ],
+          ),
+        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PokedexFormsTab extends StatelessWidget {
+  const _PokedexFormsTab({required this.detail});
+
+  final PokedexSpeciesDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final species = detail.species;
+    final forms = species.forms;
+    final classification = species.classification;
+    final currentFormId = forms.formId.isEmpty ? 'base' : forms.formId;
+    final baseFormId = forms.baseFormId.isEmpty ? species.id : forms.baseFormId;
+
+    return SingleChildScrollView(
+      key: const Key('pokedex-forms-tab'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        _PokedexDetailSectionCard(
+          title: 'Formes',
+          child: Column(
+            children: [
+              _PokedexPropertyLine(
+                label: 'Forme courante',
+                value: forms.formName == null || forms.formName!.isEmpty
+                    ? currentFormId
+                    : '${forms.formName} ($currentFormId)',
+              ),
+              _PokedexPropertyLine(
+                label: 'Forme de base',
+                value: baseFormId,
+              ),
+              _PokedexPropertyLine(
+                label: 'Est la forme de base',
+                value: forms.isBaseForm ? 'Oui' : 'Non',
+              ),
+              _PokedexPropertyLine(
+                label: 'Autres formes',
+                value: forms.otherForms.isEmpty
+                    ? 'Aucune autre forme locale'
+                    : forms.otherForms.join(', '),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Classification',
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _FlagChip(
+                label: classification.isEnabledInProject
+                    ? 'Activée dans le projet'
+                    : 'Désactivée dans le projet',
+              ),
+              _FlagChip(
+                label: classification.isObtainable
+                    ? 'Obtenable'
+                    : 'Non obtenable',
+              ),
+              if (classification.isLegendary)
+                const _FlagChip(label: 'Légendaire'),
+              if (classification.isMythical)
+                const _FlagChip(label: 'Mythique'),
+              if (classification.isBaby) const _FlagChip(label: 'Bébé'),
+              if (!classification.isLegendary &&
+                  !classification.isMythical &&
+                  !classification.isBaby)
+                const _FlagChip(label: 'Aucun flag rare'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Flags gameplay simples',
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (species.gameplayFlags.starterEligible)
+                const _FlagChip(label: 'Starter éligible'),
+              if (species.gameplayFlags.giftOnly)
+                const _FlagChip(label: 'Obtenu par cadeau'),
+              if (species.gameplayFlags.tradeOnly)
+                const _FlagChip(label: 'Échange uniquement'),
+              if (!species.gameplayFlags.starterEligible &&
+                  !species.gameplayFlags.giftOnly &&
+                  !species.gameplayFlags.tradeOnly)
+                const _FlagChip(label: 'Aucun flag gameplay'),
+            ],
+          ),
+        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PokedexLearnsetTab extends StatelessWidget {
+  const _PokedexLearnsetTab({required this.detail});
+
+  final PokedexSpeciesDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final learnset = detail.learnset;
+    if (learnset == null) {
+      return const _PokedexMissingSection(
+        key: Key('pokedex-learnset-missing'),
+        title: 'Learnset',
+        message: 'Aucun learnset local trouvé pour cette espèce.',
+      );
+    }
+
+    return SingleChildScrollView(
+      key: const Key('pokedex-learnset-tab'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        _PokedexDetailSectionCard(
+          title: 'Moves de départ',
+          child: Text(
+            learnset.startingMoves.isEmpty
+                ? 'Aucun move de départ déclaré.'
+                : learnset.startingMoves.join(', '),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Moves à réapprendre',
+          child: Text(
+            learnset.relearnMoves.isEmpty
+                ? 'Aucun move à réapprendre déclaré.'
+                : learnset.relearnMoves.join(', '),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Level-up',
+          child: learnset.levelUp.isEmpty
+              ? const Text('Aucune entrée level-up.')
+              : Column(
+                  children: learnset.levelUp
+                      .map(
+                        (entry) => _PokedexPropertyLine(
+                          label: '${entry.moveId} • niveau ${entry.level}',
+                          value:
+                              '${entry.versionGroup} • source ${entry.source}',
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+        ),
+        const SizedBox(height: 12),
+        _LearnsetMoveSection(title: 'TM', entries: learnset.tm),
+        const SizedBox(height: 12),
+        _LearnsetMoveSection(title: 'Tutor', entries: learnset.tutor),
+        const SizedBox(height: 12),
+        _LearnsetMoveSection(title: 'Egg', entries: learnset.egg),
+        const SizedBox(height: 12),
+        _LearnsetMoveSection(title: 'Event', entries: learnset.event),
+        const SizedBox(height: 12),
+        _LearnsetMoveSection(title: 'Transfer', entries: learnset.transfer),
+        ],
+      ),
+    );
+  }
+}
+
+class _PokedexEvolutionTab extends StatelessWidget {
+  const _PokedexEvolutionTab({required this.detail});
+
+  final PokedexSpeciesDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final evolution = detail.evolution;
+    if (evolution == null) {
+      return const _PokedexMissingSection(
+        key: Key('pokedex-evolutions-missing'),
+        title: 'Évolutions',
+        message: 'Aucune donnée d’évolution locale trouvée pour cette espèce.',
+      );
+    }
+
+    return SingleChildScrollView(
+      key: const Key('pokedex-evolutions-tab'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        _PokedexDetailSectionCard(
+          title: 'Pré-évolution',
+          child: Text(evolution.preEvolution?.trim().isNotEmpty == true
+              ? evolution.preEvolution!
+              : 'Aucune'),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Évolutions suivantes',
+          child: evolution.evolutions.isEmpty
+              ? const Text('Aucune évolution déclarée.')
+              : Column(
+                  children: evolution.evolutions
+                      .map(
+                        (entry) => _PokedexPropertyLine(
+                          label: entry.targetSpeciesId,
+                          value: _describeEvolution(entry),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PokedexMediaTab extends StatelessWidget {
+  const _PokedexMediaTab({required this.detail});
+
+  final PokedexSpeciesDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = detail.media;
+    if (media == null) {
+      return const _PokedexMissingSection(
+        key: Key('pokedex-media-missing'),
+        title: 'Médias',
+        message: 'Aucune donnée média locale trouvée pour cette espèce.',
+      );
+    }
+
+    final defaultVariant = media.variants[media.defaultFormId];
+
+    return SingleChildScrollView(
+      key: const Key('pokedex-media-tab'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+        _PokedexDetailSectionCard(
+          title: 'Variant par défaut',
+          child: Column(
+            children: [
+              _PokedexPropertyLine(
+                label: 'Forme par défaut',
+                value: media.defaultFormId,
+              ),
+              _PokedexPropertyLine(
+                label: 'front',
+                value: defaultVariant?.frontStatic ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'back',
+                value: defaultVariant?.backStatic ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'front shiny',
+                value: defaultVariant?.frontShinyStatic ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'back shiny',
+                value: defaultVariant?.backShinyStatic ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'icon',
+                value: defaultVariant?.icon ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'party',
+                value: defaultVariant?.party ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'portrait',
+                value: defaultVariant?.portrait ?? 'Aucun',
+              ),
+              _PokedexPropertyLine(
+                label: 'cry',
+                value: defaultVariant?.cry ?? 'Aucun',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _PokedexDetailSectionCard(
+          title: 'Animations',
+          child: defaultVariant == null || defaultVariant.animations.isEmpty
+              ? const Text('Aucune animation locale déclarée.')
+              : Column(
+                  children: defaultVariant.animations.entries
+                      .map(
+                        (entry) => _PokedexPropertyLine(
+                          label: entry.key,
+                          value:
+                              '${entry.value.animationId} • ${entry.value.sheet}',
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+        ),
+        const SizedBox(height: 12),
+        const _PokedexDetailSectionCard(
+          title: 'Contrat média',
+          child: Text(
+            'Les médias Pokémon restent de simples références locales vers assets/pokemon/... et n’utilisent jamais de GIF.',
+          ),
+        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LearnsetMoveSection extends StatelessWidget {
+  const _LearnsetMoveSection({
+    required this.title,
+    required this.entries,
+  });
+
+  final String title;
+  final List<PokemonLearnsetMoveEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PokedexDetailSectionCard(
+      title: title,
+      child: entries.isEmpty
+          ? Text('Aucune entrée $title.')
+          : Column(
+              children: entries
+                  .map(
+                    (entry) => _PokedexPropertyLine(
+                      label: entry.moveId,
+                      value: entry.versionGroup,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+    );
+  }
+}
+
+class _PokedexMissingSection extends StatelessWidget {
+  const _PokedexMissingSection({
+    super.key,
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PokedexDetailSectionCard(
+      title: title,
+      child: Text(message),
+    );
+  }
+}
+
+class _PokedexDetailSectionCard extends StatelessWidget {
+  const _PokedexDetailSectionCard({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final surface = Color.lerp(
+      EditorChrome.islandFillElevated(context),
+      CupertinoColors.black,
+      0.06,
+    )!;
+    final border = EditorChrome.accentWarm.withValues(alpha: 0.24);
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        child: DefaultTextStyle(
+          style: TextStyle(
+            color: subtle,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            height: 1.4,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: label,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PokedexPropertyLine extends StatelessWidget {
+  const _PokedexPropertyLine({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: labelColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = EditorChrome.islandFillElevated(context);
+    final labelColor = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: EditorChrome.accentJade.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: subtle,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value.toString(),
+              style: TextStyle(
+                color: labelColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FlagChip extends StatelessWidget {
+  const _FlagChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = EditorChrome.primaryLabel(context);
+    final fill = Color.lerp(
+      EditorChrome.chipFill(context),
+      EditorChrome.accentWarm,
+      0.18,
+    )!;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: EditorChrome.accentWarm.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: text,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _localizedValue(Map<String, String> values) {
+  for (final key in const <String>['fr', 'en']) {
+    final value = values[key]?.trim();
+    if (value != null && value.isNotEmpty) {
+      return value;
+    }
+  }
+  return values.values.firstWhere(
+    (value) => value.trim().isNotEmpty,
+    orElse: () => 'Aucune valeur locale',
+  );
+}
+
+String _describeEvolution(PokemonEvolutionEntry entry) {
+  final explicit = _localizedValue(entry.conditionText);
+  if (explicit != 'Aucune valeur locale') {
+    return explicit;
+  }
+  if (entry.minLevel != null) {
+    return 'Évolue au niveau ${entry.minLevel}';
+  }
+  if (entry.itemId != null && entry.itemId!.trim().isNotEmpty) {
+    return 'Évolue avec ${entry.itemId}';
+  }
+  if (entry.requiredMoveId != null && entry.requiredMoveId!.trim().isNotEmpty) {
+    return 'Évolue avec le move ${entry.requiredMoveId}';
+  }
+  if (entry.method.trim().isNotEmpty) {
+    return 'Méthode : ${entry.method}';
+  }
+  return 'Condition non précisée';
 }
 
 /// Carte de base réutilisée pour "pas de projet", "vide" et "erreur".

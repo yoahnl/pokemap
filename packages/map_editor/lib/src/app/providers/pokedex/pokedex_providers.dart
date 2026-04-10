@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../application/ports/pokemon_read_repository.dart';
 import '../../../application/services/pokemon_database_index.dart';
+import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../ui/canvas/pokedex_workspace_loader.dart';
 import '../core/repository_providers.dart';
@@ -28,4 +29,17 @@ final pokedexEntryLoaderProvider = Provider<PokedexEntryLoader>((ref) {
     projectRepository: ref.watch(projectRepositoryProvider),
     databaseIndex: ref.watch(pokemonDatabaseIndexProvider),
   );
+});
+
+final loadPokedexSpeciesDetailUseCaseProvider =
+    Provider<LoadPokedexSpeciesDetailUseCase>((ref) {
+  return LoadPokedexSpeciesDetailUseCase(
+    ref.watch(pokemonReadRepositoryProvider),
+  );
+});
+
+final pokedexSpeciesDetailLoaderProvider =
+    Provider<PokedexSpeciesDetailLoader>((ref) {
+  final useCase = ref.watch(loadPokedexSpeciesDetailUseCaseProvider);
+  return (workspace, speciesId) => useCase.execute(workspace, speciesId);
 });

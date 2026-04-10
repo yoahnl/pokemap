@@ -88,6 +88,20 @@ void main() {
             isWorldTileset: true,
           ),
         ],
+        terrainPresets: <ProjectTerrainPreset>[
+          ProjectTerrainPreset(
+            id: 'terrain_grass',
+            name: 'Grass Terrain',
+            terrainType: TerrainType.grass,
+          ),
+        ],
+        pathPresets: <ProjectPathPreset>[
+          ProjectPathPreset(
+            id: 'path_main',
+            name: 'Main Path',
+            surfaceKind: PathSurfaceKind.path,
+          ),
+        ],
         dialogueFolders: <ProjectDialogueFolder>[
           ProjectDialogueFolder(id: 'f_npc', name: 'PNJ'),
         ],
@@ -183,6 +197,11 @@ void main() {
       expect(find.text('World Explorer'), findsOneWidget);
       expect(find.text('Route 1'), findsOneWidget);
       expect(find.text('Tileset Library'), findsOneWidget);
+      // On verrouille explicitement la branche non vide qui cassait en runtime
+      // dans l'explorer projet : les bibliothèques terrain/path sont bien
+      // rendues avec de vrais presets, sans erreur de layout.
+      expect(find.text('Grass Terrain'), findsOneWidget);
+      expect(find.text('Main Path'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -213,6 +232,8 @@ void main() {
       expect(find.text('Surface Library'), findsOneWidget);
       expect(find.text('Terrains'), findsOneWidget);
       expect(find.text('Paths'), findsOneWidget);
+      expect(find.text('Grass Terrain'), findsOneWidget);
+      expect(find.text('Main Path'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

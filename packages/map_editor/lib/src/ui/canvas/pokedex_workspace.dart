@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers/pokedex_providers.dart';
 import '../../application/models/pokemon_database_index.dart';
+import '../../application/models/pokedex_species_detail.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../infrastructure/filesystem/project_filesystem.dart';
 import 'pokedex_workspace_loader.dart';
@@ -10,6 +11,7 @@ import 'pokedex_workspace_views.dart';
 
 const String _allTypesFilterValue = '__all_types__';
 const String _allGenerationsFilterValue = '__all_generations__';
+const String _overviewTabId = 'overview';
 
 /// Workspace central Pokédex du lot 13.
 ///
@@ -25,6 +27,7 @@ class PokedexWorkspace extends ConsumerWidget {
   const PokedexWorkspace({
     super.key,
     this.loader,
+    this.detailLoader,
   });
 
   /// Injection locale utile aux tests ciblés du lot 13.
@@ -32,6 +35,7 @@ class PokedexWorkspace extends ConsumerWidget {
   /// On garde cette extension volontairement minimale : elle permet de tester
   /// le rendu des états UI sans introduire de notifier dédié supplémentaire.
   final PokedexEntryLoader? loader;
+  final PokedexSpeciesDetailLoader? detailLoader;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,10 +43,13 @@ class PokedexWorkspace extends ConsumerWidget {
         ref.watch(editorNotifierProvider.select((s) => s.projectRootPath));
     final PokedexEntryLoader resolvedLoader =
         loader ?? ref.watch(pokedexEntryLoaderProvider);
+    final PokedexSpeciesDetailLoader resolvedDetailLoader =
+        detailLoader ?? ref.watch(pokedexSpeciesDetailLoaderProvider);
 
     return _PokedexWorkspaceBody(
       projectRootPath: projectRootPath,
       loader: resolvedLoader,
+      detailLoader: resolvedDetailLoader,
     );
   }
 }
@@ -51,10 +58,12 @@ class _PokedexWorkspaceBody extends StatefulWidget {
   const _PokedexWorkspaceBody({
     required this.projectRootPath,
     required this.loader,
+    required this.detailLoader,
   });
 
   final String? projectRootPath;
   final PokedexEntryLoader loader;
+  final PokedexSpeciesDetailLoader detailLoader;
 
   @override
   State<_PokedexWorkspaceBody> createState() => _PokedexWorkspaceBodyState();
@@ -65,6 +74,9 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   String _searchQuery = '';
   String _selectedType = _allTypesFilterValue;
   String _selectedGeneration = _allGenerationsFilterValue;
+  String? _selectedSpeciesId;
+  Future<PokedexSpeciesDetail>? _detailFuture;
+  String _selectedDetailTabId = _overviewTabId;
 
   @override
   void initState() {
@@ -76,7 +88,8 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   void didUpdateWidget(covariant _PokedexWorkspaceBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.projectRootPath != widget.projectRootPath ||
-        oldWidget.loader != widget.loader) {
+        oldWidget.loader != widget.loader ||
+        oldWidget.detailLoader != widget.detailLoader) {
       _entriesFuture = _buildEntriesFuture();
       // Les raffinements UI des lots 14 et 15 restent purement locaux :
       // quand on change de workspace projet ou de source de chargement, on
@@ -85,6 +98,9 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       _searchQuery = '';
       _selectedType = _allTypesFilterValue;
       _selectedGeneration = _allGenerationsFilterValue;
+      _selectedSpeciesId = null;
+      _detailFuture = null;
+      _selectedDetailTabId = _overviewTabId;
     }
   }
 
@@ -134,6 +150,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
 
         final availableTypes = _buildAvailableTypes(entries);
         final availableGenerations = _buildAvailableGenerations(entries);
+        final workspace = ProjectFileSystem(projectRootPath);
 
         // Les lots 14 et 15 restent volontairement locaux à la UI :
         // - on ne recharge pas le disque à chaque frappe ou changement de filtre ;
@@ -141,47 +158,61 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
         // - on filtre simplement la liste déjà chargée en mémoire ;
         // - on conserve l'ordre fourni par l'index local existant.
         final filteredEntries = _filterEntries(entries);
-        if (filteredEntries.isEmpty) {
-          // Important produit :
-          // - "aucune espèce importée" = la liste source est réellement vide ;
-          // - "aucun résultat" = la liste source existe mais les critères
-          //   locaux courants (recherche et/ou filtres) ne matchent rien.
-          //
-          // On garde donc deux états distincts, mais on laisse le champ de
-          // recherche et les filtres visibles ici pour que la correction des
-          // critères reste immédiate et naturelle.
-          return PokedexWorkspaceSpeciesList(
-            entries: filteredEntries,
-            query: _searchQuery,
-            onQueryChanged: _updateSearchQuery,
-            availableTypes: availableTypes,
-            selectedType: _selectedType,
-            onTypeChanged: _updateSelectedType,
-            availableGenerations: availableGenerations,
-            selectedGeneration: _selectedGeneration,
-            onGenerationChanged: _updateSelectedGeneration,
-            emptyResultsChild: PokedexWorkspaceNoResultsState(
-              query: _searchQuery,
-              selectedType:
-                  _selectedType == _allTypesFilterValue ? null : _selectedType,
-              selectedGeneration:
-                  _selectedGeneration == _allGenerationsFilterValue
-                      ? null
-                      : _selectedGeneration,
-            ),
-          );
-        }
+        final selectedEntry = _resolveSelectedEntry(filteredEntries);
 
-        return PokedexWorkspaceSpeciesList(
-          entries: filteredEntries,
-          query: _searchQuery,
-          onQueryChanged: _updateSearchQuery,
-          availableTypes: availableTypes,
-          selectedType: _selectedType,
-          onTypeChanged: _updateSelectedType,
-          availableGenerations: availableGenerations,
-          selectedGeneration: _selectedGeneration,
-          onGenerationChanged: _updateSelectedGeneration,
+        // Décision UX explicite du mini-fix :
+        // si la sélection courante n'est plus visible dans la liste filtrée,
+        // on vide la fiche détail au lieu de garder un élément "fantôme".
+        // Le reset d'état est planifié hors build pour rester propre côté
+        // Flutter, mais le rendu revient tout de suite à l'état vide car
+        // `selectedEntry` est déjà résolu sur la liste visible.
+        _clearSelectionIfInvisible(filteredEntries);
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 5,
+              child: PokedexWorkspaceSpeciesList(
+                entries: filteredEntries,
+                selectedSpeciesId: _selectedSpeciesId,
+                onEntrySelected: (entry) => _selectEntry(
+                  workspace: workspace,
+                  entry: entry,
+                ),
+                query: _searchQuery,
+                onQueryChanged: _updateSearchQuery,
+                availableTypes: availableTypes,
+                selectedType: _selectedType,
+                onTypeChanged: _updateSelectedType,
+                availableGenerations: availableGenerations,
+                selectedGeneration: _selectedGeneration,
+                onGenerationChanged: _updateSelectedGeneration,
+                emptyResultsChild: filteredEntries.isEmpty
+                    ? PokedexWorkspaceNoResultsState(
+                        query: _searchQuery,
+                        selectedType: _selectedType == _allTypesFilterValue
+                            ? null
+                            : _selectedType,
+                        selectedGeneration:
+                            _selectedGeneration == _allGenerationsFilterValue
+                                ? null
+                                : _selectedGeneration,
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 18),
+            SizedBox(
+              width: 480,
+              child: PokedexWorkspaceDetailPane(
+                selectedEntry: selectedEntry,
+                selectedTabId: _selectedDetailTabId,
+                onTabChanged: _updateSelectedDetailTab,
+                detailFuture: _detailFuture,
+              ),
+            ),
+          ],
         );
       },
     );
@@ -200,6 +231,49 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   void _updateSelectedGeneration(String value) {
     if (value == _selectedGeneration) return;
     setState(() => _selectedGeneration = value);
+  }
+
+  void _updateSelectedDetailTab(String value) {
+    if (value == _selectedDetailTabId) return;
+    setState(() => _selectedDetailTabId = value);
+  }
+
+  void _selectEntry({
+    required ProjectFileSystem workspace,
+    required PokemonDatabaseIndexEntry entry,
+  }) {
+    if (_selectedSpeciesId == entry.id && _detailFuture != null) {
+      return;
+    }
+    setState(() {
+      _selectedSpeciesId = entry.id;
+      _selectedDetailTabId = _overviewTabId;
+      _detailFuture = widget.detailLoader(workspace, entry.id);
+    });
+  }
+
+  void _clearSelectionIfInvisible(
+    List<PokemonDatabaseIndexEntry> visibleEntries,
+  ) {
+    final selectedId = _selectedSpeciesId;
+    if (selectedId == null || selectedId.isEmpty) {
+      return;
+    }
+
+    final stillVisible = visibleEntries.any((entry) => entry.id == selectedId);
+    if (stillVisible) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_selectedSpeciesId != selectedId) return;
+      setState(() {
+        _selectedSpeciesId = null;
+        _detailFuture = null;
+        _selectedDetailTabId = _overviewTabId;
+      });
+    });
   }
 
   List<PokemonDatabaseIndexEntry> _filterEntries(
@@ -289,6 +363,21 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
     return uniqueGenerations
         .map((generation) => generation.toString())
         .toList(growable: false);
+  }
+
+  PokemonDatabaseIndexEntry? _resolveSelectedEntry(
+    List<PokemonDatabaseIndexEntry> entries,
+  ) {
+    final selectedId = _selectedSpeciesId;
+    if (selectedId == null || selectedId.isEmpty) {
+      return null;
+    }
+    for (final entry in entries) {
+      if (entry.id == selectedId) {
+        return entry;
+      }
+    }
+    return null;
   }
 
   String _normalizeDexQuery(String query) {

@@ -590,8 +590,8 @@ class _CategoryNodeState extends ConsumerState<_CategoryNode> {
   @override
   Widget build(BuildContext context) {
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final children =
-        notifier.getPresetCategories(kind: widget.kind, parentCategoryId: widget.category.id);
+    final children = notifier.getPresetCategories(
+        kind: widget.kind, parentCategoryId: widget.category.id);
     final presets = widget.kind == PresetLibraryKind.terrain
         ? notifier
             .getTerrainPresets()
@@ -642,7 +642,9 @@ class _CategoryNodeState extends ConsumerState<_CategoryNode> {
           child: Row(
             children: [
               Icon(
-                _expanded ? CupertinoIcons.chevron_down : CupertinoIcons.chevron_right,
+                _expanded
+                    ? CupertinoIcons.chevron_down
+                    : CupertinoIcons.chevron_right,
                 size: 16,
                 color: CupertinoColors.secondaryLabel.resolveFrom(context),
               ),
@@ -664,7 +666,8 @@ class _CategoryNodeState extends ConsumerState<_CategoryNode> {
                       '${children.length} folders • ${presets.length} presets',
                       style: TextStyle(
                         fontSize: 10,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                        color:
+                            CupertinoColors.secondaryLabel.resolveFrom(context),
                       ),
                     ),
                   ],
@@ -967,7 +970,6 @@ class _PresetDetailsCard extends ConsumerWidget {
                 ),
             ],
           ),
-
         ],
       ),
     );
@@ -993,7 +995,9 @@ class _PresetCategorySection extends ConsumerWidget {
   final EditorNotifier notifier;
   final VoidCallback onChanged;
 
-  Color get _color => kind == PresetLibraryKind.terrain ? EditorChrome.accentJade : EditorChrome.accentWarm;
+  Color get _color => kind == PresetLibraryKind.terrain
+      ? EditorChrome.accentJade
+      : EditorChrome.accentWarm;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1082,7 +1086,8 @@ class TerrainLibraryPanel extends ConsumerWidget {
         ? Center(
             child: Text(
               'Open a project to manage terrain presets',
-              style: TextStyle(color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+              style: TextStyle(
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context)),
             ),
           )
         : _TerrainLibraryContent(
@@ -1105,10 +1110,12 @@ class _TerrainLibraryContent extends ConsumerStatefulWidget {
   final String? selectedPresetId;
 
   @override
-  ConsumerState<_TerrainLibraryContent> createState() => _TerrainLibraryContentState();
+  ConsumerState<_TerrainLibraryContent> createState() =>
+      _TerrainLibraryContentState();
 }
 
-class _TerrainLibraryContentState extends ConsumerState<_TerrainLibraryContent> {
+class _TerrainLibraryContentState
+    extends ConsumerState<_TerrainLibraryContent> {
   bool _expanded = true;
 
   List<dynamic> _rootPresets(EditorNotifier notifier, PresetLibraryKind kind) {
@@ -1130,8 +1137,10 @@ class _TerrainLibraryContentState extends ConsumerState<_TerrainLibraryContent> 
     final tilesets = widget.tilesets;
     final selectedPresetId = widget.selectedPresetId;
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final categories = notifier.getPresetCategories(kind: PresetLibraryKind.terrain);
-    final uncategorizedPresets = _rootPresets(notifier, PresetLibraryKind.terrain);
+    final categories =
+        notifier.getPresetCategories(kind: PresetLibraryKind.terrain);
+    final uncategorizedPresets =
+        _rootPresets(notifier, PresetLibraryKind.terrain);
     final selectedPreset = notifier.getTerrainPresetById(selectedPresetId);
     final presetCount = notifier.getTerrainPresets().length;
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
@@ -1261,29 +1270,15 @@ class _TerrainLibraryContentState extends ConsumerState<_TerrainLibraryContent> 
             ),
           )
         else if (_expanded)
-          Expanded(
-            child: SingleChildScrollView(
-              primary: false,
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (categories.isNotEmpty) ...[
-                    for (final category in categories)
-                      _PresetCategorySection(
-                        category: category,
-                        kind: PresetLibraryKind.terrain,
-                        settings: settings,
-                        tilesets: tilesets,
-                        selectedPresetId: selectedPresetId,
-                        notifier: notifier,
-                        onChanged: () => setState(() {}),
-                      ),
-                    const SizedBox(height: 8),
-                  ],
-                  if (uncategorizedPresets.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (categories.isNotEmpty) ...[
+                  for (final category in categories)
                     _PresetCategorySection(
-                      category: null,
+                      category: category,
                       kind: PresetLibraryKind.terrain,
                       settings: settings,
                       tilesets: tilesets,
@@ -1291,40 +1286,54 @@ class _TerrainLibraryContentState extends ConsumerState<_TerrainLibraryContent> 
                       notifier: notifier,
                       onChanged: () => setState(() {}),
                     ),
-                  ],
+                  const SizedBox(height: 8),
                 ],
-              ),
+                if (uncategorizedPresets.isNotEmpty) ...[
+                  _PresetCategorySection(
+                    category: null,
+                    kind: PresetLibraryKind.terrain,
+                    settings: settings,
+                    tilesets: tilesets,
+                    selectedPresetId: selectedPresetId,
+                    notifier: notifier,
+                    onChanged: () => setState(() {}),
+                  ),
+                ],
+              ],
             ),
           ),
       ],
     );
 
     final detailsSection = selectedPreset != null
-      ? Column(
-          children: [
-            const EditorHorizontalDivider(),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: _buildPresetDetailsContent(
-                context: context,
-                ref: ref,
-                preset: selectedPreset,
-                kind: PresetLibraryKind.terrain,
-                settings: settings,
-                tilesets: tilesets,
+        ? Column(
+            children: [
+              const EditorHorizontalDivider(),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: _buildPresetDetailsContent(
+                  context: context,
+                  ref: ref,
+                  preset: selectedPreset,
+                  kind: PresetLibraryKind.terrain,
+                  settings: settings,
+                  tilesets: tilesets,
+                ),
               ),
-            ),
-          ],
-        )
-      : null;
+            ],
+          )
+        : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        treeColumn,
-        if (detailsSection != null) detailsSection,
-      ],
+    return SingleChildScrollView(
+      primary: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          treeColumn,
+          if (detailsSection != null) detailsSection,
+        ],
+      ),
     );
   }
 }
@@ -1346,7 +1355,8 @@ class PathLibraryPanel extends ConsumerWidget {
         ? Center(
             child: Text(
               'Open a project to manage path presets',
-              style: TextStyle(color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+              style: TextStyle(
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context)),
             ),
           )
         : _PathLibraryContent(
@@ -1369,7 +1379,8 @@ class _PathLibraryContent extends ConsumerStatefulWidget {
   final String? selectedPresetId;
 
   @override
-  ConsumerState<_PathLibraryContent> createState() => _PathLibraryContentState();
+  ConsumerState<_PathLibraryContent> createState() =>
+      _PathLibraryContentState();
 }
 
 class _PathLibraryContentState extends ConsumerState<_PathLibraryContent> {
@@ -1394,7 +1405,8 @@ class _PathLibraryContentState extends ConsumerState<_PathLibraryContent> {
     final tilesets = widget.tilesets;
     final selectedPresetId = widget.selectedPresetId;
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final categories = notifier.getPresetCategories(kind: PresetLibraryKind.path);
+    final categories =
+        notifier.getPresetCategories(kind: PresetLibraryKind.path);
     final uncategorizedPresets = _rootPresets(notifier, PresetLibraryKind.path);
     final selectedPreset = notifier.getPathPresetById(selectedPresetId);
     final presetCount = notifier.getPathPresets().length;
@@ -1525,29 +1537,15 @@ class _PathLibraryContentState extends ConsumerState<_PathLibraryContent> {
             ),
           )
         else if (_expanded)
-          Expanded(
-            child: SingleChildScrollView(
-              primary: false,
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (categories.isNotEmpty) ...[
-                    for (final category in categories)
-                      _PresetCategorySection(
-                        category: category,
-                        kind: PresetLibraryKind.path,
-                        settings: settings,
-                        tilesets: tilesets,
-                        selectedPresetId: selectedPresetId,
-                        notifier: notifier,
-                        onChanged: () => setState(() {}),
-                      ),
-                    const SizedBox(height: 8),
-                  ],
-                  if (uncategorizedPresets.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (categories.isNotEmpty) ...[
+                  for (final category in categories)
                     _PresetCategorySection(
-                      category: null,
+                      category: category,
                       kind: PresetLibraryKind.path,
                       settings: settings,
                       tilesets: tilesets,
@@ -1555,40 +1553,54 @@ class _PathLibraryContentState extends ConsumerState<_PathLibraryContent> {
                       notifier: notifier,
                       onChanged: () => setState(() {}),
                     ),
-                  ],
+                  const SizedBox(height: 8),
                 ],
-              ),
+                if (uncategorizedPresets.isNotEmpty) ...[
+                  _PresetCategorySection(
+                    category: null,
+                    kind: PresetLibraryKind.path,
+                    settings: settings,
+                    tilesets: tilesets,
+                    selectedPresetId: selectedPresetId,
+                    notifier: notifier,
+                    onChanged: () => setState(() {}),
+                  ),
+                ],
+              ],
             ),
           ),
-        ],
-      );
+      ],
+    );
 
     final detailsSection = selectedPreset != null
-      ? Column(
-          children: [
-            const EditorHorizontalDivider(),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: _buildPresetDetailsContent(
-                context: context,
-                ref: ref,
-                preset: selectedPreset,
-                kind: PresetLibraryKind.path,
-                settings: settings,
-                tilesets: tilesets,
+        ? Column(
+            children: [
+              const EditorHorizontalDivider(),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: _buildPresetDetailsContent(
+                  context: context,
+                  ref: ref,
+                  preset: selectedPreset,
+                  kind: PresetLibraryKind.path,
+                  settings: settings,
+                  tilesets: tilesets,
+                ),
               ),
-            ),
-          ],
-        )
-      : null;
+            ],
+          )
+        : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        treeColumn,
-        if (detailsSection != null) detailsSection,
-      ],
+    return SingleChildScrollView(
+      primary: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          treeColumn,
+          if (detailsSection != null) detailsSection,
+        ],
+      ),
     );
   }
 }
