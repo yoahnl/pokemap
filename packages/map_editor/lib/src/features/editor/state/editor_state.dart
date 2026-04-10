@@ -4,53 +4,15 @@ import 'package:map_core/map_core.dart';
 
 import '../../../application/models/map_history_snapshot.dart';
 import '../../../application/models/terrain_selection_mode.dart';
+import 'models/editor_ui_modes.dart';
+import 'models/editor_workspace_mode.dart';
 import '../tools/editor_tool.dart';
 
+export 'models/editor_state_groups.dart';
+export 'models/editor_ui_modes.dart';
+export 'models/editor_workspace_mode.dart';
+
 part 'editor_state.freezed.dart';
-
-enum EditorWorkspaceMode {
-  map,
-  tileset,
-
-  // Workspace Pokédex minimal branché dans l'éditeur.
-  //
-  // Intention produit:
-  // - rendre visible une vraie entree Pokédex dans l'editeur ;
-  // - ouvrir un workspace central dedie ;
-  // - permettre d'afficher une liste simple des especes importees.
-  //
-  // Important:
-  // ce mode reste volontairement limite :
-  // - pas de recherche ;
-  // - pas de filtres ;
-  // - pas de fiche detail ;
-  // - pas d'edition.
-  pokedex,
-
-  // Workspaces narratifs centraux.
-  //
-  // Intention produit (non négociable):
-  // - ces surfaces vivent dans l'îlot central, comme des workspaces de
-  //   premier plan (pas comme des "petits panneaux" latéraux).
-  // - la colonne gauche sert à naviguer/ouvrir.
-  // - la colonne droite sert à inspecter le contexte sélectionné.
-  globalStory,
-  step,
-  cutscene,
-
-  /// Studio de conversation (dialogues `.yarn` en blocs visuels).
-  dialogue,
-}
-
-enum CollisionBrushSizeMode {
-  brushFootprint,
-  singleTile,
-}
-
-enum TilesElementsPanelMode {
-  palette,
-  placedInstances,
-}
 
 @freezed
 sealed class EditorBrush with _$EditorBrush {
@@ -71,16 +33,16 @@ sealed class EditorBrush with _$EditorBrush {
 @freezed
 class EditorState with _$EditorState {
   const factory EditorState({
-    // Context
+    // Session projet / document ouvert
     String? projectRootPath,
     ProjectManifest? project,
     @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
 
-    // Active Map
+    // Document map actif
     MapData? activeMap,
     String? activeMapPath,
 
-    // Active Tools & Selection
+    // Outils et sélections d'édition
     @Default(EditorToolType.selection) EditorToolType activeTool,
     String? activeLayerId,
     GridPos? hoveredTile,
@@ -131,11 +93,11 @@ class EditorState with _$EditorState {
     String? selectedCharacterId,
     PaletteCategory? paletteCategoryFilter,
 
-    // Viewport
+    // Viewport canvas
     @Default(1.0) double zoom,
     @Default(Offset.zero) Offset panOffset,
 
-    // Status
+    // Statut document / historique
     @Default([]) List<MapHistorySnapshot> mapUndoStack,
     @Default([]) List<MapHistorySnapshot> mapRedoStack,
     MapHistorySnapshot? mapStrokeStart,

@@ -30,6 +30,8 @@ import '../../../application/services/terrain_preset_selection_coordinator.dart'
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
 import '../../../application/use_cases/project_scenario_use_cases.dart';
+import '../application/project_session_controller.dart';
+import '../application/project_session_models.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 
@@ -44,6 +46,8 @@ const MethodChannel _macOsFileAccessChannel =
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
+  ProjectSessionController get _projectSessionController =>
+      const ProjectSessionController();
   TerrainPresetResolver get _terrainPresetResolver =>
       ref.read(terrainPresetResolverProvider);
   TerrainPresetSelectionCoordinator get _terrainPresetSelectionCoordinator =>
@@ -57,7 +61,7 @@ class EditorNotifier extends _$EditorNotifier {
   ProjectWorkspaceFactory get _projectWorkspaceFactory =>
       ref.read(projectWorkspaceFactoryProvider);
   ProjectWorkspace? get _projectWorkspace {
-    final projectRootPath = state.projectRootPath;
+    final projectRootPath = state.projectSession.projectRootPath;
     if (projectRootPath == null || projectRootPath.trim().isEmpty) {
       return null;
     }
@@ -84,12 +88,13 @@ class EditorNotifier extends _$EditorNotifier {
       ref.read(placedElementInstanceIndexerProvider);
 
   TerrainPresetSelection _currentTerrainPresetSelection() {
+    final selection = state.selection;
     return TerrainPresetSelection(
-      selectionMode: state.terrainSelectionMode,
-      selectedTerrainType: state.selectedTerrainType,
-      selectedTerrainPresetId: state.selectedTerrainPresetId,
-      selectedPathPresetId: state.selectedPathPresetId,
-      selectedTerrainPresetByType: state.selectedTerrainPresetByType,
+      selectionMode: selection.terrainSelectionMode,
+      selectedTerrainType: selection.selectedTerrainType,
+      selectedTerrainPresetId: selection.selectedTerrainPresetId,
+      selectedPathPresetId: selection.selectedPathPresetId,
+      selectedTerrainPresetByType: selection.selectedTerrainPresetByType,
     );
   }
 
@@ -206,44 +211,14 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(createProjectUseCaseProvider);
       final manifest = await useCase.execute(name, directory);
-      final presetSelection =
-          _terrainPresetSelectionCoordinator.initial(manifest);
-
-      state = state.copyWith(
-        project: manifest,
-        projectRootPath: directory,
-        workspaceMode: EditorWorkspaceMode.map,
-        activeMap: null,
-        activeMapPath: null,
-        activeLayerId: null,
-        activeBrush: const EditorBrush.none(),
-        terrainSelectionMode: presetSelection.selectionMode,
-        selectedTerrainType: presetSelection.selectedTerrainType,
-        selectedEntityKind: MapEntityKind.npc,
-        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
-        selectedPathPresetId: presetSelection.selectedPathPresetId,
-        selectedTerrainPresetByType:
-            presetSelection.selectedTerrainPresetByType,
-        selectedWarpId: null,
-        selectedTriggerId: null,
-        selectedEntityId: null,
-        npcWaypointPlacementEntityId: null,
-        selectedMapEventId: null,
-        selectedTilesetEditorId: null,
-        selectedTilesetElementGroupId: null,
-        selectedPlacedElementInstanceId: null,
-        tilesElementsPanelMode: TilesElementsPanelMode.palette,
-        selectedProjectDialogueId: null,
-        paletteCategoryFilter: null,
-        mapUndoStack: const [],
-        mapRedoStack: const [],
-        mapStrokeStart: null,
-        savedMapSnapshot: null,
-        canUndoMap: false,
-        canRedoMap: false,
-        isDirty: false,
+      state = _projectSessionController.openProjectSession(
+        current: state,
+        session: ProjectSessionLoadResult(
+          projectRootPath: directory,
+          project: manifest,
+          presetSelection: _terrainPresetSelectionCoordinator.initial(manifest),
+        ),
         statusMessage: 'Project "$name" created successfully',
-        errorMessage: null,
       );
       await _rememberLastOpenedProjectManifest(
         p.join(directory, 'project.json'),
@@ -268,44 +243,14 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(loadProjectUseCaseProvider);
       final manifest = await useCase.execute(manifestPath);
       final projectDir = p.dirname(manifestPath);
-      final presetSelection =
-          _terrainPresetSelectionCoordinator.initial(manifest);
-
-      state = state.copyWith(
-        project: manifest,
-        projectRootPath: projectDir,
-        workspaceMode: EditorWorkspaceMode.map,
-        activeMap: null,
-        activeMapPath: null,
-        activeLayerId: null,
-        activeBrush: const EditorBrush.none(),
-        terrainSelectionMode: presetSelection.selectionMode,
-        selectedTerrainType: presetSelection.selectedTerrainType,
-        selectedEntityKind: MapEntityKind.npc,
-        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
-        selectedPathPresetId: presetSelection.selectedPathPresetId,
-        selectedTerrainPresetByType:
-            presetSelection.selectedTerrainPresetByType,
-        selectedWarpId: null,
-        selectedTriggerId: null,
-        selectedEntityId: null,
-        npcWaypointPlacementEntityId: null,
-        selectedMapEventId: null,
-        selectedTilesetEditorId: null,
-        selectedTilesetElementGroupId: null,
-        selectedPlacedElementInstanceId: null,
-        tilesElementsPanelMode: TilesElementsPanelMode.palette,
-        selectedProjectDialogueId: null,
-        paletteCategoryFilter: null,
-        mapUndoStack: const [],
-        mapRedoStack: const [],
-        mapStrokeStart: null,
-        savedMapSnapshot: null,
-        canUndoMap: false,
-        canRedoMap: false,
-        isDirty: false,
+      state = _projectSessionController.openProjectSession(
+        current: state,
+        session: ProjectSessionLoadResult(
+          projectRootPath: projectDir,
+          project: manifest,
+          presetSelection: _terrainPresetSelectionCoordinator.initial(manifest),
+        ),
         statusMessage: 'Project "${manifest.name}" loaded',
-        errorMessage: null,
       );
       if (rememberAsRecent) {
         await _rememberLastOpenedProjectManifest(manifestPath);
@@ -456,7 +401,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (map == null || path == null) return;
 
     debugPrint('EditorNotifier: saveActiveMap()');
-    state = state.copyWith(isSaving: true);
+    state = _projectSessionController.markMapSaving(state);
 
     try {
       final useCase = ref.read(saveMapUseCaseProvider);
@@ -466,17 +411,15 @@ class EditorNotifier extends _$EditorNotifier {
         projectDialogueContext: state.project,
       );
 
-      state = state.copyWith(
-        isSaving: false,
-        isDirty: false,
-        savedMapSnapshot: map,
+      state = _projectSessionController.markMapSaved(
+        current: state,
+        map: map,
         statusMessage: 'Map "${map.id}" saved',
-        errorMessage: null,
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error saving map: $e');
-      state = state.copyWith(
-        isSaving: false,
+      state = _projectSessionController.markMapSaveFailed(
+        current: state,
         errorMessage: 'Failed to save map: $e',
       );
     }
@@ -498,48 +441,28 @@ class EditorNotifier extends _$EditorNotifier {
         project: project,
         current: _currentTerrainPresetSelection(),
       );
-
-      state = state.copyWith(
-        project: project.copyWith(maps: [
-          ...project.maps,
-          ProjectMapEntry(
-            id: id,
-            name: id,
-            relativePath: fs.getMapRelativePath(id),
-            groupId: groupId,
-            role: role,
-          )
-        ]),
-        activeMap: map,
-        activeMapPath: fs.getMapPath(id),
-        workspaceMode: EditorWorkspaceMode.map,
-        activeLayerId: _editorMapSessionCoordinator.resolveActiveLayerId(map),
-        activeBrush: const EditorBrush.none(),
-        terrainSelectionMode: presetSelection.selectionMode,
-        selectedTerrainType: presetSelection.selectedTerrainType,
-        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
-        selectedPathPresetId: presetSelection.selectedPathPresetId,
-        selectedTerrainPresetByType:
-            presetSelection.selectedTerrainPresetByType,
-        selectedWarpId: null,
-        selectedTriggerId: null,
-        selectedEntityId: null,
-        selectedMapEventId: null,
-        selectedTilesetEditorId:
-            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
-        selectedTilesetElementGroupId: null,
-        selectedPlacedElementInstanceId: null,
-        tilesElementsPanelMode: TilesElementsPanelMode.palette,
-        paletteCategoryFilter: null,
-        mapUndoStack: const [],
-        mapRedoStack: const [],
-        mapStrokeStart: null,
-        savedMapSnapshot: map,
-        canUndoMap: false,
-        canRedoMap: false,
-        isDirty: false,
+      final updatedProject = project.copyWith(maps: [
+        ...project.maps,
+        ProjectMapEntry(
+          id: id,
+          name: id,
+          relativePath: fs.getMapRelativePath(id),
+          groupId: groupId,
+          role: role,
+        )
+      ]);
+      state = _projectSessionController.openMapDocument(
+        current: state.copyWith(project: updatedProject),
+        document: MapDocumentLoadResult(
+          map: map,
+          activeMapPath: fs.getMapPath(id),
+          presetSelection: presetSelection,
+          selectedTilesetEditorId:
+              _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
+            map,
+          ),
+        ),
         statusMessage: 'Map "$id" created successfully',
-        errorMessage: null,
       );
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
@@ -581,37 +504,15 @@ class EditorNotifier extends _$EditorNotifier {
               : _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
                   map,
                 );
-
-      state = state.copyWith(
-        activeMap: map,
-        activeMapPath: fs.resolveMapPath(relativePath),
-        workspaceMode: EditorWorkspaceMode.map,
-        activeLayerId: _editorMapSessionCoordinator.resolveActiveLayerId(map),
-        activeBrush: const EditorBrush.none(),
-        terrainSelectionMode: presetSelection.selectionMode,
-        selectedTerrainType: presetSelection.selectedTerrainType,
-        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
-        selectedPathPresetId: presetSelection.selectedPathPresetId,
-        selectedTerrainPresetByType:
-            presetSelection.selectedTerrainPresetByType,
-        selectedWarpId: null,
-        selectedTriggerId: null,
-        selectedEntityId: null,
-        selectedMapEventId: null,
-        selectedTilesetEditorId: nextSelectedTilesetEditorId,
-        selectedTilesetElementGroupId: null,
-        selectedPlacedElementInstanceId: null,
-        tilesElementsPanelMode: TilesElementsPanelMode.palette,
-        paletteCategoryFilter: null,
-        mapUndoStack: const [],
-        mapRedoStack: const [],
-        mapStrokeStart: null,
-        savedMapSnapshot: map,
-        canUndoMap: false,
-        canRedoMap: false,
-        isDirty: false,
+      state = _projectSessionController.openMapDocument(
+        current: state,
+        document: MapDocumentLoadResult(
+          map: map,
+          activeMapPath: fs.resolveMapPath(relativePath),
+          presetSelection: presetSelection,
+          selectedTilesetEditorId: nextSelectedTilesetEditorId,
+        ),
         statusMessage: 'Map "${map.id}" loaded',
-        errorMessage: null,
       );
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
@@ -755,41 +656,13 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(renameMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, oldId, newId);
-
-      MapData? activeMap = state.activeMap;
-      String? activePath = state.activeMapPath;
-      var mapUndoStack = state.mapUndoStack;
-      var mapRedoStack = state.mapRedoStack;
-      var mapStrokeStart = state.mapStrokeStart;
-      MapData? savedMapSnapshot = state.savedMapSnapshot;
-      var canUndoMap = state.canUndoMap;
-      var canRedoMap = state.canRedoMap;
-      var isDirty = state.isDirty;
-      if (activeMap?.id == oldId) {
-        activeMap = activeMap?.copyWith(id: newId, name: newId);
-        activePath = fs.getMapPath(newId);
-        mapUndoStack = const [];
-        mapRedoStack = const [];
-        mapStrokeStart = null;
-        savedMapSnapshot = activeMap;
-        canUndoMap = false;
-        canRedoMap = false;
-        isDirty = false;
-      }
-
-      state = state.copyWith(
-        project: updatedProject,
-        activeMap: activeMap,
-        activeMapPath: activePath,
-        mapUndoStack: mapUndoStack,
-        mapRedoStack: mapRedoStack,
-        mapStrokeStart: mapStrokeStart,
-        savedMapSnapshot: savedMapSnapshot,
-        canUndoMap: canUndoMap,
-        canRedoMap: canRedoMap,
-        isDirty: isDirty,
+      state = _projectSessionController.afterMapRenamed(
+        current: state,
+        updatedProject: updatedProject,
+        oldId: oldId,
+        newId: newId,
+        newPath: fs.getMapPath(newId),
         statusMessage: 'Map renamed to "$newId"',
-        errorMessage: null,
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error renaming map: $e');
@@ -806,56 +679,11 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(deleteMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, mapId);
-
-      MapData? activeMap = state.activeMap;
-      String? activePath = state.activeMapPath;
-      EditorBrush activeBrush = state.activeBrush;
-      String? selectedTilesetEditorId = state.selectedTilesetEditorId;
-      String? selectedTilesetElementGroupId =
-          state.selectedTilesetElementGroupId;
-      PaletteCategory? paletteCategoryFilter = state.paletteCategoryFilter;
-      String? selectedWarpId = state.selectedWarpId;
-      String? selectedTriggerId = state.selectedTriggerId;
-      String? selectedEntityId = state.selectedEntityId;
-      String? selectedMapEventId = state.selectedMapEventId;
-      if (activeMap?.id == mapId) {
-        activeMap = null;
-        activePath = null;
-        activeBrush = const EditorBrush.none();
-        selectedWarpId = null;
-        selectedTriggerId = null;
-        selectedEntityId = null;
-        selectedMapEventId = null;
-        selectedTilesetEditorId = null;
-        selectedTilesetElementGroupId = null;
-        paletteCategoryFilter = null;
-      }
-      final mapCleared = activeMap == null;
-
-      state = state.copyWith(
-        project: updatedProject,
-        activeMap: activeMap,
-        activeMapPath: activePath,
-        activeLayerId: activeMap == null
-            ? null
-            : _editorMapSessionCoordinator.resolveActiveLayerId(activeMap),
-        activeBrush: activeBrush,
-        selectedEntityId: selectedEntityId,
-        selectedMapEventId: selectedMapEventId,
-        selectedWarpId: selectedWarpId,
-        selectedTriggerId: selectedTriggerId,
-        selectedTilesetEditorId: selectedTilesetEditorId,
-        selectedTilesetElementGroupId: selectedTilesetElementGroupId,
-        paletteCategoryFilter: paletteCategoryFilter,
-        mapUndoStack: mapCleared ? const [] : state.mapUndoStack,
-        mapRedoStack: mapCleared ? const [] : state.mapRedoStack,
-        mapStrokeStart: mapCleared ? null : state.mapStrokeStart,
-        savedMapSnapshot: mapCleared ? null : state.savedMapSnapshot,
-        canUndoMap: mapCleared ? false : state.canUndoMap,
-        canRedoMap: mapCleared ? false : state.canRedoMap,
-        isDirty: mapCleared ? false : state.isDirty,
+      state = _projectSessionController.afterMapDeleted(
+        current: state,
+        updatedProject: updatedProject,
+        deletedMapId: mapId,
         statusMessage: 'Map "$mapId" deleted',
-        errorMessage: null,
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error deleting map: $e');
