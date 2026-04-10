@@ -2,6 +2,106 @@
 
 Date : 2026-04-10
 
+## Mise à jour de statut au 2026-04-11
+
+Important :
+- cette section est désormais la **source de vérité actuelle** ;
+- elle remplace les statuts plus anciens plus bas dans ce document quand ils se contredisent ;
+- les sections détaillées historiques sont conservées pour le contexte, mais elles ont été rédigées avant le réalignement des fondations Pokédex, avant la phase 5, et avant le lot 23.
+
+### Résumé rapide actuel
+
+Ce qui est fait aujourd’hui :
+- les fondations Pokédex locales existent et fonctionnent ;
+- le storage local est réaligné sur `data/pokemon/media` ;
+- le contrat espèce utilise `refs.learnset / refs.evolution / refs.media` ;
+- le contrat média Pokémon existe ;
+- lecture, écriture, validation et indexation locales existent ;
+- la tuile Pokédex éditeur existe ;
+- la liste, la recherche, les filtres, la sélection et la fiche détail lecture seule existent ;
+- le lot 23 d’import unitaire d’une espèce JSON interne est fait ;
+- le mini-fix de robustesse du lot 23 est fait.
+
+Ce qui n’est pas encore fait :
+- imports internes learnset / évolution / média / catalogues (`lots 24 à 27`) ;
+- normalisation externe Showdown / PokeAPI (`lots 28 à 36`) ;
+- curation locale / overrides (`lots 37 à 43`) ;
+- modèles gameplay/save (`lots 44 à 47`) ;
+- menus in-game (`lots 48 à 51`).
+
+### Tableau de statut actuel des lots
+
+Statuts utilisés :
+- `OK` : fait et exploitable dans le périmètre du lot
+- `PARTIEL` : présent, mais avec un compromis ou une forme plus générique que la cible finale
+- `NON FAIT` : pas encore traité
+
+| Lot | Statut | Lecture honnête |
+| --- | --- | --- |
+| 1 | OK | Arborescence locale Pokémon en place, avec `data/pokemon/media` |
+| 2 | OK | Modèle espèce local en place, sérialisable, avec bloc `refs` |
+| 3 | OK | Modèle learnset local en place, avec `levelUp`, `tm`, `tutor`, `egg`, `event`, `transfer` |
+| 4 | OK | Modèle évolution local en place, avec `preEvolution`, `targetSpeciesId`, `method`, `minLevel`, `itemId`, `requiredMoveId`, `conditionText` |
+| 5 | OK | Modèle média Pokémon en place, compatible avec le système d’animation existant, sans GIF |
+| 6 | PARTIEL | Catalogues principaux présents et sérialisables, mais encore portés par un contrat générique plutôt qu’un type Dart dédié par grand catalogue |
+| 7 | PARTIEL | Catalogues secondaires et manifeste local présents, mais encore dans une forme générique côté modélisation |
+| 8 | OK | Repositories de lecture locaux présents pour species, learnsets, evolutions, media et catalogues |
+| 9 | OK | Repositories d’écriture locaux présents pour species, learnsets, evolutions, media et catalogues |
+| 10 | OK | Validation locale présente, avec rapport structuré et checks utiles sur refs et données croisées |
+| 11 | OK | Références Pokédex légères dans `project.json`, sans données inline |
+| 12 | OK | `PokemonDatabaseIndex` présent et exploitable pour alimenter la liste sans charger tout le détail |
+| 13 | OK | Tuile Pokédex vide initiale intégrée à l’éditeur |
+| 14 | OK | Liste simple locale des espèces importées |
+| 15 | OK | Recherche texte simple sur nom / id / numéro dex |
+| 16 | OK | Filtres simples type + génération |
+| 17 | OK | Sélection locale d’une espèce dans la liste |
+| 18 | OK | Vue détail `Overview` |
+| 19 | OK | Vue `Formes / classification` |
+| 20 | OK | Onglet `Learnset` |
+| 21 | OK | Onglet `Évolutions` |
+| 22 | OK | Onglet `Médias` |
+| 23 | OK | Import manuel d’une espèce depuis un JSON interne, avec mini-fix de robustesse appliqué |
+| 24 | NON FAIT | Import manuel d’un learnset interne |
+| 25 | NON FAIT | Import manuel d’une évolution interne |
+| 26 | NON FAIT | Import manuel d’un média interne |
+| 27 | NON FAIT | Import manuel d’un catalogue global interne |
+| 28 | NON FAIT | Normalisation des catalogues globaux depuis sources externes |
+| 29 | NON FAIT | Convertisseur Showdown → espèce core |
+| 30 | NON FAIT | Convertisseur Showdown → formes / classification |
+| 31 | NON FAIT | Convertisseur PokeAPI → learnset |
+| 32 | NON FAIT | Convertisseur PokeAPI → évolutions |
+| 33 | NON FAIT | Génération de stubs média |
+| 34 | NON FAIT | Commande d’import unitaire depuis source externe |
+| 35 | NON FAIT | Commande d’import par lot |
+| 36 | NON FAIT | Dry-run / merge policy / rapport de conflits |
+| 37 | NON FAIT | Activer / désactiver une espèce dans le projet |
+| 38 | NON FAIT | Filtre UI activé / désactivé |
+| 39 | NON FAIT | Édition locale des métadonnées simples |
+| 40 | NON FAIT | Édition locale des formes / classification |
+| 41 | NON FAIT | Édition locale des learnsets autorisés |
+| 42 | NON FAIT | Édition locale des évolutions |
+| 43 | NON FAIT | Édition locale des médias utilisés |
+| 44 | NON FAIT | Modèle `OwnedPokemon` |
+| 45 | NON FAIT | Modèle `TrainerProfile` |
+| 46 | NON FAIT | Modèle `Bag` |
+| 47 | NON FAIT | Modèle `SaveGame` et flux de save simple |
+| 48 | NON FAIT | Menu principal du jeu |
+| 49 | NON FAIT | Écran Pokédex en jeu |
+| 50 | NON FAIT | Écran Sac |
+| 51 | NON FAIT | Écran Dresseur |
+
+### Suite recommandée maintenant
+
+Le prochain point propre à attaquer est :
+1. `Lot 24`
+2. `Lot 25`
+3. `Lot 26`
+4. `Lot 27`
+
+Donc, à date :
+- **ce qu’on a fait** : `lots 1 à 23`, avec `lots 6` et `7` encore marqués `PARTIEL` à cause de la modélisation générique des catalogues ;
+- **ce qu’on n’a pas fait** : `lots 24 à 51`.
+
 ## Résumé exécutif
 
 Le repo contient déjà une vraie base Pokédex exploitable :
@@ -849,4 +949,3 @@ Le meilleur prochain mouvement est :
 En une phrase :
 
 **le Pokédex actuel est déjà utile, mais il faut maintenant consolider son contrat de données avant de construire les couches riches dessus.**
-

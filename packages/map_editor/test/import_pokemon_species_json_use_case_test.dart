@@ -53,6 +53,22 @@ void main() {
   });
 
   group('ImportPokemonSpeciesJsonUseCase', () {
+    test('fails clearly when the source path is empty', () async {
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          absoluteSourcePath: '   ',
+        ),
+        throwsA(
+          isA<EditorValidationException>().having(
+            (error) => error.message,
+            'message',
+            'Pokemon species source path cannot be empty',
+          ),
+        ),
+      );
+    });
+
     test('imports one internal species json into the local species directory',
         () async {
       final sourceFile = await _writeSourceJson(
@@ -245,6 +261,29 @@ void main() {
       );
     });
 
+    test('fails clearly when genIntroduced is not positive', () async {
+      final brokenJson = _bulbasaurSpecies.toJson()..['genIntroduced'] = 0;
+      final sourceFile = await _writeSourceJson(
+        tempImportRoot,
+        'invalid-generation.json',
+        brokenJson,
+      );
+
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          absoluteSourcePath: sourceFile.path,
+        ),
+        throwsA(
+          isA<EditorValidationException>().having(
+            (error) => error.message,
+            'message',
+            'Pokemon species genIntroduced must be positive',
+          ),
+        ),
+      );
+    });
+
     test('fails clearly when the species has no type declared', () async {
       final brokenJson = _bulbasaurSpecies.toJson()
         ..['typing'] = <String, Object?>{'types': <String>[]};
@@ -264,6 +303,90 @@ void main() {
             (error) => error.message,
             'message',
             'Pokemon species must declare at least one type',
+          ),
+        ),
+      );
+    });
+
+    test('fails clearly when refs.learnset is empty', () async {
+      final brokenJson = _bulbasaurSpecies.toJson()
+        ..['refs'] = <String, Object?>{
+          'learnset': '   ',
+          'evolution': 'bulbasaur',
+          'media': 'bulbasaur',
+        };
+      final sourceFile = await _writeSourceJson(
+        tempImportRoot,
+        'missing-learnset-ref.json',
+        brokenJson,
+      );
+
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          absoluteSourcePath: sourceFile.path,
+        ),
+        throwsA(
+          isA<EditorValidationException>().having(
+            (error) => error.message,
+            'message',
+            'Pokemon species refs.learnset cannot be empty',
+          ),
+        ),
+      );
+    });
+
+    test('fails clearly when refs.evolution is empty', () async {
+      final brokenJson = _bulbasaurSpecies.toJson()
+        ..['refs'] = <String, Object?>{
+          'learnset': 'bulbasaur',
+          'evolution': '',
+          'media': 'bulbasaur',
+        };
+      final sourceFile = await _writeSourceJson(
+        tempImportRoot,
+        'missing-evolution-ref.json',
+        brokenJson,
+      );
+
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          absoluteSourcePath: sourceFile.path,
+        ),
+        throwsA(
+          isA<EditorValidationException>().having(
+            (error) => error.message,
+            'message',
+            'Pokemon species refs.evolution cannot be empty',
+          ),
+        ),
+      );
+    });
+
+    test('fails clearly when refs.media is empty', () async {
+      final brokenJson = _bulbasaurSpecies.toJson()
+        ..['refs'] = <String, Object?>{
+          'learnset': 'bulbasaur',
+          'evolution': 'bulbasaur',
+          'media': ' ',
+        };
+      final sourceFile = await _writeSourceJson(
+        tempImportRoot,
+        'missing-media-ref.json',
+        brokenJson,
+      );
+
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          absoluteSourcePath: sourceFile.path,
+        ),
+        throwsA(
+          isA<EditorValidationException>().having(
+            (error) => error.message,
+            'message',
+            'Pokemon species refs.media cannot be empty',
           ),
         ),
       );
