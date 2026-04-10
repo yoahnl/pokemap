@@ -13,7 +13,6 @@ import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
 import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/path_autotile_set.dart';
-import '../../../application/models/terrain_selection_mode.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
@@ -29,6 +28,8 @@ import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
+import '../application/map_editing_controller.dart';
+import '../application/map_selection_controller.dart';
 import '../../../application/use_cases/project_scenario_use_cases.dart';
 import '../application/project_session_controller.dart';
 import '../application/project_session_models.dart';
@@ -46,6 +47,12 @@ const MethodChannel _macOsFileAccessChannel =
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
+  MapEditingController get _mapEditingController => MapEditingController(
+        mutationCoordinator: _editorMapMutationCoordinator,
+      );
+  MapSelectionController get _mapSelectionController => MapSelectionController(
+        terrainPresetSelectionCoordinator: _terrainPresetSelectionCoordinator,
+      );
   ProjectSessionController get _projectSessionController =>
       const ProjectSessionController();
   TerrainPresetResolver get _terrainPresetResolver =>
@@ -2784,10 +2791,9 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void selectEntityKind(MapEntityKind kind) {
-    state = state.copyWith(
-      selectedEntityKind: kind,
-      statusMessage: 'Entity kind: ${kind.name}',
-      errorMessage: null,
+    state = _mapSelectionController.selectEntityKind(
+      current: state,
+      kind: kind,
     );
   }
 
@@ -3627,142 +3633,29 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void beginMapStroke() {
-    final map = state.activeMap;
-    if (map == null || state.mapStrokeStart != null) return;
-    final history = _editorMapMutationCoordinator.beginStroke(
-      map: map,
-      activeLayerId: state.activeLayerId,
-      selectedEntityId: state.selectedEntityId,
-      selectedWarpId: state.selectedWarpId,
-      selectedTriggerId: state.selectedTriggerId,
-      undoStack: state.mapUndoStack,
-      redoStack: state.mapRedoStack,
-      strokeStart: state.mapStrokeStart,
-      currentDirty: state.isDirty,
-    );
-    state = state.copyWith(
-      mapUndoStack: history.undoStack,
-      mapRedoStack: history.redoStack,
-      mapStrokeStart: history.strokeStart,
-      canUndoMap: history.canUndoMap,
-      canRedoMap: history.canRedoMap,
-      isDirty: history.isDirty,
-    );
+    state = _mapEditingController.beginStroke(state);
   }
 
   void endMapStroke() {
-    if (state.mapStrokeStart == null) return;
-    final history = _editorMapMutationCoordinator.finalizeStroke(
-      currentMap: state.activeMap,
-      undoStack: state.mapUndoStack,
-      redoStack: state.mapRedoStack,
-      strokeStart: state.mapStrokeStart,
-      savedMapSnapshot: state.savedMapSnapshot,
-      currentDirty: state.isDirty,
-    );
-    state = state.copyWith(
-      mapUndoStack: history.undoStack,
-      mapRedoStack: history.redoStack,
-      mapStrokeStart: history.strokeStart,
-      canUndoMap: history.canUndoMap,
-      canRedoMap: history.canRedoMap,
-      isDirty: history.isDirty,
-      errorMessage: null,
-    );
+    state = _mapEditingController.endStroke(state);
   }
 
   void undoMap() {
     endMapStroke();
-    final map = state.activeMap;
-    if (map == null) return;
-    final restored = _editorMapMutationCoordinator.undo(
-      currentMap: map,
-      activeLayerId: state.activeLayerId,
-      selectedEntityId: state.selectedEntityId,
-      selectedWarpId: state.selectedWarpId,
-      selectedTriggerId: state.selectedTriggerId,
-      undoStack: state.mapUndoStack,
-      redoStack: state.mapRedoStack,
-      savedMapSnapshot: state.savedMapSnapshot,
-    );
+    final restored = _mapEditingController.undo(state);
     if (restored == null) return;
-    final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
-      currentSelectionId: state.selectedPlacedElementInstanceId,
-      nextMap: restored.activeMap,
-      nextActiveLayerId: restored.activeLayerId,
+    state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
+      restored,
     );
-    final nextMapEventSelectionId = _resolveMapEventSelectionAfterMutation(
-      currentSelectionId: state.selectedMapEventId,
-      preferredSelectionId: null,
-      nextMap: restored.activeMap,
-    );
-    state = state.copyWith(
-      activeMap: restored.activeMap,
-      activeLayerId: restored.activeLayerId,
-      selectedEntityId: restored.selectedEntityId,
-      selectedMapEventId: nextMapEventSelectionId,
-      selectedWarpId: restored.selectedWarpId,
-      selectedTriggerId: restored.selectedTriggerId,
-      selectedPlacedElementInstanceId: nextPlacedSelectionId,
-      selectedTilesetEditorId: restored.selectedTilesetEditorId,
-      mapUndoStack: restored.undoStack,
-      mapRedoStack: restored.redoStack,
-      mapStrokeStart: restored.strokeStart,
-      canUndoMap: restored.canUndoMap,
-      canRedoMap: restored.canRedoMap,
-      savedMapSnapshot: restored.savedMapSnapshot,
-      isDirty: restored.isDirty,
-      statusMessage: 'Undo',
-      errorMessage: null,
-    );
-    _coerceActiveToolIfIncompatibleWithLayer();
   }
 
   void redoMap() {
     endMapStroke();
-    final map = state.activeMap;
-    if (map == null) return;
-    final restored = _editorMapMutationCoordinator.redo(
-      currentMap: map,
-      activeLayerId: state.activeLayerId,
-      selectedEntityId: state.selectedEntityId,
-      selectedWarpId: state.selectedWarpId,
-      selectedTriggerId: state.selectedTriggerId,
-      undoStack: state.mapUndoStack,
-      redoStack: state.mapRedoStack,
-      savedMapSnapshot: state.savedMapSnapshot,
-    );
+    final restored = _mapEditingController.redo(state);
     if (restored == null) return;
-    final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
-      currentSelectionId: state.selectedPlacedElementInstanceId,
-      nextMap: restored.activeMap,
-      nextActiveLayerId: restored.activeLayerId,
+    state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
+      restored,
     );
-    final nextMapEventSelectionId = _resolveMapEventSelectionAfterMutation(
-      currentSelectionId: state.selectedMapEventId,
-      preferredSelectionId: null,
-      nextMap: restored.activeMap,
-    );
-    state = state.copyWith(
-      activeMap: restored.activeMap,
-      activeLayerId: restored.activeLayerId,
-      selectedEntityId: restored.selectedEntityId,
-      selectedMapEventId: nextMapEventSelectionId,
-      selectedWarpId: restored.selectedWarpId,
-      selectedTriggerId: restored.selectedTriggerId,
-      selectedPlacedElementInstanceId: nextPlacedSelectionId,
-      selectedTilesetEditorId: restored.selectedTilesetEditorId,
-      mapUndoStack: restored.undoStack,
-      mapRedoStack: restored.redoStack,
-      mapStrokeStart: restored.strokeStart,
-      canUndoMap: restored.canUndoMap,
-      canRedoMap: restored.canRedoMap,
-      savedMapSnapshot: restored.savedMapSnapshot,
-      isDirty: restored.isDirty,
-      statusMessage: 'Redo',
-      errorMessage: null,
-    );
-    _coerceActiveToolIfIncompatibleWithLayer();
   }
 
   EditorBrush _clearBrushIfTilesetRemoved(EditorBrush brush, String tilesetId) {
@@ -4720,83 +4613,30 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void selectTool(EditorToolType tool) {
-    var terrainMode = state.terrainSelectionMode;
-    if (tool == EditorToolType.terrainPaint) {
-      final map = state.activeMap;
-      final id = state.activeLayerId;
-      if (map != null && id != null) {
-        final layer = _findLayerById(map, id);
-        if (layer is TerrainLayer) {
-          terrainMode = TerrainSelectionMode.terrain;
-        } else if (layer is PathLayer) {
-          terrainMode = TerrainSelectionMode.path;
-        }
-      }
-    }
-    state = state.copyWith(
-      activeTool: tool,
-      terrainSelectionMode: terrainMode,
+    state = _mapSelectionController.selectTool(
+      current: state,
+      tool: tool,
     );
   }
 
   void selectTerrainType(TerrainType terrain) {
-    if (state.selectedTerrainType == terrain &&
-        state.terrainSelectionMode == TerrainSelectionMode.terrain) {
-      return;
-    }
-    final selection = _terrainPresetSelectionCoordinator.forTerrainType(
-      project: state.project,
-      current: _currentTerrainPresetSelection(),
-      terrainType: terrain,
-      preferredTerrainPresetId: state.selectedTerrainPresetByType[terrain] ??
-          state.selectedTerrainPresetId,
-    );
-    state = _copyStateWithTerrainPresetSelection(
-      state,
-      selection,
-      statusMessage: 'Terrain type: ${terrain.name}',
-      errorMessage: null,
+    state = _mapSelectionController.selectTerrainType(
+      current: state,
+      terrain: terrain,
     );
   }
 
   void selectTerrainPreset(String? presetId) {
-    final preset = getTerrainPresetById(presetId);
-    if (preset == null) {
-      state = state.copyWith(
-        errorMessage: 'Terrain preset not found',
-      );
-      return;
-    }
-    final selection =
-        _terrainPresetSelectionCoordinator.forTerrainPresetSelected(
-      current: _currentTerrainPresetSelection(),
-      preset: preset,
-    );
-    state = _copyStateWithTerrainPresetSelection(
-      state,
-      selection,
-      activeTool: EditorToolType.terrainPaint,
-      statusMessage: 'Terrain preset: ${preset.name}',
-      errorMessage: null,
+    state = _mapSelectionController.selectTerrainPreset(
+      current: state,
+      preset: getTerrainPresetById(presetId),
     );
   }
 
   void selectPathPreset(String? presetId) {
-    final preset = getPathPresetById(presetId);
-    if (preset == null) {
-      state = state.copyWith(errorMessage: 'Path preset not found');
-      return;
-    }
-    final selection = _terrainPresetSelectionCoordinator.forPathPresetSelected(
-      current: _currentTerrainPresetSelection(),
-      preset: preset,
-    );
-    state = _copyStateWithTerrainPresetSelection(
-      state,
-      selection,
-      activeTool: EditorToolType.terrainPaint,
-      statusMessage: 'Path preset: ${preset.name}',
-      errorMessage: null,
+    state = _mapSelectionController.selectPathPreset(
+      current: state,
+      preset: getPathPresetById(presetId),
     );
   }
 
@@ -4822,48 +4662,16 @@ class EditorNotifier extends _$EditorNotifier {
   void selectTerrainPaintMode({
     TerrainType? terrainType,
   }) {
-    final nextTerrain = terrainType ?? state.selectedTerrainType;
-    final selection = _terrainPresetSelectionCoordinator.forTerrainType(
-      project: state.project,
-      current: _currentTerrainPresetSelection(),
-      terrainType: nextTerrain,
-      preferredTerrainPresetId:
-          state.selectedTerrainPresetByType[nextTerrain] ??
-              state.selectedTerrainPresetId,
-    );
-    state = _copyStateWithTerrainPresetSelection(
-      state,
-      selection,
-      activeTool: EditorToolType.terrainPaint,
-      statusMessage: 'Terrain type: ${nextTerrain.name}',
-      errorMessage: null,
+    state = _mapSelectionController.selectTerrainPaintMode(
+      current: state,
+      terrainType: terrainType,
     );
   }
 
   void selectPathPaintMode() {
-    final selectedPathPreset = getSelectedPathPreset();
-    final currentSelection = _currentTerrainPresetSelection();
-    final selection = selectedPathPreset == null
-        ? TerrainPresetSelection(
-            selectionMode: TerrainSelectionMode.path,
-            selectedTerrainType: currentSelection.selectedTerrainType,
-            selectedTerrainPresetId: currentSelection.selectedTerrainPresetId,
-            selectedPathPresetId: currentSelection.selectedPathPresetId,
-            selectedTerrainPresetByType:
-                currentSelection.selectedTerrainPresetByType,
-          )
-        : _terrainPresetSelectionCoordinator.forPathPresetSelected(
-            current: currentSelection,
-            preset: selectedPathPreset,
-          );
-    state = _copyStateWithTerrainPresetSelection(
-      state,
-      selection,
-      activeTool: EditorToolType.terrainPaint,
-      statusMessage: selectedPathPreset == null
-          ? 'Path paint mode'
-          : 'Path preset: ${selectedPathPreset.name}',
-      errorMessage: null,
+    state = _mapSelectionController.selectPathPaintMode(
+      current: state,
+      selectedPathPreset: getSelectedPathPreset(),
     );
   }
 
@@ -6109,42 +5917,9 @@ class EditorNotifier extends _$EditorNotifier {
 
   /// Bascule vers la sélection si l’outil courant ne peut pas agir sur le calque actif.
   void _coerceActiveToolIfIncompatibleWithLayer() {
-    final map = state.activeMap;
-    final layerId = state.activeLayerId;
-    MapLayer? layer;
-    if (map != null && layerId != null) {
-      layer = _findLayerById(map, layerId);
-    }
-    if (_isToolCompatibleWithActiveLayer(state.activeTool, layer)) {
-      return;
-    }
-    state = state.copyWith(activeTool: EditorToolType.selection);
-  }
-
-  bool _isToolCompatibleWithActiveLayer(
-    EditorToolType tool,
-    MapLayer? layer,
-  ) {
-    switch (tool) {
-      case EditorToolType.selection:
-      case EditorToolType.entityPlacement:
-      case EditorToolType.eventPlacement:
-      case EditorToolType.triggerPlacement:
-      case EditorToolType.warpPlacement:
-      case EditorToolType.gameplayZonePlacement:
-        return true;
-      case EditorToolType.tilePaint:
-        return layer is TileLayer;
-      case EditorToolType.collisionPaint:
-        return layer is CollisionLayer;
-      case EditorToolType.terrainPaint:
-        return layer is TerrainLayer || layer is PathLayer;
-      case EditorToolType.eraser:
-        return layer is TileLayer ||
-            layer is CollisionLayer ||
-            layer is TerrainLayer ||
-            layer is PathLayer;
-    }
+    state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
+      state,
+    );
   }
 
   void updateHoveredTile(GridPos? pos) {
@@ -6176,140 +5951,24 @@ class EditorNotifier extends _$EditorNotifier {
     bool updateHoveredTile = false,
     String? statusMessage,
   }) {
-    if (identical(previousMap, updatedMap) || previousMap == updatedMap) {
-      return;
-    }
-
-    if (!partOfStroke && state.mapStrokeStart != null) {
-      endMapStroke();
-    }
-
-    final mutation = _editorMapMutationCoordinator.applyMutation(
+    final next = _mapEditingController.applyMutation(
+      current: state,
       previousMap: previousMap,
       updatedMap: updatedMap,
-      activeLayerId: state.activeLayerId,
-      selectedEntityId: state.selectedEntityId,
-      selectedWarpId: state.selectedWarpId,
-      selectedTriggerId: state.selectedTriggerId,
-      selectedTilesetEditorId: state.selectedTilesetEditorId,
-      undoStack: state.mapUndoStack,
-      redoStack: state.mapRedoStack,
-      strokeStart: state.mapStrokeStart,
       preferredActiveLayerId: preferredActiveLayerId,
       preferredSelectedEntityId: preferredSelectedEntityId,
+      preferredSelectedMapEventId: preferredSelectedMapEventId,
       preferredSelectedWarpId: preferredSelectedWarpId,
       preferredSelectedTriggerId: preferredSelectedTriggerId,
-      savedMapSnapshot: state.savedMapSnapshot,
       partOfStroke: partOfStroke,
       updateSavedSnapshot: updateSavedSnapshot,
+      hoveredTile: hoveredTile,
+      updateHoveredTile: updateHoveredTile,
+      statusMessage: statusMessage,
     );
-    final nextPlacedSelectionId = _resolvePlacedElementSelectionAfterMutation(
-      currentSelectionId: state.selectedPlacedElementInstanceId,
-      nextMap: mutation.activeMap,
-      nextActiveLayerId: mutation.activeLayerId,
+    state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
+      next,
     );
-    final nextMapEventSelectionId = _resolveMapEventSelectionAfterMutation(
-      currentSelectionId: state.selectedMapEventId,
-      preferredSelectionId: preferredSelectedMapEventId,
-      nextMap: mutation.activeMap,
-    );
-    final nextNpcWaypointPlacementEntityId =
-        _resolveNpcWaypointPlacementAfterMutation(
-      nextMap: mutation.activeMap,
-      currentPlacementEntityId: state.npcWaypointPlacementEntityId,
-    );
-    state = state.copyWith(
-      activeMap: mutation.activeMap,
-      activeLayerId: mutation.activeLayerId,
-      selectedEntityId: mutation.selectedEntityId,
-      npcWaypointPlacementEntityId: nextNpcWaypointPlacementEntityId,
-      selectedMapEventId: nextMapEventSelectionId,
-      selectedWarpId: mutation.selectedWarpId,
-      selectedTriggerId: mutation.selectedTriggerId,
-      selectedPlacedElementInstanceId: nextPlacedSelectionId,
-      selectedTilesetEditorId: mutation.selectedTilesetEditorId,
-      hoveredTile: updateHoveredTile ? hoveredTile : state.hoveredTile,
-      mapUndoStack: mutation.undoStack,
-      mapRedoStack: mutation.redoStack,
-      mapStrokeStart: mutation.strokeStart,
-      savedMapSnapshot: mutation.savedMapSnapshot,
-      canUndoMap: mutation.canUndoMap,
-      canRedoMap: mutation.canRedoMap,
-      isDirty: mutation.isDirty,
-      statusMessage: statusMessage ?? state.statusMessage,
-      errorMessage: null,
-    );
-    _coerceActiveToolIfIncompatibleWithLayer();
-  }
-
-  String? _resolveNpcWaypointPlacementAfterMutation({
-    required MapData nextMap,
-    required String? currentPlacementEntityId,
-  }) {
-    final normalized = currentPlacementEntityId?.trim();
-    if (normalized == null || normalized.isEmpty) {
-      return null;
-    }
-    final entity =
-        _entityEditingService.findSelectedEntity(nextMap, normalized);
-    if (entity == null || entity.kind != MapEntityKind.npc) {
-      return null;
-    }
-    final movement = entity.npc?.movement ?? const MapEntityNpcMovementConfig();
-    if (movement.mode != MapEntityNpcMovementMode.patrol) {
-      return null;
-    }
-    return normalized;
-  }
-
-  String? _resolvePlacedElementSelectionAfterMutation({
-    required String? currentSelectionId,
-    required MapData nextMap,
-    required String? nextActiveLayerId,
-  }) {
-    final normalizedSelection = currentSelectionId?.trim();
-    if (normalizedSelection == null || normalizedSelection.isEmpty) {
-      return null;
-    }
-    if (nextActiveLayerId == null || nextActiveLayerId.isEmpty) {
-      return null;
-    }
-    for (final instance in nextMap.placedElements) {
-      if (instance.id != normalizedSelection) {
-        continue;
-      }
-      if (instance.layerId != nextActiveLayerId) {
-        return null;
-      }
-      return normalizedSelection;
-    }
-    return null;
-  }
-
-  String? _resolveMapEventSelectionAfterMutation({
-    required String? currentSelectionId,
-    required String? preferredSelectionId,
-    required MapData nextMap,
-  }) {
-    final preferred = preferredSelectionId?.trim();
-    if (preferred != null && preferred.isNotEmpty) {
-      for (final event in nextMap.events) {
-        if (event.id == preferred) {
-          return preferred;
-        }
-      }
-      return null;
-    }
-    final current = currentSelectionId?.trim();
-    if (current == null || current.isEmpty) {
-      return null;
-    }
-    for (final event in nextMap.events) {
-      if (event.id == current) {
-        return current;
-      }
-    }
-    return null;
   }
 
   int _findLayerIndexById(MapData map, String layerId) {
