@@ -698,14 +698,14 @@ abstract class ProjectElementEditorBrush implements EditorBrush {
 
 /// @nodoc
 mixin _$EditorState {
-// Context
+// Session projet / document ouvert
   String? get projectRootPath => throw _privateConstructorUsedError;
   ProjectManifest? get project => throw _privateConstructorUsedError;
   EditorWorkspaceMode get workspaceMode =>
-      throw _privateConstructorUsedError; // Active Map
+      throw _privateConstructorUsedError; // Document map actif
   MapData? get activeMap => throw _privateConstructorUsedError;
   String? get activeMapPath =>
-      throw _privateConstructorUsedError; // Active Tools & Selection
+      throw _privateConstructorUsedError; // Outils et sélections d'édition
   EditorToolType get activeTool => throw _privateConstructorUsedError;
   String? get activeLayerId => throw _privateConstructorUsedError;
   GridPos? get hoveredTile => throw _privateConstructorUsedError;
@@ -758,9 +758,10 @@ mixin _$EditorState {
   /// Personnage sélectionné dans la bibliothèque personnages.
   String? get selectedCharacterId => throw _privateConstructorUsedError;
   PaletteCategory? get paletteCategoryFilter =>
-      throw _privateConstructorUsedError; // Viewport
+      throw _privateConstructorUsedError; // Viewport canvas
   double get zoom => throw _privateConstructorUsedError;
-  Offset get panOffset => throw _privateConstructorUsedError; // Status
+  Offset get panOffset =>
+      throw _privateConstructorUsedError; // Statut document / historique
   List<MapHistorySnapshot> get mapUndoStack =>
       throw _privateConstructorUsedError;
   List<MapHistorySnapshot> get mapRedoStack =>
@@ -1527,7 +1528,7 @@ class _$EditorStateImpl implements _EditorState {
         _mapUndoStack = mapUndoStack,
         _mapRedoStack = mapRedoStack;
 
-// Context
+// Session projet / document ouvert
   @override
   final String? projectRootPath;
   @override
@@ -1535,12 +1536,12 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final EditorWorkspaceMode workspaceMode;
-// Active Map
+// Document map actif
   @override
   final MapData? activeMap;
   @override
   final String? activeMapPath;
-// Active Tools & Selection
+// Outils et sélections d'édition
   @override
   @JsonKey()
   final EditorToolType activeTool;
@@ -1627,16 +1628,16 @@ class _$EditorStateImpl implements _EditorState {
   final String? selectedCharacterId;
   @override
   final PaletteCategory? paletteCategoryFilter;
-// Viewport
+// Viewport canvas
   @override
   @JsonKey()
   final double zoom;
   @override
   @JsonKey()
   final Offset panOffset;
-// Status
+// Statut document / historique
   final List<MapHistorySnapshot> _mapUndoStack;
-// Status
+// Statut document / historique
   @override
   @JsonKey()
   List<MapHistorySnapshot> get mapUndoStack {
@@ -1866,17 +1867,17 @@ abstract class _EditorState implements EditorState {
       final String? statusMessage,
       final String? errorMessage}) = _$EditorStateImpl;
 
-// Context
+// Session projet / document ouvert
   @override
   String? get projectRootPath;
   @override
   ProjectManifest? get project;
   @override
-  EditorWorkspaceMode get workspaceMode; // Active Map
+  EditorWorkspaceMode get workspaceMode; // Document map actif
   @override
   MapData? get activeMap;
   @override
-  String? get activeMapPath; // Active Tools & Selection
+  String? get activeMapPath; // Outils et sélections d'édition
   @override
   EditorToolType get activeTool;
   @override
@@ -1946,11 +1947,11 @@ abstract class _EditorState implements EditorState {
   @override
   String? get selectedCharacterId;
   @override
-  PaletteCategory? get paletteCategoryFilter; // Viewport
+  PaletteCategory? get paletteCategoryFilter; // Viewport canvas
   @override
   double get zoom;
   @override
-  Offset get panOffset; // Status
+  Offset get panOffset; // Statut document / historique
   @override
   List<MapHistorySnapshot> get mapUndoStack;
   @override

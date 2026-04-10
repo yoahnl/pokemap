@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/content_studio_providers.dart';
+import 'package:map_editor/src/app/providers/core_providers.dart';
 import 'package:map_editor/src/app/providers/editor_workspace_providers.dart';
+import 'package:map_editor/src/app/providers/pokedex_providers.dart';
+import 'package:map_editor/src/app/providers/use_case_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_workspace_providers.dart';
@@ -14,6 +17,10 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
+      expect(container.read(projectRepositoryProvider), isNotNull);
+      expect(container.read(terrainPresetResolverProvider), isNotNull);
+      expect(container.read(createProjectDialogueUseCaseProvider), isNotNull);
+      expect(container.read(pokemonDatabaseIndexProvider), isNotNull);
       expect(container.read(editorWorkspaceControllerProvider), isNotNull);
       expect(container.read(projectContentControllerProvider), isNotNull);
     });

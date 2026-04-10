@@ -1,6 +1,5 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -9,6 +8,8 @@ import 'package:path/path.dart' as p;
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
+import 'project_explorer/dialogs/tileset_library_dialogs.dart';
+import 'project_explorer/dnd/tileset_library_drag_drop.dart';
 import 'character_library_panel.dart';
 import 'narrative_library_panel.dart';
 import 'terrain_editor_panel.dart';
@@ -21,337 +22,6 @@ String _mapGroupTypeDisplayLabel(MapGroupType t) {
   final n = t.name;
   if (n.isEmpty) return '';
   return '${n[0].toUpperCase()}${n.substring(1)}';
-}
-
-/// Données de glisser-déposer pour la bibliothèque tilesets.
-class _TilesetLibraryDragData {
-  const _TilesetLibraryDragData.tileset(this.id) : isFolder = false;
-  const _TilesetLibraryDragData.folder(this.id) : isFolder = true;
-
-  final String id;
-  final bool isFolder;
-}
-
-ProjectTilesetEntry? _tilesetById(ProjectManifest project, String tilesetId) {
-  for (final t in project.tilesets) {
-    if (t.id == tilesetId) return t;
-  }
-  return null;
-}
-
-bool _tilesetLibraryCanDropOnFolder(
-  ProjectManifest project,
-  ProjectTilesetFolder target,
-  _TilesetLibraryDragData data,
-) {
-  if (data.isFolder) {
-    if (data.id == target.id) return false;
-    if (tilesetFolderSubtreeIds(project, data.id).contains(target.id)) {
-      return false;
-    }
-    for (final f in project.tilesetFolders) {
-      if (f.id != data.id) continue;
-      final p = f.parentFolderId?.trim() ?? '';
-      if (p == target.id) return false;
-      break;
-    }
-    return true;
-  }
-  final tileset = _tilesetById(project, data.id);
-  if (tileset == null) return false;
-  final cur = tileset.folderId?.trim() ?? '';
-  return cur != target.id;
-}
-
-bool _tilesetLibraryCanDropOnRoot(
-  ProjectManifest project,
-  _TilesetLibraryDragData data,
-) {
-  if (data.isFolder) {
-    ProjectTilesetFolder? folder;
-    for (final f in project.tilesetFolders) {
-      if (f.id == data.id) {
-        folder = f;
-        break;
-      }
-    }
-    if (folder == null) return false;
-    final p = folder.parentFolderId?.trim() ?? '';
-    return p.isNotEmpty;
-  }
-  final tileset = _tilesetById(project, data.id);
-  if (tileset == null) return false;
-  final cur = tileset.folderId?.trim() ?? '';
-  return cur.isNotEmpty;
-}
-
-void _tilesetLibraryApplyDropOnFolder(
-  EditorNotifier notifier,
-  ProjectTilesetFolder target,
-  _TilesetLibraryDragData data,
-) {
-  if (data.isFolder) {
-    notifier.moveTilesetLibraryFolder(
-      folderId: data.id,
-      newParentFolderId: target.id,
-    );
-  } else {
-    notifier.assignTilesetToLibraryFolder(
-      tilesetId: data.id,
-      folderId: target.id,
-    );
-  }
-}
-
-void _tilesetLibraryApplyDropOnRoot(
-  EditorNotifier notifier,
-  _TilesetLibraryDragData data,
-) {
-  if (data.isFolder) {
-    notifier.moveTilesetLibraryFolder(
-      folderId: data.id,
-      newParentFolderId: null,
-    );
-  } else {
-    notifier.moveTilesetToLibraryRoot(data.id);
-  }
-}
-
-Widget _tilesetLibraryTilesetDragFeedback(
-  BuildContext context,
-  ProjectTilesetEntry t,
-) {
-  return Material(
-    elevation: 6,
-    borderRadius: BorderRadius.circular(8),
-    color: Colors.transparent,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: EditorChrome.islandFillElevated(context),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: EditorChrome.accentWarm.withValues(alpha: 0.65),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const MacosIcon(
-            CupertinoIcons.square_stack_3d_up,
-            size: 16,
-            color: EditorChrome.accentWarm,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            t.name,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: EditorChrome.primaryLabel(context),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _tilesetLibraryFolderDragFeedback(
-  BuildContext context,
-  ProjectTilesetFolder f,
-) {
-  return Material(
-    elevation: 6,
-    borderRadius: BorderRadius.circular(8),
-    color: Colors.transparent,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: EditorChrome.islandFillElevated(context),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: EditorChrome.accentCyan.withValues(alpha: 0.65),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const MacosIcon(
-            CupertinoIcons.folder_fill,
-            size: 16,
-            color: EditorChrome.accentCyan,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            f.name,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: EditorChrome.primaryLabel(context),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _ImportLibraryDest {
-  const _ImportLibraryDest(this.label, this.folderId);
-  final String label;
-  final String? folderId;
-}
-
-class _TilesetFolderMoveOption {
-  const _TilesetFolderMoveOption(this.label, this.newParentId);
-  final String label;
-  final String? newParentId;
-}
-
-Future<void> _promptNewTilesetLibraryFolder(
-  BuildContext context,
-  EditorNotifier notifier, {
-  String? parentFolderId,
-}) async {
-  final controller = TextEditingController();
-  final ok = await showMacosEditorPromptSheet(
-    context,
-    title: parentFolderId == null ? 'New folder' : 'New subfolder',
-    controller: controller,
-    placeholder: 'Name',
-    confirmLabel: 'Create',
-    compact: true,
-  );
-  if (!ok || !context.mounted) return;
-  final name = controller.text.trim();
-  if (name.isEmpty) return;
-  await notifier.createTilesetLibraryFolder(
-    name: name,
-    parentFolderId: parentFolderId,
-  );
-}
-
-Future<void> _promptRenameTilesetLibraryFolder(
-  BuildContext context,
-  EditorNotifier notifier,
-  ProjectTilesetFolder folder,
-) async {
-  final controller = TextEditingController(text: folder.name);
-  final ok = await showMacosEditorPromptSheet(
-    context,
-    title: 'Rename folder',
-    controller: controller,
-    placeholder: 'Name',
-    confirmLabel: 'Rename',
-    compact: true,
-  );
-  if (!ok || !context.mounted) return;
-  final name = controller.text.trim();
-  if (name.isEmpty) return;
-  await notifier.renameTilesetLibraryFolder(
-    folderId: folder.id,
-    name: name,
-  );
-}
-
-Future<void> _openTilesetLibraryFolderContextMenu(
-  BuildContext context, {
-  required ProjectTilesetFolder folder,
-  required ProjectManifest project,
-  required EditorNotifier notifier,
-  required Offset anchorGlobal,
-}) async {
-  final action = await showMacosEditorContextMenu<String>(
-    context: context,
-    globalPosition: anchorGlobal,
-    actions: const [
-      MacosEditorSheetAction(label: 'Rename', value: 'rename'),
-      MacosEditorSheetAction(label: 'New subfolder', value: 'sub'),
-      MacosEditorSheetAction(label: 'Move to…', value: 'move'),
-      MacosEditorSheetAction(
-        label: 'Delete folder',
-        value: 'delete',
-        isDestructive: true,
-      ),
-    ],
-  );
-  if (!context.mounted || action == null) return;
-  switch (action) {
-    case 'rename':
-      await _promptRenameTilesetLibraryFolder(context, notifier, folder);
-    case 'sub':
-      await _promptNewTilesetLibraryFolder(
-        context,
-        notifier,
-        parentFolderId: folder.id,
-      );
-    case 'move':
-      await _pickMoveTilesetLibraryFolderTarget(
-        context,
-        project,
-        notifier,
-        folder.id,
-      );
-    case 'delete':
-      await notifier.deleteTilesetLibraryFolder(folder.id);
-  }
-}
-
-Future<void> _pickMoveTilesetLibraryFolderTarget(
-  BuildContext context,
-  ProjectManifest project,
-  EditorNotifier notifier,
-  String folderId,
-) async {
-  final blocked = tilesetFolderSubtreeIds(project, folderId);
-  final options = <_TilesetFolderMoveOption>[
-    const _TilesetFolderMoveOption('Library root', null),
-  ];
-  for (final row in flattenTilesetFoldersForPicker(project)) {
-    if (row.id == folderId) continue;
-    if (blocked.contains(row.id)) continue;
-    options.add(_TilesetFolderMoveOption(row.label, row.id));
-  }
-  final picked = await showCupertinoListPicker<_TilesetFolderMoveOption>(
-    context: context,
-    title: 'Move folder into',
-    items: options,
-    labelOf: (o) => o.label,
-  );
-  if (picked == null || !context.mounted) return;
-  await notifier.moveTilesetLibraryFolder(
-    folderId: folderId,
-    newParentFolderId: picked.newParentId,
-  );
-}
-
-Future<void> _openAssignTilesetLibraryFolderSheet(
-  BuildContext context, {
-  required ProjectManifest project,
-  required EditorNotifier notifier,
-  required ProjectTilesetEntry tileset,
-}) async {
-  final options = <_ImportLibraryDest>[
-    const _ImportLibraryDest('Library root', null),
-    ...flattenTilesetFoldersForPicker(project)
-        .map((r) => _ImportLibraryDest(r.label, r.id)),
-  ];
-  final picked = await showCupertinoListPicker<_ImportLibraryDest>(
-    context: context,
-    title: 'Move tileset to folder',
-    items: options,
-    labelOf: (o) => o.label,
-  );
-  if (picked == null || !context.mounted) return;
-  if (picked.folderId == null) {
-    await notifier.moveTilesetToLibraryRoot(tileset.id);
-  } else {
-    await notifier.assignTilesetToLibraryFolder(
-      tilesetId: tileset.id,
-      folderId: picked.folderId!,
-    );
-  }
 }
 
 class ProjectExplorerPanel extends ConsumerStatefulWidget {
@@ -593,8 +263,10 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 enabled: true,
                 icon: CupertinoIcons.plus_circle_fill,
                 tooltip: 'New folder',
-                onPressed: () =>
-                    _promptNewTilesetLibraryFolder(context, notifier),
+                onPressed: () => promptNewTilesetLibraryFolder(
+                  context,
+                  notifier,
+                ),
                 iconColor: actionIcon,
                 hoverFill: actionHover,
               ),
@@ -910,12 +582,13 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                   controlSize: ControlSize.regular,
                   secondary: true,
                   onPressed: () async {
-                    final options = <_ImportLibraryDest>[
-                      const _ImportLibraryDest('Library root', null),
+                    final options = <ImportLibraryDestination>[
+                      const ImportLibraryDestination('Library root', null),
                       ...flattenTilesetFoldersForPicker(project)
-                          .map((r) => _ImportLibraryDest(r.label, r.id)),
+                          .map((r) => ImportLibraryDestination(r.label, r.id)),
                     ];
-                    final p = await showCupertinoListPicker<_ImportLibraryDest>(
+                    final p =
+                        await showCupertinoListPicker<ImportLibraryDestination>(
                       context: ctx,
                       title: 'Library folder',
                       items: options,
@@ -1586,18 +1259,18 @@ class _TilesetFolderHeaderDnD extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DragTarget<_TilesetLibraryDragData>(
+    return DragTarget<TilesetLibraryDragData>(
       onWillAcceptWithDetails: (details) =>
-          _tilesetLibraryCanDropOnFolder(project, folder, details.data),
+          tilesetLibraryCanDropOnFolder(project, folder, details.data),
       onAcceptWithDetails: (details) {
-        _tilesetLibraryApplyDropOnFolder(notifier, folder, details.data);
+        tilesetLibraryApplyDropOnFolder(notifier, folder, details.data);
       },
       builder: (context, candidateData, rejected) {
         final hovering = candidateData.isNotEmpty;
-        return Draggable<_TilesetLibraryDragData>(
-          data: _TilesetLibraryDragData.folder(folder.id),
+        return Draggable<TilesetLibraryDragData>(
+          data: TilesetLibraryDragData.folder(folder.id),
           affinity: Axis.vertical,
-          feedback: _tilesetLibraryFolderDragFeedback(context, folder),
+          feedback: buildTilesetLibraryFolderDragFeedback(context, folder),
           childWhenDragging: Opacity(
             opacity: 0.35,
             child: header,
@@ -1636,11 +1309,11 @@ class _TilesetLibraryRootDropStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
-    return DragTarget<_TilesetLibraryDragData>(
+    return DragTarget<TilesetLibraryDragData>(
       onWillAcceptWithDetails: (details) =>
-          _tilesetLibraryCanDropOnRoot(project, details.data),
+          tilesetLibraryCanDropOnRoot(project, details.data),
       onAcceptWithDetails: (details) {
-        _tilesetLibraryApplyDropOnRoot(notifier, details.data);
+        tilesetLibraryApplyDropOnRoot(notifier, details.data);
       },
       builder: (context, candidateData, rejected) {
         final hovering = candidateData.isNotEmpty;
@@ -1729,7 +1402,7 @@ class _TilesetLibraryFolderNode extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      onSecondaryTapDown: (d) => _openTilesetLibraryFolderContextMenu(
+      onSecondaryTapDown: (d) => openTilesetLibraryFolderContextMenu(
         context,
         folder: folder,
         project: project,
@@ -1741,7 +1414,7 @@ class _TilesetLibraryFolderNode extends StatelessWidget {
           icon: CupertinoIcons.ellipsis_vertical,
           tooltip: 'Folder actions',
           iconSize: 16,
-          onPressed: () => _openTilesetLibraryFolderContextMenu(
+          onPressed: () => openTilesetLibraryFolderContextMenu(
             context,
             folder: folder,
             project: project,
@@ -1832,10 +1505,10 @@ class _TilesetNode extends StatelessWidget {
         ),
       ),
     );
-    return Draggable<_TilesetLibraryDragData>(
-      data: _TilesetLibraryDragData.tileset(tileset.id),
+    return Draggable<TilesetLibraryDragData>(
+      data: TilesetLibraryDragData.tileset(tileset.id),
       affinity: Axis.vertical,
-      feedback: _tilesetLibraryTilesetDragFeedback(context, tileset),
+      feedback: buildTilesetLibraryTilesetDragFeedback(context, tileset),
       childWhenDragging: Opacity(
         opacity: 0.35,
         child: row,
@@ -1897,7 +1570,7 @@ class _TilesetNode extends StatelessWidget {
       case 'assign_group':
         _showAssignGroupDialog(context);
       case 'library_folder':
-        await _openAssignTilesetLibraryFolderSheet(
+        await openAssignTilesetLibraryFolderSheet(
           context,
           project: project,
           notifier: notifier,

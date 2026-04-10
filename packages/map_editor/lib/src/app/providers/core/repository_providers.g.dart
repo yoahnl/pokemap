@@ -1,14 +1,21 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'core_providers.dart';
+part of 'repository_providers.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$projectRepositoryHash() => r'acfefc4345a987f5010ded58525a024c2ce050f8';
+String _$projectRepositoryHash() => r'4ae01cc29221b6d8ec84621fd925efe249fd6709';
 
-/// See also [projectRepository].
+/// Providers transverses de bas niveau pour la composition root.
+///
+/// Ce fichier reste volontairement petit :
+/// - uniquement les frontières d'accès aux données / workspace ;
+/// - aucune orchestration métier ;
+/// - aucune dépendance à des thèmes UI.
+///
+/// Copied from [projectRepository].
 @ProviderFor(projectRepository)
 final projectRepositoryProvider =
     AutoDisposeProvider<ProjectRepository>.internal(
@@ -24,7 +31,7 @@ final projectRepositoryProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProjectRepositoryRef = AutoDisposeProviderRef<ProjectRepository>;
-String _$mapRepositoryHash() => r'178b007eff56b7f29ecacf271b2651227b86b4f2';
+String _$mapRepositoryHash() => r'ef51e6d036fddd1040671d1435c0ead4f96049e9';
 
 /// See also [mapRepository].
 @ProviderFor(mapRepository)
@@ -41,7 +48,7 @@ final mapRepositoryProvider = AutoDisposeProvider<MapRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MapRepositoryRef = AutoDisposeProviderRef<MapRepository>;
-String _$tilesetRepositoryHash() => r'c899262ca532bb56b6ae7df70e288ca9de109754';
+String _$tilesetRepositoryHash() => r'a0cb36cf26a2120cae9d7f507951364b091318bd';
 
 /// See also [tilesetRepository].
 @ProviderFor(tilesetRepository)
@@ -60,7 +67,7 @@ final tilesetRepositoryProvider =
 // ignore: unused_element
 typedef TilesetRepositoryRef = AutoDisposeProviderRef<TilesetRepository>;
 String _$projectWorkspaceFactoryHash() =>
-    r'd8661a3458139351ff76fe73fbc59e12e0165ec3';
+    r'8ff147a8c52992ac7914d66b3a01c384f4543591';
 
 /// See also [projectWorkspaceFactory].
 @ProviderFor(projectWorkspaceFactory)
