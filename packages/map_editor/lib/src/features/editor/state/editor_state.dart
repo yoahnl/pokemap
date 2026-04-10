@@ -11,6 +11,19 @@ enum EditorWorkspaceMode {
   map,
   tileset,
 
+  // Placeholder UI uniquement pour le lot 12.
+  //
+  // Intention produit:
+  // - rendre visible une vraie entree Pokédex dans l'editeur ;
+  // - ouvrir un workspace central dedie ;
+  // - ne brancher aucune lecture de donnees Pokemon pour l'instant.
+  //
+  // Important:
+  // ce mode ne signifie pas que le vrai Pokédex existe deja.
+  // Il represente seulement une surface d'entree honnete pour les prochains
+  // lots, sans provider, sans liste, sans recherche et sans logique metier.
+  pokedex,
+
   // Workspaces narratifs centraux.
   //
   // Intention produit (non négociable):

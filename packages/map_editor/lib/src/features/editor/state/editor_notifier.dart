@@ -1497,6 +1497,22 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  /// Ouvre le placeholder Pokédex du lot 12.
+  ///
+  /// Ce changement est volontairement minimal :
+  /// - aucune donnee Pokemon n'est chargee ;
+  /// - aucun service Pokemon n'est appele ;
+  /// - aucune preparation du lot 13 n'est introduite ici.
+  ///
+  /// On bascule seulement le workspace central vers une surface UI honnete,
+  /// pour que l'entree "Pokédex" soit visible et navigable dans l'editeur.
+  void selectPokedexWorkspace() {
+    state = state.copyWith(
+      workspaceMode: EditorWorkspaceMode.pokedex,
+      errorMessage: null,
+    );
+  }
+
   /// Ouvre le workspace central "Global Story".
   ///
   /// Ce changement est purement une navigation d'espace de travail:

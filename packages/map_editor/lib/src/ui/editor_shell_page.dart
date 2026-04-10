@@ -78,6 +78,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final workspaceTitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap?.name ?? 'Map Workspace',
       EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
+      // Lot 12: titre simple et honnête, sans simuler une liste déjà disponible.
+      EditorWorkspaceMode.pokedex => 'Pokédex',
       EditorWorkspaceMode.globalStory => 'Global Story Workspace',
       EditorWorkspaceMode.step => 'Step Studio',
       EditorWorkspaceMode.cutscene => 'Cutscene Studio',
@@ -90,6 +92,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.tileset => selectedTileset == null
           ? 'Select a tileset to browse and curate your library.'
           : 'Visual library editing for tiles, elements and groups.',
+      // Le lot 12 expose seulement le point d'entrée. Aucun contenu Pokemon
+      // n'est encore charge ici ; le vrai catalogue viendra dans les lots
+      // suivants.
+      EditorWorkspaceMode.pokedex =>
+        'Future entry point for Pokemon project content. Detailed data arrives in later lots.',
       EditorWorkspaceMode.globalStory =>
         'Macro narrative progression: arcs, milestones and high-level branches.',
       EditorWorkspaceMode.step =>
@@ -334,6 +341,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       EditorChrome.islandNeutralTint,
                                     EditorWorkspaceMode.tileset =>
                                       EditorChrome.islandWarmTint,
+                                    EditorWorkspaceMode.pokedex =>
+                                      EditorChrome.islandWarmTint,
                                     EditorWorkspaceMode.globalStory =>
                                       EditorChrome.islandCoolTint,
                                     EditorWorkspaceMode.step =>
@@ -348,6 +357,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       const MapInspectorPanel(),
                                     EditorWorkspaceMode.tileset =>
                                       const TilesetPalettePanel(),
+                                    // Le placeholder Pokédex n'a pas de panneau
+                                    // d'inspection dédié dans ce lot.
+                                    // On réutilise donc un panneau neutre vide
+                                    // pour éviter d'introduire une nouvelle
+                                    // structure latérale ou une fausse logique.
+                                    EditorWorkspaceMode.pokedex =>
+                                      const _EmptyWorkspaceInspector(),
                                     EditorWorkspaceMode.globalStory ||
                                     EditorWorkspaceMode.step ||
                                     EditorWorkspaceMode.cutscene ||
@@ -476,6 +492,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final chipAccent = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyHoney,
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyLilac,
+      EditorWorkspaceMode.pokedex => EditorChrome.inspectorJoyAmber,
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyCyan,
       EditorWorkspaceMode.step => EditorChrome.inspectorJoyMint,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
@@ -484,6 +501,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final chipAccent2 = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyApricot,
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyPlum,
+      EditorWorkspaceMode.pokedex => EditorChrome.accentWarm,
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyBlue,
       EditorWorkspaceMode.step => EditorChrome.accentJade,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
@@ -515,6 +533,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
             switch (workspaceMode) {
               EditorWorkspaceMode.map => CupertinoIcons.map,
               EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
+              EditorWorkspaceMode.pokedex => CupertinoIcons.book,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
@@ -591,6 +610,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
             switch (workspaceMode) {
               EditorWorkspaceMode.map => 'Scene',
               EditorWorkspaceMode.tileset => 'Library',
+              EditorWorkspaceMode.pokedex => 'Pokedex',
               EditorWorkspaceMode.globalStory => 'Global',
               EditorWorkspaceMode.step => 'Step',
               EditorWorkspaceMode.cutscene => 'Cutscene',
@@ -635,6 +655,34 @@ class _AmbientGlow extends StatelessWidget {
               color.withValues(alpha: 0),
             ],
             stops: const [0.0, 0.38, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Panneau droit volontairement neutre pour les workspaces qui n'ont pas
+/// encore d'inspecteur réel.
+///
+/// Pour le lot 12, cela permet de garder la structure visuelle existante de
+/// l'éditeur sans inventer un inspecteur Pokédex artificiel, ni brancher une
+/// logique future avant l'heure.
+class _EmptyWorkspaceInspector extends StatelessWidget {
+  const _EmptyWorkspaceInspector();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(
+          'Cette section n’a pas encore d’inspecteur dédié.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

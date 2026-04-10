@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
 import 'character_library_panel.dart';
 import 'narrative_library_panel.dart';
 import 'terrain_editor_panel.dart';
@@ -362,6 +363,7 @@ class ProjectExplorerPanel extends ConsumerStatefulWidget {
 
 class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandTileLib = true;
+  bool _expandPokedex = true;
   bool _expandNarrative = true;
   bool _expandWorld = true;
   bool _expandTerrains = true;
@@ -549,6 +551,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
 
     final screenH = MediaQuery.sizeOf(context).height;
     final hTileset = (screenH * 0.30).clamp(240.0, 400.0);
+    final hPokedex = (screenH * 0.22).clamp(180.0, 260.0);
     final hNarrative = (screenH * 0.34).clamp(260.0, 460.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
@@ -597,6 +600,21 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             ],
           ),
           child: _buildTilesetsIsland(context, project, state, notifier),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
+          title: 'Pokédex',
+          subtitle:
+              'Future master entry point for Pokémon project content (lot 12 placeholder only)',
+          icon: CupertinoIcons.book_fill,
+          accentColor: EditorChrome.inspectorJoyAmber,
+          // Pas de compteur ni de chargement de données ici :
+          // le lot 12 doit rester une simple entrée UI navigable, sans faire
+          // semblant d'afficher un vrai catalogue Pokémon.
+          expanded: _expandPokedex,
+          onToggle: () => setState(() => _expandPokedex = !_expandPokedex),
+          expandedHeight: hPokedex,
+          child: _buildPokedexPlaceholderCard(context, state, notifier),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
@@ -700,6 +718,53 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
       primary: false,
       padding: const EdgeInsets.only(bottom: 8),
       child: _buildTilesetsSection(context, project, state, notifier),
+    );
+  }
+
+  Widget _buildPokedexPlaceholderCard(
+    BuildContext context,
+    dynamic state,
+    EditorNotifier notifier,
+  ) {
+    final selected = state.workspaceMode == EditorWorkspaceMode.pokedex;
+    final subtle = CupertinoColors.placeholderText.resolveFrom(context);
+
+    return SingleChildScrollView(
+      primary: false,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // On reutilise le pattern de ligne cliquable du navigateur existant.
+          // C'est le point d'integration le plus petit possible pour rendre
+          // Pokédex visible et ouvrable, sans inventer une nouvelle convention.
+          EditorSidebarListRow(
+            key: const Key('pokedex-explorer-entry'),
+            selected: selected,
+            onTap: notifier.selectPokedexWorkspace,
+            leading: const MacosIcon(CupertinoIcons.book),
+            title: const Text('Pokédex'),
+            subtitle: const Text(
+              'Placeholder UI only - detailed content comes in later lots',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
+            child: Text(
+              'Cette entrée ouvre un placeholder honnête. Elle ne charge encore aucune donnée Pokémon.',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

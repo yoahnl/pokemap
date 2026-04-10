@@ -209,6 +209,16 @@ class TopToolbar extends ConsumerWidget {
                 : null,
           ),
           _ToolbarCapsuleButton(
+            icon: CupertinoIcons.book,
+            tooltip: 'Switch to Pokédex placeholder',
+            selected: state.workspaceMode == EditorWorkspaceMode.pokedex,
+            // Lot 12: simple navigation UI. Aucun service Pokemon n'est
+            // sollicite ici, afin d'eviter tout glissement vers une vraie
+            // feature de consultation.
+            onPressed:
+                state.project != null ? notifier.selectPokedexWorkspace : null,
+          ),
+          _ToolbarCapsuleButton(
             icon: CupertinoIcons.link,
             tooltip: 'Switch to global story workspace',
             selected: state.workspaceMode == EditorWorkspaceMode.globalStory,
@@ -420,6 +430,7 @@ class TopToolbar extends ConsumerWidget {
         workspaceLabel: switch (state.workspaceMode) {
           EditorWorkspaceMode.map => 'World Editor',
           EditorWorkspaceMode.tileset => 'Tileset Studio',
+          EditorWorkspaceMode.pokedex => 'Pokédex',
           EditorWorkspaceMode.globalStory => 'Global Story',
           EditorWorkspaceMode.step => 'Step Studio',
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',
