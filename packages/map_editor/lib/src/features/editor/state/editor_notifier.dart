@@ -1497,15 +1497,15 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
-  /// Ouvre le placeholder Pokédex du lot 12.
+  /// Ouvre le workspace Pokédex des lots 12-13.
   ///
-  /// Ce changement est volontairement minimal :
-  /// - aucune donnee Pokemon n'est chargee ;
-  /// - aucun service Pokemon n'est appele ;
-  /// - aucune preparation du lot 13 n'est introduite ici.
+  /// Ce changement reste volontairement une simple navigation :
+  /// - aucune donnee Pokemon n'est chargee ici ;
+  /// - aucun service Pokemon n'est appele ici ;
+  /// - l'ecran central gerera lui-meme la lecture simple necessaire au lot 13.
   ///
-  /// On bascule seulement le workspace central vers une surface UI honnete,
-  /// pour que l'entree "Pokédex" soit visible et navigable dans l'editeur.
+  /// Cela garde la responsabilite du notifier tres claire :
+  /// il route vers un workspace, mais ne commence pas une logique Pokédex riche.
   void selectPokedexWorkspace() {
     state = state.copyWith(
       workspaceMode: EditorWorkspaceMode.pokedex,

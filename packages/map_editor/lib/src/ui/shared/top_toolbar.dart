@@ -210,11 +210,11 @@ class TopToolbar extends ConsumerWidget {
           ),
           _ToolbarCapsuleButton(
             icon: CupertinoIcons.book,
-            tooltip: 'Switch to Pokédex placeholder',
+            tooltip: 'Switch to Pokédex species list',
             selected: state.workspaceMode == EditorWorkspaceMode.pokedex,
-            // Lot 12: simple navigation UI. Aucun service Pokemon n'est
-            // sollicite ici, afin d'eviter tout glissement vers une vraie
-            // feature de consultation.
+            // Lot 13: simple navigation UI vers une liste lecture seule.
+            // Aucun filtre, aucune recherche ni action d'édition n'est ajouté
+            // dans cette toolbar.
             onPressed:
                 state.project != null ? notifier.selectPokedexWorkspace : null,
           ),
@@ -701,7 +701,8 @@ class TopToolbar extends ConsumerWidget {
                         label: 'Clé API Mistral',
                         controller: mistralApiKeyController,
                         obscureText: true,
-                        placeholder: 'sk-… (optionnel si MISTRAL_API_KEY est définie)',
+                        placeholder:
+                            'sk-… (optionnel si MISTRAL_API_KEY est définie)',
                       ),
                     ],
                   ),
@@ -740,7 +741,8 @@ class TopToolbar extends ConsumerWidget {
                               e5 != null) {
                             return;
                           }
-                          final mistralKey = mistralApiKeyController.text.trim();
+                          final mistralKey =
+                              mistralApiKeyController.text.trim();
                           final updatedSettings = settings.copyWith(
                             tileWidth:
                                 int.parse(tileWidthController.text.trim()),

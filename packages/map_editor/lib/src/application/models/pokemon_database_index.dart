@@ -36,12 +36,14 @@ class PokemonDatabaseIndexEntry {
     required this.id,
     required this.nationalDex,
     required this.primaryName,
+    required this.types,
     required this.refs,
   });
 
   final String id;
   final int nationalDex;
   final String primaryName;
+  final List<String> types;
   final PokemonDatabaseIndexRefs refs;
 
   /// Construit l'entree specifique au lot 11 a partir d'une source de vérité
@@ -55,6 +57,17 @@ class PokemonDatabaseIndexEntry {
   /// Cette factory ne décide donc plus comment parser le JSON ni comment
   /// calculer le nom principal. Elle assemble seulement une projection plus
   /// petite destinée à une future liste locale.
+  ///
+  /// Le lot 13 ajoute `types` à cette projection légère.
+  /// Pourquoi ici :
+  /// - la liste Pokédex simple doit montrer les types ;
+  /// - `PokemonSpeciesIndexEntry` les possède déjà sans nouvelle lecture disque ;
+  /// - les propager ici évite d’inventer un second pipeline UI parallèle.
+  ///
+  /// Le scope reste strict :
+  /// - on ne charge toujours ni learnsets, ni évolutions, ni médias ;
+  /// - on n’ajoute aucun détail riche de fiche Pokémon ;
+  /// - on complète seulement la projection minimale utile à la première liste.
   factory PokemonDatabaseIndexEntry.fromSpeciesEntry({
     required PokemonSpeciesIndexEntry speciesIndexEntry,
     required PokemonSpeciesFile species,
@@ -63,6 +76,7 @@ class PokemonDatabaseIndexEntry {
       id: speciesIndexEntry.id,
       nationalDex: speciesIndexEntry.nationalDex,
       primaryName: speciesIndexEntry.primaryName,
+      types: List<String>.from(speciesIndexEntry.types),
       refs: PokemonDatabaseIndexRefs(
         learnset: species.learnsetRef.trim(),
         evolution: species.evolutionRef.trim(),

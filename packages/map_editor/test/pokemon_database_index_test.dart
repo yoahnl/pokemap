@@ -93,9 +93,14 @@ void main() {
       );
       expect(bulbasaur.nationalDex, 1);
       expect(bulbasaur.primaryName, 'Bulbasaur');
+      // Lot 13 : on réutilise l'index local du lot 11 pour alimenter la liste
+      // Pokédex simple. On y expose donc aussi les types, déjà disponibles dans
+      // la projection légère d'espèce, sans créer un pipeline parallèle.
+      expect(bulbasaur.types, <String>['grass', 'poison']);
       expect(bulbasaur.id, bulbasaurSpeciesIndex.id);
       expect(bulbasaur.nationalDex, bulbasaurSpeciesIndex.nationalDex);
       expect(bulbasaur.primaryName, bulbasaurSpeciesIndex.primaryName);
+      expect(bulbasaur.types, bulbasaurSpeciesIndex.types);
       expect(
         bulbasaur.refs,
         isA<PokemonDatabaseIndexRefs>()
@@ -162,7 +167,8 @@ void main() {
       // On deplace seulement les species pour prouver que le service lit la
       // config projet, pas le chemin historique hardcode de la couche legacy.
       final originalSpeciesDir = Directory(
-        workspace.resolveProjectRelativePath(originalManifest.pokemon.speciesDir),
+        workspace
+            .resolveProjectRelativePath(originalManifest.pokemon.speciesDir),
       );
       final targetSpeciesDir = Directory(
         workspace.resolveProjectRelativePath(customSpeciesDir),
@@ -171,7 +177,8 @@ void main() {
 
       await for (final entity in originalSpeciesDir.list(recursive: false)) {
         if (entity is File) {
-          await entity.rename(p.join(targetSpeciesDir.path, p.basename(entity.path)));
+          await entity
+              .rename(p.join(targetSpeciesDir.path, p.basename(entity.path)));
         }
       }
 
@@ -210,14 +217,17 @@ void main() {
 
       final entries = await indexService.build(workspace);
 
-      expect(entries.map((entry) => entry.id), containsAll(<String>[
-        'bulbasaur',
-        'ivysaur',
-      ]));
+      expect(
+          entries.map((entry) => entry.id),
+          containsAll(<String>[
+            'bulbasaur',
+            'ivysaur',
+          ]));
       expect(entries.map((entry) => entry.id), isNot(contains('decoy')));
     });
 
-    test('returns an empty index when the configured species directory is empty',
+    test(
+        'returns an empty index when the configured species directory is empty',
         () async {
       await createProjectUseCase.execute(
         'Pokemon Empty Index Project',
@@ -293,7 +303,8 @@ void main() {
         workspace.resolveProjectRelativePath('data/pokemon/media'),
       ).create(recursive: true);
       await File(
-        workspace.resolveProjectRelativePath('data/pokemon/media/bulbasaur.json'),
+        workspace
+            .resolveProjectRelativePath('data/pokemon/media/bulbasaur.json'),
       ).writeAsString('{ invalid json');
 
       final entries = await indexService.build(workspace);
@@ -302,7 +313,8 @@ void main() {
       expect(entries.map((entry) => entry.id), contains('ivysaur'));
     });
 
-    test('reads from the workspace project and not Directory.current', () async {
+    test('reads from the workspace project and not Directory.current',
+        () async {
       await _createProjectAndSeedDemoData(
         createProjectUseCase,
         seedUseCase,
@@ -310,7 +322,8 @@ void main() {
         tempProjectRoot.path,
       );
 
-      final decoy = await Directory.systemTemp.createTemp('pokemon_index_decoy_');
+      final decoy =
+          await Directory.systemTemp.createTemp('pokemon_index_decoy_');
       final originalCurrent = Directory.current;
       try {
         await Directory(
@@ -384,7 +397,8 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir = Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir =
+        Directory(p.join(current.path, 'packages', 'map_editor'));
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }

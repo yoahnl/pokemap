@@ -78,7 +78,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final workspaceTitle = switch (workspaceMode) {
       EditorWorkspaceMode.map => state.activeMap?.name ?? 'Map Workspace',
       EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
-      // Lot 12: titre simple et honnête, sans simuler une liste déjà disponible.
+      // Lot 13: on affiche enfin une vraie liste simple, mais on reste sur une
+      // surface de lecture minimale.
       EditorWorkspaceMode.pokedex => 'Pokédex',
       EditorWorkspaceMode.globalStory => 'Global Story Workspace',
       EditorWorkspaceMode.step => 'Step Studio',
@@ -92,11 +93,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.tileset => selectedTileset == null
           ? 'Select a tileset to browse and curate your library.'
           : 'Visual library editing for tiles, elements and groups.',
-      // Le lot 12 expose seulement le point d'entrée. Aucun contenu Pokemon
-      // n'est encore charge ici ; le vrai catalogue viendra dans les lots
-      // suivants.
+      // Lot 13 : simple consultation locale des espèces importées.
+      // On n'annonce volontairement ni détail, ni édition, ni outils riches.
       EditorWorkspaceMode.pokedex =>
-        'Future entry point for Pokemon project content. Detailed data arrives in later lots.',
+        'Simple species list from local project data: number, name, id and types.',
       EditorWorkspaceMode.globalStory =>
         'Macro narrative progression: arcs, milestones and high-level branches.',
       EditorWorkspaceMode.step =>
@@ -357,8 +357,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       const MapInspectorPanel(),
                                     EditorWorkspaceMode.tileset =>
                                       const TilesetPalettePanel(),
-                                    // Le placeholder Pokédex n'a pas de panneau
-                                    // d'inspection dédié dans ce lot.
+                                    // Le Pokédex du lot 13 n'a toujours pas de
+                                    // panneau d'inspection dédié :
+                                    // pas de détail espèce, pas d'édition.
                                     // On réutilise donc un panneau neutre vide
                                     // pour éviter d'introduire une nouvelle
                                     // structure latérale ou une fausse logique.

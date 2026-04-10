@@ -605,12 +605,12 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           borderRadius: explorerTileRadius,
           title: 'Pokédex',
           subtitle:
-              'Future master entry point for Pokémon project content (lot 12 placeholder only)',
+              'Simple local species list (lot 13: number, name, id, types)',
           icon: CupertinoIcons.book_fill,
           accentColor: EditorChrome.inspectorJoyAmber,
-          // Pas de compteur ni de chargement de données ici :
-          // le lot 12 doit rester une simple entrée UI navigable, sans faire
-          // semblant d'afficher un vrai catalogue Pokémon.
+          // Pas de compteur ni de résumé riche ici :
+          // le lot 13 doit rester une porte d'entrée sobre vers la liste
+          // simple, sans glisser vers les futurs lots d'édition ou de détail.
           expanded: _expandPokedex,
           onToggle: () => setState(() => _expandPokedex = !_expandPokedex),
           expandedHeight: hPokedex,
@@ -745,7 +745,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             leading: const MacosIcon(CupertinoIcons.book),
             title: const Text('Pokédex'),
             subtitle: const Text(
-              'Placeholder UI only - detailed content comes in later lots',
+              'Species list only - no search, no detail, no editing yet',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -754,7 +754,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
             child: Text(
-              'Cette entrée ouvre un placeholder honnête. Elle ne charge encore aucune donnée Pokémon.',
+              'Cette entrée ouvre la première liste Pokédex utile. Le scope reste volontairement strict : simple lecture locale des espèces importées.',
               style: TextStyle(
                 color: subtle,
                 fontSize: 12,
