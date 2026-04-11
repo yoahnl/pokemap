@@ -4,6 +4,7 @@ export 'encounter_table_use_cases.dart';
 export 'trainer_use_cases.dart';
 export 'gameplay_zone_use_cases.dart';
 export 'initialize_pokemon_project_storage_use_case.dart';
+export 'import_pokemon_learnset_json_use_case.dart';
 export 'import_pokemon_species_json_use_case.dart';
 export 'layer_use_cases.dart';
 export 'list_pokedex_entries_use_case.dart';
