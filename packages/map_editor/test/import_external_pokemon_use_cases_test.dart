@@ -318,6 +318,65 @@ void main() {
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
 
+    test(
+        'overwrite_existing ignores a misleading basename with another json id',
+        () async {
+      await writeRepository.saveSpecies(
+        workspace,
+        _customSlugBulbasaurSpecies,
+      );
+
+      final misleadingFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/9999-bulbasaur.json',
+        ),
+      );
+      await misleadingFile.parent.create(recursive: true);
+      final misleadingJson = _customSlugBulbasaurSpecies.toJson()
+        ..['id'] = 'something_else'
+        ..['slug'] = 'something-else';
+      await misleadingFile.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(misleadingJson),
+      );
+      final beforeProjectJson = await projectFile.readAsString();
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+        mergePolicy: PokemonExternalImportMergePolicy.overwriteExisting,
+      );
+
+      final speciesArtifact = result.artifacts.firstWhere(
+        (artifact) =>
+            artifact.kind == PokemonExternalImportArtifactKind.species,
+      );
+      final customFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/0001-bulbizarre-custom.json',
+        ),
+      );
+      final canonicalFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/0001-bulbasaur.json',
+        ),
+      );
+      final species =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
+
+      expect(speciesArtifact.action,
+          PokemonExternalImportArtifactAction.overwrite);
+      expect(
+        speciesArtifact.relativePath,
+        'data/pokemon/species/0001-bulbizarre-custom.json',
+      );
+      expect(await customFile.exists(), isTrue);
+      expect(await canonicalFile.exists(), isFalse);
+      expect(await misleadingFile.exists(), isTrue);
+      expect(species.slug, 'bulbasaur');
+      expect(species.names['en'], 'Bulbasaur');
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
     test('surfaces external source errors clearly', () async {
       externalSourceRepository.pokeApiPokemonPayloads.remove('bulbasaur');
 

@@ -428,6 +428,92 @@ void main() {
       expect(readBack.sourceMeta.seedVersion, 4);
     });
 
+    test('ignores a misleading species basename whose JSON declares another id',
+        () async {
+      await writeRepository.saveSpecies(workspace, _bulbasaurSpecies());
+
+      final misleadingFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/9999-bulbasaur.json',
+        ),
+      );
+      await misleadingFile.parent.create(recursive: true);
+      final misleadingJson = _bulbasaurSpecies().toJson()
+        ..['id'] = 'something_else'
+        ..['slug'] = 'something-else';
+      await misleadingFile.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(misleadingJson),
+      );
+
+      const updatedSpecies = PokemonSpeciesFile(
+        id: 'bulbasaur',
+        slug: 'bulbasaur-rewritten',
+        nationalDex: 1,
+        names: <String, String>{'en': 'Bulbasaur Rewritten Cleanly'},
+        speciesName: <String, String>{'en': 'Seed Pokemon'},
+        genIntroduced: 1,
+        typing: PokemonSpeciesTyping(types: <String>['grass', 'poison']),
+        baseStats: PokemonSpeciesBaseStats(
+          hp: 45,
+          atk: 49,
+          def: 49,
+          spa: 65,
+          spd: 65,
+          spe: 45,
+          bst: 318,
+        ),
+        abilities: PokemonSpeciesAbilities(
+          primary: 'overgrow',
+          hidden: 'chlorophyll',
+        ),
+        breeding: PokemonSpeciesBreeding(
+          genderRatio: <String, double>{'male': 0.875, 'female': 0.125},
+          eggGroups: <String>['monster', 'grass'],
+          hatchCycles: 20,
+        ),
+        progression: PokemonSpeciesProgression(
+          growthRateId: 'medium_slow',
+          baseExp: 64,
+          catchRate: 45,
+          baseFriendship: 50,
+        ),
+        refs: PokemonSpeciesRefs(
+          learnset: 'bulbasaur',
+          evolution: 'bulbasaur',
+          media: 'bulbasaur',
+        ),
+        dexContent: PokemonSpeciesDexContent(
+          heightM: 0.7,
+          weightKg: 6.9,
+          color: 'green',
+          flavorText: 'Misleading filename should not block overwrite.',
+        ),
+        gameplayFlags: PokemonSpeciesGameplayFlags(
+          starterEligible: true,
+        ),
+        sourceMeta: PokemonSpeciesSourceMeta(
+          seededBy: 'test',
+          seedVersion: 6,
+        ),
+      );
+
+      await writeRepository.saveSpecies(workspace, updatedSpecies);
+
+      final canonicalFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/0001-bulbasaur.json',
+        ),
+      );
+      expect(await canonicalFile.exists(), isTrue);
+      expect(await misleadingFile.exists(), isTrue);
+
+      final readBack =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      expect(readBack.slug, 'bulbasaur-rewritten');
+      expect(readBack.names['en'], 'Bulbasaur Rewritten Cleanly');
+      expect(readBack.sourceMeta.seedVersion, 6);
+    });
+
     test(
         'rewrites an existing species even when another unrelated species json is invalid',
         () async {
@@ -521,15 +607,19 @@ void main() {
 
       final conflictingFile = File(
         workspace.resolveProjectRelativePath(
-          'data/pokemon/species/9999-bulbasaur.json',
+          'data/pokemon/species/9999-bulbasaur-duplicate.json',
         ),
       );
       await conflictingFile.parent.create(recursive: true);
-      await conflictingFile.writeAsString('''
-{
-  "id": "something_else"
-}
-''');
+      final conflictingJson = _bulbasaurSpecies().toJson()
+        ..['slug'] = 'bulbasaur-duplicate'
+        ..['sourceMeta'] = const <String, dynamic>{
+          'seededBy': 'test',
+          'seedVersion': 7,
+        };
+      await conflictingFile.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(conflictingJson),
+      );
 
       expect(
         () => writeRepository.saveSpecies(

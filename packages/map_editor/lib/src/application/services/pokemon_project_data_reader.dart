@@ -238,32 +238,30 @@ class PokemonProjectDataReader {
       return null;
     }
 
-    final normalizedId = _sanitizeSpeciesFileSegment(trimmedId);
     final matches = <String>[];
 
     await for (final entity in speciesDir.list(recursive: false)) {
       if (entity is! File) continue;
       if (p.extension(entity.path).toLowerCase() != '.json') continue;
-
       final relativePath =
           p.normalize(p.relative(entity.path, from: workspace.projectRoot));
-      final basename = p.basename(entity.path).toLowerCase();
 
-      // Chemin rapide historique : si le nom de fichier suit déjà la
-      // convention attendue, on peut le reconnaître sans relire son contenu.
-      if (basename == '$normalizedId.json' ||
-          basename.endsWith('-$normalizedId.json')) {
-        matches.add(relativePath);
-        continue;
-      }
-
-      // Le writer et l'import externe doivent aussi respecter un fichier déjà
-      // présent quand son slug a divergé du nom canonique courant.
-      // On ne peut donc pas se limiter au basename : on lit alors le JSON pour
-      // comparer l'id réel stocké. Cette lecture reste volontairement tolérante
-      // : un fichier JSON invalide ou hors contrat ne doit pas empêcher
-      // l'écrasement d'une espèce valide déjà présente ailleurs.
-      if (await _speciesFileDeclaresId(entity, trimmedId)) {
+      // Le basename ne suffit pas ici : un fichier peut s'appeler
+      // `9999-bulbasaur.json` tout en déclarant en réalité `"id": "ivysaur"`.
+      // Pour la résolution d'un overwrite species, la seule source de vérité
+      // acceptable est donc l'id réellement stocké dans le JSON.
+      //
+      // On choisit volontairement la correction la plus sûre :
+      // - on lit chaque JSON species ;
+      // - on ignore silencieusement les fichiers invalides / non objets /
+      //   sans `id` exploitable ;
+      // - on ne compte comme match que les fichiers qui déclarent exactement
+      //   l'id demandé.
+      //
+      // Cette approche évite les faux positifs de basename et garde le writer
+      // ainsi que l'import externe cohérents avec la merge policy annoncée.
+      final declaredId = await _readDeclaredSpeciesId(entity);
+      if (declaredId == trimmedId) {
         matches.add(relativePath);
       }
     }
@@ -439,27 +437,31 @@ class PokemonProjectDataReader {
         .toList(growable: false);
   }
 
-  String _sanitizeSpeciesFileSegment(String value) {
-    final normalized = value.trim().toLowerCase();
-    final safe = normalized.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
-    final collapsed = safe.replaceAll(RegExp(r'_+'), '_');
-    return collapsed.replaceAll(RegExp(r'^_|_$'), '');
-  }
-
-  Future<bool> _speciesFileDeclaresId(File file, String speciesId) async {
+  Future<String?> _readDeclaredSpeciesId(File file) async {
     try {
       final raw = await file.readAsString();
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
-        return false;
+        return null;
       }
 
       final declaredId = decoded['id'];
-      return declaredId is String && declaredId.trim() == speciesId;
+      if (declaredId is! String) {
+        return null;
+      }
+
+      final trimmedId = declaredId.trim();
+      if (trimmedId.isEmpty) {
+        return null;
+      }
+
+      // Un fichier mal formé ou non concerné ne doit pas bloquer la résolution
+      // d'une autre espèce. On remonte seulement les vrais doublons d'id.
+      return trimmedId;
     } on FileSystemException {
-      return false;
+      return null;
     } on FormatException {
-      return false;
+      return null;
     }
   }
 
