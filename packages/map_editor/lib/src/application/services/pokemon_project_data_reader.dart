@@ -245,29 +245,44 @@ class PokemonProjectDataReader {
       if (entity is! File) continue;
       if (p.extension(entity.path).toLowerCase() != '.json') continue;
 
+      final relativePath =
+          p.normalize(p.relative(entity.path, from: workspace.projectRoot));
       final basename = p.basename(entity.path).toLowerCase();
+
+      // Chemin rapide historique : si le nom de fichier suit déjà la
+      // convention attendue, on peut le reconnaître sans relire son contenu.
       if (basename == '$normalizedId.json' ||
           basename.endsWith('-$normalizedId.json')) {
-        matches.add(
-          p.normalize(p.relative(entity.path, from: workspace.projectRoot)),
-        );
+        matches.add(relativePath);
+        continue;
+      }
+
+      // Le writer et l'import externe doivent aussi respecter un fichier déjà
+      // présent quand son slug a divergé du nom canonique courant.
+      // On ne peut donc pas se limiter au basename : on lit alors le JSON pour
+      // comparer l'id réel stocké. Cette lecture reste volontairement tolérante
+      // : un fichier JSON invalide ou hors contrat ne doit pas empêcher
+      // l'écrasement d'une espèce valide déjà présente ailleurs.
+      if (await _speciesFileDeclaresId(entity, trimmedId)) {
+        matches.add(relativePath);
       }
     }
 
     matches.sort();
+    final uniqueMatches = matches.toSet().toList(growable: false)..sort();
 
-    if (matches.length > 1) {
+    if (uniqueMatches.length > 1) {
       throw EditorConflictException(
         'Multiple Pokemon species files match the id "$trimmedId": '
-        '${matches.join(', ')}',
+        '${uniqueMatches.join(', ')}',
       );
     }
 
-    if (matches.isEmpty) {
+    if (uniqueMatches.isEmpty) {
       return null;
     }
 
-    return matches.single;
+    return uniqueMatches.single;
   }
 
   Future<List<PokemonSpeciesIndexEntry>> _buildSpeciesIndexEntries(
@@ -429,6 +444,23 @@ class PokemonProjectDataReader {
     final safe = normalized.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
     final collapsed = safe.replaceAll(RegExp(r'_+'), '_');
     return collapsed.replaceAll(RegExp(r'^_|_$'), '');
+  }
+
+  Future<bool> _speciesFileDeclaresId(File file, String speciesId) async {
+    try {
+      final raw = await file.readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return false;
+      }
+
+      final declaredId = decoded['id'];
+      return declaredId is String && declaredId.trim() == speciesId;
+    } on FileSystemException {
+      return false;
+    } on FormatException {
+      return false;
+    }
   }
 
   Future<Map<String, dynamic>> _readJsonFile(

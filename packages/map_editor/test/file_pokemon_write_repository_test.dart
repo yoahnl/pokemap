@@ -333,6 +333,102 @@ void main() {
     });
 
     test(
+        'reuses an existing non-canonical species path instead of creating a duplicate canonical file',
+        () async {
+      await initializeStorage.execute(workspace);
+
+      final speciesDir = Directory(
+        workspace.resolveProjectRelativePath('data/pokemon/species'),
+      );
+      final customFile = File(
+        p.join(speciesDir.path, '0001-bulbizarre-custom.json'),
+      );
+      await customFile.writeAsString(
+        const JsonEncoder.withIndent('  ')
+            .convert(_bulbasaurSpecies().toJson()),
+      );
+
+      const updatedSpecies = PokemonSpeciesFile(
+        id: 'bulbasaur',
+        slug: 'bulbasaur-refreshed',
+        nationalDex: 1,
+        names: <String, String>{'en': 'Bulbasaur Refreshed'},
+        speciesName: <String, String>{'en': 'Seed Pokemon'},
+        genIntroduced: 1,
+        typing: PokemonSpeciesTyping(types: <String>['grass', 'poison']),
+        baseStats: PokemonSpeciesBaseStats(
+          hp: 45,
+          atk: 49,
+          def: 49,
+          spa: 65,
+          spd: 65,
+          spe: 45,
+          bst: 318,
+        ),
+        abilities: PokemonSpeciesAbilities(
+          primary: 'overgrow',
+          hidden: 'chlorophyll',
+        ),
+        breeding: PokemonSpeciesBreeding(
+          genderRatio: <String, double>{'male': 0.875, 'female': 0.125},
+          eggGroups: <String>['monster', 'grass'],
+          hatchCycles: 20,
+        ),
+        progression: PokemonSpeciesProgression(
+          growthRateId: 'medium_slow',
+          baseExp: 64,
+          catchRate: 45,
+          baseFriendship: 50,
+        ),
+        refs: PokemonSpeciesRefs(
+          learnset: 'bulbasaur',
+          evolution: 'bulbasaur',
+          media: 'bulbasaur',
+        ),
+        dexContent: PokemonSpeciesDexContent(
+          heightM: 0.7,
+          weightKg: 6.9,
+          color: 'green',
+          flavorText: 'Rewrite uses the already-present custom file path.',
+        ),
+        gameplayFlags: PokemonSpeciesGameplayFlags(
+          starterEligible: true,
+        ),
+        sourceMeta: PokemonSpeciesSourceMeta(
+          seededBy: 'test',
+          seedVersion: 4,
+        ),
+      );
+
+      await writeRepository.saveSpecies(workspace, updatedSpecies);
+
+      final canonicalFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/0001-bulbasaur.json',
+        ),
+      );
+      expect(await customFile.exists(), isTrue);
+      expect(await canonicalFile.exists(), isFalse);
+
+      final speciesFiles = await speciesDir
+          .list()
+          .where(
+            (entity) => entity is File && p.extension(entity.path) == '.json',
+          )
+          .cast<File>()
+          .toList();
+      expect(speciesFiles, hasLength(1));
+      expect(
+          p.basename(speciesFiles.single.path), '0001-bulbizarre-custom.json');
+
+      final readBack =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      expect(readBack.slug, 'bulbasaur-refreshed');
+      expect(readBack.names['en'], 'Bulbasaur Refreshed');
+      expect(readBack.sourceMeta.seedVersion, 4);
+    });
+
+    test(
         'rewrites an existing species even when another unrelated species json is invalid',
         () async {
       final originalSpecies = _bulbasaurSpecies();
