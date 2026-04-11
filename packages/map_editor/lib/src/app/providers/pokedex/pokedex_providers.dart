@@ -4,7 +4,11 @@ import '../../../application/ports/pokemon_read_repository.dart';
 import '../../../application/ports/pokemon_write_repository.dart';
 import '../../../application/services/pokemon_database_index.dart';
 import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
+import '../../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
+import '../../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
+import '../../../application/use_cases/update_pokedex_species_learnset_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_metadata_use_case.dart';
+import '../../../application/use_cases/update_pokedex_species_media_use_case.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../ui/canvas/pokedex_workspace_loader.dart';
 import '../core/repository_providers.dart';
@@ -61,5 +65,63 @@ final updatePokedexSpeciesMetadataUseCaseProvider =
 final pokedexSpeciesMetadataSaverProvider =
     Provider<PokedexSpeciesMetadataSaver>((ref) {
   final useCase = ref.watch(updatePokedexSpeciesMetadataUseCaseProvider);
+  return (workspace, request) => useCase.execute(workspace, request);
+});
+
+final updatePokedexSpeciesFormsClassificationUseCaseProvider =
+    Provider<UpdatePokedexSpeciesFormsClassificationUseCase>((ref) {
+  return UpdatePokedexSpeciesFormsClassificationUseCase(
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final pokedexSpeciesFormsClassificationSaverProvider =
+    Provider<PokedexSpeciesFormsClassificationSaver>((ref) {
+  final useCase = ref.watch(
+    updatePokedexSpeciesFormsClassificationUseCaseProvider,
+  );
+  return (workspace, request) => useCase.execute(workspace, request);
+});
+
+final updatePokedexSpeciesLearnsetUseCaseProvider =
+    Provider<UpdatePokedexSpeciesLearnsetUseCase>((ref) {
+  return UpdatePokedexSpeciesLearnsetUseCase(
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final pokedexSpeciesLearnsetSaverProvider =
+    Provider<PokedexSpeciesLearnsetSaver>((ref) {
+  final useCase = ref.watch(updatePokedexSpeciesLearnsetUseCaseProvider);
+  return (workspace, request) => useCase.execute(workspace, request);
+});
+
+final updatePokedexSpeciesEvolutionUseCaseProvider =
+    Provider<UpdatePokedexSpeciesEvolutionUseCase>((ref) {
+  return UpdatePokedexSpeciesEvolutionUseCase(
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final pokedexSpeciesEvolutionSaverProvider =
+    Provider<PokedexSpeciesEvolutionSaver>((ref) {
+  final useCase = ref.watch(updatePokedexSpeciesEvolutionUseCaseProvider);
+  return (workspace, request) => useCase.execute(workspace, request);
+});
+
+final updatePokedexSpeciesMediaUseCaseProvider =
+    Provider<UpdatePokedexSpeciesMediaUseCase>((ref) {
+  return UpdatePokedexSpeciesMediaUseCase(
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final pokedexSpeciesMediaSaverProvider =
+    Provider<PokedexSpeciesMediaSaver>((ref) {
+  final useCase = ref.watch(updatePokedexSpeciesMediaUseCaseProvider);
   return (workspace, request) => useCase.execute(workspace, request);
 });

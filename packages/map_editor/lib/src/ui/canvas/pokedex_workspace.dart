@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers/pokedex_providers.dart';
 import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokedex_species_detail.dart';
+import '../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
+import '../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
+import '../../application/use_cases/update_pokedex_species_learnset_use_case.dart';
 import '../../application/use_cases/update_pokedex_species_metadata_use_case.dart';
+import '../../application/use_cases/update_pokedex_species_media_use_case.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../infrastructure/filesystem/project_filesystem.dart';
 import 'pokedex_workspace_loader.dart';
@@ -32,6 +36,10 @@ class PokedexWorkspace extends ConsumerWidget {
     this.loader,
     this.detailLoader,
     this.metadataSaver,
+    this.formsClassificationSaver,
+    this.learnsetSaver,
+    this.evolutionSaver,
+    this.mediaSaver,
   });
 
   /// Injection locale utile aux tests ciblés du lot 13.
@@ -41,6 +49,10 @@ class PokedexWorkspace extends ConsumerWidget {
   final PokedexEntryLoader? loader;
   final PokedexSpeciesDetailLoader? detailLoader;
   final PokedexSpeciesMetadataSaver? metadataSaver;
+  final PokedexSpeciesFormsClassificationSaver? formsClassificationSaver;
+  final PokedexSpeciesLearnsetSaver? learnsetSaver;
+  final PokedexSpeciesEvolutionSaver? evolutionSaver;
+  final PokedexSpeciesMediaSaver? mediaSaver;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,12 +64,25 @@ class PokedexWorkspace extends ConsumerWidget {
         detailLoader ?? ref.watch(pokedexSpeciesDetailLoaderProvider);
     final PokedexSpeciesMetadataSaver resolvedMetadataSaver =
         metadataSaver ?? ref.watch(pokedexSpeciesMetadataSaverProvider);
+    final PokedexSpeciesFormsClassificationSaver
+        resolvedFormsClassificationSaver = formsClassificationSaver ??
+            ref.watch(pokedexSpeciesFormsClassificationSaverProvider);
+    final PokedexSpeciesLearnsetSaver resolvedLearnsetSaver =
+        learnsetSaver ?? ref.watch(pokedexSpeciesLearnsetSaverProvider);
+    final PokedexSpeciesEvolutionSaver resolvedEvolutionSaver =
+        evolutionSaver ?? ref.watch(pokedexSpeciesEvolutionSaverProvider);
+    final PokedexSpeciesMediaSaver resolvedMediaSaver =
+        mediaSaver ?? ref.watch(pokedexSpeciesMediaSaverProvider);
 
     return _PokedexWorkspaceBody(
       projectRootPath: projectRootPath,
       loader: resolvedLoader,
       detailLoader: resolvedDetailLoader,
       metadataSaver: resolvedMetadataSaver,
+      formsClassificationSaver: resolvedFormsClassificationSaver,
+      learnsetSaver: resolvedLearnsetSaver,
+      evolutionSaver: resolvedEvolutionSaver,
+      mediaSaver: resolvedMediaSaver,
     );
   }
 }
@@ -68,12 +93,20 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.loader,
     required this.detailLoader,
     required this.metadataSaver,
+    required this.formsClassificationSaver,
+    required this.learnsetSaver,
+    required this.evolutionSaver,
+    required this.mediaSaver,
   });
 
   final String? projectRootPath;
   final PokedexEntryLoader loader;
   final PokedexSpeciesDetailLoader detailLoader;
   final PokedexSpeciesMetadataSaver metadataSaver;
+  final PokedexSpeciesFormsClassificationSaver formsClassificationSaver;
+  final PokedexSpeciesLearnsetSaver learnsetSaver;
+  final PokedexSpeciesEvolutionSaver evolutionSaver;
+  final PokedexSpeciesMediaSaver mediaSaver;
 
   @override
   State<_PokedexWorkspaceBody> createState() => _PokedexWorkspaceBodyState();
@@ -229,6 +262,10 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                 onTabChanged: _updateSelectedDetailTab,
                 detailFuture: _detailFuture,
                 onSaveMetadata: _saveMetadata,
+                onSaveFormsClassification: _saveFormsClassification,
+                onSaveLearnset: _saveLearnset,
+                onSaveEvolution: _saveEvolution,
+                onSaveMedia: _saveMedia,
               ),
             ),
           ],
@@ -303,15 +340,62 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   Future<void> _saveMetadata(
     UpdatePokedexSpeciesMetadataRequest request,
   ) async {
+    await _runLocalPokemonSave(
+      speciesId: request.speciesId,
+      saveOperation: (workspace) => widget.metadataSaver(workspace, request),
+    );
+  }
+
+  Future<void> _saveFormsClassification(
+    UpdatePokedexSpeciesFormsClassificationRequest request,
+  ) async {
+    await _runLocalPokemonSave(
+      speciesId: request.speciesId,
+      saveOperation: (workspace) =>
+          widget.formsClassificationSaver(workspace, request),
+    );
+  }
+
+  Future<void> _saveLearnset(
+    UpdatePokedexSpeciesLearnsetRequest request,
+  ) async {
+    await _runLocalPokemonSave(
+      speciesId: request.speciesId,
+      saveOperation: (workspace) => widget.learnsetSaver(workspace, request),
+    );
+  }
+
+  Future<void> _saveEvolution(
+    UpdatePokedexSpeciesEvolutionRequest request,
+  ) async {
+    await _runLocalPokemonSave(
+      speciesId: request.speciesId,
+      saveOperation: (workspace) => widget.evolutionSaver(workspace, request),
+    );
+  }
+
+  Future<void> _saveMedia(
+    UpdatePokedexSpeciesMediaRequest request,
+  ) async {
+    await _runLocalPokemonSave(
+      speciesId: request.speciesId,
+      saveOperation: (workspace) => widget.mediaSaver(workspace, request),
+    );
+  }
+
+  Future<void> _runLocalPokemonSave({
+    required String speciesId,
+    required Future<void> Function(ProjectFileSystem workspace) saveOperation,
+  }) async {
     final projectRootPath = widget.projectRootPath?.trim();
     if (projectRootPath == null || projectRootPath.isEmpty) {
       throw StateError(
-        'Cannot save Pokemon species metadata without a loaded project',
+        'Cannot save local Pokemon data without a loaded project',
       );
     }
 
     final workspace = ProjectFileSystem(projectRootPath);
-    await widget.metadataSaver(workspace, request);
+    await saveOperation(workspace);
     if (!mounted) {
       return;
     }
@@ -325,8 +409,8 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
     // pourrait diverger du JSON réellement persisté.
     setState(() {
       _entriesFuture = _buildEntriesFuture();
-      if (_selectedSpeciesId == request.speciesId.trim()) {
-        _detailFuture = widget.detailLoader(workspace, request.speciesId);
+      if (_selectedSpeciesId == speciesId.trim()) {
+        _detailFuture = widget.detailLoader(workspace, speciesId);
       }
     });
   }

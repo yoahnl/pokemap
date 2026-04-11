@@ -14,8 +14,12 @@ import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
+import 'package:map_editor/src/application/use_cases/update_pokedex_species_evolution_use_case.dart';
+import 'package:map_editor/src/application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
+import 'package:map_editor/src/application/use_cases/update_pokedex_species_learnset_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_metadata_use_case.dart';
+import 'package:map_editor/src/application/use_cases/update_pokedex_species_media_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
@@ -97,6 +101,9 @@ void main() {
     bool starterEligible = true,
     bool giftOnly = false,
     bool tradeOnly = false,
+    PokemonLearnsetFile? learnset,
+    PokemonEvolutionFile? evolution,
+    PokemonMediaFile? media,
   }) {
     return PokedexSpeciesDetail(
       species: PokemonSpeciesFile(
@@ -168,64 +175,65 @@ void main() {
           seedVersion: 1,
         ),
       ),
-      learnset: const PokemonLearnsetFile(
-        speciesId: 'bulbasaur',
-        startingMoves: <String>['tackle', 'growl'],
-        relearnMoves: <String>['vine_whip'],
-        levelUp: <PokemonLearnsetLevelUpEntry>[
-          PokemonLearnsetLevelUpEntry(
-            moveId: 'vine_whip',
-            level: 7,
-            source: 'level_up',
-            versionGroup: 'scarlet-violet',
+      learnset: learnset ??
+          PokemonLearnsetFile(
+            speciesId: id,
+            startingMoves: const <String>['tackle', 'growl'],
+            relearnMoves: const <String>['vine_whip'],
+            levelUp: const <PokemonLearnsetLevelUpEntry>[
+              PokemonLearnsetLevelUpEntry(
+                moveId: 'vine_whip',
+                level: 7,
+                source: 'level_up',
+                versionGroup: 'scarlet-violet',
+              ),
+            ],
+            tm: const <PokemonLearnsetMoveEntry>[
+              PokemonLearnsetMoveEntry(
+                moveId: 'protect',
+                versionGroup: 'scarlet-violet',
+              ),
+            ],
           ),
-        ],
-        tm: <PokemonLearnsetMoveEntry>[
-          PokemonLearnsetMoveEntry(
-            moveId: 'protect',
-            versionGroup: 'scarlet-violet',
+      evolution: evolution ??
+          const PokemonEvolutionFile(
+            speciesId: 'bulbasaur',
+            preEvolution: null,
+            evolutions: <PokemonEvolutionEntry>[
+              PokemonEvolutionEntry(
+                targetSpeciesId: 'ivysaur',
+                method: 'level_up',
+                minLevel: 16,
+                conditionText: <String, String>{
+                  'fr': 'Évolue au niveau 16',
+                  'en': 'Evolves at level 16',
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-      evolution: const PokemonEvolutionFile(
-        speciesId: 'bulbasaur',
-        preEvolution: null,
-        evolutions: <PokemonEvolutionEntry>[
-          PokemonEvolutionEntry(
-            targetSpeciesId: 'ivysaur',
-            method: 'level_up',
-            minLevel: 16,
-            conditionText: <String, String>{
-              'fr': 'Évolue au niveau 16',
-              'en': 'Evolves at level 16',
-            },
-          ),
-        ],
-      ),
-      media: const PokemonMediaFile(
-        speciesId: 'bulbasaur',
-        defaultFormId: 'base',
-        variants: <String, PokemonMediaVariant>{
-          'base': PokemonMediaVariant(
-            frontStatic: 'assets/pokemon/sprites/bulbasaur/front.png',
-            backStatic: 'assets/pokemon/sprites/bulbasaur/back.png',
-            frontShinyStatic:
-                'assets/pokemon/sprites/bulbasaur/front_shiny.png',
-            backShinyStatic: 'assets/pokemon/sprites/bulbasaur/back_shiny.png',
-            icon: 'assets/pokemon/sprites/bulbasaur/icon.png',
-            party: 'assets/pokemon/sprites/bulbasaur/party.png',
-            portrait: 'assets/pokemon/portraits/bulbasaur.png',
-            cry: 'assets/pokemon/cries/bulbasaur.ogg',
-            animations: <String, PokemonMediaAnimationRef>{
-              'battleFront': PokemonMediaAnimationRef(
-                sheet:
-                    'assets/pokemon/sprites/bulbasaur/battle_front_sheet.png',
-                animationId: 'battle_front',
+      media: media ??
+          PokemonMediaFile(
+            speciesId: id,
+            defaultFormId: 'base',
+            variants: <String, PokemonMediaVariant>{
+              'base': PokemonMediaVariant(
+                frontStatic: 'assets/pokemon/sprites/$id/front.png',
+                backStatic: 'assets/pokemon/sprites/$id/back.png',
+                frontShinyStatic: 'assets/pokemon/sprites/$id/front_shiny.png',
+                backShinyStatic: 'assets/pokemon/sprites/$id/back_shiny.png',
+                icon: 'assets/pokemon/sprites/$id/icon.png',
+                party: 'assets/pokemon/sprites/$id/party.png',
+                portrait: 'assets/pokemon/portraits/$id.png',
+                cry: 'assets/pokemon/cries/$id.ogg',
+                animations: <String, PokemonMediaAnimationRef>{
+                  'battleFront': PokemonMediaAnimationRef(
+                    sheet: 'assets/pokemon/sprites/$id/battle_front_sheet.png',
+                    animationId: 'battle_front',
+                  ),
+                },
               ),
             },
           ),
-        },
-      ),
     );
   }
 
@@ -294,6 +302,103 @@ void main() {
     );
   }
 
+  PokemonSpeciesFile applyFormsClassificationUpdate(
+    PokemonSpeciesFile species,
+    UpdatePokedexSpeciesFormsClassificationRequest request,
+  ) {
+    return PokemonSpeciesFile(
+      id: species.id,
+      slug: species.slug,
+      nationalDex: species.nationalDex,
+      names: species.names,
+      speciesName: species.speciesName,
+      genIntroduced: species.genIntroduced,
+      typing: species.typing,
+      baseStats: species.baseStats,
+      abilities: species.abilities,
+      breeding: species.breeding,
+      progression: species.progression,
+      forms: PokemonSpeciesForms(
+        baseFormId: request.isBaseForm ? species.id : request.baseFormId.trim(),
+        isBaseForm: request.isBaseForm,
+        formId: request.formId.trim(),
+        formName: request.formName?.trim().isEmpty ?? true
+            ? null
+            : request.formName?.trim(),
+        otherForms: request.otherForms
+            .map((value) => value.trim())
+            .where(
+              (value) => value.isNotEmpty && value != request.formId.trim(),
+            )
+            .toSet()
+            .toList(growable: false),
+      ),
+      classification: PokemonSpeciesClassification(
+        isEnabledInProject: species.classification.isEnabledInProject,
+        isObtainable: request.isObtainable,
+        isLegendary: request.isLegendary,
+        isMythical: request.isMythical,
+        isBaby: request.isBaby,
+      ),
+      refs: species.refs,
+      dexContent: species.dexContent,
+      gameplayFlags: species.gameplayFlags,
+      sourceMeta: species.sourceMeta,
+    );
+  }
+
+  PokemonLearnsetFile applyLearnsetUpdate(
+    PokedexSpeciesDetail detail,
+    UpdatePokedexSpeciesLearnsetRequest request,
+  ) {
+    final learnsetRef = detail.species.refs.learnset.trim();
+    return PokemonLearnsetFile(
+      speciesId: learnsetRef.isEmpty ? detail.species.id : learnsetRef,
+      startingMoves: request.startingMoves
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList(growable: false),
+      relearnMoves: request.relearnMoves
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList(growable: false),
+      levelUp: request.levelUp,
+      tm: request.tm,
+      tutor: request.tutor,
+      egg: request.egg,
+      event: request.event,
+      transfer: request.transfer,
+    );
+  }
+
+  PokemonEvolutionFile applyEvolutionUpdate(
+    PokedexSpeciesDetail detail,
+    UpdatePokedexSpeciesEvolutionRequest request,
+  ) {
+    final evolutionRef = detail.species.refs.evolution.trim();
+    return PokemonEvolutionFile(
+      speciesId: evolutionRef.isEmpty ? detail.species.id : evolutionRef,
+      preEvolution: request.preEvolution?.trim().isEmpty ?? true
+          ? null
+          : request.preEvolution?.trim(),
+      evolutions: request.evolutions,
+    );
+  }
+
+  PokemonMediaFile applyMediaUpdate(
+    PokedexSpeciesDetail detail,
+    UpdatePokedexSpeciesMediaRequest request,
+  ) {
+    final mediaRef = detail.species.refs.media.trim();
+    return PokemonMediaFile(
+      speciesId: mediaRef.isEmpty ? detail.species.id : mediaRef,
+      defaultFormId: request.defaultFormId.trim(),
+      variants: request.variants,
+    );
+  }
+
   _FakePokedexWorkspaceStore buildStore({
     required List<PokedexSpeciesDetail> details,
   }) {
@@ -302,7 +407,11 @@ void main() {
         for (final detail in details) detail.species.id: detail,
       },
       entryBuilder: buildEntryFromSpecies,
-      updater: applyMetadataUpdate,
+      metadataUpdater: applyMetadataUpdate,
+      formsClassificationUpdater: applyFormsClassificationUpdate,
+      learnsetUpdater: applyLearnsetUpdate,
+      evolutionUpdater: applyEvolutionUpdate,
+      mediaUpdater: applyMediaUpdate,
     );
   }
 
@@ -582,7 +691,7 @@ void main() {
     expect(find.byKey(const Key('pokedex-forms-tab')), findsOneWidget);
     expect(find.text('Forme courante'), findsOneWidget);
     expect(find.textContaining('mega'), findsOneWidget);
-    expect(find.text('Classification'), findsOneWidget);
+    expect(find.text('Formes et classification'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('pokedex-tab-learnset')));
     await tester.pumpAndSettle();
@@ -607,8 +716,7 @@ void main() {
       find.text('assets/pokemon/portraits/bulbasaur.png'),
       findsOneWidget,
     );
-    expect(find.textContaining('battle_front'), findsWidgets);
-    expect(find.textContaining('battle_front_sheet.png'), findsWidgets);
+    expect(find.textContaining('battleFront: battle_front'), findsOneWidget);
   });
 
   testWidgets(
@@ -1754,6 +1862,301 @@ void main() {
     expect(find.text('Bulbizarre'), findsNothing);
   });
 
+  testWidgets('edits forms and classification from the dedicated tab',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          names: const <String, String>{
+            'fr': 'Bulbizarre',
+            'en': 'Bulbasaur',
+          },
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        metadataSaver: store.save,
+        formsClassificationSaver: store.saveFormsClassification,
+        learnsetSaver: store.saveLearnset,
+        evolutionSaver: store.saveEvolution,
+        mediaSaver: store.saveMedia,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-tab-forms')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-edit-forms-button')));
+    await tester.tap(find.byKey(const Key('pokedex-edit-forms-button')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('pokedex-is-base-form-switch')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('pokedex-form-id-field')),
+      'mega',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-form-name-field')),
+      'Méga',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-other-forms-field')),
+      'base\ngmax',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('pokedex-is-legendary-switch')),
+    );
+    await tester.tap(find.byKey(const Key('pokedex-is-legendary-switch')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-save-forms-button')));
+    await tester.tap(find.byKey(const Key('pokedex-save-forms-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.formsSaveCallCount, 1);
+    expect(store.speciesById('bulbasaur').forms.formId, 'mega');
+    expect(store.speciesById('bulbasaur').forms.formName, 'Méga');
+    expect(store.speciesById('bulbasaur').classification.isLegendary, isTrue);
+    expect(find.text('Méga (mega)'), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-edit-forms-button')), findsOneWidget);
+  });
+
+  testWidgets('creates a learnset locally from the dedicated tab',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          learnset: null,
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        metadataSaver: store.save,
+        formsClassificationSaver: store.saveFormsClassification,
+        learnsetSaver: store.saveLearnset,
+        evolutionSaver: store.saveEvolution,
+        mediaSaver: store.saveMedia,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-tab-learnset')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('pokedex-edit-learnset-button')),
+    );
+    await tester.tap(find.byKey(const Key('pokedex-edit-learnset-button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-learnset-starting-field')),
+      'tackle\ngrowl',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-learnset-level-up-field')),
+      'vine_whip|7|level_up|scarlet-violet',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-learnset-tm-field')),
+      'protect|scarlet-violet',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('pokedex-save-learnset-button')),
+    );
+    await tester.tap(find.byKey(const Key('pokedex-save-learnset-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.learnsetSaveCallCount, 1);
+    expect(store.learnsetById('bulbasaur')?.startingMoves, <String>[
+      'tackle',
+      'growl',
+    ]);
+    expect(
+      store.learnsetById('bulbasaur')?.levelUp.single.moveId,
+      'vine_whip',
+    );
+    expect(find.text('tackle, growl'), findsOneWidget);
+  });
+
+  testWidgets('creates an evolution locally from the dedicated tab',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          evolution: null,
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        metadataSaver: store.save,
+        formsClassificationSaver: store.saveFormsClassification,
+        learnsetSaver: store.saveLearnset,
+        evolutionSaver: store.saveEvolution,
+        mediaSaver: store.saveMedia,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-tab-evolutions')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('pokedex-edit-evolution-button')),
+    );
+    await tester.tap(find.byKey(const Key('pokedex-edit-evolution-button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-evolution-entries-field')),
+      'ivysaur|level_up|16|||Évolue au niveau 16|Evolves at level 16',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('pokedex-save-evolution-button')),
+    );
+    await tester.tap(find.byKey(const Key('pokedex-save-evolution-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.evolutionSaveCallCount, 1);
+    expect(
+      store.evolutionById('bulbasaur')?.evolutions.single.targetSpeciesId,
+      'ivysaur',
+    );
+    expect(find.textContaining('Évolue au niveau 16'), findsOneWidget);
+  });
+
+  testWidgets('creates media references locally from the dedicated tab',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          media: null,
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        metadataSaver: store.save,
+        formsClassificationSaver: store.saveFormsClassification,
+        learnsetSaver: store.saveLearnset,
+        evolutionSaver: store.saveEvolution,
+        mediaSaver: store.saveMedia,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-tab-media')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-edit-media-button')));
+    await tester.tap(find.byKey(const Key('pokedex-edit-media-button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-media-default-form-field')),
+      'base',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-media-variants-field')),
+      'base|assets/pokemon/sprites/bulbasaur/front.png|assets/pokemon/sprites/bulbasaur/back.png|||assets/pokemon/sprites/bulbasaur/icon.png|assets/pokemon/sprites/bulbasaur/party.png||assets/pokemon/portraits/bulbasaur.png|assets/pokemon/cries/bulbasaur.ogg',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-media-animations-field')),
+      'base|battleFront|assets/pokemon/sprites/bulbasaur/battle_front_sheet.png|battle_front',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('pokedex-save-media-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-save-media-button')));
+    final saveMediaButton = tester.widget<CupertinoButton>(
+      find.byKey(const Key('pokedex-save-media-button')),
+    );
+    saveMediaButton.onPressed!.call();
+    await tester.pumpAndSettle();
+
+    expect(store.mediaSaveCallCount, 1);
+    expect(store.mediaById('bulbasaur')?.defaultFormId, 'base');
+    expect(
+      store.mediaById('bulbasaur')?.variants['base']?.portrait,
+      'assets/pokemon/portraits/bulbasaur.png',
+    );
+    expect(find.text('assets/pokemon/portraits/bulbasaur.png'), findsOneWidget);
+  });
+
   testWidgets('shows a loading state before the species list resolves',
       (tester) async {
     final container = ProviderContainer();
@@ -1883,7 +2286,11 @@ class _FakePokedexWorkspaceStore {
   _FakePokedexWorkspaceStore({
     required Map<String, PokedexSpeciesDetail> detailsById,
     required this.entryBuilder,
-    required this.updater,
+    required this.metadataUpdater,
+    required this.formsClassificationUpdater,
+    required this.learnsetUpdater,
+    required this.evolutionUpdater,
+    required this.mediaUpdater,
   }) : _detailsById = Map<String, PokedexSpeciesDetail>.from(detailsById);
 
   final Map<String, PokedexSpeciesDetail> _detailsById;
@@ -1892,9 +2299,29 @@ class _FakePokedexWorkspaceStore {
   final PokemonSpeciesFile Function(
     PokemonSpeciesFile species,
     UpdatePokedexSpeciesMetadataRequest request,
-  ) updater;
+  ) metadataUpdater;
+  final PokemonSpeciesFile Function(
+    PokemonSpeciesFile species,
+    UpdatePokedexSpeciesFormsClassificationRequest request,
+  ) formsClassificationUpdater;
+  final PokemonLearnsetFile Function(
+    PokedexSpeciesDetail detail,
+    UpdatePokedexSpeciesLearnsetRequest request,
+  ) learnsetUpdater;
+  final PokemonEvolutionFile Function(
+    PokedexSpeciesDetail detail,
+    UpdatePokedexSpeciesEvolutionRequest request,
+  ) evolutionUpdater;
+  final PokemonMediaFile Function(
+    PokedexSpeciesDetail detail,
+    UpdatePokedexSpeciesMediaRequest request,
+  ) mediaUpdater;
 
   int saveCallCount = 0;
+  int formsSaveCallCount = 0;
+  int learnsetSaveCallCount = 0;
+  int evolutionSaveCallCount = 0;
+  int mediaSaveCallCount = 0;
 
   Future<List<PokemonDatabaseIndexEntry>> loadEntries(
     ProjectWorkspace workspace,
@@ -1925,7 +2352,7 @@ class _FakePokedexWorkspaceStore {
   ) async {
     saveCallCount += 1;
     final current = _detailsById[request.speciesId]!;
-    final updatedSpecies = updater(current.species, request);
+    final updatedSpecies = metadataUpdater(current.species, request);
     _detailsById[request.speciesId] = PokedexSpeciesDetail(
       species: updatedSpecies,
       learnset: current.learnset,
@@ -1937,5 +2364,81 @@ class _FakePokedexWorkspaceStore {
 
   PokemonSpeciesFile speciesById(String speciesId) {
     return _detailsById[speciesId]!.species;
+  }
+
+  Future<PokemonSpeciesFile> saveFormsClassification(
+    ProjectWorkspace workspace,
+    UpdatePokedexSpeciesFormsClassificationRequest request,
+  ) async {
+    formsSaveCallCount += 1;
+    final current = _detailsById[request.speciesId]!;
+    final updatedSpecies = formsClassificationUpdater(current.species, request);
+    _detailsById[request.speciesId] = PokedexSpeciesDetail(
+      species: updatedSpecies,
+      learnset: current.learnset,
+      evolution: current.evolution,
+      media: current.media,
+    );
+    return updatedSpecies;
+  }
+
+  Future<PokemonLearnsetFile> saveLearnset(
+    ProjectWorkspace workspace,
+    UpdatePokedexSpeciesLearnsetRequest request,
+  ) async {
+    learnsetSaveCallCount += 1;
+    final current = _detailsById[request.speciesId]!;
+    final updatedLearnset = learnsetUpdater(current, request);
+    _detailsById[request.speciesId] = PokedexSpeciesDetail(
+      species: current.species,
+      learnset: updatedLearnset,
+      evolution: current.evolution,
+      media: current.media,
+    );
+    return updatedLearnset;
+  }
+
+  Future<PokemonEvolutionFile> saveEvolution(
+    ProjectWorkspace workspace,
+    UpdatePokedexSpeciesEvolutionRequest request,
+  ) async {
+    evolutionSaveCallCount += 1;
+    final current = _detailsById[request.speciesId]!;
+    final updatedEvolution = evolutionUpdater(current, request);
+    _detailsById[request.speciesId] = PokedexSpeciesDetail(
+      species: current.species,
+      learnset: current.learnset,
+      evolution: updatedEvolution,
+      media: current.media,
+    );
+    return updatedEvolution;
+  }
+
+  Future<PokemonMediaFile> saveMedia(
+    ProjectWorkspace workspace,
+    UpdatePokedexSpeciesMediaRequest request,
+  ) async {
+    mediaSaveCallCount += 1;
+    final current = _detailsById[request.speciesId]!;
+    final updatedMedia = mediaUpdater(current, request);
+    _detailsById[request.speciesId] = PokedexSpeciesDetail(
+      species: current.species,
+      learnset: current.learnset,
+      evolution: current.evolution,
+      media: updatedMedia,
+    );
+    return updatedMedia;
+  }
+
+  PokemonLearnsetFile? learnsetById(String speciesId) {
+    return _detailsById[speciesId]!.learnset;
+  }
+
+  PokemonEvolutionFile? evolutionById(String speciesId) {
+    return _detailsById[speciesId]!.evolution;
+  }
+
+  PokemonMediaFile? mediaById(String speciesId) {
+    return _detailsById[speciesId]!.media;
   }
 }
