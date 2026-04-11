@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers/pokedex_providers.dart';
 import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokedex_species_detail.dart';
+import '../../application/use_cases/update_pokedex_species_metadata_use_case.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../infrastructure/filesystem/project_filesystem.dart';
 import 'pokedex_workspace_loader.dart';
@@ -11,6 +12,8 @@ import 'pokedex_workspace_views.dart';
 
 const String _allTypesFilterValue = '__all_types__';
 const String _allGenerationsFilterValue = '__all_generations__';
+const String _allStatusesFilterValue = '__all_statuses__';
+const String _enabledStatusFilterValue = '__enabled_only__';
 const String _overviewTabId = 'overview';
 
 /// Workspace central Pokédex du lot 13.
@@ -28,6 +31,7 @@ class PokedexWorkspace extends ConsumerWidget {
     super.key,
     this.loader,
     this.detailLoader,
+    this.metadataSaver,
   });
 
   /// Injection locale utile aux tests ciblés du lot 13.
@@ -36,6 +40,7 @@ class PokedexWorkspace extends ConsumerWidget {
   /// le rendu des états UI sans introduire de notifier dédié supplémentaire.
   final PokedexEntryLoader? loader;
   final PokedexSpeciesDetailLoader? detailLoader;
+  final PokedexSpeciesMetadataSaver? metadataSaver;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,11 +50,14 @@ class PokedexWorkspace extends ConsumerWidget {
         loader ?? ref.watch(pokedexEntryLoaderProvider);
     final PokedexSpeciesDetailLoader resolvedDetailLoader =
         detailLoader ?? ref.watch(pokedexSpeciesDetailLoaderProvider);
+    final PokedexSpeciesMetadataSaver resolvedMetadataSaver =
+        metadataSaver ?? ref.watch(pokedexSpeciesMetadataSaverProvider);
 
     return _PokedexWorkspaceBody(
       projectRootPath: projectRootPath,
       loader: resolvedLoader,
       detailLoader: resolvedDetailLoader,
+      metadataSaver: resolvedMetadataSaver,
     );
   }
 }
@@ -59,11 +67,13 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.projectRootPath,
     required this.loader,
     required this.detailLoader,
+    required this.metadataSaver,
   });
 
   final String? projectRootPath;
   final PokedexEntryLoader loader;
   final PokedexSpeciesDetailLoader detailLoader;
+  final PokedexSpeciesMetadataSaver metadataSaver;
 
   @override
   State<_PokedexWorkspaceBody> createState() => _PokedexWorkspaceBodyState();
@@ -74,6 +84,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   String _searchQuery = '';
   String _selectedType = _allTypesFilterValue;
   String _selectedGeneration = _allGenerationsFilterValue;
+  String _selectedStatus = _allStatusesFilterValue;
   String? _selectedSpeciesId;
   Future<PokedexSpeciesDetail>? _detailFuture;
   String _selectedDetailTabId = _overviewTabId;
@@ -98,6 +109,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       _searchQuery = '';
       _selectedType = _allTypesFilterValue;
       _selectedGeneration = _allGenerationsFilterValue;
+      _selectedStatus = _allStatusesFilterValue;
       _selectedSpeciesId = null;
       _detailFuture = null;
       _selectedDetailTabId = _overviewTabId;
@@ -188,6 +200,8 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                 availableGenerations: availableGenerations,
                 selectedGeneration: _selectedGeneration,
                 onGenerationChanged: _updateSelectedGeneration,
+                selectedStatus: _selectedStatus,
+                onStatusChanged: _updateSelectedStatus,
                 emptyResultsChild: filteredEntries.isEmpty
                     ? PokedexWorkspaceNoResultsState(
                         query: _searchQuery,
@@ -198,6 +212,10 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                             _selectedGeneration == _allGenerationsFilterValue
                                 ? null
                                 : _selectedGeneration,
+                        selectedStatus:
+                            _selectedStatus == _allStatusesFilterValue
+                                ? null
+                                : _selectedStatus,
                       )
                     : null,
               ),
@@ -210,6 +228,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                 selectedTabId: _selectedDetailTabId,
                 onTabChanged: _updateSelectedDetailTab,
                 detailFuture: _detailFuture,
+                onSaveMetadata: _saveMetadata,
               ),
             ),
           ],
@@ -231,6 +250,11 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   void _updateSelectedGeneration(String value) {
     if (value == _selectedGeneration) return;
     setState(() => _selectedGeneration = value);
+  }
+
+  void _updateSelectedStatus(String value) {
+    if (value == _selectedStatus) return;
+    setState(() => _selectedStatus = value);
   }
 
   void _updateSelectedDetailTab(String value) {
@@ -276,6 +300,37 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
     });
   }
 
+  Future<void> _saveMetadata(
+    UpdatePokedexSpeciesMetadataRequest request,
+  ) async {
+    final projectRootPath = widget.projectRootPath?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      throw StateError(
+        'Cannot save Pokemon species metadata without a loaded project',
+      );
+    }
+
+    final workspace = ProjectFileSystem(projectRootPath);
+    await widget.metadataSaver(workspace, request);
+    if (!mounted) {
+      return;
+    }
+
+    // Après une sauvegarde locale, on relit la même source de vérité que le
+    // reste du workspace :
+    // - l'index léger pour la liste et les filtres ;
+    // - la fiche détail complète pour l'espèce sélectionnée.
+    //
+    // On évite ainsi tout cache parallèle "enabled" ou "draft saved" qui
+    // pourrait diverger du JSON réellement persisté.
+    setState(() {
+      _entriesFuture = _buildEntriesFuture();
+      if (_selectedSpeciesId == request.speciesId.trim()) {
+        _detailFuture = widget.detailLoader(workspace, request.speciesId);
+      }
+    });
+  }
+
   List<PokemonDatabaseIndexEntry> _filterEntries(
     List<PokemonDatabaseIndexEntry> entries,
   ) {
@@ -290,6 +345,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
     final hasTypeFilter = _selectedType != _allTypesFilterValue;
     final hasGenerationFilter =
         _selectedGeneration != _allGenerationsFilterValue;
+    final hasStatusFilter = _selectedStatus != _allStatusesFilterValue;
 
     return entries.where((entry) {
       final matchesSearch = _matchesSearchQuery(
@@ -304,8 +360,12 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
           entry.types.any((type) => type.toLowerCase() == typeFilter);
       final matchesGeneration = !hasGenerationFilter ||
           entry.genIntroduced.toString() == _selectedGeneration;
+      final matchesStatus = !hasStatusFilter ||
+          (_selectedStatus == _enabledStatusFilterValue
+              ? entry.isEnabledInProject
+              : !entry.isEnabledInProject);
 
-      return matchesSearch && matchesType && matchesGeneration;
+      return matchesSearch && matchesType && matchesGeneration && matchesStatus;
     }).toList(growable: false);
   }
 

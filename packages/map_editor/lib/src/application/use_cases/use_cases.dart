@@ -24,5 +24,6 @@ export 'project_tileset_use_cases.dart';
 export 'seed_pokemon_demo_data_use_case.dart';
 export 'terrain_preset_use_cases.dart';
 export 'terrain_use_cases.dart';
+export 'update_pokedex_species_metadata_use_case.dart';
 export 'validate_pokemon_project_data_use_case.dart';
 export 'warp_use_cases.dart';

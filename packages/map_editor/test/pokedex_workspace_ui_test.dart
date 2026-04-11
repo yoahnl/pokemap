@@ -12,8 +12,10 @@ import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
+import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
+import 'package:map_editor/src/application/use_cases/update_pokedex_species_metadata_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
@@ -59,6 +61,7 @@ void main() {
     required String primaryName,
     required List<String> types,
     required int genIntroduced,
+    bool isEnabledInProject = true,
   }) {
     return PokemonDatabaseIndexEntry(
       id: id,
@@ -66,6 +69,7 @@ void main() {
       primaryName: primaryName,
       genIntroduced: genIntroduced,
       types: types,
+      isEnabledInProject: isEnabledInProject,
       refs: PokemonDatabaseIndexRefs(
         learnset: id,
         evolution: id,
@@ -76,27 +80,37 @@ void main() {
 
   PokedexSpeciesDetail buildDetail({
     required String id,
+    int nationalDex = 1,
+    int genIntroduced = 1,
+    List<String> types = const <String>['grass', 'poison'],
     String primaryAbility = 'overgrow',
     String? secondaryAbility,
     String? hiddenAbility = 'chlorophyll',
     List<String> otherForms = const <String>[],
+    bool isEnabledInProject = true,
+    Map<String, String> names = const <String, String>{
+      'fr': 'Bulbizarre',
+      'en': 'Bulbasaur',
+    },
+    String? flavorText =
+        'Une étrange graine a été plantée sur son dos à la naissance.',
+    bool starterEligible = true,
+    bool giftOnly = false,
+    bool tradeOnly = false,
   }) {
     return PokedexSpeciesDetail(
       species: PokemonSpeciesFile(
         id: id,
         slug: id,
-        nationalDex: 1,
-        names: const <String, String>{
-          'fr': 'Bulbizarre',
-          'en': 'Bulbasaur',
-        },
+        nationalDex: nationalDex,
+        names: names,
         speciesName: const <String, String>{
           'fr': 'Pokémon Graine',
           'en': 'Seed Pokemon',
         },
-        genIntroduced: 1,
-        typing: const PokemonSpeciesTyping(
-          types: <String>['grass', 'poison'],
+        genIntroduced: genIntroduced,
+        typing: PokemonSpeciesTyping(
+          types: types,
         ),
         baseStats: const PokemonSpeciesBaseStats(
           hp: 45,
@@ -129,8 +143,8 @@ void main() {
           formId: 'base',
           otherForms: otherForms,
         ),
-        classification: const PokemonSpeciesClassification(
-          isEnabledInProject: true,
+        classification: PokemonSpeciesClassification(
+          isEnabledInProject: isEnabledInProject,
           isObtainable: true,
         ),
         refs: PokemonSpeciesRefs(
@@ -138,15 +152,16 @@ void main() {
           evolution: id,
           media: id,
         ),
-        dexContent: const PokemonSpeciesDexContent(
+        dexContent: PokemonSpeciesDexContent(
           heightM: 0.7,
           weightKg: 6.9,
           color: 'green',
-          flavorText:
-              'Une étrange graine a été plantée sur son dos à la naissance.',
+          flavorText: flavorText,
         ),
-        gameplayFlags: const PokemonSpeciesGameplayFlags(
-          starterEligible: true,
+        gameplayFlags: PokemonSpeciesGameplayFlags(
+          starterEligible: starterEligible,
+          giftOnly: giftOnly,
+          tradeOnly: tradeOnly,
         ),
         sourceMeta: const PokemonSpeciesSourceMeta(
           seededBy: 'ui-test',
@@ -223,6 +238,72 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(itemLabel).last);
     await tester.pumpAndSettle();
+  }
+
+  PokemonDatabaseIndexEntry buildEntryFromSpecies(PokemonSpeciesFile species) {
+    final speciesIndexEntry = PokemonSpeciesIndexEntry.fromSpeciesFile(
+      species,
+      relativePath:
+          'data/pokemon/species/${species.nationalDex.toString().padLeft(4, '0')}-${species.slug}.json',
+    );
+    return PokemonDatabaseIndexEntry.fromSpeciesEntry(
+      speciesIndexEntry: speciesIndexEntry,
+      species: species,
+    );
+  }
+
+  PokemonSpeciesFile applyMetadataUpdate(
+    PokemonSpeciesFile species,
+    UpdatePokedexSpeciesMetadataRequest request,
+  ) {
+    return PokemonSpeciesFile(
+      id: species.id,
+      slug: species.slug,
+      nationalDex: species.nationalDex,
+      names: Map<String, String>.from(request.names),
+      speciesName: species.speciesName,
+      genIntroduced: species.genIntroduced,
+      typing: species.typing,
+      baseStats: species.baseStats,
+      abilities: species.abilities,
+      breeding: species.breeding,
+      progression: species.progression,
+      forms: species.forms,
+      classification: PokemonSpeciesClassification(
+        isEnabledInProject: request.isEnabledInProject,
+        isObtainable: species.classification.isObtainable,
+        isLegendary: species.classification.isLegendary,
+        isMythical: species.classification.isMythical,
+        isBaby: species.classification.isBaby,
+      ),
+      refs: species.refs,
+      dexContent: PokemonSpeciesDexContent(
+        heightM: species.dexContent.heightM,
+        weightKg: species.dexContent.weightKg,
+        color: species.dexContent.color,
+        flavorText: request.flavorText?.trim().isEmpty ?? true
+            ? null
+            : request.flavorText?.trim(),
+      ),
+      gameplayFlags: PokemonSpeciesGameplayFlags(
+        starterEligible: request.starterEligible,
+        giftOnly: request.giftOnly,
+        tradeOnly: request.tradeOnly,
+      ),
+      sourceMeta: species.sourceMeta,
+    );
+  }
+
+  _FakePokedexWorkspaceStore buildStore({
+    required List<PokedexSpeciesDetail> details,
+  }) {
+    return _FakePokedexWorkspaceStore(
+      detailsById: <String, PokedexSpeciesDetail>{
+        for (final detail in details) detail.species.id: detail,
+      },
+      entryBuilder: buildEntryFromSpecies,
+      updater: applyMetadataUpdate,
+    );
   }
 
   testWidgets('ProjectExplorerPanel shows a Pokédex entry tile',
@@ -693,13 +774,7 @@ void main() {
     );
     expect(find.byKey(const Key('pokedex-type-filter')), findsOneWidget);
     expect(find.byKey(const Key('pokedex-generation-filter')), findsOneWidget);
-
-    // Audit du lot 15 : aucun filtre activé/désactivé n'est exposé tant
-    // qu'aucune donnée lecture seule stable ne l'alimente réellement.
-    expect(find.textContaining('Activé'), findsNothing);
-    expect(find.textContaining('Désactivé'), findsNothing);
-    expect(find.textContaining('Enabled'), findsNothing);
-    expect(find.textContaining('Disabled'), findsNothing);
+    expect(find.byKey(const Key('pokedex-status-filter')), findsOneWidget);
   });
 
   testWidgets('filters instantly by species primary name', (tester) async {
@@ -1245,6 +1320,313 @@ void main() {
     expect(find.byKey(const Key('pokedex-generation-filter')), findsOneWidget);
   });
 
+  testWidgets('filters instantly by enabled status', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: <String>['grass', 'poison'],
+            genIntroduced: 1,
+            isEnabledInProject: true,
+          ),
+          buildEntry(
+            id: 'treecko',
+            nationalDex: 252,
+            primaryName: 'Treecko',
+            types: <String>['grass'],
+            genIntroduced: 3,
+            isEnabledInProject: false,
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await selectPopupFilter(
+      tester,
+      popupKey: const Key('pokedex-status-filter'),
+      itemLabel: 'Activées',
+    );
+
+    expect(find.text('Bulbasaur'), findsOneWidget);
+    expect(find.text('Treecko'), findsNothing);
+
+    await selectPopupFilter(
+      tester,
+      popupKey: const Key('pokedex-status-filter'),
+      itemLabel: 'Désactivées',
+    );
+
+    expect(find.text('Bulbasaur'), findsNothing);
+    expect(find.text('Treecko'), findsOneWidget);
+  });
+
+  testWidgets(
+      'enters edit mode saves simple metadata and keeps generation filtering stable',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          nationalDex: 1,
+          genIntroduced: 1,
+          names: const <String, String>{
+            'fr': 'Bulbizarre',
+            'en': 'Bulbasaur',
+          },
+          isEnabledInProject: true,
+          starterEligible: true,
+        ),
+        buildDetail(
+          id: 'treecko',
+          nationalDex: 252,
+          genIntroduced: 3,
+          types: const <String>['grass'],
+          names: const <String, String>{
+            'fr': 'Arcko',
+            'en': 'Treecko',
+          },
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        metadataSaver: store.save,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await selectPopupFilter(
+      tester,
+      popupKey: const Key('pokedex-generation-filter'),
+      itemLabel: 'Génération 1',
+    );
+    expect(find.text('Bulbasaur'), findsOneWidget);
+    expect(find.text('Treecko'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-edit-metadata-button')));
+    await tester.tap(find.byKey(const Key('pokedex-edit-metadata-button')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('pokedex-enabled-switch')));
+    await tester.tap(find.byKey(const Key('pokedex-enabled-switch')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('pokedex-name-field-fr')),
+      'Bulbizarre Projet',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-name-field-en')),
+      'Bulbasaur Project',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-flavor-text-field')),
+      'Texte édité depuis la fiche locale.',
+    );
+    await tester.tap(find.byKey(const Key('pokedex-gift-only-switch')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-save-metadata-button')));
+    await tester.tap(find.byKey(const Key('pokedex-save-metadata-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.saveCallCount, 1);
+    expect(store.speciesById('bulbasaur').classification.isEnabledInProject,
+        isFalse);
+    expect(store.speciesById('bulbasaur').names['fr'], 'Bulbizarre Projet');
+    expect(store.speciesById('bulbasaur').names['en'], 'Bulbasaur Project');
+    expect(
+      store.speciesById('bulbasaur').dexContent.flavorText,
+      'Texte édité depuis la fiche locale.',
+    );
+    expect(store.speciesById('bulbasaur').gameplayFlags.giftOnly, isTrue);
+
+    expect(find.text('Bulbasaur Project'), findsWidgets);
+    expect(find.text('Treecko'), findsNothing);
+    expect(
+        find.byKey(const Key('pokedex-edit-metadata-button')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-name-field-fr')), findsNothing);
+    expect(find.text('Désactivée'), findsWidgets);
+  });
+
+  testWidgets('cancel discards metadata changes without writing',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          names: const <String, String>{
+            'fr': 'Bulbizarre',
+            'en': 'Bulbasaur',
+          },
+          isEnabledInProject: true,
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        metadataSaver: store.save,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-edit-metadata-button')));
+    await tester.tap(find.byKey(const Key('pokedex-edit-metadata-button')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('pokedex-enabled-switch')));
+    await tester.tap(find.byKey(const Key('pokedex-enabled-switch')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('pokedex-name-field-fr')),
+      'Bulbizarre Temporaire',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-flavor-text-field')),
+      'Changement non enregistré.',
+    );
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-cancel-metadata-button')));
+    await tester.tap(find.byKey(const Key('pokedex-cancel-metadata-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.saveCallCount, 0);
+    expect(store.speciesById('bulbasaur').classification.isEnabledInProject,
+        isTrue);
+    expect(store.speciesById('bulbasaur').names['fr'], 'Bulbizarre');
+    expect(
+      store.speciesById('bulbasaur').dexContent.flavorText,
+      'Une étrange graine a été plantée sur son dos à la naissance.',
+    );
+    expect(find.text('Bulbizarre Temporaire'), findsNothing);
+    expect(
+        find.byKey(const Key('pokedex-edit-metadata-button')), findsOneWidget);
+  });
+
+  testWidgets(
+      'saving a disable under the enabled filter clears the current selection cleanly',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          nationalDex: 1,
+          genIntroduced: 1,
+          names: const <String, String>{
+            'fr': 'Bulbizarre',
+            'en': 'Bulbasaur',
+          },
+          isEnabledInProject: true,
+        ),
+        buildDetail(
+          id: 'ivysaur',
+          nationalDex: 2,
+          genIntroduced: 1,
+          names: const <String, String>{
+            'fr': 'Herbizarre',
+            'en': 'Ivysaur',
+          },
+          isEnabledInProject: true,
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        metadataSaver: store.save,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await selectPopupFilter(
+      tester,
+      popupKey: const Key('pokedex-status-filter'),
+      itemLabel: 'Activées',
+    );
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-detail-pane')), findsOneWidget);
+
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-edit-metadata-button')));
+    await tester.tap(find.byKey(const Key('pokedex-edit-metadata-button')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('pokedex-enabled-switch')));
+    await tester.tap(find.byKey(const Key('pokedex-enabled-switch')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const Key('pokedex-save-metadata-button')));
+    await tester.tap(find.byKey(const Key('pokedex-save-metadata-button')));
+    await tester.pumpAndSettle();
+
+    expect(store.speciesById('bulbasaur').classification.isEnabledInProject,
+        isFalse);
+    expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
+    expect(find.text('Ivysaur'), findsOneWidget);
+    expect(find.text('Bulbizarre'), findsNothing);
+  });
+
   testWidgets('shows a loading state before the species list resolves',
       (tester) async {
     final container = ProviderContainer();
@@ -1368,4 +1750,65 @@ void main() {
       }
     },
   );
+}
+
+class _FakePokedexWorkspaceStore {
+  _FakePokedexWorkspaceStore({
+    required Map<String, PokedexSpeciesDetail> detailsById,
+    required this.entryBuilder,
+    required this.updater,
+  }) : _detailsById = Map<String, PokedexSpeciesDetail>.from(detailsById);
+
+  final Map<String, PokedexSpeciesDetail> _detailsById;
+  final PokemonDatabaseIndexEntry Function(PokemonSpeciesFile species)
+      entryBuilder;
+  final PokemonSpeciesFile Function(
+    PokemonSpeciesFile species,
+    UpdatePokedexSpeciesMetadataRequest request,
+  ) updater;
+
+  int saveCallCount = 0;
+
+  Future<List<PokemonDatabaseIndexEntry>> loadEntries(
+    ProjectWorkspace workspace,
+  ) async {
+    final entries = _detailsById.values
+        .map((detail) => entryBuilder(detail.species))
+        .toList(growable: false)
+      ..sort((left, right) {
+        final dexCompare = left.nationalDex.compareTo(right.nationalDex);
+        if (dexCompare != 0) {
+          return dexCompare;
+        }
+        return left.id.compareTo(right.id);
+      });
+    return entries;
+  }
+
+  Future<PokedexSpeciesDetail> loadDetail(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) async {
+    return _detailsById[speciesId]!;
+  }
+
+  Future<PokemonSpeciesFile> save(
+    ProjectWorkspace workspace,
+    UpdatePokedexSpeciesMetadataRequest request,
+  ) async {
+    saveCallCount += 1;
+    final current = _detailsById[request.speciesId]!;
+    final updatedSpecies = updater(current.species, request);
+    _detailsById[request.speciesId] = PokedexSpeciesDetail(
+      species: updatedSpecies,
+      learnset: current.learnset,
+      evolution: current.evolution,
+      media: current.media,
+    );
+    return updatedSpecies;
+  }
+
+  PokemonSpeciesFile speciesById(String speciesId) {
+    return _detailsById[speciesId]!.species;
+  }
 }

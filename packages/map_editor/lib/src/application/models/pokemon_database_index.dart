@@ -36,6 +36,7 @@ class PokemonDatabaseIndexEntry {
     required this.primaryName,
     required this.genIntroduced,
     required this.types,
+    required this.isEnabledInProject,
     required this.refs,
   });
 
@@ -44,6 +45,14 @@ class PokemonDatabaseIndexEntry {
   final String primaryName;
   final int genIntroduced;
   final List<String> types;
+
+  /// Le lot 38 a besoin d'un filtre activée/désactivée directement sur la
+  /// projection légère de liste.
+  ///
+  /// On expose donc uniquement le booléen déjà présent dans
+  /// `PokemonSpeciesClassification.isEnabledInProject`, sans embarquer toute la
+  /// classification détaillée dans l'index.
+  final bool isEnabledInProject;
   final PokemonDatabaseIndexRefs refs;
 
   /// Construit l'entree specifique au lot 11 a partir d'une source de vérité
@@ -72,6 +81,13 @@ class PokemonDatabaseIndexEntry {
   /// - on continue à réutiliser le pipeline d’index courant au lieu de créer une
   ///   nouvelle façade ou de relire autre chose depuis la UI.
   ///
+  /// Le lot 38 ajoute `isEnabledInProject` à la même projection légère.
+  /// Pourquoi ce booléen précis est légitime ici :
+  /// - la liste Pokédex doit filtrer "Toutes / Activées / Désactivées" ;
+  /// - la source de vérité existe déjà dans `PokemonSpeciesFile.classification`;
+  /// - on évite ainsi de charger la fiche détail juste pour un filtre liste ;
+  /// - on n'introduit toujours aucun second état parallèle pour le statut.
+  ///
   /// Le scope reste strict :
   /// - on ne charge toujours ni learnsets, ni évolutions, ni médias ;
   /// - on n’ajoute aucun détail riche de fiche Pokémon ;
@@ -87,6 +103,7 @@ class PokemonDatabaseIndexEntry {
       primaryName: speciesIndexEntry.primaryName,
       genIntroduced: species.genIntroduced,
       types: List<String>.from(speciesIndexEntry.types),
+      isEnabledInProject: species.classification.isEnabledInProject,
       refs: PokemonDatabaseIndexRefs(
         learnset: species.refs.learnset.trim(),
         evolution: species.refs.evolution.trim(),

@@ -101,6 +101,10 @@ void main() {
       // L'exposer ici permet un filtre UI local sans inventer un nouveau
       // pipeline ni relire autrement les species depuis le workspace Pokédex.
       expect(bulbasaur.genIntroduced, 1);
+      // Lot 38 : le filtre Activées / Désactivées repose sur le même index
+      // léger. On y projette donc le booléen déjà stocké dans l'espèce locale,
+      // sans charger la fiche détail ni créer un second état.
+      expect(bulbasaur.isEnabledInProject, isTrue);
       expect(bulbasaur.id, bulbasaurSpeciesIndex.id);
       expect(bulbasaur.nationalDex, bulbasaurSpeciesIndex.nationalDex);
       expect(bulbasaur.primaryName, bulbasaurSpeciesIndex.primaryName);
@@ -112,6 +116,96 @@ void main() {
             .having((refs) => refs.evolution, 'evolution', 'bulbasaur')
             .having((refs) => refs.media, 'media', 'bulbasaur'),
       );
+    });
+
+    test('projects a disabled species into the lightweight index', () async {
+      await _createProjectAndSeedDemoData(
+        createProjectUseCase,
+        seedUseCase,
+        workspace,
+        tempProjectRoot.path,
+      );
+
+      final speciesFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/0001-bulbasaur.json',
+        ),
+      );
+      await speciesFile.writeAsString('''
+{
+  "id": "bulbasaur",
+  "slug": "bulbasaur",
+  "nationalDex": 1,
+  "names": {
+    "en": "Bulbasaur"
+  },
+  "speciesName": {
+    "en": "Seed Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": ["grass", "poison"]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 49,
+    "def": 49,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45,
+    "bst": 318
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "hidden": "chlorophyll"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": ["monster", "grass"],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "classification": {
+    "isEnabledInProject": false,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bulbasaur",
+    "evolution": "bulbasaur",
+    "media": "bulbasaur"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 6.9,
+    "color": "green",
+    "flavorText": "Disabled projection test."
+  },
+  "gameplayFlags": {
+    "starterEligible": true,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "test",
+    "seedVersion": 99
+  }
+}
+''');
+
+      final entries = await indexService.build(workspace);
+      final bulbasaur = entries.firstWhere((entry) => entry.id == 'bulbasaur');
+      expect(bulbasaur.isEnabledInProject, isFalse);
     });
 
     test(
