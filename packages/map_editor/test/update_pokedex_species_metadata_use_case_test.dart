@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
@@ -95,6 +96,65 @@ void main() {
     });
 
     test(
+        'rejects metadata updates when all localized names are empty and leaves species and project manifest untouched',
+        () async {
+      await writeRepository.saveSpecies(workspace, _bulbasaurSpecies);
+
+      final projectFile = File(workspace.projectManifestPath);
+      final beforeProjectJson = await projectFile.readAsString();
+      final speciesFilesBefore = await _listSpeciesJsonFiles(workspace);
+      expect(speciesFilesBefore, hasLength(1));
+
+      final speciesFile = speciesFilesBefore.single;
+      final beforeSpeciesJson = await speciesFile.readAsString();
+
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          const UpdatePokedexSpeciesMetadataRequest(
+            speciesId: 'bulbasaur',
+            isEnabledInProject: true,
+            names: <String, String>{
+              'fr': '   ',
+              'en': '\n\t',
+            },
+            flavorText: 'Ce texte ne doit jamais être persisté.',
+            starterEligible: false,
+            giftOnly: true,
+            tradeOnly: true,
+          ),
+        ),
+        throwsA(
+          isA<EditorValidationException>().having(
+            (error) => error.message,
+            'message',
+            'Pokemon species names must contain at least one non-empty value',
+          ),
+        ),
+      );
+
+      final speciesFilesAfter = await _listSpeciesJsonFiles(workspace);
+      expect(speciesFilesAfter, hasLength(1));
+      expect(speciesFilesAfter.single.path, speciesFile.path);
+      expect(await speciesFile.readAsString(), beforeSpeciesJson);
+      expect(await projectFile.readAsString(), beforeProjectJson);
+
+      final readBack =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      expect(readBack.names, _bulbasaurSpecies.names);
+      expect(
+        readBack.dexContent.flavorText,
+        _bulbasaurSpecies.dexContent.flavorText,
+      );
+      expect(readBack.gameplayFlags.starterEligible, isTrue);
+      expect(readBack.gameplayFlags.giftOnly, isFalse);
+      expect(readBack.gameplayFlags.tradeOnly, isFalse);
+      expect(readBack.refs.learnset, 'bulbasaur');
+      expect(readBack.refs.evolution, 'bulbasaur');
+      expect(readBack.refs.media, 'bulbasaur');
+    });
+
+    test(
         'reuses an existing non-canonical species path instead of creating a canonical duplicate during metadata updates',
         () async {
       final speciesDir = Directory(
@@ -156,6 +216,17 @@ void main() {
       expect(readBack.refs.media, 'bulbasaur');
     });
   });
+}
+
+Future<List<File>> _listSpeciesJsonFiles(ProjectFileSystem workspace) async {
+  final speciesDirectory = Directory(
+    workspace.resolveProjectRelativePath('data/pokemon/species'),
+  );
+  return speciesDirectory
+      .list(recursive: false)
+      .where((entity) => entity is File && p.extension(entity.path) == '.json')
+      .cast<File>()
+      .toList();
 }
 
 const PokemonSpeciesFile _bulbasaurSpecies = PokemonSpeciesFile(

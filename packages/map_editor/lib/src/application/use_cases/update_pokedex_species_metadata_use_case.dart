@@ -73,6 +73,25 @@ class UpdatePokedexSpeciesMetadataUseCase {
       workspace,
       speciesId,
     );
+    final normalizedNames = _normalizeLocalizedValues(request.names);
+
+    // Contrat métier local de la phase 8A :
+    // - la liste Pokédex repose ensuite sur un nom principal exploitable ;
+    // - l'édition locale ne doit donc jamais pouvoir "sauver" une espèce
+    //   devenue anonymisée ;
+    // - on place volontairement ce garde-fou ici, au point d'écriture
+    //   applicatif, pour bloquer l'erreur à la racine avant tout write.
+    //
+    // Pourquoi pas ailleurs :
+    // - pas dans la UI, car l'espèce locale resterait sauvable par un autre
+    //   appelant ;
+    // - pas dans le repository, qui doit rester un port d'écriture générique ;
+    // - pas dans `project.json`, qui n'est pas la source de vérité Pokémon.
+    if (!_containsAtLeastOneUsableLocalizedValue(normalizedNames)) {
+      throw const EditorValidationException(
+        'Pokemon species names must contain at least one non-empty value',
+      );
+    }
 
     // On ne reconstruit jamais l'espèce "depuis zéro" dans la UI.
     // Le but est précisément de préserver :
@@ -84,7 +103,7 @@ class UpdatePokedexSpeciesMetadataUseCase {
       id: currentSpecies.id,
       slug: currentSpecies.slug,
       nationalDex: currentSpecies.nationalDex,
-      names: _normalizeLocalizedValues(request.names),
+      names: normalizedNames,
       speciesName: currentSpecies.speciesName,
       genIntroduced: currentSpecies.genIntroduced,
       typing: currentSpecies.typing,
@@ -141,6 +160,21 @@ class UpdatePokedexSpeciesMetadataUseCase {
     }
 
     return normalized;
+  }
+
+  bool _containsAtLeastOneUsableLocalizedValue(Map<String, String> values) {
+    // La décision finale ne dépend pas du nombre de locales ni d'une locale
+    // obligatoire : le garde-fou minimal veut seulement empêcher qu'il ne reste
+    // aucun nom exploitable après normalisation.
+    //
+    // On laisse donc des valeurs vides persister si l'appelant le souhaite,
+    // tant qu'au moins une valeur trimée reste réellement utilisable.
+    for (final value in values.values) {
+      if (value.isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
   }
 
   String? _normalizeOptionalText(String? value) {
