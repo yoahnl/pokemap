@@ -29,15 +29,21 @@ class PokemonMediaStubGenerator {
     final explicitFormId = species.forms.formId.trim();
     final defaultFormId = explicitFormId.isEmpty ? 'base' : explicitFormId;
 
-    final variantIds = <String>{defaultFormId};
-    variantIds.addAll(
-      species.forms.otherForms
+    final remainingVariantIds = <String>{
+      ...species.forms.otherForms
           .map((value) => value.trim())
           .where((value) => value.isNotEmpty),
-    );
+    }..remove(defaultFormId);
+    final sortedRemainingVariantIds =
+        remainingVariantIds.toList(growable: false)..sort();
 
     final variants = <String, PokemonMediaVariant>{};
-    for (final variantId in variantIds) {
+    // Le form par défaut reste toujours premier ; le reste est trié pour
+    // garantir une sérialisation stable.
+    for (final variantId in <String>[
+      defaultFormId,
+      ...sortedRemainingVariantIds,
+    ]) {
       variants[variantId] = _buildVariant(
         assetSlug: assetSlug,
         variantId: variantId,

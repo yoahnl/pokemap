@@ -18,6 +18,10 @@ void main() {
         'assets/pokemon/sprites/bulbasaur/front.png',
       );
       expect(
+        media.variants['base']?.portrait,
+        'assets/pokemon/portraits/bulbasaur.png',
+      );
+      expect(
         media.variants['base']?.animations['battleFront']?.animationId,
         'battle_front',
       );
@@ -27,10 +31,17 @@ void main() {
       final media = generator.createStub(_speciesWithForms);
 
       expect(media.defaultFormId, 'base');
-      expect(media.variants.keys, containsAll(<String>['base', 'mega']));
+      expect(
+        media.variants.keys.toList(growable: false),
+        <String>['base', 'alpha', 'mega'],
+      );
       expect(
         media.variants['mega']?.frontStatic,
         'assets/pokemon/sprites/venusaur/mega/front.png',
+      );
+      expect(
+        media.variants['mega']?.portrait,
+        'assets/pokemon/portraits/venusaur/mega.png',
       );
     });
 
@@ -157,7 +168,7 @@ const PokemonSpeciesFile _speciesWithForms = PokemonSpeciesFile(
   forms: PokemonSpeciesForms(
     baseFormId: '',
     isBaseForm: true,
-    otherForms: <String>['mega'],
+    otherForms: <String>['mega', 'alpha'],
   ),
   refs: PokemonSpeciesRefs(
     learnset: 'venusaur',

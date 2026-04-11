@@ -62,8 +62,8 @@ class ExternalPokemonCatalogNormalizer {
 
       final existingId = (entry['id'] as String?)?.trim();
       entry['id'] = existingId == null || existingId.isEmpty
-          ? normalizedId
-          : _normalizeExternalId(existingId);
+          ? _canonicalizeCatalogEntryId(normalizedCatalogKey, normalizedId)
+          : _canonicalizeCatalogEntryId(normalizedCatalogKey, existingId);
 
       final existingName = (entry['name'] as String?)?.trim();
       if (existingName == null || existingName.isEmpty) {
@@ -75,6 +75,12 @@ class ExternalPokemonCatalogNormalizer {
 
       entries.add(entry);
     }
+
+    entries.sort(
+      (left, right) => ((left['id'] as String?) ?? '').compareTo(
+        (right['id'] as String?) ?? '',
+      ),
+    );
 
     return PokemonCatalogFile(
       schemaVersion: 1,
@@ -141,14 +147,22 @@ class ExternalPokemonCatalogNormalizer {
       }
 
       final url = (entry['url'] as String?)?.trim();
+      final normalizedId =
+          _canonicalizeCatalogEntryId(normalizedCatalogKey, name);
       entries.add(
         <String, dynamic>{
-          'id': name,
+          'id': normalizedId,
           'name': _humanizeIdentifier(name),
           if (url != null && url.isNotEmpty) 'sourceUrl': url,
         },
       );
     }
+
+    entries.sort(
+      (left, right) => ((left['id'] as String?) ?? '').compareTo(
+        (right['id'] as String?) ?? '',
+      ),
+    );
 
     return PokemonCatalogFile(
       schemaVersion: 1,
@@ -219,6 +233,21 @@ class ExternalPokemonCatalogNormalizer {
     return trimmed.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
   }
 
+  String _canonicalizeCatalogEntryId(String catalogKey, String raw) {
+    final trimmedCatalogKey = catalogKey.trim().toLowerCase();
+    if (_snakeCaseCatalogKeys.contains(trimmedCatalogKey)) {
+      return _normalizeSnakeCaseId(raw);
+    }
+    return _normalizeExternalId(raw);
+  }
+
+  String _normalizeSnakeCaseId(String raw) {
+    final trimmed = raw.trim().toLowerCase();
+    if (trimmed.isEmpty) return '';
+    final separated = trimmed.replaceAll(RegExp(r'[\s-]+'), '_');
+    return separated.replaceAll(RegExp(r'[^a-z0-9_]+'), '');
+  }
+
   String _humanizeIdentifier(String identifier) {
     final spaced = identifier.replaceAll(RegExp(r'[_-]+'), ' ').trim();
     if (spaced.isEmpty) return identifier;
@@ -231,4 +260,12 @@ class ExternalPokemonCatalogNormalizer {
         )
         .join(' ');
   }
+
+  static const Set<String> _snakeCaseCatalogKeys = <String>{
+    'types',
+    'abilities',
+    'moves',
+    'growth_rates',
+    'egg_groups',
+  };
 }

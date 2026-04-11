@@ -18,15 +18,16 @@ void main() {
       );
 
       expect(learnset.speciesId, 'bulbasaur');
-      expect(learnset.startingMoves, containsAll(<String>['tackle', 'growl']));
-      expect(learnset.relearnMoves, containsAll(<String>['tackle', 'growl']));
+      expect(learnset.startingMoves, <String>['growl', 'tackle']);
+      expect(learnset.relearnMoves, <String>['growl', 'tackle']);
       expect(
-        learnset.levelUp.map((entry) => entry.moveId),
-        containsAll(<String>['tackle', 'growl', 'vine-whip']),
+        learnset.levelUp.map((entry) => entry.moveId).toList(growable: false),
+        <String>['growl', 'tackle', 'vine_whip'],
       );
-      expect(learnset.tm.single.moveId, 'solar-beam');
-      expect(learnset.tutor.single.moveId, 'seed-bomb');
-      expect(learnset.egg.single.moveId, 'petal-dance');
+      expect(learnset.levelUp.first.source, 'level_up');
+      expect(learnset.tm.single.moveId, 'solar_beam');
+      expect(learnset.tutor.single.moveId, 'seed_bomb');
+      expect(learnset.egg.single.moveId, 'petal_dance');
       expect(learnset.event.single.moveId, 'celebrate');
       expect(learnset.transfer.single.moveId, 'cut');
     });
@@ -89,6 +90,16 @@ const String _bulbasaurLearnsetPayload = '''
   "name": "bulbasaur",
   "moves": [
     {
+      "move": {"name": "vine-whip"},
+      "version_group_details": [
+        {
+          "level_learned_at": 7,
+          "move_learn_method": {"name": "level-up"},
+          "version_group": {"name": "scarlet-violet"}
+        }
+      ]
+    },
+    {
       "move": {"name": "tackle"},
       "version_group_details": [
         {
@@ -103,16 +114,6 @@ const String _bulbasaurLearnsetPayload = '''
       "version_group_details": [
         {
           "level_learned_at": 1,
-          "move_learn_method": {"name": "level-up"},
-          "version_group": {"name": "scarlet-violet"}
-        }
-      ]
-    },
-    {
-      "move": {"name": "vine-whip"},
-      "version_group_details": [
-        {
-          "level_learned_at": 7,
           "move_learn_method": {"name": "level-up"},
           "version_group": {"name": "scarlet-violet"}
         }

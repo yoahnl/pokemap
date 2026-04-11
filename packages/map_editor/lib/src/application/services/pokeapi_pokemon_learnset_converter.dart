@@ -61,6 +61,7 @@ class PokeApiPokemonLearnsetConverter {
       final moveId = _readNamedResourceId(
         moveEntry['move'],
         field: 'moves[$moveIndex].move',
+        canonicalizeSnakeCase: true,
       );
 
       final rawDetails = moveEntry['version_group_details'];
@@ -102,7 +103,7 @@ class PokeApiPokemonLearnsetConverter {
                 PokemonLearnsetLevelUpEntry(
                   moveId: moveId,
                   level: level <= 0 ? 1 : level,
-                  source: 'level-up',
+                  source: 'level_up',
                   versionGroup: versionGroup,
                 ),
               );
@@ -165,14 +166,16 @@ class PokeApiPokemonLearnsetConverter {
 
     final learnset = PokemonLearnsetFile(
       speciesId: normalizedSpeciesId,
-      startingMoves: startingMoves.toList(growable: false),
-      relearnMoves: relearnMoves.toList(growable: false),
-      levelUp: levelUp,
-      tm: tm,
-      tutor: tutor,
-      egg: egg,
-      event: event,
-      transfer: transfer,
+      // On stabilise explicitement l'ordre de sortie pour éviter les diffs
+      // parasites et les tests fragiles quand l'ordre source varie.
+      startingMoves: (startingMoves.toList(growable: false)..sort()),
+      relearnMoves: (relearnMoves.toList(growable: false)..sort()),
+      levelUp: _sortLevelUp(levelUp),
+      tm: _sortMoveEntries(tm),
+      tutor: _sortMoveEntries(tutor),
+      egg: _sortMoveEntries(egg),
+      event: _sortMoveEntries(event),
+      transfer: _sortMoveEntries(transfer),
     );
 
     _validateLearnset(learnset);
@@ -225,9 +228,41 @@ class PokeApiPokemonLearnsetConverter {
     }
   }
 
+  List<PokemonLearnsetLevelUpEntry> _sortLevelUp(
+    List<PokemonLearnsetLevelUpEntry> entries,
+  ) {
+    final sorted = List<PokemonLearnsetLevelUpEntry>.from(entries);
+    sorted.sort((left, right) {
+      final levelCompare = left.level.compareTo(right.level);
+      if (levelCompare != 0) return levelCompare;
+
+      final moveCompare = left.moveId.compareTo(right.moveId);
+      if (moveCompare != 0) return moveCompare;
+
+      final versionCompare = left.versionGroup.compareTo(right.versionGroup);
+      if (versionCompare != 0) return versionCompare;
+
+      return left.source.compareTo(right.source);
+    });
+    return sorted;
+  }
+
+  List<PokemonLearnsetMoveEntry> _sortMoveEntries(
+    List<PokemonLearnsetMoveEntry> entries,
+  ) {
+    final sorted = List<PokemonLearnsetMoveEntry>.from(entries);
+    sorted.sort((left, right) {
+      final moveCompare = left.moveId.compareTo(right.moveId);
+      if (moveCompare != 0) return moveCompare;
+      return left.versionGroup.compareTo(right.versionGroup);
+    });
+    return sorted;
+  }
+
   String _readNamedResourceId(
     Object? raw, {
     required String field,
+    bool canonicalizeSnakeCase = false,
   }) {
     if (raw is! Map) {
       throw EditorPersistenceException(
@@ -241,10 +276,21 @@ class PokeApiPokemonLearnsetConverter {
         'PokeAPI field "$field" must define a non-empty name',
       );
     }
-    return name;
+    if (!canonicalizeSnakeCase) {
+      return name;
+    }
+
+    return _normalizeSnakeCaseId(name);
   }
 
   int? _readOptionalInt(Object? raw) {
     return (raw as num?)?.toInt();
+  }
+
+  String _normalizeSnakeCaseId(String raw) {
+    final trimmed = raw.trim().toLowerCase();
+    if (trimmed.isEmpty) return '';
+    final separated = trimmed.replaceAll(RegExp(r'[\s-]+'), '_');
+    return separated.replaceAll(RegExp(r'[^a-z0-9_]+'), '');
   }
 }

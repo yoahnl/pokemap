@@ -106,7 +106,9 @@ class PokeApiPokemonEvolutionConverter {
             method: _readMethod(detail),
             minLevel: (detail['min_level'] as num?)?.toInt(),
             itemId: _readOptionalNamedResourceId(detail['item']),
-            requiredMoveId: _readOptionalNamedResourceId(detail['known_move']),
+            // Le modèle supporte déjà `requiredMoveId`, donc on n'abandonne pas
+            // cette information dans `conditionText`.
+            requiredMoveId: _readOptionalMoveId(detail['known_move']),
             conditionText: _buildConditionText(detail),
           ),
         );
@@ -116,7 +118,7 @@ class PokeApiPokemonEvolutionConverter {
     final file = PokemonEvolutionFile(
       speciesId: normalizedSpeciesId,
       preEvolution: located.parentSpeciesId,
-      evolutions: evolutions,
+      evolutions: _sortEvolutions(evolutions),
     );
     _validateEvolution(file);
     return file;
@@ -284,6 +286,36 @@ class PokeApiPokemonEvolutionConverter {
     }
   }
 
+  List<PokemonEvolutionEntry> _sortEvolutions(
+    List<PokemonEvolutionEntry> entries,
+  ) {
+    final sorted = List<PokemonEvolutionEntry>.from(entries);
+    sorted.sort((left, right) {
+      final targetCompare =
+          left.targetSpeciesId.compareTo(right.targetSpeciesId);
+      if (targetCompare != 0) return targetCompare;
+
+      final methodCompare = left.method.compareTo(right.method);
+      if (methodCompare != 0) return methodCompare;
+
+      final levelCompare =
+          (left.minLevel ?? -1).compareTo(right.minLevel ?? -1);
+      if (levelCompare != 0) return levelCompare;
+
+      final itemCompare = (left.itemId ?? '').compareTo(right.itemId ?? '');
+      if (itemCompare != 0) return itemCompare;
+
+      final moveCompare =
+          (left.requiredMoveId ?? '').compareTo(right.requiredMoveId ?? '');
+      if (moveCompare != 0) return moveCompare;
+
+      return (left.conditionText['en'] ?? '').compareTo(
+        right.conditionText['en'] ?? '',
+      );
+    });
+    return sorted;
+  }
+
   String _readNamedResourceId(
     Object? raw, {
     required String field,
@@ -313,6 +345,15 @@ class PokeApiPokemonEvolutionConverter {
 
     final name = (raw['name'] as String?)?.trim();
     return name == null || name.isEmpty ? null : name;
+  }
+
+  String? _readOptionalMoveId(Object? raw) {
+    final name = _readOptionalNamedResourceId(raw);
+    if (name == null || name.isEmpty) {
+      return null;
+    }
+    final separated = name.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
+    return separated.replaceAll(RegExp(r'[^a-z0-9_]+'), '');
   }
 }
 

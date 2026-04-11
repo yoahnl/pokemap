@@ -20,9 +20,9 @@ void main() {
       expect(catalog.kind, 'pokemon_catalog');
       expect(catalog.meta.sourcePriority, contains('showdown'));
       expect(catalog.entries, hasLength(2));
-      expect(catalog.entries.first['id'], 'tackle');
-      expect(catalog.entries.first['name'], 'Tackle');
-      expect(catalog.entries.last['id'], 'growl');
+      expect(catalog.entries.first['id'], 'growl');
+      expect(catalog.entries.first['name'], 'Growl');
+      expect(catalog.entries.last['id'], 'tackle');
     });
 
     test('normalizes a PokeAPI named resource list payload', () {
@@ -39,7 +39,12 @@ void main() {
       expect(catalog.meta.sourcePriority, contains('pokeapi'));
       expect(catalog.entries, hasLength(2));
       expect(catalog.entries.first, <String, dynamic>{
-        'id': 'medium-slow',
+        'id': 'fast',
+        'name': 'Fast',
+        'sourceUrl': 'https://pokeapi.co/api/v2/growth-rate/2/',
+      });
+      expect(catalog.entries.last, <String, dynamic>{
+        'id': 'medium_slow',
         'name': 'Medium Slow',
         'sourceUrl': 'https://pokeapi.co/api/v2/growth-rate/4/',
       });

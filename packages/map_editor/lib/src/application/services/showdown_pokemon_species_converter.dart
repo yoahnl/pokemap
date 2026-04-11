@@ -34,7 +34,9 @@ class ShowdownPokemonSpeciesConverter {
 
     final nationalDex = _readRequiredInt(payload['num'], field: 'num');
     final genIntroduced = _readRequiredInt(payload['gen'], field: 'gen');
-    final types = _readRequiredStringList(payload['types'], field: 'types');
+    final types = _readRequiredStringList(payload['types'], field: 'types')
+        .map(_normalizeCatalogId)
+        .toList(growable: false);
     final stats = _readRequiredMap(payload['baseStats'], field: 'baseStats');
     final abilities =
         _readRequiredMap(payload['abilities'], field: 'abilities');
@@ -46,10 +48,11 @@ class ShowdownPokemonSpeciesConverter {
     final spd = _readRequiredInt(stats['spd'], field: 'baseStats.spd');
     final spe = _readRequiredInt(stats['spe'], field: 'baseStats.spe');
 
-    final primaryAbility =
-        _readRequiredTrimmedString(abilities['0'], field: 'abilities.0');
-    final secondaryAbility = _readOptionalTrimmedString(abilities['1']);
-    final hiddenAbility = _readOptionalTrimmedString(abilities['H']);
+    final primaryAbility = _normalizeCatalogId(
+      _readRequiredTrimmedString(abilities['0'], field: 'abilities.0'),
+    );
+    final secondaryAbility = _normalizeOptionalCatalogId(abilities['1']);
+    final hiddenAbility = _normalizeOptionalCatalogId(abilities['H']);
 
     final names = _readStringMap(payload['names']);
     final resolvedNames =
@@ -57,8 +60,11 @@ class ShowdownPokemonSpeciesConverter {
 
     final speciesName = _readSpeciesNameMap(payload);
     final genderRatio = _readGenderRatio(payload);
-    final eggGroups = _readOptionalStringList(payload['eggGroups']);
-    final growthRateId = _normalizeIdentifier(
+    final eggGroups = _readOptionalStringList(payload['eggGroups'])
+        .map(_normalizeCatalogId)
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    final growthRateId = _normalizeCatalogId(
       _readOptionalTrimmedString(payload['expType']) ?? '',
     );
 
@@ -205,17 +211,22 @@ class ShowdownPokemonSpeciesConverter {
     final isBaseForm =
         baseSpeciesId.isEmpty || baseSpeciesId == currentId || forme == null;
 
+    // Les autres formes n'ont pas d'ordre métier exploité dans le projet.
+    // On les trie donc pour garantir une sortie stable, sans dépendre de
+    // l'ordre exact du payload Showdown.
     final otherForms = <String>[
       ..._readOptionalStringList(payload['otherFormes']),
       ..._readOptionalStringList(payload['cosmeticFormes']),
-    ].map(_normalizeIdentifier).where((value) => value.isNotEmpty).toSet();
+    ].map(_normalizeIdentifier).where((value) => value.isNotEmpty).toSet()
+      ..remove('');
+    final sortedOtherForms = otherForms.toList(growable: false)..sort();
 
     return PokemonSpeciesForms(
       baseFormId: isBaseForm ? '' : baseSpeciesId,
       isBaseForm: isBaseForm,
       formId: isBaseForm ? '' : _normalizeIdentifier(forme),
       formName: isBaseForm ? null : forme,
-      otherForms: otherForms.toList(growable: false),
+      otherForms: sortedOtherForms,
     );
   }
 
@@ -349,5 +360,29 @@ class ShowdownPokemonSpeciesConverter {
     final trimmed = raw.trim().toLowerCase();
     if (trimmed.isEmpty) return '';
     return trimmed.replaceAll(RegExp(r'[^a-z0-9_-]+'), '');
+  }
+
+  // Les ids de référentiels internes du projet suivent majoritairement une
+  // convention canonique lowercase + snake_case :
+  // - types: grass
+  // - abilities: overgrow
+  // - egg groups: monster, water_1
+  // - growth rates: medium_slow
+  // On l'applique ici uniquement aux champs clairement "catalog-like",
+  // sans toucher arbitrairement aux species ids ni aux form ids.
+  String _normalizeCatalogId(String raw) {
+    final trimmed = raw.trim().toLowerCase();
+    if (trimmed.isEmpty) return '';
+    final separated = trimmed.replaceAll(RegExp(r'[\s-]+'), '_');
+    return separated.replaceAll(RegExp(r'[^a-z0-9_]+'), '');
+  }
+
+  String? _normalizeOptionalCatalogId(Object? raw) {
+    final value = _readOptionalTrimmedString(raw);
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    final normalized = _normalizeCatalogId(value);
+    return normalized.isEmpty ? null : normalized;
   }
 }

@@ -18,15 +18,19 @@ void main() {
       expect(species.slug, 'bulbasaur');
       expect(species.nationalDex, 1);
       expect(species.names['en'], 'Bulbasaur');
-      expect(species.typing.types, <String>['Grass', 'Poison']);
+      expect(species.typing.types, <String>['grass', 'poison']);
       expect(species.baseStats.bst, 318);
-      expect(species.abilities.primary, 'Overgrow');
-      expect(species.abilities.hidden, 'Chlorophyll');
+      expect(species.abilities.primary, 'overgrow');
+      expect(species.abilities.hidden, 'chlorophyll');
+      expect(species.breeding.eggGroups, <String>['monster', 'grass']);
       expect(species.refs.learnset, 'bulbasaur');
       expect(species.forms.isBaseForm, isTrue);
-      expect(species.forms.otherForms, contains('bulbasaurmega'));
+      expect(
+        species.forms.otherForms,
+        <String>['bulbasauralpha', 'bulbasaurmega'],
+      );
       expect(species.classification.isLegendary, isFalse);
-      expect(species.progression.growthRateId, 'mediumslow');
+      expect(species.progression.growthRateId, 'medium_slow');
     });
 
     test('converts a non-base form with classification flags', () {
@@ -40,6 +44,7 @@ void main() {
       expect(species.forms.baseFormId, 'lycanroc');
       expect(species.forms.formId, 'dusk');
       expect(species.forms.formName, 'Dusk');
+      expect(species.abilities.primary, 'tough_claws');
       expect(species.classification.isLegendary, isTrue);
       expect(species.classification.isMythical, isFalse);
       expect(species.classification.isObtainable, isFalse);
@@ -111,7 +116,7 @@ const String _bulbasaurShowdownPayload = '''
   "color": "Green",
   "heightm": 0.7,
   "weightkg": 6.9,
-  "otherFormes": ["bulbasaurmega"]
+  "otherFormes": ["bulbasaurmega", "bulbasauralpha"]
 }
 ''';
 

@@ -38,9 +38,25 @@ void main() {
       expect(evolution.evolutions.single.targetSpeciesId, 'venusaur');
       expect(evolution.evolutions.single.method, 'use_item');
       expect(evolution.evolutions.single.itemId, 'leaf-stone');
+      expect(evolution.evolutions.single.requiredMoveId, 'solar_beam');
       expect(
         evolution.evolutions.single.conditionText['en'],
         contains('Location: special-garden'),
+      );
+    });
+
+    test('sorts direct evolutions deterministically', () {
+      final payload =
+          jsonDecode(_branchingEvolutionChainPayload) as Map<String, dynamic>;
+
+      final evolution = converter.convert(
+        speciesId: 'eevee',
+        payload: payload,
+      );
+
+      expect(
+        evolution.evolutions.map((entry) => entry.targetSpeciesId).toList(),
+        <String>['jolteon', 'vaporeon'],
       );
     });
 
@@ -102,12 +118,44 @@ const String _bulbasaurEvolutionChainPayload = '''
               {
                 "trigger": {"name": "use-item"},
                 "item": {"name": "leaf-stone"},
+                "known_move": {"name": "solar-beam"},
                 "location": {"name": "special-garden"}
               }
             ],
             "evolves_to": []
           }
         ]
+      }
+    ]
+  }
+}
+''';
+
+const String _branchingEvolutionChainPayload = '''
+{
+  "chain": {
+    "species": {"name": "eevee"},
+    "evolution_details": [],
+    "evolves_to": [
+      {
+        "species": {"name": "vaporeon"},
+        "evolution_details": [
+          {
+            "trigger": {"name": "use-item"},
+            "item": {"name": "water-stone"}
+          }
+        ],
+        "evolves_to": []
+      },
+      {
+        "species": {"name": "jolteon"},
+        "evolution_details": [
+          {
+            "trigger": {"name": "use-item"},
+            "item": {"name": "thunder-stone"}
+          }
+        ],
+        "evolves_to": []
       }
     ]
   }
