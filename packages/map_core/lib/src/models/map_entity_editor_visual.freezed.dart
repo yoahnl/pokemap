@@ -23,6 +23,23 @@ MapEntityEditorVisual _$MapEntityEditorVisualFromJson(
 mixin _$MapEntityEditorVisual {
   String get elementId => throw _privateConstructorUsedError;
 
+  /// Force le rendu de cette entité "élément projet" au-dessus du décor
+  /// avant-plan.
+  ///
+  /// Cas visé :
+  /// - petits props décoratifs représentés comme entités (ex. Poké Ball
+  ///   posée sur une table) ;
+  /// - besoin de garder un objet volontairement visible au-dessus d'un
+  ///   overlay de tiles qui masquerait sinon l'entité.
+  ///
+  /// Non-objectif :
+  /// - ce n'est pas un système générique de z-index ;
+  /// - ce flag n'a pas vocation à remplacer le tri "par les pieds" des
+  ///   vrais acteurs gameplay ;
+  /// - il sert seulement à faire passer l'entité dans la passe foreground
+  ///   quand elle est rendue comme ProjectElementEntry.
+  bool get renderInForeground => throw _privateConstructorUsedError;
+
   /// Serializes this MapEntityEditorVisual to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -39,7 +56,7 @@ abstract class $MapEntityEditorVisualCopyWith<$Res> {
           $Res Function(MapEntityEditorVisual) then) =
       _$MapEntityEditorVisualCopyWithImpl<$Res, MapEntityEditorVisual>;
   @useResult
-  $Res call({String elementId});
+  $Res call({String elementId, bool renderInForeground});
 }
 
 /// @nodoc
@@ -59,12 +76,17 @@ class _$MapEntityEditorVisualCopyWithImpl<$Res,
   @override
   $Res call({
     Object? elementId = null,
+    Object? renderInForeground = null,
   }) {
     return _then(_value.copyWith(
       elementId: null == elementId
           ? _value.elementId
           : elementId // ignore: cast_nullable_to_non_nullable
               as String,
+      renderInForeground: null == renderInForeground
+          ? _value.renderInForeground
+          : renderInForeground // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -78,7 +100,7 @@ abstract class _$$MapEntityEditorVisualImplCopyWith<$Res>
       __$$MapEntityEditorVisualImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String elementId});
+  $Res call({String elementId, bool renderInForeground});
 }
 
 /// @nodoc
@@ -96,12 +118,17 @@ class __$$MapEntityEditorVisualImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? elementId = null,
+    Object? renderInForeground = null,
   }) {
     return _then(_$MapEntityEditorVisualImpl(
       elementId: null == elementId
           ? _value.elementId
           : elementId // ignore: cast_nullable_to_non_nullable
               as String,
+      renderInForeground: null == renderInForeground
+          ? _value.renderInForeground
+          : renderInForeground // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -110,7 +137,8 @@ class __$$MapEntityEditorVisualImplCopyWithImpl<$Res>
 
 @JsonSerializable(explicitToJson: true)
 class _$MapEntityEditorVisualImpl implements _MapEntityEditorVisual {
-  const _$MapEntityEditorVisualImpl({required this.elementId});
+  const _$MapEntityEditorVisualImpl(
+      {required this.elementId, this.renderInForeground = false});
 
   factory _$MapEntityEditorVisualImpl.fromJson(Map<String, dynamic> json) =>
       _$$MapEntityEditorVisualImplFromJson(json);
@@ -118,9 +146,28 @@ class _$MapEntityEditorVisualImpl implements _MapEntityEditorVisual {
   @override
   final String elementId;
 
+  /// Force le rendu de cette entité "élément projet" au-dessus du décor
+  /// avant-plan.
+  ///
+  /// Cas visé :
+  /// - petits props décoratifs représentés comme entités (ex. Poké Ball
+  ///   posée sur une table) ;
+  /// - besoin de garder un objet volontairement visible au-dessus d'un
+  ///   overlay de tiles qui masquerait sinon l'entité.
+  ///
+  /// Non-objectif :
+  /// - ce n'est pas un système générique de z-index ;
+  /// - ce flag n'a pas vocation à remplacer le tri "par les pieds" des
+  ///   vrais acteurs gameplay ;
+  /// - il sert seulement à faire passer l'entité dans la passe foreground
+  ///   quand elle est rendue comme ProjectElementEntry.
+  @override
+  @JsonKey()
+  final bool renderInForeground;
+
   @override
   String toString() {
-    return 'MapEntityEditorVisual(elementId: $elementId)';
+    return 'MapEntityEditorVisual(elementId: $elementId, renderInForeground: $renderInForeground)';
   }
 
   @override
@@ -129,12 +176,14 @@ class _$MapEntityEditorVisualImpl implements _MapEntityEditorVisual {
         (other.runtimeType == runtimeType &&
             other is _$MapEntityEditorVisualImpl &&
             (identical(other.elementId, elementId) ||
-                other.elementId == elementId));
+                other.elementId == elementId) &&
+            (identical(other.renderInForeground, renderInForeground) ||
+                other.renderInForeground == renderInForeground));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, elementId);
+  int get hashCode => Object.hash(runtimeType, elementId, renderInForeground);
 
   /// Create a copy of MapEntityEditorVisual
   /// with the given fields replaced by the non-null parameter values.
@@ -154,14 +203,33 @@ class _$MapEntityEditorVisualImpl implements _MapEntityEditorVisual {
 }
 
 abstract class _MapEntityEditorVisual implements MapEntityEditorVisual {
-  const factory _MapEntityEditorVisual({required final String elementId}) =
-      _$MapEntityEditorVisualImpl;
+  const factory _MapEntityEditorVisual(
+      {required final String elementId,
+      final bool renderInForeground}) = _$MapEntityEditorVisualImpl;
 
   factory _MapEntityEditorVisual.fromJson(Map<String, dynamic> json) =
       _$MapEntityEditorVisualImpl.fromJson;
 
   @override
   String get elementId;
+
+  /// Force le rendu de cette entité "élément projet" au-dessus du décor
+  /// avant-plan.
+  ///
+  /// Cas visé :
+  /// - petits props décoratifs représentés comme entités (ex. Poké Ball
+  ///   posée sur une table) ;
+  /// - besoin de garder un objet volontairement visible au-dessus d'un
+  ///   overlay de tiles qui masquerait sinon l'entité.
+  ///
+  /// Non-objectif :
+  /// - ce n'est pas un système générique de z-index ;
+  /// - ce flag n'a pas vocation à remplacer le tri "par les pieds" des
+  ///   vrais acteurs gameplay ;
+  /// - il sert seulement à faire passer l'entité dans la passe foreground
+  ///   quand elle est rendue comme ProjectElementEntry.
+  @override
+  bool get renderInForeground;
 
   /// Create a copy of MapEntityEditorVisual
   /// with the given fields replaced by the non-null parameter values.

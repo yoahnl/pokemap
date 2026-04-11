@@ -10,10 +10,12 @@ _$MapEntityEditorVisualImpl _$$MapEntityEditorVisualImplFromJson(
         Map<String, dynamic> json) =>
     _$MapEntityEditorVisualImpl(
       elementId: json['elementId'] as String,
+      renderInForeground: json['renderInForeground'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$MapEntityEditorVisualImplToJson(
         _$MapEntityEditorVisualImpl instance) =>
     <String, dynamic>{
       'elementId': instance.elementId,
+      'renderInForeground': instance.renderInForeground,
     };

@@ -17,6 +17,18 @@ enum MapLayerRenderPass {
   foreground,
 }
 
+@visibleForTesting
+bool shouldRenderProjectElementEntityInForegroundPass(
+  MapEntity entity, {
+  required MapLayerRenderPass renderPass,
+}) {
+  final renderInForeground = entity.shouldRenderProjectElementInForeground;
+  return switch (renderPass) {
+    MapLayerRenderPass.background => !renderInForeground,
+    MapLayerRenderPass.foreground => renderInForeground,
+  };
+}
+
 class MapLayersComponent extends PositionComponent {
   MapLayersComponent({
     required this.bundle,
@@ -73,8 +85,7 @@ class MapLayersComponent extends PositionComponent {
   final Map<_PathRuleCellKey, _ActivePathRuleOneShot>
       _activePathRuleCellOneShotByKey =
       <_PathRuleCellKey, _ActivePathRuleOneShot>{};
-  final Map<_PathRuleCellKey, double>
-      _activePathRuleCellLoopStartedAtMsByKey =
+  final Map<_PathRuleCellKey, double> _activePathRuleCellLoopStartedAtMsByKey =
       <_PathRuleCellKey, double>{};
 
   late final Map<String, ProjectElementEntry> _elementById = {
@@ -124,7 +135,8 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String ruleId,
     required PathAnimationPlaybackMode mode,
-    PathAnimationActivationScope scope = PathAnimationActivationScope.wholeLayer,
+    PathAnimationActivationScope scope =
+        PathAnimationActivationScope.wholeLayer,
     int cellX = 0,
     int cellY = 0,
   }) {
@@ -188,7 +200,8 @@ class MapLayersComponent extends PositionComponent {
     required String layerId,
     required String ruleId,
     required bool active,
-    PathAnimationActivationScope scope = PathAnimationActivationScope.wholeLayer,
+    PathAnimationActivationScope scope =
+        PathAnimationActivationScope.wholeLayer,
     int cellX = 0,
     int cellY = 0,
   }) {
@@ -244,6 +257,7 @@ class MapLayersComponent extends PositionComponent {
           ),
         );
       }
+      _paintEntities(canvas);
       return;
     }
     for (var i = visible.length - 1; i >= 0; i--) {
@@ -254,7 +268,8 @@ class MapLayersComponent extends PositionComponent {
     }
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
-        path: (id, name, v, o, presetId, cells, properties, animationMode, animationTriggers) =>
+        path: (id, name, v, o, presetId, cells, properties, animationMode,
+                animationTriggers) =>
             _paintPathLayer(canvas, id, presetId, cells, o),
       );
     }
@@ -289,6 +304,18 @@ class MapLayersComponent extends PositionComponent {
     final th = bundle.manifest.settings.tileHeight;
     final elapsedMs = (_animElapsed * 1000).toInt();
     for (final entity in bundle.map.entities) {
+      // On garde deux passes explicites :
+      // - background: rendu normal des entités élément-projet ;
+      // - foreground: props explicitement forcés devant le décor.
+      //
+      // Cela permet de poser un petit objet sur une table sans transformer ce
+      // composant en système de z-index générique.
+      if (!shouldRenderProjectElementEntityInForegroundPass(
+        entity,
+        renderPass: renderPass,
+      )) {
+        continue;
+      }
       if (entity.kind == MapEntityKind.npc) {
         final presence = npcMapPresencePredicate;
         if (presence != null && !presence(bundle.map.id, entity)) {
@@ -1071,12 +1098,13 @@ class MapLayersComponent extends PositionComponent {
       (l) => l.id == layerId,
       orElse: () => throw StateError('Layer not found: $layerId'),
     );
-    
-    if (layer is PathLayer && layer.animationMode == PathAnimationMode.alwaysActive) {
+
+    if (layer is PathLayer &&
+        layer.animationMode == PathAnimationMode.alwaysActive) {
       // Always active mode: loop animation continuously
       return const _PathLayerPlayback.alwaysLoop();
     }
-    
+
     final allRules = _pathRulesByLayerId[layerId];
     if (allRules == null || allRules.isEmpty) {
       return const _PathLayerPlayback.staticFrame();
@@ -1121,8 +1149,8 @@ class MapLayersComponent extends PositionComponent {
     if (rules == null) return const _PathLayerPlayback.staticFrame();
     for (final rule in rules) {
       if (rule.scope != PathAnimationActivationScope.cellOnly) continue;
-      final cellKey = _PathRuleCellKey(
-          layerId: layerId, ruleId: rule.ruleId, x: x, y: y);
+      final cellKey =
+          _PathRuleCellKey(layerId: layerId, ruleId: rule.ruleId, x: x, y: y);
       final oneShot = _activePathRuleCellOneShotByKey[cellKey];
       if (oneShot != null) {
         if (_isPathRuleOneShotCompleted(oneShot)) {
@@ -1320,10 +1348,9 @@ class MapLayersComponent extends PositionComponent {
       pos: GridPos(x: x, y: y),
     );
     final cellPlayback = _resolvePathCellPlayback(layerId: layerId, x: x, y: y);
-    final playback =
-        cellPlayback.kind != _PathLayerPlaybackKind.staticFrame
-            ? cellPlayback
-            : _resolvePathLayerPlayback(layerId: layerId, presetId: presetId);
+    final playback = cellPlayback.kind != _PathLayerPlaybackKind.staticFrame
+        ? cellPlayback
+        : _resolvePathLayerPlayback(layerId: layerId, presetId: presetId);
     return _paintAutotileVariantCell(
       canvas,
       autotileSet: autotileSet,

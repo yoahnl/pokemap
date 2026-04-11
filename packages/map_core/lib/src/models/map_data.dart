@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_annotation_target
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
@@ -263,6 +265,10 @@ extension MapEntityProjectElementVisualX on MapEntity {
   String? get resolvedProjectElementIdForEditor {
     return canonicalEditorVisualProjectElementId ??
         legacyNpcVisualProjectElementId;
+  }
+
+  bool get shouldRenderProjectElementInForeground {
+    return editorVisual?.renderInForeground ?? false;
   }
 }
 

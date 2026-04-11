@@ -28,19 +28,26 @@ mixin _$ElementCollisionProfile {
 //
 // This field is editor-facing only. It stores the main collision shape as
 // authored by the user (for example a lasso/polygon around a building).
-// Runtime still ignores it and consumes only `cells`.
+//
+// Important product invariant:
+// - when this manual shape exists, it is the primary collision base
+// - padding stays available as a secondary helper only
+// - runtime still ignores this field and consumes only `cells`
   List<GridPos> get shapeCells =>
       throw _privateConstructorUsedError; // Runtime truth: the gameplay/runtime layers only read these final cells.
 // Editor-only concepts such as base cells or paint modes must be resolved
 // before data reaches this field.
   List<GridPos> get cells =>
-      throw _privateConstructorUsedError; // Authoring intent: cells explicitly added on top of the base shape derived
-// from padding. Keeping this intent lets the editor recompute `cells`
-// deterministically whenever padding changes.
+      throw _privateConstructorUsedError; // Authoring intent: cells explicitly added on top of the current primary
+// base.
+//
+// That base is:
+// - the padding-derived rectangle when `source == generated`
+// - the author polygon/shape when `source == manual`
   List<GridPos> get manualAddedCells =>
-      throw _privateConstructorUsedError; // Authoring intent: cells explicitly removed from the base shape derived
-// from padding. Runtime ignores this field; the editor folds it into
-// `cells` before save/use.
+      throw _privateConstructorUsedError; // Authoring intent: cells explicitly removed from the current primary base.
+// Runtime ignores this field; the editor folds it into `cells` before
+// save/use.
   List<GridPos> get manualRemovedCells => throw _privateConstructorUsedError;
 
   /// Serializes this ElementCollisionProfile to a JSON map.
@@ -233,13 +240,21 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
 //
 // This field is editor-facing only. It stores the main collision shape as
 // authored by the user (for example a lasso/polygon around a building).
-// Runtime still ignores it and consumes only `cells`.
+//
+// Important product invariant:
+// - when this manual shape exists, it is the primary collision base
+// - padding stays available as a secondary helper only
+// - runtime still ignores this field and consumes only `cells`
   final List<GridPos> _shapeCells;
 // Authoring base when `source == manual`.
 //
 // This field is editor-facing only. It stores the main collision shape as
 // authored by the user (for example a lasso/polygon around a building).
-// Runtime still ignores it and consumes only `cells`.
+//
+// Important product invariant:
+// - when this manual shape exists, it is the primary collision base
+// - padding stays available as a secondary helper only
+// - runtime still ignores this field and consumes only `cells`
   @override
   @JsonKey()
   List<GridPos> get shapeCells {
@@ -263,13 +278,19 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
     return EqualUnmodifiableListView(_cells);
   }
 
-// Authoring intent: cells explicitly added on top of the base shape derived
-// from padding. Keeping this intent lets the editor recompute `cells`
-// deterministically whenever padding changes.
+// Authoring intent: cells explicitly added on top of the current primary
+// base.
+//
+// That base is:
+// - the padding-derived rectangle when `source == generated`
+// - the author polygon/shape when `source == manual`
   final List<GridPos> _manualAddedCells;
-// Authoring intent: cells explicitly added on top of the base shape derived
-// from padding. Keeping this intent lets the editor recompute `cells`
-// deterministically whenever padding changes.
+// Authoring intent: cells explicitly added on top of the current primary
+// base.
+//
+// That base is:
+// - the padding-derived rectangle when `source == generated`
+// - the author polygon/shape when `source == manual`
   @override
   @JsonKey()
   List<GridPos> get manualAddedCells {
@@ -279,13 +300,13 @@ class _$ElementCollisionProfileImpl implements _ElementCollisionProfile {
     return EqualUnmodifiableListView(_manualAddedCells);
   }
 
-// Authoring intent: cells explicitly removed from the base shape derived
-// from padding. Runtime ignores this field; the editor folds it into
-// `cells` before save/use.
+// Authoring intent: cells explicitly removed from the current primary base.
+// Runtime ignores this field; the editor folds it into `cells` before
+// save/use.
   final List<GridPos> _manualRemovedCells;
-// Authoring intent: cells explicitly removed from the base shape derived
-// from padding. Runtime ignores this field; the editor folds it into
-// `cells` before save/use.
+// Authoring intent: cells explicitly removed from the current primary base.
+// Runtime ignores this field; the editor folds it into `cells` before
+// save/use.
   @override
   @JsonKey()
   List<GridPos> get manualRemovedCells {
@@ -363,7 +384,11 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
 //
 // This field is editor-facing only. It stores the main collision shape as
 // authored by the user (for example a lasso/polygon around a building).
-// Runtime still ignores it and consumes only `cells`.
+//
+// Important product invariant:
+// - when this manual shape exists, it is the primary collision base
+// - padding stays available as a secondary helper only
+// - runtime still ignores this field and consumes only `cells`
   @override
   List<GridPos>
       get shapeCells; // Runtime truth: the gameplay/runtime layers only read these final cells.
@@ -371,14 +396,17 @@ abstract class _ElementCollisionProfile implements ElementCollisionProfile {
 // before data reaches this field.
   @override
   List<GridPos>
-      get cells; // Authoring intent: cells explicitly added on top of the base shape derived
-// from padding. Keeping this intent lets the editor recompute `cells`
-// deterministically whenever padding changes.
+      get cells; // Authoring intent: cells explicitly added on top of the current primary
+// base.
+//
+// That base is:
+// - the padding-derived rectangle when `source == generated`
+// - the author polygon/shape when `source == manual`
   @override
   List<GridPos>
-      get manualAddedCells; // Authoring intent: cells explicitly removed from the base shape derived
-// from padding. Runtime ignores this field; the editor folds it into
-// `cells` before save/use.
+      get manualAddedCells; // Authoring intent: cells explicitly removed from the current primary base.
+// Runtime ignores this field; the editor folds it into `cells` before
+// save/use.
   @override
   List<GridPos> get manualRemovedCells;
 

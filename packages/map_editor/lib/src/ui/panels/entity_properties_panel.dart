@@ -86,6 +86,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   _DialogueRefSource _npcDialogueSource = _DialogueRefSource.none;
   _DialogueRefSource _signDialogueSource = _DialogueRefSource.none;
   String _editorVisualMenuId = _kElementNoneMenuId;
+  bool _editorVisualRenderInForeground = false;
 
   List<String> _npcDialogueNodes = [];
   List<String> _signDialogueNodes = [];
@@ -476,9 +477,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     final vis = parseVisibilityRuleFromNpc(n);
     _npcVisUiMode = vis.mode;
     _npcVisPredicateKind = vis.kind;
-    _npcVisRefMenuId = vis.refId.trim().isEmpty
-        ? kNpcRuntimeRefNoneMenuId
-        : vis.refId.trim();
+    _npcVisRefMenuId =
+        vis.refId.trim().isEmpty ? kNpcRuntimeRefNoneMenuId : vis.refId.trim();
 
     for (final row in _npcCondRows) {
       row.dispose();
@@ -500,20 +500,21 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     ProjectManifest? project,
   ) {
     const accent = EditorChrome.inspectorJoyMint;
-    final catalog = project == null
-        ? null
-        : buildNpcRuntimeAuthoringCatalog(project);
+    final catalog =
+        project == null ? null : buildNpcRuntimeAuthoringCatalog(project);
 
     String visModeLabel(NpcRuntimeVisibilityUiMode m) {
       return switch (m) {
-        NpcRuntimeVisibilityUiMode.always => _l('Toujours visible', 'Always visible'),
+        NpcRuntimeVisibilityUiMode.always =>
+          _l('Toujours visible', 'Always visible'),
         NpcRuntimeVisibilityUiMode.visibleOnlyIf =>
           _l('Visible seulement si…', 'Visible only if…'),
         NpcRuntimeVisibilityUiMode.hiddenIf => _l('Caché si…', 'Hidden if…'),
       };
     }
 
-    final visModeIds = NpcRuntimeVisibilityUiMode.values.map((e) => e.name).toList();
+    final visModeIds =
+        NpcRuntimeVisibilityUiMode.values.map((e) => e.name).toList();
     final visSelectedId = _npcVisUiMode.name;
 
     List<NpcRuntimePickOption> optionsForPredicateKind(
@@ -547,9 +548,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       InspectorEmbeddedFootnote(
         text: _l(
           'Règles propres à ce PNJ (runtime carte). '
-          'Ce n’est pas la même chose que les changements de monde du Step Studio.',
+              'Ce n’est pas la même chose que les changements de monde du Step Studio.',
           'Rules for this NPC only (map runtime). '
-          'Not the same as Step Studio world changes.',
+              'Not the same as Step Studio world changes.',
         ),
         accent: accent,
       ),
@@ -561,7 +562,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       if (widget.embedded)
         InspectorEmbeddedDropdown(
           accent: accent,
-          fieldLabel: _l('Quand ce PNJ est visible', 'When this NPC is visible'),
+          fieldLabel:
+              _l('Quand ce PNJ est visible', 'When this NPC is visible'),
           valueLabel: visModeLabel(_npcVisUiMode),
           orderedIds: visModeIds,
           selectedMenuValue: visSelectedId,
@@ -581,7 +583,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           padding: EdgeInsets.zero,
           alignment: Alignment.centerLeft,
           onPressed: () async {
-            final picked = await showCupertinoListPicker<NpcRuntimeVisibilityUiMode>(
+            final picked =
+                await showCupertinoListPicker<NpcRuntimeVisibilityUiMode>(
               context: context,
               title: _l('Visibilité', 'Visibility'),
               items: NpcRuntimeVisibilityUiMode.values,
@@ -602,8 +605,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             accent: accent,
             fieldLabel: _l('Condition', 'Condition'),
             valueLabel: npcRuntimePredicateKindLabelFr(_npcVisPredicateKind),
-            orderedIds:
-                allNpcRuntimePredicateKinds.map((e) => e.name).toList(),
+            orderedIds: allNpcRuntimePredicateKinds.map((e) => e.name).toList(),
             selectedMenuValue: _npcVisPredicateKind.name,
             selectedIdForCheck: _npcVisPredicateKind.name,
             idToLabel: (id) => npcRuntimePredicateKindLabelFr(
@@ -643,8 +645,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             final opts = optionsForPredicateKind(_npcVisPredicateKind);
             final ids = mergeRuntimeRefMenuIds(opts, _npcVisRefMenuId);
             final noneL = _l('Choisir…', 'Choose…');
-            final orphanL =
-                _l('hors liste projet', 'not listed in project');
+            final orphanL = _l('hors liste projet', 'not listed in project');
             if (widget.embedded) {
               return InspectorEmbeddedDropdown(
                 accent: accent,
@@ -666,8 +667,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                   noneLabel: noneL,
                   orphanLabel: orphanL,
                 ),
-                onSelected: (id) =>
-                    setState(() => _npcVisRefMenuId = id),
+                onSelected: (id) => setState(() => _npcVisRefMenuId = id),
               );
             }
             return CupertinoButton(
@@ -702,11 +702,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             child: InspectorEmbeddedFootnote(
               text: _l(
                 'Aucune entrée indexée pour ce type. '
-                'Créez-en une dans Step Studio, Global Story ou Cutscene Studio, '
-                'ou complétez les flags dans vos scénarios.',
+                    'Créez-en une dans Step Studio, Global Story ou Cutscene Studio, '
+                    'ou complétez les flags dans vos scénarios.',
                 'No indexed entries for this type. '
-                'Author them in Step Studio, Global Story, or Cutscene Studio, '
-                'or add flags in your scenarios.',
+                    'Author them in Step Studio, Global Story, or Cutscene Studio, '
+                    'or add flags in your scenarios.',
               ),
               accent: EditorChrome.inspectorJoyCoral,
             ),
@@ -720,9 +720,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       InspectorEmbeddedFootnote(
         text: _l(
           'On teste chaque ligne dans l’ordre : la première condition vraie gagne. '
-          'Sinon c’est le dialogue par défaut du PNJ (champ ci-dessus).',
+              'Sinon c’est le dialogue par défaut du PNJ (champ ci-dessus).',
           'Each line is tested in order: the first true condition wins. '
-          'Otherwise the NPC’s default dialogue (field above) is used.',
+              'Otherwise the NPC’s default dialogue (field above) is used.',
         ),
         accent: accent,
       ),
@@ -730,10 +730,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       InspectorEmbeddedFootnote(
         text: _l(
           'Transparence produit : le nœud Yarn d’une variante est encore une saisie '
-          'optionnelle (pas de menu des nœuds). Laisser vide utilise le nœud '
-          'défaut du dialogue dans Dialogue Studio.',
+              'optionnelle (pas de menu des nœuds). Laisser vide utilise le nœud '
+              'défaut du dialogue dans Dialogue Studio.',
           'The variant Yarn start node is still optional free text (no node picker). '
-          'Leave empty to use the dialogue’s default start node from Dialogue Studio.',
+              'Leave empty to use the dialogue’s default start node from Dialogue Studio.',
         ),
         accent: EditorChrome.inspectorJoyCoral,
       ),
@@ -934,8 +934,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                   selectedIdForCheck: row.dialogueMenuId,
                   idToLabel: (id) =>
                       _dialogueDropdownValueLabel(sortedDialogues, id),
-                  onSelected: (id) =>
-                      setState(() => row.dialogueMenuId = id),
+                  onSelected: (id) => setState(() => row.dialogueMenuId = id),
                 )
               else
                 CupertinoButton(
@@ -1002,7 +1001,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                     },
                     child: Text(
                       _l('Supprimer', 'Remove'),
-                      style: const TextStyle(color: CupertinoColors.destructiveRed),
+                      style: const TextStyle(
+                          color: CupertinoColors.destructiveRed),
                     ),
                   ),
                 ],
@@ -1119,6 +1119,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     const accent = EditorChrome.inspectorJoyCyan;
     final elements = project?.elements ?? const <ProjectElementEntry>[];
     final sorted = _sortedProjectElements(elements);
+    final hasSelectedProjectElement =
+        _editorVisualSelectedMenuId() != _kElementNoneMenuId;
 
     if (widget.embedded) {
       return [
@@ -1155,6 +1157,28 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
               'Same library for NPCs, signs, items, etc. The editor shows the first frame only; animation lives on the element’s frames.',
             ),
           ),
+          if (hasSelectedProjectElement) ...[
+            const SizedBox(height: 8),
+            _toggleField(
+              context,
+              label: _l(
+                'Toujours devant le décor',
+                'Always above decor',
+              ),
+              value: _editorVisualRenderInForeground,
+              onChanged: (value) => setState(
+                () => _editorVisualRenderInForeground = value,
+              ),
+            ),
+            const SizedBox(height: 4),
+            InspectorEmbeddedFootnote(
+              text: _l(
+                'Pour les petits props décoratifs comme une Poké Ball sur une table. L’entité reste rendue comme élément projet, mais passe dans la passe foreground au lieu d’être masquée par le décor avant-plan.',
+                'Useful for small decorative props such as a Poke Ball resting on a table. The entity still renders as a project element, but it is moved to the foreground pass instead of being hidden by foreground decor.',
+              ),
+              accent: accent,
+            ),
+          ],
         ],
       ];
     }
@@ -1202,6 +1226,16 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             _elementVisualMenuLabel(sorted, _editorVisualSelectedMenuId()),
           ),
         ),
+      if (hasSelectedProjectElement) ...[
+        const SizedBox(height: 8),
+        _toggleField(
+          context,
+          label: _l('Toujours devant le décor', 'Always above decor'),
+          value: _editorVisualRenderInForeground,
+          onChanged: (value) =>
+              setState(() => _editorVisualRenderInForeground = value),
+        ),
+      ],
     ];
   }
 
@@ -1878,9 +1912,12 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     _editorVisualMenuId = (resolvedEv == null || resolvedEv.isEmpty)
         ? _kElementNoneMenuId
         : resolvedEv;
+    _editorVisualRenderInForeground =
+        entity?.editorVisual?.renderInForeground ?? false;
     if (_npcUsesTrainerAppearance()) {
       _npcCharacterMenuId = _kCharacterNoneMenuId;
       _editorVisualMenuId = _kElementNoneMenuId;
+      _editorVisualRenderInForeground = false;
     }
 
     final s = entity?.sign ?? const MapEntitySignData();
@@ -2009,7 +2046,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     MapEntityEditorVisual? editorVisualPayload =
         evMenu == _kElementNoneMenuId || evMenu.isEmpty
             ? null
-            : MapEntityEditorVisual(elementId: evMenu);
+            : MapEntityEditorVisual(
+                elementId: evMenu,
+                renderInForeground: _editorVisualRenderInForeground,
+              );
 
     switch (_selectedKind) {
       case MapEntityKind.npc:

@@ -1,5 +1,159 @@
 part of 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
+enum _EditorMapTileRenderPass {
+  background,
+  foreground,
+}
+
+/// Rejoue côté éditeur la même séparation "fond / avant-plan" que la runtime.
+///
+/// Pourquoi cette logique existe :
+/// - certains éléments posés (table, arbre, façade, etc.) occupent plusieurs
+///   cellules ;
+/// - seules les cellules de collision représentent le "socle" gameplay ;
+/// - les autres cellules servent d'overlay visuel et doivent pouvoir passer
+///   devant un acteur.
+///
+/// Sans cette séparation, l'éditeur peint toute la tile layer en fond puis les
+/// entités par-dessus, ce qui donne une preview trompeuse : une entité semble
+/// au-dessus d'une table alors qu'en runtime la frange avant de la table doit
+/// repasser devant elle.
+///
+/// On reste volontairement aligné sur la règle runtime existante :
+/// - cellules en collision -> restent dans le fond ;
+/// - cellules hors collision -> passent dans l'avant-plan.
+@visibleForTesting
+Map<String, Set<int>> buildEditorForegroundTileCellIndicesByLayerId({
+  required MapData map,
+  required ProjectManifest? project,
+}) {
+  if (project == null || map.placedElements.isEmpty) {
+    return const <String, Set<int>>{};
+  }
+
+  final tileLayerById = <String, TileLayer>{
+    for (final layer in map.layers.whereType<TileLayer>()) layer.id: layer,
+  };
+  if (tileLayerById.isEmpty) {
+    return const <String, Set<int>>{};
+  }
+
+  final elementById = <String, ProjectElementEntry>{
+    for (final entry in project.elements) entry.id: entry,
+  };
+  final out = <String, Set<int>>{};
+  final mapWidth = map.size.width;
+  final mapHeight = map.size.height;
+
+  for (final instance in map.placedElements) {
+    final layer = tileLayerById[instance.layerId];
+    if (layer == null) {
+      continue;
+    }
+
+    final entry = elementById[instance.elementId];
+    if (entry == null || entry.frames.isEmpty) {
+      continue;
+    }
+
+    final source = entry.frames.primarySource;
+    final width = source.width <= 0 ? 1 : source.width;
+    final height = source.height <= 0 ? 1 : source.height;
+    if (width <= 1 && height <= 1) {
+      continue;
+    }
+
+    final collisionCells = entry.collisionProfile?.cells;
+    if (collisionCells == null || collisionCells.isEmpty) {
+      continue;
+    }
+
+    final collisionSet = <int>{
+      for (final cell in collisionCells) cell.y * width + cell.x,
+    };
+    final layerMask = out.putIfAbsent(layer.id, () => <int>{});
+
+    for (var localY = 0; localY < height; localY++) {
+      for (var localX = 0; localX < width; localX++) {
+        final localIndex = localY * width + localX;
+        if (collisionSet.contains(localIndex)) {
+          // Les cellules de collision sont le "socle" gameplay. Elles restent
+          // dans la passe de fond, comme en runtime.
+          continue;
+        }
+
+        final x = instance.pos.x + localX;
+        final y = instance.pos.y + localY;
+        if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) {
+          continue;
+        }
+
+        final globalIndex = y * mapWidth + x;
+        if (globalIndex >= layer.tiles.length ||
+            layer.tiles[globalIndex] <= 0) {
+          continue;
+        }
+
+        layerMask.add(globalIndex);
+      }
+    }
+  }
+
+  return out;
+}
+
+@visibleForTesting
+bool shouldPaintEditorTileCellInRenderPass({
+  required bool explicitForeground,
+  required bool isForegroundCell,
+  required bool foregroundPass,
+}) {
+  if (foregroundPass) {
+    return explicitForeground || isForegroundCell;
+  }
+  return explicitForeground ? false : !isForegroundCell;
+}
+
+@visibleForTesting
+bool shouldPaintEditorEntityInForegroundPass(
+  MapEntity entity, {
+  required bool foregroundPass,
+}) {
+  final renderInForeground = entity.shouldRenderProjectElementInForeground;
+  return foregroundPass ? renderInForeground : !renderInForeground;
+}
+
+bool _isExplicitForegroundTileLayerForEditor({
+  required String layerId,
+  required String layerName,
+}) {
+  final id = layerId.trim().toLowerCase();
+  final name = layerName.trim().toLowerCase();
+  const markers = <String>{
+    'foreground',
+    'fg',
+    'above',
+    'overlay',
+    'front',
+    'roof',
+    'toit',
+  };
+
+  bool containsMarker(String value) {
+    for (final marker in markers) {
+      if (value == marker ||
+          value.startsWith('${marker}_') ||
+          value.endsWith('_$marker') ||
+          value.contains('_${marker}_')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  return containsMarker(id) || containsMarker(name);
+}
+
 /// Painter massif extrait tel quel du shell `MapCanvas`.
 ///
 /// Cette extraction est volontairement mécanique : on ne change pas la
@@ -74,6 +228,11 @@ class MapGridPainter extends CustomPainter {
     final gridHeight = map.size.height * tileHeight;
 
     final visibleLayers = map.layers.where((layer) => layer.isVisible).toList();
+    final foregroundTileCellIndicesByLayerId =
+        buildEditorForegroundTileCellIndicesByLayerId(
+      map: map,
+      project: project,
+    );
 
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
       final layer = visibleLayers[index];
@@ -92,7 +251,13 @@ class MapGridPainter extends CustomPainter {
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
       final layer = visibleLayers[index];
       if (layer is TileLayer) {
-        _paintTileLayer(canvas, layer);
+        _paintTileLayer(
+          canvas,
+          layer,
+          renderPass: _EditorMapTileRenderPass.background,
+          foregroundTileCellIndicesByLayerId:
+              foregroundTileCellIndicesByLayerId,
+        );
       }
     }
 
@@ -156,9 +321,28 @@ class MapGridPainter extends CustomPainter {
     }
 
     _paintGameplayZones(canvas);
+    _paintEntities(
+      canvas,
+      foregroundPass: false,
+    );
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
+      if (layer is TileLayer) {
+        _paintTileLayer(
+          canvas,
+          layer,
+          renderPass: _EditorMapTileRenderPass.foreground,
+          foregroundTileCellIndicesByLayerId:
+              foregroundTileCellIndicesByLayerId,
+        );
+      }
+    }
+    _paintEntities(
+      canvas,
+      foregroundPass: true,
+    );
     _paintSelectedPlacedElementInstance(canvas);
     _paintToolPreview(canvas);
-    _paintEntities(canvas);
     _paintMapEvents(canvas);
     _paintTriggers(canvas);
     _paintWarps(canvas);
@@ -377,9 +561,21 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintEntities(Canvas canvas) {
+  void _paintEntities(
+    Canvas canvas, {
+    required bool foregroundPass,
+  }) {
     if (map.entities.isEmpty) return;
     for (final entity in map.entities) {
+      // Les entités "normales" restent entre fond et décor avant-plan.
+      // Les props explicitement marqués "devant le décor" sont repeints après
+      // la passe foreground pour coller au rendu runtime.
+      if (!shouldPaintEditorEntityInForegroundPass(
+        entity,
+        foregroundPass: foregroundPass,
+      )) {
+        continue;
+      }
       if (entity.pos.x < 0 ||
           entity.pos.y < 0 ||
           entity.pos.x >= map.size.width ||
@@ -1259,7 +1455,12 @@ class MapGridPainter extends CustomPainter {
     );
   }
 
-  void _paintTileLayer(Canvas canvas, TileLayer layer) {
+  void _paintTileLayer(
+    Canvas canvas,
+    TileLayer layer, {
+    required _EditorMapTileRenderPass renderPass,
+    required Map<String, Set<int>> foregroundTileCellIndicesByLayerId,
+  }) {
     if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
       return;
     }
@@ -1273,6 +1474,21 @@ class MapGridPainter extends CustomPainter {
       return;
     }
 
+    final explicitForeground = _isExplicitForegroundTileLayerForEditor(
+      layerId: layer.id,
+      layerName: layer.name,
+    );
+    final foregroundCells = foregroundTileCellIndicesByLayerId[layer.id];
+    final shouldRenderThisLayer =
+        renderPass == _EditorMapTileRenderPass.background
+            ? !explicitForeground ||
+                (foregroundCells != null && foregroundCells.isNotEmpty)
+            : explicitForeground ||
+                (foregroundCells != null && foregroundCells.isNotEmpty);
+    if (!shouldRenderThisLayer) {
+      return;
+    }
+
     final layerPaint = Paint();
 
     for (var y = 0; y < map.size.height; y++) {
@@ -1282,6 +1498,14 @@ class MapGridPainter extends CustomPainter {
         if (tileIndex < 0 || tileIndex >= layer.tiles.length) continue;
         final tileId = layer.tiles[tileIndex];
         if (tileId <= 0) continue;
+        final shouldDrawCell = shouldPaintEditorTileCellInRenderPass(
+          explicitForeground: explicitForeground,
+          isForegroundCell: foregroundCells?.contains(tileIndex) ?? false,
+          foregroundPass: renderPass == _EditorMapTileRenderPass.foreground,
+        );
+        if (!shouldDrawCell) {
+          continue;
+        }
 
         final sourceIndex = tileId - 1;
         final sourceX = (sourceIndex % tilesPerRow) * sourceTileWidth;

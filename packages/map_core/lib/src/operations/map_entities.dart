@@ -102,7 +102,8 @@ MapData updateEntityOnMap(
     draft = draft.copyWith(spawn: spawn as MapEntitySpawnData?);
   }
   if (!identical(editorVisual, mapEntityTypedPayloadUnset)) {
-    draft = draft.copyWith(editorVisual: editorVisual as MapEntityEditorVisual?);
+    draft =
+        draft.copyWith(editorVisual: editorVisual as MapEntityEditorVisual?);
   }
   final next = _normalizeEntity(draft);
   _validateEntity(
@@ -183,7 +184,10 @@ MapEntityEditorVisual? _normalizeEditorVisual(MapEntityEditorVisual? v) {
   if (id.isEmpty) {
     return null;
   }
-  return MapEntityEditorVisual(elementId: id);
+  return MapEntityEditorVisual(
+    elementId: id,
+    renderInForeground: v.renderInForeground,
+  );
 }
 
 MapEntityNpcData _normalizeNpc(MapEntityNpcData n) {
@@ -199,7 +203,9 @@ MapEntityNpcData _normalizeNpc(MapEntityNpcData n) {
         : DialogueRef(
             dialogueId: d.dialogueId.trim(),
             scriptPathRelative: d.scriptPathRelative.trim(),
-            startNode: d.startNode?.trim().isEmpty == true ? null : d.startNode?.trim(),
+            startNode: d.startNode?.trim().isEmpty == true
+                ? null
+                : d.startNode?.trim(),
           ),
   );
 }
@@ -214,7 +220,9 @@ MapEntitySignData _normalizeSign(MapEntitySignData s) {
         : DialogueRef(
             dialogueId: d.dialogueId.trim(),
             scriptPathRelative: d.scriptPathRelative.trim(),
-            startNode: d.startNode?.trim().isEmpty == true ? null : d.startNode?.trim(),
+            startNode: d.startNode?.trim().isEmpty == true
+                ? null
+                : d.startNode?.trim(),
           ),
   );
 }
@@ -373,7 +381,8 @@ void assertValidMapEntityTypedPayloads(MapEntity entity) {
   }
 }
 
-void _assertNpcVisibilityAndConditionalDialogues(String entityId, MapEntityNpcData n) {
+void _assertNpcVisibilityAndConditionalDialogues(
+    String entityId, MapEntityNpcData n) {
   final rule = n.visibilityRule;
   if (rule != null) {
     switch (rule.mode) {
