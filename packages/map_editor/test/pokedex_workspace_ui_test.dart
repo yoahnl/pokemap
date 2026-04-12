@@ -75,6 +75,7 @@ void main() {
     required List<String> types,
     required int genIntroduced,
     bool isEnabledInProject = true,
+    String? portraitRelativePath,
   }) {
     return PokemonDatabaseIndexEntry(
       id: id,
@@ -88,6 +89,7 @@ void main() {
         evolution: id,
         media: id,
       ),
+      portraitRelativePath: portraitRelativePath,
     );
   }
 
@@ -605,6 +607,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byKey(const Key('pokedex-species-list')), findsOneWidget);
+    expect(find.text('Portrait'), findsOneWidget);
     expect(find.text('Numéro'), findsOneWidget);
     expect(find.text('Nom'), findsOneWidget);
     expect(find.text('ID'), findsOneWidget);
@@ -621,6 +624,66 @@ void main() {
     );
     expect(find.byKey(const Key('pokedex-filters-panel')), findsNothing);
     expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
+  });
+
+  testWidgets(
+      'renders a portrait thumbnail in the list when the entry exposes a portrait path',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    // Ce test UI reste volontairement léger :
+    // - le service `PokemonProjectDataReader` prouve déjà qu'on ne projette un
+    //   portrait que si le fichier existe réellement sur disque ;
+    // - ici, on veut seulement verrouiller le rendu du workspace quand un
+    //   chemin portrait a déjà été résolu par la couche applicative.
+    //
+    // On évite donc un vrai décodage image dans le test widget, qui n'apporte
+    // aucune valeur supplémentaire au contrat UI et peut rendre le runner
+    // desktop inutilement fragile.
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'pikachu',
+            nationalDex: 25,
+            primaryName: 'Pikachu',
+            types: const <String>['electric'],
+            genIntroduced: 1,
+            portraitRelativePath: 'assets/pokemon/portraits/pikachu.png',
+          ),
+          buildEntry(
+            id: 'eevee',
+            nationalDex: 133,
+            primaryName: 'Eevee',
+            types: const <String>['normal'],
+            genIntroduced: 1,
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.byKey(const Key('pokedex-row-portrait-pikachu')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('pokedex-row-portrait-placeholder-pikachu')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('pokedex-row-portrait-placeholder-eevee')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('selects a species row and shows the overview detail pane',

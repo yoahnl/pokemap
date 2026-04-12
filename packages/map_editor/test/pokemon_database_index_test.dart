@@ -209,6 +209,37 @@ void main() {
     });
 
     test(
+        'projects a local portrait path only when the portrait asset exists on disk',
+        () async {
+      await _createProjectAndSeedDemoData(
+        createProjectUseCase,
+        seedUseCase,
+        workspace,
+        tempProjectRoot.path,
+      );
+
+      // Le portrait de liste reste décoratif mais doit être honnête.
+      // On ne veut donc le projeter que si l'asset existe réellement.
+      final portraitFile = File(
+        workspace.resolveProjectRelativePath(
+          'assets/pokemon/portraits/bulbasaur.png',
+        ),
+      );
+      await portraitFile.parent.create(recursive: true);
+      await portraitFile.writeAsBytes(const <int>[1, 2, 3, 4]);
+
+      final entries = await indexService.build(workspace);
+      final bulbasaur = entries.firstWhere((entry) => entry.id == 'bulbasaur');
+      final ivysaur = entries.firstWhere((entry) => entry.id == 'ivysaur');
+
+      expect(
+        bulbasaur.portraitRelativePath,
+        'assets/pokemon/portraits/bulbasaur.png',
+      );
+      expect(ivysaur.portraitRelativePath, isNull);
+    });
+
+    test(
         'fails explicitly when a species json is syntactically valid but structurally invalid',
         () async {
       await createProjectUseCase.execute(

@@ -343,50 +343,59 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return switch (_step) {
-      _PokedexImportWizardStep.source => _PokedexImportSourceStep(
-          selectedSource: _selectedSource,
-          onSourceSelected: (value) {
-            setState(() {
-              _selectedSource = value;
-              _errorMessage = null;
-            });
+    // Le sheet macOS fournit le cadre général, mais pas de marge interne forte.
+    // On ajoute donc ici un padding commun à tout le wizard :
+    // - même respiration sur chaque étape ;
+    // - aucun besoin de répéter des `Padding` différents dans chaque widget ;
+    // - correction purement visuelle, sans toucher à la logique du flow.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      child: switch (_step) {
+        _PokedexImportWizardStep.source => _PokedexImportSourceStep(
+            selectedSource: _selectedSource,
+            onSourceSelected: (value) {
+              setState(() {
+                _selectedSource = value;
+                _errorMessage = null;
+              });
+            },
+            onContinue: _continueFromSource,
+            onCancel: () => Navigator.of(context).pop(),
+          ),
+        _PokedexImportWizardStep.jsonFile => _PokedexImportJsonFileStep(
+            selectedJsonSourcePath: _selectedJsonSourcePath,
+            isBusy: _isBusy,
+            errorMessage: _errorMessage,
+            onPickJsonSource: _pickJsonSource,
+            onContinue: _loadPreview,
+            onCancel: () => Navigator.of(context).pop(),
+          ),
+        _PokedexImportWizardStep.externalQuery =>
+          _PokedexImportExternalQueryStep(
+            controller: _externalQueryController,
+            isBusy: _isBusy,
+            errorMessage: _errorMessage,
+            onContinue: _loadPreview,
+            onCancel: () => Navigator.of(context).pop(),
+          ),
+        _PokedexImportWizardStep.preview => switch (_selectedSource) {
+            _PokedexImportSourceKind.jsonLocal => _PokedexImportPreviewStep(
+                preview: _jsonPreview!,
+                isBusy: _isBusy,
+                errorMessage: _errorMessage,
+                onBack: _goBackFromPreview,
+                onImport: _confirmImport,
+              ),
+            _PokedexImportSourceKind.externalApi =>
+              _PokedexExternalImportPreviewStep(
+                preview: _externalPreview!,
+                isBusy: _isBusy,
+                errorMessage: _errorMessage,
+                onBack: _goBackFromPreview,
+                onImport: _confirmImport,
+              ),
           },
-          onContinue: _continueFromSource,
-          onCancel: () => Navigator.of(context).pop(),
-        ),
-      _PokedexImportWizardStep.jsonFile => _PokedexImportJsonFileStep(
-          selectedJsonSourcePath: _selectedJsonSourcePath,
-          isBusy: _isBusy,
-          errorMessage: _errorMessage,
-          onPickJsonSource: _pickJsonSource,
-          onContinue: _loadPreview,
-          onCancel: () => Navigator.of(context).pop(),
-        ),
-      _PokedexImportWizardStep.externalQuery => _PokedexImportExternalQueryStep(
-          controller: _externalQueryController,
-          isBusy: _isBusy,
-          errorMessage: _errorMessage,
-          onContinue: _loadPreview,
-          onCancel: () => Navigator.of(context).pop(),
-        ),
-      _PokedexImportWizardStep.preview => switch (_selectedSource) {
-          _PokedexImportSourceKind.jsonLocal => _PokedexImportPreviewStep(
-              preview: _jsonPreview!,
-              isBusy: _isBusy,
-              errorMessage: _errorMessage,
-              onBack: _goBackFromPreview,
-              onImport: _confirmImport,
-            ),
-          _PokedexImportSourceKind.externalApi =>
-            _PokedexExternalImportPreviewStep(
-              preview: _externalPreview!,
-              isBusy: _isBusy,
-              errorMessage: _errorMessage,
-              onBack: _goBackFromPreview,
-              onImport: _confirmImport,
-            ),
-        },
-    };
+      },
+    );
   }
 }

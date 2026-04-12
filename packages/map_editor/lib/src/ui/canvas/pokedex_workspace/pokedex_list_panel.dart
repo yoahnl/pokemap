@@ -9,6 +9,7 @@ part of 'pokedex_workspace_page.dart';
 class PokedexWorkspaceSpeciesList extends StatelessWidget {
   const PokedexWorkspaceSpeciesList({
     super.key,
+    required this.projectRootPath,
     required this.entries,
     required this.selectedSpeciesId,
     required this.onEntrySelected,
@@ -31,6 +32,11 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
     this.emptyResultsChild,
   });
 
+  /// Chemin racine du projet affiché.
+  ///
+  /// Il sert uniquement à résoudre les portraits locaux déjà calculés par la
+  /// couche applicative. On ne lit aucun JSON ici.
+  final String projectRootPath;
   final List<PokemonDatabaseIndexEntry> entries;
   final String? selectedSpeciesId;
   final ValueChanged<PokemonDatabaseIndexEntry> onEntrySelected;
@@ -223,6 +229,7 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
                         final entry = entries[index];
                         return _PokedexListRow(
                           entry: entry,
+                          projectRootPath: projectRootPath,
                           isSelected: selectedSpeciesId == entry.id,
                           onPressed: () => onEntrySelected(entry),
                         );
@@ -267,6 +274,14 @@ class _PokedexListHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         children: [
+          SizedBox(
+            width: 58,
+            child: Text(
+              'Portrait',
+              style: _headerStyle(subtle),
+            ),
+          ),
+          const SizedBox(width: 12),
           SizedBox(
             width: 88,
             child: Text(

@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/pokemon_external_source_repository.dart';
+import 'package:map_editor/src/application/ports/project_workspace.dart';
+import 'package:map_editor/src/application/ports/pokemon_write_repository.dart';
 import 'package:map_editor/src/application/services/pokeapi_pokemon_learnset_converter.dart';
 import 'package:map_editor/src/application/services/showdown_pokemon_species_converter.dart';
 import 'package:map_editor/src/application/use_cases/import_external_pokemon_use_cases.dart';
@@ -281,6 +283,74 @@ void main() {
           PokemonExternalImportArtifactAction.conflict,
           PokemonExternalImportArtifactAction.conflict,
         ],
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test(
+        'fail_on_conflict stays atomic even when only one artefact already exists',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+
+      // On provoque ici le cas le plus intéressant du point de vue produit :
+      // un conflit partiel. Si l'atomicité promise par le use case casse,
+      // l'import pourrait écrire learnset/evolution/media alors que l'espèce
+      // principale est en conflit, ce qui rendrait le résultat trompeur.
+      await writeRepository.saveSpecies(
+        workspace,
+        const ShowdownPokemonSpeciesConverter().convert(
+          jsonDecode(_bulbasaurShowdownPayload) as Map<String, dynamic>,
+        ),
+      );
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+        mergePolicy: PokemonExternalImportMergePolicy.failOnConflict,
+      );
+
+      expect(result.hasConflicts, isTrue);
+      expect(result.hasWritesApplied, isFalse);
+      expect(
+        result.artifacts
+            .firstWhere(
+              (artifact) =>
+                  artifact.kind == PokemonExternalImportArtifactKind.species,
+            )
+            .action,
+        PokemonExternalImportArtifactAction.conflict,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/learnsets/bulbasaur.json',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/evolutions/bulbasaur.json',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/media/bulbasaur.json',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
       );
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
@@ -893,6 +963,102 @@ void main() {
       expect(result.warnings.join('\n'), contains('Cri download failed'));
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
+
+    test('cleans up newly written media assets if media.json persistence fails',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      final useCase = ImportExternalPokemonSpeciesUseCase(
+        externalSourceRepository: externalSourceRepository,
+        writeRepository: _ThrowingMediaWriteRepository(
+          delegate: writeRepository,
+        ),
+      );
+
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          speciesId: 'bulbasaur',
+        ),
+        throwsA(
+          isA<EditorPersistenceException>().having(
+            (error) => error.message,
+            'message',
+            contains('Simulated media write failure'),
+          ),
+        ),
+      );
+
+      // Ce test verrouille un invariant subtil de clôture 11A :
+      // si le `media.json` final ne peut pas être écrit, on ne doit pas laisser
+      // derrière nous des assets binaires fraîchement créés qui ne seront
+      // référencés par aucun JSON local.
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/sprites/bulbasaur/front.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/cries/bulbasaur.ogg',
+          ),
+        ).exists(),
+        isFalse,
+      );
+
+      // Le mini-fix ne touche pas à `project.json`. On le reverrouille ici
+      // même sur un échec tardif du pipeline.
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test(
+        'rejects a headerless incompatible image payload without persisting a ref',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      externalSourceRepository.binaryAssets[
+              'https://assets.example.test/bulbasaur/portrait.png'] =
+          PokemonExternalBinaryAsset(
+        sourceUrl: 'https://assets.example.test/bulbasaur/portrait.png',
+        // Signature JPEG volontairement incompatible.
+        bytes: Uint8List.fromList(
+          <int>[0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46],
+        ),
+        contentType: null,
+      );
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.variants['base']?.portrait, isNull);
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        result.warnings.join('\n'),
+        contains('missing or incompatible content-type'),
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
   });
 
   group('BatchImportExternalPokemonSpeciesUseCase', () {
@@ -1026,6 +1192,81 @@ class _FakePokemonExternalSourceRepository
 
   Map<String, dynamic> _deepCopy(Map<String, dynamic> source) {
     return jsonDecode(jsonEncode(source)) as Map<String, dynamic>;
+  }
+}
+
+/// Repository décorateur volontairement minuscule pour reproduire un échec
+/// tardif sur `saveMedia`.
+///
+/// Ce fake sert uniquement à prouver un invariant de clôture 11A :
+/// si l'écriture finale du `media.json` casse, le pipeline ne doit pas laisser
+/// d'assets binaires nouvellement créés sans référence locale persistée.
+///
+/// Non-objectifs explicites :
+/// - ne pas changer la sémantique des autres écritures ;
+/// - ne pas simuler un filesystem complet ;
+/// - ne pas introduire une nouvelle abstraction de prod.
+class _ThrowingMediaWriteRepository implements PokemonWriteRepository {
+  const _ThrowingMediaWriteRepository({
+    required this.delegate,
+  });
+
+  final PokemonWriteRepository delegate;
+
+  @override
+  Future<void> saveBinaryAsset(
+    ProjectWorkspace workspace, {
+    required String relativePath,
+    required List<int> bytes,
+  }) {
+    return delegate.saveBinaryAsset(
+      workspace,
+      relativePath: relativePath,
+      bytes: bytes,
+    );
+  }
+
+  @override
+  Future<void> saveCatalogByKey(
+    ProjectWorkspace workspace,
+    String catalogKey,
+    PokemonCatalogFile catalog,
+  ) {
+    return delegate.saveCatalogByKey(workspace, catalogKey, catalog);
+  }
+
+  @override
+  Future<void> saveEvolution(
+    ProjectWorkspace workspace,
+    PokemonEvolutionFile evolution,
+  ) {
+    return delegate.saveEvolution(workspace, evolution);
+  }
+
+  @override
+  Future<void> saveLearnset(
+    ProjectWorkspace workspace,
+    PokemonLearnsetFile learnset,
+  ) {
+    return delegate.saveLearnset(workspace, learnset);
+  }
+
+  @override
+  Future<void> saveMedia(
+    ProjectWorkspace workspace,
+    PokemonMediaFile media,
+  ) {
+    throw const EditorPersistenceException(
+      'Simulated media write failure',
+    );
+  }
+
+  @override
+  Future<void> saveSpecies(
+    ProjectWorkspace workspace,
+    PokemonSpeciesFile species,
+  ) {
+    return delegate.saveSpecies(workspace, species);
   }
 }
 

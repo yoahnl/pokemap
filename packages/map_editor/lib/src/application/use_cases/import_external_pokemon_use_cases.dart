@@ -187,6 +187,14 @@ class PokemonExternalImportResult {
 
   bool get hasWritesApplied =>
       !dryRun &&
+      // En `failOnConflict`, l'orchestration retourne avant toute écriture
+      // réelle dès qu'au moins un artefact est en conflit. Le résultat peut
+      // donc encore contenir des actions planifiées `create/overwrite` sur les
+      // autres artefacts, mais elles ne représentent pas des écritures
+      // effectivement appliquées. Sans cette garde, `hasWritesApplied`
+      // raconterait une fausse histoire dans les tests, les warnings ou un
+      // éventuel reporting opérateur.
+      !hasConflicts &&
       artifacts.any(
         (artifact) =>
             artifact.action == PokemonExternalImportArtifactAction.create ||
@@ -495,14 +503,36 @@ class ImportExternalPokemonSpeciesUseCase {
     // - téléchargés puis écrits avec succès.
     //
     // Toute référence absente sur disque est effacée avant la sérialisation.
-    final resolvedMedia = await _resolvePersistedMediaFromDisk(
-      workspace,
-      media,
-    );
+    try {
+      final resolvedMedia = await _resolvePersistedMediaFromDisk(
+        workspace,
+        media,
+      );
 
-    if (mediaPlan.action == PokemonExternalImportArtifactAction.create ||
-        mediaPlan.action == PokemonExternalImportArtifactAction.overwrite) {
-      await writeRepository.saveMedia(workspace, resolvedMedia);
+      if (mediaPlan.action == PokemonExternalImportArtifactAction.create ||
+          mediaPlan.action == PokemonExternalImportArtifactAction.overwrite) {
+        await writeRepository.saveMedia(workspace, resolvedMedia);
+      }
+    } on Object catch (error, stackTrace) {
+      // Audit de clôture 11A :
+      // si la phase finale de persistance média casse, on ne veut pas laisser
+      // derrière nous des assets binaires fraîchement créés qui ne seront
+      // référencés par aucun `media.json`.
+      //
+      // On nettoie donc uniquement les fichiers :
+      // - écrits dans ce run (`wasWritten`) ;
+      // - inexistants avant le run (`!existedBefore`).
+      //
+      // Non-objectifs assumés de ce mini-fix :
+      // - on ne tente pas de rollback les JSON déjà écrits plus tôt ;
+      // - on ne restaure pas le contenu d'un asset préexistant écrasé avec
+      //   succès, car ce cas ne crée pas de ref fantôme ni d'asset orphelin ;
+      // - on ne crée pas de transaction globale artificielle pour la 11A.
+      await _cleanupNewMediaAssetsAfterPersistenceFailure(
+        workspace,
+        assetBatch.results,
+      );
+      Error.throwWithStackTrace(error, stackTrace);
     }
 
     return _buildResult(
@@ -1020,11 +1050,11 @@ class ImportExternalPokemonSpeciesUseCase {
           );
           continue;
         }
-        if (!_isCompatibleContentType(candidate, asset.contentType)) {
+        if (!_isCompatibleBinaryAsset(candidate, asset)) {
           final localExistsAfter = await workspace.fileExists(absolutePath);
           final message = localExistsAfter
-              ? '${candidate.label} download used an incompatible content-type (${asset.contentType ?? 'unknown'}); the existing local asset was kept.'
-              : '${candidate.label} download used an incompatible content-type (${asset.contentType ?? 'unknown'}) and no local asset exists; the media ref will be omitted.';
+              ? '${candidate.label} download used a missing or incompatible content-type (${asset.contentType ?? 'unknown'}); the existing local asset was kept.'
+              : '${candidate.label} download used a missing or incompatible content-type (${asset.contentType ?? 'unknown'}) and no local asset exists; the media ref will be omitted.';
           warnings.add(message);
           results.add(
             PokemonExternalAssetDownloadResult(
@@ -1112,6 +1142,31 @@ class ImportExternalPokemonSpeciesUseCase {
       results: results,
       warnings: warnings,
     );
+  }
+
+  // Nettoie uniquement les binaires créés par ce run si la persistance finale
+  // du `media.json` échoue.
+  //
+  // Cette garde reste volontairement petite et locale :
+  // - elle évite les assets orphelins ;
+  // - elle ne change pas la sémantique des autres artefacts ;
+  // - elle ne transforme pas le use case en moteur transactionnel global.
+  Future<void> _cleanupNewMediaAssetsAfterPersistenceFailure(
+    ProjectWorkspace workspace,
+    List<PokemonExternalAssetDownloadResult> results,
+  ) async {
+    for (final result in results) {
+      if (!result.wasWritten || result.existedBefore) {
+        continue;
+      }
+
+      try {
+        await workspace.deleteRelativeFile(result.relativePath);
+      } catch (_) {
+        // Best effort uniquement : on ne masque jamais l'erreur initiale de
+        // persistance média avec une erreur secondaire de cleanup.
+      }
+    }
   }
 
   _DownloadedAssetBatch _buildSkippedMediaAssetBatch({
@@ -1275,6 +1330,29 @@ class ImportExternalPokemonSpeciesUseCase {
     return url.toLowerCase().contains('.gif');
   }
 
+  bool _looksLikePngBytes(List<int> bytes) {
+    if (bytes.length < 8) {
+      return false;
+    }
+    const pngSignature = <int>[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    for (var index = 0; index < pngSignature.length; index++) {
+      if (bytes[index] != pngSignature[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _looksLikeOggBytes(List<int> bytes) {
+    if (bytes.length < 4) {
+      return false;
+    }
+    return bytes[0] == 0x4F &&
+        bytes[1] == 0x67 &&
+        bytes[2] == 0x67 &&
+        bytes[3] == 0x53;
+  }
+
   bool _isGifContentType(String? contentType) {
     final normalized = contentType?.trim().toLowerCase();
     if (normalized == null || normalized.isEmpty) {
@@ -1283,13 +1361,20 @@ class ImportExternalPokemonSpeciesUseCase {
     return normalized.contains('image/gif');
   }
 
-  bool _isCompatibleContentType(
+  bool _isCompatibleBinaryAsset(
     _PokemonExternalAssetCandidate candidate,
-    String? contentType,
+    PokemonExternalBinaryAsset asset,
   ) {
-    final normalized = contentType?.trim().toLowerCase();
+    final normalized = asset.contentType?.trim().toLowerCase();
     if (normalized == null || normalized.isEmpty) {
-      return true;
+      // On n'accepte plus silencieusement un binaire "sans identité".
+      // Quand le serveur oublie le `content-type`, on exige au minimum une
+      // signature binaire compatible avec le format attendu :
+      // - PNG pour les images ;
+      // - OGG pour les cries.
+      return candidate.label == 'Cri'
+          ? _looksLikeOggBytes(asset.bytes)
+          : _looksLikePngBytes(asset.bytes);
     }
 
     if (candidate.label == 'Cri') {

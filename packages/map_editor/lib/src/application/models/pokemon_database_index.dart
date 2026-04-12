@@ -38,6 +38,7 @@ class PokemonDatabaseIndexEntry {
     required this.types,
     required this.isEnabledInProject,
     required this.refs,
+    this.portraitRelativePath,
   });
 
   final String id;
@@ -54,6 +55,20 @@ class PokemonDatabaseIndexEntry {
   /// classification détaillée dans l'index.
   final bool isEnabledInProject;
   final PokemonDatabaseIndexRefs refs;
+
+  /// Portrait local optionnel pour embellir la liste Pokédex.
+  ///
+  /// Cette donnée reste volontairement légère et décorative :
+  /// - elle ne remplace pas le chargement complet de la fiche média ;
+  /// - elle n'est présente que si un `media.json` lisible pointe vers un
+  ///   portrait et que le fichier existe réellement dans le workspace ;
+  /// - son absence ne doit jamais bloquer la liste.
+  ///
+  /// On conserve ici un chemin **relatif projet** plutôt qu'un chemin absolu :
+  /// - l'application garde une projection portable ;
+  /// - l'UI résout ensuite le chemin absolu à partir du workspace courant ;
+  /// - on évite d'enfermer ce modèle applicatif dans un chemin machine-local.
+  final String? portraitRelativePath;
 
   /// Construit l'entree specifique au lot 11 a partir d'une source de vérité
   /// déjà existante.
@@ -96,6 +111,7 @@ class PokemonDatabaseIndexEntry {
   factory PokemonDatabaseIndexEntry.fromSpeciesEntry({
     required PokemonSpeciesIndexEntry speciesIndexEntry,
     required PokemonSpeciesFile species,
+    String? portraitRelativePath,
   }) {
     return PokemonDatabaseIndexEntry(
       id: speciesIndexEntry.id,
@@ -109,6 +125,9 @@ class PokemonDatabaseIndexEntry {
         evolution: species.refs.evolution.trim(),
         media: species.refs.media.trim(),
       ),
+      portraitRelativePath: portraitRelativePath?.trim().isEmpty ?? true
+          ? null
+          : portraitRelativePath?.trim(),
     );
   }
 }

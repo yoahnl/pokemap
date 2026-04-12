@@ -175,10 +175,25 @@ class PokemonProjectDataReader {
         relativePath: relativePath,
       );
 
+      // Le portrait de liste reste volontairement best effort :
+      // - si le média local n'existe pas, la liste ne casse pas ;
+      // - si le `media.json` est invalide, on n'empêche pas l'espèce de
+      //   remonter dans l'éditeur ;
+      // - si le fichier portrait n'existe plus sur disque, on omet
+      //   simplement l'image décorative.
+      //
+      // Cela permet d'embellir la liste sans transformer l'index léger en
+      // seconde fiche détail ni faire de l'UI une lectrice JSON parallèle.
+      final portraitRelativePath = await _resolveOptionalPortraitRelativePath(
+        workspace,
+        species,
+      );
+
       entries.add(
         PokemonDatabaseIndexEntry.fromSpeciesEntry(
           speciesIndexEntry: speciesIndexEntry,
           species: species,
+          portraitRelativePath: portraitRelativePath,
         ),
       );
     }
@@ -190,6 +205,39 @@ class PokemonProjectDataReader {
     });
 
     return entries;
+  }
+
+  Future<String?> _resolveOptionalPortraitRelativePath(
+    ProjectWorkspace workspace,
+    PokemonSpeciesFile species,
+  ) async {
+    final mediaId = species.refs.media.trim();
+    if (mediaId.isEmpty) {
+      return null;
+    }
+
+    try {
+      final media = await readMediaById(workspace, mediaId);
+      final defaultVariant = media.variants[media.defaultFormId];
+      final portraitRelativePath = defaultVariant?.portrait?.trim();
+      if (portraitRelativePath == null || portraitRelativePath.isEmpty) {
+        return null;
+      }
+
+      final exists = await workspace.fileExists(
+        workspace.resolveProjectRelativePath(portraitRelativePath),
+      );
+      return exists ? portraitRelativePath : null;
+    } on EditorApplicationException {
+      // Important : le portrait de liste est décoratif.
+      // Une erreur média locale ne doit pas rendre la liste Pokédex inutilisable
+      // si l'espèce elle-même reste lisible et indexable.
+      return null;
+    } catch (_) {
+      // Même philosophie ici : on ne masque pas un problème plus loin dans la
+      // stack, mais on n'échoue pas non plus la liste pour un portrait.
+      return null;
+    }
   }
 
   Future<PokemonSpeciesFile> readSpeciesByRelativePath(

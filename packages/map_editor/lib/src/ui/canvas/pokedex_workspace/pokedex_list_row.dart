@@ -8,11 +8,13 @@ part of 'pokedex_workspace_page.dart';
 class _PokedexListRow extends StatelessWidget {
   const _PokedexListRow({
     required this.entry,
+    required this.projectRootPath,
     required this.isSelected,
     required this.onPressed,
   });
 
   final PokemonDatabaseIndexEntry entry;
+  final String projectRootPath;
   final bool isSelected;
   final VoidCallback onPressed;
 
@@ -30,6 +32,9 @@ class _PokedexListRow extends StatelessWidget {
         : EditorChrome.accentWarm.withValues(alpha: 0.35);
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
+    final portraitAbsolutePath = entry.portraitRelativePath == null
+        ? null
+        : p.join(projectRootPath, entry.portraitRelativePath!);
 
     return CupertinoButton(
       key: Key('pokedex-row-${entry.id}'),
@@ -47,6 +52,12 @@ class _PokedexListRow extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _PokedexPortraitThumbnail(
+                speciesId: entry.id,
+                portraitAbsolutePath: portraitAbsolutePath,
+                isSelected: isSelected,
+              ),
+              const SizedBox(width: 12),
               SizedBox(
                 width: 88,
                 child: Text(
@@ -106,6 +117,98 @@ class _PokedexListRow extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Thumbnail purement décoratif pour la liste Pokédex.
+//
+// Invariants volontaires :
+// - on ne lit jamais de JSON ici ;
+// - on ne déduit jamais un portrait “magique” ;
+// - on se contente d'afficher le portrait local déjà résolu par la couche
+//   applicative si un chemin existe ;
+// - sinon on montre un placeholder stable et propre.
+class _PokedexPortraitThumbnail extends StatelessWidget {
+  const _PokedexPortraitThumbnail({
+    required this.speciesId,
+    required this.portraitAbsolutePath,
+    required this.isSelected,
+  });
+
+  final String speciesId;
+  final String? portraitAbsolutePath;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = isSelected
+        ? EditorChrome.accentJade.withValues(alpha: 0.65)
+        : EditorChrome.accentWarm.withValues(alpha: 0.35);
+    final fill = Color.lerp(
+      EditorChrome.islandFillElevated(context),
+      EditorChrome.accentJade,
+      0.08,
+    )!;
+
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(13),
+        child: portraitAbsolutePath == null
+            ? _PokedexPortraitPlaceholder(speciesId: speciesId)
+            : Image.file(
+                File(portraitAbsolutePath!),
+                key: Key('pokedex-row-portrait-$speciesId'),
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (_, __, ___) =>
+                    _PokedexPortraitPlaceholder(speciesId: speciesId),
+              ),
+      ),
+    );
+  }
+}
+
+// Fallback visuel stable quand aucun portrait local n'est disponible.
+//
+// L'objectif n'est pas de cacher l'absence d'un asset, mais d'éviter une
+// ligne vide ou cassée visuellement. Le placeholder reste donc volontairement
+// simple et lisible.
+class _PokedexPortraitPlaceholder extends StatelessWidget {
+  const _PokedexPortraitPlaceholder({
+    required this.speciesId,
+  });
+
+  final String speciesId;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            EditorChrome.accentWarm.withValues(alpha: 0.16),
+            EditorChrome.accentJade.withValues(alpha: 0.12),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          CupertinoIcons.photo,
+          key: Key('pokedex-row-portrait-placeholder-$speciesId'),
+          size: 20,
+          color: CupertinoColors.white.withValues(alpha: 0.78),
         ),
       ),
     );

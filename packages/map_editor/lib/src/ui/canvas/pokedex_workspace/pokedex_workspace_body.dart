@@ -115,6 +115,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
             Expanded(
               flex: 5,
               child: PokedexWorkspaceSpeciesList(
+                projectRootPath: projectRootPath,
                 entries: filteredEntries,
                 selectedSpeciesId: _selectedSpeciesId,
                 onEntrySelected: (entry) => _selectEntry(
