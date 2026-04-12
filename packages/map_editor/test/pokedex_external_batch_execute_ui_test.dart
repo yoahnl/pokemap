@@ -363,6 +363,238 @@ void main() {
       find.text('Batch terminé · 2 succès, 0 conflits, 0 erreurs, 0 skips'),
       findsOneWidget,
     );
+    expect(
+      find.byIcon(CupertinoIcons.check_mark_circled_solid),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'shows an error feedback when no species was imported because all entries conflicted',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final detailRequests = <String>[];
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_external_batch_execute_conflicts_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: buildWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[],
+        detailLoader: (_, speciesId) async {
+          detailRequests.add(speciesId);
+          return _buildDetail(
+            id: speciesId,
+            nationalDex: 25,
+            primaryName: 'Unused',
+            types: const <String>['normal'],
+          );
+        },
+        externalBatchSelectionResolver: (rawQuery) async =>
+            _resolvedBatchSelection(),
+        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, __, {onProgress}) async {
+          onProgress?.call(
+            const PokemonExternalBatchImportProgress(
+              totalCount: 2,
+              completedCount: 2,
+              successfulCount: 0,
+              skippedCount: 0,
+              conflictCount: 2,
+              failedCount: 0,
+              lastCompletedSpeciesId: 'bulbasaur',
+            ),
+          );
+          return _conflictsOnlyBatchImportResult();
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await openBatchPreview(
+      tester,
+      query: 'pikachu, 25, bulbasaur',
+    );
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-external-batch-execute-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('pokedex-import-external-batch-result-close-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(detailRequests, isEmpty);
+    expect(
+      find.text(
+          'Aucune espèce importée · 0 succès, 2 conflits, 0 erreurs, 0 skips'),
+      findsOneWidget,
+    );
+    expect(
+      find.byIcon(CupertinoIcons.exclamationmark_triangle_fill),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'shows an error feedback when no species was imported because all entries were skipped',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final detailRequests = <String>[];
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_external_batch_execute_skips_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: buildWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[],
+        detailLoader: (_, speciesId) async {
+          detailRequests.add(speciesId);
+          return _buildDetail(
+            id: speciesId,
+            nationalDex: 25,
+            primaryName: 'Unused',
+            types: const <String>['normal'],
+          );
+        },
+        externalBatchSelectionResolver: (rawQuery) async =>
+            _resolvedBatchSelection(),
+        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, __, {onProgress}) async {
+          onProgress?.call(
+            const PokemonExternalBatchImportProgress(
+              totalCount: 2,
+              completedCount: 2,
+              successfulCount: 0,
+              skippedCount: 2,
+              conflictCount: 0,
+              failedCount: 0,
+              lastCompletedSpeciesId: 'bulbasaur',
+            ),
+          );
+          return _skipsOnlyBatchImportResult();
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await openBatchPreview(
+      tester,
+      query: 'pikachu, 25, bulbasaur',
+    );
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-external-batch-execute-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('pokedex-import-external-batch-result-close-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(detailRequests, isEmpty);
+    expect(
+      find.text(
+          'Aucune espèce importée · 0 succès, 0 conflits, 0 erreurs, 2 skips'),
+      findsOneWidget,
+    );
+    expect(
+      find.byIcon(CupertinoIcons.exclamationmark_triangle_fill),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'shows an error feedback when no species was imported because entries were skipped or conflicted',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final detailRequests = <String>[];
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_external_batch_execute_mixed_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: buildWorkspace(
+        loader: (_) async => const <PokemonDatabaseIndexEntry>[],
+        detailLoader: (_, speciesId) async {
+          detailRequests.add(speciesId);
+          return _buildDetail(
+            id: speciesId,
+            nationalDex: 25,
+            primaryName: 'Unused',
+            types: const <String>['normal'],
+          );
+        },
+        externalBatchSelectionResolver: (rawQuery) async =>
+            _resolvedBatchSelection(),
+        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, __, {onProgress}) async {
+          onProgress?.call(
+            const PokemonExternalBatchImportProgress(
+              totalCount: 2,
+              completedCount: 2,
+              successfulCount: 0,
+              skippedCount: 1,
+              conflictCount: 1,
+              failedCount: 0,
+              lastCompletedSpeciesId: 'bulbasaur',
+            ),
+          );
+          return _mixedNoWriteBatchImportResult();
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await openBatchPreview(
+      tester,
+      query: 'pikachu, 25, bulbasaur',
+    );
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-external-batch-execute-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('pokedex-import-external-batch-result-close-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(detailRequests, isEmpty);
+    expect(
+      find.text(
+          'Aucune espèce importée · 0 succès, 1 conflits, 0 erreurs, 1 skips'),
+      findsOneWidget,
+    );
+    expect(
+      find.byIcon(CupertinoIcons.exclamationmark_triangle_fill),
+      findsOneWidget,
+    );
   });
 }
 
@@ -454,6 +686,69 @@ PokemonExternalBatchImportResult _sampleBatchImportResult({
   );
 }
 
+PokemonExternalBatchImportResult _conflictsOnlyBatchImportResult() {
+  return PokemonExternalBatchImportResult(
+    dryRun: false,
+    mergePolicy: PokemonExternalImportMergePolicy.failOnConflict,
+    entries: <PokemonExternalBatchImportEntryResult>[
+      _conflictBatchEntry(
+        speciesId: 'pikachu',
+        nationalDex: 25,
+        primaryName: 'Pikachu',
+        types: const <String>['electric'],
+      ),
+      _conflictBatchEntry(
+        speciesId: 'bulbasaur',
+        nationalDex: 1,
+        primaryName: 'Bulbasaur',
+        types: const <String>['grass', 'poison'],
+      ),
+    ],
+  );
+}
+
+PokemonExternalBatchImportResult _skipsOnlyBatchImportResult() {
+  return PokemonExternalBatchImportResult(
+    dryRun: false,
+    mergePolicy: PokemonExternalImportMergePolicy.skipExisting,
+    entries: <PokemonExternalBatchImportEntryResult>[
+      _skippedBatchEntry(
+        speciesId: 'pikachu',
+        nationalDex: 25,
+        primaryName: 'Pikachu',
+        types: const <String>['electric'],
+      ),
+      _skippedBatchEntry(
+        speciesId: 'bulbasaur',
+        nationalDex: 1,
+        primaryName: 'Bulbasaur',
+        types: const <String>['grass', 'poison'],
+      ),
+    ],
+  );
+}
+
+PokemonExternalBatchImportResult _mixedNoWriteBatchImportResult() {
+  return PokemonExternalBatchImportResult(
+    dryRun: false,
+    mergePolicy: PokemonExternalImportMergePolicy.failOnConflict,
+    entries: <PokemonExternalBatchImportEntryResult>[
+      _conflictBatchEntry(
+        speciesId: 'pikachu',
+        nationalDex: 25,
+        primaryName: 'Pikachu',
+        types: const <String>['electric'],
+      ),
+      _skippedBatchEntry(
+        speciesId: 'bulbasaur',
+        nationalDex: 1,
+        primaryName: 'Bulbasaur',
+        types: const <String>['grass', 'poison'],
+      ),
+    ],
+  );
+}
+
 PokemonExternalBatchImportEntryResult _successfulBatchEntry({
   required String speciesId,
   required int nationalDex,
@@ -528,6 +823,38 @@ PokemonExternalBatchImportEntryResult _conflictBatchEntry({
           relativePath:
               'data/pokemon/species/${nationalDex.toString().padLeft(4, '0')}-$speciesId.json',
           action: PokemonExternalImportArtifactAction.conflict,
+          existedBefore: true,
+        ),
+      ],
+    ),
+  );
+}
+
+PokemonExternalBatchImportEntryResult _skippedBatchEntry({
+  required String speciesId,
+  required int nationalDex,
+  required String primaryName,
+  required List<String> types,
+}) {
+  return PokemonExternalBatchImportEntryResult(
+    speciesId: speciesId,
+    result: PokemonExternalImportResult(
+      requestedSpeciesId: speciesId,
+      importedSpeciesId: speciesId,
+      preview: _previewFor(
+        speciesId: speciesId,
+        nationalDex: nationalDex,
+        primaryName: primaryName,
+        types: types,
+      ),
+      dryRun: false,
+      mergePolicy: PokemonExternalImportMergePolicy.skipExisting,
+      artifacts: <PokemonExternalImportArtifactResult>[
+        PokemonExternalImportArtifactResult(
+          kind: PokemonExternalImportArtifactKind.species,
+          relativePath:
+              'data/pokemon/species/${nationalDex.toString().padLeft(4, '0')}-$speciesId.json',
+          action: PokemonExternalImportArtifactAction.skip,
           existedBefore: true,
         ),
       ],

@@ -616,14 +616,23 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
       selection: _externalBatchSelectionResult,
       result: result,
     );
-    final importedAnySpecies = selectedSpeciesId != null;
+    final importedAnySpecies = _hasBatchWritesApplied(result);
     Navigator.of(context).pop(
       _CompletedPokedexImportFlowResult(
         selectedSpeciesId: selectedSpeciesId,
         shouldRefreshWorkspace: importedAnySpecies,
-        feedbackMessage: _buildBatchImportFeedback(result),
-        feedbackIsError: !importedAnySpecies && result.failedCount > 0,
+        feedbackMessage: _buildBatchImportFeedback(
+          result,
+          importedAnySpecies: importedAnySpecies,
+        ),
+        feedbackIsError: !importedAnySpecies,
       ),
+    );
+  }
+
+  bool _hasBatchWritesApplied(PokemonExternalBatchImportResult result) {
+    return result.entries.any(
+      (entry) => entry.result?.hasWritesApplied == true,
     );
   }
 
@@ -665,8 +674,13 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
     return 'Import terminé pour $primaryName · ${importedArtifacts.join(', ')}';
   }
 
-  String _buildBatchImportFeedback(PokemonExternalBatchImportResult result) {
-    return 'Batch terminé · ${result.successfulCount} succès, '
+  String _buildBatchImportFeedback(
+    PokemonExternalBatchImportResult result, {
+    required bool importedAnySpecies,
+  }) {
+    final prefix =
+        importedAnySpecies ? 'Batch terminé' : 'Aucune espèce importée';
+    return '$prefix · ${result.successfulCount} succès, '
         '${result.conflictCount} conflits, ${result.failedCount} erreurs, '
         '${result.skippedCount} skips';
   }
