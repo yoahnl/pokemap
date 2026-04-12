@@ -18,11 +18,13 @@ class _PokedexMovesCatalogSection extends StatefulWidget {
     required this.loadCatalog,
     required this.previewSync,
     required this.syncCatalog,
+    this.onCatalogChanged,
   });
 
   final Future<PokemonMovesCatalogView> Function() loadCatalog;
   final Future<PokemonMovesCatalogSyncResult> Function() previewSync;
   final Future<PokemonMovesCatalogSyncResult> Function() syncCatalog;
+  final VoidCallback? onCatalogChanged;
 
   @override
   State<_PokedexMovesCatalogSection> createState() =>
@@ -31,6 +33,8 @@ class _PokedexMovesCatalogSection extends StatefulWidget {
 
 class _PokedexMovesCatalogSectionState
     extends State<_PokedexMovesCatalogSection> {
+  static const PokemonMovesCatalogLookupService _catalogLookupService =
+      PokemonMovesCatalogLookupService();
   late final TextEditingController _searchController;
   late Future<PokemonMovesCatalogView> _catalogFuture;
   PokemonMovesCatalogSyncResult? _lastSyncReport;
@@ -119,6 +123,7 @@ class _PokedexMovesCatalogSectionState
         _catalogFuture = widget.loadCatalog();
         _isSyncing = false;
       });
+      widget.onCatalogChanged?.call();
     } catch (error) {
       if (!mounted) {
         return;
@@ -298,20 +303,11 @@ class _PokedexMovesCatalogSectionState
   List<PokemonMoveCatalogEntryView> _filterEntries(
     List<PokemonMoveCatalogEntryView> entries,
   ) {
-    final query = _searchController.text.trim().toLowerCase();
-    final filtered = query.isEmpty
-        ? entries
-        : entries.where((entry) {
-            final haystack = <String>[
-              entry.id,
-              entry.name,
-              entry.type ?? '',
-              entry.category ?? '',
-              entry.shortDesc ?? '',
-            ].join(' ').toLowerCase();
-            return haystack.contains(query);
-          }).toList(growable: false);
-    return filtered.take(12).toList(growable: false);
+    return _catalogLookupService.search(
+      entries,
+      _searchController.text,
+      limit: 12,
+    );
   }
 }
 

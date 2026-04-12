@@ -36,6 +36,7 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
   late final TextEditingController _eggController;
   late final TextEditingController _eventController;
   late final TextEditingController _transferController;
+  late Future<PokemonMovesCatalogView> _movesCatalogFuture;
   bool _isEditing = false;
   bool _isSaving = false;
   String? _saveErrorMessage;
@@ -51,12 +52,16 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
     _eggController = TextEditingController();
     _eventController = TextEditingController();
     _transferController = TextEditingController();
+    _movesCatalogFuture = widget.loadMovesCatalog();
     _replaceDraftFromDetail(widget.detail);
   }
 
   @override
   void didUpdateWidget(covariant _PokedexLearnsetTab oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.loadMovesCatalog != widget.loadMovesCatalog) {
+      _movesCatalogFuture = widget.loadMovesCatalog();
+    }
     if (oldWidget.detail != widget.detail) {
       _replaceDraftFromDetail(widget.detail);
       _isEditing = false;
@@ -167,6 +172,12 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
     });
   }
 
+  void _reloadMovesCatalog() {
+    setState(() {
+      _movesCatalogFuture = widget.loadMovesCatalog();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final learnset = widget.detail.learnset;
@@ -181,11 +192,13 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
             loadCatalog: widget.loadMovesCatalog,
             previewSync: widget.previewMovesCatalogSync,
             syncCatalog: widget.syncMovesCatalog,
+            onCatalogChanged: _reloadMovesCatalog,
           ),
           const SizedBox(height: 12),
           if (_isEditing) ...[
             _PokedexLearnsetEditSection(
               learnsetRef: learnsetRef,
+              movesCatalogFuture: _movesCatalogFuture,
               isSaving: _isSaving,
               saveErrorMessage: _saveErrorMessage,
               startingMovesController: _startingMovesController,

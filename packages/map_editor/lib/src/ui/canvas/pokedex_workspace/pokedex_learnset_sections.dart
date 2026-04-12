@@ -9,6 +9,7 @@ part of 'pokedex_workspace_page.dart';
 class _PokedexLearnsetEditSection extends StatelessWidget {
   const _PokedexLearnsetEditSection({
     required this.learnsetRef,
+    required this.movesCatalogFuture,
     required this.isSaving,
     required this.saveErrorMessage,
     required this.startingMovesController,
@@ -24,6 +25,7 @@ class _PokedexLearnsetEditSection extends StatelessWidget {
   });
 
   final String learnsetRef;
+  final Future<PokemonMovesCatalogView> movesCatalogFuture;
   final bool isSaving;
   final String? saveErrorMessage;
   final TextEditingController startingMovesController;
@@ -41,136 +43,170 @@ class _PokedexLearnsetEditSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _PokedexDetailSectionCard(
       title: 'Édition learnset locale',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _PokedexPropertyLine(
-            label: 'Ref learnset',
-            value: learnsetRef.isEmpty ? 'Ref absente' : learnsetRef,
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'Moves de départ',
-            description:
-                'Un move id par ligne. Les doublons exacts sont ignorés.',
-            fieldKey: const Key('pokedex-learnset-starting-field'),
-            controller: startingMovesController,
-            enabled: !isSaving,
-            minLines: 2,
-            maxLines: 5,
-            placeholder: 'tackle\ngrowl',
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'Moves à réapprendre',
-            description: 'Un move id par ligne.',
-            fieldKey: const Key('pokedex-learnset-relearn-field'),
-            controller: relearnMovesController,
-            enabled: !isSaving,
-            minLines: 2,
-            maxLines: 5,
-            placeholder: 'vine_whip',
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'Level-up',
-            description:
-                'Une entrée par ligne au format moveId|level|source|versionGroup.',
-            fieldKey: const Key('pokedex-learnset-level-up-field'),
-            controller: levelUpController,
-            enabled: !isSaving,
-            minLines: 3,
-            maxLines: 8,
-            placeholder: 'vine_whip|7|level_up|scarlet-violet',
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'TM',
-            description: 'Une entrée par ligne au format moveId|versionGroup.',
-            fieldKey: const Key('pokedex-learnset-tm-field'),
-            controller: tmController,
-            enabled: !isSaving,
-            minLines: 2,
-            maxLines: 6,
-            placeholder: 'protect|scarlet-violet',
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'Tutor',
-            description: 'Une entrée par ligne au format moveId|versionGroup.',
-            fieldKey: const Key('pokedex-learnset-tutor-field'),
-            controller: tutorController,
-            enabled: !isSaving,
-            minLines: 2,
-            maxLines: 6,
-            placeholder: 'seed_bomb|scarlet-violet',
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'Egg',
-            description: 'Une entrée par ligne au format moveId|versionGroup.',
-            fieldKey: const Key('pokedex-learnset-egg-field'),
-            controller: eggController,
-            enabled: !isSaving,
-            minLines: 2,
-            maxLines: 6,
-            placeholder: 'petal_dance|scarlet-violet',
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'Event',
-            description: 'Une entrée par ligne au format moveId|versionGroup.',
-            fieldKey: const Key('pokedex-learnset-event-field'),
-            controller: eventController,
-            enabled: !isSaving,
-            minLines: 2,
-            maxLines: 6,
-            placeholder: 'celebrate|scarlet-violet',
-          ),
-          const SizedBox(height: 10),
-          _PokedexEditorTextField(
-            label: 'Transfer',
-            description: 'Une entrée par ligne au format moveId|versionGroup.',
-            fieldKey: const Key('pokedex-learnset-transfer-field'),
-            controller: transferController,
-            enabled: !isSaving,
-            minLines: 2,
-            maxLines: 6,
-            placeholder: 'toxic|scarlet-violet',
-          ),
-          const SizedBox(height: 14),
-          Row(
+      child: FutureBuilder<PokemonMovesCatalogView>(
+        future: movesCatalogFuture,
+        builder: (context, snapshot) {
+          final catalogView = snapshot.data;
+          final isCatalogLoading =
+              snapshot.connectionState != ConnectionState.done;
+          final catalogLoadError = switch (snapshot.error) {
+            final EditorApplicationException applicationError =>
+              applicationError.message,
+            final Object error => error.toString(),
+            null => null,
+          };
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CupertinoButton.filled(
-                key: const Key('pokedex-save-learnset-button'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+              _PokedexPropertyLine(
+                label: 'Ref learnset',
+                value: learnsetRef.isEmpty ? 'Ref absente' : learnsetRef,
+              ),
+              const SizedBox(height: 10),
+              _PokedexLearnsetMovesAssistBanner(
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+                catalogLoadError: catalogLoadError,
+              ),
+              const SizedBox(height: 10),
+              _PokedexSimpleMoveAssistEditor(
+                title: 'Moves de départ',
+                description:
+                    'Un move id par ligne. Les doublons exacts sont ignorés à la sauvegarde.',
+                fieldKey: const Key('pokedex-learnset-starting-field'),
+                controller: startingMovesController,
+                enabled: !isSaving,
+                placeholder: 'tackle\ngrowl',
+                sectionKeyPrefix: 'pokedex-learnset-starting',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexSimpleMoveAssistEditor(
+                title: 'Moves à réapprendre',
+                description: 'Un move id par ligne.',
+                fieldKey: const Key('pokedex-learnset-relearn-field'),
+                controller: relearnMovesController,
+                enabled: !isSaving,
+                placeholder: 'vine_whip',
+                sectionKeyPrefix: 'pokedex-learnset-relearn',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexLevelUpAssistEditor(
+                title: 'Level-up',
+                description:
+                    'Une entrée par ligne au format moveId|level|source|versionGroup.',
+                fieldKey: const Key('pokedex-learnset-level-up-field'),
+                controller: levelUpController,
+                enabled: !isSaving,
+                placeholder: 'vine_whip|7|level_up|scarlet-violet',
+                sectionKeyPrefix: 'pokedex-learnset-level-up',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexMoveEntryAssistEditor(
+                title: 'TM',
+                description:
+                    'Une entrée par ligne au format moveId|versionGroup.',
+                fieldKey: const Key('pokedex-learnset-tm-field'),
+                controller: tmController,
+                enabled: !isSaving,
+                placeholder: 'protect|scarlet-violet',
+                sectionKeyPrefix: 'pokedex-learnset-tm',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexMoveEntryAssistEditor(
+                title: 'Tutor',
+                description:
+                    'Une entrée par ligne au format moveId|versionGroup.',
+                fieldKey: const Key('pokedex-learnset-tutor-field'),
+                controller: tutorController,
+                enabled: !isSaving,
+                placeholder: 'seed_bomb|scarlet-violet',
+                sectionKeyPrefix: 'pokedex-learnset-tutor',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexMoveEntryAssistEditor(
+                title: 'Egg',
+                description:
+                    'Une entrée par ligne au format moveId|versionGroup.',
+                fieldKey: const Key('pokedex-learnset-egg-field'),
+                controller: eggController,
+                enabled: !isSaving,
+                placeholder: 'petal_dance|scarlet-violet',
+                sectionKeyPrefix: 'pokedex-learnset-egg',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexMoveEntryAssistEditor(
+                title: 'Event',
+                description:
+                    'Une entrée par ligne au format moveId|versionGroup.',
+                fieldKey: const Key('pokedex-learnset-event-field'),
+                controller: eventController,
+                enabled: !isSaving,
+                placeholder: 'celebrate|scarlet-violet',
+                sectionKeyPrefix: 'pokedex-learnset-event',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexMoveEntryAssistEditor(
+                title: 'Transfer',
+                description:
+                    'Une entrée par ligne au format moveId|versionGroup.',
+                fieldKey: const Key('pokedex-learnset-transfer-field'),
+                controller: transferController,
+                enabled: !isSaving,
+                placeholder: 'toxic|scarlet-violet',
+                sectionKeyPrefix: 'pokedex-learnset-transfer',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  CupertinoButton.filled(
+                    key: const Key('pokedex-save-learnset-button'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    onPressed: isSaving ? null : onSave,
+                    child: Text(isSaving ? 'Enregistrement…' : 'Enregistrer'),
+                  ),
+                  const SizedBox(width: 10),
+                  CupertinoButton(
+                    key: const Key('pokedex-cancel-learnset-button'),
+                    onPressed: isSaving ? null : onCancel,
+                    child: const Text('Annuler'),
+                  ),
+                ],
+              ),
+              if (saveErrorMessage != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  saveErrorMessage!,
+                  key: const Key('pokedex-learnset-save-error'),
+                  style: const TextStyle(
+                    color: EditorChrome.inspectorJoyCoral,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                onPressed: isSaving ? null : onSave,
-                child: Text(isSaving ? 'Enregistrement…' : 'Enregistrer'),
-              ),
-              const SizedBox(width: 10),
-              CupertinoButton(
-                key: const Key('pokedex-cancel-learnset-button'),
-                onPressed: isSaving ? null : onCancel,
-                child: const Text('Annuler'),
-              ),
+              ],
             ],
-          ),
-          if (saveErrorMessage != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              saveErrorMessage!,
-              key: const Key('pokedex-learnset-save-error'),
-              style: const TextStyle(
-                color: EditorChrome.inspectorJoyCoral,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ],
+          );
+        },
       ),
     );
   }
