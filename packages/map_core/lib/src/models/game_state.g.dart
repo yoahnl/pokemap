@@ -93,6 +93,13 @@ _$GameStateImpl _$$GameStateImplFromJson(Map<String, dynamic> json) =>
       party: json['party'] == null
           ? const PlayerParty()
           : PlayerParty.fromJson(json['party'] as Map<String, dynamic>),
+      trainerProfile: json['trainerProfile'] == null
+          ? const TrainerProfile(name: 'Player')
+          : TrainerProfile.fromJson(
+              json['trainerProfile'] as Map<String, dynamic>),
+      bag: json['bag'] == null
+          ? const Bag()
+          : Bag.fromJson(json['bag'] as Map<String, dynamic>),
       progression: json['progression'] == null
           ? const PlayerProgression()
           : PlayerProgression.fromJson(
@@ -122,6 +129,8 @@ Map<String, dynamic> _$$GameStateImplToJson(_$GameStateImpl instance) =>
       'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
       'playerMovementMode': _$MovementModeEnumMap[instance.playerMovementMode]!,
       'party': instance.party.toJson(),
+      'trainerProfile': instance.trainerProfile.toJson(),
+      'bag': instance.bag.toJson(),
       'progression': instance.progression.toJson(),
       'scriptVariables': instance.scriptVariables.toJson(),
       'storyFlags': instance.storyFlags.toJson(),

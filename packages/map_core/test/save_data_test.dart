@@ -4,15 +4,52 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('PokemonStatSpread', () {
+    test('serialization round-trip', () {
+      const stats = PokemonStatSpread(
+        hp: 31,
+        attack: 30,
+        defense: 29,
+        specialAttack: 28,
+        specialDefense: 27,
+        speed: 26,
+      );
+
+      final json = stats.toJson();
+      final restored = PokemonStatSpread.fromJson(json);
+
+      expect(restored, stats);
+    });
+  });
+
   group('PlayerPokemon', () {
     test('serialization round-trip', () {
       const pokemon = PlayerPokemon(
-        id: 'poke_1',
         speciesId: 'lapras',
-        nickname: 'Nessie',
+        natureId: 'modest',
+        abilityId: 'water-absorb',
         level: 30,
+        ivs: PokemonStatSpread(
+          hp: 31,
+          attack: 12,
+          defense: 22,
+          specialAttack: 31,
+          specialDefense: 25,
+          speed: 18,
+        ),
+        evs: PokemonStatSpread(
+          hp: 0,
+          attack: 0,
+          defense: 4,
+          specialAttack: 252,
+          specialDefense: 0,
+          speed: 252,
+        ),
         knownMoveIds: ['surf', 'ice_beam'],
-        isFainted: false,
+        currentHp: 99,
+        statusId: 'poison',
+        isShiny: true,
+        heldItemId: 'mystic-water',
       );
       final json = pokemon.toJson();
       final restored = PlayerPokemon.fromJson(json);
@@ -20,32 +57,58 @@ void main() {
     });
 
     test('defaults are coherent', () {
-      const pokemon = PlayerPokemon(id: 'p1', speciesId: 'magikarp');
-      expect(pokemon.nickname, '');
+      const pokemon = PlayerPokemon(
+        speciesId: 'magikarp',
+        natureId: 'hardy',
+        abilityId: 'swift-swim',
+      );
       expect(pokemon.level, 1);
       expect(pokemon.knownMoveIds, isEmpty);
+      expect(pokemon.currentHp, 1);
       expect(pokemon.isFainted, false);
     });
 
     test('JSON keys match expected structure', () {
       const pokemon = PlayerPokemon(
-        id: 'p1',
         speciesId: 'pikachu',
+        natureId: 'jolly',
+        abilityId: 'static',
         knownMoveIds: ['thunderbolt'],
       );
       final json = pokemon.toJson();
-      expect(json['id'], 'p1');
       expect(json['speciesId'], 'pikachu');
+      expect(json['natureId'], 'jolly');
+      expect(json['abilityId'], 'static');
       expect(json['knownMoveIds'], ['thunderbolt']);
-      expect(json['isFainted'], false);
+      expect(json['currentHp'], 1);
+    });
+
+    test('normalized rejects more than four moves', () {
+      const pokemon = PlayerPokemon(
+        speciesId: 'pikachu',
+        natureId: 'jolly',
+        abilityId: 'static',
+        knownMoveIds: ['tackle', 'growl', 'quick-attack', 'slam', 'surf'],
+      );
+
+      expect(() => pokemon.normalized(), throwsStateError);
     });
   });
 
   group('PlayerParty', () {
     test('serialization round-trip', () {
       const party = PlayerParty(members: [
-        PlayerPokemon(id: 'p1', speciesId: 'lapras', knownMoveIds: ['surf']),
-        PlayerPokemon(id: 'p2', speciesId: 'pikachu'),
+        PlayerPokemon(
+          speciesId: 'lapras',
+          natureId: 'modest',
+          abilityId: 'water-absorb',
+          knownMoveIds: ['surf'],
+        ),
+        PlayerPokemon(
+          speciesId: 'pikachu',
+          natureId: 'timid',
+          abilityId: 'static',
+        ),
       ]);
       final json = party.toJson();
       final restored = PlayerParty.fromJson(json);
@@ -81,6 +144,83 @@ void main() {
     });
   });
 
+  group('TrainerProfile', () {
+    test('serialization round-trip', () {
+      const profile = TrainerProfile(
+        name: 'Red',
+        badgeIds: ['boulder', 'cascade'],
+        money: 4200,
+        playtimeSeconds: 3600,
+      );
+
+      final json = profile.toJson();
+      final restored = TrainerProfile.fromJson(json);
+
+      expect(restored, profile);
+    });
+
+    test('normalized badges are stable', () {
+      const profile = TrainerProfile(
+        name: ' Red ',
+        badgeIds: ['cascade', 'boulder', 'cascade'],
+      );
+
+      final normalized = profile.normalized();
+
+      expect(normalized.name, 'Red');
+      expect(normalized.badgeIds, ['boulder', 'cascade']);
+    });
+
+    test('normalized rejects empty names', () {
+      const profile = TrainerProfile(name: '   ');
+
+      expect(() => profile.normalized(), throwsStateError);
+    });
+  });
+
+  group('Bag', () {
+    test('serialization round-trip', () {
+      const bag = Bag(
+        entries: [
+          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 10),
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+        ],
+      );
+
+      final json = bag.toJson();
+      final restored = Bag.fromJson(json);
+
+      expect(restored, bag);
+    });
+
+    test('normalized entries merge duplicates deterministically', () {
+      const bag = Bag(
+        entries: [
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+        ],
+      );
+
+      final normalized = bag.normalized();
+
+      expect(normalized.entries, [
+        const BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+        const BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 5),
+      ]);
+    });
+
+    test('normalized rejects non-positive quantities', () {
+      const bag = Bag(
+        entries: [
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 0),
+        ],
+      );
+
+      expect(() => bag.normalized(), throwsStateError);
+    });
+  });
+
   group('SaveData', () {
     test('serialization round-trip', () {
       const save = SaveData(
@@ -90,12 +230,24 @@ void main() {
         playerFacing: EntityFacing.north,
         party: PlayerParty(members: [
           PlayerPokemon(
-            id: 'p1',
             speciesId: 'squirtle',
+            natureId: 'bold',
+            abilityId: 'torrent',
             level: 12,
             knownMoveIds: ['surf', 'water_gun'],
           ),
         ]),
+        trainerProfile: TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['cascade'],
+          money: 1200,
+          playtimeSeconds: 180,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
         progression: PlayerProgression(
           unlockedFieldAbilities: [FieldAbility.surf],
           storyFlags: ['intro_done'],
@@ -114,8 +266,9 @@ void main() {
       expect(restored.playerFacing, EntityFacing.north);
       expect(restored.party.members.length, 1);
       expect(restored.party.members.first.speciesId, 'squirtle');
-      expect(restored.progression.unlockedFieldAbilities,
-          [FieldAbility.surf]);
+      expect(restored.trainerProfile.name, 'Leaf');
+      expect(restored.bag.entries.single.itemId, 'poke-ball');
+      expect(restored.progression.unlockedFieldAbilities, [FieldAbility.surf]);
       expect(restored.properties['lastHealLocation'], 'pokemon_center_1');
     });
 
@@ -125,6 +278,8 @@ void main() {
       expect(save.playerPosition, const GridPos(x: 0, y: 0));
       expect(save.playerFacing, EntityFacing.south);
       expect(save.party.members, isEmpty);
+      expect(save.trainerProfile.name, 'Player');
+      expect(save.bag.entries, isEmpty);
       expect(save.progression.unlockedFieldAbilities, isEmpty);
       expect(save.progression.storyFlags, isEmpty);
       expect(save.progression.completedStepIds, isEmpty);
@@ -136,7 +291,11 @@ void main() {
         saveId: 'test',
         currentMapId: 'route_1',
         party: PlayerParty(members: [
-          PlayerPokemon(id: 'p1', speciesId: 'bulbasaur'),
+          PlayerPokemon(
+            speciesId: 'bulbasaur',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+          ),
         ]),
       );
       final updated = save.copyWith(currentMapId: 'route_2');

@@ -30,16 +30,28 @@ class FileGameSaveRepository implements GameSaveRepository {
   Future<void> save(GameState state) async {
     try {
       final filePath = await getSaveFilePath();
-      final json = state.toJson();
+      final normalizedSaveData = saveDataFromGameState(state);
+      final normalizedState = state.copyWith(
+        saveId: normalizedSaveData.saveId,
+        currentMapId: normalizedSaveData.currentMapId,
+        playerPosition: normalizedSaveData.playerPosition,
+        playerFacing: normalizedSaveData.playerFacing,
+        party: normalizedSaveData.party,
+        trainerProfile: normalizedSaveData.trainerProfile,
+        bag: normalizedSaveData.bag,
+        progression: normalizedSaveData.progression,
+        metadata: normalizedSaveData.properties,
+      );
+      final json = normalizedState.toJson();
       final file = File(filePath);
       debugPrint(
-        '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${state.progression.completedStepIds}',
+        '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
       );
       await file
           .writeAsString(const JsonEncoder.withIndent('  ').convert(json));
       debugPrint('[save] game saved to $filePath');
       debugPrint(
-        '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${state.progression.completedStepIds}',
+        '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
       );
     } catch (e, st) {
       debugPrint('[save] failed: $e\n$st');

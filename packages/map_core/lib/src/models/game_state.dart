@@ -14,8 +14,7 @@ part 'game_state.g.dart';
 /// dans les comparaisons de conditions.
 @freezed
 class ScriptVariableValue with _$ScriptVariableValue {
-  const factory ScriptVariableValue.bool(bool value) =
-      ScriptVariableValueBool;
+  const factory ScriptVariableValue.bool(bool value) = ScriptVariableValueBool;
   const factory ScriptVariableValue.int(int value) = ScriptVariableValueInt;
   const factory ScriptVariableValue.string(String value) =
       ScriptVariableValueString;
@@ -86,6 +85,8 @@ class GameState with _$GameState {
 
     /// Équipe du joueur.
     @Default(PlayerParty()) PlayerParty party,
+    @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
+    @Default(Bag()) Bag bag,
 
     /// Progression narrative et capacités.
     @Default(PlayerProgression()) PlayerProgression progression,

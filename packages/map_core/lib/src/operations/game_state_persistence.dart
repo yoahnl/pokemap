@@ -3,23 +3,26 @@ import '../models/game_state.dart';
 import '../models/save_data.dart';
 
 GameState gameStateFromSaveData(SaveData saveData) {
-  final migratedFlags = saveData.progression.storyFlags
+  final normalizedSaveData = saveData.normalized();
+  final migratedFlags = normalizedSaveData.progression.storyFlags
       .map((flag) => flag.trim())
       .where((flag) => flag.isNotEmpty)
       .toSet();
 
   return GameState(
-    saveId: saveData.saveId,
-    currentMapId: saveData.currentMapId,
-    playerPosition: saveData.playerPosition,
-    playerFacing: saveData.playerFacing,
+    saveId: normalizedSaveData.saveId,
+    currentMapId: normalizedSaveData.currentMapId,
+    playerPosition: normalizedSaveData.playerPosition,
+    playerFacing: normalizedSaveData.playerFacing,
     playerMovementMode: MovementMode.walk,
-    party: saveData.party,
-    progression: saveData.progression,
+    party: normalizedSaveData.party,
+    trainerProfile: normalizedSaveData.trainerProfile,
+    bag: normalizedSaveData.bag,
+    progression: normalizedSaveData.progression,
     storyFlags: StoryFlags(activeFlags: migratedFlags),
     scriptVariables: const ScriptVariables(),
     consumedEventIds: const {},
-    metadata: saveData.properties,
+    metadata: normalizedSaveData.properties,
   );
 }
 
@@ -35,11 +38,13 @@ SaveData saveDataFromGameState(GameState gameState) {
     playerPosition: gameState.playerPosition,
     playerFacing: gameState.playerFacing,
     party: gameState.party,
+    trainerProfile: gameState.trainerProfile,
+    bag: gameState.bag,
     progression: gameState.progression.copyWith(
       storyFlags: mergedProgressionFlags.toList(growable: false),
     ),
     properties: gameState.metadata,
-  );
+  ).normalized();
 }
 
 GameState normalizeLoadedGameState(GameState state) {

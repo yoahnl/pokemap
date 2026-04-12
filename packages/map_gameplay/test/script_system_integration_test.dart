@@ -34,7 +34,8 @@ void main() {
     test('clearFlag removes flag from activeFlags', () {
       final initialState = GameState(
         saveId: 'test-save',
-        storyFlags: const StoryFlags(activeFlags: {'professor_met', 'starter_received'}),
+        storyFlags: const StoryFlags(
+            activeFlags: {'professor_met', 'starter_received'}),
       );
 
       final newState = mutations.clearFlag(initialState, 'professor_met');
@@ -316,7 +317,8 @@ void main() {
               type: ScriptConditionType.flagIsUnset,
               params: {ScriptConditionParams.flagName: 'professor_met'},
             ),
-            script: const ScriptRef(scriptId: 'professor_intro', startNode: 'start'),
+            script: const ScriptRef(
+                scriptId: 'professor_intro', startNode: 'start'),
             message: 'Hello! I am Professor Oak!',
           ),
           MapEventPage(
@@ -354,14 +356,16 @@ void main() {
       var currentState = initialState;
       for (final command in script.nodes.first.commands) {
         if (command.type == ScriptCommandType.setFlag) {
-          currentState = mutations.setFlag(currentState, command.params['flagName']!);
+          currentState =
+              mutations.setFlag(currentState, command.params['flagName']!);
         }
       }
 
       final activePageAfter = pageResolver.resolve(event, currentState);
       expect(activePageAfter, isNotNull);
       expect(activePageAfter!.pageIndex, equals(1));
-      expect(activePageAfter.page.message, equals('Good luck on your journey!'));
+      expect(
+          activePageAfter.page.message, equals('Good luck on your journey!'));
     });
   });
 
@@ -369,7 +373,8 @@ void main() {
     test('fieldAbilityUnlocked returns true when ability is unlocked', () {
       final state = GameState(
         saveId: 'test-save',
-        progression: const PlayerProgression(unlockedFieldAbilities: [FieldAbility.surf]),
+        progression: const PlayerProgression(
+            unlockedFieldAbilities: [FieldAbility.surf]),
       );
 
       final condition = ScriptCondition(
@@ -403,10 +408,10 @@ void main() {
         saveId: 'test-save',
         party: PlayerParty(members: [
           const PlayerPokemon(
-            id: 'pikachu_1',
             speciesId: 'pikachu',
+            natureId: 'timid',
+            abilityId: 'static',
             knownMoveIds: ['surf', 'thunderbolt'],
-            isFainted: false,
           ),
         ]),
       );
@@ -420,15 +425,17 @@ void main() {
       expect(result, isTrue);
     });
 
-    test('partyHasUsableMove returns false when only fainted pokemon has move', () {
+    test('partyHasUsableMove returns false when only fainted pokemon has move',
+        () {
       final state = GameState(
         saveId: 'test-save',
         party: PlayerParty(members: [
           const PlayerPokemon(
-            id: 'pikachu_1',
             speciesId: 'pikachu',
+            natureId: 'timid',
+            abilityId: 'static',
             knownMoveIds: ['surf', 'thunderbolt'],
-            isFainted: true,
+            currentHp: 0,
           ),
         ]),
       );

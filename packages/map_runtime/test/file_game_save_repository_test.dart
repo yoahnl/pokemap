@@ -9,7 +9,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('FileGameSaveRepository E2E', () {
-    late FileGameSaveRepository repository;
+    late _TestFileGameSaveRepository repository;
     late Directory testDirectory;
 
     setUp(() async {
@@ -25,28 +25,51 @@ void main() {
     });
 
     test('save → load → GameState identical', () async {
-      final originalState = GameState(
+      const originalState = GameState(
         saveId: 'test_save_001',
         currentMapId: 'pallet_town',
-        playerPosition: const GridPos(x: 5, y: 3),
+        playerPosition: GridPos(x: 5, y: 3),
         playerFacing: EntityFacing.north,
         playerMovementMode: MovementMode.walk,
-        party: const PlayerParty(members: [
+        party: PlayerParty(members: [
           PlayerPokemon(
-            id: 'p1',
             speciesId: 'squirtle',
+            natureId: 'bold',
+            abilityId: 'torrent',
             level: 12,
+            ivs: PokemonStatSpread(
+              hp: 31,
+              attack: 30,
+              defense: 29,
+              specialAttack: 28,
+              specialDefense: 27,
+              speed: 26,
+            ),
             knownMoveIds: ['surf', 'water_gun'],
+            currentHp: 30,
+            heldItemId: 'mystic-water',
           ),
         ]),
-        progression: const PlayerProgression(
+        trainerProfile: TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['boulder', 'cascade'],
+          money: 2500,
+          playtimeSeconds: 1800,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 10),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+        progression: PlayerProgression(
           unlockedFieldAbilities: [FieldAbility.surf],
           storyFlags: ['intro_done'],
         ),
         scriptVariables: ScriptVariables(values: {
-          'rival_battles_won': const ScriptVariableValue.int(3),
+          'rival_battles_won': ScriptVariableValue.int(3),
         }),
-        storyFlags: const StoryFlags(activeFlags: {
+        storyFlags: StoryFlags(activeFlags: {
           'trainer_defeated:gym_leader_1',
           'badge_cascade',
         }),
@@ -69,6 +92,8 @@ void main() {
           equals(originalState.playerMovementMode));
       expect(loadedState.party.members.length,
           equals(originalState.party.members.length));
+      expect(loadedState.trainerProfile, equals(originalState.trainerProfile));
+      expect(loadedState.bag, equals(originalState.bag));
       expect(loadedState.progression.unlockedFieldAbilities,
           equals(originalState.progression.unlockedFieldAbilities));
       expect(loadedState.storyFlags.activeFlags,
@@ -79,10 +104,10 @@ void main() {
 
     test('save → load → storyFlags contains trainer_defeated:{id}', () async {
       const trainerId = 'gym_leader_1';
-      final originalState = GameState(
+      const originalState = GameState(
         saveId: 'test_save_002',
         currentMapId: 'pallet_town',
-        storyFlags: const StoryFlags(activeFlags: {
+        storyFlags: StoryFlags(activeFlags: {
           'trainer_defeated:$trainerId',
           'intro_done',
         }),
@@ -102,7 +127,7 @@ void main() {
     test(
         'load migrates legacy progression.storyFlags into storyFlags.activeFlags',
         () async {
-      final filePath = await repository.getSaveFilePath();
+      final filePath = await repository.exposedSaveFilePath();
       final file = File(filePath);
       final legacyJson = <String, dynamic>{
         'saveId': 'legacy_save',
@@ -172,7 +197,17 @@ void main() {
         currentMapId: 'test_map',
         playerPosition: GridPos(x: 10, y: 5),
         playerFacing: EntityFacing.east,
-        playerMovementMode: MovementMode.walk,
+        trainerProfile: TrainerProfile(
+          name: 'Red',
+          badgeIds: ['boulder'],
+          money: 500,
+          playtimeSeconds: 90,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
         storyFlags: StoryFlags(activeFlags: {
           'trainer_defeated:$trainerId',
         }),
@@ -181,7 +216,7 @@ void main() {
       await repository.save(state);
 
       // Read raw JSON file
-      final filePath = await repository.getSaveFilePath();
+      final filePath = await repository.exposedSaveFilePath();
       final file = File(filePath);
       final content = await file.readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
@@ -192,6 +227,9 @@ void main() {
       expect(json['playerPosition'], isA<Map<String, dynamic>>());
       expect(json['playerFacing'], equals('east'));
       expect(json['playerMovementMode'], equals('walk'));
+      expect(json['trainerProfile'], isA<Map<String, dynamic>>());
+      expect(json['bag'], isA<Map<String, dynamic>>());
+      expect(json['progression'], isA<Map<String, dynamic>>());
       expect(json['storyFlags'], isA<Map<String, dynamic>>());
 
       final storyFlags = json['storyFlags'] as Map<String, dynamic>;
@@ -201,6 +239,103 @@ void main() {
               .contains('trainer_defeated:$trainerId'),
           isTrue);
     });
+
+    test('save writes normalized phase 9 data', () async {
+      const state = GameState(
+        saveId: ' test_save_005b ',
+        currentMapId: ' test_map ',
+        trainerProfile: TrainerProfile(
+          name: ' Red ',
+          badgeIds: ['cascade', 'boulder', 'cascade'],
+          money: 500,
+          playtimeSeconds: 90,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: ' potion ', categoryId: ' medicine ', quantity: 2),
+            BagEntry(itemId: ' poke-ball ', categoryId: ' items ', quantity: 5),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+      );
+
+      await repository.save(state);
+
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      final content = await file.readAsString();
+      final json = jsonDecode(content) as Map<String, dynamic>;
+      final trainerProfile = json['trainerProfile'] as Map<String, dynamic>;
+      final bag = json['bag'] as Map<String, dynamic>;
+      final entries = bag['entries'] as List<dynamic>;
+
+      expect(json['saveId'], equals('test_save_005b'));
+      expect(json['currentMapId'], equals('test_map'));
+      expect(trainerProfile['name'], equals('Red'));
+      expect(trainerProfile['badgeIds'], equals(['boulder', 'cascade']));
+      expect(entries, [
+        {
+          'itemId': 'poke-ball',
+          'categoryId': 'items',
+          'quantity': 5,
+        },
+        {
+          'itemId': 'potion',
+          'categoryId': 'medicine',
+          'quantity': 5,
+        },
+      ]);
+    });
+
+    test('save keeps project.json unchanged', () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      const state = GameState(
+        saveId: 'test_save_006',
+        trainerProfile: TrainerProfile(name: 'Blue'),
+      );
+
+      await repository.save(state);
+
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+
+    test('invalid save does not write and keeps project.json unchanged',
+        () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      const invalidState = GameState(saveId: '');
+
+      await expectLater(
+        () => repository.save(invalidState),
+        throwsA(isA<GameSaveException>()),
+      );
+
+      expect(await repository.exists(), isFalse);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+
+    test(
+        'invalid nested phase 9 data does not write and keeps project.json unchanged',
+        () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      const invalidState = GameState(
+        saveId: 'test_save_007',
+        trainerProfile: TrainerProfile(name: '   '),
+      );
+
+      await expectLater(
+        () => repository.save(invalidState),
+        throwsA(isA<GameSaveException>()),
+      );
+
+      expect(await repository.exists(), isFalse);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
   });
 }
 
@@ -209,6 +344,8 @@ class _TestFileGameSaveRepository extends FileGameSaveRepository {
   _TestFileGameSaveRepository(this._testDirectory);
 
   final Directory _testDirectory;
+
+  Future<String> exposedSaveFilePath() => getSaveFilePath();
 
   @override
   Future<String> getSaveFilePath() async {

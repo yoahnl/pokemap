@@ -955,6 +955,8 @@ mixin _$GameState {
 
   /// Équipe du joueur.
   PlayerParty get party => throw _privateConstructorUsedError;
+  TrainerProfile get trainerProfile => throw _privateConstructorUsedError;
+  Bag get bag => throw _privateConstructorUsedError;
 
   /// Progression narrative et capacités.
   PlayerProgression get progression => throw _privateConstructorUsedError;
@@ -993,6 +995,8 @@ abstract class $GameStateCopyWith<$Res> {
       EntityFacing playerFacing,
       MovementMode playerMovementMode,
       PlayerParty party,
+      TrainerProfile trainerProfile,
+      Bag bag,
       PlayerProgression progression,
       ScriptVariables scriptVariables,
       StoryFlags storyFlags,
@@ -1001,6 +1005,8 @@ abstract class $GameStateCopyWith<$Res> {
 
   $GridPosCopyWith<$Res> get playerPosition;
   $PlayerPartyCopyWith<$Res> get party;
+  $TrainerProfileCopyWith<$Res> get trainerProfile;
+  $BagCopyWith<$Res> get bag;
   $PlayerProgressionCopyWith<$Res> get progression;
   $ScriptVariablesCopyWith<$Res> get scriptVariables;
   $StoryFlagsCopyWith<$Res> get storyFlags;
@@ -1027,6 +1033,8 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
     Object? playerFacing = null,
     Object? playerMovementMode = null,
     Object? party = null,
+    Object? trainerProfile = null,
+    Object? bag = null,
     Object? progression = null,
     Object? scriptVariables = null,
     Object? storyFlags = null,
@@ -1058,6 +1066,14 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
               as PlayerParty,
+      trainerProfile: null == trainerProfile
+          ? _value.trainerProfile
+          : trainerProfile // ignore: cast_nullable_to_non_nullable
+              as TrainerProfile,
+      bag: null == bag
+          ? _value.bag
+          : bag // ignore: cast_nullable_to_non_nullable
+              as Bag,
       progression: null == progression
           ? _value.progression
           : progression // ignore: cast_nullable_to_non_nullable
@@ -1098,6 +1114,26 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
   $PlayerPartyCopyWith<$Res> get party {
     return $PlayerPartyCopyWith<$Res>(_value.party, (value) {
       return _then(_value.copyWith(party: value) as $Val);
+    });
+  }
+
+  /// Create a copy of GameState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $TrainerProfileCopyWith<$Res> get trainerProfile {
+    return $TrainerProfileCopyWith<$Res>(_value.trainerProfile, (value) {
+      return _then(_value.copyWith(trainerProfile: value) as $Val);
+    });
+  }
+
+  /// Create a copy of GameState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $BagCopyWith<$Res> get bag {
+    return $BagCopyWith<$Res>(_value.bag, (value) {
+      return _then(_value.copyWith(bag: value) as $Val);
     });
   }
 
@@ -1147,6 +1183,8 @@ abstract class _$$GameStateImplCopyWith<$Res>
       EntityFacing playerFacing,
       MovementMode playerMovementMode,
       PlayerParty party,
+      TrainerProfile trainerProfile,
+      Bag bag,
       PlayerProgression progression,
       ScriptVariables scriptVariables,
       StoryFlags storyFlags,
@@ -1157,6 +1195,10 @@ abstract class _$$GameStateImplCopyWith<$Res>
   $GridPosCopyWith<$Res> get playerPosition;
   @override
   $PlayerPartyCopyWith<$Res> get party;
+  @override
+  $TrainerProfileCopyWith<$Res> get trainerProfile;
+  @override
+  $BagCopyWith<$Res> get bag;
   @override
   $PlayerProgressionCopyWith<$Res> get progression;
   @override
@@ -1184,6 +1226,8 @@ class __$$GameStateImplCopyWithImpl<$Res>
     Object? playerFacing = null,
     Object? playerMovementMode = null,
     Object? party = null,
+    Object? trainerProfile = null,
+    Object? bag = null,
     Object? progression = null,
     Object? scriptVariables = null,
     Object? storyFlags = null,
@@ -1215,6 +1259,14 @@ class __$$GameStateImplCopyWithImpl<$Res>
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
               as PlayerParty,
+      trainerProfile: null == trainerProfile
+          ? _value.trainerProfile
+          : trainerProfile // ignore: cast_nullable_to_non_nullable
+              as TrainerProfile,
+      bag: null == bag
+          ? _value.bag
+          : bag // ignore: cast_nullable_to_non_nullable
+              as Bag,
       progression: null == progression
           ? _value.progression
           : progression // ignore: cast_nullable_to_non_nullable
@@ -1250,6 +1302,8 @@ class _$GameStateImpl implements _GameState {
       this.playerFacing = EntityFacing.south,
       this.playerMovementMode = MovementMode.walk,
       this.party = const PlayerParty(),
+      this.trainerProfile = const TrainerProfile(name: 'Player'),
+      this.bag = const Bag(),
       this.progression = const PlayerProgression(),
       this.scriptVariables = const ScriptVariables(),
       this.storyFlags = const StoryFlags(),
@@ -1289,6 +1343,12 @@ class _$GameStateImpl implements _GameState {
   @override
   @JsonKey()
   final PlayerParty party;
+  @override
+  @JsonKey()
+  final TrainerProfile trainerProfile;
+  @override
+  @JsonKey()
+  final Bag bag;
 
   /// Progression narrative et capacités.
   @override
@@ -1331,7 +1391,7 @@ class _$GameStateImpl implements _GameState {
 
   @override
   String toString() {
-    return 'GameState(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, progression: $progression, scriptVariables: $scriptVariables, storyFlags: $storyFlags, consumedEventIds: $consumedEventIds, metadata: $metadata)';
+    return 'GameState(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, scriptVariables: $scriptVariables, storyFlags: $storyFlags, consumedEventIds: $consumedEventIds, metadata: $metadata)';
   }
 
   @override
@@ -1349,6 +1409,9 @@ class _$GameStateImpl implements _GameState {
             (identical(other.playerMovementMode, playerMovementMode) ||
                 other.playerMovementMode == playerMovementMode) &&
             (identical(other.party, party) || other.party == party) &&
+            (identical(other.trainerProfile, trainerProfile) ||
+                other.trainerProfile == trainerProfile) &&
+            (identical(other.bag, bag) || other.bag == bag) &&
             (identical(other.progression, progression) ||
                 other.progression == progression) &&
             (identical(other.scriptVariables, scriptVariables) ||
@@ -1370,6 +1433,8 @@ class _$GameStateImpl implements _GameState {
       playerFacing,
       playerMovementMode,
       party,
+      trainerProfile,
+      bag,
       progression,
       scriptVariables,
       storyFlags,
@@ -1400,6 +1465,8 @@ abstract class _GameState implements GameState {
       final EntityFacing playerFacing,
       final MovementMode playerMovementMode,
       final PlayerParty party,
+      final TrainerProfile trainerProfile,
+      final Bag bag,
       final PlayerProgression progression,
       final ScriptVariables scriptVariables,
       final StoryFlags storyFlags,
@@ -1432,6 +1499,10 @@ abstract class _GameState implements GameState {
   /// Équipe du joueur.
   @override
   PlayerParty get party;
+  @override
+  TrainerProfile get trainerProfile;
+  @override
+  Bag get bag;
 
   /// Progression narrative et capacités.
   @override

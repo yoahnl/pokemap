@@ -28,8 +28,9 @@ void main() {
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
-            id: 'p1',
             speciesId: 'pikachu',
+            natureId: 'timid',
+            abilityId: 'static',
             knownMoveIds: ['thunderbolt'],
           ),
         ]),
@@ -49,10 +50,11 @@ void main() {
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
-            id: 'p1',
             speciesId: 'lapras',
+            natureId: 'modest',
+            abilityId: 'water-absorb',
             knownMoveIds: ['surf'],
-            isFainted: true,
+            currentHp: 0,
           ),
         ]),
         progression: PlayerProgression(
@@ -87,8 +89,9 @@ void main() {
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
-            id: 'p1',
             speciesId: 'lapras',
+            natureId: 'modest',
+            abilityId: 'water-absorb',
             knownMoveIds: ['surf'],
           ),
         ]),
@@ -118,13 +121,15 @@ void main() {
         saveId: 'test',
         party: PlayerParty(members: [
           PlayerPokemon(
-            id: 'p1',
             speciesId: 'pikachu',
+            natureId: 'timid',
+            abilityId: 'static',
             knownMoveIds: ['thunderbolt'],
           ),
           PlayerPokemon(
-            id: 'p2',
             speciesId: 'lapras',
+            natureId: 'modest',
+            abilityId: 'water-absorb',
             knownMoveIds: ['surf', 'ice_beam'],
           ),
         ]),
@@ -144,8 +149,9 @@ void main() {
     test('returns true when a non-fainted member knows the move', () {
       const party = PlayerParty(members: [
         PlayerPokemon(
-          id: 'p1',
           speciesId: 'lapras',
+          natureId: 'modest',
+          abilityId: 'water-absorb',
           knownMoveIds: ['surf'],
         ),
       ]);
@@ -155,10 +161,11 @@ void main() {
     test('returns false when the member knowing the move is fainted', () {
       const party = PlayerParty(members: [
         PlayerPokemon(
-          id: 'p1',
           speciesId: 'lapras',
+          natureId: 'modest',
+          abilityId: 'water-absorb',
           knownMoveIds: ['surf'],
-          isFainted: true,
+          currentHp: 0,
         ),
       ]);
       expect(partyHasUsableFieldMove(party, FieldAbility.surf), isFalse);
@@ -167,8 +174,9 @@ void main() {
     test('returns false when no member knows the move', () {
       const party = PlayerParty(members: [
         PlayerPokemon(
-          id: 'p1',
           speciesId: 'pikachu',
+          natureId: 'timid',
+          abilityId: 'static',
           knownMoveIds: ['thunderbolt'],
         ),
       ]);
@@ -187,8 +195,9 @@ GameState _fullSurfGameState() {
     saveId: 'test',
     party: PlayerParty(members: [
       PlayerPokemon(
-        id: 'p1',
         speciesId: 'lapras',
+        natureId: 'modest',
+        abilityId: 'water-absorb',
         level: 30,
         knownMoveIds: ['surf', 'ice_beam'],
       ),

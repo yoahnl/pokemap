@@ -6,27 +6,63 @@ part of 'save_data.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$PokemonStatSpreadImpl _$$PokemonStatSpreadImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonStatSpreadImpl(
+      hp: (json['hp'] as num?)?.toInt() ?? 0,
+      attack: (json['attack'] as num?)?.toInt() ?? 0,
+      defense: (json['defense'] as num?)?.toInt() ?? 0,
+      specialAttack: (json['specialAttack'] as num?)?.toInt() ?? 0,
+      specialDefense: (json['specialDefense'] as num?)?.toInt() ?? 0,
+      speed: (json['speed'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$PokemonStatSpreadImplToJson(
+        _$PokemonStatSpreadImpl instance) =>
+    <String, dynamic>{
+      'hp': instance.hp,
+      'attack': instance.attack,
+      'defense': instance.defense,
+      'specialAttack': instance.specialAttack,
+      'specialDefense': instance.specialDefense,
+      'speed': instance.speed,
+    };
+
 _$PlayerPokemonImpl _$$PlayerPokemonImplFromJson(Map<String, dynamic> json) =>
     _$PlayerPokemonImpl(
-      id: json['id'] as String,
       speciesId: json['speciesId'] as String,
-      nickname: json['nickname'] as String? ?? '',
+      natureId: json['natureId'] as String,
+      abilityId: json['abilityId'] as String,
       level: (json['level'] as num?)?.toInt() ?? 1,
+      ivs: json['ivs'] == null
+          ? const PokemonStatSpread()
+          : PokemonStatSpread.fromJson(json['ivs'] as Map<String, dynamic>),
+      evs: json['evs'] == null
+          ? const PokemonStatSpread()
+          : PokemonStatSpread.fromJson(json['evs'] as Map<String, dynamic>),
       knownMoveIds: (json['knownMoveIds'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      isFainted: json['isFainted'] as bool? ?? false,
+      currentHp: (json['currentHp'] as num?)?.toInt() ?? 1,
+      statusId: json['statusId'] as String? ?? '',
+      isShiny: json['isShiny'] as bool? ?? false,
+      heldItemId: json['heldItemId'] as String? ?? '',
     );
 
 Map<String, dynamic> _$$PlayerPokemonImplToJson(_$PlayerPokemonImpl instance) =>
     <String, dynamic>{
-      'id': instance.id,
       'speciesId': instance.speciesId,
-      'nickname': instance.nickname,
+      'natureId': instance.natureId,
+      'abilityId': instance.abilityId,
       'level': instance.level,
+      'ivs': instance.ivs.toJson(),
+      'evs': instance.evs.toJson(),
       'knownMoveIds': instance.knownMoveIds,
-      'isFainted': instance.isFainted,
+      'currentHp': instance.currentHp,
+      'statusId': instance.statusId,
+      'isShiny': instance.isShiny,
+      'heldItemId': instance.heldItemId,
     };
 
 _$PlayerPartyImpl _$$PlayerPartyImplFromJson(Map<String, dynamic> json) =>
@@ -84,6 +120,51 @@ const _$FieldAbilityEnumMap = {
   FieldAbility.dive: 'dive',
 };
 
+_$TrainerProfileImpl _$$TrainerProfileImplFromJson(Map<String, dynamic> json) =>
+    _$TrainerProfileImpl(
+      name: json['name'] as String,
+      badgeIds: (json['badgeIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      money: (json['money'] as num?)?.toInt() ?? 0,
+      playtimeSeconds: (json['playtimeSeconds'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$TrainerProfileImplToJson(
+        _$TrainerProfileImpl instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'badgeIds': instance.badgeIds,
+      'money': instance.money,
+      'playtimeSeconds': instance.playtimeSeconds,
+    };
+
+_$BagEntryImpl _$$BagEntryImplFromJson(Map<String, dynamic> json) =>
+    _$BagEntryImpl(
+      itemId: json['itemId'] as String,
+      categoryId: json['categoryId'] as String,
+      quantity: (json['quantity'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$$BagEntryImplToJson(_$BagEntryImpl instance) =>
+    <String, dynamic>{
+      'itemId': instance.itemId,
+      'categoryId': instance.categoryId,
+      'quantity': instance.quantity,
+    };
+
+_$BagImpl _$$BagImplFromJson(Map<String, dynamic> json) => _$BagImpl(
+      entries: (json['entries'] as List<dynamic>?)
+              ?.map((e) => BagEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$BagImplToJson(_$BagImpl instance) => <String, dynamic>{
+      'entries': instance.entries.map((e) => e.toJson()).toList(),
+    };
+
 _$SaveDataImpl _$$SaveDataImplFromJson(Map<String, dynamic> json) =>
     _$SaveDataImpl(
       saveId: json['saveId'] as String,
@@ -97,6 +178,13 @@ _$SaveDataImpl _$$SaveDataImplFromJson(Map<String, dynamic> json) =>
       party: json['party'] == null
           ? const PlayerParty()
           : PlayerParty.fromJson(json['party'] as Map<String, dynamic>),
+      trainerProfile: json['trainerProfile'] == null
+          ? const TrainerProfile(name: 'Player')
+          : TrainerProfile.fromJson(
+              json['trainerProfile'] as Map<String, dynamic>),
+      bag: json['bag'] == null
+          ? const Bag()
+          : Bag.fromJson(json['bag'] as Map<String, dynamic>),
       progression: json['progression'] == null
           ? const PlayerProgression()
           : PlayerProgression.fromJson(
@@ -114,6 +202,8 @@ Map<String, dynamic> _$$SaveDataImplToJson(_$SaveDataImpl instance) =>
       'playerPosition': instance.playerPosition.toJson(),
       'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
       'party': instance.party.toJson(),
+      'trainerProfile': instance.trainerProfile.toJson(),
+      'bag': instance.bag.toJson(),
       'progression': instance.progression.toJson(),
       'properties': instance.properties,
     };

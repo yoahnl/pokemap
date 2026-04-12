@@ -12,10 +12,22 @@ void main() {
         party: PlayerParty(
           members: [
             PlayerPokemon(
-              id: 'p1',
               speciesId: 'lapras',
+              natureId: 'modest',
+              abilityId: 'water-absorb',
               knownMoveIds: ['surf'],
             ),
+          ],
+        ),
+        trainerProfile: TrainerProfile(
+          name: 'Red',
+          badgeIds: ['boulder'],
+          money: 1200,
+          playtimeSeconds: 42,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
           ],
         ),
         progression: PlayerProgression(
@@ -33,6 +45,8 @@ void main() {
       expect(state.playerPosition, equals(const GridPos(x: 7, y: 9)));
       expect(state.playerFacing, equals(EntityFacing.west));
       expect(state.party.members.length, equals(1));
+      expect(state.trainerProfile.name, equals('Red'));
+      expect(state.bag.entries.single.itemId, equals('poke-ball'));
       expect(state.progression.unlockedFieldAbilities,
           contains(FieldAbility.surf));
       expect(state.storyFlags.activeFlags,
@@ -49,6 +63,18 @@ void main() {
         currentMapId: 'route_1',
         playerPosition: const GridPos(x: 3, y: 4),
         playerFacing: EntityFacing.north,
+        trainerProfile: const TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['cascade', 'boulder'],
+          money: 500,
+          playtimeSeconds: 99,
+        ),
+        bag: const Bag(
+          entries: [
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
         progression: const PlayerProgression(
           storyFlags: ['from_progression'],
           completedStepIds: ['step_done'],
@@ -62,6 +88,9 @@ void main() {
       expect(save.currentMapId, equals('route_1'));
       expect(save.playerPosition, equals(const GridPos(x: 3, y: 4)));
       expect(save.playerFacing, equals(EntityFacing.north));
+      expect(save.trainerProfile.name, equals('Leaf'));
+      expect(save.trainerProfile.badgeIds, equals(['boulder', 'cascade']));
+      expect(save.bag.entries.length, equals(2));
       expect(
         save.progression.storyFlags.toSet(),
         containsAll(<String>{'from_progression', 'from_story_flags'}),
