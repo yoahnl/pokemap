@@ -20,7 +20,9 @@ Future<_CompletedPokedexImportFlowResult?> _showPokedexImportFlowSheet({
   required PokedexImportPreviewer previewImport,
   required PokedexImporter importPokemon,
   required PokedexExternalSpeciesSearcher searchExternalSpecies,
+  required PokedexExternalBatchSelectionResolver resolveExternalBatchSelection,
   required PokedexExternalImportPreviewer previewExternalImport,
+  required PokedexExternalBatchPreviewer previewExternalBatchImport,
   required PokedexExternalImporter importExternalPokemon,
   Future<String?> Function()? pickJsonSourceFile,
 }) {
@@ -32,7 +34,9 @@ Future<_CompletedPokedexImportFlowResult?> _showPokedexImportFlowSheet({
       previewImport: previewImport,
       importPokemon: importPokemon,
       searchExternalSpecies: searchExternalSpecies,
+      resolveExternalBatchSelection: resolveExternalBatchSelection,
       previewExternalImport: previewExternalImport,
+      previewExternalBatchImport: previewExternalBatchImport,
       importExternalPokemon: importExternalPokemon,
       pickJsonSourceFile: pickJsonSourceFile ?? _pickPokedexJsonSourceFile,
     ),
@@ -86,6 +90,11 @@ enum _PokedexImportSourceKind {
   externalApi,
 }
 
+enum _PokedexExternalImportMode {
+  singleSpecies,
+  batchDryRun,
+}
+
 enum _PokedexImportWizardStep {
   source,
   jsonFile,
@@ -123,7 +132,9 @@ class _PokedexImportFlowSheet extends StatefulWidget {
     required this.previewImport,
     required this.importPokemon,
     required this.searchExternalSpecies,
+    required this.resolveExternalBatchSelection,
     required this.previewExternalImport,
+    required this.previewExternalBatchImport,
     required this.importExternalPokemon,
     required this.pickJsonSourceFile,
   });
@@ -132,7 +143,9 @@ class _PokedexImportFlowSheet extends StatefulWidget {
   final PokedexImportPreviewer previewImport;
   final PokedexImporter importPokemon;
   final PokedexExternalSpeciesSearcher searchExternalSpecies;
+  final PokedexExternalBatchSelectionResolver resolveExternalBatchSelection;
   final PokedexExternalImportPreviewer previewExternalImport;
+  final PokedexExternalBatchPreviewer previewExternalBatchImport;
   final PokedexExternalImporter importExternalPokemon;
   final Future<String?> Function() pickJsonSourceFile;
 
@@ -144,11 +157,15 @@ class _PokedexImportFlowSheet extends StatefulWidget {
 class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
   _PokedexImportWizardStep _step = _PokedexImportWizardStep.source;
   _PokedexImportSourceKind _selectedSource = _PokedexImportSourceKind.jsonLocal;
+  _PokedexExternalImportMode _externalImportMode =
+      _PokedexExternalImportMode.singleSpecies;
   String? _selectedJsonSourcePath;
   PokemonJsonImportPreview? _jsonPreview;
   PokemonExternalImportResult? _externalPreview;
+  PokemonExternalBatchImportResult? _externalBatchPreview;
   bool _isBusy = false;
   bool _isSearchingExternalSpecies = false;
+  bool _isResolvingExternalBatch = false;
   String? _errorMessage;
   late final TextEditingController _externalQueryController;
   late final FocusNode _externalQueryFocusNode;
@@ -156,6 +173,11 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
   int _externalQuerySearchRequestId = 0;
   PokemonExternalSpeciesSearchResult _externalSpeciesSearchResult =
       const PokemonExternalSpeciesSearchResult.empty(
+    rawQuery: '',
+    normalizedQuery: '',
+  );
+  PokemonExternalBatchSelectionResult _externalBatchSelectionResult =
+      PokemonExternalBatchSelectionResult.empty(
     rawQuery: '',
     normalizedQuery: '',
   );
@@ -188,6 +210,39 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
     });
   }
 
+  void _handleExternalModeChanged(_PokedexExternalImportMode mode) {
+    if (_externalImportMode == mode) {
+      return;
+    }
+
+    _externalQueryDebounceTimer?.cancel();
+    _externalQuerySearchRequestId += 1;
+    setState(() {
+      _externalImportMode = mode;
+      _selectedExternalSuggestion = null;
+      _externalPreview = null;
+      _externalBatchPreview = null;
+      _errorMessage = null;
+      _isSearchingExternalSpecies = false;
+      _isResolvingExternalBatch = false;
+      if (mode == _PokedexExternalImportMode.singleSpecies) {
+        _externalBatchSelectionResult =
+            PokemonExternalBatchSelectionResult.empty(
+          rawQuery: _externalQueryController.text,
+          normalizedQuery: _externalQueryController.text.trim(),
+        );
+      } else {
+        _externalSpeciesSearchResult =
+            const PokemonExternalSpeciesSearchResult.empty(
+          rawQuery: '',
+          normalizedQuery: '',
+        );
+      }
+    });
+
+    _handleExternalQueryChanged(_externalQueryController.text);
+  }
+
   void _handleExternalQueryChanged(String rawQuery) {
     _externalQueryDebounceTimer?.cancel();
     final normalizedQuery = rawQuery.trim();
@@ -196,10 +251,18 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
       setState(() {
         _selectedExternalSuggestion = null;
         _isSearchingExternalSpecies = false;
+        _isResolvingExternalBatch = false;
         _externalSpeciesSearchResult = PokemonExternalSpeciesSearchResult.empty(
           rawQuery: rawQuery,
           normalizedQuery: normalizedQuery,
         );
+        _externalBatchSelectionResult =
+            PokemonExternalBatchSelectionResult.empty(
+          rawQuery: rawQuery,
+          normalizedQuery: normalizedQuery,
+        );
+        _externalPreview = null;
+        _externalBatchPreview = null;
         _errorMessage = null;
       });
       return;
@@ -208,33 +271,55 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
     final requestId = ++_externalQuerySearchRequestId;
     setState(() {
       _selectedExternalSuggestion = null;
-      _isSearchingExternalSpecies = true;
-      _externalSpeciesSearchResult = PokemonExternalSpeciesSearchResult.empty(
-        rawQuery: rawQuery,
-        normalizedQuery: normalizedQuery,
-      );
+      _externalPreview = null;
+      _externalBatchPreview = null;
+      _isSearchingExternalSpecies =
+          _externalImportMode == _PokedexExternalImportMode.singleSpecies;
+      _isResolvingExternalBatch =
+          _externalImportMode == _PokedexExternalImportMode.batchDryRun;
+      if (_externalImportMode == _PokedexExternalImportMode.singleSpecies) {
+        _externalSpeciesSearchResult = PokemonExternalSpeciesSearchResult.empty(
+          rawQuery: rawQuery,
+          normalizedQuery: normalizedQuery,
+        );
+      } else {
+        _externalBatchSelectionResult =
+            PokemonExternalBatchSelectionResult.empty(
+          rawQuery: rawQuery,
+          normalizedQuery: normalizedQuery,
+        );
+      }
       _errorMessage = null;
     });
 
+    final requestedMode = _externalImportMode;
+
     // Un petit debounce UI suffit ici :
-    // - il évite de re-solliciter la recherche à chaque caractère sur desktop ;
+    // - il évite de re-solliciter la résolution à chaque caractère ;
     // - il ne déplace aucune logique métier dans l'UI ;
-    // - le vrai contrat métier reste dans le résolveur + use case applicatif.
+    // - le vrai contrat reste porté par les use cases injectés.
     _externalQueryDebounceTimer =
         Timer(const Duration(milliseconds: 180), () async {
-      final result = await widget.searchExternalSpecies(rawQuery);
+      if (requestedMode == _PokedexExternalImportMode.singleSpecies) {
+        final result = await widget.searchExternalSpecies(rawQuery);
+        if (!mounted || requestId != _externalQuerySearchRequestId) {
+          return;
+        }
+        setState(() {
+          _isSearchingExternalSpecies = false;
+          _externalSpeciesSearchResult = result;
+        });
+        return;
+      }
+
+      final result = await widget.resolveExternalBatchSelection(rawQuery);
       if (!mounted || requestId != _externalQuerySearchRequestId) {
         return;
       }
       setState(() {
-        _isSearchingExternalSpecies = false;
-        _externalSpeciesSearchResult = result;
+        _isResolvingExternalBatch = false;
+        _externalBatchSelectionResult = result;
       });
-      // `RawAutocomplete` écoute d'abord le contrôleur texte.
-      // Les suggestions de cette étape arrivent après un aller-retour
-      // asynchrone ; on réémet donc explicitement l'état du champ pour que
-      // l'overlay se recalculе sans inventer de logique métier côté widget.
-      _externalQueryController.notifyListeners();
     });
   }
 
@@ -280,25 +365,52 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
           });
           break;
         case _PokedexImportSourceKind.externalApi:
-          final selectedSuggestion = _selectedExternalSuggestion;
-          if (selectedSuggestion == null) {
-            throw const EditorValidationException(
-              'Sélectionnez explicitement une espèce externe avant de prévisualiser.',
-            );
+          switch (_externalImportMode) {
+            case _PokedexExternalImportMode.singleSpecies:
+              final selectedSuggestion = _selectedExternalSuggestion;
+              if (selectedSuggestion == null) {
+                throw const EditorValidationException(
+                  'Sélectionnez explicitement une espèce externe avant de prévisualiser.',
+                );
+              }
+              final preview = await widget.previewExternalImport(
+                widget.workspace,
+                selectedSuggestion.speciesId,
+              );
+              if (!mounted) {
+                return;
+              }
+              setState(() {
+                _externalPreview = preview;
+                _externalBatchPreview = null;
+                _jsonPreview = null;
+                _step = _PokedexImportWizardStep.preview;
+                _isBusy = false;
+              });
+              break;
+            case _PokedexExternalImportMode.batchDryRun:
+              final selection = _externalBatchSelectionResult;
+              if (!selection.canDryRun) {
+                throw const EditorValidationException(
+                  'Résolvez d’abord une sélection batch valide avant de lancer le dry-run.',
+                );
+              }
+              final preview = await widget.previewExternalBatchImport(
+                widget.workspace,
+                selection.resolvedSpeciesIds,
+              );
+              if (!mounted) {
+                return;
+              }
+              setState(() {
+                _externalBatchPreview = preview;
+                _externalPreview = null;
+                _jsonPreview = null;
+                _step = _PokedexImportWizardStep.preview;
+                _isBusy = false;
+              });
+              break;
           }
-          final preview = await widget.previewExternalImport(
-            widget.workspace,
-            selectedSuggestion.speciesId,
-          );
-          if (!mounted) {
-            return;
-          }
-          setState(() {
-            _externalPreview = preview;
-            _jsonPreview = null;
-            _step = _PokedexImportWizardStep.preview;
-            _isBusy = false;
-          });
           break;
       }
     } catch (error) {
@@ -345,38 +457,46 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
           );
           break;
         case _PokedexImportSourceKind.externalApi:
-          final selectedSuggestion = _selectedExternalSuggestion;
-          if (selectedSuggestion == null) {
-            throw const EditorValidationException(
-              'Sélectionnez explicitement une espèce externe avant d’importer.',
-            );
+          switch (_externalImportMode) {
+            case _PokedexExternalImportMode.singleSpecies:
+              final selectedSuggestion = _selectedExternalSuggestion;
+              if (selectedSuggestion == null) {
+                throw const EditorValidationException(
+                  'Sélectionnez explicitement une espèce externe avant d’importer.',
+                );
+              }
+              final result = await widget.importExternalPokemon(
+                widget.workspace,
+                selectedSuggestion.speciesId,
+              );
+              if (!mounted) {
+                return;
+              }
+              if (result.hasConflicts) {
+                setState(() {
+                  _isBusy = false;
+                  _externalPreview = result;
+                  _errorMessage =
+                      'Des fichiers existent déjà pour cette espèce. L’import externe reste volontairement prudent et ne remplace rien dans cette phase.';
+                });
+                return;
+              }
+              Navigator.of(context).pop(
+                _CompletedPokedexImportFlowResult(
+                  speciesId: result.preview.speciesId,
+                  primaryName: result.preview.primaryName,
+                  importedLearnset: result.importedLearnset,
+                  importedEvolution: result.importedEvolution,
+                  importedMedia: result.importedMedia,
+                  downloadedAssetCount: result.downloadedAssetCount,
+                ),
+              );
+              break;
+            case _PokedexExternalImportMode.batchDryRun:
+              throw const EditorValidationException(
+                'Le lot 3 ne permet pas encore l’import batch réel. Seul le dry-run batch est disponible dans cette étape.',
+              );
           }
-          final result = await widget.importExternalPokemon(
-            widget.workspace,
-            selectedSuggestion.speciesId,
-          );
-          if (!mounted) {
-            return;
-          }
-          if (result.hasConflicts) {
-            setState(() {
-              _isBusy = false;
-              _externalPreview = result;
-              _errorMessage =
-                  'Des fichiers existent déjà pour cette espèce. L’import externe reste volontairement prudent et ne remplace rien dans cette phase.';
-            });
-            return;
-          }
-          Navigator.of(context).pop(
-            _CompletedPokedexImportFlowResult(
-              speciesId: result.preview.speciesId,
-              primaryName: result.preview.primaryName,
-              importedLearnset: result.importedLearnset,
-              importedEvolution: result.importedEvolution,
-              importedMedia: result.importedMedia,
-              downloadedAssetCount: result.downloadedAssetCount,
-            ),
-          );
           break;
       }
     } catch (error) {
@@ -451,13 +571,17 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
           ),
         _PokedexImportWizardStep.externalQuery =>
           _PokedexImportExternalQueryStep(
+            externalImportMode: _externalImportMode,
             controller: _externalQueryController,
             focusNode: _externalQueryFocusNode,
             isBusy: _isBusy,
             isSearching: _isSearchingExternalSpecies,
+            isResolvingBatch: _isResolvingExternalBatch,
             errorMessage: _errorMessage,
             searchResult: _externalSpeciesSearchResult,
+            batchSelectionResult: _externalBatchSelectionResult,
             selectedSuggestion: _selectedExternalSuggestion,
+            onModeChanged: _handleExternalModeChanged,
             onQueryChanged: _handleExternalQueryChanged,
             onSuggestionSelected: _handleExternalSuggestionSelected,
             onContinue: _loadPreview,
@@ -471,14 +595,25 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
                 onBack: _goBackFromPreview,
                 onImport: _confirmImport,
               ),
-            _PokedexImportSourceKind.externalApi =>
-              _PokedexExternalImportPreviewStep(
-                preview: _externalPreview!,
-                isBusy: _isBusy,
-                errorMessage: _errorMessage,
-                onBack: _goBackFromPreview,
-                onImport: _confirmImport,
-              ),
+            _PokedexImportSourceKind.externalApi => switch (
+                  _externalImportMode) {
+                _PokedexExternalImportMode.singleSpecies =>
+                  _PokedexExternalImportPreviewStep(
+                    preview: _externalPreview!,
+                    isBusy: _isBusy,
+                    errorMessage: _errorMessage,
+                    onBack: _goBackFromPreview,
+                    onImport: _confirmImport,
+                  ),
+                _PokedexExternalImportMode.batchDryRun =>
+                  _PokedexExternalBatchPreviewStep(
+                    selection: _externalBatchSelectionResult,
+                    preview: _externalBatchPreview!,
+                    errorMessage: _errorMessage,
+                    onBack: _goBackFromPreview,
+                    onClose: () => Navigator.of(context).pop(),
+                  ),
+              },
           },
       },
     );

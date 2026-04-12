@@ -8,8 +8,8 @@ part of 'pokedex_workspace_page.dart';
 /// - il n'importe rien ;
 /// - il reflète simplement le résultat applicatif reçu du use case.
 ///
-/// On utilise `RawAutocomplete` pour une raison précise :
-/// - navigation clavier honnête sans réinventer un mini-système focus ;
+/// Le lot 2 reste volontairement sur une implémentation locale contrôlée :
+/// - navigation clavier honnête sans dépendre d'un overlay implicite ;
 /// - sélection souris explicite ;
 /// - aucune sélection implicite tant que l'utilisateur n'agit pas.
 class _PokedexExternalSpeciesAutocompleteField extends StatefulWidget {
@@ -287,9 +287,9 @@ class _PokedexExternalSpeciesAutocompleteFieldState
             const SizedBox(height: 10),
           ],
           if (widget.isSearching)
-            Row(
-              key: const Key('pokedex-import-external-search-loading'),
-              children: const [
+            const Row(
+              key: Key('pokedex-import-external-search-loading'),
+              children: [
                 SizedBox(
                   width: 16,
                   height: 16,
@@ -384,7 +384,7 @@ class _PokedexExternalSpeciesSearchMessage extends StatelessWidget {
       ),
       child: Text(
         searchResult.message ?? 'Aucune suggestion disponible.',
-        style: TextStyle(
+        style: const TextStyle(
           color: CupertinoColors.white,
           fontSize: 12,
           fontWeight: FontWeight.w700,

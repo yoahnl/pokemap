@@ -1080,6 +1080,51 @@ void main() {
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
 
+    test('dry-run resolves a batch but writes nothing', () async {
+      final beforeProjectJson = await projectFile.readAsString();
+
+      final result = await batchUseCase.execute(
+        workspace,
+        speciesIds: <String>['ivysaur', 'bulbasaur'],
+        dryRun: true,
+      );
+
+      expect(result.dryRun, isTrue);
+      expect(result.successfulCount, 2);
+      expect(
+        result.entries.every(
+          (entry) =>
+              entry.result != null && entry.result!.hasWritesApplied == false,
+        ),
+        isTrue,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/species/0001-bulbasaur.json',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/species/0002-ivysaur.json',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
     test('continues on partial failures and reports them by species', () async {
       externalSourceRepository.showdownSpeciesPayloads.remove('ivysaur');
 

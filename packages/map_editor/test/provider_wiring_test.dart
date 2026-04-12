@@ -32,9 +32,22 @@ void main() {
       );
       expect(container.read(pokedexExternalSpeciesSearcherProvider), isNotNull);
       expect(
+        container.read(resolveExternalPokemonBatchSelectionUseCaseProvider),
+        isNotNull,
+      );
+      expect(
+        container.read(pokedexExternalBatchSelectionResolverProvider),
+        isNotNull,
+      );
+      expect(
         container.read(importExternalPokemonSpeciesUseCaseProvider),
         isNotNull,
       );
+      expect(
+        container.read(batchImportExternalPokemonSpeciesUseCaseProvider),
+        isNotNull,
+      );
+      expect(container.read(pokedexExternalBatchPreviewerProvider), isNotNull);
       expect(
         container.read(loadPokemonMovesCatalogUseCaseProvider),
         isNotNull,

@@ -12,6 +12,7 @@ import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart'
 import '../../../application/use_cases/import_pokemon_learnset_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_media_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_species_json_use_case.dart';
+import '../../../application/use_cases/resolve_external_pokemon_batch_selection_use_case.dart';
 import '../../../application/use_cases/search_external_pokemon_species_use_case.dart';
 import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
 import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
@@ -104,6 +105,28 @@ final searchExternalPokemonSpeciesUseCaseProvider =
 final pokedexExternalSpeciesSearcherProvider =
     Provider<PokedexExternalSpeciesSearcher>((ref) {
   final useCase = ref.watch(searchExternalPokemonSpeciesUseCaseProvider);
+  return useCase.execute;
+});
+
+/// Résolution batch structurée pour le wizard `API externe`.
+///
+/// On reste sur le même pattern que le lot 2 :
+/// - résolveur lot 1 réutilisé ;
+/// - snapshot externe déjà branché ;
+/// - aucune pile batch concurrente dans l'UI.
+final resolveExternalPokemonBatchSelectionUseCaseProvider =
+    Provider<ResolveExternalPokemonBatchSelectionUseCase>((ref) {
+  return ResolveExternalPokemonBatchSelectionUseCase(
+    externalSourceRepository:
+        ref.watch(pokemonExternalSourceRepositoryProvider),
+    queryResolver: ref.watch(pokemonExternalQueryResolverProvider),
+  );
+});
+
+final pokedexExternalBatchSelectionResolverProvider =
+    Provider<PokedexExternalBatchSelectionResolver>((ref) {
+  final useCase =
+      ref.watch(resolveExternalPokemonBatchSelectionUseCaseProvider);
   return useCase.execute;
 });
 
@@ -213,6 +236,16 @@ final batchImportExternalPokemonSpeciesUseCaseProvider =
   return BatchImportExternalPokemonSpeciesUseCase(
     ref.watch(importExternalPokemonSpeciesUseCaseProvider),
   );
+});
+
+final pokedexExternalBatchPreviewerProvider =
+    Provider<PokedexExternalBatchPreviewer>((ref) {
+  final useCase = ref.watch(batchImportExternalPokemonSpeciesUseCaseProvider);
+  return (workspace, speciesIds) => useCase.execute(
+        workspace,
+        speciesIds: speciesIds,
+        dryRun: true,
+      );
 });
 
 final pokedexExternalImportPreviewerProvider =

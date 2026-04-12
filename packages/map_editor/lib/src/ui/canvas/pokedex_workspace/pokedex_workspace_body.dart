@@ -235,7 +235,9 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       previewImport: widget.importPreviewer,
       importPokemon: widget.importer,
       searchExternalSpecies: widget.externalSpeciesSearcher,
+      resolveExternalBatchSelection: widget.externalBatchSelectionResolver,
       previewExternalImport: widget.externalImportPreviewer,
+      previewExternalBatchImport: widget.externalBatchPreviewer,
       importExternalPokemon: widget.externalImporter,
       pickJsonSourceFile: widget.pickJsonImportFile,
     );
