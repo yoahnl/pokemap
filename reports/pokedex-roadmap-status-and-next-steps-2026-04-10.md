@@ -2,12 +2,13 @@
 
 Date : 2026-04-10
 
-## Mise à jour de statut au 2026-04-11
+## Mise à jour de statut au 2026-04-12
 
 Important :
 - cette section est désormais la **source de vérité actuelle** ;
 - elle remplace les statuts plus anciens plus bas dans ce document quand ils se contredisent ;
-- les sections détaillées historiques sont conservées pour le contexte, mais elles ont été rédigées avant le réalignement des fondations Pokédex, avant la phase 5, et avant le lot 23.
+- les sections détaillées historiques sont conservées pour le contexte, mais elles ne sont plus à jour sur les phases 7 à 10 ;
+- en pratique, pour connaître l’état réel du chantier aujourd’hui, il faut lire **cette section** et non les audits historiques plus bas.
 
 ### Résumé rapide actuel
 
@@ -19,15 +20,19 @@ Ce qui est fait aujourd’hui :
 - lecture, écriture, validation et indexation locales existent ;
 - la tuile Pokédex éditeur existe ;
 - la liste, la recherche, les filtres, la sélection et la fiche détail lecture seule existent ;
-- le lot 23 d’import unitaire d’une espèce JSON interne est fait ;
-- le mini-fix de robustesse du lot 23 est fait.
+- les imports internes JSON (`lots 23 à 27`) sont faits ;
+- la normalisation externe et les imports Showdown / PokeAPI (`lots 28 à 36`) sont faits ;
+- la curation locale / overrides (`lots 37 à 43`) sont faits ;
+- les fondations gameplay/save (`lots 44 à 47`) sont faites ;
+- les menus in-game (`lots 48 à 51`) sont faits dans `examples/playable_runtime_host` ;
+- le mini-fix phase 9 sur la compatibilité legacy des saves est fait ;
+- le mini-fix phase 10 sur le contrat `typing.types` du Pokédex in-game est fait.
 
 Ce qui n’est pas encore fait :
-- imports internes learnset / évolution / média / catalogues (`lots 24 à 27`) ;
-- normalisation externe Showdown / PokeAPI (`lots 28 à 36`) ;
-- curation locale / overrides (`lots 37 à 43`) ;
-- modèles gameplay/save (`lots 44 à 47`) ;
-- menus in-game (`lots 48 à 51`).
+- il n’y a plus de lot restant **dans la roadmap nominale 1 → 51** ;
+- les `lots 6` et `7` restent historiquement `PARTIEL` sur la spécialisation forte des catalogues ;
+- l’UI d’import éditeur n’a jamais eu de lot dédié explicite dans cette roadmap et reste donc un chantier séparé, hors `1 → 51` ;
+- il reste du polish possible côté runtime host, mais pas de lot roadmap encore ouvert sur la phase 10.
 
 ### Tableau de statut actuel des lots
 
@@ -61,46 +66,48 @@ Statuts utilisés :
 | 21 | OK | Onglet `Évolutions` |
 | 22 | OK | Onglet `Médias` |
 | 23 | OK | Import manuel d’une espèce depuis un JSON interne, avec mini-fix de robustesse appliqué |
-| 24 | NON FAIT | Import manuel d’un learnset interne |
-| 25 | NON FAIT | Import manuel d’une évolution interne |
-| 26 | NON FAIT | Import manuel d’un média interne |
-| 27 | NON FAIT | Import manuel d’un catalogue global interne |
-| 28 | NON FAIT | Normalisation des catalogues globaux depuis sources externes |
-| 29 | NON FAIT | Convertisseur Showdown → espèce core |
-| 30 | NON FAIT | Convertisseur Showdown → formes / classification |
-| 31 | NON FAIT | Convertisseur PokeAPI → learnset |
-| 32 | NON FAIT | Convertisseur PokeAPI → évolutions |
-| 33 | NON FAIT | Génération de stubs média |
-| 34 | NON FAIT | Commande d’import unitaire depuis source externe |
-| 35 | NON FAIT | Commande d’import par lot |
-| 36 | NON FAIT | Dry-run / merge policy / rapport de conflits |
-| 37 | NON FAIT | Activer / désactiver une espèce dans le projet |
-| 38 | NON FAIT | Filtre UI activé / désactivé |
-| 39 | NON FAIT | Édition locale des métadonnées simples |
-| 40 | NON FAIT | Édition locale des formes / classification |
-| 41 | NON FAIT | Édition locale des learnsets autorisés |
-| 42 | NON FAIT | Édition locale des évolutions |
-| 43 | NON FAIT | Édition locale des médias utilisés |
-| 44 | NON FAIT | Modèle `OwnedPokemon` |
-| 45 | NON FAIT | Modèle `TrainerProfile` |
-| 46 | NON FAIT | Modèle `Bag` |
-| 47 | NON FAIT | Modèle `SaveGame` et flux de save simple |
-| 48 | NON FAIT | Menu principal du jeu |
-| 49 | NON FAIT | Écran Pokédex en jeu |
-| 50 | NON FAIT | Écran Sac |
-| 51 | NON FAIT | Écran Dresseur |
+| 24 | OK | Import manuel d’un learnset interne |
+| 25 | OK | Import manuel d’une évolution interne |
+| 26 | OK | Import manuel d’un média interne |
+| 27 | OK | Import manuel d’un catalogue global interne |
+| 28 | OK | Normalisation des catalogues globaux depuis sources externes |
+| 29 | OK | Convertisseur Showdown → espèce core |
+| 30 | OK | Convertisseur Showdown → formes / classification |
+| 31 | OK | Convertisseur PokeAPI → learnset |
+| 32 | OK | Convertisseur PokeAPI → évolutions |
+| 33 | OK | Génération de stubs média |
+| 34 | OK | Commande d’import unitaire depuis source externe |
+| 35 | OK | Commande d’import par lot |
+| 36 | OK | Dry-run / merge policy / rapport de conflits |
+| 37 | OK | Activer / désactiver une espèce dans le projet |
+| 38 | OK | Filtre UI activé / désactivé |
+| 39 | OK | Édition locale des métadonnées simples |
+| 40 | OK | Édition locale des formes / classification |
+| 41 | OK | Édition locale des learnsets autorisés |
+| 42 | OK | Édition locale des évolutions |
+| 43 | OK | Édition locale des médias utilisés |
+| 44 | OK | Fondations gameplay/save livrées autour de la stack existante, sans modèle concurrent inutile |
+| 45 | OK | `TrainerProfile` livré et persisté dans la save existante |
+| 46 | OK | `Bag` livré et persisté dans la save existante |
+| 47 | OK | Flux de save simple livré sur la stack existante, sans toucher `project.json` |
+| 48 | OK | Menu principal du jeu livré dans le host runtime existant |
+| 49 | OK | Écran Pokédex en jeu livré en lecture seule |
+| 50 | OK | Écran Sac livré en lecture seule |
+| 51 | OK | Écran Dresseur livré en lecture seule |
 
 ### Suite recommandée maintenant
 
-Le prochain point propre à attaquer est :
-1. `Lot 24`
-2. `Lot 25`
-3. `Lot 26`
-4. `Lot 27`
+La roadmap nominale `1 → 51` est maintenant terminée.
 
 Donc, à date :
-- **ce qu’on a fait** : `lots 1 à 23`, avec `lots 6` et `7` encore marqués `PARTIEL` à cause de la modélisation générique des catalogues ;
-- **ce qu’on n’a pas fait** : `lots 24 à 51`.
+- **ce qu’on a fait** : `lots 1 à 51`, avec `lots 6` et `7` encore marqués `PARTIEL` à cause de la modélisation générique des catalogues ;
+- **ce qu’on n’a pas fait dans cette roadmap** : rien d’autre de nominal ;
+- **ce qui reste comme suite raisonnable** : ouvrir un nouveau chantier hors-roadmap pour l’UI d’import éditeur, ou lancer une passe de consolidation/polish.
+
+Les prochains axes propres, si on ouvre un nouveau cycle de travail, sont :
+1. brancher une vraie UI d’import éditeur sur les use cases déjà livrés des `lots 34 à 36` ;
+2. décider si la dette historique des `lots 6` et `7` mérite un rattrapage de spécialisation forte des catalogues ;
+3. ajouter, si on le veut, une passe de polish runtime host sur la phase 10, sans changer le périmètre fonctionnel.
 
 ## Résumé exécutif
 
