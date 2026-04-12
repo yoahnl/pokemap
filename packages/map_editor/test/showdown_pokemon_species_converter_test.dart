@@ -83,6 +83,19 @@ void main() {
         ),
       );
     });
+
+    test('uses a fallback generation when the Showdown snapshot omits gen', () {
+      final payload = jsonDecode(_bulbasaurShowdownPayload)
+          as Map<String, dynamic>
+        ..remove('gen');
+
+      final species = converter.convert(
+        payload,
+        fallbackGeneration: 1,
+      );
+
+      expect(species.genIntroduced, 1);
+    });
   });
 }
 

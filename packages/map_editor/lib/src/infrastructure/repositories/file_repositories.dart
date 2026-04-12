@@ -355,6 +355,30 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     );
   }
 
+  @override
+  Future<void> saveBinaryAsset(
+    ProjectWorkspace workspace, {
+    required String relativePath,
+    required List<int> bytes,
+  }) async {
+    final normalizedRelativePath = relativePath.trim();
+    if (normalizedRelativePath.isEmpty) {
+      throw const EditorValidationException(
+        'Pokemon binary asset relativePath cannot be empty',
+      );
+    }
+    if (bytes.isEmpty) {
+      throw const EditorValidationException(
+        'Pokemon binary asset bytes cannot be empty',
+      );
+    }
+
+    final absolutePath =
+        workspace.resolveProjectRelativePath(normalizedRelativePath);
+    await workspace.ensureDirectoryExists(absolutePath);
+    await File(absolutePath).writeAsBytes(bytes, flush: true);
+  }
+
   Future<void> _writeJsonObject(
     ProjectWorkspace workspace,
     String relativePath,

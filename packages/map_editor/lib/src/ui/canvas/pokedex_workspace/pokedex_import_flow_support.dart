@@ -10,20 +10,21 @@ class _PokedexImportSourceCard extends StatelessWidget {
     required this.cardKey,
     required this.title,
     required this.icon,
+    this.onPressed,
     this.isSelected = false,
-    this.isEnabled = true,
     this.trailingLabel,
   });
 
   final Key cardKey;
   final String title;
   final IconData icon;
+  final VoidCallback? onPressed;
   final bool isSelected;
-  final bool isEnabled;
   final String? trailingLabel;
 
   @override
   Widget build(BuildContext context) {
+    final isEnabled = onPressed != null;
     final accent = isSelected
         ? EditorChrome.accentJade
         : EditorChrome.accentWarm.withValues(alpha: 0.45);
@@ -31,39 +32,42 @@ class _PokedexImportSourceCard extends StatelessWidget {
         ? EditorChrome.primaryLabel(context)
         : EditorChrome.subtleLabel(context);
 
-    return DecoratedBox(
+    return GestureDetector(
       key: cardKey,
-      decoration: BoxDecoration(
-        color: EditorChrome.islandFillElevated(context),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent, width: isSelected ? 1.2 : 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: text),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: text,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+      onTap: isEnabled ? onPressed : null,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: EditorChrome.islandFillElevated(context),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: accent, width: isSelected ? 1.2 : 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: text),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-            if (trailingLabel != null)
-              Text(
-                trailingLabel!,
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+              if (trailingLabel != null)
+                Text(
+                  trailingLabel!,
+                  style: TextStyle(
+                    color: EditorChrome.subtleLabel(context),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -73,16 +77,25 @@ class _PokedexImportSourceCard extends StatelessWidget {
 class _PokedexImportArtifactLine extends StatelessWidget {
   const _PokedexImportArtifactLine({
     super.key,
-    required this.preview,
+    required this.label,
+    required this.isFound,
   });
 
-  final PokemonImportArtifactPreview preview;
+  final String label;
+  final bool isFound;
 
   @override
   Widget build(BuildContext context) {
-    final isFound = preview.isFound;
     final accent = isFound ? EditorChrome.accentJade : EditorChrome.accentWarm;
     final text = EditorChrome.primaryLabel(context);
+    final statusLabel = switch (label) {
+      'Évolutions' => isFound ? 'Évolutions trouvées' : 'Évolutions manquantes',
+      'Médias' => isFound ? 'Médias trouvés' : 'Médias manquants',
+      'Cri' => isFound ? 'Cri trouvé' : 'Cri manquant',
+      _ when label.endsWith('s') =>
+        isFound ? '$label trouvés' : '$label manquants',
+      _ => isFound ? '$label trouvé' : '$label manquant',
+    };
 
     return Row(
       children: [
@@ -96,7 +109,7 @@ class _PokedexImportArtifactLine extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(
-            '${preview.label} ${isFound ? 'trouvé${preview.label == 'Évolutions' ? 'es' : ''}' : 'manquants'}',
+            statusLabel,
             style: TextStyle(
               color: text,
               fontSize: 13,

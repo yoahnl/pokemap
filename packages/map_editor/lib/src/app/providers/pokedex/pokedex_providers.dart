@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../application/ports/pokemon_read_repository.dart';
+import '../../../application/ports/pokemon_external_source_repository.dart';
 import '../../../application/ports/pokemon_write_repository.dart';
 import '../../../application/services/pokemon_database_index.dart';
+import '../../../application/use_cases/import_external_pokemon_use_cases.dart';
 import '../../../application/use_cases/import_pokemon_evolution_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
 import '../../../application/use_cases/import_pokemon_learnset_json_use_case.dart';
@@ -14,6 +17,9 @@ import '../../../application/use_cases/update_pokedex_species_forms_classificati
 import '../../../application/use_cases/update_pokedex_species_learnset_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_metadata_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_media_use_case.dart';
+import '../../../infrastructure/external/pokeapi_live_source.dart';
+import '../../../infrastructure/external/showdown_snapshot_source.dart';
+import '../../../infrastructure/repositories/http_pokemon_external_source_repository.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../ui/canvas/pokedex_workspace_loader.dart';
 import '../core/repository_providers.dart';
@@ -30,6 +36,32 @@ final pokemonReadRepositoryProvider = Provider<PokemonReadRepository>((ref) {
 
 final pokemonWriteRepositoryProvider = Provider<PokemonWriteRepository>((ref) {
   return const FilePokemonWriteRepository();
+});
+
+final pokemonExternalHttpClientProvider = Provider<http.Client>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return client;
+});
+
+final pokeApiLiveSourceProvider = Provider<PokeApiLiveSource>((ref) {
+  return PokeApiLiveSource(
+    client: ref.watch(pokemonExternalHttpClientProvider),
+  );
+});
+
+final showdownSnapshotSourceProvider = Provider<ShowdownSnapshotSource>((ref) {
+  return ShowdownSnapshotSource(
+    client: ref.watch(pokemonExternalHttpClientProvider),
+  );
+});
+
+final pokemonExternalSourceRepositoryProvider =
+    Provider<PokemonExternalSourceRepository>((ref) {
+  return HttpPokemonExternalSourceRepository(
+    pokeApiSource: ref.watch(pokeApiLiveSourceProvider),
+    showdownSource: ref.watch(showdownSnapshotSourceProvider),
+  );
 });
 
 final pokemonDatabaseIndexProvider = Provider<PokemonDatabaseIndex>((ref) {
@@ -116,6 +148,41 @@ final pokedexImporterProvider = Provider<PokedexImporter>((ref) {
   return (workspace, absoluteSpeciesSourcePath) => useCase.execute(
         workspace,
         absoluteSpeciesSourcePath: absoluteSpeciesSourcePath,
+      );
+});
+
+final importExternalPokemonSpeciesUseCaseProvider =
+    Provider<ImportExternalPokemonSpeciesUseCase>((ref) {
+  return ImportExternalPokemonSpeciesUseCase(
+    externalSourceRepository:
+        ref.watch(pokemonExternalSourceRepositoryProvider),
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final batchImportExternalPokemonSpeciesUseCaseProvider =
+    Provider<BatchImportExternalPokemonSpeciesUseCase>((ref) {
+  return BatchImportExternalPokemonSpeciesUseCase(
+    ref.watch(importExternalPokemonSpeciesUseCaseProvider),
+  );
+});
+
+final pokedexExternalImportPreviewerProvider =
+    Provider<PokedexExternalImportPreviewer>((ref) {
+  final useCase = ref.watch(importExternalPokemonSpeciesUseCaseProvider);
+  return (workspace, speciesQuery) => useCase.execute(
+        workspace,
+        speciesId: speciesQuery,
+        dryRun: true,
+      );
+});
+
+final pokedexExternalImporterProvider =
+    Provider<PokedexExternalImporter>((ref) {
+  final useCase = ref.watch(importExternalPokemonSpeciesUseCaseProvider);
+  return (workspace, speciesQuery) => useCase.execute(
+        workspace,
+        speciesId: speciesQuery,
       );
 });
 

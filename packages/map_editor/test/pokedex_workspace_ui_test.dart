@@ -14,6 +14,7 @@ import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
+import 'package:map_editor/src/application/use_cases/import_external_pokemon_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/import_pokemon_json_bundle_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
@@ -1776,6 +1777,225 @@ void main() {
     expect(find.byKey(const Key('pokedex-row-pikachu')), findsOneWidget);
     expect(find.byKey(const Key('pokedex-detail-pane')), findsOneWidget);
     expect(find.text('electric'), findsWidgets);
+  });
+
+  testWidgets('imports a pokemon from API externe and refreshes the workspace',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final importedDetailsById = <String, PokedexSpeciesDetail>{};
+    var entries = <PokemonDatabaseIndexEntry>[];
+    var previewCallCount = 0;
+    var importCallCount = 0;
+    String? querySeenByPreview;
+    String? querySeenByImport;
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_external_import_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => entries,
+        detailLoader: (_, speciesId) async => importedDetailsById[speciesId]!,
+        externalImportPreviewer: (_, speciesQuery) async {
+          previewCallCount += 1;
+          querySeenByPreview = speciesQuery;
+          return const PokemonExternalImportResult(
+            requestedSpeciesId: '25',
+            importedSpeciesId: 'pikachu',
+            preview: PokemonExternalImportPreview(
+              speciesId: 'pikachu',
+              nationalDex: 25,
+              primaryName: 'Pikachu',
+              types: <String>['electric'],
+              learnset: PokemonExternalImportPreviewArtifact(
+                label: 'Learnset',
+                isAvailable: true,
+              ),
+              evolution: PokemonExternalImportPreviewArtifact(
+                label: 'Évolutions',
+                isAvailable: true,
+              ),
+              media: PokemonExternalImportPreviewArtifact(
+                label: 'Médias',
+                isAvailable: true,
+              ),
+              cries: PokemonExternalImportPreviewArtifact(
+                label: 'Cri',
+                isAvailable: true,
+              ),
+            ),
+            dryRun: true,
+            mergePolicy: PokemonExternalImportMergePolicy.failOnConflict,
+            artifacts: <PokemonExternalImportArtifactResult>[
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.species,
+                relativePath: 'data/pokemon/species/0025-pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.learnset,
+                relativePath: 'data/pokemon/learnsets/pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.evolution,
+                relativePath: 'data/pokemon/evolutions/pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.media,
+                relativePath: 'data/pokemon/media/pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+            ],
+          );
+        },
+        externalImporter: (_, speciesQuery) async {
+          importCallCount += 1;
+          querySeenByImport = speciesQuery;
+          final detail = buildDetail(
+            id: 'pikachu',
+            nationalDex: 25,
+            types: const <String>['electric'],
+            primaryAbility: 'static',
+            hiddenAbility: 'lightning_rod',
+            names: const <String, String>{
+              'fr': 'Pikachu',
+              'en': 'Pikachu',
+            },
+            flavorText: 'Il emmagasine l’électricité dans ses joues.',
+          );
+          importedDetailsById['pikachu'] = detail;
+          entries = <PokemonDatabaseIndexEntry>[
+            buildEntryFromSpecies(detail.species),
+          ];
+          return const PokemonExternalImportResult(
+            requestedSpeciesId: '25',
+            importedSpeciesId: 'pikachu',
+            preview: PokemonExternalImportPreview(
+              speciesId: 'pikachu',
+              nationalDex: 25,
+              primaryName: 'Pikachu',
+              types: <String>['electric'],
+              learnset: PokemonExternalImportPreviewArtifact(
+                label: 'Learnset',
+                isAvailable: true,
+              ),
+              evolution: PokemonExternalImportPreviewArtifact(
+                label: 'Évolutions',
+                isAvailable: true,
+              ),
+              media: PokemonExternalImportPreviewArtifact(
+                label: 'Médias',
+                isAvailable: true,
+              ),
+              cries: PokemonExternalImportPreviewArtifact(
+                label: 'Cri',
+                isAvailable: true,
+              ),
+            ),
+            dryRun: false,
+            mergePolicy: PokemonExternalImportMergePolicy.failOnConflict,
+            artifacts: <PokemonExternalImportArtifactResult>[
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.species,
+                relativePath: 'data/pokemon/species/0025-pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.learnset,
+                relativePath: 'data/pokemon/learnsets/pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.evolution,
+                relativePath: 'data/pokemon/evolutions/pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+              PokemonExternalImportArtifactResult(
+                kind: PokemonExternalImportArtifactKind.media,
+                relativePath: 'data/pokemon/media/pikachu.json',
+                action: PokemonExternalImportArtifactAction.create,
+                existedBefore: false,
+              ),
+            ],
+            downloadedAssets: <PokemonExternalAssetDownloadResult>[
+              PokemonExternalAssetDownloadResult(
+                label: 'Portrait',
+                relativePath: 'assets/pokemon/portraits/pikachu.png',
+                sourceUrl: 'https://assets.example.test/pikachu/portrait.png',
+                wasWritten: true,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester
+        .tap(find.byKey(const Key('pokedex-empty-state-import-button')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-external-api-source-card')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-source-continue-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('pokedex-import-external-query-step')),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-import-external-query-field')),
+      '25',
+    );
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-external-preview-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(previewCallCount, 1);
+    expect(querySeenByPreview, '25');
+    expect(
+      find.byKey(const Key('pokedex-import-external-preview-step')),
+      findsOneWidget,
+    );
+    expect(find.text('#025 Pikachu'), findsOneWidget);
+    expect(find.text('Type : electric'), findsOneWidget);
+    expect(find.text('Learnset trouvé'), findsOneWidget);
+    expect(find.text('Évolutions trouvées'), findsOneWidget);
+    expect(find.text('Médias trouvés'), findsOneWidget);
+    expect(find.text('Cri trouvé'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pokedex-import-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(importCallCount, 1);
+    expect(querySeenByImport, '25');
+    expect(find.byKey(const Key('pokedex-feedback-banner')), findsOneWidget);
+    expect(find.textContaining('Pikachu'), findsWidgets);
+    expect(find.byKey(const Key('pokedex-row-pikachu')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-detail-pane')), findsOneWidget);
   });
 
   testWidgets('cancel discards metadata changes without writing',

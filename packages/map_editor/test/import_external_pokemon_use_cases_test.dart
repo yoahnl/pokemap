@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
@@ -34,6 +35,15 @@ void main() {
             jsonDecode(_bulbasaurShowdownPayload) as Map<String, dynamic>,
         'ivysaur': jsonDecode(_ivysaurShowdownPayload) as Map<String, dynamic>,
       },
+      pokeApiPokemonSpeciesPayloads: <String, Map<String, dynamic>>{
+        '1':
+            jsonDecode(_bulbasaurPokemonSpeciesPayload) as Map<String, dynamic>,
+        'bulbasaur':
+            jsonDecode(_bulbasaurPokemonSpeciesPayload) as Map<String, dynamic>,
+        '2': jsonDecode(_ivysaurPokemonSpeciesPayload) as Map<String, dynamic>,
+        'ivysaur':
+            jsonDecode(_ivysaurPokemonSpeciesPayload) as Map<String, dynamic>,
+      },
       pokeApiPokemonPayloads: <String, Map<String, dynamic>>{
         'bulbasaur':
             jsonDecode(_bulbasaurPokemonPayload) as Map<String, dynamic>,
@@ -44,6 +54,44 @@ void main() {
             jsonDecode(_bulbasaurEvolutionChainPayload) as Map<String, dynamic>,
         'ivysaur':
             jsonDecode(_bulbasaurEvolutionChainPayload) as Map<String, dynamic>,
+      },
+      binaryAssets: <String, PokemonExternalBinaryAsset>{
+        'https://assets.example.test/bulbasaur/portrait.png':
+            PokemonExternalBinaryAsset(
+          sourceUrl: 'https://assets.example.test/bulbasaur/portrait.png',
+          bytes: Uint8List.fromList(<int>[1, 2, 3, 4]),
+          contentType: 'image/png',
+        ),
+        'https://assets.example.test/bulbasaur/front.png':
+            PokemonExternalBinaryAsset(
+          sourceUrl: 'https://assets.example.test/bulbasaur/front.png',
+          bytes: Uint8List.fromList(<int>[5, 6, 7, 8]),
+          contentType: 'image/png',
+        ),
+        'https://assets.example.test/bulbasaur/back.png':
+            PokemonExternalBinaryAsset(
+          sourceUrl: 'https://assets.example.test/bulbasaur/back.png',
+          bytes: Uint8List.fromList(<int>[9, 10, 11, 12]),
+          contentType: 'image/png',
+        ),
+        'https://assets.example.test/bulbasaur/front_shiny.png':
+            PokemonExternalBinaryAsset(
+          sourceUrl: 'https://assets.example.test/bulbasaur/front_shiny.png',
+          bytes: Uint8List.fromList(<int>[13, 14, 15, 16]),
+          contentType: 'image/png',
+        ),
+        'https://assets.example.test/bulbasaur/back_shiny.png':
+            PokemonExternalBinaryAsset(
+          sourceUrl: 'https://assets.example.test/bulbasaur/back_shiny.png',
+          bytes: Uint8List.fromList(<int>[17, 18, 19, 20]),
+          contentType: 'image/png',
+        ),
+        'https://assets.example.test/bulbasaur/cry.ogg':
+            PokemonExternalBinaryAsset(
+          sourceUrl: 'https://assets.example.test/bulbasaur/cry.ogg',
+          bytes: Uint8List.fromList(<int>[21, 22, 23, 24]),
+          contentType: 'audio/ogg',
+        ),
       },
     );
     writeRepository = const FilePokemonWriteRepository();
@@ -77,14 +125,14 @@ void main() {
         () async {
       final beforeProjectJson = await projectFile.readAsString();
 
-      final result = await singleUseCase.execute(
-        workspace,
-        speciesId: 'bulbasaur',
-      );
+      final result = await singleUseCase.execute(workspace, speciesId: '1');
 
       expect(result.importedSpeciesId, 'bulbasaur');
       expect(result.dryRun, isFalse);
       expect(result.hasConflicts, isFalse);
+      expect(result.preview.primaryName, 'Bulbasaur');
+      expect(result.preview.cries.isAvailable, isTrue);
+      expect(result.downloadedAssetCount, 6);
       expect(
         result.artifacts.map((artifact) => artifact.action).toList(),
         <PokemonExternalImportArtifactAction>[
@@ -143,6 +191,28 @@ void main() {
         media.variants['base']?.portrait,
         'assets/pokemon/portraits/bulbasaur.png',
       );
+      expect(species.names['fr'], 'Bulbizarre');
+      expect(species.progression.growthRateId, 'medium_slow');
+      expect(species.progression.baseFriendship, 50);
+      expect(species.dexContent.color, 'green');
+      expect(species.dexContent.flavorText,
+          'A strange seed was planted on its back at birth.');
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isTrue,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/cries/bulbasaur.ogg',
+          ),
+        ).exists(),
+        isTrue,
+      );
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
 
@@ -158,6 +228,7 @@ void main() {
 
       expect(result.dryRun, isTrue);
       expect(result.hasWritesApplied, isFalse);
+      expect(result.downloadedAssetCount, 0);
       expect(
         result.artifacts.map((artifact) => artifact.action).toList(),
         <PokemonExternalImportArtifactAction>[
@@ -172,6 +243,14 @@ void main() {
         await File(
           workspace.resolveProjectRelativePath(
             'data/pokemon/species/0001-bulbasaur.json',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
           ),
         ).exists(),
         isFalse,
@@ -378,7 +457,8 @@ void main() {
     });
 
     test('surfaces external source errors clearly', () async {
-      externalSourceRepository.pokeApiPokemonPayloads.remove('bulbasaur');
+      externalSourceRepository.pokeApiPokemonSpeciesPayloads
+          .remove('bulbasaur');
 
       await expectLater(
         () => singleUseCase.execute(
@@ -389,9 +469,47 @@ void main() {
           isA<EditorNotFoundException>().having(
             (error) => error.message,
             'message',
-            'External PokeAPI pokemon payload not found for species "bulbasaur"',
+            'External PokeAPI pokemon-species payload not found for species "bulbasaur"',
           ),
         ),
+      );
+    });
+
+    test('continues when optional pokemon payload is unavailable', () async {
+      externalSourceRepository.pokeApiPokemonPayloads.remove('bulbasaur');
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      expect(result.hasConflicts, isFalse);
+      expect(result.importedSpecies, isTrue);
+      expect(result.importedLearnset, isFalse);
+      expect(result.importedEvolution, isTrue);
+      expect(result.importedMedia, isTrue);
+      expect(result.preview.learnset.isAvailable, isFalse);
+      expect(result.preview.media.isAvailable, isFalse);
+      expect(result.preview.cries.isAvailable, isFalse);
+      expect(
+        result.warnings.join('\n'),
+        contains('Learnset and media payload unavailable for "bulbasaur"'),
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/species/0001-bulbasaur.json',
+          ),
+        ).exists(),
+        isTrue,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/learnsets/bulbasaur.json',
+          ),
+        ).exists(),
+        isFalse,
       );
     });
   });
@@ -447,13 +565,17 @@ class _FakePokemonExternalSourceRepository
     implements PokemonExternalSourceRepository {
   _FakePokemonExternalSourceRepository({
     required this.showdownSpeciesPayloads,
+    required this.pokeApiPokemonSpeciesPayloads,
     required this.pokeApiPokemonPayloads,
     required this.pokeApiEvolutionChainPayloads,
+    required this.binaryAssets,
   });
 
   final Map<String, Map<String, dynamic>> showdownSpeciesPayloads;
+  final Map<String, Map<String, dynamic>> pokeApiPokemonSpeciesPayloads;
   final Map<String, Map<String, dynamic>> pokeApiPokemonPayloads;
   final Map<String, Map<String, dynamic>> pokeApiEvolutionChainPayloads;
+  final Map<String, PokemonExternalBinaryAsset> binaryAssets;
 
   @override
   Future<Map<String, dynamic>> fetchPokeApiEvolutionChainPayload(
@@ -483,6 +605,19 @@ class _FakePokemonExternalSourceRepository
   }
 
   @override
+  Future<Map<String, dynamic>> fetchPokeApiPokemonSpeciesPayload(
+    String speciesId,
+  ) async {
+    final payload = pokeApiPokemonSpeciesPayloads[speciesId];
+    if (payload == null) {
+      throw EditorNotFoundException(
+        'External PokeAPI pokemon-species payload not found for species "$speciesId"',
+      );
+    }
+    return _deepCopy(payload);
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchShowdownSpeciesPayload(
     String speciesId,
   ) async {
@@ -493,6 +628,19 @@ class _FakePokemonExternalSourceRepository
       );
     }
     return _deepCopy(payload);
+  }
+
+  @override
+  Future<PokemonExternalBinaryAsset> fetchBinaryAsset(String sourceUrl) async {
+    final asset = binaryAssets[sourceUrl];
+    if (asset == null) {
+      throw EditorNotFoundException('External asset not found: $sourceUrl');
+    }
+    return PokemonExternalBinaryAsset(
+      sourceUrl: asset.sourceUrl,
+      bytes: Uint8List.fromList(asset.bytes),
+      contentType: asset.contentType,
+    );
   }
 
   Map<String, dynamic> _deepCopy(Map<String, dynamic> source) {
@@ -525,6 +673,76 @@ const String _bulbasaurShowdownPayload = '''
   "baseFriendship": 50,
   "heightm": 0.7,
   "weightkg": 6.9
+}
+''';
+
+const String _bulbasaurPokemonSpeciesPayload = '''
+{
+  "name": "bulbasaur",
+  "generation": {"name": "generation-i"},
+  "capture_rate": 45,
+  "base_happiness": 50,
+  "is_baby": false,
+  "is_legendary": false,
+  "is_mythical": false,
+  "growth_rate": {"name": "medium-slow"},
+  "egg_groups": [
+    {"name": "monster"},
+    {"name": "grass"}
+  ],
+  "color": {"name": "green"},
+  "names": [
+    {"language": {"name": "en"}, "name": "Bulbasaur"},
+    {"language": {"name": "fr"}, "name": "Bulbizarre"}
+  ],
+  "genera": [
+    {"language": {"name": "en"}, "genus": "Seed Pokémon"},
+    {"language": {"name": "fr"}, "genus": "Pokémon Graine"}
+  ],
+  "flavor_text_entries": [
+    {
+      "language": {"name": "en"},
+      "flavor_text": "A strange seed was planted on its back at birth."
+    }
+  ],
+  "evolution_chain": {
+    "url": "https://pokeapi.example.test/api/v2/evolution-chain/1/"
+  }
+}
+''';
+
+const String _ivysaurPokemonSpeciesPayload = '''
+{
+  "name": "ivysaur",
+  "generation": {"name": "generation-i"},
+  "capture_rate": 45,
+  "base_happiness": 50,
+  "is_baby": false,
+  "is_legendary": false,
+  "is_mythical": false,
+  "growth_rate": {"name": "medium-slow"},
+  "egg_groups": [
+    {"name": "monster"},
+    {"name": "grass"}
+  ],
+  "color": {"name": "green"},
+  "names": [
+    {"language": {"name": "en"}, "name": "Ivysaur"},
+    {"language": {"name": "fr"}, "name": "Herbizarre"}
+  ],
+  "genera": [
+    {"language": {"name": "en"}, "genus": "Seed Pokémon"},
+    {"language": {"name": "fr"}, "genus": "Pokémon Graine"}
+  ],
+  "flavor_text_entries": [
+    {
+      "language": {"name": "en"},
+      "flavor_text": "When the bulb on its back grows large, it appears to lose the ability to stand."
+    }
+  ],
+  "evolution_chain": {
+    "url": "https://pokeapi.example.test/api/v2/evolution-chain/1/"
+  }
 }
 ''';
 
@@ -609,6 +827,23 @@ const PokemonSpeciesFile _customSlugBulbasaurSpecies = PokemonSpeciesFile(
 const String _bulbasaurPokemonPayload = '''
 {
   "name": "bulbasaur",
+  "base_experience": 64,
+  "height": 7,
+  "weight": 69,
+  "sprites": {
+    "front_default": "https://assets.example.test/bulbasaur/front.png",
+    "back_default": "https://assets.example.test/bulbasaur/back.png",
+    "front_shiny": "https://assets.example.test/bulbasaur/front_shiny.png",
+    "back_shiny": "https://assets.example.test/bulbasaur/back_shiny.png",
+    "other": {
+      "official-artwork": {
+        "front_default": "https://assets.example.test/bulbasaur/portrait.png"
+      }
+    }
+  },
+  "cries": {
+    "latest": "https://assets.example.test/bulbasaur/cry.ogg"
+  },
   "moves": [
     {
       "move": {"name": "vine-whip"},
@@ -675,6 +910,23 @@ const String _legacyBulbasaurPokemonPayload = '''
 const String _ivysaurPokemonPayload = '''
 {
   "name": "ivysaur",
+  "base_experience": 142,
+  "height": 10,
+  "weight": 130,
+  "sprites": {
+    "front_default": null,
+    "back_default": null,
+    "front_shiny": null,
+    "back_shiny": null,
+    "other": {
+      "official-artwork": {
+        "front_default": null
+      }
+    }
+  },
+  "cries": {
+    "latest": null
+  },
   "moves": [
     {
       "move": {"name": "razor-leaf"},

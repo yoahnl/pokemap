@@ -224,18 +224,20 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   }
 
   Future<void> _openImportFlow(ProjectFileSystem workspace) async {
-    final result = await showPokedexImportFlowSheet(
+    final result = await _showPokedexImportFlowSheet(
       context: context,
       workspace: workspace,
       previewImport: widget.importPreviewer,
       importPokemon: widget.importer,
+      previewExternalImport: widget.externalImportPreviewer,
+      importExternalPokemon: widget.externalImporter,
       pickJsonSourceFile: widget.pickJsonImportFile,
     );
     if (!mounted || result == null) {
       return;
     }
 
-    final importedSpeciesId = result.preview.speciesId.trim();
+    final importedSpeciesId = result.speciesId.trim();
     setState(() {
       _entriesFuture = _buildEntriesFuture();
       _searchQuery = '';
@@ -254,8 +256,11 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       if (result.importedEvolution) 'évolutions',
       if (result.importedMedia) 'médias',
     ];
+    if (result.downloadedAssetCount > 0) {
+      importedArtifacts.add('${result.downloadedAssetCount} assets');
+    }
     _showFeedback(
-      'Import terminé pour ${result.preview.primaryName} · ${importedArtifacts.join(', ')}',
+      'Import terminé pour ${result.primaryName} · ${importedArtifacts.join(', ')}',
       isError: false,
     );
   }

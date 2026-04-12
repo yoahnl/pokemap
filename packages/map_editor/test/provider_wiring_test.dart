@@ -21,6 +21,16 @@ void main() {
       expect(container.read(terrainPresetResolverProvider), isNotNull);
       expect(container.read(createProjectDialogueUseCaseProvider), isNotNull);
       expect(container.read(pokemonDatabaseIndexProvider), isNotNull);
+      expect(container.read(pokeApiLiveSourceProvider), isNotNull);
+      expect(container.read(showdownSnapshotSourceProvider), isNotNull);
+      expect(
+          container.read(pokemonExternalSourceRepositoryProvider), isNotNull);
+      expect(
+        container.read(importExternalPokemonSpeciesUseCaseProvider),
+        isNotNull,
+      );
+      expect(container.read(pokedexExternalImportPreviewerProvider), isNotNull);
+      expect(container.read(pokedexExternalImporterProvider), isNotNull);
       expect(container.read(editorWorkspaceControllerProvider), isNotNull);
       expect(container.read(projectContentControllerProvider), isNotNull);
     });

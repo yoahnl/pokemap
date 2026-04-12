@@ -22,6 +22,7 @@ import '../../../application/models/pokedex_species_detail.dart';
 import '../../../application/models/pokemon_database_index.dart';
 import '../../../application/models/pokemon_project_data_models.dart';
 import '../../../application/ports/project_workspace.dart';
+import '../../../application/use_cases/import_external_pokemon_use_cases.dart';
 import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
@@ -89,6 +90,8 @@ class PokedexWorkspace extends ConsumerWidget {
     this.detailLoader,
     this.importPreviewer,
     this.importer,
+    this.externalImportPreviewer,
+    this.externalImporter,
     this.pickJsonImportFile,
     this.metadataSaver,
     this.formsClassificationSaver,
@@ -105,6 +108,8 @@ class PokedexWorkspace extends ConsumerWidget {
   final PokedexSpeciesDetailLoader? detailLoader;
   final PokedexImportPreviewer? importPreviewer;
   final PokedexImporter? importer;
+  final PokedexExternalImportPreviewer? externalImportPreviewer;
+  final PokedexExternalImporter? externalImporter;
   final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesMetadataSaver? metadataSaver;
   final PokedexSpeciesFormsClassificationSaver? formsClassificationSaver;
@@ -124,6 +129,11 @@ class PokedexWorkspace extends ConsumerWidget {
         importPreviewer ?? ref.watch(pokedexImportPreviewerProvider);
     final PokedexImporter resolvedImporter =
         importer ?? ref.watch(pokedexImporterProvider);
+    final PokedexExternalImportPreviewer resolvedExternalImportPreviewer =
+        externalImportPreviewer ??
+            ref.watch(pokedexExternalImportPreviewerProvider);
+    final PokedexExternalImporter resolvedExternalImporter =
+        externalImporter ?? ref.watch(pokedexExternalImporterProvider);
     final PokedexSpeciesMetadataSaver resolvedMetadataSaver =
         metadataSaver ?? ref.watch(pokedexSpeciesMetadataSaverProvider);
     final PokedexSpeciesFormsClassificationSaver
@@ -142,6 +152,8 @@ class PokedexWorkspace extends ConsumerWidget {
       detailLoader: resolvedDetailLoader,
       importPreviewer: resolvedImportPreviewer,
       importer: resolvedImporter,
+      externalImportPreviewer: resolvedExternalImportPreviewer,
+      externalImporter: resolvedExternalImporter,
       pickJsonImportFile: pickJsonImportFile,
       metadataSaver: resolvedMetadataSaver,
       formsClassificationSaver: resolvedFormsClassificationSaver,
@@ -159,6 +171,8 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.detailLoader,
     required this.importPreviewer,
     required this.importer,
+    required this.externalImportPreviewer,
+    required this.externalImporter,
     required this.pickJsonImportFile,
     required this.metadataSaver,
     required this.formsClassificationSaver,
@@ -172,6 +186,8 @@ class _PokedexWorkspaceBody extends StatefulWidget {
   final PokedexSpeciesDetailLoader detailLoader;
   final PokedexImportPreviewer importPreviewer;
   final PokedexImporter importer;
+  final PokedexExternalImportPreviewer externalImportPreviewer;
+  final PokedexExternalImporter externalImporter;
   final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesMetadataSaver metadataSaver;
   final PokedexSpeciesFormsClassificationSaver formsClassificationSaver;

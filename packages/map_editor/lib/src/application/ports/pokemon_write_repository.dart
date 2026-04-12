@@ -43,4 +43,16 @@ abstract class PokemonWriteRepository {
     ProjectWorkspace workspace,
     PokemonMediaFile media,
   );
+
+  /// Écrit un asset binaire Pokémon sous un chemin relatif projet explicite.
+  ///
+  /// Cette extension reste volontairement minimaliste :
+  /// - le use case décide du mapping URL distante -> chemin local ;
+  /// - le repository se contente d'écrire les bytes au bon endroit ;
+  /// - aucun manifest parallèle n'est créé ici.
+  Future<void> saveBinaryAsset(
+    ProjectWorkspace workspace, {
+    required String relativePath,
+    required List<int> bytes,
+  });
 }

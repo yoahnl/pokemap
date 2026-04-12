@@ -17,7 +17,10 @@ import '../models/pokemon_project_data_models.dart';
 class ShowdownPokemonSpeciesConverter {
   const ShowdownPokemonSpeciesConverter();
 
-  PokemonSpeciesFile convert(Map<String, dynamic> payload) {
+  PokemonSpeciesFile convert(
+    Map<String, dynamic> payload, {
+    int? fallbackGeneration,
+  }) {
     final id = _resolveSpeciesId(payload);
     if (id.isEmpty) {
       throw const EditorValidationException(
@@ -33,7 +36,9 @@ class ShowdownPokemonSpeciesConverter {
     }
 
     final nationalDex = _readRequiredInt(payload['num'], field: 'num');
-    final genIntroduced = _readRequiredInt(payload['gen'], field: 'gen');
+    final genIntroduced = _readOptionalInt(payload['gen']) ??
+        fallbackGeneration ??
+        _readRequiredInt(payload['gen'], field: 'gen');
     final types = _readRequiredStringList(payload['types'], field: 'types')
         .map(_normalizeCatalogId)
         .toList(growable: false);
