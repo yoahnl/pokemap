@@ -26,6 +26,8 @@ class RuntimePokedexEntry {
 // Le host runtime ne dépend pas du package editor.
 // On relit donc les JSON espèces du projet directement depuis le manifest pour
 // construire une petite vue lecture seule adaptée à la phase 10.
+// Le contrat de lecture ici doit suivre le schéma réellement consolidé du repo,
+// pas un ancien shape supposé du côté editor.
 Future<List<RuntimePokedexEntry>> loadRuntimePokedexEntries({
   required String projectFilePath,
 }) async {
@@ -70,20 +72,14 @@ Future<List<RuntimePokedexEntry>> loadRuntimePokedexEntries({
 // Cette normalisation garde la logique simple :
 // on lit l'id, le dex, le nom principal, les types et quelques métadonnées
 // visibles, sans essayer de reconstruire toute la fiche Pokédex de l'éditeur.
+// Les types viennent du shape actuel `typing.types`.
+// On garde leur ordre source et on retire seulement les valeurs vides pour ne
+// pas propager de bruit dans l'UI runtime.
 RuntimePokedexEntry _parseRuntimePokedexEntry(Map<String, dynamic> json) {
   final id = (json['id'] as String?)?.trim() ?? '';
   final nationalDex = (json['nationalDex'] as num?)?.toInt() ?? 0;
   final names = _readStringMap(json['names']);
-  final primaryType = _readTrimmedString(
-    (json['typing'] as Map<String, dynamic>?)?['primary'],
-  );
-  final secondaryType = _readTrimmedString(
-    (json['typing'] as Map<String, dynamic>?)?['secondary'],
-  );
-  final types = <String>[
-    if (primaryType != null) primaryType,
-    if (secondaryType != null) secondaryType,
-  ];
+  final types = _readTypes(json['typing']);
   final classification = (json['classification'] as Map<String, dynamic>?) ??
       const <String, dynamic>{};
   final dexContent = (json['dexContent'] as Map<String, dynamic>?) ??
@@ -97,6 +93,29 @@ RuntimePokedexEntry _parseRuntimePokedexEntry(Map<String, dynamic> json) {
     isEnabledInProject: (classification['isEnabledInProject'] as bool?) ?? true,
     flavorText: _readTrimmedString(dexContent['flavorText']),
   );
+}
+
+// Le loader runtime reste volontairement minimal et indépendant de `map_editor`.
+// Il lit donc directement le bloc `typing` tel qu'il est stocké dans les JSON
+// espèces du projet, avec le shape consolidé `typing.types`.
+// Le mini-fix ne conserve pas de fallback `primary/secondary`, parce que
+// l'audit du repo n'a trouvé que le schéma consolidé `types` côté species.
+List<String> _readTypes(Object? rawTyping) {
+  final typing = rawTyping as Map<String, dynamic>?;
+  final rawTypes = typing?['types'];
+  if (rawTypes is! List) {
+    return const <String>[];
+  }
+
+  final normalized = <String>[];
+  for (final rawType in rawTypes) {
+    final type = _readTrimmedString(rawType);
+    if (type == null) {
+      continue;
+    }
+    normalized.add(type);
+  }
+  return List<String>.unmodifiable(normalized);
 }
 
 // Les names du JSON peuvent contenir des clés ou valeurs vides.

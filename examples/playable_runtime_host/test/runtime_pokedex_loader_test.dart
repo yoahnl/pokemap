@@ -10,6 +10,8 @@ void main() {
 
   // Ce test prouve que le chargeur runtime lit le manifest du projet, parcourt
   // le dossier species local et construit une projection légère stable.
+  // Il cible explicitement le shape consolidé `typing.types`, pour éviter
+  // qu'une fixture permissive continue de masquer un mauvais parse des types.
   test('loads and sorts Pokédex entries from the project species directory',
       () async {
     final root = await Directory.systemTemp.createTemp('runtime_pokedex_');
@@ -45,8 +47,7 @@ void main() {
           'en': 'Ivysaur',
         },
         'typing': {
-          'primary': 'grass',
-          'secondary': 'poison',
+          'types': ['poison', '', 'grass'],
         },
         'classification': {
           'isEnabledInProject': false,
@@ -65,8 +66,7 @@ void main() {
           'fr': 'Bulbizarre',
         },
         'typing': {
-          'primary': 'grass',
-          'secondary': 'poison',
+          'types': ['grass', ' ', 'poison'],
         },
         'classification': {
           'isEnabledInProject': true,
@@ -85,6 +85,9 @@ void main() {
     expect(entries.first.primaryName, 'Bulbasaur');
     expect(entries.first.types, ['grass', 'poison']);
     expect(entries.first.isEnabledInProject, isTrue);
+    expect(entries.last.types, ['poison', 'grass']);
+    expect(entries.expand((entry) => entry.types), isNot(contains('')));
+    expect(entries.expand((entry) => entry.types), isNot(contains(' ')));
     expect(entries.last.isEnabledInProject, isFalse);
     expect(entries.last.flavorText, 'Blooming Pokemon');
   });
