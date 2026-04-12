@@ -8,6 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import 'src/in_game_menu.dart';
+import 'src/runtime_pokedex_loader.dart';
+
+// Point d'entrée minimal du host runtime.
+// On garde un MaterialApp très simple, puis toute la navigation se fait
+// depuis la page de chargement et le menu in-game.
 void main() {
   runApp(const MaterialApp(
     title: 'Playable Runtime Host',
@@ -15,6 +21,9 @@ void main() {
   ));
 }
 
+// Cette page joue deux rôles très ciblés :
+// 1. charger un projet et une map runtime ;
+// 2. exposer les surfaces minimales de debug/save/menu utiles aux phases 9-10.
 class _ProjectLoaderPage extends StatefulWidget {
   const _ProjectLoaderPage();
 
@@ -48,10 +57,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
 
   @override
   void dispose() {
+    // Le ticker d'overlay est strictement local au host et doit toujours être
+    // arrêté quand la page sort, pour éviter toute fuite de rafraîchissement.
     _runtimeInfoTicker?.cancel();
     super.dispose();
   }
 
+  // Les préférences locales du host ne font pas partie de la save gameplay.
+  // Elles servent seulement à rouvrir rapidement le dernier projet dans l'outil
+  // d'hébergement runtime.
   String _prefsFilePath() {
     final home = Platform.environment['HOME'];
     if (home == null || home.isEmpty) {
@@ -60,6 +74,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     return '$home/$_prefsFileName';
   }
 
+  // La restauration des préférences est volontairement best-effort :
+  // on veut retrouver vite le dernier projet, sans jamais bloquer le chargement
+  // si le fichier local est absent ou invalide.
   Future<void> _restoreLastSession() async {
     try {
       final file = File(_prefsFilePath());
@@ -97,6 +114,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
+  // On persiste seulement le chemin du projet et la map choisie, pas l'état
+  // gameplay. La vraie sauvegarde gameplay reste dans le pipeline phase 9.
   Future<void> _persistLastSession() async {
     try {
       final file = File(_prefsFilePath());
@@ -110,6 +129,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
+  // Cette lecture du manifest sert uniquement à alimenter le host :
+  // on récupère la liste des maps disponibles sans toucher au save system.
   Future<void> _loadProjectMapsFromManifest(
     String projectFilePath, {
     String? preferredMapId,
@@ -155,6 +176,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
+  // Le ticker force un refresh léger de l'overlay runtime pour afficher
+  // les informations de debug et de save qui évoluent pendant la session.
   void _startRuntimeInfoTicker() {
     _runtimeInfoTicker?.cancel();
     _runtimeInfoTicker = Timer.periodic(
@@ -173,6 +196,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     _runtimeInfoTicker = null;
   }
 
+  // Le host laisse l'utilisateur choisir explicitement un project.json.
+  // Cela reste séparé de toute logique de menu in-game ou de save gameplay.
   Future<void> _pickProjectFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -189,6 +214,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     await _persistLastSession();
   }
 
+  // Ce chargement construit uniquement le bundle runtime et l'instance de jeu.
+  // Il ne modifie pas la structure métier des saves.
   Future<void> _load() async {
     final projectFilePath = _projectFilePath;
     final mapId = (_selectedMapId ?? '').trim();
@@ -238,6 +265,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
+  // Retour au chargeur de projet.
+  // On ne détruit pas de données persistées, on ferme juste la session runtime.
   void _reset() => setState(() {
         _stopRuntimeInfoTicker();
         _game = null;
@@ -246,10 +275,26 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         _saveLoadError = null;
       });
 
+  // Les boutons historiques du host réutilisent désormais le même flux que
+  // l'écran "Sauvegarde" du menu in-game, pour garder une seule source de
+  // vérité côté runtime.
   Future<void> _saveGame() async {
+    await _performSaveRequest();
+  }
+
+  Future<void> _loadGame() async {
+    await _performLoadRequest();
+  }
+
+  // Ce helper centralise la sauvegarde gameplay existante.
+  // Il renvoie un résultat structuré pour que le menu in-game et l'overlay
+  // historique affichent exactement le même statut utilisateur.
+  Future<InGameMenuActionResult> _performSaveRequest() async {
     final game = _game;
     if (game == null || _saveLoadBusy) {
-      return;
+      return const InGameMenuActionResult(
+        error: 'Sauvegarde indisponible',
+      );
     }
     setState(() {
       _saveLoadBusy = true;
@@ -258,18 +303,26 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     });
     try {
       final saved = await game.saveGame();
-      if (!mounted) return;
+      if (!mounted) {
+        return const InGameMenuActionResult();
+      }
       final info = game.saveLoadInfo;
+      final status = saved
+          ? 'Sauvegarde OK · ${info.mapId} (${info.playerX}, ${info.playerY})'
+          : 'Sauvegarde impossible';
       setState(() {
-        _saveLoadStatus = saved
-            ? 'Sauvegarde OK · ${info.mapId} (${info.playerX}, ${info.playerY})'
-            : 'Sauvegarde impossible';
+        _saveLoadStatus = status;
       });
+      return InGameMenuActionResult(status: status);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return const InGameMenuActionResult();
+      }
+      final error = 'Erreur sauvegarde: $e';
       setState(() {
-        _saveLoadError = 'Erreur sauvegarde: $e';
+        _saveLoadError = error;
       });
+      return InGameMenuActionResult(error: error);
     } finally {
       if (mounted) {
         setState(() => _saveLoadBusy = false);
@@ -277,10 +330,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
-  Future<void> _loadGame() async {
+  // Même principe pour le chargement :
+  // on garde un seul chemin d'exécution pour l'overlay runtime et le menu.
+  Future<InGameMenuActionResult> _performLoadRequest() async {
     final game = _game;
     if (game == null || _saveLoadBusy) {
-      return;
+      return const InGameMenuActionResult(
+        error: 'Chargement indisponible',
+      );
     }
     setState(() {
       _saveLoadBusy = true;
@@ -289,24 +346,29 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     });
     try {
       final loaded = await game.loadGame();
-      if (!mounted) return;
-      if (loaded) {
-        final info = game.saveLoadInfo;
+      if (!mounted) return const InGameMenuActionResult();
+      if (!loaded) {
+        const error = 'Aucune sauvegarde trouvée ou chargement impossible';
         setState(() {
-          _surfingEnabled = info.movementMode == MovementMode.surf.name;
-          _saveLoadStatus =
-              'Chargement OK · ${info.mapId} (${info.playerX}, ${info.playerY})';
+          _saveLoadError = error;
         });
-      } else {
-        setState(() {
-          _saveLoadError = 'Aucune sauvegarde trouvée ou chargement impossible';
-        });
+        return const InGameMenuActionResult(error: error);
       }
-    } catch (e) {
-      if (!mounted) return;
+      final info = game.saveLoadInfo;
+      final status =
+          'Chargement OK · ${info.mapId} (${info.playerX}, ${info.playerY})';
       setState(() {
-        _saveLoadError = 'Erreur chargement: $e';
+        _surfingEnabled = info.movementMode == MovementMode.surf.name;
+        _saveLoadStatus = status;
       });
+      return InGameMenuActionResult(status: status);
+    } catch (e) {
+      if (!mounted) return const InGameMenuActionResult();
+      final error = 'Erreur chargement: $e';
+      setState(() {
+        _saveLoadError = error;
+      });
+      return InGameMenuActionResult(error: error);
     } finally {
       if (mounted) {
         setState(() => _saveLoadBusy = false);
@@ -314,8 +376,35 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
+  // Le menu phase 10 vit dans le host runtime existant, sans nouveau framework.
+  // On pousse simplement une route Flutter classique au-dessus du GameWidget.
+  Future<void> _openInGameMenu() async {
+    final game = _game;
+    if (game == null) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return InGameMenuPage(
+            gameStateSnapshotBuilder: () => game.gameStateSnapshot,
+            pokedexLoader: () => loadRuntimePokedexEntries(
+              projectFilePath: _projectFilePath,
+            ),
+            onSaveRequested: _performSaveRequest,
+            onLoadRequested: _performLoadRequest,
+            onCloseRequested: () => Navigator.of(context).pop(),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Deux états d'interface seulement :
+    // 1. soit une session runtime est active et on affiche le jeu ;
+    // 2. soit on reste sur le chargeur de projet.
     final game = _game;
     if (game != null) {
       final info = game.saveLoadInfo;
@@ -326,6 +415,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
             icon: const Icon(Icons.arrow_back),
             onPressed: _reset,
           ),
+          actions: [
+            // Le menu in-game est volontairement minimal :
+            // un seul bouton ouvre les écrans lecture seule de la phase 10.
+            IconButton(
+              key: const Key('runtime-menu-button'),
+              icon: const Icon(Icons.menu),
+              onPressed: _openInGameMenu,
+            ),
+          ],
         ),
         body: Stack(
           children: [
