@@ -460,11 +460,32 @@ class ImportExternalPokemonSpeciesUseCase {
       }
     }
 
-    final assetBatch = await _downloadBestEffortAssets(
-      workspace,
-      mergePolicy: mergePolicy,
-      candidates: assetCandidates,
-    );
+    // Mini-fix 11A-2 :
+    // si `media.json` est skippé, aucun nouvel asset binaire média ne doit
+    // être écrit. Sinon on créerait des fichiers orphelins que ce run ne peut
+    // pas référencer honnêtement, puisque le JSON média conservé n'est pas
+    // réécrit.
+    //
+    // On garde volontairement cette garde ici, au point où l'on connaît à la
+    // fois :
+    // - la décision de merge sur l'artefact `media.json` ;
+    // - la liste des assets candidats à télécharger.
+    //
+    // Non-objectif explicite :
+    // - on ne corrige pas rétroactivement un vieux `media.json` existant ;
+    // - on évite seulement d'ajouter du nouveau bruit disque quand le JSON
+    //   média reste inchangé.
+    final assetBatch =
+        mediaPlan.action == PokemonExternalImportArtifactAction.skip
+            ? _buildSkippedMediaAssetBatch(
+                species: species,
+                candidates: assetCandidates,
+              )
+            : await _downloadBestEffortAssets(
+                workspace,
+                mergePolicy: mergePolicy,
+                candidates: assetCandidates,
+              );
 
     // Mini-fix post-review 11A :
     // le `media.json` final ne doit jamais refléter le plan optimiste des
@@ -1090,6 +1111,30 @@ class ImportExternalPokemonSpeciesUseCase {
     return _DownloadedAssetBatch(
       results: results,
       warnings: warnings,
+    );
+  }
+
+  _DownloadedAssetBatch _buildSkippedMediaAssetBatch({
+    required PokemonSpeciesFile species,
+    required _PokemonExternalAssetCandidateBundle candidates,
+  }) {
+    if (candidates.candidates.isEmpty) {
+      return const _DownloadedAssetBatch(
+        results: <PokemonExternalAssetDownloadResult>[],
+        warnings: <String>[],
+      );
+    }
+
+    // Ce warning global est volontairement plus utile qu'une pseudo-liste de
+    // téléchargements "non tentés" :
+    // - il explique pourquoi rien n'a été écrit ;
+    // - il rappelle l'invariant anti-assets-orphelins ;
+    // - il évite de faire croire que chaque asset a été validé puis refusé.
+    final message =
+        'Existing media.json for "${species.id}" was kept because merge policy is skip_existing; no new binary media assets were downloaded in this run to avoid orphan files.';
+    return _DownloadedAssetBatch(
+      results: const <PokemonExternalAssetDownloadResult>[],
+      warnings: <String>[message],
     );
   }
 

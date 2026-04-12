@@ -584,6 +584,86 @@ void main() {
     });
 
     test(
+        'skip_existing does not download new assets when media.json is already skipped',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+
+      // Ce cas verrouille précisément le coin restant du mini-fix 2 :
+      // - `media.json` existe déjà, donc l'artefact media doit être `skip` ;
+      // - aucun asset local n'existe encore ;
+      // - si le pipeline continue malgré tout à télécharger les binaires,
+      //   ils deviennent orphelins parce que le `media.json` conservé ne sera
+      //   jamais réécrit dans ce run.
+      //
+      // On prépare donc volontairement un `media.json` minimal qui ne référence
+      // aucun asset. Si l'import écrit ensuite des portraits/sprites/cries alors
+      // que le JSON média est skippé, le bug est réel et reproductible.
+      await writeRepository.saveMedia(
+        workspace,
+        const PokemonMediaFile(
+          speciesId: 'bulbasaur',
+          defaultFormId: 'base',
+          variants: <String, PokemonMediaVariant>{
+            'base': PokemonMediaVariant(),
+          },
+        ),
+      );
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+        mergePolicy: PokemonExternalImportMergePolicy.skipExisting,
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(
+        result.artifacts
+            .firstWhere(
+              (artifact) =>
+                  artifact.kind == PokemonExternalImportArtifactKind.media,
+            )
+            .action,
+        PokemonExternalImportArtifactAction.skip,
+      );
+      expect(result.downloadedAssetCount, 0);
+      expect(result.downloadedAssets, isEmpty);
+      expect(media.variants['base']?.portrait, isNull);
+      expect(media.variants['base']?.frontStatic, isNull);
+      expect(media.variants['base']?.backStatic, isNull);
+      expect(media.variants['base']?.cry, isNull);
+      expect(
+        result.warnings.join('\n'),
+        contains('media.json'),
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/sprites/bulbasaur/front.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/cries/bulbasaur.ogg',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test(
         'skip_existing keeps a pre-existing local asset ref without re-downloading it',
         () async {
       final beforeProjectJson = await projectFile.readAsString();
@@ -642,6 +722,115 @@ void main() {
       expect(
         result.warnings.join('\n'),
         contains('existing local asset was kept'),
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test('rejects incompatible image content-types without persisting a ref',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      externalSourceRepository.binaryAssets[
+              'https://assets.example.test/bulbasaur/portrait.png'] =
+          PokemonExternalBinaryAsset(
+        sourceUrl: 'https://assets.example.test/bulbasaur/portrait.png',
+        bytes: Uint8List.fromList(<int>[9, 9, 9, 9]),
+        contentType: 'image/jpeg',
+      );
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.variants['base']?.portrait, isNull);
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        result.warnings.join('\n'),
+        contains('incompatible content-type (image/jpeg)'),
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test(
+        'overwrite_existing keeps a local image when redownload content-type is incompatible',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      final portraitFile = File(
+        workspace.resolveProjectRelativePath(
+          'assets/pokemon/portraits/bulbasaur.png',
+        ),
+      );
+      await portraitFile.parent.create(recursive: true);
+      await portraitFile.writeAsBytes(const <int>[17, 18, 19]);
+      externalSourceRepository.binaryAssets[
+              'https://assets.example.test/bulbasaur/portrait.png'] =
+          PokemonExternalBinaryAsset(
+        sourceUrl: 'https://assets.example.test/bulbasaur/portrait.png',
+        bytes: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        contentType: 'image/jpeg',
+      );
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+        mergePolicy: PokemonExternalImportMergePolicy.overwriteExisting,
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.variants['base']?.portrait,
+          'assets/pokemon/portraits/bulbasaur.png');
+      expect(await portraitFile.readAsBytes(), const <int>[17, 18, 19]);
+      expect(
+        result.warnings.join('\n'),
+        contains('existing local asset was kept'),
+      );
+      expect(
+        result.warnings.join('\n'),
+        contains('incompatible content-type (image/jpeg)'),
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test('rejects incompatible cry content-types without persisting a ref',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      externalSourceRepository
+              .binaryAssets['https://assets.example.test/bulbasaur/cry.ogg'] =
+          PokemonExternalBinaryAsset(
+        sourceUrl: 'https://assets.example.test/bulbasaur/cry.ogg',
+        bytes: Uint8List.fromList(<int>[4, 4, 4, 4]),
+        contentType: 'audio/mpeg',
+      );
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.variants['base']?.cry, isNull);
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/cries/bulbasaur.ogg',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        result.warnings.join('\n'),
+        contains('incompatible content-type (audio/mpeg)'),
       );
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
