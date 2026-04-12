@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,6 +37,9 @@ class PokedexWorkspace extends ConsumerWidget {
     super.key,
     this.loader,
     this.detailLoader,
+    this.importPreviewer,
+    this.importer,
+    this.pickJsonImportFile,
     this.metadataSaver,
     this.formsClassificationSaver,
     this.learnsetSaver,
@@ -48,6 +53,9 @@ class PokedexWorkspace extends ConsumerWidget {
   /// le rendu des états UI sans introduire de notifier dédié supplémentaire.
   final PokedexEntryLoader? loader;
   final PokedexSpeciesDetailLoader? detailLoader;
+  final PokedexImportPreviewer? importPreviewer;
+  final PokedexImporter? importer;
+  final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesMetadataSaver? metadataSaver;
   final PokedexSpeciesFormsClassificationSaver? formsClassificationSaver;
   final PokedexSpeciesLearnsetSaver? learnsetSaver;
@@ -62,6 +70,10 @@ class PokedexWorkspace extends ConsumerWidget {
         loader ?? ref.watch(pokedexEntryLoaderProvider);
     final PokedexSpeciesDetailLoader resolvedDetailLoader =
         detailLoader ?? ref.watch(pokedexSpeciesDetailLoaderProvider);
+    final PokedexImportPreviewer resolvedImportPreviewer =
+        importPreviewer ?? ref.watch(pokedexImportPreviewerProvider);
+    final PokedexImporter resolvedImporter =
+        importer ?? ref.watch(pokedexImporterProvider);
     final PokedexSpeciesMetadataSaver resolvedMetadataSaver =
         metadataSaver ?? ref.watch(pokedexSpeciesMetadataSaverProvider);
     final PokedexSpeciesFormsClassificationSaver
@@ -78,6 +90,9 @@ class PokedexWorkspace extends ConsumerWidget {
       projectRootPath: projectRootPath,
       loader: resolvedLoader,
       detailLoader: resolvedDetailLoader,
+      importPreviewer: resolvedImportPreviewer,
+      importer: resolvedImporter,
+      pickJsonImportFile: pickJsonImportFile,
       metadataSaver: resolvedMetadataSaver,
       formsClassificationSaver: resolvedFormsClassificationSaver,
       learnsetSaver: resolvedLearnsetSaver,
@@ -92,6 +107,9 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.projectRootPath,
     required this.loader,
     required this.detailLoader,
+    required this.importPreviewer,
+    required this.importer,
+    required this.pickJsonImportFile,
     required this.metadataSaver,
     required this.formsClassificationSaver,
     required this.learnsetSaver,
@@ -102,6 +120,9 @@ class _PokedexWorkspaceBody extends StatefulWidget {
   final String? projectRootPath;
   final PokedexEntryLoader loader;
   final PokedexSpeciesDetailLoader detailLoader;
+  final PokedexImportPreviewer importPreviewer;
+  final PokedexImporter importer;
+  final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesMetadataSaver metadataSaver;
   final PokedexSpeciesFormsClassificationSaver formsClassificationSaver;
   final PokedexSpeciesLearnsetSaver learnsetSaver;
@@ -115,17 +136,27 @@ class _PokedexWorkspaceBody extends StatefulWidget {
 class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   late Future<List<PokemonDatabaseIndexEntry>> _entriesFuture;
   String _searchQuery = '';
+  bool _filtersExpanded = false;
   String _selectedType = _allTypesFilterValue;
   String _selectedGeneration = _allGenerationsFilterValue;
   String _selectedStatus = _allStatusesFilterValue;
   String? _selectedSpeciesId;
   Future<PokedexSpeciesDetail>? _detailFuture;
   String _selectedDetailTabId = _overviewTabId;
+  String? _feedbackMessage;
+  bool _feedbackIsError = false;
+  Timer? _feedbackTimer;
 
   @override
   void initState() {
     super.initState();
     _entriesFuture = _buildEntriesFuture();
+  }
+
+  @override
+  void dispose() {
+    _feedbackTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -140,6 +171,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       // réinitialise la query et les filtres pour éviter de conserver des
       // critères devenus trompeurs sur une autre liste déjà chargée.
       _searchQuery = '';
+      _filtersExpanded = false;
       _selectedType = _allTypesFilterValue;
       _selectedGeneration = _allGenerationsFilterValue;
       _selectedStatus = _allStatusesFilterValue;
@@ -184,15 +216,6 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
         }
 
         final entries = snapshot.data ?? const <PokemonDatabaseIndexEntry>[];
-        if (entries.isEmpty) {
-          return const PokedexWorkspaceStateCard(
-            key: Key('pokedex-empty-state'),
-            title: 'Pokédex',
-            message:
-                'Aucune espèce importée pour le moment. Les prochains imports ou seeds rempliront cette liste.',
-          );
-        }
-
         final availableTypes = _buildAvailableTypes(entries);
         final availableGenerations = _buildAvailableGenerations(entries);
         final workspace = ProjectFileSystem(projectRootPath);
@@ -225,8 +248,11 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                   workspace: workspace,
                   entry: entry,
                 ),
+                onImportRequested: () => _openImportFlow(workspace),
                 query: _searchQuery,
                 onQueryChanged: _updateSearchQuery,
+                filtersExpanded: _filtersExpanded,
+                onToggleFiltersExpanded: _toggleFiltersExpanded,
                 availableTypes: availableTypes,
                 selectedType: _selectedType,
                 onTypeChanged: _updateSelectedType,
@@ -235,7 +261,14 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                 onGenerationChanged: _updateSelectedGeneration,
                 selectedStatus: _selectedStatus,
                 onStatusChanged: _updateSelectedStatus,
-                emptyResultsChild: filteredEntries.isEmpty
+                feedbackMessage: _feedbackMessage,
+                feedbackIsError: _feedbackIsError,
+                emptyStateChild: entries.isEmpty
+                    ? PokedexWorkspaceImportEmptyState(
+                        onImportRequested: () => _openImportFlow(workspace),
+                      )
+                    : null,
+                emptyResultsChild: entries.isNotEmpty && filteredEntries.isEmpty
                     ? PokedexWorkspaceNoResultsState(
                         query: _searchQuery,
                         selectedType: _selectedType == _allTypesFilterValue
@@ -279,6 +312,10 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
     setState(() => _searchQuery = value);
   }
 
+  void _toggleFiltersExpanded() {
+    setState(() => _filtersExpanded = !_filtersExpanded);
+  }
+
   void _updateSelectedType(String value) {
     if (value == _selectedType) return;
     setState(() => _selectedType = value);
@@ -297,6 +334,57 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
   void _updateSelectedDetailTab(String value) {
     if (value == _selectedDetailTabId) return;
     setState(() => _selectedDetailTabId = value);
+  }
+
+  void _showFeedback(String message, {required bool isError}) {
+    _feedbackTimer?.cancel();
+    setState(() {
+      _feedbackMessage = message;
+      _feedbackIsError = isError;
+    });
+    _feedbackTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _feedbackMessage = null);
+    });
+  }
+
+  Future<void> _openImportFlow(ProjectFileSystem workspace) async {
+    final result = await showPokedexImportFlowSheet(
+      context: context,
+      workspace: workspace,
+      previewImport: widget.importPreviewer,
+      importPokemon: widget.importer,
+      pickJsonSourceFile: widget.pickJsonImportFile,
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+
+    final importedSpeciesId = result.preview.speciesId.trim();
+    setState(() {
+      _entriesFuture = _buildEntriesFuture();
+      _searchQuery = '';
+      _filtersExpanded = false;
+      _selectedType = _allTypesFilterValue;
+      _selectedGeneration = _allGenerationsFilterValue;
+      _selectedStatus = _allStatusesFilterValue;
+      _selectedSpeciesId = importedSpeciesId;
+      _selectedDetailTabId = _overviewTabId;
+      _detailFuture = widget.detailLoader(workspace, importedSpeciesId);
+    });
+
+    final importedArtifacts = <String>[
+      'espèce',
+      if (result.importedLearnset) 'learnset',
+      if (result.importedEvolution) 'évolutions',
+      if (result.importedMedia) 'médias',
+    ];
+    _showFeedback(
+      'Import terminé pour ${result.preview.primaryName} · ${importedArtifacts.join(', ')}',
+      isError: false,
+    );
   }
 
   void _selectEntry({

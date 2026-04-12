@@ -65,6 +65,7 @@ void main() {
             'fr': 'Bulbizarre Projet',
             'en': 'Bulbasaur Project',
           },
+          types: <String>['electric', 'fairy'],
           flavorText: 'Texte Pokédex édité localement.',
           starterEligible: false,
           giftOnly: true,
@@ -78,6 +79,7 @@ void main() {
       expect(readBack.classification.isEnabledInProject, isFalse);
       expect(readBack.names['fr'], 'Bulbizarre Projet');
       expect(readBack.names['en'], 'Bulbasaur Project');
+      expect(readBack.typing.types, <String>['electric', 'fairy']);
       expect(readBack.dexContent.flavorText, 'Texte Pokédex édité localement.');
       expect(readBack.gameplayFlags.starterEligible, isFalse);
       expect(readBack.gameplayFlags.giftOnly, isTrue);
@@ -118,6 +120,7 @@ void main() {
               'fr': '   ',
               'en': '\n\t',
             },
+            types: <String>['grass', 'poison'],
             flavorText: 'Ce texte ne doit jamais être persisté.',
             starterEligible: false,
             giftOnly: true,
@@ -155,6 +158,59 @@ void main() {
     });
 
     test(
+        'rejects metadata updates when all types are empty and leaves species and project manifest untouched',
+        () async {
+      await writeRepository.saveSpecies(workspace, _bulbasaurSpecies);
+
+      final projectFile = File(workspace.projectManifestPath);
+      final beforeProjectJson = await projectFile.readAsString();
+      final speciesFilesBefore = await _listSpeciesJsonFiles(workspace);
+      expect(speciesFilesBefore, hasLength(1));
+
+      final speciesFile = speciesFilesBefore.single;
+      final beforeSpeciesJson = await speciesFile.readAsString();
+
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          const UpdatePokedexSpeciesMetadataRequest(
+            speciesId: 'bulbasaur',
+            isEnabledInProject: true,
+            names: <String, String>{
+              'fr': 'Bulbizarre',
+              'en': 'Bulbasaur',
+            },
+            types: <String>['   ', '\n\t'],
+            flavorText: 'Ce texte ne doit jamais être persisté.',
+            starterEligible: false,
+            giftOnly: true,
+            tradeOnly: true,
+          ),
+        ),
+        throwsA(
+          isA<EditorValidationException>().having(
+            (error) => error.message,
+            'message',
+            'Pokemon species must contain at least one non-empty type',
+          ),
+        ),
+      );
+
+      final speciesFilesAfter = await _listSpeciesJsonFiles(workspace);
+      expect(speciesFilesAfter, hasLength(1));
+      expect(speciesFilesAfter.single.path, speciesFile.path);
+      expect(await speciesFile.readAsString(), beforeSpeciesJson);
+      expect(await projectFile.readAsString(), beforeProjectJson);
+
+      final readBack =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      expect(readBack.typing.types, _bulbasaurSpecies.typing.types);
+      expect(readBack.refs.learnset, 'bulbasaur');
+      expect(readBack.refs.evolution, 'bulbasaur');
+      expect(readBack.refs.media, 'bulbasaur');
+    });
+
+    test(
         'reuses an existing non-canonical species path instead of creating a canonical duplicate during metadata updates',
         () async {
       final speciesDir = Directory(
@@ -178,6 +234,7 @@ void main() {
             'fr': 'Bulbizarre Mis à Jour',
             'en': 'Bulbasaur Refreshed',
           },
+          types: <String>['grass', 'dragon'],
           flavorText: 'Le writer doit réutiliser le chemin déjà présent.',
           starterEligible: true,
           giftOnly: false,
@@ -207,6 +264,7 @@ void main() {
       final readBack =
           await readRepository.readSpeciesById(workspace, 'bulbasaur');
       expect(readBack.names['en'], 'Bulbasaur Refreshed');
+      expect(readBack.typing.types, <String>['grass', 'dragon']);
       expect(
         readBack.dexContent.flavorText,
         'Le writer doit réutiliser le chemin déjà présent.',

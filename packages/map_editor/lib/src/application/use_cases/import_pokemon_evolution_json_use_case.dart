@@ -29,6 +29,21 @@ class ImportPokemonEvolutionJsonUseCase {
     ProjectWorkspace workspace, {
     required String absoluteSourcePath,
   }) async {
+    final evolution = await readValidatedSource(
+      workspace,
+      absoluteSourcePath: absoluteSourcePath,
+    );
+
+    await writeRepository.saveEvolution(workspace, evolution);
+    return evolution;
+  }
+
+  /// Réutilise le parsing/validation du lot 25 sans écrire, pour les flux
+  /// d’import qui veulent vérifier tout un bundle avant de toucher le projet.
+  Future<PokemonEvolutionFile> readValidatedSource(
+    ProjectWorkspace workspace, {
+    required String absoluteSourcePath,
+  }) async {
     final sourcePath = absoluteSourcePath.trim();
     if (sourcePath.isEmpty) {
       throw const EditorValidationException(
@@ -50,8 +65,6 @@ class ImportPokemonEvolutionJsonUseCase {
     final decoded = _decodeJsonRoot(raw);
     final evolution = _parseEvolution(decoded);
     _validateEvolution(evolution);
-
-    await writeRepository.saveEvolution(workspace, evolution);
     return evolution;
   }
 

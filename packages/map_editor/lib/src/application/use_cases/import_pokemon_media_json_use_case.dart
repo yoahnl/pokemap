@@ -29,6 +29,21 @@ class ImportPokemonMediaJsonUseCase {
     ProjectWorkspace workspace, {
     required String absoluteSourcePath,
   }) async {
+    final media = await readValidatedSource(
+      workspace,
+      absoluteSourcePath: absoluteSourcePath,
+    );
+
+    await writeRepository.saveMedia(workspace, media);
+    return media;
+  }
+
+  /// Réutilise le contrat du lot 26 pour les previews et les imports groupés,
+  /// sans déclencher d’écriture tant que tout le bundle n’est pas validé.
+  Future<PokemonMediaFile> readValidatedSource(
+    ProjectWorkspace workspace, {
+    required String absoluteSourcePath,
+  }) async {
     final sourcePath = absoluteSourcePath.trim();
     if (sourcePath.isEmpty) {
       throw const EditorValidationException(
@@ -50,8 +65,6 @@ class ImportPokemonMediaJsonUseCase {
     final decoded = _decodeJsonRoot(raw);
     final media = _parseMedia(decoded);
     _validateMedia(media);
-
-    await writeRepository.saveMedia(workspace, media);
     return media;
   }
 

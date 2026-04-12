@@ -29,6 +29,22 @@ class ImportPokemonLearnsetJsonUseCase {
     ProjectWorkspace workspace, {
     required String absoluteSourcePath,
   }) async {
+    final learnset = await readValidatedSource(
+      workspace,
+      absoluteSourcePath: absoluteSourcePath,
+    );
+
+    await writeRepository.saveLearnset(workspace, learnset);
+    return learnset;
+  }
+
+  /// Expose le même contrat de lecture/validation sans write immédiat pour les
+  /// flux applicatifs qui doivent prévisualiser puis importer plusieurs
+  /// artefacts Pokémon ensemble.
+  Future<PokemonLearnsetFile> readValidatedSource(
+    ProjectWorkspace workspace, {
+    required String absoluteSourcePath,
+  }) async {
     final sourcePath = absoluteSourcePath.trim();
     if (sourcePath.isEmpty) {
       throw const EditorValidationException(
@@ -50,8 +66,6 @@ class ImportPokemonLearnsetJsonUseCase {
     final decoded = _decodeJsonRoot(raw);
     final learnset = _parseLearnset(decoded);
     _validateLearnset(learnset);
-
-    await writeRepository.saveLearnset(workspace, learnset);
     return learnset;
   }
 

@@ -413,7 +413,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             leading: const MacosIcon(CupertinoIcons.book),
             title: const Text('Pokédex'),
             subtitle: const Text(
-              'Species list only - no search, no detail, no editing yet',
+              'Recherche, import, détail et édition locale des espèces',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -422,7 +422,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
             child: Text(
-              'Cette entrée ouvre la première liste Pokédex utile. Le scope reste volontairement strict : simple lecture locale des espèces importées.',
+              'Cette entrée ouvre le workspace Pokédex du projet : import local JSON, recherche, filtres, détail et édition locale des espèces importées.',
               style: TextStyle(
                 color: subtle,
                 fontSize: 12,

@@ -20,6 +20,7 @@ class UpdatePokedexSpeciesMetadataRequest {
     required this.speciesId,
     required this.isEnabledInProject,
     required this.names,
+    required this.types,
     required this.flavorText,
     required this.starterEligible,
     required this.giftOnly,
@@ -29,6 +30,7 @@ class UpdatePokedexSpeciesMetadataRequest {
   final String speciesId;
   final bool isEnabledInProject;
   final Map<String, String> names;
+  final List<String> types;
   final String? flavorText;
   final bool starterEligible;
   final bool giftOnly;
@@ -74,6 +76,7 @@ class UpdatePokedexSpeciesMetadataUseCase {
       speciesId,
     );
     final normalizedNames = _normalizeLocalizedValues(request.names);
+    final normalizedTypes = _normalizeTypeIds(request.types);
 
     // Contrat métier local de la phase 8A :
     // - la liste Pokédex repose ensuite sur un nom principal exploitable ;
@@ -92,6 +95,11 @@ class UpdatePokedexSpeciesMetadataUseCase {
         'Pokemon species names must contain at least one non-empty value',
       );
     }
+    if (normalizedTypes.isEmpty) {
+      throw const EditorValidationException(
+        'Pokemon species must contain at least one non-empty type',
+      );
+    }
 
     // On ne reconstruit jamais l'espèce "depuis zéro" dans la UI.
     // Le but est précisément de préserver :
@@ -106,7 +114,7 @@ class UpdatePokedexSpeciesMetadataUseCase {
       names: normalizedNames,
       speciesName: currentSpecies.speciesName,
       genIntroduced: currentSpecies.genIntroduced,
-      typing: currentSpecies.typing,
+      typing: PokemonSpeciesTyping(types: normalizedTypes),
       baseStats: currentSpecies.baseStats,
       abilities: currentSpecies.abilities,
       breeding: currentSpecies.breeding,
@@ -160,6 +168,23 @@ class UpdatePokedexSpeciesMetadataUseCase {
     }
 
     return normalized;
+  }
+
+  List<String> _normalizeTypeIds(List<String> values) {
+    final normalized = <String>{};
+
+    // Les types restent volontairement traités comme une liste ordonnée
+    // légère : on enlève le bruit, on garde l'ordre saisi et on évite les
+    // doublons textuels évidents avant écriture.
+    for (final value in values) {
+      final typeId = value.trim();
+      if (typeId.isEmpty) {
+        continue;
+      }
+      normalized.add(typeId);
+    }
+
+    return normalized.toList(growable: false);
   }
 
   bool _containsAtLeastOneUsableLocalizedValue(Map<String, String> values) {

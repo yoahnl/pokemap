@@ -14,6 +14,7 @@ import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
+import 'package:map_editor/src/application/use_cases/import_pokemon_json_bundle_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_learnset_use_case.dart';
@@ -40,6 +41,12 @@ void main() {
     ProviderContainer container, {
     required Widget child,
   }) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 980);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -242,6 +249,15 @@ void main() {
     required Key popupKey,
     required String itemLabel,
   }) async {
+    if (find.byKey(popupKey).evaluate().isEmpty) {
+      final toggleFinder =
+          find.byKey(const Key('pokedex-toggle-filters-button'));
+      if (toggleFinder.evaluate().isNotEmpty) {
+        await tester.tap(toggleFinder);
+        await tester.pumpAndSettle();
+      }
+    }
+    await tester.ensureVisible(find.byKey(popupKey));
     await tester.tap(find.byKey(popupKey));
     await tester.pumpAndSettle();
     await tester.tap(find.text(itemLabel).last);
@@ -264,6 +280,11 @@ void main() {
     PokemonSpeciesFile species,
     UpdatePokedexSpeciesMetadataRequest request,
   ) {
+    final normalizedTypes = request.types
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
     return PokemonSpeciesFile(
       id: species.id,
       slug: species.slug,
@@ -271,7 +292,9 @@ void main() {
       names: Map<String, String>.from(request.names),
       speciesName: species.speciesName,
       genIntroduced: species.genIntroduced,
-      typing: species.typing,
+      typing: PokemonSpeciesTyping(
+        types: normalizedTypes,
+      ),
       baseStats: species.baseStats,
       abilities: species.abilities,
       breeding: species.breeding,
@@ -450,7 +473,10 @@ void main() {
 
     expect(find.byKey(const Key('pokedex-explorer-entry')), findsOneWidget);
     expect(find.text('Pokédex'), findsWidgets);
-    expect(find.textContaining('Species list only'), findsOneWidget);
+    expect(
+      find.textContaining('Recherche, import, détail et édition locale'),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -541,7 +567,7 @@ void main() {
   });
 
   testWidgets(
-      'renders the simple species list with only number name id and types',
+      'renders the editor list shell with import and collapsible filters',
       (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -586,15 +612,12 @@ void main() {
     expect(find.text('bulbasaur'), findsOneWidget);
     expect(find.text('grass'), findsWidgets);
     expect(find.text('poison'), findsWidgets);
-
-    // Le mini-fix ne doit surtout pas transformer l'écran en lot 14 déguisé.
-    expect(find.textContaining('Search'), findsNothing);
-    expect(find.textContaining('Filter'), findsNothing);
-    expect(find.textContaining('Details'), findsNothing);
-    expect(find.textContaining('Import'), findsNothing);
-    expect(find.textContaining('Generation'), findsNothing);
-    expect(find.textContaining('Edit'), findsNothing);
-    expect(find.textContaining('Delete'), findsNothing);
+    expect(find.byKey(const Key('pokedex-import-button')), findsOneWidget);
+    expect(
+      find.byKey(const Key('pokedex-toggle-filters-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('pokedex-filters-panel')), findsNothing);
     expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
   });
 
@@ -880,10 +903,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byKey(const Key('pokedex-search-field')), findsOneWidget);
-    expect(
-      find.text('Rechercher par nom, id ou numéro dex'),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('pokedex-filters-panel')), findsNothing);
+    await tester.tap(find.byKey(const Key('pokedex-toggle-filters-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pokedex-filters-panel')), findsOneWidget);
     expect(find.byKey(const Key('pokedex-type-filter')), findsOneWidget);
     expect(find.byKey(const Key('pokedex-generation-filter')), findsOneWidget);
     expect(find.byKey(const Key('pokedex-status-filter')), findsOneWidget);
@@ -1563,6 +1586,14 @@ void main() {
       'Bulbasaur Project',
     );
     await tester.enterText(
+      find.byKey(const Key('pokedex-type-field-0')),
+      'electric',
+    );
+    await tester.enterText(
+      find.byKey(const Key('pokedex-type-field-1')),
+      'fairy',
+    );
+    await tester.enterText(
       find.byKey(const Key('pokedex-flavor-text-field')),
       'Texte édité depuis la fiche locale.',
     );
@@ -1580,14 +1611,171 @@ void main() {
     expect(store.speciesById('bulbasaur').names['fr'], 'Bulbizarre Projet');
     expect(store.speciesById('bulbasaur').names['en'], 'Bulbasaur Project');
     expect(
+      store.speciesById('bulbasaur').typing.types,
+      <String>['electric', 'fairy'],
+    );
+    expect(
       store.speciesById('bulbasaur').dexContent.flavorText,
       'Texte édité depuis la fiche locale.',
     );
     expect(store.speciesById('bulbasaur').gameplayFlags.giftOnly, isTrue);
 
     expect(find.text('Bulbasaur Project'), findsWidgets);
+    expect(find.text('electric'), findsWidgets);
+    expect(find.text('fairy'), findsWidgets);
     expect(find.text('Treecko'), findsNothing);
     expect(find.byKey(const Key('pokedex-name-field-fr')), findsNothing);
+  });
+
+  testWidgets('imports a pokemon from the wizard and refreshes the workspace',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final importedDetailsById = <String, PokedexSpeciesDetail>{};
+    var entries = <PokemonDatabaseIndexEntry>[];
+    var previewCallCount = 0;
+    var importCallCount = 0;
+    String? selectedPathSeenByPreview;
+    String? selectedPathSeenByImport;
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_import_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => entries,
+        detailLoader: (_, speciesId) async => importedDetailsById[speciesId]!,
+        pickJsonImportFile: () async => '/tmp/source/species/pikachu.json',
+        importPreviewer: (_, absoluteSpeciesSourcePath) async {
+          previewCallCount += 1;
+          selectedPathSeenByPreview = absoluteSpeciesSourcePath;
+          return const PokemonJsonImportPreview(
+            speciesId: 'pikachu',
+            nationalDex: 25,
+            primaryName: 'Pikachu',
+            types: <String>['electric'],
+            learnset: PokemonImportArtifactPreview(
+              label: 'Learnset',
+              refId: 'pikachu',
+              status: PokemonImportPreviewStatus.found,
+              absoluteSourcePath: '/tmp/source/learnsets/pikachu.json',
+            ),
+            evolution: PokemonImportArtifactPreview(
+              label: 'Évolutions',
+              refId: 'pikachu',
+              status: PokemonImportPreviewStatus.found,
+              absoluteSourcePath: '/tmp/source/evolutions/pikachu.json',
+            ),
+            media: PokemonImportArtifactPreview(
+              label: 'Médias',
+              refId: 'pikachu',
+              status: PokemonImportPreviewStatus.missing,
+            ),
+          );
+        },
+        importer: (_, absoluteSpeciesSourcePath) async {
+          importCallCount += 1;
+          selectedPathSeenByImport = absoluteSpeciesSourcePath;
+          final detail = buildDetail(
+            id: 'pikachu',
+            nationalDex: 25,
+            types: const <String>['electric'],
+            primaryAbility: 'static',
+            hiddenAbility: 'lightning_rod',
+            names: const <String, String>{
+              'fr': 'Pikachu',
+              'en': 'Pikachu',
+            },
+            flavorText: 'Il emmagasine l’électricité dans ses joues.',
+          );
+          importedDetailsById['pikachu'] = detail;
+          entries = <PokemonDatabaseIndexEntry>[
+            buildEntryFromSpecies(detail.species),
+          ];
+          return const PokemonJsonImportResult(
+            preview: PokemonJsonImportPreview(
+              speciesId: 'pikachu',
+              nationalDex: 25,
+              primaryName: 'Pikachu',
+              types: <String>['electric'],
+              learnset: PokemonImportArtifactPreview(
+                label: 'Learnset',
+                refId: 'pikachu',
+                status: PokemonImportPreviewStatus.found,
+              ),
+              evolution: PokemonImportArtifactPreview(
+                label: 'Évolutions',
+                refId: 'pikachu',
+                status: PokemonImportPreviewStatus.found,
+              ),
+              media: PokemonImportArtifactPreview(
+                label: 'Médias',
+                refId: 'pikachu',
+                status: PokemonImportPreviewStatus.missing,
+              ),
+            ),
+            importedSpecies: true,
+            importedLearnset: true,
+            importedEvolution: true,
+            importedMedia: false,
+          );
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('pokedex-empty-state')), findsOneWidget);
+    await tester
+        .tap(find.byKey(const Key('pokedex-empty-state-import-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pokedex-import-source-step')), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-source-continue-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pokedex-import-json-step')), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-pick-json-file-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('pikachu.json'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-json-continue-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(previewCallCount, 1);
+    expect(selectedPathSeenByPreview, '/tmp/source/species/pikachu.json');
+    expect(
+        find.byKey(const Key('pokedex-import-preview-step')), findsOneWidget);
+    expect(
+        find.byKey(const Key('pokedex-import-preview-title')), findsOneWidget);
+    expect(find.text('#025 Pikachu'), findsOneWidget);
+    expect(find.text('Type : electric'), findsOneWidget);
+    expect(find.text('Learnset trouvé'), findsOneWidget);
+    expect(find.text('Évolutions trouvées'), findsOneWidget);
+    expect(find.text('Médias manquants'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pokedex-import-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(importCallCount, 1);
+    expect(selectedPathSeenByImport, '/tmp/source/species/pikachu.json');
+    expect(find.byKey(const Key('pokedex-feedback-banner')), findsOneWidget);
+    expect(find.textContaining('Pikachu'), findsWidgets);
+    expect(find.byKey(const Key('pokedex-row-pikachu')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-detail-pane')), findsOneWidget);
+    expect(find.text('electric'), findsWidgets);
   });
 
   testWidgets('cancel discards metadata changes without writing',

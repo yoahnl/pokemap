@@ -1,18 +1,29 @@
 import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart'
-    show MacosIcon, MacosPopupButton, MacosPopupMenuItem, ProgressCircle;
+    show
+        ControlSize,
+        MacosIcon,
+        MacosPopupButton,
+        MacosPopupMenuItem,
+        ProgressCircle,
+        PushButton;
+import 'package:map_editor/src/ui/canvas/pokedex_workspace_loader.dart';
+import 'package:path/path.dart' as p;
 
 import '../../application/errors/application_errors.dart';
-import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokedex_species_detail.dart';
+import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokemon_project_data_models.dart';
+import '../../application/ports/project_workspace.dart';
+import '../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
 import '../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import '../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
 import '../../application/use_cases/update_pokedex_species_learnset_use_case.dart';
-import '../../application/use_cases/update_pokedex_species_metadata_use_case.dart';
 import '../../application/use_cases/update_pokedex_species_media_use_case.dart';
+import '../../application/use_cases/update_pokedex_species_metadata_use_case.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 /// Vue de chargement minimale du lot 13.
@@ -157,8 +168,11 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
     required this.entries,
     required this.selectedSpeciesId,
     required this.onEntrySelected,
+    required this.onImportRequested,
     required this.query,
     required this.onQueryChanged,
+    required this.filtersExpanded,
+    required this.onToggleFiltersExpanded,
     required this.availableTypes,
     required this.selectedType,
     required this.onTypeChanged,
@@ -167,14 +181,20 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
     required this.onGenerationChanged,
     required this.selectedStatus,
     required this.onStatusChanged,
+    this.feedbackMessage,
+    this.feedbackIsError = false,
+    this.emptyStateChild,
     this.emptyResultsChild,
   });
 
   final List<PokemonDatabaseIndexEntry> entries;
   final String? selectedSpeciesId;
   final ValueChanged<PokemonDatabaseIndexEntry> onEntrySelected;
+  final VoidCallback onImportRequested;
   final String query;
   final ValueChanged<String> onQueryChanged;
+  final bool filtersExpanded;
+  final VoidCallback onToggleFiltersExpanded;
   final List<String> availableTypes;
   final String selectedType;
   final ValueChanged<String> onTypeChanged;
@@ -183,6 +203,9 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
   final ValueChanged<String> onGenerationChanged;
   final String selectedStatus;
   final ValueChanged<String> onStatusChanged;
+  final String? feedbackMessage;
+  final bool feedbackIsError;
+  final Widget? emptyStateChild;
   final Widget? emptyResultsChild;
 
   @override
@@ -198,77 +221,927 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Pokédex',
-                style: TextStyle(
-                  color: label,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.4,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: EditorChrome.accentJade.withValues(alpha: 0.24),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: EditorChrome.accentJade.withValues(alpha: 0.55),
+                        width: 1,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      CupertinoIcons.square_stack_3d_down_right_fill,
+                      size: 18,
+                      color: EditorChrome.accentJade,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pokédex',
+                          style: TextStyle(
+                            color: label,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Simple species list from local project data: number, name, ID, types.',
+                          style: TextStyle(
+                            color: subtle,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  CupertinoButton(
+                    key: const Key('pokedex-import-button'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    color: EditorChrome.accentJade.withValues(alpha: 0.24),
+                    borderRadius: BorderRadius.circular(14),
+                    onPressed: onImportRequested,
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          CupertinoIcons.add,
+                          size: 16,
+                          color: CupertinoColors.white,
+                        ),
+                        SizedBox(width: 8),
+                        Text('Importer des Pokémon'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              Text(
-                'Liste locale des espèces importées dans le projet. La phase 8A ajoute un statut activée/désactivée et une édition locale de métadonnées simples, sans toucher learnset, évolutions ou médias.',
-                style: TextStyle(
-                  color: subtle,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.45,
+              if (feedbackMessage != null) ...[
+                const SizedBox(height: 12),
+                PokedexWorkspaceFeedbackBanner(
+                  message: feedbackMessage!,
+                  isError: feedbackIsError,
                 ),
-              ),
+              ],
               const SizedBox(height: 14),
-              // Lot 14 : recherche texte simple, locale et instantanée.
-              //
-              // Intention volontairement stricte :
-              // - aucun aller-retour disque ;
-              // - aucun appel service/repository par frappe ;
-              // - aucun faux panneau de filtres ;
-              // - aucun outillage avancé des lots suivants.
-              _PokedexSearchField(
-                query: query,
-                onChanged: onQueryChanged,
+              Row(
+                children: [
+                  Expanded(
+                    child: _PokedexSearchField(
+                      query: query,
+                      onChanged: onQueryChanged,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  CupertinoButton(
+                    key: const Key('pokedex-toggle-filters-button'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    color: EditorChrome.islandFillElevated(context),
+                    borderRadius: BorderRadius.circular(14),
+                    onPressed: onToggleFiltersExpanded,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          CupertinoIcons.slider_horizontal_3,
+                          size: 16,
+                          color: CupertinoColors.white,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(filtersExpanded ? 'Masquer' : 'Filtres'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              // Lot 15 : filtres simples, purement locaux, sur la liste déjà
-              // chargée en mémoire.
-              //
-              // On reste volontairement minimal :
-              // - type ;
-              // - génération ;
-              // - statut activée/désactivée, désormais alimenté par la vraie
-              //   donnée persistée `classification.isEnabledInProject`.
-              _PokedexSimpleFiltersBar(
-                availableTypes: availableTypes,
-                selectedType: selectedType,
-                onTypeChanged: onTypeChanged,
-                availableGenerations: availableGenerations,
-                selectedGeneration: selectedGeneration,
-                onGenerationChanged: onGenerationChanged,
-                selectedStatus: selectedStatus,
-                onStatusChanged: onStatusChanged,
-              ),
+              if (filtersExpanded) ...[
+                const SizedBox(height: 12),
+                _PokedexSimpleFiltersBar(
+                  availableTypes: availableTypes,
+                  selectedType: selectedType,
+                  onTypeChanged: onTypeChanged,
+                  availableGenerations: availableGenerations,
+                  selectedGeneration: selectedGeneration,
+                  onGenerationChanged: onGenerationChanged,
+                  selectedStatus: selectedStatus,
+                  onStatusChanged: onStatusChanged,
+                ),
+              ] else if (_hasAnyFilterApplied()) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _activeFiltersSummary(),
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-        const _PokedexListHeader(),
-        const SizedBox(height: 8),
+        if (entries.isNotEmpty) ...[
+          const _PokedexListHeader(),
+          const SizedBox(height: 8),
+        ],
         Expanded(
-          child: emptyResultsChild != null
-              ? SingleChildScrollView(child: emptyResultsChild)
-              : ListView.separated(
-                  key: const Key('pokedex-species-list'),
-                  itemCount: entries.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final entry = entries[index];
-                    return _PokedexListRow(
-                      entry: entry,
-                      isSelected: selectedSpeciesId == entry.id,
-                      onPressed: () => onEntrySelected(entry),
-                    );
-                  },
+          child: emptyStateChild != null
+              ? SingleChildScrollView(child: emptyStateChild)
+              : emptyResultsChild != null
+                  ? SingleChildScrollView(child: emptyResultsChild)
+                  : ListView.separated(
+                      key: const Key('pokedex-species-list'),
+                      itemCount: entries.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final entry = entries[index];
+                        return _PokedexListRow(
+                          entry: entry,
+                          isSelected: selectedSpeciesId == entry.id,
+                          onPressed: () => onEntrySelected(entry),
+                        );
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+
+  bool _hasAnyFilterApplied() {
+    return selectedType != _PokedexFilterDropdown.allTypesValue ||
+        selectedGeneration != _PokedexFilterDropdown.allGenerationsValue ||
+        selectedStatus != _PokedexFilterDropdown.allStatusesValue;
+  }
+
+  String _activeFiltersSummary() {
+    final parts = <String>[];
+    if (selectedType != _PokedexFilterDropdown.allTypesValue) {
+      parts.add('Type : $selectedType');
+    }
+    if (selectedGeneration != _PokedexFilterDropdown.allGenerationsValue) {
+      parts.add('Génération : $selectedGeneration');
+    }
+    if (selectedStatus == _PokedexFilterDropdown.enabledOnlyValue) {
+      parts.add('Activées');
+    } else if (selectedStatus == _PokedexFilterDropdown.disabledOnlyValue) {
+      parts.add('Désactivées');
+    }
+    return parts.join(' · ');
+  }
+}
+
+class PokedexWorkspaceFeedbackBanner extends StatelessWidget {
+  const PokedexWorkspaceFeedbackBanner({
+    super.key,
+    required this.message,
+    required this.isError,
+  });
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent =
+        isError ? EditorChrome.inspectorJoyCoral : EditorChrome.accentJade;
+    final label = EditorChrome.primaryLabel(context);
+
+    return Container(
+      key: const Key('pokedex-feedback-banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.45), width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isError
+                ? CupertinoIcons.exclamationmark_triangle_fill
+                : CupertinoIcons.check_mark_circled_solid,
+            size: 18,
+            color: accent,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: label,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PokedexWorkspaceImportEmptyState extends StatelessWidget {
+  const PokedexWorkspaceImportEmptyState({
+    super.key,
+    required this.onImportRequested,
+  });
+
+  final VoidCallback onImportRequested;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: EditorChrome.islandFillElevated(context),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: EditorChrome.accentWarm.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+            child: Column(
+              key: const Key('pokedex-empty-state'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: EditorChrome.accentPrune.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    CupertinoIcons.folder,
+                    size: 34,
+                    color: EditorChrome.accentLilac,
+                  ),
                 ),
+                const SizedBox(height: 18),
+                Text(
+                  'Importer des Pokémon',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Aucune espèce importée pour le moment. Utilisez le bouton "Importer" pour charger des espèces locales dans le Pokédex du projet.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                CupertinoButton(
+                  key: const Key('pokedex-empty-state-import-button'),
+                  color: EditorChrome.accentJade.withValues(alpha: 0.24),
+                  borderRadius: BorderRadius.circular(16),
+                  onPressed: onImportRequested,
+                  child: const Text('Importer des Pokémon'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<PokemonJsonImportResult?> showPokedexImportFlowSheet({
+  required BuildContext context,
+  required ProjectWorkspace workspace,
+  required PokedexImportPreviewer previewImport,
+  required PokedexImporter importPokemon,
+  Future<String?> Function()? pickJsonSourceFile,
+}) {
+  // Le picker natif reste confiné à la présentation :
+  // - la UI choisit un chemin local ;
+  // - l’application lit, valide et importe ;
+  // - aucun widget ne parse de JSON ni ne décide du write.
+  return showMacosEditorTallSheet<PokemonJsonImportResult>(
+    context: context,
+    maxWidth: 760,
+    builder: (sheetContext) => _PokedexImportFlowSheet(
+      workspace: workspace,
+      previewImport: previewImport,
+      importPokemon: importPokemon,
+      pickJsonSourceFile: pickJsonSourceFile ?? _pickPokedexJsonSourceFile,
+    ),
+  );
+}
+
+Future<String?> _pickPokedexJsonSourceFile() async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: const ['json'],
+    withData: false,
+  );
+  return result?.files.single.path;
+}
+
+enum _PokedexImportWizardStep {
+  source,
+  jsonFile,
+  preview,
+}
+
+// Le wizard reste volontairement petit et séquentiel.
+// On ne crée pas de route dédiée ni de nouveau state container global :
+// - l’étape "source" choisit la famille d’import ;
+// - l’étape "jsonFile" choisit le fichier local ;
+// - l’étape "preview" montre la synthèse applicative avant le write.
+class _PokedexImportFlowSheet extends StatefulWidget {
+  const _PokedexImportFlowSheet({
+    required this.workspace,
+    required this.previewImport,
+    required this.importPokemon,
+    required this.pickJsonSourceFile,
+  });
+
+  final ProjectWorkspace workspace;
+  final PokedexImportPreviewer previewImport;
+  final PokedexImporter importPokemon;
+  final Future<String?> Function() pickJsonSourceFile;
+
+  @override
+  State<_PokedexImportFlowSheet> createState() =>
+      _PokedexImportFlowSheetState();
+}
+
+class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
+  _PokedexImportWizardStep _step = _PokedexImportWizardStep.source;
+  String? _selectedJsonSourcePath;
+  PokemonJsonImportPreview? _preview;
+  bool _isBusy = false;
+  String? _errorMessage;
+
+  Future<void> _pickJsonSource() async {
+    final pickedPath = await widget.pickJsonSourceFile();
+    if (!mounted || pickedPath == null) {
+      return;
+    }
+    setState(() {
+      _selectedJsonSourcePath = pickedPath;
+      _errorMessage = null;
+    });
+  }
+
+  Future<void> _loadPreview() async {
+    final sourcePath = _selectedJsonSourcePath?.trim();
+    if (sourcePath == null || sourcePath.isEmpty) {
+      setState(() {
+        _errorMessage = 'Sélectionnez un fichier JSON à importer.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final preview = await widget.previewImport(
+        widget.workspace,
+        sourcePath,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _preview = preview;
+        _step = _PokedexImportWizardStep.preview;
+        _isBusy = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isBusy = false;
+        _errorMessage = _resolveApplicationMessage(error);
+      });
+    }
+  }
+
+  Future<void> _confirmImport() async {
+    final sourcePath = _selectedJsonSourcePath?.trim();
+    if (sourcePath == null || sourcePath.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await widget.importPokemon(
+        widget.workspace,
+        sourcePath,
+      );
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop(result);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isBusy = false;
+        _errorMessage = _resolveApplicationMessage(error);
+      });
+    }
+  }
+
+  String _resolveApplicationMessage(Object error) {
+    return switch (error) {
+      final EditorApplicationException applicationError =>
+        applicationError.message,
+      _ => error.toString(),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (_step) {
+      _PokedexImportWizardStep.source => _PokedexImportSourceStep(
+          onContinue: () {
+            setState(() {
+              _step = _PokedexImportWizardStep.jsonFile;
+              _errorMessage = null;
+            });
+          },
+          onCancel: () => Navigator.of(context).pop(),
+        ),
+      _PokedexImportWizardStep.jsonFile => _PokedexImportJsonFileStep(
+          selectedJsonSourcePath: _selectedJsonSourcePath,
+          isBusy: _isBusy,
+          errorMessage: _errorMessage,
+          onPickJsonSource: _pickJsonSource,
+          onContinue: _loadPreview,
+          onCancel: () => Navigator.of(context).pop(),
+        ),
+      _PokedexImportWizardStep.preview => _PokedexImportPreviewStep(
+          preview: _preview!,
+          isBusy: _isBusy,
+          errorMessage: _errorMessage,
+          onBack: () {
+            setState(() {
+              _step = _PokedexImportWizardStep.jsonFile;
+              _errorMessage = null;
+            });
+          },
+          onImport: _confirmImport,
+        ),
+    };
+  }
+}
+
+class _PokedexImportSourceStep extends StatelessWidget {
+  const _PokedexImportSourceStep({
+    required this.onContinue,
+    required this.onCancel,
+  });
+
+  final VoidCallback onContinue;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const Key('pokedex-import-source-step'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Importer des Pokémon',
+          style: editorMacosSheetTitleStyle(context),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Choisir une source :',
+          style: editorMacosFormLabelStyle(context),
+        ),
+        const SizedBox(height: 12),
+        const _PokedexImportSourceCard(
+          cardKey: Key('pokedex-import-json-source-card'),
+          title: 'Fichier JSON',
+          icon: CupertinoIcons.doc_text_fill,
+          isSelected: true,
+        ),
+        const SizedBox(height: 10),
+        const _PokedexImportSourceCard(
+          cardKey: Key('pokedex-import-pokeapi-source-card'),
+          title: 'PokéAPI',
+          icon: CupertinoIcons.cloud_fill,
+          isEnabled: false,
+          trailingLabel: 'Bientôt',
+        ),
+        const SizedBox(height: 10),
+        const _PokedexImportSourceCard(
+          cardKey: Key('pokedex-import-showdown-source-card'),
+          title: 'Showdown',
+          icon: CupertinoIcons.refresh_circled_solid,
+          isEnabled: false,
+          trailingLabel: 'Bientôt',
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            PushButton(
+              controlSize: ControlSize.large,
+              secondary: true,
+              onPressed: onCancel,
+              child: const Text('Annuler'),
+            ),
+            const SizedBox(width: 12),
+            PushButton(
+              key: const Key('pokedex-import-source-continue-button'),
+              controlSize: ControlSize.large,
+              onPressed: onContinue,
+              child: const Text('Continuer'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PokedexImportJsonFileStep extends StatelessWidget {
+  const _PokedexImportJsonFileStep({
+    required this.selectedJsonSourcePath,
+    required this.isBusy,
+    required this.errorMessage,
+    required this.onPickJsonSource,
+    required this.onContinue,
+    required this.onCancel,
+  });
+
+  final String? selectedJsonSourcePath;
+  final bool isBusy;
+  final String? errorMessage;
+  final Future<void> Function() onPickJsonSource;
+  final Future<void> Function() onContinue;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final hasFile = selectedJsonSourcePath?.trim().isNotEmpty == true;
+
+    return Column(
+      key: const Key('pokedex-import-json-step'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Import depuis fichier JSON',
+          style: editorMacosSheetTitleStyle(context),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Choisir une source :',
+          style: editorMacosFormLabelStyle(context),
+        ),
+        const SizedBox(height: 12),
+        CupertinoButton(
+          key: const Key('pokedex-import-pick-json-file-button'),
+          color: EditorChrome.accentJade.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
+          onPressed: isBusy ? null : onPickJsonSource,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.folder_open, size: 18),
+              SizedBox(width: 8),
+              Text('Choisir un fichier'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          key: const Key('pokedex-import-selected-file'),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: EditorChrome.islandFillElevated(context),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: EditorChrome.accentWarm.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            hasFile
+                ? p.basename(selectedJsonSourcePath!)
+                : 'Aucun fichier sélectionné',
+            style: TextStyle(
+              color: hasFile ? CupertinoColors.white : subtle,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (errorMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            errorMessage!,
+            key: const Key('pokedex-import-error-message'),
+            style: const TextStyle(
+              color: EditorChrome.inspectorJoyCoral,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            PushButton(
+              controlSize: ControlSize.large,
+              secondary: true,
+              onPressed: isBusy ? null : onCancel,
+              child: const Text('Annuler'),
+            ),
+            const SizedBox(width: 12),
+            PushButton(
+              key: const Key('pokedex-import-json-continue-button'),
+              controlSize: ControlSize.large,
+              onPressed: isBusy ? null : onContinue,
+              child: isBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: ProgressCircle(),
+                    )
+                  : const Text('Continuer'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PokedexImportPreviewStep extends StatelessWidget {
+  const _PokedexImportPreviewStep({
+    required this.preview,
+    required this.isBusy,
+    required this.errorMessage,
+    required this.onBack,
+    required this.onImport,
+  });
+
+  final PokemonJsonImportPreview preview;
+  final bool isBusy;
+  final String? errorMessage;
+  final VoidCallback onBack;
+  final Future<void> Function() onImport;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const Key('pokedex-import-preview-step'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Aperçu de l\'import',
+          style: editorMacosSheetTitleStyle(context),
+        ),
+        const SizedBox(height: 20),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: EditorChrome.islandFillElevated(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: EditorChrome.accentWarm.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '#${preview.nationalDex.toString().padLeft(3, '0')} ${preview.primaryName}',
+                  key: const Key('pokedex-import-preview-title'),
+                  style: const TextStyle(
+                    color: CupertinoColors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Type : ${preview.types.join(' / ')}',
+                  key: const Key('pokedex-import-preview-types'),
+                  style: TextStyle(
+                    color: EditorChrome.subtleLabel(context),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _PokedexImportArtifactLine(
+                  key: const Key('pokedex-import-preview-learnset-status'),
+                  preview: preview.learnset,
+                ),
+                const SizedBox(height: 10),
+                _PokedexImportArtifactLine(
+                  key: const Key('pokedex-import-preview-evolution-status'),
+                  preview: preview.evolution,
+                ),
+                const SizedBox(height: 10),
+                _PokedexImportArtifactLine(
+                  key: const Key('pokedex-import-preview-media-status'),
+                  preview: preview.media,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (errorMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            errorMessage!,
+            key: const Key('pokedex-import-error-message'),
+            style: const TextStyle(
+              color: EditorChrome.inspectorJoyCoral,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            PushButton(
+              key: const Key('pokedex-import-preview-back-button'),
+              controlSize: ControlSize.large,
+              secondary: true,
+              onPressed: isBusy ? null : onBack,
+              child: const Text('Retour'),
+            ),
+            const SizedBox(width: 12),
+            PushButton(
+              key: const Key('pokedex-import-confirm-button'),
+              controlSize: ControlSize.large,
+              onPressed: isBusy ? null : onImport,
+              child: isBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: ProgressCircle(),
+                    )
+                  : const Text('Importer'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PokedexImportSourceCard extends StatelessWidget {
+  const _PokedexImportSourceCard({
+    required this.cardKey,
+    required this.title,
+    required this.icon,
+    this.isSelected = false,
+    this.isEnabled = true,
+    this.trailingLabel,
+  });
+
+  final Key cardKey;
+  final String title;
+  final IconData icon;
+  final bool isSelected;
+  final bool isEnabled;
+  final String? trailingLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isSelected
+        ? EditorChrome.accentJade
+        : EditorChrome.accentWarm.withValues(alpha: 0.45);
+    final text = isEnabled
+        ? EditorChrome.primaryLabel(context)
+        : EditorChrome.subtleLabel(context);
+
+    return DecoratedBox(
+      key: cardKey,
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent, width: isSelected ? 1.2 : 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: text),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            if (trailingLabel != null)
+              Text(
+                trailingLabel!,
+                style: TextStyle(
+                  color: EditorChrome.subtleLabel(context),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PokedexImportArtifactLine extends StatelessWidget {
+  const _PokedexImportArtifactLine({
+    super.key,
+    required this.preview,
+  });
+
+  final PokemonImportArtifactPreview preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFound = preview.isFound;
+    final accent = isFound ? EditorChrome.accentJade : EditorChrome.accentWarm;
+    final text = EditorChrome.primaryLabel(context);
+
+    return Row(
+      children: [
+        Icon(
+          isFound
+              ? CupertinoIcons.check_mark_circled_solid
+              : CupertinoIcons.exclamationmark_triangle_fill,
+          size: 18,
+          color: accent,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            '${preview.label} ${isFound ? 'trouvé${preview.label == 'Évolutions' ? 'es' : ''}' : 'manquants'}',
+            style: TextStyle(
+              color: text,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ],
     );
@@ -299,6 +1172,7 @@ class _PokedexSimpleFiltersBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
+      key: const Key('pokedex-filters-panel'),
       spacing: 12,
       runSpacing: 12,
       children: [
@@ -564,6 +1438,17 @@ class _PokedexListHeader extends StatelessWidget {
               style: _headerStyle(subtle),
             ),
           ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 92,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Statut',
+                style: _headerStyle(subtle),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -667,6 +1552,17 @@ class _PokedexListRow extends StatelessWidget {
                       .toList(growable: false),
                 ),
               ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 92,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: _PokedexStatusChip(
+                    label: entry.isEnabledInProject ? 'Activé' : 'Désactivé',
+                    isEnabled: entry.isEnabledInProject,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -697,6 +1593,42 @@ class _PokedexTypeChip extends StatelessWidget {
           color: EditorChrome.accentJade.withValues(alpha: 0.45),
           width: 1,
         ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: text,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PokedexStatusChip extends StatelessWidget {
+  const _PokedexStatusChip({
+    required this.label,
+    required this.isEnabled,
+  });
+
+  final String label;
+  final bool isEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent =
+        isEnabled ? EditorChrome.accentJade : EditorChrome.inspectorJoyCoral;
+    final text = EditorChrome.primaryLabel(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.45), width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1123,6 +2055,8 @@ class _PokedexEditableMetadataSectionState
     extends State<_PokedexEditableMetadataSection> {
   final Map<String, TextEditingController> _nameControllers =
       <String, TextEditingController>{};
+  final List<TextEditingController> _typeControllers =
+      <TextEditingController>[];
   late TextEditingController _flavorTextController;
   late List<String> _orderedLocales;
   late bool _isEnabledInProject;
@@ -1160,24 +2094,27 @@ class _PokedexEditableMetadataSectionState
 
   @override
   void dispose() {
-    for (final controller in _nameControllers.values) {
-      controller.dispose();
-    }
+    _disposeNameControllers();
+    _disposeTypeControllers();
     _flavorTextController.dispose();
     super.dispose();
   }
 
   void _replaceDraftFromSpecies(PokemonSpeciesFile species) {
-    for (final controller in _nameControllers.values) {
-      controller.dispose();
-    }
-    _nameControllers.clear();
+    _disposeNameControllers();
+    _disposeTypeControllers();
 
     _orderedLocales = _orderedLocaleKeys(species.names);
     for (final locale in _orderedLocales) {
       _nameControllers[locale] = TextEditingController(
         text: species.names[locale] ?? '',
       );
+    }
+    final sourceTypes = species.typing.types.isEmpty
+        ? const <String>['']
+        : species.typing.types;
+    for (final type in sourceTypes) {
+      _typeControllers.add(TextEditingController(text: type));
     }
 
     _flavorTextController.value = TextEditingValue(
@@ -1190,6 +2127,20 @@ class _PokedexEditableMetadataSectionState
     _starterEligible = species.gameplayFlags.starterEligible;
     _giftOnly = species.gameplayFlags.giftOnly;
     _tradeOnly = species.gameplayFlags.tradeOnly;
+  }
+
+  void _disposeNameControllers() {
+    for (final controller in _nameControllers.values) {
+      controller.dispose();
+    }
+    _nameControllers.clear();
+  }
+
+  void _disposeTypeControllers() {
+    for (final controller in _typeControllers) {
+      controller.dispose();
+    }
+    _typeControllers.clear();
   }
 
   Future<void> _saveDraft() async {
@@ -1211,6 +2162,7 @@ class _PokedexEditableMetadataSectionState
             for (final locale in _orderedLocales)
               locale: _nameControllers[locale]?.text ?? '',
           },
+          types: _typeControllers.map((controller) => controller.text).toList(),
           flavorText: _flavorTextController.text,
           starterEligible: _starterEligible,
           giftOnly: _giftOnly,
@@ -1243,6 +2195,22 @@ class _PokedexEditableMetadataSectionState
         _saveErrorMessage = message;
       });
     }
+  }
+
+  void _addTypeField() {
+    setState(() {
+      _typeControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeTypeField(int index) {
+    if (_typeControllers.length <= 1) {
+      return;
+    }
+    setState(() {
+      final controller = _typeControllers.removeAt(index);
+      controller.dispose();
+    });
   }
 
   void _cancelEditing() {
@@ -1285,6 +2253,13 @@ class _PokedexEditableMetadataSectionState
               ),
               const SizedBox(height: 10),
             ],
+            _PokedexEditableTypeFields(
+              controllers: _typeControllers,
+              enabled: !_isSaving,
+              onAddType: _isSaving ? null : _addTypeField,
+              onRemoveType: _isSaving ? null : _removeTypeField,
+            ),
+            const SizedBox(height: 12),
             _PokedexEditorTextField(
               label: 'Texte Pokédex',
               fieldKey: const Key('pokedex-flavor-text-field'),
@@ -1375,6 +2350,12 @@ class _PokedexEditableMetadataSectionState
               value: species.dexContent.flavorText?.trim().isNotEmpty == true
                   ? species.dexContent.flavorText!.trim()
                   : 'Aucun texte local',
+            ),
+            _PokedexPropertyLine(
+              label: 'Types',
+              value: species.typing.types.isEmpty
+                  ? 'Aucun type'
+                  : species.typing.types.join(', '),
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -1553,6 +2534,89 @@ class _PokedexEditorTextField extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _PokedexEditableTypeFields extends StatelessWidget {
+  const _PokedexEditableTypeFields({
+    required this.controllers,
+    required this.enabled,
+    required this.onAddType,
+    required this.onRemoveType,
+  });
+
+  final List<TextEditingController> controllers;
+  final bool enabled;
+  final VoidCallback? onAddType;
+  final void Function(int index)? onRemoveType;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Types',
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            CupertinoButton(
+              key: const Key('pokedex-add-type-button'),
+              padding: EdgeInsets.zero,
+              onPressed: enabled ? onAddType : null,
+              child: const Text('+ ajouter'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Le premier type reste le type principal affiché dans la liste. Les valeurs vides sont ignorées à la sauvegarde.',
+          style: TextStyle(
+            color: subtle,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (var index = 0; index < controllers.length; index++) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _PokedexEditorTextField(
+                  label: 'Type ${index + 1}',
+                  fieldKey: Key('pokedex-type-field-$index'),
+                  controller: controllers[index],
+                  enabled: enabled,
+                  placeholder: 'electric',
+                ),
+              ),
+              const SizedBox(width: 10),
+              CupertinoButton(
+                key: Key('pokedex-remove-type-button-$index'),
+                padding: const EdgeInsets.only(top: 28),
+                onPressed: enabled && controllers.length > 1
+                    ? () => onRemoveType?.call(index)
+                    : null,
+                child: const Text('Retirer'),
+              ),
+            ],
+          ),
+          if (index != controllers.length - 1) const SizedBox(height: 10),
+        ],
       ],
     );
   }

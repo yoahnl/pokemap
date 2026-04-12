@@ -27,6 +27,22 @@ class ImportPokemonSpeciesJsonUseCase {
     ProjectWorkspace workspace, {
     required String absoluteSourcePath,
   }) async {
+    final species = await readValidatedSource(
+      workspace,
+      absoluteSourcePath: absoluteSourcePath,
+    );
+
+    await writeRepository.saveSpecies(workspace, species);
+    return species;
+  }
+
+  /// Permet aux flux applicatifs plus riches de réutiliser exactement le même
+  /// parsing et la même validation qu’un import unitaire, mais sans écrire tant
+  /// que l’orchestration n’a pas fini de contrôler tout le bundle.
+  Future<PokemonSpeciesFile> readValidatedSource(
+    ProjectWorkspace workspace, {
+    required String absoluteSourcePath,
+  }) async {
     final sourcePath = absoluteSourcePath.trim();
     if (sourcePath.isEmpty) {
       throw const EditorValidationException(
@@ -48,8 +64,6 @@ class ImportPokemonSpeciesJsonUseCase {
     final decoded = _decodeJsonRoot(raw);
     final species = _parseSpecies(decoded);
     _validateSpecies(species);
-
-    await writeRepository.saveSpecies(workspace, species);
     return species;
   }
 

@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../application/ports/pokemon_read_repository.dart';
 import '../../../application/ports/pokemon_write_repository.dart';
 import '../../../application/services/pokemon_database_index.dart';
+import '../../../application/use_cases/import_pokemon_evolution_json_use_case.dart';
+import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
+import '../../../application/use_cases/import_pokemon_learnset_json_use_case.dart';
+import '../../../application/use_cases/import_pokemon_media_json_use_case.dart';
+import '../../../application/use_cases/import_pokemon_species_json_use_case.dart';
 import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
@@ -41,6 +46,10 @@ final pokedexEntryLoaderProvider = Provider<PokedexEntryLoader>((ref) {
   );
 });
 
+final pokedexListProvider = Provider<PokedexEntryLoader>((ref) {
+  return ref.watch(pokedexEntryLoaderProvider);
+});
+
 final loadPokedexSpeciesDetailUseCaseProvider =
     Provider<LoadPokedexSpeciesDetailUseCase>((ref) {
   return LoadPokedexSpeciesDetailUseCase(
@@ -52,6 +61,62 @@ final pokedexSpeciesDetailLoaderProvider =
     Provider<PokedexSpeciesDetailLoader>((ref) {
   final useCase = ref.watch(loadPokedexSpeciesDetailUseCaseProvider);
   return (workspace, speciesId) => useCase.execute(workspace, speciesId);
+});
+
+final importPokemonSpeciesJsonUseCaseProvider =
+    Provider<ImportPokemonSpeciesJsonUseCase>((ref) {
+  return ImportPokemonSpeciesJsonUseCase(
+    ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final importPokemonLearnsetJsonUseCaseProvider =
+    Provider<ImportPokemonLearnsetJsonUseCase>((ref) {
+  return ImportPokemonLearnsetJsonUseCase(
+    ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final importPokemonEvolutionJsonUseCaseProvider =
+    Provider<ImportPokemonEvolutionJsonUseCase>((ref) {
+  return ImportPokemonEvolutionJsonUseCase(
+    ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final importPokemonMediaJsonUseCaseProvider =
+    Provider<ImportPokemonMediaJsonUseCase>((ref) {
+  return ImportPokemonMediaJsonUseCase(
+    ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final importPokemonJsonBundleUseCaseProvider =
+    Provider<ImportPokemonJsonBundleUseCase>((ref) {
+  return ImportPokemonJsonBundleUseCase(
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+    speciesImportUseCase: ref.watch(importPokemonSpeciesJsonUseCaseProvider),
+    learnsetImportUseCase: ref.watch(importPokemonLearnsetJsonUseCaseProvider),
+    evolutionImportUseCase:
+        ref.watch(importPokemonEvolutionJsonUseCaseProvider),
+    mediaImportUseCase: ref.watch(importPokemonMediaJsonUseCaseProvider),
+  );
+});
+
+final pokedexImportPreviewerProvider = Provider<PokedexImportPreviewer>((ref) {
+  final useCase = ref.watch(importPokemonJsonBundleUseCaseProvider);
+  return (workspace, absoluteSpeciesSourcePath) => useCase.preview(
+        workspace,
+        absoluteSpeciesSourcePath: absoluteSpeciesSourcePath,
+      );
+});
+
+final pokedexImporterProvider = Provider<PokedexImporter>((ref) {
+  final useCase = ref.watch(importPokemonJsonBundleUseCaseProvider);
+  return (workspace, absoluteSpeciesSourcePath) => useCase.execute(
+        workspace,
+        absoluteSpeciesSourcePath: absoluteSpeciesSourcePath,
+      );
 });
 
 final updatePokedexSpeciesMetadataUseCaseProvider =
