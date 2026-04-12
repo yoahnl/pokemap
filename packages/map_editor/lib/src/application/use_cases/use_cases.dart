@@ -1,5 +1,6 @@
 export 'character_use_cases.dart';
 export 'collision_use_cases.dart';
+export 'delete_pokedex_species_use_case.dart';
 export 'encounter_table_use_cases.dart';
 export 'trainer_use_cases.dart';
 export 'gameplay_zone_use_cases.dart';

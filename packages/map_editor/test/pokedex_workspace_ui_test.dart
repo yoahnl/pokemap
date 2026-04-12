@@ -14,6 +14,7 @@ import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
+import 'package:map_editor/src/application/use_cases/delete_pokedex_species_use_case.dart';
 import 'package:map_editor/src/application/use_cases/import_external_pokemon_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/import_pokemon_json_bundle_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_evolution_use_case.dart';
@@ -1554,6 +1555,7 @@ void main() {
       child: PokedexWorkspace(
         loader: store.loadEntries,
         detailLoader: store.loadDetail,
+        deleteSpecies: store.deleteSpecies,
         metadataSaver: store.save,
       ),
     );
@@ -1626,6 +1628,74 @@ void main() {
     expect(find.text('fairy'), findsWidgets);
     expect(find.text('Treecko'), findsNothing);
     expect(find.byKey(const Key('pokedex-name-field-fr')), findsNothing);
+  });
+
+  testWidgets(
+      'deletes the selected species from the detail pane after confirmation',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final store = buildStore(
+      details: <PokedexSpeciesDetail>[
+        buildDetail(
+          id: 'bulbasaur',
+          nationalDex: 1,
+          names: const <String, String>{
+            'fr': 'Bulbizarre',
+            'en': 'Bulbasaur',
+          },
+        ),
+        buildDetail(
+          id: 'ivysaur',
+          nationalDex: 2,
+          names: const <String, String>{
+            'fr': 'Herbizarre',
+            'en': 'Ivysaur',
+          },
+        ),
+      ],
+    );
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: store.loadEntries,
+        detailLoader: store.loadDetail,
+        deleteSpecies: store.deleteSpecies,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pokedex-detail-pane')), findsOneWidget);
+    expect(
+        find.byKey(const Key('pokedex-delete-species-button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('pokedex-delete-species-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Supprimer cette espèce ?'), findsOneWidget);
+    expect(find.textContaining('Bulbizarre'), findsWidgets);
+
+    await tester.tap(find.text('Supprimer').last);
+    await tester.pumpAndSettle();
+
+    expect(store.deleteCallCount, 1);
+    expect(find.byKey(const Key('pokedex-row-bulbasaur')), findsNothing);
+    expect(find.byKey(const Key('pokedex-row-ivysaur')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-detail-empty-state')), findsOneWidget);
+    expect(find.byKey(const Key('pokedex-feedback-banner')), findsOneWidget);
+    expect(find.textContaining('Bulbizarre a été supprimé'), findsOneWidget);
   });
 
   testWidgets('imports a pokemon from the wizard and refreshes the workspace',
@@ -2730,6 +2800,7 @@ class _FakePokedexWorkspaceStore {
   int learnsetSaveCallCount = 0;
   int evolutionSaveCallCount = 0;
   int mediaSaveCallCount = 0;
+  int deleteCallCount = 0;
 
   Future<List<PokemonDatabaseIndexEntry>> loadEntries(
     ProjectWorkspace workspace,
@@ -2836,6 +2907,24 @@ class _FakePokedexWorkspaceStore {
       media: updatedMedia,
     );
     return updatedMedia;
+  }
+
+  Future<DeletedPokedexSpeciesResult> deleteSpecies(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) async {
+    deleteCallCount += 1;
+    final removed = _detailsById.remove(speciesId);
+    if (removed == null) {
+      throw EditorNotFoundException('Pokemon species not found: $speciesId');
+    }
+    final primaryName =
+        removed.species.names['fr'] ?? removed.species.names['en'] ?? speciesId;
+    return DeletedPokedexSpeciesResult(
+      speciesId: speciesId,
+      primaryName: primaryName,
+      deletedRelativePaths: const <String>[],
+    );
   }
 
   PokemonLearnsetFile? learnsetById(String speciesId) {

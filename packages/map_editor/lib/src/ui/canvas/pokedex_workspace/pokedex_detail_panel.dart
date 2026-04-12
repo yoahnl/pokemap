@@ -13,6 +13,7 @@ class PokedexWorkspaceDetailPane extends StatelessWidget {
     required this.selectedTabId,
     required this.onTabChanged,
     required this.detailFuture,
+    required this.onDeleteSpecies,
     required this.onSaveMetadata,
     required this.onSaveFormsClassification,
     required this.onSaveLearnset,
@@ -24,6 +25,7 @@ class PokedexWorkspaceDetailPane extends StatelessWidget {
   final String selectedTabId;
   final ValueChanged<String> onTabChanged;
   final Future<PokedexSpeciesDetail>? detailFuture;
+  final Future<void> Function(PokemonDatabaseIndexEntry entry) onDeleteSpecies;
   final Future<void> Function(UpdatePokedexSpeciesMetadataRequest request)
       onSaveMetadata;
   final Future<void> Function(
@@ -86,6 +88,7 @@ class PokedexWorkspaceDetailPane extends StatelessWidget {
           detail: detail,
           selectedTabId: selectedTabId,
           onTabChanged: onTabChanged,
+          onDeleteSpecies: onDeleteSpecies,
           onSaveMetadata: onSaveMetadata,
           onSaveFormsClassification: onSaveFormsClassification,
           onSaveLearnset: onSaveLearnset,
@@ -103,6 +106,7 @@ class _PokedexSpeciesDetailView extends StatelessWidget {
     required this.detail,
     required this.selectedTabId,
     required this.onTabChanged,
+    required this.onDeleteSpecies,
     required this.onSaveMetadata,
     required this.onSaveFormsClassification,
     required this.onSaveLearnset,
@@ -114,6 +118,7 @@ class _PokedexSpeciesDetailView extends StatelessWidget {
   final PokedexSpeciesDetail detail;
   final String selectedTabId;
   final ValueChanged<String> onTabChanged;
+  final Future<void> Function(PokemonDatabaseIndexEntry entry) onDeleteSpecies;
   final Future<void> Function(UpdatePokedexSpeciesMetadataRequest request)
       onSaveMetadata;
   final Future<void> Function(
@@ -146,23 +151,51 @@ class _PokedexSpeciesDetailView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              entry.primaryName,
-              style: TextStyle(
-                color: label,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.35,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '#${entry.nationalDex.toString().padLeft(4, '0')} • ${entry.id}',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.primaryName,
+                        style: TextStyle(
+                          color: label,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.35,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '#${entry.nationalDex.toString().padLeft(4, '0')} • ${entry.id}',
+                        style: TextStyle(
+                          color: subtle,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Le bouton de suppression vit dans l'en-tête de la fiche
+                // parce que l'action s'applique à l'espèce sélectionnée entière,
+                // pas seulement à un onglet particulier.
+                //
+                // On le garde volontairement simple :
+                // - pas de menu contextuel ;
+                // - pas de second flux de suppression dans la liste ;
+                // - confirmation obligatoire gérée au niveau du workspace.
+                PushButton(
+                  key: const Key('pokedex-delete-species-button'),
+                  controlSize: ControlSize.large,
+                  color: CupertinoColors.systemRed.resolveFrom(context),
+                  onPressed: () => onDeleteSpecies(entry),
+                  child: const Text('Supprimer'),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             Wrap(

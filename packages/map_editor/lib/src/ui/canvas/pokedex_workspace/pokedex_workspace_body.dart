@@ -167,6 +167,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                 selectedTabId: _selectedDetailTabId,
                 onTabChanged: _updateSelectedDetailTab,
                 detailFuture: _detailFuture,
+                onDeleteSpecies: _deleteSpecies,
                 onSaveMetadata: _saveMetadata,
                 onSaveFormsClassification: _saveFormsClassification,
                 onSaveLearnset: _saveLearnset,
@@ -347,6 +348,58 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       speciesId: request.speciesId,
       saveOperation: (workspace) => widget.mediaSaver(workspace, request),
     );
+  }
+
+  Future<void> _deleteSpecies(PokemonDatabaseIndexEntry entry) async {
+    final confirmed = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Supprimer cette espèce ?',
+      message:
+          'Supprimer ${entry.primaryName} effacera l’espèce locale et ses fichiers Pokédex associés (learnset, évolutions, médias référencés). Cette action ne touche pas au runtime ni à project.json.',
+      primaryLabel: 'Supprimer',
+      secondaryLabel: 'Annuler',
+      primaryIsDestructive: true,
+      icon: CupertinoIcons.delete_solid,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    final projectRootPath = widget.projectRootPath?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      throw StateError(
+        'Cannot delete local Pokemon data without a loaded project',
+      );
+    }
+
+    final workspace = ProjectFileSystem(projectRootPath);
+    try {
+      final result = await widget.deleteSpecies(workspace, entry.id);
+      if (!mounted) {
+        return;
+      }
+
+      // La suppression doit recharger la liste depuis la même source de vérité
+      // disque que le reste du workspace.
+      //
+      // On ne tente pas d'enlever la ligne "à la main" dans l'état local,
+      // parce que cela créerait immédiatement un cache parallèle fragile.
+      setState(() {
+        _entriesFuture = _buildEntriesFuture();
+        _selectedSpeciesId = null;
+        _detailFuture = null;
+        _selectedDetailTabId = _overviewTabId;
+      });
+      _showFeedback(
+        '${result.primaryName} a été supprimé du Pokédex local.',
+        isError: false,
+      );
+    } on EditorApplicationException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showFeedback(error.message, isError: true);
+    }
   }
 
   Future<void> _runLocalPokemonSave({

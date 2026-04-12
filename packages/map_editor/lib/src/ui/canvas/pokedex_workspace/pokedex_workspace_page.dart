@@ -22,6 +22,7 @@ import '../../../application/models/pokedex_species_detail.dart';
 import '../../../application/models/pokemon_database_index.dart';
 import '../../../application/models/pokemon_project_data_models.dart';
 import '../../../application/ports/project_workspace.dart';
+import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
 import '../../../application/use_cases/import_external_pokemon_use_cases.dart';
 import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
@@ -93,6 +94,7 @@ class PokedexWorkspace extends ConsumerWidget {
     this.externalImportPreviewer,
     this.externalImporter,
     this.pickJsonImportFile,
+    this.deleteSpecies,
     this.metadataSaver,
     this.formsClassificationSaver,
     this.learnsetSaver,
@@ -111,6 +113,7 @@ class PokedexWorkspace extends ConsumerWidget {
   final PokedexExternalImportPreviewer? externalImportPreviewer;
   final PokedexExternalImporter? externalImporter;
   final Future<String?> Function()? pickJsonImportFile;
+  final PokedexSpeciesDeleter? deleteSpecies;
   final PokedexSpeciesMetadataSaver? metadataSaver;
   final PokedexSpeciesFormsClassificationSaver? formsClassificationSaver;
   final PokedexSpeciesLearnsetSaver? learnsetSaver;
@@ -134,6 +137,8 @@ class PokedexWorkspace extends ConsumerWidget {
             ref.watch(pokedexExternalImportPreviewerProvider);
     final PokedexExternalImporter resolvedExternalImporter =
         externalImporter ?? ref.watch(pokedexExternalImporterProvider);
+    final PokedexSpeciesDeleter resolvedDeleteSpecies =
+        deleteSpecies ?? ref.watch(pokedexSpeciesDeleterProvider);
     final PokedexSpeciesMetadataSaver resolvedMetadataSaver =
         metadataSaver ?? ref.watch(pokedexSpeciesMetadataSaverProvider);
     final PokedexSpeciesFormsClassificationSaver
@@ -155,6 +160,7 @@ class PokedexWorkspace extends ConsumerWidget {
       externalImportPreviewer: resolvedExternalImportPreviewer,
       externalImporter: resolvedExternalImporter,
       pickJsonImportFile: pickJsonImportFile,
+      deleteSpecies: resolvedDeleteSpecies,
       metadataSaver: resolvedMetadataSaver,
       formsClassificationSaver: resolvedFormsClassificationSaver,
       learnsetSaver: resolvedLearnsetSaver,
@@ -174,6 +180,7 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.externalImportPreviewer,
     required this.externalImporter,
     required this.pickJsonImportFile,
+    required this.deleteSpecies,
     required this.metadataSaver,
     required this.formsClassificationSaver,
     required this.learnsetSaver,
@@ -189,6 +196,7 @@ class _PokedexWorkspaceBody extends StatefulWidget {
   final PokedexExternalImportPreviewer externalImportPreviewer;
   final PokedexExternalImporter externalImporter;
   final Future<String?> Function()? pickJsonImportFile;
+  final PokedexSpeciesDeleter deleteSpecies;
   final PokedexSpeciesMetadataSaver metadataSaver;
   final PokedexSpeciesFormsClassificationSaver formsClassificationSaver;
   final PokedexSpeciesLearnsetSaver learnsetSaver;

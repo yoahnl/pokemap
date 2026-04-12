@@ -11,6 +11,7 @@ import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart'
 import '../../../application/use_cases/import_pokemon_learnset_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_media_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_species_json_use_case.dart';
+import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
 import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
@@ -87,6 +88,18 @@ final loadPokedexSpeciesDetailUseCaseProvider =
   return LoadPokedexSpeciesDetailUseCase(
     ref.watch(pokemonReadRepositoryProvider),
   );
+});
+
+final deletePokedexSpeciesUseCaseProvider =
+    Provider<DeletePokedexSpeciesUseCase>((ref) {
+  return DeletePokedexSpeciesUseCase(
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+  );
+});
+
+final pokedexSpeciesDeleterProvider = Provider<PokedexSpeciesDeleter>((ref) {
+  final useCase = ref.watch(deletePokedexSpeciesUseCaseProvider);
+  return (workspace, speciesId) => useCase.execute(workspace, speciesId);
 });
 
 final pokedexSpeciesDetailLoaderProvider =
