@@ -749,15 +749,19 @@ class _PokedexExternalBatchPreviewStep extends StatelessWidget {
   const _PokedexExternalBatchPreviewStep({
     required this.selection,
     required this.preview,
+    required this.isBusy,
     required this.errorMessage,
     required this.onBack,
+    required this.onImport,
     required this.onClose,
   });
 
   final PokemonExternalBatchSelectionResult selection;
   final PokemonExternalBatchImportResult preview;
+  final bool isBusy;
   final String? errorMessage;
   final VoidCallback onBack;
+  final VoidCallback onImport;
   final VoidCallback onClose;
 
   @override
@@ -882,8 +886,17 @@ class _PokedexExternalBatchPreviewStep extends StatelessWidget {
                   'pokedex-import-external-batch-preview-back-button'),
               controlSize: ControlSize.large,
               secondary: true,
-              onPressed: onBack,
+              onPressed: isBusy ? null : onBack,
               child: const Text('Retour'),
+            ),
+            const SizedBox(width: 12),
+            PushButton(
+              key: const Key(
+                'pokedex-import-external-batch-execute-button',
+              ),
+              controlSize: ControlSize.large,
+              onPressed: isBusy ? null : onImport,
+              child: const Text('Exécuter le batch'),
             ),
             const SizedBox(width: 12),
             PushButton(
@@ -891,7 +904,248 @@ class _PokedexExternalBatchPreviewStep extends StatelessWidget {
                 'pokedex-import-external-batch-preview-close-button',
               ),
               controlSize: ControlSize.large,
-              onPressed: onClose,
+              onPressed: isBusy ? null : onClose,
+              child: const Text('Fermer'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PokedexExternalBatchExecutionResultStep extends StatelessWidget {
+  const _PokedexExternalBatchExecutionResultStep({
+    required this.selection,
+    required this.progress,
+    required this.result,
+    required this.isBusy,
+    required this.errorMessage,
+    required this.onClose,
+  });
+
+  final PokemonExternalBatchSelectionResult selection;
+  final PokemonExternalBatchImportProgress? progress;
+  final PokemonExternalBatchImportResult? result;
+  final bool isBusy;
+  final String? errorMessage;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final helperStyle = editorMacosFormLabelStyle(
+      context,
+    ).copyWith(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: EditorChrome.subtleLabel(context),
+      height: 1.4,
+    );
+    final currentProgress = progress;
+    final totalCount = selection.targets.length;
+    final completedCount = currentProgress?.completedCount ?? 0;
+    final successfulCount =
+        result?.successfulCount ?? currentProgress?.successfulCount ?? 0;
+    final skippedCount =
+        result?.skippedCount ?? currentProgress?.skippedCount ?? 0;
+    final conflictCount =
+        result?.conflictCount ?? currentProgress?.conflictCount ?? 0;
+    final failedCount =
+        result?.failedCount ?? currentProgress?.failedCount ?? 0;
+    final completionRatio = totalCount <= 0 ? 0.0 : completedCount / totalCount;
+    final entriesBySpeciesId = <String, PokemonExternalBatchImportEntryResult>{
+      for (final entry
+          in result?.entries ?? const <PokemonExternalBatchImportEntryResult>[])
+        entry.speciesId: entry,
+    };
+    // Le lot 4 n'affiche volontairement aucune "fausse" progression :
+    // l'état visible dépend uniquement des callbacks réellement remontés par le
+    // batch applicatif existant après chaque espèce terminée.
+
+    return Column(
+      key: const Key('pokedex-import-external-batch-result-step'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Import batch API',
+          style: editorMacosSheetTitleStyle(context),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          isBusy
+              ? 'Le batch réel est en cours. La progression ci-dessous reflète uniquement les espèces effectivement terminées par le pipeline existant.'
+              : 'Le batch réel est terminé. Ce rapport reprend le résultat détaillé renvoyé par le pipeline existant, espèce par espèce.',
+          style: helperStyle,
+        ),
+        const SizedBox(height: 20),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: EditorChrome.islandFillElevated(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: EditorChrome.accentJade.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 10,
+                  children: [
+                    _PokedexBatchSummaryMetric(
+                      key: const Key(
+                        'pokedex-import-external-batch-result-summary-total',
+                      ),
+                      label: 'Cibles',
+                      value: totalCount.toString(),
+                    ),
+                    _PokedexBatchSummaryMetric(
+                      key: const Key(
+                        'pokedex-import-external-batch-result-summary-completed',
+                      ),
+                      label: 'Terminées',
+                      value: completedCount.toString(),
+                    ),
+                    _PokedexBatchSummaryMetric(
+                      key: const Key(
+                        'pokedex-import-external-batch-result-summary-success',
+                      ),
+                      label: 'Succès',
+                      value: successfulCount.toString(),
+                    ),
+                    _PokedexBatchSummaryMetric(
+                      key: const Key(
+                        'pokedex-import-external-batch-result-summary-skips',
+                      ),
+                      label: 'Skips',
+                      value: skippedCount.toString(),
+                    ),
+                    _PokedexBatchSummaryMetric(
+                      key: const Key(
+                        'pokedex-import-external-batch-result-summary-conflicts',
+                      ),
+                      label: 'Conflits',
+                      value: conflictCount.toString(),
+                    ),
+                    _PokedexBatchSummaryMetric(
+                      key: const Key(
+                        'pokedex-import-external-batch-result-summary-failed',
+                      ),
+                      label: 'Erreurs',
+                      value: failedCount.toString(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    key: const Key(
+                      'pokedex-import-external-batch-result-progress-track',
+                    ),
+                    height: 8,
+                    color: EditorChrome.subtleSeparator(context),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: completionRatio.clamp(0.0, 1.0),
+                        child: Container(
+                          color: EditorChrome.accentJade,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Progression observée : $completedCount / $totalCount espèces terminées.',
+                  key: const Key(
+                    'pokedex-import-external-batch-result-progress-label',
+                  ),
+                  style: helperStyle,
+                ),
+                if ((currentProgress?.lastCompletedSpeciesId ?? '')
+                    .isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Dernière espèce terminée : ${currentProgress!.lastCompletedSpeciesId}',
+                    key: const Key(
+                      'pokedex-import-external-batch-result-last-completed',
+                    ),
+                    style: helperStyle.copyWith(fontSize: 11),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          isBusy ? 'Résultat en construction' : 'Rapport final',
+          style: editorMacosFormLabelStyle(context),
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: Container(
+            key: const Key('pokedex-import-external-batch-result-list'),
+            decoration: BoxDecoration(
+              color: EditorChrome.islandFillElevated(context),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: EditorChrome.accentJade.withValues(alpha: 0.25),
+              ),
+            ),
+            child: result == null
+                ? Center(
+                    child: Text(
+                      isBusy
+                          ? 'L’exécution batch est en cours. Le rapport final apparaîtra ici au fil des espèces terminées.'
+                          : 'Aucun rapport final disponible.',
+                      style: helperStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: selection.targets.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final target = selection.targets[index];
+                      final entry = entriesBySpeciesId[target.speciesId];
+                      return _PokedexExternalBatchExecutionEntryCard(
+                        target: target,
+                        entry: entry,
+                      );
+                    },
+                  ),
+          ),
+        ),
+        if (errorMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            errorMessage!,
+            key:
+                const Key('pokedex-import-external-batch-result-error-message'),
+            style: const TextStyle(
+              color: EditorChrome.inspectorJoyCoral,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            PushButton(
+              key: const Key(
+                  'pokedex-import-external-batch-result-close-button'),
+              controlSize: ControlSize.large,
+              onPressed: isBusy ? null : onClose,
               child: const Text('Fermer'),
             ),
           ],
@@ -1025,6 +1279,144 @@ class _PokedexExternalBatchPreviewEntryCard extends StatelessWidget {
                 color: EditorChrome.primaryLabel(context),
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          if (batchEntry?.errorMessage != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              batchEntry!.errorMessage!,
+              style: const TextStyle(
+                color: EditorChrome.inspectorJoyCoral,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          if (warnings.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (final warning in warnings)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  '• $warning',
+                  style: TextStyle(
+                    color: EditorChrome.subtleLabel(context),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PokedexExternalBatchExecutionEntryCard extends StatelessWidget {
+  const _PokedexExternalBatchExecutionEntryCard({
+    required this.target,
+    required this.entry,
+  });
+
+  final PokemonExternalBatchSelectionTarget target;
+  final PokemonExternalBatchImportEntryResult? entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final batchEntry = entry;
+    final isFailed = batchEntry?.isFailed ?? true;
+    final isConflict = batchEntry?.isConflict ?? false;
+    final isSkipped = batchEntry?.isSkipped ?? false;
+    final hasWritesApplied = batchEntry?.result?.hasWritesApplied ?? false;
+    final statusLabel =
+        switch ((isFailed, isConflict, isSkipped, hasWritesApplied)) {
+      (true, _, _, _) => 'Erreur',
+      (_, true, _, _) => 'Conflit',
+      (_, _, true, _) => 'Skippée',
+      (_, _, _, true) => 'Import réussi',
+      _ => 'Sans écriture',
+    };
+    final accent =
+        switch ((isFailed, isConflict, isSkipped, hasWritesApplied)) {
+      (true, _, _, _) => EditorChrome.inspectorJoyCoral,
+      (_, true, _, _) => EditorChrome.accentWarm,
+      (_, _, true, _) => EditorChrome.accentWarm,
+      (_, _, _, true) => EditorChrome.accentJade,
+      _ => EditorChrome.subtleLabel(context),
+    };
+    final warnings = batchEntry?.result?.warnings ?? const <String>[];
+    final result = batchEntry?.result;
+
+    return Container(
+      key: Key(
+        'pokedex-import-external-batch-result-entry-${target.speciesId}',
+      ),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '#${target.nationalDex.toString().padLeft(4, '0')} ${target.primaryName} · ${target.speciesId}',
+                      style: TextStyle(
+                        color: EditorChrome.primaryLabel(context),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Demandé par : ${target.requestedInputs.join(', ')}',
+                      style: TextStyle(
+                        color: EditorChrome.subtleLabel(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                statusLabel,
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          if (result != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Résolu en : ${result.preview.primaryName} · ${result.preview.speciesId}',
+              style: TextStyle(
+                color: EditorChrome.primaryLabel(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Artifacts écrits : ${result.artifacts.where((artifact) => artifact.action == PokemonExternalImportArtifactAction.create || artifact.action == PokemonExternalImportArtifactAction.overwrite).length} · Assets téléchargés : ${result.downloadedAssetCount}',
+              style: TextStyle(
+                color: EditorChrome.subtleLabel(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

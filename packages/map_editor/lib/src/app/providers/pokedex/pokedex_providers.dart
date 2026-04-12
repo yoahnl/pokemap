@@ -248,6 +248,16 @@ final pokedexExternalBatchPreviewerProvider =
       );
 });
 
+final pokedexExternalBatchImporterProvider =
+    Provider<PokedexExternalBatchImporter>((ref) {
+  final useCase = ref.watch(batchImportExternalPokemonSpeciesUseCaseProvider);
+  return (workspace, speciesIds, {onProgress}) => useCase.execute(
+        workspace,
+        speciesIds: speciesIds,
+        onProgress: onProgress,
+      );
+});
+
 final pokedexExternalImportPreviewerProvider =
     Provider<PokedexExternalImportPreviewer>((ref) {
   final useCase = ref.watch(importExternalPokemonSpeciesUseCaseProvider);

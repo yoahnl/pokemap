@@ -57,6 +57,13 @@ typedef PokedexExternalBatchPreviewer = Future<PokemonExternalBatchImportResult>
   List<String> speciesIds,
 );
 
+typedef PokedexExternalBatchImporter = Future<PokemonExternalBatchImportResult>
+    Function(
+  ProjectWorkspace workspace,
+  List<String> speciesIds, {
+  void Function(PokemonExternalBatchImportProgress progress)? onProgress,
+});
+
 typedef PokedexMovesCatalogLoader = Future<PokemonMovesCatalogView> Function(
   ProjectWorkspace workspace,
 );

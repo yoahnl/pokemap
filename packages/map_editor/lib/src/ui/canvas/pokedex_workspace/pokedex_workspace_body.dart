@@ -238,6 +238,7 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       resolveExternalBatchSelection: widget.externalBatchSelectionResolver,
       previewExternalImport: widget.externalImportPreviewer,
       previewExternalBatchImport: widget.externalBatchPreviewer,
+      importExternalBatch: widget.externalBatchImporter,
       importExternalPokemon: widget.externalImporter,
       pickJsonSourceFile: widget.pickJsonImportFile,
     );
@@ -245,31 +246,26 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       return;
     }
 
-    final importedSpeciesId = result.speciesId.trim();
-    setState(() {
-      _entriesFuture = _buildEntriesFuture();
-      _searchQuery = '';
-      _filtersExpanded = false;
-      _selectedType = _allTypesFilterValue;
-      _selectedGeneration = _allGenerationsFilterValue;
-      _selectedStatus = _allStatusesFilterValue;
-      _selectedSpeciesId = importedSpeciesId;
-      _selectedDetailTabId = _overviewTabId;
-      _detailFuture = widget.detailLoader(workspace, importedSpeciesId);
-    });
-
-    final importedArtifacts = <String>[
-      'espèce',
-      if (result.importedLearnset) 'learnset',
-      if (result.importedEvolution) 'évolutions',
-      if (result.importedMedia) 'médias',
-    ];
-    if (result.downloadedAssetCount > 0) {
-      importedArtifacts.add('${result.downloadedAssetCount} assets');
+    final selectedSpeciesId = result.selectedSpeciesId?.trim();
+    if (result.shouldRefreshWorkspace &&
+        selectedSpeciesId != null &&
+        selectedSpeciesId.isNotEmpty) {
+      setState(() {
+        _entriesFuture = _buildEntriesFuture();
+        _searchQuery = '';
+        _filtersExpanded = false;
+        _selectedType = _allTypesFilterValue;
+        _selectedGeneration = _allGenerationsFilterValue;
+        _selectedStatus = _allStatusesFilterValue;
+        _selectedSpeciesId = selectedSpeciesId;
+        _selectedDetailTabId = _overviewTabId;
+        _detailFuture = widget.detailLoader(workspace, selectedSpeciesId);
+      });
     }
+
     _showFeedback(
-      'Import terminé pour ${result.primaryName} · ${importedArtifacts.join(', ')}',
-      isError: false,
+      result.feedbackMessage,
+      isError: result.feedbackIsError,
     );
   }
 

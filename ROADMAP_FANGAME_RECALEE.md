@@ -96,6 +96,136 @@ Conclusion :
 - on ne rouvre pas artificiellement 11A ;
 - on n'écrit pas un deuxième pipeline d'import externe.
 
+### 3.2.1. Avancement réel de la phase R1 déjà livré dans le worktree
+
+Les quatre premiers lots de la phase R1 ont maintenant été livrés dans le
+worktree courant. Ils ne sont plus à considérer comme du travail à démarrer,
+mais comme du socle acquis à prolonger proprement.
+
+#### Lot 1 — Résolveur de requête externe Pokédex
+
+Ce lot existe maintenant côté application avec :
+
+- un modèle de résolution structuré pour :
+  - mono-espèce ;
+  - liste explicite ;
+  - plage dex ;
+  - génération ;
+  - requête invalide / ambiguë ;
+- un résolveur pur, sans réseau et sans UI ;
+- un provider DI dédié dans `map_editor`.
+
+Le contrat déjà livré couvre au minimum :
+
+- `bulbasaur`
+- `1`
+- `001`
+- `0001`
+- `1-151`
+- `gen 1`
+- `generation 2`
+- `pikachu, eevee, abra`
+- refus explicite des cas ambigus de type `pikachu eevee abra`
+
+#### Lot 2 — Auto-complétion mono-espèce dans le wizard
+
+Ce lot existe maintenant dans la branche `API externe` du wizard Pokédex avec :
+
+- un use case de recherche mono-espèce réutilisant le résolveur du lot 1 ;
+- une vraie surface de suggestions ;
+- une sélection explicite obligatoire ;
+- un blocage de la preview/import tant qu'aucune suggestion réelle n'a été
+  choisie ;
+- des états propres :
+  - vide ;
+  - loading ;
+  - aucun résultat ;
+  - hors-scope ;
+  - invalide ;
+  - erreur.
+
+Le point important à conserver pour la suite :
+
+- le widget ne parse pas la requête lui-même ;
+- la preview/import mono-espèce ne repose pas sur une simple string tapée ;
+- seule une suggestion explicitement sélectionnée débloque la suite.
+
+#### Lot 3 — Sélection batch + dry-run batch
+
+Ce lot existe maintenant dans la même branche `API externe` du wizard avec :
+
+- un mode explicite `Mono-espèce` / `Batch dry-run` ;
+- un use case dédié de résolution batch, réutilisant le résolveur du lot 1 ;
+- la compréhension de trois formes batch :
+  - liste explicite ;
+  - plage dex ;
+  - génération ;
+- une liste finale résolue visible avant toute preview ;
+- un dry-run batch branché sur le pipeline batch applicatif existant avec
+  `dryRun: true` ;
+- une preview batch lisible ;
+- un blocage explicite de tout import batch réel.
+
+Règles déjà en place à ne pas casser :
+
+- une liste explicite partiellement résolue reste visible mais bloque le
+  dry-run ;
+- les requêtes par plage dex et génération ne ciblent volontairement que les
+  espèces de base ;
+- une liste explicite peut encore conserver une forme si elle a été demandée
+  explicitement ;
+- le dry-run batch n'écrit rien et ne constitue pas encore une exécution lot 4.
+
+Artefacts de preuve déjà présents :
+
+- `reports/phase-r1-lot-1-pokedex-query-resolver-report.md`
+- `reports/phase-r1-lot-2-pokedex-external-autocomplete-report.md`
+- `reports/phase-r1-lot-3-batch-selection-dry-run-report.md`
+
+#### Lot 4 — Exécution batch + progression + rapport
+
+Ce lot existe maintenant dans le même flow `API externe`, sans réécrire le
+pipeline batch applicatif existant.
+
+Ce qui est désormais livré :
+
+- une action explicite d'exécution batch réelle distincte du dry-run ;
+- une progression honnête alimentée par les callbacks réels du use case batch ;
+- un écran de résultat séparé du dry-run preview ;
+- des compteurs visibles :
+  - succès ;
+  - conflits ;
+  - erreurs ;
+  - skips ;
+  - espèces terminées ;
+- un rapport final détaillé par espèce ;
+- un refresh du workspace si au moins une espèce a réellement été écrite ;
+- une règle stable de sélection post-import :
+  - première espèce réellement écrite dans l'ordre visible de la sélection batch
+    ;
+- conservation stricte du flow mono-espèce et du dry-run du lot 3.
+
+Décisions d'implémentation désormais en place :
+
+- aucun pipeline batch parallèle n'a été créé ;
+- `BatchImportExternalPokemonSpeciesUseCase` reste le cœur d'exécution ;
+- une extension minimale du use case expose une progression honnête par espèce
+  terminée ;
+- l'UI ne simule aucun faux pourcentage interne ;
+- le rapport final réutilise directement `PokemonExternalBatchImportResult`.
+
+Limites assumées à ce stade :
+
+- pas de retry sélectif ;
+- pas de relance partielle depuis le rapport ;
+- pas d'import en arrière-plan ;
+- pas de cancellation complexe ;
+- pas de pagination du rapport final.
+
+Artefact de preuve ajouté :
+
+- `reports/phase-r1-lot-4-batch-execution-progress-report.md`
+
 ### 3.3. Catalogues locaux et moves catalog
 
 Le repo n'est plus dans un état "catalogues à inventer".
@@ -180,14 +310,19 @@ Cette section couvre les zones déjà entamées mais pas encore suffisamment sol
 
 ### 4.1. Pokédex auteur
 
-Le Pokédex existe, mais il manque encore :
+Le Pokédex existe, et la phase R1 a déjà avancé dans le worktree :
 
-- la vraie résolution de requête externe ;
-- l'auto-complétion mono-espèce ;
-- le vrai flow batch utilisable ;
-- le dry-run batch lisible ;
-- l'exécution batch avec progression et rapport ;
-- la maintenance bulk ergonomique.
+- la résolution de requête externe existe ;
+- l'auto-complétion mono-espèce existe ;
+- le flow batch existe maintenant jusqu'au dry-run lisible.
+
+Ce qui manque encore côté Pokédex auteur :
+
+- l'exécution batch réelle avec progression ;
+- le retry ciblé ;
+- le rapport final d'exécution ;
+- la maintenance bulk ergonomique ;
+- les outils de revalidation / resync / maintenance globale plus riches.
 
 ### 4.2. Catalogues et références assistées
 
@@ -396,6 +531,13 @@ Ce que ce milestone prouve :
 
 - un auteur peut importer et maintenir des espèces à grande échelle sans bricoler.
 
+Statut actuel :
+
+- livré ;
+- lots 1, 2, 3 et 4 livrés ;
+- la base Pokédex auteur productif du cycle R1 est maintenant réellement
+  atteinte.
+
 Gate de sortie :
 
 - mono-espèce avec auto-complétion ;
@@ -528,6 +670,7 @@ Ils sont ordonnés pour maximiser la convergence produit, pas seulement la puret
 ### Lot 1 — Résolveur de requête externe Pokédex
 
 Priorité : `must-have`
+Statut : `livré`
 
 But :
 
@@ -547,9 +690,18 @@ Done :
 - la sortie est structurée et réutilisable en UI ;
 - aucun parsing batch métier dans les widgets.
 
+Livré concrètement :
+
+- modèles de résolution structurés dans `map_editor/application/models` ;
+- résolveur pur dans `map_editor/application/services` ;
+- provider DI dédié ;
+- tests unitaires du résolveur ;
+- report de lot déjà présent dans `reports/`.
+
 ### Lot 2 — Auto-complétion mono-espèce dans le wizard
 
 Priorité : `must-have`
+Statut : `livré`
 
 But :
 
@@ -565,9 +717,19 @@ Done :
 - suggestions clavier/souris ;
 - états loading / error / introuvable propres.
 
+Livré concrètement :
+
+- recherche mono-espèce branchée sur le résolveur du lot 1 ;
+- sélection explicite obligatoire ;
+- blocage de la preview/import sans suggestion choisie ;
+- états UI hors-scope / invalide / aucun résultat ;
+- tests UI et non-régression du flow mono-espèce ;
+- report de lot déjà présent dans `reports/`.
+
 ### Lot 3 — Sélection batch + dry-run batch
 
 Priorité : `must-have`
+Statut : `livré`
 
 But :
 
@@ -584,9 +746,31 @@ Done :
 - dry-run sans écriture ;
 - preview stable et lisible même sur gros lot.
 
+Livré concrètement :
+
+- mode batch explicite dans le wizard `API externe` ;
+- use case de résolution batch dédié ;
+- support liste explicite / plage dex / génération ;
+- affichage de la liste finale résolue avant preview ;
+- blocage du dry-run si la sélection n'est pas propre ;
+- dry-run branché sur le batch applicatif existant avec `dryRun: true` ;
+- preview batch dédiée ;
+- aucun import batch réel ;
+- tests application, wiring, UI batch et non-régression mono ;
+- report de lot déjà présent dans `reports/`.
+
+Limites connues à garder visibles :
+
+- la preview batch devient dense sur très gros lots ;
+- le wizard reste encore raisonnablement maintenable, mais il faudra surveiller
+  sa taille au lot 4 ;
+- la preuve de non-écriture batch est forte, mais pas encore exhaustive
+  artefact par artefact côté learnset/evolution/media/assets.
+
 ### Lot 4 — Exécution batch + progression + rapport
 
 Priorité : `must-have`
+Statut : `livré`
 
 But :
 
@@ -596,8 +780,27 @@ Done :
 
 - progression ;
 - compteurs succès / conflit / skip / erreur ;
-- retry des seules erreurs ;
 - rapport final clair.
+
+Livré concrètement :
+
+- bouton d'exécution batch réelle séparé du dry-run ;
+- progression honnête branchée sur les callbacks du batch applicatif ;
+- résultat final distinct de la preview dry-run ;
+- compteurs visibles pendant et après exécution ;
+- refresh du workspace si des écritures réelles ont eu lieu ;
+- règle stable de sélection post-batch :
+  - première espèce réellement écrite dans l'ordre de la sélection résolue ;
+- tests application, wiring, UI et non-régression lot 2 / lot 3 ;
+- report de lot présent dans `reports/`.
+
+Non-objectifs explicitement conservés :
+
+- pas de retry ;
+- pas de relance partielle ;
+- pas d'exécution en arrière-plan ;
+- pas de cancellation avancée ;
+- pas de refonte du wizard complet.
 
 ### Lot 5 — Exploitation réelle du catalogue moves dans le Pokédex
 

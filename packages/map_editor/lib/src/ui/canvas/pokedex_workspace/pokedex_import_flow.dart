@@ -23,6 +23,7 @@ Future<_CompletedPokedexImportFlowResult?> _showPokedexImportFlowSheet({
   required PokedexExternalBatchSelectionResolver resolveExternalBatchSelection,
   required PokedexExternalImportPreviewer previewExternalImport,
   required PokedexExternalBatchPreviewer previewExternalBatchImport,
+  required PokedexExternalBatchImporter importExternalBatch,
   required PokedexExternalImporter importExternalPokemon,
   Future<String?> Function()? pickJsonSourceFile,
 }) {
@@ -37,6 +38,7 @@ Future<_CompletedPokedexImportFlowResult?> _showPokedexImportFlowSheet({
       resolveExternalBatchSelection: resolveExternalBatchSelection,
       previewExternalImport: previewExternalImport,
       previewExternalBatchImport: previewExternalBatchImport,
+      importExternalBatch: importExternalBatch,
       importExternalPokemon: importExternalPokemon,
       pickJsonSourceFile: pickJsonSourceFile ?? _pickPokedexJsonSourceFile,
     ),
@@ -100,24 +102,21 @@ enum _PokedexImportWizardStep {
   jsonFile,
   externalQuery,
   preview,
+  result,
 }
 
 class _CompletedPokedexImportFlowResult {
   const _CompletedPokedexImportFlowResult({
-    required this.speciesId,
-    required this.primaryName,
-    required this.importedLearnset,
-    required this.importedEvolution,
-    required this.importedMedia,
-    this.downloadedAssetCount = 0,
+    required this.feedbackMessage,
+    required this.feedbackIsError,
+    this.selectedSpeciesId,
+    this.shouldRefreshWorkspace = false,
   });
 
-  final String speciesId;
-  final String primaryName;
-  final bool importedLearnset;
-  final bool importedEvolution;
-  final bool importedMedia;
-  final int downloadedAssetCount;
+  final String feedbackMessage;
+  final bool feedbackIsError;
+  final String? selectedSpeciesId;
+  final bool shouldRefreshWorkspace;
 }
 
 // Le wizard reste séquentiel et local à la présentation.
@@ -135,6 +134,7 @@ class _PokedexImportFlowSheet extends StatefulWidget {
     required this.resolveExternalBatchSelection,
     required this.previewExternalImport,
     required this.previewExternalBatchImport,
+    required this.importExternalBatch,
     required this.importExternalPokemon,
     required this.pickJsonSourceFile,
   });
@@ -146,6 +146,7 @@ class _PokedexImportFlowSheet extends StatefulWidget {
   final PokedexExternalBatchSelectionResolver resolveExternalBatchSelection;
   final PokedexExternalImportPreviewer previewExternalImport;
   final PokedexExternalBatchPreviewer previewExternalBatchImport;
+  final PokedexExternalBatchImporter importExternalBatch;
   final PokedexExternalImporter importExternalPokemon;
   final Future<String?> Function() pickJsonSourceFile;
 
@@ -163,6 +164,8 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
   PokemonJsonImportPreview? _jsonPreview;
   PokemonExternalImportResult? _externalPreview;
   PokemonExternalBatchImportResult? _externalBatchPreview;
+  PokemonExternalBatchImportResult? _externalBatchImportResult;
+  PokemonExternalBatchImportProgress? _externalBatchImportProgress;
   bool _isBusy = false;
   bool _isSearchingExternalSpecies = false;
   bool _isResolvingExternalBatch = false;
@@ -222,6 +225,8 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
       _selectedExternalSuggestion = null;
       _externalPreview = null;
       _externalBatchPreview = null;
+      _externalBatchImportResult = null;
+      _externalBatchImportProgress = null;
       _errorMessage = null;
       _isSearchingExternalSpecies = false;
       _isResolvingExternalBatch = false;
@@ -263,6 +268,8 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
         );
         _externalPreview = null;
         _externalBatchPreview = null;
+        _externalBatchImportResult = null;
+        _externalBatchImportProgress = null;
         _errorMessage = null;
       });
       return;
@@ -273,6 +280,8 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
       _selectedExternalSuggestion = null;
       _externalPreview = null;
       _externalBatchPreview = null;
+      _externalBatchImportResult = null;
+      _externalBatchImportProgress = null;
       _isSearchingExternalSpecies =
           _externalImportMode == _PokedexExternalImportMode.singleSpecies;
       _isResolvingExternalBatch =
@@ -360,6 +369,8 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
           setState(() {
             _jsonPreview = preview;
             _externalPreview = null;
+            _externalBatchImportResult = null;
+            _externalBatchImportProgress = null;
             _step = _PokedexImportWizardStep.preview;
             _isBusy = false;
           });
@@ -383,6 +394,8 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
               setState(() {
                 _externalPreview = preview;
                 _externalBatchPreview = null;
+                _externalBatchImportResult = null;
+                _externalBatchImportProgress = null;
                 _jsonPreview = null;
                 _step = _PokedexImportWizardStep.preview;
                 _isBusy = false;
@@ -405,6 +418,8 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
               setState(() {
                 _externalBatchPreview = preview;
                 _externalPreview = null;
+                _externalBatchImportResult = null;
+                _externalBatchImportProgress = null;
                 _jsonPreview = null;
                 _step = _PokedexImportWizardStep.preview;
                 _isBusy = false;
@@ -448,11 +463,15 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
           }
           Navigator.of(context).pop(
             _CompletedPokedexImportFlowResult(
-              speciesId: result.preview.speciesId,
-              primaryName: result.preview.primaryName,
-              importedLearnset: result.importedLearnset,
-              importedEvolution: result.importedEvolution,
-              importedMedia: result.importedMedia,
+              selectedSpeciesId: result.preview.speciesId,
+              shouldRefreshWorkspace: true,
+              feedbackMessage: _buildSingleImportFeedback(
+                primaryName: result.preview.primaryName,
+                importedLearnset: result.importedLearnset,
+                importedEvolution: result.importedEvolution,
+                importedMedia: result.importedMedia,
+              ),
+              feedbackIsError: false,
             ),
           );
           break;
@@ -483,18 +502,22 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
               }
               Navigator.of(context).pop(
                 _CompletedPokedexImportFlowResult(
-                  speciesId: result.preview.speciesId,
-                  primaryName: result.preview.primaryName,
-                  importedLearnset: result.importedLearnset,
-                  importedEvolution: result.importedEvolution,
-                  importedMedia: result.importedMedia,
-                  downloadedAssetCount: result.downloadedAssetCount,
+                  selectedSpeciesId: result.preview.speciesId,
+                  shouldRefreshWorkspace: true,
+                  feedbackMessage: _buildSingleImportFeedback(
+                    primaryName: result.preview.primaryName,
+                    importedLearnset: result.importedLearnset,
+                    importedEvolution: result.importedEvolution,
+                    importedMedia: result.importedMedia,
+                    downloadedAssetCount: result.downloadedAssetCount,
+                  ),
+                  feedbackIsError: false,
                 ),
               );
               break;
             case _PokedexExternalImportMode.batchDryRun:
               throw const EditorValidationException(
-                'Le lot 3 ne permet pas encore l’import batch réel. Seul le dry-run batch est disponible dans cette étape.',
+                'Utilisez l’action dédiée du lot 4 pour exécuter le batch réel depuis la prévisualisation batch.',
               );
           }
           break;
@@ -510,12 +533,142 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
     }
   }
 
+  Future<void> _executeExternalBatchImport() async {
+    final selection = _externalBatchSelectionResult;
+    if (!selection.canDryRun) {
+      setState(() {
+        _errorMessage =
+            'Résolvez d’abord une sélection batch valide avant d’exécuter l’import.';
+      });
+      return;
+    }
+
+    setState(() {
+      _errorMessage = null;
+      _isBusy = true;
+      _externalBatchImportResult = null;
+      _externalBatchImportProgress = null;
+      // Le lot 4 sépare explicitement la preview dry-run du résultat réel :
+      // au clic sur "Exécuter", on bascule immédiatement sur l'écran de
+      // résultat, puis on y alimente une progression honnête au fil des
+      // callbacks applicatifs.
+      _step = _PokedexImportWizardStep.result;
+    });
+
+    try {
+      final result = await widget.importExternalBatch(
+        widget.workspace,
+        selection.resolvedSpeciesIds,
+        onProgress: (progress) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _externalBatchImportProgress = progress;
+          });
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isBusy = false;
+        _externalBatchImportResult = result;
+        _externalBatchImportProgress ??= PokemonExternalBatchImportProgress(
+          totalCount: selection.targets.length,
+          completedCount: result.entries.length,
+          successfulCount: result.successfulCount,
+          skippedCount: result.skippedCount,
+          conflictCount: result.conflictCount,
+          failedCount: result.failedCount,
+          lastCompletedSpeciesId:
+              result.entries.isEmpty ? '' : result.entries.last.speciesId,
+        );
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isBusy = false;
+        _externalBatchImportResult = null;
+        _errorMessage = _resolveApplicationMessage(error);
+      });
+    }
+  }
+
   String _resolveApplicationMessage(Object error) {
     return switch (error) {
       final EditorApplicationException applicationError =>
         applicationError.message,
       _ => error.toString(),
     };
+  }
+
+  void _closeBatchResult() {
+    final result = _externalBatchImportResult;
+    if (result == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final selectedSpeciesId = _selectBatchImportedSpeciesId(
+      selection: _externalBatchSelectionResult,
+      result: result,
+    );
+    final importedAnySpecies = selectedSpeciesId != null;
+    Navigator.of(context).pop(
+      _CompletedPokedexImportFlowResult(
+        selectedSpeciesId: selectedSpeciesId,
+        shouldRefreshWorkspace: importedAnySpecies,
+        feedbackMessage: _buildBatchImportFeedback(result),
+        feedbackIsError: !importedAnySpecies && result.failedCount > 0,
+      ),
+    );
+  }
+
+  String? _selectBatchImportedSpeciesId({
+    required PokemonExternalBatchSelectionResult selection,
+    required PokemonExternalBatchImportResult result,
+  }) {
+    final entriesBySpeciesId = <String, PokemonExternalBatchImportEntryResult>{
+      for (final entry in result.entries) entry.speciesId: entry,
+    };
+    // Règle produit stable retenue pour le refresh du workspace :
+    // on choisit la première espèce réellement écrite en respectant l'ordre
+    // visible de la sélection batch, pas l'ordre interne du use case.
+    for (final target in selection.targets) {
+      final entry = entriesBySpeciesId[target.speciesId];
+      if (entry?.result?.hasWritesApplied == true) {
+        return target.speciesId;
+      }
+    }
+    return null;
+  }
+
+  String _buildSingleImportFeedback({
+    required String primaryName,
+    required bool importedLearnset,
+    required bool importedEvolution,
+    required bool importedMedia,
+    int downloadedAssetCount = 0,
+  }) {
+    final importedArtifacts = <String>[
+      'espèce',
+      if (importedLearnset) 'learnset',
+      if (importedEvolution) 'évolutions',
+      if (importedMedia) 'médias',
+    ];
+    if (downloadedAssetCount > 0) {
+      importedArtifacts.add('$downloadedAssetCount assets');
+    }
+    return 'Import terminé pour $primaryName · ${importedArtifacts.join(', ')}';
+  }
+
+  String _buildBatchImportFeedback(PokemonExternalBatchImportResult result) {
+    return 'Batch terminé · ${result.successfulCount} succès, '
+        '${result.conflictCount} conflits, ${result.failedCount} erreurs, '
+        '${result.skippedCount} skips';
   }
 
   void _continueFromSource() {
@@ -609,12 +762,23 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
                   _PokedexExternalBatchPreviewStep(
                     selection: _externalBatchSelectionResult,
                     preview: _externalBatchPreview!,
+                    isBusy: _isBusy,
                     errorMessage: _errorMessage,
                     onBack: _goBackFromPreview,
+                    onImport: _executeExternalBatchImport,
                     onClose: () => Navigator.of(context).pop(),
                   ),
               },
           },
+        _PokedexImportWizardStep.result =>
+          _PokedexExternalBatchExecutionResultStep(
+            selection: _externalBatchSelectionResult,
+            progress: _externalBatchImportProgress,
+            result: _externalBatchImportResult,
+            isBusy: _isBusy,
+            errorMessage: _errorMessage,
+            onClose: _closeBatchResult,
+          ),
       },
     );
   }

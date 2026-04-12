@@ -103,6 +103,7 @@ class PokedexWorkspace extends ConsumerWidget {
     this.externalSpeciesSearcher,
     this.externalBatchSelectionResolver,
     this.externalBatchPreviewer,
+    this.externalBatchImporter,
     this.pickJsonImportFile,
     this.deleteSpecies,
     this.metadataSaver,
@@ -128,6 +129,7 @@ class PokedexWorkspace extends ConsumerWidget {
   final PokedexExternalSpeciesSearcher? externalSpeciesSearcher;
   final PokedexExternalBatchSelectionResolver? externalBatchSelectionResolver;
   final PokedexExternalBatchPreviewer? externalBatchPreviewer;
+  final PokedexExternalBatchImporter? externalBatchImporter;
   final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesDeleter? deleteSpecies;
   final PokedexSpeciesMetadataSaver? metadataSaver;
@@ -166,6 +168,9 @@ class PokedexWorkspace extends ConsumerWidget {
     final PokedexExternalBatchPreviewer resolvedExternalBatchPreviewer =
         externalBatchPreviewer ??
             ref.watch(pokedexExternalBatchPreviewerProvider);
+    final PokedexExternalBatchImporter resolvedExternalBatchImporter =
+        externalBatchImporter ??
+            ref.watch(pokedexExternalBatchImporterProvider);
     final PokedexSpeciesDeleter resolvedDeleteSpecies =
         deleteSpecies ?? ref.watch(pokedexSpeciesDeleterProvider);
     final PokedexSpeciesMetadataSaver resolvedMetadataSaver =
@@ -198,6 +203,7 @@ class PokedexWorkspace extends ConsumerWidget {
       externalSpeciesSearcher: resolvedExternalSpeciesSearcher,
       externalBatchSelectionResolver: resolvedExternalBatchSelectionResolver,
       externalBatchPreviewer: resolvedExternalBatchPreviewer,
+      externalBatchImporter: resolvedExternalBatchImporter,
       pickJsonImportFile: pickJsonImportFile,
       deleteSpecies: resolvedDeleteSpecies,
       metadataSaver: resolvedMetadataSaver,
@@ -224,6 +230,7 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.externalSpeciesSearcher,
     required this.externalBatchSelectionResolver,
     required this.externalBatchPreviewer,
+    required this.externalBatchImporter,
     required this.pickJsonImportFile,
     required this.deleteSpecies,
     required this.metadataSaver,
@@ -246,6 +253,7 @@ class _PokedexWorkspaceBody extends StatefulWidget {
   final PokedexExternalSpeciesSearcher externalSpeciesSearcher;
   final PokedexExternalBatchSelectionResolver externalBatchSelectionResolver;
   final PokedexExternalBatchPreviewer externalBatchPreviewer;
+  final PokedexExternalBatchImporter externalBatchImporter;
   final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesDeleter deleteSpecies;
   final PokedexSpeciesMetadataSaver metadataSaver;

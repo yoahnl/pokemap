@@ -262,6 +262,60 @@ class PokemonExternalBatchImportEntryResult {
   bool get isSuccessful => !isFailed && !isConflict;
 }
 
+/// Progression honnête d'un batch externe en cours.
+///
+/// Ce modèle n'essaie pas de décrire un "pourcentage magique" interne au
+/// pipeline. Il expose uniquement ce que le batch sait réellement après chaque
+/// espèce terminée :
+/// - combien de cibles étaient prévues ;
+/// - combien sont déjà terminées ;
+/// - les compteurs par statut déjà observés ;
+/// - la dernière espèce réellement terminée.
+class PokemonExternalBatchImportProgress {
+  const PokemonExternalBatchImportProgress({
+    required this.totalCount,
+    required this.completedCount,
+    required this.successfulCount,
+    required this.skippedCount,
+    required this.conflictCount,
+    required this.failedCount,
+    required this.lastCompletedSpeciesId,
+  });
+
+  factory PokemonExternalBatchImportProgress.fromEntries({
+    required int totalCount,
+    required List<PokemonExternalBatchImportEntryResult> entries,
+    required String lastCompletedSpeciesId,
+  }) {
+    final completedCount = entries.length;
+    final successfulCount =
+        entries.where((entry) => entry.isSuccessful && !entry.isSkipped).length;
+    final skippedCount = entries.where((entry) => entry.isSkipped).length;
+    final conflictCount = entries.where((entry) => entry.isConflict).length;
+    final failedCount = entries.where((entry) => entry.isFailed).length;
+    return PokemonExternalBatchImportProgress(
+      totalCount: totalCount,
+      completedCount: completedCount,
+      successfulCount: successfulCount,
+      skippedCount: skippedCount,
+      conflictCount: conflictCount,
+      failedCount: failedCount,
+      lastCompletedSpeciesId: lastCompletedSpeciesId,
+    );
+  }
+
+  final int totalCount;
+  final int completedCount;
+  final int successfulCount;
+  final int skippedCount;
+  final int conflictCount;
+  final int failedCount;
+  final String lastCompletedSpeciesId;
+
+  double get completionRatio =>
+      totalCount <= 0 ? 0 : completedCount / totalCount;
+}
+
 /// Résultat global d'un import batch.
 ///
 /// Le résultat reste volontairement compact :
@@ -1403,6 +1457,7 @@ class BatchImportExternalPokemonSpeciesUseCase {
     PokemonExternalImportMergePolicy mergePolicy =
         PokemonExternalImportMergePolicy.failOnConflict,
     bool dryRun = false,
+    void Function(PokemonExternalBatchImportProgress progress)? onProgress,
   }) async {
     final normalizedSpeciesIds = speciesIds
         .map((value) => value.trim())
@@ -1417,6 +1472,7 @@ class BatchImportExternalPokemonSpeciesUseCase {
       );
     }
 
+    final totalCount = normalizedSpeciesIds.length;
     final entryResults = <PokemonExternalBatchImportEntryResult>[];
     for (final speciesId in normalizedSpeciesIds) {
       try {
@@ -1447,6 +1503,14 @@ class BatchImportExternalPokemonSpeciesUseCase {
           ),
         );
       }
+
+      onProgress?.call(
+        PokemonExternalBatchImportProgress.fromEntries(
+          totalCount: totalCount,
+          entries: entryResults,
+          lastCompletedSpeciesId: speciesId,
+        ),
+      );
     }
 
     return PokemonExternalBatchImportResult(

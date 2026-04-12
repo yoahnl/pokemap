@@ -48,6 +48,7 @@ void main() {
         isNotNull,
       );
       expect(container.read(pokedexExternalBatchPreviewerProvider), isNotNull);
+      expect(container.read(pokedexExternalBatchImporterProvider), isNotNull);
       expect(
         container.read(loadPokemonMovesCatalogUseCaseProvider),
         isNotNull,

@@ -1125,6 +1125,86 @@ void main() {
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
 
+    test('reports honest per-species progress during a real batch', () async {
+      final progressSnapshots = <PokemonExternalBatchImportProgress>[];
+
+      final result = await batchUseCase.execute(
+        workspace,
+        speciesIds: <String>['ivysaur', 'bulbasaur'],
+        onProgress: progressSnapshots.add,
+      );
+
+      expect(result.successfulCount, 2);
+      expect(
+        progressSnapshots
+            .map(
+              (progress) => (
+                progress.completedCount,
+                progress.successfulCount,
+                progress.failedCount,
+                progress.lastCompletedSpeciesId,
+              ),
+            )
+            .toList(),
+        <(int, int, int, String)>[
+          (1, 1, 0, 'bulbasaur'),
+          (2, 2, 0, 'ivysaur'),
+        ],
+      );
+      expect(
+        progressSnapshots.every((progress) => progress.totalCount == 2),
+        isTrue,
+      );
+    });
+
+    test('reports skipped entries when merge policy is skipExisting', () async {
+      await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final result = await batchUseCase.execute(
+        workspace,
+        speciesIds: <String>['bulbasaur', 'ivysaur'],
+        mergePolicy: PokemonExternalImportMergePolicy.skipExisting,
+      );
+
+      expect(result.successfulCount, 1);
+      expect(result.skippedCount, 1);
+      expect(result.conflictCount, 0);
+      expect(result.failedCount, 0);
+      expect(
+        result.entries
+            .firstWhere((entry) => entry.speciesId == 'bulbasaur')
+            .isSkipped,
+        isTrue,
+      );
+    });
+
+    test('reports conflicts when merge policy is failOnConflict', () async {
+      await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final result = await batchUseCase.execute(
+        workspace,
+        speciesIds: <String>['bulbasaur', 'ivysaur'],
+        mergePolicy: PokemonExternalImportMergePolicy.failOnConflict,
+      );
+
+      expect(result.successfulCount, 1);
+      expect(result.skippedCount, 0);
+      expect(result.conflictCount, 1);
+      expect(result.failedCount, 0);
+      expect(
+        result.entries
+            .firstWhere((entry) => entry.speciesId == 'bulbasaur')
+            .isConflict,
+        isTrue,
+      );
+    });
+
     test('continues on partial failures and reports them by species', () async {
       externalSourceRepository.showdownSpeciesPayloads.remove('ivysaur');
 
