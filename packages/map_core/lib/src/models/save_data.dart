@@ -36,6 +36,34 @@ Map<String, String> _normalizeStringMap(Map<String, String> values) {
   return Map<String, String>.fromEntries(normalizedEntries);
 }
 
+const _legacyPlayerPokemonNatureId = 'hardy';
+const _legacyPlayerPokemonAbilityId = 'unknown';
+
+Map<String, dynamic> _migrateLegacyPlayerPokemonJson(
+  Map<String, dynamic> json,
+) {
+  final hasLegacyMarkers = json['id'] is String ||
+      json.containsKey('nickname') ||
+      json.containsKey('isFainted');
+  if (!hasLegacyMarkers) {
+    return json;
+  }
+  final migrated = Map<String, dynamic>.from(json);
+  final natureId = migrated['natureId'];
+  if (natureId == null) {
+    migrated['natureId'] = _legacyPlayerPokemonNatureId;
+  }
+  final abilityId = migrated['abilityId'];
+  if (abilityId == null) {
+    migrated['abilityId'] = _legacyPlayerPokemonAbilityId;
+  }
+  final currentHp = migrated['currentHp'];
+  if (currentHp == null && migrated['isFainted'] is bool) {
+    migrated['currentHp'] = (migrated['isFainted'] as bool) ? 0 : 1;
+  }
+  return migrated;
+}
+
 @freezed
 class PokemonStatSpread with _$PokemonStatSpread {
   const PokemonStatSpread._();
@@ -66,8 +94,6 @@ class PokemonStatSpread with _$PokemonStatSpread {
   }
 }
 
-/// Un Pokémon possédé par le joueur — modèle minimal pour raisonner
-/// sur les field moves et l'état de l'équipe.
 @freezed
 class PlayerPokemon with _$PlayerPokemon {
   const PlayerPokemon._();
@@ -88,7 +114,7 @@ class PlayerPokemon with _$PlayerPokemon {
   }) = _PlayerPokemon;
 
   factory PlayerPokemon.fromJson(Map<String, dynamic> json) =>
-      _$PlayerPokemonFromJson(json);
+      _$PlayerPokemonFromJson(_migrateLegacyPlayerPokemonJson(json));
 
   bool get isFainted => currentHp <= 0;
 
@@ -141,7 +167,6 @@ class PlayerPokemon with _$PlayerPokemon {
   }
 }
 
-/// Équipe active du joueur (max 6 en pratique, non contraint ici).
 @freezed
 class PlayerParty with _$PlayerParty {
   const PlayerParty._();
@@ -161,11 +186,6 @@ class PlayerParty with _$PlayerParty {
       );
 }
 
-/// Progression du joueur — field abilities débloquées, flags scénaristiques.
-///
-/// [completedStepIds] : identifiants des steps **Step Studio** déjà terminées
-/// côté runtime (ex. completion `whenCutsceneEnds`). Persistance save/load
-/// via [SaveData.progression] ; distinct des flags narratifs génériques.
 @freezed
 class PlayerProgression with _$PlayerProgression {
   const PlayerProgression._();
@@ -174,14 +194,7 @@ class PlayerProgression with _$PlayerProgression {
   const factory PlayerProgression({
     @Default([]) List<FieldAbility> unlockedFieldAbilities,
     @Default([]) List<String> storyFlags,
-
-    /// Steps du document `authoring.stepStudioDocument` marquées comme
-    /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
     @Default([]) List<String> completedStepIds,
-
-    /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
-    /// au moins une fois dans cette partie — utilisé pour prédicats
-    /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
     @Default([]) List<String> completedCutsceneIds,
   }) = _PlayerProgression;
 
@@ -305,10 +318,6 @@ class Bag with _$Bag {
   Bag normalized() => copyWith(entries: _normalizeBagEntries(entries));
 }
 
-/// Racine de l'état persistant de la partie.
-///
-/// Sérialisable JSON, immutable, indépendant du runtime.
-/// Pensé pour évoluer vers une vraie sauvegarde disque.
 @freezed
 class SaveData with _$SaveData {
   const SaveData._();

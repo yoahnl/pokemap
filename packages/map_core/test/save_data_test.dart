@@ -88,10 +88,37 @@ void main() {
         speciesId: 'pikachu',
         natureId: 'jolly',
         abilityId: 'static',
-        knownMoveIds: ['tackle', 'growl', 'quick-attack', 'slam', 'surf'],
+        knownMoveIds: ['tackle', 'growl', 'quick_attack', 'slam', 'surf'],
       );
 
       expect(() => pokemon.normalized(), throwsStateError);
+    });
+
+    test('legacy JSON migrates missing phase 9 fields', () {
+      final restored = PlayerPokemon.fromJson({
+        'id': 'party_1',
+        'speciesId': 'lapras',
+        'nickname': 'Ferry',
+        'level': 30,
+        'knownMoveIds': ['surf', 'ice_beam'],
+        'isFainted': true,
+      });
+
+      expect(restored.speciesId, 'lapras');
+      expect(restored.natureId, 'hardy');
+      expect(restored.abilityId, 'unknown');
+      expect(restored.currentHp, 0);
+      expect(restored.knownMoveIds, ['surf', 'ice_beam']);
+    });
+
+    test('non legacy JSON missing phase 9 fields still fails', () {
+      expect(
+        () => PlayerPokemon.fromJson({
+          'speciesId': 'lapras',
+          'knownMoveIds': ['surf'],
+        }),
+        throwsA(isA<TypeError>()),
+      );
     });
   });
 

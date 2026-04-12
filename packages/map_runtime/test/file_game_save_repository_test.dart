@@ -13,7 +13,6 @@ void main() {
     late Directory testDirectory;
 
     setUp(() async {
-      // Override the application support directory for testing
       testDirectory = await Directory.systemTemp.createTemp('game_save_test_');
       repository = _TestFileGameSaveRepository(testDirectory);
     });
@@ -77,10 +76,7 @@ void main() {
         metadata: {'testKey': 'testValue'},
       );
 
-      // Save
       await repository.save(originalState);
-
-      // Load
       final loadedState = await repository.load();
 
       expect(loadedState, isNotNull);
@@ -113,10 +109,7 @@ void main() {
         }),
       );
 
-      // Save
       await repository.save(originalState);
-
-      // Load
       final loadedState = await repository.load();
 
       expect(loadedState, isNotNull);
@@ -215,13 +208,11 @@ void main() {
 
       await repository.save(state);
 
-      // Read raw JSON file
       final filePath = await repository.exposedSaveFilePath();
       final file = File(filePath);
       final content = await file.readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
 
-      // Verify structure
       expect(json['saveId'], equals('test_save_005'));
       expect(json['currentMapId'], equals('test_map'));
       expect(json['playerPosition'], isA<Map<String, dynamic>>());
@@ -238,6 +229,114 @@ void main() {
           (storyFlags['activeFlags'] as List)
               .contains('trainer_defeated:$trainerId'),
           isTrue);
+    });
+
+    test(
+        'load migrates legacy party members and save rewrites normalized phase 9 data',
+        () async {
+      const originalState = GameState(
+        saveId: 'legacy_phase_9',
+        currentMapId: 'vova_center',
+        playerPosition: GridPos(x: 4, y: 7),
+        playerFacing: EntityFacing.west,
+        party: PlayerParty(members: [
+          PlayerPokemon(
+            speciesId: 'lapras',
+            natureId: 'modest',
+            abilityId: 'water-absorb',
+            level: 30,
+            knownMoveIds: ['surf', 'ice_beam'],
+            currentHp: 22,
+          ),
+        ]),
+        trainerProfile: TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['cascade'],
+          money: 1200,
+          playtimeSeconds: 600,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
+        progression: PlayerProgression(
+          unlockedFieldAbilities: [FieldAbility.surf],
+          storyFlags: ['intro_done'],
+        ),
+        scriptVariables: ScriptVariables(values: {
+          'rival_battles_won': ScriptVariableValue.int(3),
+        }),
+        storyFlags: StoryFlags(activeFlags: {
+          'trainer_defeated:gym_leader_1',
+          'badge_cascade',
+        }),
+        consumedEventIds: {'item_potion_route1', 'npc_trainer_route22'},
+        metadata: {'testKey': 'testValue'},
+      );
+      final legacyJson = originalState.toJson();
+      final party = legacyJson['party'] as Map<String, dynamic>;
+      final members = party['members'] as List<dynamic>;
+      final member = members.single as Map<String, dynamic>;
+      member
+        ..remove('natureId')
+        ..remove('abilityId')
+        ..remove('ivs')
+        ..remove('evs')
+        ..remove('currentHp')
+        ..remove('statusId')
+        ..remove('isShiny')
+        ..remove('heldItemId')
+        ..['id'] = 'party_1'
+        ..['nickname'] = 'Ferry'
+        ..['isFainted'] = false;
+
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(legacyJson),
+      );
+
+      final loadedState = await repository.load();
+
+      expect(loadedState, isNotNull);
+      expect(loadedState!.party.members.single.speciesId, 'lapras');
+      expect(loadedState.party.members.single.natureId, 'hardy');
+      expect(loadedState.party.members.single.abilityId, 'unknown');
+      expect(loadedState.party.members.single.currentHp, 1);
+      expect(
+        loadedState.scriptVariables.values['rival_battles_won'],
+        const ScriptVariableValue.int(3),
+      );
+      expect(
+        loadedState.storyFlags.activeFlags,
+        equals(originalState.storyFlags.activeFlags),
+      );
+      expect(
+        loadedState.consumedEventIds,
+        equals(originalState.consumedEventIds),
+      );
+      expect(loadedState.metadata, equals(originalState.metadata));
+
+      await repository.save(loadedState);
+
+      final normalizedJson =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final normalizedParty = normalizedJson['party'] as Map<String, dynamic>;
+      final normalizedMembers = normalizedParty['members'] as List<dynamic>;
+      final normalizedMember = normalizedMembers.single as Map<String, dynamic>;
+
+      expect(normalizedMember['speciesId'], 'lapras');
+      expect(normalizedMember['natureId'], 'hardy');
+      expect(normalizedMember['abilityId'], 'unknown');
+      expect(normalizedMember['currentHp'], 1);
+      expect(normalizedMember.containsKey('id'), isFalse);
+      expect(normalizedMember.containsKey('nickname'), isFalse);
+      expect(normalizedMember.containsKey('isFainted'), isFalse);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
     });
 
     test('save writes normalized phase 9 data', () async {
@@ -317,6 +416,38 @@ void main() {
       expect(await projectFile.readAsString(), '{"name":"test"}');
     });
 
+    test('corrupt load fails and does not rewrite save or project.json',
+        () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      const corruptContent = '''
+{
+  "saveId": "broken_save",
+  "currentMapId": "vova_center",
+  "party": {
+    "members": [
+      {
+        "speciesId": "lapras",
+        "knownMoveIds": ["surf"]
+      }
+    ]
+  }
+}
+''';
+      await file.writeAsString(corruptContent);
+
+      await expectLater(
+        () => repository.load(),
+        throwsA(isA<GameSaveException>()),
+      );
+
+      expect(await file.readAsString(), corruptContent);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+
     test(
         'invalid nested phase 9 data does not write and keeps project.json unchanged',
         () async {
@@ -339,7 +470,6 @@ void main() {
   });
 }
 
-/// Test repository that uses a custom test directory
 class _TestFileGameSaveRepository extends FileGameSaveRepository {
   _TestFileGameSaveRepository(this._testDirectory);
 
