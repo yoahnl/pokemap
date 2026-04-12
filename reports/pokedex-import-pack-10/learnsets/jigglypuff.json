@@ -1,0 +1,58 @@
+{
+  "speciesId": "jigglypuff",
+  "startingMoves": [
+    "sing",
+    "defense_curl"
+  ],
+  "relearnMoves": [
+    "disarming_voice"
+  ],
+  "levelUp": [
+    {
+      "moveId": "disarming_voice",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "body_slam",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "hyper_voice",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "draining_kiss",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "perish_song",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "celebrate",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "transfer": [
+    {
+      "moveId": "toxic",
+      "versionGroup": "scarlet-violet"
+    }
+  ]
+}

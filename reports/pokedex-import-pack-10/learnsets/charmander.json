@@ -1,0 +1,58 @@
+{
+  "speciesId": "charmander",
+  "startingMoves": [
+    "scratch",
+    "growl"
+  ],
+  "relearnMoves": [
+    "ember"
+  ],
+  "levelUp": [
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_fang",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "dragon_rush",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "celebrate",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "transfer": [
+    {
+      "moveId": "double_edge",
+      "versionGroup": "scarlet-violet"
+    }
+  ]
+}

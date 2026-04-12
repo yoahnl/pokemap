@@ -1,0 +1,58 @@
+{
+  "speciesId": "bulbasaur",
+  "startingMoves": [
+    "tackle",
+    "growl"
+  ],
+  "relearnMoves": [
+    "vine_whip"
+  ],
+  "levelUp": [
+    {
+      "moveId": "vine_whip",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "seed_bomb",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "petal_dance",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "celebrate",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "transfer": [
+    {
+      "moveId": "toxic",
+      "versionGroup": "scarlet-violet"
+    }
+  ]
+}

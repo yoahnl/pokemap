@@ -1,0 +1,23 @@
+{
+  "speciesId": "riolu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/riolu/front.png",
+      "backStatic": "assets/pokemon/sprites/riolu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/riolu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/riolu/back_shiny.png",
+      "icon": "assets/pokemon/sprites/riolu/icon.png",
+      "party": "assets/pokemon/sprites/riolu/party.png",
+      "overworld": "assets/pokemon/sprites/riolu/overworld.png",
+      "portrait": "assets/pokemon/portraits/riolu.png",
+      "cry": "assets/pokemon/cries/riolu.ogg",
+      "animations": {
+        "idle": {
+          "sheet": "assets/pokemon/sprites/riolu/battle_sheet.png",
+          "animationId": "idle"
+        }
+      }
+    }
+  }
+}

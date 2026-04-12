@@ -1,0 +1,23 @@
+{
+  "speciesId": "pikachu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pikachu/front.png",
+      "backStatic": "assets/pokemon/sprites/pikachu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pikachu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pikachu/back_shiny.png",
+      "icon": "assets/pokemon/sprites/pikachu/icon.png",
+      "party": "assets/pokemon/sprites/pikachu/party.png",
+      "overworld": "assets/pokemon/sprites/pikachu/overworld.png",
+      "portrait": "assets/pokemon/portraits/pikachu.png",
+      "cry": "assets/pokemon/cries/pikachu.ogg",
+      "animations": {
+        "battleFront": {
+          "sheet": "assets/pokemon/sprites/pikachu/battle_front_sheet.png",
+          "animationId": "battle_front"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "speciesId": "charmander",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "charmeleon",
+      "method": "level_up",
+      "minLevel": 16,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "fr": "Évolue au niveau 16",
+        "en": "Evolves at level 16"
+      }
+    }
+  ]
+}

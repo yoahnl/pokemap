@@ -1,0 +1,14 @@
+{
+  "speciesId": "riolu",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lucario",
+      "method": "friendship_day",
+      "conditionText": {
+        "fr": "Amitie elevee le jour",
+        "en": "High friendship during the day"
+      }
+    }
+  ]
+}

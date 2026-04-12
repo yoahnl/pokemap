@@ -1,0 +1,79 @@
+{
+  "id": "charmander",
+  "slug": "charmander",
+  "nationalDex": 4,
+  "names": {
+    "fr": "Salameche",
+    "en": "Charmander"
+  },
+  "speciesName": {
+    "fr": "Pokemon Lezard",
+    "en": "Lizard Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 39,
+    "atk": 52,
+    "def": 43,
+    "spa": 60,
+    "spd": 50,
+    "spe": 65,
+    "bst": 309
+  },
+  "abilities": {
+    "primary": "blaze",
+    "hidden": "solar_power"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "charmander",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "charmander",
+    "evolution": "charmander",
+    "media": "charmander"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.5,
+    "color": "red",
+    "flavorText": "La flamme de sa queue indique son humeur et sa vitalite."
+  },
+  "gameplayFlags": {
+    "starterEligible": true,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "speciesId": "eevee",
+  "startingMoves": [
+    "tackle",
+    "tail_whip"
+  ],
+  "relearnMoves": [
+    "quick_attack"
+  ],
+  "levelUp": [
+    {
+      "moveId": "quick_attack",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bite",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "hyper_voice",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "wish",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "celebrate",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "transfer": [
+    {
+      "moveId": "double_edge",
+      "versionGroup": "scarlet-violet"
+    }
+  ]
+}

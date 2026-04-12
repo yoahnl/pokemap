@@ -87,6 +87,26 @@ void main() {
     });
 
     test(
+        'preview hides unreadable companions instead of reporting them as found',
+        () async {
+      final sourcePaths = await _writeValidBundle(tempImportRoot);
+      final blockedWorkspace = _UnreadableImportWorkspace(
+        tempProjectRoot.path,
+        blockedPaths: <String>{sourcePaths.learnset.path},
+      );
+
+      final preview = await useCase.preview(
+        blockedWorkspace,
+        absoluteSpeciesSourcePath: sourcePaths.species.path,
+      );
+
+      expect(preview.learnset.status, PokemonImportPreviewStatus.missing);
+      expect(preview.learnset.absoluteSourcePath, isNull);
+      expect(preview.evolution.status, PokemonImportPreviewStatus.found);
+      expect(preview.media.status, PokemonImportPreviewStatus.found);
+    });
+
+    test(
         'execute imports species and detected companions without touching project.json',
         () async {
       final sourcePaths = await _writeValidBundle(tempImportRoot);
@@ -174,6 +194,23 @@ class _BundleSourcePaths {
   final File learnset;
   final File evolution;
   final File media;
+}
+
+class _UnreadableImportWorkspace extends ProjectFileSystem {
+  _UnreadableImportWorkspace(
+    super.projectRoot, {
+    required Set<String> blockedPaths,
+  }) : _blockedPaths = blockedPaths.map((path) => p.normalize(path)).toSet();
+
+  final Set<String> _blockedPaths;
+
+  @override
+  Future<String> readTextFile(String path) {
+    if (_blockedPaths.contains(p.normalize(path))) {
+      throw const FileSystemException('Access denied');
+    }
+    return super.readTextFile(path);
+  }
 }
 
 Future<_BundleSourcePaths> _writeValidBundle(Directory root) async {

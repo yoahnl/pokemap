@@ -1,0 +1,80 @@
+{
+  "id": "jigglypuff",
+  "slug": "jigglypuff",
+  "nationalDex": 39,
+  "names": {
+    "fr": "Rondoudou",
+    "en": "Jigglypuff"
+  },
+  "speciesName": {
+    "fr": "Pokemon Bouboule",
+    "en": "Balloon Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 115,
+    "atk": 45,
+    "def": 20,
+    "spa": 45,
+    "spd": 25,
+    "spe": 20,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "competitive",
+    "hidden": "friend_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 10
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 95,
+    "catchRate": 170,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "jigglypuff",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": false,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "jigglypuff",
+    "evolution": "jigglypuff",
+    "media": "jigglypuff"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 5.5,
+    "color": "pink",
+    "flavorText": "Sa chanson endort ses adversaires avant qu il ne dessine sur eux."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

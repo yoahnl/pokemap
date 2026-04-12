@@ -1,0 +1,15 @@
+{
+  "speciesId": "squirtle",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "wartortle",
+      "method": "level_up",
+      "minLevel": 16,
+      "conditionText": {
+        "fr": "Evolue au niveau 16",
+        "en": "Evolves at level 16"
+      }
+    }
+  ]
+}

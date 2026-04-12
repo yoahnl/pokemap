@@ -1,0 +1,82 @@
+{
+  "id": "machop",
+  "slug": "machop",
+  "nationalDex": 66,
+  "names": {
+    "fr": "Machoc",
+    "en": "Machop"
+  },
+  "speciesName": {
+    "fr": "Pokémon Colosse",
+    "en": "Superpower Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 80,
+    "def": 50,
+    "spa": 35,
+    "spd": 35,
+    "spe": 35,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": "no_guard",
+    "hidden": "steadfast"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "machop",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "machop",
+    "evolution": "machop",
+    "media": "machop"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 19.5,
+    "color": "gray",
+    "flavorText": "Machoc s’entraîne sans relâche pour devenir plus fort chaque jour."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual_test_pack",
+    "seedVersion": 1
+  }
+}

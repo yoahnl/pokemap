@@ -1,0 +1,79 @@
+{
+  "id": "dratini",
+  "slug": "dratini",
+  "nationalDex": 147,
+  "names": {
+    "fr": "Minidraco",
+    "en": "Dratini"
+  },
+  "speciesName": {
+    "fr": "Pokemon Dragon",
+    "en": "Dragon Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 41,
+    "atk": 64,
+    "def": 45,
+    "spa": 50,
+    "spd": 50,
+    "spe": 50,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "hidden": "marvel_scale"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.5,
+      "female": 0.5
+    },
+    "eggGroups": [
+      "water_1",
+      "dragon"
+    ],
+    "hatchCycles": 40
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "dratini",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": false,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "dratini",
+    "evolution": "dratini",
+    "media": "dratini"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 3.3,
+    "color": "blue",
+    "flavorText": "Longtemps considere comme mythique, il mue souvent."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

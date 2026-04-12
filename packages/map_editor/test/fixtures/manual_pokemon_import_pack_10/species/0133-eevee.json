@@ -1,0 +1,79 @@
+{
+  "id": "eevee",
+  "slug": "eevee",
+  "nationalDex": 133,
+  "names": {
+    "fr": "Evoli",
+    "en": "Eevee"
+  },
+  "speciesName": {
+    "fr": "Pokemon Evolution",
+    "en": "Evolution Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 55,
+    "def": 50,
+    "spa": 45,
+    "spd": 65,
+    "spe": 55,
+    "bst": 325
+  },
+  "abilities": {
+    "primary": "run_away",
+    "secondary": "adaptability",
+    "hidden": "anticipation"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 35
+  },
+  "progression": {
+    "growthRateId": "medium_fast",
+    "baseExp": 65,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "eevee",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "eevee",
+    "evolution": "eevee",
+    "media": "eevee"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 6.5,
+    "color": "brown",
+    "flavorText": "Sa genetique instable lui permet d evoluer de multiples facons."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

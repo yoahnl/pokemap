@@ -1,0 +1,15 @@
+{
+  "speciesId": "jigglypuff",
+  "preEvolution": "igglybuff",
+  "evolutions": [
+    {
+      "targetSpeciesId": "wigglytuff",
+      "method": "use_item",
+      "itemId": "moon_stone",
+      "conditionText": {
+        "fr": "Utiliser une Pierre Lune",
+        "en": "Use a Moon Stone"
+      }
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "speciesId": "meowth",
+  "startingMoves": [
+    "scratch",
+    "growl"
+  ],
+  "relearnMoves": [
+    "bite"
+  ],
+  "levelUp": [
+    {
+      "moveId": "bite",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "scarlet_violet"
+    },
+    {
+      "moveId": "slash",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "scarlet_violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "scarlet_violet"
+    }
+  ],
+  "tutor": [],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

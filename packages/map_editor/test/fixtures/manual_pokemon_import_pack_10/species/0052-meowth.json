@@ -1,0 +1,79 @@
+{
+  "id": "meowth",
+  "slug": "meowth",
+  "nationalDex": 52,
+  "names": {
+    "fr": "Miaouss",
+    "en": "Meowth"
+  },
+  "speciesName": {
+    "fr": "Pokemon Chadeville",
+    "en": "Scratch Cat Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 45,
+    "def": 35,
+    "spa": 40,
+    "spd": 40,
+    "spe": 90,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "technician",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.5,
+      "female": 0.5
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_fast",
+    "baseExp": 58,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "meowth",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "meowth",
+    "evolution": "meowth",
+    "media": "meowth"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.2,
+    "color": "yellow",
+    "flavorText": "Il aime les objets brillants et les garde jalousement."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

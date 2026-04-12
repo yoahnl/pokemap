@@ -1,0 +1,79 @@
+{
+  "id": "pikachu",
+  "slug": "pikachu",
+  "nationalDex": 25,
+  "names": {
+    "fr": "Pikachu",
+    "en": "Pikachu"
+  },
+  "speciesName": {
+    "fr": "Pokemon Souris",
+    "en": "Mouse Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 55,
+    "def": 40,
+    "spa": 50,
+    "spd": 50,
+    "spe": 90,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "static",
+    "hidden": "lightning_rod"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.5,
+      "female": 0.5
+    },
+    "eggGroups": [
+      "field",
+      "fairy"
+    ],
+    "hatchCycles": 10
+  },
+  "progression": {
+    "growthRateId": "medium_fast",
+    "baseExp": 112,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "pikachu",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "pikachu",
+    "evolution": "pikachu",
+    "media": "pikachu"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.0,
+    "color": "yellow",
+    "flavorText": "Il emmagasine de l electricite dans les poches de ses joues."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

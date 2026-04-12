@@ -1,0 +1,15 @@
+{
+  "speciesId": "gastly",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "haunter",
+      "method": "level_up",
+      "minLevel": 25,
+      "conditionText": {
+        "fr": "Evolue au niveau 25",
+        "en": "Evolves at level 25"
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "speciesId": "gastly",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gastly/front.png",
+      "backStatic": "assets/pokemon/sprites/gastly/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gastly/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gastly/back_shiny.png",
+      "icon": "assets/pokemon/sprites/gastly/icon.png",
+      "party": "assets/pokemon/sprites/gastly/party.png",
+      "overworld": "assets/pokemon/sprites/gastly/overworld.png",
+      "portrait": "assets/pokemon/portraits/gastly.png",
+      "cry": "assets/pokemon/cries/gastly.ogg",
+      "animations": {
+        "idle": {
+          "sheet": "assets/pokemon/sprites/gastly/battle_sheet.png",
+          "animationId": "idle"
+        }
+      }
+    }
+  }
+}

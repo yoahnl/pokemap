@@ -2399,7 +2399,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byKey(const Key('pokedex-empty-state')), findsOneWidget);
-    expect(find.textContaining('Aucune espèce importée'), findsOneWidget);
+    expect(find.textContaining('Pokédex est encore vide'), findsOneWidget);
   });
 
   testWidgets('shows an error state when species loading fails',

@@ -1,0 +1,17 @@
+{
+  "speciesId": "pikachu",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "raichu",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder_stone",
+      "requiredMoveId": null,
+      "conditionText": {
+        "fr": "Évolue avec une Pierre Foudre",
+        "en": "Evolves with a Thunder Stone"
+      }
+    }
+  ]
+}

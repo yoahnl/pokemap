@@ -1,0 +1,58 @@
+{
+  "speciesId": "pikachu",
+  "startingMoves": [
+    "thundershock",
+    "tail_whip"
+  ],
+  "relearnMoves": [
+    "quick_attack"
+  ],
+  "levelUp": [
+    {
+      "moveId": "quick_attack",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "electro_ball",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "electroweb",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "wish",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "celebrate",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "transfer": [
+    {
+      "moveId": "volt_tackle",
+      "versionGroup": "scarlet-violet"
+    }
+  ]
+}

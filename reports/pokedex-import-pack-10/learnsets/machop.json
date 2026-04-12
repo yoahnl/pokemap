@@ -1,0 +1,58 @@
+{
+  "speciesId": "machop",
+  "startingMoves": [
+    "karate_chop",
+    "leer"
+  ],
+  "relearnMoves": [
+    "low_kick"
+  ],
+  "levelUp": [
+    {
+      "moveId": "low_kick",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "revenge",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "brick_break",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "dual_chop",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "bullet_punch",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "celebrate",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "transfer": [
+    {
+      "moveId": "strength",
+      "versionGroup": "scarlet-violet"
+    }
+  ]
+}

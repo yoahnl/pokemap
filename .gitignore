@@ -19,3 +19,5 @@
 .dart_tool/
 build/
 pubspec.lock
+/packages/generate_project_overview.sh
+/packages/project_overview.txt

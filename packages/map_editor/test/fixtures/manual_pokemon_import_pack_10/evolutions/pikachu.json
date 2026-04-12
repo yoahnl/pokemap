@@ -1,0 +1,15 @@
+{
+  "speciesId": "pikachu",
+  "preEvolution": "pichu",
+  "evolutions": [
+    {
+      "targetSpeciesId": "raichu",
+      "method": "use_item",
+      "itemId": "thunder_stone",
+      "conditionText": {
+        "fr": "Utiliser une Pierre Foudre",
+        "en": "Use a Thunder Stone"
+      }
+    }
+  ]
+}

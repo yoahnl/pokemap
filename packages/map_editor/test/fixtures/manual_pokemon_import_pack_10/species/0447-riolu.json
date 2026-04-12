@@ -1,0 +1,80 @@
+{
+  "id": "riolu",
+  "slug": "riolu",
+  "nationalDex": 447,
+  "names": {
+    "fr": "Riolu",
+    "en": "Riolu"
+  },
+  "speciesName": {
+    "fr": "Pokemon Emanation",
+    "en": "Emanation Pokemon"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 70,
+    "def": 40,
+    "spa": 35,
+    "spd": 40,
+    "spe": 60,
+    "bst": 285
+  },
+  "abilities": {
+    "primary": "steadfast",
+    "secondary": "inner_focus",
+    "hidden": "prankster"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "undiscovered"
+    ],
+    "hatchCycles": 25
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 57,
+    "catchRate": 75,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "riolu",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "riolu",
+    "evolution": "riolu",
+    "media": "riolu"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 20.2,
+    "color": "blue",
+    "flavorText": "Il percoit les emotions humaines grace aux ondes de son aura."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

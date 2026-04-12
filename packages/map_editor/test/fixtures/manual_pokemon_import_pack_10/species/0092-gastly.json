@@ -1,0 +1,78 @@
+{
+  "id": "gastly",
+  "slug": "gastly",
+  "nationalDex": 92,
+  "names": {
+    "fr": "Fantominus",
+    "en": "Gastly"
+  },
+  "speciesName": {
+    "fr": "Pokemon Gaz",
+    "en": "Gas Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ghost",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 30,
+    "atk": 35,
+    "def": 30,
+    "spa": 100,
+    "spd": 35,
+    "spe": 80,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "levitate"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.5,
+      "female": 0.5
+    },
+    "eggGroups": [
+      "amorphous"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "gastly",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": false,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "gastly",
+    "evolution": "gastly",
+    "media": "gastly"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 0.1,
+    "color": "purple",
+    "flavorText": "Son corps est presque entierement compose de gaz toxiques."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual-test-pack",
+    "seedVersion": 1
+  }
+}

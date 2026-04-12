@@ -26,6 +26,7 @@ final class MacOsFileAccessBridge {
   private static let channelName = "map_editor/file_access"
   private static let bookmarkKey = "map_editor.last_project_bookmark"
   private static var activeScopedURL: URL?
+  private static var activeImportScopedURL: URL?
 
   static func install(on controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
@@ -56,6 +57,25 @@ final class MacOsFileAccessBridge {
 
       case "clearRememberedProjectPath":
         clearRememberedProjectPath(result: result)
+
+      case "beginImportBundleAccess":
+        guard
+          let args = call.arguments as? [String: Any],
+          let selectedPath = args["selectedPath"] as? String
+        else {
+          result(
+            FlutterError(
+              code: "invalid_args",
+              message: "Expected {selectedPath: String}",
+              details: nil
+            )
+          )
+          return
+        }
+        beginImportBundleAccess(selectedPath: selectedPath, result: result)
+
+      case "endImportBundleAccess":
+        endImportBundleAccess(result: result)
 
       default:
         result(FlutterMethodNotImplemented)
@@ -137,6 +157,42 @@ final class MacOsFileAccessBridge {
     if let previousURL = activeScopedURL {
       previousURL.stopAccessingSecurityScopedResource()
       activeScopedURL = nil
+    }
+    result(true)
+  }
+
+  private static func beginImportBundleAccess(
+    selectedPath: String,
+    result: @escaping FlutterResult
+  ) {
+    let selectedURL = URL(fileURLWithPath: selectedPath)
+    let selectedDirectoryURL = selectedURL.deletingLastPathComponent()
+    let accessURL: URL
+
+    if selectedDirectoryURL.lastPathComponent.lowercased() == "species" {
+      accessURL = selectedDirectoryURL.deletingLastPathComponent()
+    } else {
+      accessURL = selectedDirectoryURL
+    }
+
+    if let previousURL = activeImportScopedURL, previousURL != accessURL {
+      previousURL.stopAccessingSecurityScopedResource()
+      activeImportScopedURL = nil
+    }
+
+    guard accessURL.startAccessingSecurityScopedResource() else {
+      result(false)
+      return
+    }
+
+    activeImportScopedURL = accessURL
+    result(true)
+  }
+
+  private static func endImportBundleAccess(result: @escaping FlutterResult) {
+    if let previousURL = activeImportScopedURL {
+      previousURL.stopAccessingSecurityScopedResource()
+      activeImportScopedURL = nil
     }
     result(true)
   }

@@ -1,0 +1,23 @@
+{
+  "speciesId": "machop",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/machop/front.png",
+      "backStatic": "assets/pokemon/sprites/machop/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/machop/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/machop/back_shiny.png",
+      "icon": "assets/pokemon/sprites/machop/icon.png",
+      "party": "assets/pokemon/sprites/machop/party.png",
+      "overworld": "assets/pokemon/sprites/machop/overworld.png",
+      "portrait": "assets/pokemon/portraits/machop.png",
+      "cry": "assets/pokemon/cries/machop.ogg",
+      "animations": {
+        "battleFront": {
+          "sheet": "assets/pokemon/sprites/machop/battle_front_sheet.png",
+          "animationId": "battle_front"
+        }
+      }
+    }
+  }
+}

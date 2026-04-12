@@ -1,0 +1,23 @@
+{
+  "speciesId": "eevee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/eevee/front.png",
+      "backStatic": "assets/pokemon/sprites/eevee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/eevee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/eevee/back_shiny.png",
+      "icon": "assets/pokemon/sprites/eevee/icon.png",
+      "party": "assets/pokemon/sprites/eevee/party.png",
+      "overworld": "assets/pokemon/sprites/eevee/overworld.png",
+      "portrait": "assets/pokemon/portraits/eevee.png",
+      "cry": "assets/pokemon/cries/eevee.ogg",
+      "animations": {
+        "battleFront": {
+          "sheet": "assets/pokemon/sprites/eevee/battle_front_sheet.png",
+          "animationId": "battle_front"
+        }
+      }
+    }
+  }
+}

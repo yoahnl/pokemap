@@ -1,0 +1,15 @@
+{
+  "speciesId": "meowth",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "persian",
+      "method": "level_up",
+      "minLevel": 28,
+      "conditionText": {
+        "fr": "Evolue au niveau 28",
+        "en": "Evolves at level 28"
+      }
+    }
+  ]
+}

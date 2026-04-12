@@ -1,0 +1,81 @@
+{
+  "id": "charmander",
+  "slug": "charmander",
+  "nationalDex": 4,
+  "names": {
+    "fr": "Salamèche",
+    "en": "Charmander"
+  },
+  "speciesName": {
+    "fr": "Pokémon Lézard",
+    "en": "Lizard Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 39,
+    "atk": 52,
+    "def": 43,
+    "spa": 60,
+    "spd": 50,
+    "spe": 65,
+    "bst": 309
+  },
+  "abilities": {
+    "primary": "blaze",
+    "hidden": "solar_power"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "charmander",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "charmander",
+    "evolution": "charmander",
+    "media": "charmander"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.5,
+    "color": "red",
+    "flavorText": "La flamme au bout de sa queue révèle l’état de sa vitalité."
+  },
+  "gameplayFlags": {
+    "starterEligible": true,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual_test_pack",
+    "seedVersion": 1
+  }
+}

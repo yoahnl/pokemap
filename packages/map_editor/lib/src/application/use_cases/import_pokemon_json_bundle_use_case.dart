@@ -250,7 +250,22 @@ class ImportPokemonJsonBundleUseCase {
     if (!await workspace.fileExists(candidatePath)) {
       return null;
     }
+    if (!await _isReadableCompanionFile(workspace, candidatePath)) {
+      return null;
+    }
     return candidatePath;
+  }
+
+  Future<bool> _isReadableCompanionFile(
+    ProjectWorkspace workspace,
+    String candidatePath,
+  ) async {
+    try {
+      await workspace.readTextFile(candidatePath);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   String _resolvePrimaryName(PokemonSpeciesFile species) {

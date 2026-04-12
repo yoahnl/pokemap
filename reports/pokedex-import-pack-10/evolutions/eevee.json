@@ -1,0 +1,17 @@
+{
+  "speciesId": "eevee",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "vaporeon",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "water_stone",
+      "requiredMoveId": null,
+      "conditionText": {
+        "fr": "Évolue avec une Pierre Eau",
+        "en": "Evolves with a Water Stone"
+      }
+    }
+  ]
+}

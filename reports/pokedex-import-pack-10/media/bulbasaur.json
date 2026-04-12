@@ -1,0 +1,23 @@
+{
+  "speciesId": "bulbasaur",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bulbasaur/front.png",
+      "backStatic": "assets/pokemon/sprites/bulbasaur/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bulbasaur/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bulbasaur/back_shiny.png",
+      "icon": "assets/pokemon/sprites/bulbasaur/icon.png",
+      "party": "assets/pokemon/sprites/bulbasaur/party.png",
+      "overworld": "assets/pokemon/sprites/bulbasaur/overworld.png",
+      "portrait": "assets/pokemon/portraits/bulbasaur.png",
+      "cry": "assets/pokemon/cries/bulbasaur.ogg",
+      "animations": {
+        "battleFront": {
+          "sheet": "assets/pokemon/sprites/bulbasaur/battle_front_sheet.png",
+          "animationId": "battle_front"
+        }
+      }
+    }
+  }
+}

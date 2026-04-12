@@ -1,0 +1,15 @@
+{
+  "speciesId": "dratini",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dragonair",
+      "method": "level_up",
+      "minLevel": 30,
+      "conditionText": {
+        "fr": "Evolue au niveau 30",
+        "en": "Evolves at level 30"
+      }
+    }
+  ]
+}

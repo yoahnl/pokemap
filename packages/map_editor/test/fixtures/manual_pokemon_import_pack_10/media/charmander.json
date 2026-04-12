@@ -1,0 +1,23 @@
+{
+  "speciesId": "charmander",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/charmander/front.png",
+      "backStatic": "assets/pokemon/sprites/charmander/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/charmander/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/charmander/back_shiny.png",
+      "icon": "assets/pokemon/sprites/charmander/icon.png",
+      "party": "assets/pokemon/sprites/charmander/party.png",
+      "overworld": "assets/pokemon/sprites/charmander/overworld.png",
+      "portrait": "assets/pokemon/portraits/charmander.png",
+      "cry": "assets/pokemon/cries/charmander.ogg",
+      "animations": {
+        "idle": {
+          "sheet": "assets/pokemon/sprites/charmander/battle_sheet.png",
+          "animationId": "idle"
+        }
+      }
+    }
+  }
+}

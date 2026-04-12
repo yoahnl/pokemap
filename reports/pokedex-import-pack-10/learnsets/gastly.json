@@ -1,0 +1,58 @@
+{
+  "speciesId": "gastly",
+  "startingMoves": [
+    "lick",
+    "confuse_ray"
+  ],
+  "relearnMoves": [
+    "night_shade"
+  ],
+  "levelUp": [
+    {
+      "moveId": "night_shade",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hex",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "perish_song",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "celebrate",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "transfer": [
+    {
+      "moveId": "toxic",
+      "versionGroup": "scarlet-violet"
+    }
+  ]
+}

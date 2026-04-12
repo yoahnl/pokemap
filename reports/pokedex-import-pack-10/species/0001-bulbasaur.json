@@ -1,0 +1,82 @@
+{
+  "id": "bulbasaur",
+  "slug": "bulbasaur",
+  "nationalDex": 1,
+  "names": {
+    "fr": "Bulbizarre",
+    "en": "Bulbasaur"
+  },
+  "speciesName": {
+    "fr": "Pokémon Graine",
+    "en": "Seed Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 49,
+    "def": 49,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45,
+    "bst": 318
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "hidden": "chlorophyll"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "bulbasaur",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bulbasaur",
+    "evolution": "bulbasaur",
+    "media": "bulbasaur"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 6.9,
+    "color": "green",
+    "flavorText": "Bulbizarre transporte une graine sur son dos depuis la naissance."
+  },
+  "gameplayFlags": {
+    "starterEligible": true,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual_test_pack",
+    "seedVersion": 1
+  }
+}

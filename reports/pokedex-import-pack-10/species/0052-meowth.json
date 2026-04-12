@@ -1,0 +1,82 @@
+{
+  "id": "meowth",
+  "slug": "meowth",
+  "nationalDex": 52,
+  "names": {
+    "fr": "Miaouss",
+    "en": "Meowth"
+  },
+  "speciesName": {
+    "fr": "Pokémon Chafouin",
+    "en": "Scratch Cat Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 45,
+    "def": 35,
+    "spa": 40,
+    "spd": 40,
+    "spe": 90,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "technician",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "meowth",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "meowth",
+    "evolution": "meowth",
+    "media": "meowth"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.2,
+    "color": "yellow",
+    "flavorText": "Miaouss adore les objets brillants et les pièces de monnaie."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual_test_pack",
+    "seedVersion": 1
+  }
+}

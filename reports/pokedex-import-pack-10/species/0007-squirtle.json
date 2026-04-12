@@ -1,0 +1,81 @@
+{
+  "id": "squirtle",
+  "slug": "squirtle",
+  "nationalDex": 7,
+  "names": {
+    "fr": "Carapuce",
+    "en": "Squirtle"
+  },
+  "speciesName": {
+    "fr": "Pokémon Minitortue",
+    "en": "Tiny Turtle Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 44,
+    "atk": 48,
+    "def": 65,
+    "spa": 50,
+    "spd": 64,
+    "spe": 43,
+    "bst": 314
+  },
+  "abilities": {
+    "primary": "torrent",
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "squirtle",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "squirtle",
+    "evolution": "squirtle",
+    "media": "squirtle"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.0,
+    "color": "blue",
+    "flavorText": "Carapuce se protège avec sa carapace puis riposte avec de l’eau."
+  },
+  "gameplayFlags": {
+    "starterEligible": true,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual_test_pack",
+    "seedVersion": 1
+  }
+}

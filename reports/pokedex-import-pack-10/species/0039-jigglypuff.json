@@ -1,0 +1,83 @@
+{
+  "id": "jigglypuff",
+  "slug": "jigglypuff",
+  "nationalDex": 39,
+  "names": {
+    "fr": "Rondoudou",
+    "en": "Jigglypuff"
+  },
+  "speciesName": {
+    "fr": "Pokémon Bouboule",
+    "en": "Balloon Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 115,
+    "atk": 45,
+    "def": 20,
+    "spa": 45,
+    "spd": 25,
+    "spe": 20,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "competitive",
+    "hidden": "friend_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "jigglypuff",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "jigglypuff",
+    "evolution": "jigglypuff",
+    "media": "jigglypuff"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 5.5,
+    "color": "pink",
+    "flavorText": "Son chant plonge ceux qui l’écoutent dans un profond sommeil."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual_test_pack",
+    "seedVersion": 1
+  }
+}

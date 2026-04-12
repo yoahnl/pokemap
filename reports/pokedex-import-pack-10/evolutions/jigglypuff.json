@@ -1,0 +1,17 @@
+{
+  "speciesId": "jigglypuff",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "wigglytuff",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "moon_stone",
+      "requiredMoveId": null,
+      "conditionText": {
+        "fr": "Évolue avec une Pierre Lune",
+        "en": "Evolves with a Moon Stone"
+      }
+    }
+  ]
+}

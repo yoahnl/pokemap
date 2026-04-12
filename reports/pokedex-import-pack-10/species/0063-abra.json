@@ -1,0 +1,82 @@
+{
+  "id": "abra",
+  "slug": "abra",
+  "nationalDex": 63,
+  "names": {
+    "fr": "Abra",
+    "en": "Abra"
+  },
+  "speciesName": {
+    "fr": "Pokémon Psi",
+    "en": "Psi Pokemon"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 25,
+    "atk": 20,
+    "def": 15,
+    "spa": 105,
+    "spd": 55,
+    "spe": 90,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "synchronize",
+    "secondary": "inner_focus",
+    "hidden": "magic_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "abra",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "abra",
+    "evolution": "abra",
+    "media": "abra"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 19.5,
+    "color": "brown",
+    "flavorText": "Abra dort presque en permanence tout en gardant ses pouvoirs actifs."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "manual_test_pack",
+    "seedVersion": 1
+  }
+}

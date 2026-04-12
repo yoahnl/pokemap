@@ -1,0 +1,15 @@
+{
+  "speciesId": "bulbasaur",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ivysaur",
+      "method": "level_up",
+      "minLevel": 16,
+      "conditionText": {
+        "fr": "Evolue au niveau 16",
+        "en": "Evolves at level 16"
+      }
+    }
+  ]
+}

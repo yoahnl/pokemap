@@ -1,0 +1,33 @@
+{
+  "speciesId": "eevee",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "vaporeon",
+      "method": "use_item",
+      "itemId": "water_stone",
+      "conditionText": {
+        "fr": "Utiliser une Pierre Eau",
+        "en": "Use a Water Stone"
+      }
+    },
+    {
+      "targetSpeciesId": "jolteon",
+      "method": "use_item",
+      "itemId": "thunder_stone",
+      "conditionText": {
+        "fr": "Utiliser une Pierre Foudre",
+        "en": "Use a Thunder Stone"
+      }
+    },
+    {
+      "targetSpeciesId": "flareon",
+      "method": "use_item",
+      "itemId": "fire_stone",
+      "conditionText": {
+        "fr": "Utiliser une Pierre Feu",
+        "en": "Use a Fire Stone"
+      }
+    }
+  ]
+}
