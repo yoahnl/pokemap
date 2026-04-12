@@ -98,7 +98,7 @@ Conclusion :
 
 ### 3.2.1. Avancement réel de la phase R1 déjà livré dans le worktree
 
-Les six premiers lots de la phase R1 ont maintenant été livrés dans le
+Les sept premiers lots de la phase R1 ont maintenant été livrés dans le
 worktree courant. Ils ne sont plus à considérer comme du travail à démarrer,
 mais comme du socle acquis à prolonger proprement.
 
@@ -301,6 +301,49 @@ Artefact de preuve ajouté :
 
 - `reports/phase-r1-lot-6-progressive-catalog-search-report.md`
 
+#### Lot 7 — Trainers : surface minimale vraiment exploitable
+
+Ce lot existe maintenant dans la surface trainers existante, sans réécrire le
+CRUD trainer déjà présent ni introduire de système parallèle.
+
+Ce qui est désormais livré :
+
+- création / édition / suppression trainer depuis l'UI sans passer par le JSON
+  ;
+- édition d'une team trainer réellement exploitable ;
+- ajout et édition de Pokémon de team avec les champs déjà présents côté métier
+  :
+  - species ;
+  - level ;
+  - moves ;
+  - held item ;
+  - form ;
+  - gender ;
+  - shiny ;
+- assistance locale branchée là où elle existe honnêtement :
+  - species via l'index Pokédex local ;
+  - moves via le catalogue local `moves` ;
+  - items via le catalogue local `items` quand il est disponible ;
+  - forms via les données locales de l'espèce sélectionnée ;
+- conservation explicite de la saisie brute quand une source locale n'existe
+  pas ou n'est pas prête ;
+- validation inline plus lisible avant save ;
+- sauvegarde stable via les use cases trainers existants.
+
+Micro-vérification lot 6 intégrée dans ce lot :
+
+- le socle `ProgressiveLocalCatalogLookupService<TEntry>` a été conservé tel
+  quel ;
+- aucun renommage cosmétique n'a été fait ;
+- la réutilisation est restée locale et progressive via :
+  - `PokemonSpeciesLookupService` ;
+  - `PokemonItemsCatalogLookupService` ;
+  - `PokemonMovesCatalogLookupService` existant.
+
+Artefact de preuve ajouté :
+
+- `reports/phase-r1-lot-7-trainers-minimal-authoring-report.md`
+
 ### 3.3. Catalogues locaux et moves catalog
 
 Le repo n'est plus dans un état "catalogues à inventer".
@@ -346,7 +389,9 @@ Le repo contient déjà :
 
 Conclusion :
 
-- on améliore ces surfaces ;
+- la surface trainers a maintenant franchi le seuil "vraiment exploitable" pour
+  un auteur ;
+- la surface encounters reste encore à hisser au même niveau ;
 - on ne crée pas un second système de trainers ou de rencontres.
 
 ### 3.5. Runtime et battle skeleton
@@ -411,7 +456,8 @@ dispose désormais d'un premier contrat progressif de recherche locale.
 
 Ce qui reste encore partiel :
 
-- les équipes trainers doivent ensuite bénéficier du même socle moves-first ;
+- les trainers bénéficient maintenant d'une première exploitation réelle du
+  socle progressif pour species / moves / items ;
 - les autres écrans n'en profitent pas encore suffisamment ;
 - moves reste la priorité avant toute généralisation plus large ;
 - abilities / items / types / egg groups / growth rates sont encore à traiter
@@ -419,11 +465,16 @@ Ce qui reste encore partiel :
 
 ### 4.3. Trainers et encounters
 
-Le socle est là, mais l'expérience auteur n'est pas encore au bon niveau :
+Le socle n'est plus au même stade des deux côtés :
 
-- trop de friction pour authorer une vraie team trainer proprement ;
-- encore trop de surfaces peu assistées ;
-- les encounter tables ne sont pas encore au niveau d'un vrai workflow "fangame authoring".
+- trainers :
+  - la surface minimale exploitable est maintenant livrée ;
+  - un auteur peut créer un trainer complet sans JSON ;
+  - il reste du confort plus tardif, mais le seuil produit du lot 7 est atteint
+    ;
+- encounters :
+  - la surface reste encore trop fragile ;
+  - c'est maintenant le prochain manque le plus visible côté authoring combat.
 
 ### 4.4. Bridge runtime -> battle
 
@@ -449,7 +500,7 @@ Voici les grands blocs qui restent réellement à construire, en distinguant bie
 
 - maintenance Pokédex bulk plus riche
 - extension progressive du socle moves-first aux surfaces suivantes utiles
-- edition trainers/encounters suffisamment propre
+- edition encounter tables suffisamment propre
 - bridge runtime -> battle réel
 - combat sauvage réel
 - seen/caught persistant
@@ -521,6 +572,10 @@ Avancement réel à date :
   - learnset editor moves-first réellement assisté ;
 - lot 6 livré :
   - contrat progressif de recherche catalogue locale branché sur `moves`.
+- lot 7 livré :
+  - trainers branchés sur ce socle de manière locale et non parallèle pour
+    species / moves / items / forms quand ces données sont réellement
+    disponibles.
 
 ### Phase C — Authoring trainers / encounters convergent
 
@@ -534,6 +589,13 @@ Contenu :
 - encounter tables minimales mais propres ;
 - validation inline ;
 - preview auteur simple.
+
+Avancement réel à date :
+
+- lot 7 livré :
+  - la partie trainers du milestone est atteinte ;
+- lot 8 reste à faire :
+  - encounter tables minimales mais propres.
 
 ### Phase D — Bridge runtime -> battle réel
 
@@ -651,7 +713,10 @@ Statut actuel :
 - lot 6 livré :
   - le socle de recherche catalogue locale est maintenant prêt pour être
     réutilisé ;
-- trainers et encounter tables restent encore à faire converger.
+- lot 7 livré :
+  - trainers authorables sans JSON manuel ;
+  - édition de team assistée là où les données locales existent ;
+- encounter tables restent encore à faire converger.
 
 Gate de sortie :
 
@@ -964,7 +1029,7 @@ Livré concrètement :
 ### Lot 7 — Trainers : surface minimale vraiment exploitable
 
 Priorité : `must-have`
-Statut : `prochain lot`
+Statut : `livré`
 
 But :
 
@@ -979,9 +1044,28 @@ Done :
 - sauvegarde stable ;
 - un auteur peut créer un trainer complet sans JSON.
 
+Livré concrètement :
+
+- surface `TrainerLibraryPanel` enrichie sans second éditeur ;
+- refs assistées pour :
+  - species ;
+  - moves ;
+  - items quand le catalogue local existe ;
+  - forms via les données locales d'espèce ;
+- champs bruts conservés honnêtement quand une aide locale n'existe pas encore
+  ;
+- validation inline lisible avant save ;
+- use cases trainers étendus minimalement pour normaliser tags / moves / champs
+  optionnels ;
+- `EditorNotifier` mis à jour pour garder les formulaires ouverts seulement en
+  cas d'échec et fermer proprement sur succès ;
+- tests applicatifs, widget et wiring dédiés ;
+- report de lot présent dans `reports/`.
+
 ### Lot 8 — Encounter tables : surface minimale vraiment exploitable
 
 Priorité : `must-have`
+Statut : `prochain lot`
 
 But :
 

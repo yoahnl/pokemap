@@ -9,6 +9,7 @@ import '../../../application/services/pokemon_external_query_resolver.dart';
 import '../../../application/use_cases/import_external_pokemon_use_cases.dart';
 import '../../../application/use_cases/import_pokemon_evolution_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
+import '../../../application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import '../../../application/use_cases/import_pokemon_learnset_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_media_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_species_json_use_case.dart';
@@ -280,6 +281,13 @@ final pokedexExternalImporterProvider =
 final loadPokemonMovesCatalogUseCaseProvider =
     Provider<LoadPokemonMovesCatalogUseCase>((ref) {
   return LoadPokemonMovesCatalogUseCase(
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+  );
+});
+
+final loadPokemonItemsCatalogUseCaseProvider =
+    Provider<LoadPokemonItemsCatalogUseCase>((ref) {
+  return LoadPokemonItemsCatalogUseCase(
     readRepository: ref.watch(pokemonReadRepositoryProvider),
   );
 });

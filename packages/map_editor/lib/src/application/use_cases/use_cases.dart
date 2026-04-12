@@ -9,6 +9,7 @@ export 'import_pokemon_catalog_json_use_case.dart';
 export 'import_pokemon_evolution_json_use_case.dart';
 export 'import_pokemon_json_bundle_use_case.dart';
 export 'import_external_pokemon_use_cases.dart';
+export 'load_pokemon_items_catalog_use_case.dart';
 export 'import_pokemon_learnset_json_use_case.dart';
 export 'import_pokemon_media_json_use_case.dart';
 export 'import_pokemon_species_json_use_case.dart';

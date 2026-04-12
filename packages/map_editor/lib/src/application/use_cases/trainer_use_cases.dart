@@ -26,6 +26,19 @@ String _generateUniqueTrainerId(ProjectManifest project, String seed) {
   return candidate;
 }
 
+// Le lot 7 continue à garder le manifest comme source de vérité.
+//
+// On normalise donc seulement les listes éditées depuis l'UI :
+// - trim ;
+// - suppression des entrées vides ;
+// - aucun "smart merge" ni déduction implicite.
+List<String> _normalizeTrainerStringList(Iterable<String> rawValues) {
+  return rawValues
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toList(growable: false);
+}
+
 // ---------------------------------------------------------------------------
 // Use cases — dresseurs
 // ---------------------------------------------------------------------------
@@ -58,14 +71,17 @@ class CreateTrainerUseCase {
       id: _generateUniqueTrainerId(project, trimmedName),
       name: trimmedName,
       trainerClass: trimmedClass,
-      characterId: characterId?.trim().isEmpty == true ? null : characterId?.trim(),
-      portraitElementId:
-          portraitElementId?.trim().isEmpty == true ? null : portraitElementId?.trim(),
+      characterId:
+          characterId?.trim().isEmpty == true ? null : characterId?.trim(),
+      portraitElementId: portraitElementId?.trim().isEmpty == true
+          ? null
+          : portraitElementId?.trim(),
       battleThemeId:
           battleThemeId?.trim().isEmpty == true ? null : battleThemeId?.trim(),
-      victoryThemeId:
-          victoryThemeId?.trim().isEmpty == true ? null : victoryThemeId?.trim(),
-      tags: tags,
+      victoryThemeId: victoryThemeId?.trim().isEmpty == true
+          ? null
+          : victoryThemeId?.trim(),
+      tags: _normalizeTrainerStringList(tags),
     );
     final updated = project.copyWith(
       trainers: [...project.trainers, trainer],
@@ -106,37 +122,37 @@ class UpdateTrainerUseCase {
     if (trimmedClass.isEmpty) {
       throw const EditorValidationException('Trainer class cannot be empty');
     }
-    var updated_trainer = current.copyWith(
+    var updatedTrainer = current.copyWith(
       name: trimmedName,
       trainerClass: trimmedClass,
-      tags: tags ?? current.tags,
+      tags: tags == null ? current.tags : _normalizeTrainerStringList(tags),
     );
     if (!identical(characterId, _unset)) {
       final v = (characterId as String?)?.trim();
-      updated_trainer = updated_trainer.copyWith(
+      updatedTrainer = updatedTrainer.copyWith(
         characterId: (v == null || v.isEmpty) ? null : v,
       );
     }
     if (!identical(portraitElementId, _unset)) {
       final v = (portraitElementId as String?)?.trim();
-      updated_trainer = updated_trainer.copyWith(
+      updatedTrainer = updatedTrainer.copyWith(
         portraitElementId: (v == null || v.isEmpty) ? null : v,
       );
     }
     if (!identical(battleThemeId, _unset)) {
       final v = (battleThemeId as String?)?.trim();
-      updated_trainer = updated_trainer.copyWith(
+      updatedTrainer = updatedTrainer.copyWith(
         battleThemeId: (v == null || v.isEmpty) ? null : v,
       );
     }
     if (!identical(victoryThemeId, _unset)) {
       final v = (victoryThemeId as String?)?.trim();
-      updated_trainer = updated_trainer.copyWith(
+      updatedTrainer = updatedTrainer.copyWith(
         victoryThemeId: (v == null || v.isEmpty) ? null : v,
       );
     }
     final trainers = List<ProjectTrainerEntry>.from(project.trainers);
-    trainers[index] = updated_trainer;
+    trainers[index] = updatedTrainer;
     final updated = project.copyWith(trainers: trainers);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -204,17 +220,17 @@ class AddTrainerPokemonUseCase {
     final pokemon = ProjectTrainerPokemonEntry(
       speciesId: trimmedSpecies,
       level: level,
-      moves: moves,
-      heldItemId: heldItemId?.trim().isEmpty == true ? null : heldItemId?.trim(),
+      moves: _normalizeTrainerStringList(moves),
+      heldItemId:
+          heldItemId?.trim().isEmpty == true ? null : heldItemId?.trim(),
       formId: formId?.trim().isEmpty == true ? null : formId?.trim(),
       gender: gender?.trim().isEmpty == true ? null : gender?.trim(),
       shiny: shiny,
     );
     final trainer = project.trainers[index];
-    final updated_trainer =
-        trainer.copyWith(team: [...trainer.team, pokemon]);
+    final updatedTrainer = trainer.copyWith(team: [...trainer.team, pokemon]);
     final trainers = List<ProjectTrainerEntry>.from(project.trainers);
-    trainers[index] = updated_trainer;
+    trainers[index] = updatedTrainer;
     final updated = project.copyWith(trainers: trainers);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -259,35 +275,35 @@ class UpdateTrainerPokemonUseCase {
     if (newLevel <= 0) {
       throw const EditorValidationException('Level must be positive');
     }
-    var updated_pokemon = current.copyWith(
+    var updatedPokemon = current.copyWith(
       speciesId: trimmedSpecies,
       level: newLevel,
-      moves: moves ?? current.moves,
+      moves: moves == null ? current.moves : _normalizeTrainerStringList(moves),
       shiny: shiny ?? current.shiny,
     );
     if (!identical(heldItemId, _unset)) {
       final v = (heldItemId as String?)?.trim();
-      updated_pokemon = updated_pokemon.copyWith(
+      updatedPokemon = updatedPokemon.copyWith(
         heldItemId: (v == null || v.isEmpty) ? null : v,
       );
     }
     if (!identical(formId, _unset)) {
       final v = (formId as String?)?.trim();
-      updated_pokemon = updated_pokemon.copyWith(
+      updatedPokemon = updatedPokemon.copyWith(
         formId: (v == null || v.isEmpty) ? null : v,
       );
     }
     if (!identical(gender, _unset)) {
       final v = (gender as String?)?.trim();
-      updated_pokemon = updated_pokemon.copyWith(
+      updatedPokemon = updatedPokemon.copyWith(
         gender: (v == null || v.isEmpty) ? null : v,
       );
     }
     final team = List<ProjectTrainerPokemonEntry>.from(trainer.team);
-    team[pokemonIndex] = updated_pokemon;
-    final updated_trainer = trainer.copyWith(team: team);
+    team[pokemonIndex] = updatedPokemon;
+    final updatedTrainer = trainer.copyWith(team: team);
     final trainers = List<ProjectTrainerEntry>.from(project.trainers);
-    trainers[trainerIndex] = updated_trainer;
+    trainers[trainerIndex] = updatedTrainer;
     final updated = project.copyWith(trainers: trainers);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -318,9 +334,9 @@ class DeleteTrainerPokemonUseCase {
     }
     final team = List<ProjectTrainerPokemonEntry>.from(trainer.team)
       ..removeAt(pokemonIndex);
-    final updated_trainer = trainer.copyWith(team: team);
+    final updatedTrainer = trainer.copyWith(team: team);
     final trainers = List<ProjectTrainerEntry>.from(project.trainers);
-    trainers[trainerIndex] = updated_trainer;
+    trainers[trainerIndex] = updatedTrainer;
     final updated = project.copyWith(trainers: trainers);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);

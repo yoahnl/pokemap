@@ -54,6 +54,10 @@ void main() {
         isNotNull,
       );
       expect(
+        container.read(loadPokemonItemsCatalogUseCaseProvider),
+        isNotNull,
+      );
+      expect(
         container.read(syncExternalPokemonMovesCatalogUseCaseProvider),
         isNotNull,
       );

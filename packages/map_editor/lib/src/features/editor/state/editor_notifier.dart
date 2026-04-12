@@ -5941,14 +5941,18 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(selectedTrainerId: trainerId);
   }
 
-  Future<void> createTrainer({
+  Future<bool> createTrainer({
     required String name,
     required String trainerClass,
     String? characterId,
+    String? portraitElementId,
+    String? battleThemeId,
+    String? victoryThemeId,
+    List<String> tags = const <String>[],
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
+    if (fs == null || project == null) return false;
     try {
       final useCase = ref.read(createTrainerUseCaseProvider);
       final updated = await useCase.execute(
@@ -5957,6 +5961,10 @@ class EditorNotifier extends _$EditorNotifier {
         name: name,
         trainerClass: trainerClass,
         characterId: characterId,
+        portraitElementId: portraitElementId,
+        battleThemeId: battleThemeId,
+        victoryThemeId: victoryThemeId,
+        tags: tags,
       );
       state = state.copyWith(
         project: updated,
@@ -5965,12 +5973,14 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Trainer created',
         errorMessage: null,
       );
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to create trainer: $e');
+      return false;
     }
   }
 
-  Future<void> updateTrainer({
+  Future<bool> updateTrainer({
     required String trainerId,
     String? name,
     String? trainerClass,
@@ -5982,7 +5992,7 @@ class EditorNotifier extends _$EditorNotifier {
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
+    if (fs == null || project == null) return false;
     try {
       final useCase = ref.read(updateTrainerUseCaseProvider);
       final updated = await useCase.execute(
@@ -6002,15 +6012,17 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Trainer updated',
         errorMessage: null,
       );
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update trainer: $e');
+      return false;
     }
   }
 
-  Future<void> deleteTrainer(String trainerId) async {
+  Future<bool> deleteTrainer(String trainerId) async {
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
+    if (fs == null || project == null) return false;
     try {
       final useCase = ref.read(deleteTrainerUseCaseProvider);
       final updated = await useCase.execute(
@@ -6026,19 +6038,26 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Trainer deleted',
         errorMessage: null,
       );
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete trainer: $e');
+      return false;
     }
   }
 
-  Future<void> addTrainerPokemon({
+  Future<bool> addTrainerPokemon({
     required String trainerId,
     required String speciesId,
     required int level,
+    List<String> moves = const <String>[],
+    String? heldItemId,
+    String? formId,
+    String? gender,
+    bool shiny = false,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
+    if (fs == null || project == null) return false;
     try {
       final useCase = ref.read(addTrainerPokemonUseCaseProvider);
       final updated = await useCase.execute(
@@ -6047,28 +6066,38 @@ class EditorNotifier extends _$EditorNotifier {
         trainerId: trainerId,
         speciesId: speciesId,
         level: level,
+        moves: moves,
+        heldItemId: heldItemId,
+        formId: formId,
+        gender: gender,
+        shiny: shiny,
       );
       state = state.copyWith(
         project: updated,
         statusMessage: 'Pokémon added',
         errorMessage: null,
       );
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to add Pokémon: $e');
+      return false;
     }
   }
 
-  Future<void> updateTrainerPokemon({
+  Future<bool> updateTrainerPokemon({
     required String trainerId,
     required int pokemonIndex,
     String? speciesId,
     int? level,
     List<String>? moves,
+    Object? heldItemId = _trainerUnset,
+    Object? formId = _trainerUnset,
+    Object? gender = _trainerUnset,
     bool? shiny,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
+    if (fs == null || project == null) return false;
     try {
       final useCase = ref.read(updateTrainerPokemonUseCaseProvider);
       final updated = await useCase.execute(
@@ -6079,6 +6108,9 @@ class EditorNotifier extends _$EditorNotifier {
         speciesId: speciesId,
         level: level,
         moves: moves,
+        heldItemId: heldItemId,
+        formId: formId,
+        gender: gender,
         shiny: shiny,
       );
       state = state.copyWith(
@@ -6086,18 +6118,20 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Pokémon updated',
         errorMessage: null,
       );
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update Pokémon: $e');
+      return false;
     }
   }
 
-  Future<void> deleteTrainerPokemon({
+  Future<bool> deleteTrainerPokemon({
     required String trainerId,
     required int pokemonIndex,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
+    if (fs == null || project == null) return false;
     try {
       final useCase = ref.read(deleteTrainerPokemonUseCaseProvider);
       final updated = await useCase.execute(
@@ -6111,8 +6145,10 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Pokémon removed',
         errorMessage: null,
       );
+      return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to remove Pokémon: $e');
+      return false;
     }
   }
 }
