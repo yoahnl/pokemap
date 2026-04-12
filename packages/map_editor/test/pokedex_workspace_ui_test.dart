@@ -10,6 +10,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/pokedex_providers.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
+import 'package:map_editor/src/application/models/pokemon_external_query_resolution.dart';
+import 'package:map_editor/src/application/models/pokemon_external_species_search_result.dart';
 import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
@@ -2042,6 +2044,7 @@ void main() {
     addTearDown(container.dispose);
     final importedDetailsById = <String, PokedexSpeciesDetail>{};
     var entries = <PokemonDatabaseIndexEntry>[];
+    var searchCallCount = 0;
     var previewCallCount = 0;
     var importCallCount = 0;
     String? querySeenByPreview;
@@ -2059,6 +2062,45 @@ void main() {
       child: PokedexWorkspace(
         loader: (_) async => entries,
         detailLoader: (_, speciesId) async => importedDetailsById[speciesId]!,
+        externalSpeciesSearcher: (rawQuery) async {
+          searchCallCount += 1;
+          if (rawQuery.trim() != '25') {
+            return PokemonExternalSpeciesSearchResult.noResults(
+              rawQuery: rawQuery,
+              normalizedQuery: rawQuery.trim(),
+              resolution: const PokemonExternalSingleQueryResolution(
+                rawQuery: '25',
+                normalizedQuery: '25',
+                query: PokemonExternalSingleQuery.nationalDex(
+                  rawValue: '25',
+                  nationalDex: 25,
+                ),
+              ),
+              message:
+                  'Aucun Pokémon externe trouvé pour cette requête mono-espèce.',
+            );
+          }
+          return PokemonExternalSpeciesSearchResult.suggestions(
+            rawQuery: rawQuery,
+            normalizedQuery: rawQuery.trim(),
+            resolution: const PokemonExternalSingleQueryResolution(
+              rawQuery: '25',
+              normalizedQuery: '25',
+              query: PokemonExternalSingleQuery.nationalDex(
+                rawValue: '25',
+                nationalDex: 25,
+              ),
+            ),
+            suggestions: const <PokemonExternalSpeciesSuggestion>[
+              PokemonExternalSpeciesSuggestion(
+                speciesId: 'pikachu',
+                primaryName: 'Pikachu',
+                nationalDex: 25,
+                generation: 1,
+              ),
+            ],
+          );
+        },
         externalImportPreviewer: (_, speciesQuery) async {
           previewCallCount += 1;
           querySeenByPreview = speciesQuery;
@@ -2225,6 +2267,37 @@ void main() {
       find.byKey(const Key('pokedex-import-external-query-field')),
       '25',
     );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 220));
+    expect(searchCallCount, 1);
+    expect(
+      find.byKey(const Key('pokedex-import-external-suggestion-pikachu')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<PushButton>(
+            find.byKey(const Key('pokedex-import-external-preview-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(
+      find.byKey(const Key('pokedex-import-external-suggestion-pikachu')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('pokedex-import-external-selected-suggestion')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<PushButton>(
+            find.byKey(const Key('pokedex-import-external-preview-button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
     await tester.tap(
       find.byKey(const Key('pokedex-import-external-preview-button')),
     );
@@ -2232,7 +2305,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(previewCallCount, 1);
-    expect(querySeenByPreview, '25');
+    expect(querySeenByPreview, 'pikachu');
     expect(
       find.byKey(const Key('pokedex-import-external-preview-step')),
       findsOneWidget,
@@ -2248,7 +2321,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(importCallCount, 1);
-    expect(querySeenByImport, '25');
+    expect(querySeenByImport, 'pikachu');
     expect(find.byKey(const Key('pokedex-feedback-banner')), findsOneWidget);
     expect(find.textContaining('Pikachu'), findsWidgets);
     expect(find.byKey(const Key('pokedex-row-pikachu')), findsOneWidget);

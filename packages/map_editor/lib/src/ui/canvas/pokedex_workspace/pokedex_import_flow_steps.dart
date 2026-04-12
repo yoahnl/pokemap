@@ -223,15 +223,27 @@ class _PokedexImportJsonFileStep extends StatelessWidget {
 class _PokedexImportExternalQueryStep extends StatelessWidget {
   const _PokedexImportExternalQueryStep({
     required this.controller,
+    required this.focusNode,
     required this.isBusy,
+    required this.isSearching,
     required this.errorMessage,
+    required this.searchResult,
+    required this.selectedSuggestion,
+    required this.onQueryChanged,
+    required this.onSuggestionSelected,
     required this.onContinue,
     required this.onCancel,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool isBusy;
+  final bool isSearching;
   final String? errorMessage;
+  final PokemonExternalSpeciesSearchResult searchResult;
+  final PokemonExternalSpeciesSuggestion? selectedSuggestion;
+  final ValueChanged<String> onQueryChanged;
+  final ValueChanged<PokemonExternalSpeciesSuggestion> onSuggestionSelected;
   final Future<void> Function() onContinue;
   final VoidCallback onCancel;
 
@@ -265,16 +277,19 @@ class _PokedexImportExternalQueryStep extends StatelessWidget {
           style: editorMacosFormLabelStyle(context),
         ),
         const SizedBox(height: 12),
-        CupertinoTextField(
-          key: const Key('pokedex-import-external-query-field'),
+        _PokedexExternalSpeciesAutocompleteField(
           controller: controller,
-          placeholder: 'Ex. pikachu, bulbasaur ou 25',
-          enabled: !isBusy,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          focusNode: focusNode,
+          isBusy: isBusy,
+          isSearching: isSearching,
+          searchResult: searchResult,
+          selectedSuggestion: selectedSuggestion,
+          onQueryChanged: onQueryChanged,
+          onSuggestionSelected: onSuggestionSelected,
         ),
         const SizedBox(height: 10),
         Text(
-          'La source visible reste “API externe”. Les détails techniques PokeAPI / Showdown restent internes au pipeline.',
+          'La source visible reste “API externe”. Les détails techniques PokeAPI / Showdown restent internes au pipeline. La prévisualisation reste bloquée tant qu’une suggestion n’a pas été sélectionnée explicitement.',
           style: helperStyle,
         ),
         if (errorMessage != null) ...[
@@ -303,7 +318,9 @@ class _PokedexImportExternalQueryStep extends StatelessWidget {
             PushButton(
               key: const Key('pokedex-import-external-preview-button'),
               controlSize: ControlSize.large,
-              onPressed: isBusy ? null : onContinue,
+              onPressed: isBusy || isSearching || selectedSuggestion == null
+                  ? null
+                  : onContinue,
               child: isBusy
                   ? const SizedBox(
                       width: 16,

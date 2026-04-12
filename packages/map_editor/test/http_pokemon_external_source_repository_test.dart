@@ -103,6 +103,7 @@ void main() {
       ),
     );
 
+    final pokedexSnapshot = await repository.fetchShowdownPokedexSnapshot();
     final showdown = await repository.fetchShowdownSpeciesPayload('bulbasaur');
     final movesSnapshot = await repository.fetchShowdownMovesSnapshot();
     final pokemon = await repository.fetchPokeApiPokemonPayload('bulbasaur');
@@ -114,6 +115,7 @@ void main() {
       'https://assets.test/front.png',
     );
 
+    expect(pokedexSnapshot.containsKey('bulbasaur'), isTrue);
     expect(showdown['name'], 'Bulbasaur');
     expect(movesSnapshot.containsKey('thunderbolt'), isTrue);
     expect(pokemon['name'], 'bulbasaur');

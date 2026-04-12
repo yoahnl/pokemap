@@ -15,6 +15,14 @@ import 'dart:typed_data';
 /// - le use case garde ainsi une seule dépendance externe injectable ;
 /// - l'UI ne voit jamais de client HTTP concret ni d'URL brutes.
 abstract class PokemonExternalSourceRepository {
+  /// Charge le snapshot Pokédex global structuré depuis la source Showdown.
+  ///
+  /// Cette lecture supplémentaire reste dans le même port externe historique :
+  /// - on ne crée pas un second système de recherche externe ;
+  /// - le wizard mono-espèce peut réutiliser la source snapshot existante ;
+  /// - la logique de suggestion reste applicative, pas UI.
+  Future<Map<String, dynamic>> fetchShowdownPokedexSnapshot();
+
   Future<Map<String, dynamic>> fetchShowdownSpeciesPayload(String speciesId);
 
   /// Charge le snapshot global des moves depuis la source structurée

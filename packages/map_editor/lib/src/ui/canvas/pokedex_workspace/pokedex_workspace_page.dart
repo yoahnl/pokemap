@@ -21,6 +21,7 @@ import '../../../app/providers/pokedex_providers.dart';
 import '../../../application/errors/application_errors.dart';
 import '../../../application/models/pokedex_species_detail.dart';
 import '../../../application/models/pokemon_database_index.dart';
+import '../../../application/models/pokemon_external_species_search_result.dart';
 import '../../../application/models/pokemon_project_data_models.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
@@ -48,6 +49,7 @@ part 'pokedex_list_row.dart';
 part 'pokedex_import_flow.dart';
 part 'pokedex_import_flow_steps.dart';
 part 'pokedex_import_flow_support.dart';
+part 'pokedex_external_search_field.dart';
 part 'pokedex_detail_panel.dart';
 part 'pokedex_overview_panel.dart';
 part 'pokedex_metadata_editor.dart';
@@ -96,6 +98,7 @@ class PokedexWorkspace extends ConsumerWidget {
     this.importer,
     this.externalImportPreviewer,
     this.externalImporter,
+    this.externalSpeciesSearcher,
     this.pickJsonImportFile,
     this.deleteSpecies,
     this.metadataSaver,
@@ -118,6 +121,7 @@ class PokedexWorkspace extends ConsumerWidget {
   final PokedexImporter? importer;
   final PokedexExternalImportPreviewer? externalImportPreviewer;
   final PokedexExternalImporter? externalImporter;
+  final PokedexExternalSpeciesSearcher? externalSpeciesSearcher;
   final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesDeleter? deleteSpecies;
   final PokedexSpeciesMetadataSaver? metadataSaver;
@@ -146,6 +150,9 @@ class PokedexWorkspace extends ConsumerWidget {
             ref.watch(pokedexExternalImportPreviewerProvider);
     final PokedexExternalImporter resolvedExternalImporter =
         externalImporter ?? ref.watch(pokedexExternalImporterProvider);
+    final PokedexExternalSpeciesSearcher resolvedExternalSpeciesSearcher =
+        externalSpeciesSearcher ??
+            ref.watch(pokedexExternalSpeciesSearcherProvider);
     final PokedexSpeciesDeleter resolvedDeleteSpecies =
         deleteSpecies ?? ref.watch(pokedexSpeciesDeleterProvider);
     final PokedexSpeciesMetadataSaver resolvedMetadataSaver =
@@ -175,6 +182,7 @@ class PokedexWorkspace extends ConsumerWidget {
       importer: resolvedImporter,
       externalImportPreviewer: resolvedExternalImportPreviewer,
       externalImporter: resolvedExternalImporter,
+      externalSpeciesSearcher: resolvedExternalSpeciesSearcher,
       pickJsonImportFile: pickJsonImportFile,
       deleteSpecies: resolvedDeleteSpecies,
       metadataSaver: resolvedMetadataSaver,
@@ -198,6 +206,7 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.importer,
     required this.externalImportPreviewer,
     required this.externalImporter,
+    required this.externalSpeciesSearcher,
     required this.pickJsonImportFile,
     required this.deleteSpecies,
     required this.metadataSaver,
@@ -217,6 +226,7 @@ class _PokedexWorkspaceBody extends StatefulWidget {
   final PokedexImporter importer;
   final PokedexExternalImportPreviewer externalImportPreviewer;
   final PokedexExternalImporter externalImporter;
+  final PokedexExternalSpeciesSearcher externalSpeciesSearcher;
   final Future<String?> Function()? pickJsonImportFile;
   final PokedexSpeciesDeleter deleteSpecies;
   final PokedexSpeciesMetadataSaver metadataSaver;

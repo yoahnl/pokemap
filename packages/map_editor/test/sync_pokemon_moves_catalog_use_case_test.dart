@@ -131,6 +131,11 @@ void main() {
 class _FakePokemonExternalSourceRepository
     implements PokemonExternalSourceRepository {
   @override
+  Future<Map<String, dynamic>> fetchShowdownPokedexSnapshot() {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchShowdownMovesSnapshot() async {
     return <String, dynamic>{
       'vinewhip': <String, dynamic>{

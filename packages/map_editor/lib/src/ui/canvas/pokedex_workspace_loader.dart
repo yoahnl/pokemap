@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../../application/models/pokemon_database_index.dart';
+import '../../application/models/pokemon_external_species_search_result.dart';
 import '../../application/models/pokedex_species_detail.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/use_cases/import_external_pokemon_use_cases.dart';
@@ -37,6 +38,11 @@ typedef PokedexExternalImportPreviewer = Future<PokemonExternalImportResult>
 typedef PokedexExternalImporter = Future<PokemonExternalImportResult> Function(
   ProjectWorkspace workspace,
   String speciesQuery,
+);
+
+typedef PokedexExternalSpeciesSearcher
+    = Future<PokemonExternalSpeciesSearchResult> Function(
+  String rawQuery,
 );
 
 typedef PokedexMovesCatalogLoader = Future<PokemonMovesCatalogView> Function(

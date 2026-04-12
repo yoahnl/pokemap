@@ -1125,6 +1125,13 @@ class _FakePokemonExternalSourceRepository
   final Map<String, PokemonExternalBinaryAsset> binaryAssets;
 
   @override
+  Future<Map<String, dynamic>> fetchShowdownPokedexSnapshot() async {
+    return showdownSpeciesPayloads.map(
+      (key, value) => MapEntry<String, dynamic>(key, _deepCopy(value)),
+    );
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchPokeApiEvolutionChainPayload(
     String speciesId,
   ) async {
@@ -1175,6 +1182,11 @@ class _FakePokemonExternalSourceRepository
       );
     }
     return _deepCopy(payload);
+  }
+
+  @override
+  Future<Map<String, dynamic>> fetchShowdownMovesSnapshot() {
+    throw UnimplementedError();
   }
 
   @override

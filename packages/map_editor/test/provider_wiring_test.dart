@@ -27,6 +27,11 @@ void main() {
           container.read(pokemonExternalSourceRepositoryProvider), isNotNull);
       expect(container.read(pokemonExternalQueryResolverProvider), isNotNull);
       expect(
+        container.read(searchExternalPokemonSpeciesUseCaseProvider),
+        isNotNull,
+      );
+      expect(container.read(pokedexExternalSpeciesSearcherProvider), isNotNull);
+      expect(
         container.read(importExternalPokemonSpeciesUseCaseProvider),
         isNotNull,
       );

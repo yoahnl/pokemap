@@ -12,6 +12,7 @@ import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart'
 import '../../../application/use_cases/import_pokemon_learnset_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_media_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_species_json_use_case.dart';
+import '../../../application/use_cases/search_external_pokemon_species_use_case.dart';
 import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
 import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
 import '../../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
@@ -83,6 +84,27 @@ final pokemonDatabaseIndexProvider = Provider<PokemonDatabaseIndex>((ref) {
 final pokemonExternalQueryResolverProvider =
     Provider<PokemonExternalQueryResolver>((ref) {
   return const PokemonExternalQueryResolver();
+});
+
+/// Recherche mono-espèce appliquée au wizard Pokédex.
+///
+/// On garde cette couche très petite :
+/// - elle réutilise le résolveur du lot 1 ;
+/// - elle réutilise le port externe déjà en place ;
+/// - elle ne crée pas de pipeline de recherche parallèle.
+final searchExternalPokemonSpeciesUseCaseProvider =
+    Provider<SearchExternalPokemonSpeciesUseCase>((ref) {
+  return SearchExternalPokemonSpeciesUseCase(
+    externalSourceRepository:
+        ref.watch(pokemonExternalSourceRepositoryProvider),
+    queryResolver: ref.watch(pokemonExternalQueryResolverProvider),
+  );
+});
+
+final pokedexExternalSpeciesSearcherProvider =
+    Provider<PokedexExternalSpeciesSearcher>((ref) {
+  final useCase = ref.watch(searchExternalPokemonSpeciesUseCaseProvider);
+  return useCase.execute;
 });
 
 final pokedexEntryLoaderProvider = Provider<PokedexEntryLoader>((ref) {
