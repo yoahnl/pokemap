@@ -98,7 +98,7 @@ Conclusion :
 
 ### 3.2.1. Avancement réel de la phase R1 déjà livré dans le worktree
 
-Les quatre premiers lots de la phase R1 ont maintenant été livrés dans le
+Les six premiers lots de la phase R1 ont maintenant été livrés dans le
 worktree courant. Ils ne sont plus à considérer comme du travail à démarrer,
 mais comme du socle acquis à prolonger proprement.
 
@@ -225,6 +225,81 @@ Limites assumées à ce stade :
 Artefact de preuve ajouté :
 
 - `reports/phase-r1-lot-4-batch-execution-progress-report.md`
+- `reports/phase-r1-lot-4-mini-fix-no-write-feedback-report.md`
+
+Mini-fix déjà livré à conserver :
+
+- le feedback final batch est maintenant aligné sur les écritures réelles ;
+- un batch avec `0` écriture réelle ne remonte plus comme un succès silencieux ;
+- le critère produit global s'aligne sur `hasWritesApplied`, exactement comme le
+  refresh du workspace.
+
+#### Lot 5 — Exploitation réelle du catalogue moves dans le Pokédex
+
+Ce lot existe maintenant dans le learnset editor du Pokédex, sans créer de
+deuxième éditeur ni de deuxième contrat de learnset.
+
+Ce qui est désormais livré :
+
+- une recherche locale assistée dans le catalogue `moves` par :
+  - `id` ;
+  - `name` ;
+  - alias pertinents quand ils sont présents dans les données déjà chargées ;
+- une sélection explicite de move depuis l'éditeur au lieu d'une saisie brute
+  systématique d'ids ;
+- une assistance concrète pour les sections de learnset existantes :
+  - `startingMoves` ;
+  - `relearnMoves` ;
+  - `levelUp` ;
+  - `tm` ;
+  - `tutor` ;
+  - `egg` ;
+  - `event` ;
+  - `transfer` ;
+- un affichage honnête des ids legacy / inconnus :
+  - l'entrée reste visible ;
+  - elle n'est pas détruite silencieusement ;
+  - elle est signalée comme absente du catalogue local quand c'est le cas ;
+- une validation plus lisible autour des moves manquants et des incohérences
+  évidentes, sans déplacer le cœur métier dans l'UI.
+
+Décision importante déjà en place :
+
+- le texte brut reste le contrat d'édition réel du learnset ;
+- l'assistance moves-first vient au-dessus pour sécuriser et accélérer la
+  saisie, mais ne masque pas les données ni ne crée une UI concurrente.
+
+Artefact de preuve ajouté :
+
+- `reports/phase-r1-lot-5-moves-first-learnset-report.md`
+
+#### Lot 6 — Service de recherche catalogue progressif
+
+Ce lot existe maintenant côté `map_editor/application/services` et ne recrée
+pas de deuxième système de lookup `moves`.
+
+Ce qui est désormais livré :
+
+- un petit contrat stable de recherche locale en mémoire pour les catalogues ;
+- une base concrète réutilisable :
+  - `ProgressiveLocalCatalogLookupService<TEntry>` ;
+- une convergence du service lot 5 vers ce socle au lieu de dupliquer la
+  logique ;
+- une implémentation réellement branchée sur `moves` via
+  `PokemonMovesCatalogLookupService` ;
+- des tests dédiés du contrat progressif et de la non-régression côté moves.
+
+Décisions d'architecture désormais en place :
+
+- pas d'interface "enterprise" supplémentaire ;
+- pas de provider décoratif ajouté juste pour la forme ;
+- pas de moteur multi-catalogues théorique ;
+- un petit socle concret, utilisé tout de suite par `moves`, et crédible pour
+  les futurs besoins trainers / encounters.
+
+Artefact de preuve ajouté :
+
+- `reports/phase-r1-lot-6-progressive-catalog-search-report.md`
 
 ### 3.3. Catalogues locaux et moves catalog
 
@@ -254,8 +329,9 @@ et sait déjà basculer certains catalogues manquants vers des warnings explicit
 Conclusion :
 
 - la partie "catalogues" ne repart pas de zéro ;
-- la stratégie réaliste est bien **moves-first**, déjà amorcée ;
-- le prochain travail doit capitaliser sur ce socle au lieu de le réécrire.
+- la stratégie réaliste est bien **moves-first**, déjà amorcée puis renforcée ;
+- le prochain travail doit réutiliser ce socle et son contrat progressif au
+  lieu de les réécrire.
 
 ### 3.4. Trainers et encounter tables
 
@@ -310,29 +386,36 @@ Cette section couvre les zones déjà entamées mais pas encore suffisamment sol
 
 ### 4.1. Pokédex auteur
 
-Le Pokédex existe, et la phase R1 a déjà avancé dans le worktree :
+Le Pokédex existe, et la phase R1 a déjà fortement avancé dans le worktree :
 
 - la résolution de requête externe existe ;
 - l'auto-complétion mono-espèce existe ;
-- le flow batch existe maintenant jusqu'au dry-run lisible.
+- le flow batch existe maintenant jusqu'à l'exécution réelle avec rapport ;
+- l'assistance moves-first du learnset editor est réellement branchée ;
+- un socle progressif de recherche catalogue locale existe maintenant pour
+  préparer la suite sans recréer de deuxième système.
 
 Ce qui manque encore côté Pokédex auteur :
 
-- l'exécution batch réelle avec progression ;
-- le retry ciblé ;
-- le rapport final d'exécution ;
-- la maintenance bulk ergonomique ;
-- les outils de revalidation / resync / maintenance globale plus riches.
+- la maintenance bulk ergonomique plus riche ;
+- les outils de revalidation / resync / maintenance globale ;
+- l'extension du socle moves-first aux surfaces futures qui en ont réellement
+  besoin ;
+- le confort auteur sur gros volumes de données.
 
 ### 4.2. Catalogues et références assistées
 
-Le catalogue moves existe déjà, mais il reste partiel au niveau produit :
+Le catalogue moves n'est plus seulement présent au niveau technique ; il est
+maintenant réellement exploité au niveau produit dans le learnset editor, et il
+dispose désormais d'un premier contrat progressif de recherche locale.
 
-- l'UI learnset doit encore mieux exploiter ce catalogue ;
+Ce qui reste encore partiel :
+
 - les équipes trainers doivent ensuite bénéficier du même socle moves-first ;
 - les autres écrans n'en profitent pas encore suffisamment ;
-- moves est la priorité actuelle ;
-- abilities / items / types / egg groups / growth rates sont encore à traiter de manière progressive.
+- moves reste la priorité avant toute généralisation plus large ;
+- abilities / items / types / egg groups / growth rates sont encore à traiter
+  de manière progressive.
 
 ### 4.3. Trainers et encounters
 
@@ -364,8 +447,8 @@ Voici les grands blocs qui restent réellement à construire, en distinguant bie
 
 ### 5.1. Must-have avant toute ambition "fangame complet"
 
-- Pokédex batch auteur utilisable
-- références assistées moves là où elles ont le plus de valeur
+- maintenance Pokédex bulk plus riche
+- extension progressive du socle moves-first aux surfaces suivantes utiles
 - edition trainers/encounters suffisamment propre
 - bridge runtime -> battle réel
 - combat sauvage réel
@@ -431,6 +514,13 @@ Important :
 - cette phase part d'un socle déjà présent ;
 - elle ne recrée ni le moves catalog, ni son import, ni sa première surface éditeur ;
 - elle prolonge ce qui est déjà livré en 11B.
+
+Avancement réel à date :
+
+- lot 5 livré :
+  - learnset editor moves-first réellement assisté ;
+- lot 6 livré :
+  - contrat progressif de recherche catalogue locale branché sur `moves`.
 
 ### Phase C — Authoring trainers / encounters convergent
 
@@ -553,6 +643,16 @@ Ce que ce milestone prouve :
 
 - les données qui alimentent le gameplay combatable peuvent être produites proprement dans l'éditeur.
 
+Statut actuel :
+
+- partiellement livré ;
+- lot 5 livré :
+  - learnsets profitent réellement du catalogue moves local ;
+- lot 6 livré :
+  - le socle de recherche catalogue locale est maintenant prêt pour être
+    réutilisé ;
+- trainers et encounter tables restent encore à faire converger.
+
 Gate de sortie :
 
 - learnsets profitent réellement du catalogue moves local ;
@@ -664,8 +764,10 @@ Gate de sortie :
 
 ## 8. Backlog prioritaire recalé
 
-Cette section décrit les **15 prochains lots réalistes**.
-Ils sont ordonnés pour maximiser la convergence produit, pas seulement la pureté par domaine.
+Cette section décrit les **15 lots prioritaires** du plan recalé et leur statut
+courant.
+Ils sont ordonnés pour maximiser la convergence produit, pas seulement la
+pureté par domaine.
 
 ### Lot 1 — Résolveur de requête externe Pokédex
 
@@ -763,7 +865,7 @@ Limites connues à garder visibles :
 
 - la preview batch devient dense sur très gros lots ;
 - le wizard reste encore raisonnablement maintenable, mais il faudra surveiller
-  sa taille au lot 4 ;
+  sa taille sur les lots suivants ;
 - la preuve de non-écriture batch est forte, mais pas encore exhaustive
   artefact par artefact côté learnset/evolution/media/assets.
 
@@ -805,6 +907,7 @@ Non-objectifs explicitement conservés :
 ### Lot 5 — Exploitation réelle du catalogue moves dans le Pokédex
 
 Priorité : `must-have`
+Statut : `livré`
 
 But :
 
@@ -822,9 +925,18 @@ Done :
 - validation plus lisible ;
 - affichage honnête des ids legacy hors catalogue.
 
+Livré concrètement :
+
+- assistance locale branchée sur le catalogue `moves` déjà présent ;
+- ajout assisté pour les sections de learnset existantes ;
+- conservation explicite des ids legacy / inconnus ;
+- amélioration de la lisibilité de validation sans créer un deuxième éditeur ;
+- tests dédiés et report de lot présents dans `reports/`.
+
 ### Lot 6 — Service de recherche catalogue progressif
 
 Priorité : `must-have`
+Statut : `livré`
 
 But :
 
@@ -841,9 +953,18 @@ Done :
 - contrat stable ;
 - réutilisable par Pokédex, trainers et encounters.
 
+Livré concrètement :
+
+- petit socle générique en mémoire pour la recherche catalogue locale ;
+- convergence de `PokemonMovesCatalogLookupService` sur ce socle ;
+- aucun second système concurrent de lookup `moves` ;
+- réutilisation immédiate par le travail moves-first déjà livré ;
+- tests dédiés et report de lot présents dans `reports/`.
+
 ### Lot 7 — Trainers : surface minimale vraiment exploitable
 
 Priorité : `must-have`
+Statut : `prochain lot`
 
 But :
 

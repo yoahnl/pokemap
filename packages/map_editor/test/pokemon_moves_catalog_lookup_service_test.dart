@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_editor/src/application/services/local_catalog_lookup_service.dart';
 import 'package:map_editor/src/application/services/pokemon_moves_catalog_lookup_service.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 
@@ -6,6 +7,15 @@ void main() {
   const service = PokemonMovesCatalogLookupService();
 
   group('PokemonMovesCatalogLookupService', () {
+    test('reuses the shared progressive local catalog lookup service', () {
+      expect(
+        service,
+        isA<
+            ProgressiveLocalCatalogLookupService<
+                PokemonMoveCatalogEntryView>>(),
+      );
+    });
+
     test('finds a move by its exact local id', () {
       final entry = service.findById(_entries, 'vine_whip');
 
