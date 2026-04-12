@@ -5,6 +5,7 @@ import '../../../application/ports/pokemon_read_repository.dart';
 import '../../../application/ports/pokemon_external_source_repository.dart';
 import '../../../application/ports/pokemon_write_repository.dart';
 import '../../../application/services/pokemon_database_index.dart';
+import '../../../application/services/pokemon_external_query_resolver.dart';
 import '../../../application/use_cases/import_external_pokemon_use_cases.dart';
 import '../../../application/use_cases/import_pokemon_evolution_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
@@ -71,6 +72,17 @@ final pokemonDatabaseIndexProvider = Provider<PokemonDatabaseIndex>((ref) {
     projectRepository: ref.watch(projectRepositoryProvider),
     pokemonReadRepository: ref.watch(pokemonReadRepositoryProvider),
   );
+});
+
+/// Résolveur de requête brute -> intention structurée pour l'import externe.
+///
+/// Ce provider est volontairement minimal pour le lot 1 :
+/// - il expose une logique pure ;
+/// - il n'ajoute ni réseau, ni preview, ni import ;
+/// - il prépare simplement le wiring propre des lots UI suivants.
+final pokemonExternalQueryResolverProvider =
+    Provider<PokemonExternalQueryResolver>((ref) {
+  return const PokemonExternalQueryResolver();
 });
 
 final pokedexEntryLoaderProvider = Provider<PokedexEntryLoader>((ref) {
