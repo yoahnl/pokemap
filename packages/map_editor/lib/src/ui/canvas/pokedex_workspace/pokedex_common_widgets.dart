@@ -55,6 +55,7 @@ class _PokedexMissingSection extends StatelessWidget {
 
 class _PokedexDetailSectionCard extends StatelessWidget {
   const _PokedexDetailSectionCard({
+    super.key,
     required this.title,
     required this.child,
   });

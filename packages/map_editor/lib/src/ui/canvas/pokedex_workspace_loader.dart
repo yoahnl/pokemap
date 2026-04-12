@@ -5,6 +5,7 @@ import '../../application/models/pokedex_species_detail.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/use_cases/import_external_pokemon_use_cases.dart';
 import '../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
+import '../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../application/services/pokemon_database_index.dart';
 import '../../domain/repositories/repositories.dart';
 
@@ -36,6 +37,20 @@ typedef PokedexExternalImportPreviewer = Future<PokemonExternalImportResult>
 typedef PokedexExternalImporter = Future<PokemonExternalImportResult> Function(
   ProjectWorkspace workspace,
   String speciesQuery,
+);
+
+typedef PokedexMovesCatalogLoader = Future<PokemonMovesCatalogView> Function(
+  ProjectWorkspace workspace,
+);
+
+typedef PokedexMovesCatalogPreviewer = Future<PokemonMovesCatalogSyncResult>
+    Function(
+  ProjectWorkspace workspace,
+);
+
+typedef PokedexMovesCatalogSyncer = Future<PokemonMovesCatalogSyncResult>
+    Function(
+  ProjectWorkspace workspace,
 );
 
 /// Construit un chargeur d'entrées Pokédex à partir de dépendances injectées.

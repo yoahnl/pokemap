@@ -174,6 +174,9 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                 onSaveLearnset: _saveLearnset,
                 onSaveEvolution: _saveEvolution,
                 onSaveMedia: _saveMedia,
+                onLoadMovesCatalog: _loadMovesCatalog,
+                onPreviewMovesCatalogSync: _previewMovesCatalogSync,
+                onSyncMovesCatalog: _syncMovesCatalog,
               ),
             ),
           ],
@@ -349,6 +352,39 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
       speciesId: request.speciesId,
       saveOperation: (workspace) => widget.mediaSaver(workspace, request),
     );
+  }
+
+  Future<PokemonMovesCatalogView> _loadMovesCatalog() async {
+    final projectRootPath = widget.projectRootPath?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      throw StateError(
+        'Cannot load the local moves catalog without a loaded project',
+      );
+    }
+
+    return widget.movesCatalogLoader(ProjectFileSystem(projectRootPath));
+  }
+
+  Future<PokemonMovesCatalogSyncResult> _previewMovesCatalogSync() async {
+    final projectRootPath = widget.projectRootPath?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      throw StateError(
+        'Cannot preview the moves catalog sync without a loaded project',
+      );
+    }
+
+    return widget.movesCatalogPreviewer(ProjectFileSystem(projectRootPath));
+  }
+
+  Future<PokemonMovesCatalogSyncResult> _syncMovesCatalog() async {
+    final projectRootPath = widget.projectRootPath?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      throw StateError(
+        'Cannot sync the moves catalog without a loaded project',
+      );
+    }
+
+    return widget.movesCatalogSyncer(ProjectFileSystem(projectRootPath));
   }
 
   Future<void> _deleteSpecies(PokemonDatabaseIndexEntry entry) async {

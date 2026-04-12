@@ -43,6 +43,7 @@ typedef PokedexSpeciesLearnsetSaver = Future<PokemonLearnsetFile> Function(
 /// - relit l'espèce pour respecter sa ref learnset existante ;
 /// - autorise la création du fichier learnset s'il n'existe pas encore ;
 /// - applique une validation structurelle locale symétrique au lot 24 ;
+/// - s'appuie sur le catalogue local `moves` quand il existe réellement ;
 /// - n'écrit jamais ailleurs qu'au chemin déjà contractuel du repository.
 class UpdatePokedexSpeciesLearnsetUseCase {
   const UpdatePokedexSpeciesLearnsetUseCase({
@@ -88,8 +89,74 @@ class UpdatePokedexSpeciesLearnsetUseCase {
     );
 
     _validateLearnset(learnset);
+    await _validateAgainstLocalMovesCatalogIfAvailable(workspace, learnset);
     await writeRepository.saveLearnset(workspace, learnset);
     return learnset;
+  }
+
+  Future<void> _validateAgainstLocalMovesCatalogIfAvailable(
+    ProjectWorkspace workspace,
+    PokemonLearnsetFile learnset,
+  ) async {
+    // Intégration minimale utile de la 11B :
+    // - si un vrai catalogue local des attaques est disponible, on l'utilise
+    //   comme garde-fou avant d'écrire le learnset ;
+    // - si le catalogue est absent ou illisible, on n'empêche pas l'édition,
+    //   car la 11B ne doit pas transformer un problème de stockage global en
+    //   blocage absolu de l'onglet Learnset.
+    //
+    // Cette règle garde l'éditeur utile dans un workspace partiellement
+    // préparé, tout en apportant enfin une validation réellement exploitable
+    // dès que le catalogue local existe.
+    final availableMoveIds = await _readAvailableMoveIdsIfPossible(workspace);
+    if (availableMoveIds == null || availableMoveIds.isEmpty) {
+      return;
+    }
+
+    final missingMoveIds = _collectUsedMoveIds(learnset)
+        .where((moveId) => !availableMoveIds.contains(moveId))
+        .toList(growable: false)
+      ..sort();
+    if (missingMoveIds.isEmpty) {
+      return;
+    }
+
+    throw EditorValidationException(
+      'Pokemon learnset references moves absent from the local moves catalog: '
+      '${missingMoveIds.join(', ')}. Synchronisez le catalogue local des '
+      'attaques ou corrigez les move ids.',
+    );
+  }
+
+  Future<Set<String>?> _readAvailableMoveIdsIfPossible(
+    ProjectWorkspace workspace,
+  ) async {
+    try {
+      final catalog = await readRepository.readCatalogByKey(workspace, 'moves');
+      return catalog.entries
+          .map((entry) => (entry['id'] as String?)?.trim() ?? '')
+          .where((value) => value.isNotEmpty)
+          .toSet();
+    } on EditorApplicationException {
+      // Non-objectif explicite :
+      // on ne convertit pas ce use case local en validateur global de
+      // catalogue. Les erreurs de lecture du catalogue restent traitées par
+      // le validateur projet et par la surface 11B dédiée au sync.
+      return null;
+    }
+  }
+
+  Set<String> _collectUsedMoveIds(PokemonLearnsetFile learnset) {
+    return <String>{
+      ...learnset.startingMoves,
+      ...learnset.relearnMoves,
+      ...learnset.levelUp.map((entry) => entry.moveId),
+      ...learnset.tm.map((entry) => entry.moveId),
+      ...learnset.tutor.map((entry) => entry.moveId),
+      ...learnset.egg.map((entry) => entry.moveId),
+      ...learnset.event.map((entry) => entry.moveId),
+      ...learnset.transfer.map((entry) => entry.moveId),
+    }.map((value) => value.trim()).where((value) => value.isNotEmpty).toSet();
   }
 
   List<String> _normalizeMoveIds(List<String> values) {

@@ -29,6 +29,17 @@ void main() {
         container.read(importExternalPokemonSpeciesUseCaseProvider),
         isNotNull,
       );
+      expect(
+        container.read(loadPokemonMovesCatalogUseCaseProvider),
+        isNotNull,
+      );
+      expect(
+        container.read(syncExternalPokemonMovesCatalogUseCaseProvider),
+        isNotNull,
+      );
+      expect(container.read(pokedexMovesCatalogLoaderProvider), isNotNull);
+      expect(container.read(pokedexMovesCatalogPreviewerProvider), isNotNull);
+      expect(container.read(pokedexMovesCatalogSyncerProvider), isNotNull);
       expect(container.read(deletePokedexSpeciesUseCaseProvider), isNotNull);
       expect(container.read(pokedexSpeciesDeleterProvider), isNotNull);
       expect(container.read(pokedexExternalImportPreviewerProvider), isNotNull);

@@ -10,11 +10,18 @@ class _PokedexLearnsetTab extends StatefulWidget {
   const _PokedexLearnsetTab({
     required this.detail,
     required this.onSave,
+    required this.loadMovesCatalog,
+    required this.previewMovesCatalogSync,
+    required this.syncMovesCatalog,
   });
 
   final PokedexSpeciesDetail detail;
   final Future<void> Function(UpdatePokedexSpeciesLearnsetRequest request)
       onSave;
+  final Future<PokemonMovesCatalogView> Function() loadMovesCatalog;
+  final Future<PokemonMovesCatalogSyncResult> Function()
+      previewMovesCatalogSync;
+  final Future<PokemonMovesCatalogSyncResult> Function() syncMovesCatalog;
 
   @override
   State<_PokedexLearnsetTab> createState() => _PokedexLearnsetTabState();
@@ -170,6 +177,12 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _PokedexMovesCatalogSection(
+            loadCatalog: widget.loadMovesCatalog,
+            previewSync: widget.previewMovesCatalogSync,
+            syncCatalog: widget.syncMovesCatalog,
+          ),
+          const SizedBox(height: 12),
           if (_isEditing) ...[
             _PokedexLearnsetEditSection(
               learnsetRef: learnsetRef,

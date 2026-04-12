@@ -26,6 +26,17 @@ void main() {
           },
         );
       }
+      if (request.url.toString() == 'https://showdown.test/data/moves.json') {
+        return http.Response(
+          jsonEncode(<String, Object?>{
+            'thunderbolt': <String, Object?>{'name': 'Thunderbolt'},
+          }),
+          200,
+          headers: const <String, String>{
+            'content-type': 'application/json',
+          },
+        );
+      }
       if (request.url.toString() ==
           'https://pokeapi.test/api/v2/pokemon-species/bulbasaur') {
         return http.Response(
@@ -93,6 +104,7 @@ void main() {
     );
 
     final showdown = await repository.fetchShowdownSpeciesPayload('bulbasaur');
+    final movesSnapshot = await repository.fetchShowdownMovesSnapshot();
     final pokemon = await repository.fetchPokeApiPokemonPayload('bulbasaur');
     final pokemonSpecies =
         await repository.fetchPokeApiPokemonSpeciesPayload('bulbasaur');
@@ -103,6 +115,7 @@ void main() {
     );
 
     expect(showdown['name'], 'Bulbasaur');
+    expect(movesSnapshot.containsKey('thunderbolt'), isTrue);
     expect(pokemon['name'], 'bulbasaur');
     expect(pokemonSpecies['name'], 'bulbasaur');
     expect(

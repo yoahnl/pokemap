@@ -19,6 +19,9 @@ class PokedexWorkspaceDetailPane extends StatelessWidget {
     required this.onSaveLearnset,
     required this.onSaveEvolution,
     required this.onSaveMedia,
+    required this.onLoadMovesCatalog,
+    required this.onPreviewMovesCatalogSync,
+    required this.onSyncMovesCatalog,
   });
 
   final PokemonDatabaseIndexEntry? selectedEntry;
@@ -37,6 +40,10 @@ class PokedexWorkspaceDetailPane extends StatelessWidget {
       onSaveEvolution;
   final Future<void> Function(UpdatePokedexSpeciesMediaRequest request)
       onSaveMedia;
+  final Future<PokemonMovesCatalogView> Function() onLoadMovesCatalog;
+  final Future<PokemonMovesCatalogSyncResult> Function()
+      onPreviewMovesCatalogSync;
+  final Future<PokemonMovesCatalogSyncResult> Function() onSyncMovesCatalog;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +101,9 @@ class PokedexWorkspaceDetailPane extends StatelessWidget {
           onSaveLearnset: onSaveLearnset,
           onSaveEvolution: onSaveEvolution,
           onSaveMedia: onSaveMedia,
+          onLoadMovesCatalog: onLoadMovesCatalog,
+          onPreviewMovesCatalogSync: onPreviewMovesCatalogSync,
+          onSyncMovesCatalog: onSyncMovesCatalog,
         );
       },
     );
@@ -112,6 +122,9 @@ class _PokedexSpeciesDetailView extends StatelessWidget {
     required this.onSaveLearnset,
     required this.onSaveEvolution,
     required this.onSaveMedia,
+    required this.onLoadMovesCatalog,
+    required this.onPreviewMovesCatalogSync,
+    required this.onSyncMovesCatalog,
   });
 
   final PokemonDatabaseIndexEntry entry;
@@ -130,6 +143,10 @@ class _PokedexSpeciesDetailView extends StatelessWidget {
       onSaveEvolution;
   final Future<void> Function(UpdatePokedexSpeciesMediaRequest request)
       onSaveMedia;
+  final Future<PokemonMovesCatalogView> Function() onLoadMovesCatalog;
+  final Future<PokemonMovesCatalogSyncResult> Function()
+      onPreviewMovesCatalogSync;
+  final Future<PokemonMovesCatalogSyncResult> Function() onSyncMovesCatalog;
 
   @override
   Widget build(BuildContext context) {
@@ -257,6 +274,9 @@ class _PokedexSpeciesDetailView extends StatelessWidget {
                 onSaveLearnset: onSaveLearnset,
                 onSaveEvolution: onSaveEvolution,
                 onSaveMedia: onSaveMedia,
+                onLoadMovesCatalog: onLoadMovesCatalog,
+                onPreviewMovesCatalogSync: onPreviewMovesCatalogSync,
+                onSyncMovesCatalog: onSyncMovesCatalog,
               ),
             ),
           ],
@@ -276,6 +296,9 @@ class _PokedexDetailTabBody extends StatelessWidget {
     required this.onSaveLearnset,
     required this.onSaveEvolution,
     required this.onSaveMedia,
+    required this.onLoadMovesCatalog,
+    required this.onPreviewMovesCatalogSync,
+    required this.onSyncMovesCatalog,
   });
 
   final PokemonDatabaseIndexEntry entry;
@@ -292,6 +315,10 @@ class _PokedexDetailTabBody extends StatelessWidget {
       onSaveEvolution;
   final Future<void> Function(UpdatePokedexSpeciesMediaRequest request)
       onSaveMedia;
+  final Future<PokemonMovesCatalogView> Function() onLoadMovesCatalog;
+  final Future<PokemonMovesCatalogSyncResult> Function()
+      onPreviewMovesCatalogSync;
+  final Future<PokemonMovesCatalogSyncResult> Function() onSyncMovesCatalog;
 
   @override
   Widget build(BuildContext context) {
@@ -303,6 +330,9 @@ class _PokedexDetailTabBody extends StatelessWidget {
       'learnset' => _PokedexLearnsetTab(
           detail: detail,
           onSave: onSaveLearnset,
+          loadMovesCatalog: onLoadMovesCatalog,
+          previewMovesCatalogSync: onPreviewMovesCatalogSync,
+          syncMovesCatalog: onSyncMovesCatalog,
         ),
       'evolutions' => _PokedexEvolutionTab(
           detail: detail,

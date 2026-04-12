@@ -27,6 +27,11 @@ class HttpPokemonExternalSourceRepository
   }
 
   @override
+  Future<Map<String, dynamic>> fetchShowdownMovesSnapshot() {
+    return showdownSource.fetchMovesSnapshot();
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchPokeApiPokemonPayload(
     String speciesId,
   ) {

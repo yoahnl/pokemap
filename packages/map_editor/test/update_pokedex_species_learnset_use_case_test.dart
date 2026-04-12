@@ -139,6 +139,89 @@ void main() {
     );
     expect(await projectFile.readAsString(), beforeProjectJson);
   });
+
+  test(
+      'rejects move ids absent from the local moves catalog when the catalog is populated',
+      () async {
+    await writeRepository.saveSpecies(workspace, _speciesWithCustomRefs);
+    await writeRepository.saveCatalogByKey(
+      workspace,
+      'moves',
+      _movesCatalogForValidation,
+    );
+
+    await expectLater(
+      () => useCase.execute(
+        workspace,
+        const UpdatePokedexSpeciesLearnsetRequest(
+          speciesId: 'bulbasaur',
+          startingMoves: <String>['tackle'],
+          relearnMoves: <String>[],
+          levelUp: <PokemonLearnsetLevelUpEntry>[
+            PokemonLearnsetLevelUpEntry(
+              moveId: 'missing_move',
+              level: 7,
+              source: 'level_up',
+              versionGroup: 'scarlet-violet',
+            ),
+          ],
+          tm: <PokemonLearnsetMoveEntry>[],
+          tutor: <PokemonLearnsetMoveEntry>[],
+          egg: <PokemonLearnsetMoveEntry>[],
+          event: <PokemonLearnsetMoveEntry>[],
+          transfer: <PokemonLearnsetMoveEntry>[],
+        ),
+      ),
+      throwsA(
+        isA<EditorValidationException>().having(
+          (error) => error.message,
+          'message',
+          contains('missing_move'),
+        ),
+      ),
+    );
+  });
+
+  test('accepts valid move ids when the local moves catalog is populated',
+      () async {
+    await writeRepository.saveSpecies(workspace, _speciesWithCustomRefs);
+    await writeRepository.saveCatalogByKey(
+      workspace,
+      'moves',
+      _movesCatalogForValidation,
+    );
+
+    final saved = await useCase.execute(
+      workspace,
+      const UpdatePokedexSpeciesLearnsetRequest(
+        speciesId: 'bulbasaur',
+        startingMoves: <String>['tackle'],
+        relearnMoves: <String>['vine_whip'],
+        levelUp: <PokemonLearnsetLevelUpEntry>[
+          PokemonLearnsetLevelUpEntry(
+            moveId: 'vine_whip',
+            level: 7,
+            source: 'level_up',
+            versionGroup: 'scarlet-violet',
+          ),
+        ],
+        tm: <PokemonLearnsetMoveEntry>[
+          PokemonLearnsetMoveEntry(
+            moveId: 'protect',
+            versionGroup: 'scarlet-violet',
+          ),
+        ],
+        tutor: <PokemonLearnsetMoveEntry>[],
+        egg: <PokemonLearnsetMoveEntry>[],
+        event: <PokemonLearnsetMoveEntry>[],
+        transfer: <PokemonLearnsetMoveEntry>[],
+      ),
+    );
+
+    expect(saved.startingMoves, <String>['tackle']);
+    expect(saved.relearnMoves, <String>['vine_whip']);
+    expect(saved.tm.single.moveId, 'protect');
+  });
 }
 
 const PokemonSpeciesFile _speciesWithCustomRefs = PokemonSpeciesFile(
@@ -202,4 +285,18 @@ const PokemonSpeciesFile _speciesWithCustomRefs = PokemonSpeciesFile(
     seededBy: 'test',
     seedVersion: 1,
   ),
+);
+
+const PokemonCatalogFile _movesCatalogForValidation = PokemonCatalogFile(
+  schemaVersion: 1,
+  kind: 'pokemon_catalog',
+  catalog: 'moves',
+  meta: PokemonDataMeta(
+    description: 'Validation moves catalog for learnset editor tests.',
+  ),
+  entries: <Map<String, dynamic>>[
+    <String, dynamic>{'id': 'tackle', 'name': 'Tackle'},
+    <String, dynamic>{'id': 'vine_whip', 'name': 'Vine Whip'},
+    <String, dynamic>{'id': 'protect', 'name': 'Protect'},
+  ],
 );

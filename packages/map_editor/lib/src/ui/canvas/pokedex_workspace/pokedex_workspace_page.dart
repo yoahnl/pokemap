@@ -31,6 +31,7 @@ import '../../../application/use_cases/update_pokedex_species_forms_classificati
 import '../../../application/use_cases/update_pokedex_species_learnset_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_media_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_metadata_use_case.dart';
+import '../../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../../features/editor/state/editor_notifier.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../pokedex_workspace_loader.dart';
@@ -54,6 +55,7 @@ part 'pokedex_metadata_editor_fields.dart';
 part 'pokedex_forms_panel.dart';
 part 'pokedex_learnset_panel.dart';
 part 'pokedex_learnset_sections.dart';
+part 'pokedex_moves_catalog_section.dart';
 part 'pokedex_evolution_panel.dart';
 part 'pokedex_media_panel.dart';
 part 'pokedex_common_widgets.dart';
@@ -101,6 +103,9 @@ class PokedexWorkspace extends ConsumerWidget {
     this.learnsetSaver,
     this.evolutionSaver,
     this.mediaSaver,
+    this.movesCatalogLoader,
+    this.movesCatalogPreviewer,
+    this.movesCatalogSyncer,
   });
 
   /// Injection locale utile aux tests ciblés du lot 13.
@@ -120,6 +125,9 @@ class PokedexWorkspace extends ConsumerWidget {
   final PokedexSpeciesLearnsetSaver? learnsetSaver;
   final PokedexSpeciesEvolutionSaver? evolutionSaver;
   final PokedexSpeciesMediaSaver? mediaSaver;
+  final PokedexMovesCatalogLoader? movesCatalogLoader;
+  final PokedexMovesCatalogPreviewer? movesCatalogPreviewer;
+  final PokedexMovesCatalogSyncer? movesCatalogSyncer;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -151,6 +159,13 @@ class PokedexWorkspace extends ConsumerWidget {
         evolutionSaver ?? ref.watch(pokedexSpeciesEvolutionSaverProvider);
     final PokedexSpeciesMediaSaver resolvedMediaSaver =
         mediaSaver ?? ref.watch(pokedexSpeciesMediaSaverProvider);
+    final PokedexMovesCatalogLoader resolvedMovesCatalogLoader =
+        movesCatalogLoader ?? ref.watch(pokedexMovesCatalogLoaderProvider);
+    final PokedexMovesCatalogPreviewer resolvedMovesCatalogPreviewer =
+        movesCatalogPreviewer ??
+            ref.watch(pokedexMovesCatalogPreviewerProvider);
+    final PokedexMovesCatalogSyncer resolvedMovesCatalogSyncer =
+        movesCatalogSyncer ?? ref.watch(pokedexMovesCatalogSyncerProvider);
 
     return _PokedexWorkspaceBody(
       projectRootPath: projectRootPath,
@@ -167,6 +182,9 @@ class PokedexWorkspace extends ConsumerWidget {
       learnsetSaver: resolvedLearnsetSaver,
       evolutionSaver: resolvedEvolutionSaver,
       mediaSaver: resolvedMediaSaver,
+      movesCatalogLoader: resolvedMovesCatalogLoader,
+      movesCatalogPreviewer: resolvedMovesCatalogPreviewer,
+      movesCatalogSyncer: resolvedMovesCatalogSyncer,
     );
   }
 }
@@ -187,6 +205,9 @@ class _PokedexWorkspaceBody extends StatefulWidget {
     required this.learnsetSaver,
     required this.evolutionSaver,
     required this.mediaSaver,
+    required this.movesCatalogLoader,
+    required this.movesCatalogPreviewer,
+    required this.movesCatalogSyncer,
   });
 
   final String? projectRootPath;
@@ -203,6 +224,9 @@ class _PokedexWorkspaceBody extends StatefulWidget {
   final PokedexSpeciesLearnsetSaver learnsetSaver;
   final PokedexSpeciesEvolutionSaver evolutionSaver;
   final PokedexSpeciesMediaSaver mediaSaver;
+  final PokedexMovesCatalogLoader movesCatalogLoader;
+  final PokedexMovesCatalogPreviewer movesCatalogPreviewer;
+  final PokedexMovesCatalogSyncer movesCatalogSyncer;
 
   @override
   State<_PokedexWorkspaceBody> createState() => _PokedexWorkspaceBodyState();

@@ -17,6 +17,20 @@ import 'dart:typed_data';
 abstract class PokemonExternalSourceRepository {
   Future<Map<String, dynamic>> fetchShowdownSpeciesPayload(String speciesId);
 
+  /// Charge le snapshot global des moves depuis la source structurée
+  /// complémentaire déjà utilisée par la 11A.
+  ///
+  /// Cette extension est volontairement minimale :
+  /// - on n'introduit pas un second port "catalogue moves" parallèle ;
+  /// - on réutilise la même frontière externe que l'import Pokémon 11A ;
+  /// - l'orchestration 11B reste ainsi branchée sur le pipeline existant.
+  ///
+  /// Non-objectifs explicites :
+  /// - aucun parsing dans l'UI ;
+  /// - aucune logique de merge ici ;
+  /// - aucune dépendance directe de l'application à l'URL Showdown.
+  Future<Map<String, dynamic>> fetchShowdownMovesSnapshot();
+
   Future<Map<String, dynamic>> fetchPokeApiPokemonPayload(String speciesId);
 
   Future<Map<String, dynamic>> fetchPokeApiPokemonSpeciesPayload(

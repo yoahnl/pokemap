@@ -21,6 +21,7 @@ import 'package:map_editor/src/application/use_cases/update_pokedex_species_evol
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_learnset_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
+import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_metadata_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_media_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -805,6 +806,129 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('battleFront: battle_front'), findsOneWidget);
+  });
+
+  testWidgets(
+      'shows the local moves catalog section in the learnset tab and allows preview + sync',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/pokedex_ui_test',
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.pokedex,
+    );
+
+    var previewCallCount = 0;
+    var syncCallCount = 0;
+    var catalogEntries = <PokemonMoveCatalogEntryView>[
+      const PokemonMoveCatalogEntryView(
+        id: 'tackle',
+        name: 'Tackle',
+        type: 'normal',
+        category: 'physical',
+        power: 40,
+        accuracy: 100,
+        pp: 35,
+      ),
+    ];
+
+    await pumpPokedexWidget(
+      tester,
+      container,
+      child: PokedexWorkspace(
+        loader: (_) async => <PokemonDatabaseIndexEntry>[
+          buildEntry(
+            id: 'bulbasaur',
+            nationalDex: 1,
+            primaryName: 'Bulbasaur',
+            types: const <String>['grass', 'poison'],
+            genIntroduced: 1,
+          ),
+        ],
+        detailLoader: (_, speciesId) async => buildDetail(id: speciesId),
+        movesCatalogLoader: (_) async => PokemonMovesCatalogView(
+          entries: List<PokemonMoveCatalogEntryView>.from(catalogEntries),
+          isAvailable: true,
+          description: 'Catalogue local des attaques pour le learnset.',
+        ),
+        movesCatalogPreviewer: (_) async {
+          previewCallCount += 1;
+          return const PokemonMovesCatalogSyncResult(
+            dryRun: true,
+            externalEntryCount: 2,
+            createdIds: <String>['thunderbolt'],
+            updatedIds: <String>['tackle'],
+            unchangedIds: <String>[],
+            preservedLocalOnlyIds: <String>[],
+            resultingEntryCount: 2,
+          );
+        },
+        movesCatalogSyncer: (_) async {
+          syncCallCount += 1;
+          catalogEntries = <PokemonMoveCatalogEntryView>[
+            ...catalogEntries,
+            const PokemonMoveCatalogEntryView(
+              id: 'thunderbolt',
+              name: 'Thunderbolt',
+              type: 'electric',
+              category: 'special',
+              power: 90,
+              accuracy: 100,
+              pp: 15,
+            ),
+          ];
+          return const PokemonMovesCatalogSyncResult(
+            dryRun: false,
+            externalEntryCount: 2,
+            createdIds: <String>['thunderbolt'],
+            updatedIds: <String>['tackle'],
+            unchangedIds: <String>[],
+            preservedLocalOnlyIds: <String>[],
+            resultingEntryCount: 2,
+          );
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byKey(const Key('pokedex-row-bulbasaur')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pokedex-tab-learnset')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('pokedex-moves-catalog-section')),
+      findsOneWidget,
+    );
+    expect(find.text('Attaques locales : 1'), findsOneWidget);
+    expect(find.text('Tackle • tackle'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('pokedex-moves-catalog-preview-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(previewCallCount, 1);
+    expect(
+      find.byKey(const Key('pokedex-moves-catalog-preview-summary')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Prévisualisation : 2 moves externes analysés.'),
+        findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const Key('pokedex-moves-catalog-sync-button')));
+    await tester.pumpAndSettle();
+    expect(syncCallCount, 1);
+    expect(find.text('Attaques locales : 2'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('pokedex-moves-catalog-search-field')),
+      'thunder',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Thunderbolt • thunderbolt'), findsOneWidget);
   });
 
   testWidgets(

@@ -13,6 +13,7 @@ import '../../../application/use_cases/import_pokemon_media_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_species_json_use_case.dart';
 import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
 import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
+import '../../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_learnset_use_case.dart';
@@ -197,6 +198,41 @@ final pokedexExternalImporterProvider =
         workspace,
         speciesId: speciesQuery,
       );
+});
+
+final loadPokemonMovesCatalogUseCaseProvider =
+    Provider<LoadPokemonMovesCatalogUseCase>((ref) {
+  return LoadPokemonMovesCatalogUseCase(
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+  );
+});
+
+final syncExternalPokemonMovesCatalogUseCaseProvider =
+    Provider<SyncExternalPokemonMovesCatalogUseCase>((ref) {
+  return SyncExternalPokemonMovesCatalogUseCase(
+    externalSourceRepository:
+        ref.watch(pokemonExternalSourceRepositoryProvider),
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final pokedexMovesCatalogLoaderProvider =
+    Provider<PokedexMovesCatalogLoader>((ref) {
+  final useCase = ref.watch(loadPokemonMovesCatalogUseCaseProvider);
+  return (workspace) => useCase.execute(workspace);
+});
+
+final pokedexMovesCatalogPreviewerProvider =
+    Provider<PokedexMovesCatalogPreviewer>((ref) {
+  final useCase = ref.watch(syncExternalPokemonMovesCatalogUseCaseProvider);
+  return (workspace) => useCase.execute(workspace, dryRun: true);
+});
+
+final pokedexMovesCatalogSyncerProvider =
+    Provider<PokedexMovesCatalogSyncer>((ref) {
+  final useCase = ref.watch(syncExternalPokemonMovesCatalogUseCaseProvider);
+  return (workspace) => useCase.execute(workspace);
 });
 
 final updatePokedexSpeciesMetadataUseCaseProvider =
