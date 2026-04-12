@@ -1,0 +1,42 @@
+{
+  "name": "flutter-clean-architecture",
+  "version": "0.1.0",
+  "description": "Guide Codex to build Flutter apps with strict clean architecture and strong feature boundaries.",
+  "author": {
+    "name": "[TODO: Author Name]",
+    "email": "[TODO: author@example.com]",
+    "url": "[TODO: https://github.com/author]"
+  },
+  "homepage": "[TODO: https://docs.example.com/flutter-clean-architecture]",
+  "repository": "[TODO: https://github.com/author/flutter-clean-architecture]",
+  "license": "[TODO: MIT]",
+  "keywords": [
+    "flutter",
+    "dart",
+    "clean-architecture",
+    "riverpod",
+    "testing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Flutter Clean Architecture",
+    "shortDescription": "Build Flutter apps with strict clean architecture",
+    "longDescription": "An opinionated Codex plugin for creating Flutter applications with feature-first folders, strict dependency direction, testable business logic, and pragmatic app scaffolding rules.",
+    "developerName": "[TODO: Developer Name]",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "[TODO: https://example.com/flutter-clean-architecture]",
+    "privacyPolicyURL": "[TODO: https://example.com/privacy]",
+    "termsOfServiceURL": "[TODO: https://example.com/terms]",
+    "defaultPrompt": [
+      "Create a Flutter app skeleton with strict clean architecture",
+      "Add a feature using domain, data, and presentation layers",
+      "Refactor this Flutter code to enforce clean architecture boundaries"
+    ],
+    "brandColor": "#0A7EA4",
+    "screenshots": []
+  }
+}
