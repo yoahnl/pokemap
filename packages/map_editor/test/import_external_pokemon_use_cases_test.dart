@@ -512,6 +512,198 @@ void main() {
         isFalse,
       );
     });
+
+    test(
+        'omits a missing media asset ref from media.json while keeping the rest coherent',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      externalSourceRepository.binaryAssets
+          .remove('https://assets.example.test/bulbasaur/portrait.png');
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+      final baseVariant = media.variants['base']!;
+
+      expect(baseVariant.portrait, isNull);
+      expect(baseVariant.frontStatic,
+          'assets/pokemon/sprites/bulbasaur/front.png');
+      expect(baseVariant.cry, 'assets/pokemon/cries/bulbasaur.ogg');
+      expect(baseVariant.icon, isNull);
+      expect(baseVariant.party, isNull);
+      expect(baseVariant.overworld, isNull);
+      expect(baseVariant.animations, isEmpty);
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        result.warnings.join('\n'),
+        contains('Portrait download failed'),
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test(
+        'keeps species learnset and evolution when all media downloads fail and writes no ghost refs',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      externalSourceRepository.binaryAssets.clear();
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+      final baseVariant = media.variants['base']!;
+
+      expect(result.importedSpecies, isTrue);
+      expect(result.importedLearnset, isTrue);
+      expect(result.importedEvolution, isTrue);
+      expect(result.downloadedAssetCount, 0);
+      expect(baseVariant.portrait, isNull);
+      expect(baseVariant.frontStatic, isNull);
+      expect(baseVariant.backStatic, isNull);
+      expect(baseVariant.frontShinyStatic, isNull);
+      expect(baseVariant.backShinyStatic, isNull);
+      expect(baseVariant.icon, isNull);
+      expect(baseVariant.party, isNull);
+      expect(baseVariant.overworld, isNull);
+      expect(baseVariant.cry, isNull);
+      expect(baseVariant.animations, isEmpty);
+      expect(result.warnings.join('\n'), contains('download failed'));
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test(
+        'skip_existing keeps a pre-existing local asset ref without re-downloading it',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      final portraitFile = File(
+        workspace.resolveProjectRelativePath(
+          'assets/pokemon/portraits/bulbasaur.png',
+        ),
+      );
+      await portraitFile.parent.create(recursive: true);
+      await portraitFile.writeAsBytes(const <int>[200, 201, 202]);
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+        mergePolicy: PokemonExternalImportMergePolicy.skipExisting,
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+      final portraitResult = result.downloadedAssets.firstWhere(
+        (asset) => asset.label == 'Portrait',
+      );
+
+      expect(media.variants['base']?.portrait,
+          'assets/pokemon/portraits/bulbasaur.png');
+      expect(await portraitFile.readAsBytes(), const <int>[200, 201, 202]);
+      expect(portraitResult.wasWritten, isFalse);
+      expect(portraitResult.existedBefore, isTrue);
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test(
+        'overwrite_existing keeps an existing local asset ref when redownload fails',
+        () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      final portraitFile = File(
+        workspace.resolveProjectRelativePath(
+          'assets/pokemon/portraits/bulbasaur.png',
+        ),
+      );
+      await portraitFile.parent.create(recursive: true);
+      await portraitFile.writeAsBytes(const <int>[77, 88, 99]);
+      externalSourceRepository.binaryAssets
+          .remove('https://assets.example.test/bulbasaur/portrait.png');
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+        mergePolicy: PokemonExternalImportMergePolicy.overwriteExisting,
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.variants['base']?.portrait,
+          'assets/pokemon/portraits/bulbasaur.png');
+      expect(await portraitFile.readAsBytes(), const <int>[77, 88, 99]);
+      expect(
+        result.warnings.join('\n'),
+        contains('existing local asset was kept'),
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test('refuses GIF assets without persisting a ghost media ref', () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      final payload =
+          jsonDecode(_bulbasaurPokemonPayload) as Map<String, dynamic>;
+      final sprites = payload['sprites'] as Map<String, dynamic>;
+      final other = sprites['other'] as Map<String, dynamic>;
+      final officialArtwork = other['official-artwork'] as Map<String, dynamic>;
+      officialArtwork['front_default'] =
+          'https://assets.example.test/bulbasaur/portrait.gif';
+      externalSourceRepository.pokeApiPokemonPayloads['bulbasaur'] = payload;
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.variants['base']?.portrait, isNull);
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/portraits/bulbasaur.png',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(
+        result.warnings.join('\n'),
+        contains('GIF assets are explicitly excluded'),
+      );
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test('applies the same no-ghost rule to cries', () async {
+      final beforeProjectJson = await projectFile.readAsString();
+      externalSourceRepository.binaryAssets
+          .remove('https://assets.example.test/bulbasaur/cry.ogg');
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+
+      expect(media.variants['base']?.cry, isNull);
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/cries/bulbasaur.ogg',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(result.warnings.join('\n'), contains('Cri download failed'));
+      expect(await projectFile.readAsString(), beforeProjectJson);
+    });
   });
 
   group('BatchImportExternalPokemonSpeciesUseCase', () {
