@@ -16,7 +16,8 @@ void main() {
           level: 5,
           maxHp: playerHp,
           moves: [
-            BattleMoveData(id: 'tackle', name: 'Charge', power: playerMovePower),
+            BattleMoveData(
+                id: 'tackle', name: 'Charge', power: playerMovePower),
           ],
         ),
         enemyPokemon: BattleCombatantData(
@@ -37,14 +38,17 @@ void main() {
       final session = createTestSession();
 
       // Premier choix
-      final sessionAfterChoice1 = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final sessionAfterChoice1 =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
 
       // La session devrait avoir évolué (PV changés, tour résolu)
       expect(sessionAfterChoice1.state.currentTurn, isNotNull);
-      expect(sessionAfterChoice1.state.currentTurn!.executions.length, greaterThan(0));
+      expect(sessionAfterChoice1.state.currentTurn!.executions.length,
+          greaterThan(0));
 
       // Deuxième choix immédiat (simule spam)
-      final sessionAfterChoice2 = sessionAfterChoice1.applyChoice(const PlayerBattleChoiceFight(0));
+      final sessionAfterChoice2 =
+          sessionAfterChoice1.applyChoice(const PlayerBattleChoiceFight(0));
 
       // Le deuxième choix devrait aussi être traité normalement
       // (le vrai anti-spam est dans le runtime, pas dans la logique métier)
@@ -56,7 +60,8 @@ void main() {
       final session = createTestSession(enemyHp: 3, playerMovePower: 10);
 
       // Premier choix du joueur
-      final sessionAfterChoice = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final sessionAfterChoice =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
 
       // L'ennemi devrait être K.O.
       expect(sessionAfterChoice.state.enemy.isFainted, isTrue);
@@ -70,7 +75,8 @@ void main() {
       final session = createTestSession(playerHp: 3, enemyMovePower: 10);
 
       // Premier choix du joueur
-      final sessionAfterChoice = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final sessionAfterChoice =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
 
       // Le joueur devrait être K.O.
       expect(sessionAfterChoice.state.player.isFainted, isTrue);
@@ -79,29 +85,31 @@ void main() {
       expect(sessionAfterChoice.state.outcome!.isDefeat, isTrue);
     });
 
-    test('runaway choice skips player attack (MVP behavior)', () {
-      final session = createTestSession(playerHp: 50);  // High HP to survive counter
+    test('runaway choice finishes the battle immediately', () {
+      final session = createTestSession(playerHp: 50);
 
-      // Choix de fuite
-      final sessionAfterRun = session.applyChoice(const PlayerBattleChoiceRun());
+      final sessionAfterRun =
+          session.applyChoice(const PlayerBattleChoiceRun());
 
-      // Dans le MVP actuel, la fuite ne termine pas immédiatement le combat
-      // Elle skip juste les attaques de ce tour
-      // Le combat continue jusqu'à K.O. ou autre condition de fin
-      expect(sessionAfterRun.state.currentTurn, isNotNull);
-      // Le joueur n'attaque pas, mais l'ennemi peut contre-attaquer
-      expect(sessionAfterRun.state.currentTurn!.executions.length, lessThanOrEqualTo(1));
+      expect(sessionAfterRun.state.isFinished, isTrue);
+      expect(sessionAfterRun.state.outcome, isNotNull);
+      expect(sessionAfterRun.state.outcome!.isRunaway, isTrue);
+      expect(sessionAfterRun.state.currentTurn, isNull);
+      expect(sessionAfterRun.state.player.currentHp, equals(50));
+      expect(sessionAfterRun.state.enemy.currentHp, equals(20));
     });
 
     test('multiple turns can be played sequentially', () {
-      final session = createTestSession(playerHp: 50, enemyHp: 50, playerMovePower: 5, enemyMovePower: 5);
+      final session = createTestSession(
+          playerHp: 50, enemyHp: 50, playerMovePower: 5, enemyMovePower: 5);
 
       var currentSession = session;
       var turnCount = 0;
 
       // Jouer plusieurs tours jusqu'à la fin
       while (!currentSession.state.isFinished && turnCount < 20) {
-        currentSession = currentSession.applyChoice(const PlayerBattleChoiceFight(0));
+        currentSession =
+            currentSession.applyChoice(const PlayerBattleChoiceFight(0));
         turnCount++;
       }
 
@@ -159,7 +167,8 @@ void main() {
       );
 
       final session = createBattleSession(setup);
-      final resultSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final resultSession =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(resultSession.state.outcome!.isVictory, isTrue);
       expect(resultSession.state.outcome!.isDefeat, isFalse);
@@ -185,19 +194,20 @@ void main() {
       );
 
       final session = createBattleSession(setup);
-      final resultSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final resultSession =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(resultSession.state.outcome!.isDefeat, isTrue);
       expect(resultSession.state.outcome!.isVictory, isFalse);
       expect(resultSession.state.outcome!.isRunaway, isFalse);
     });
 
-    test('runaway outcome behavior (MVP: skips player attack, enemy may counter)', () {
+    test('runaway outcome exposes a real runaway result', () {
       final setup = BattleSetup(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
-          maxHp: 50,  // High HP to survive counter-attack
+          maxHp: 50,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
@@ -213,13 +223,13 @@ void main() {
       final session = createBattleSession(setup);
       final resultSession = session.applyChoice(const PlayerBattleChoiceRun());
 
-      // Dans le MVP actuel, la fuite skip l'attaque du joueur
-      // Mais l'ennemi peut encore contre-attaquer
-      expect(resultSession.state.currentTurn, isNotNull);
-      // Le joueur n'attaque pas, mais l'ennemi peut attaquer
-      expect(resultSession.state.currentTurn!.executions.length, lessThanOrEqualTo(1));
-      
-      // NOTE: La vraie fuite avec outcome.isRunaway nécessitera une feature supplémentaire
+      expect(resultSession.state.isFinished, isTrue);
+      expect(resultSession.state.outcome, isNotNull);
+      expect(resultSession.state.outcome!.isRunaway, isTrue);
+      expect(resultSession.state.outcome!.isVictory, isFalse);
+      expect(resultSession.state.outcome!.isDefeat, isFalse);
+      expect(resultSession.state.player.currentHp, equals(50));
+      expect(resultSession.state.enemy.currentHp, equals(20));
     });
   });
 }

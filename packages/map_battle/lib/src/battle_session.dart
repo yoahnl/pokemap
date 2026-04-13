@@ -151,6 +151,43 @@ class BattleSession {
   /// }
   /// ```
   BattleSession applyChoice(PlayerBattleChoice choice) {
+    // Lot 11 verrouille une boucle sauvage jouable de bout en bout.
+    //
+    // L'overlay runtime expose déjà explicitement l'action "Run". Si on la
+    // laissait se comporter comme un tour vide sans issue finale, on garderait
+    // une incohérence produit : la fuite semblerait disponible, mais ne
+    // sortirait jamais réellement du combat.
+    //
+    // On choisit ici le comportement le plus petit et le plus honnête pour le
+    // moteur MVP actuel :
+    // - la fuite réussit immédiatement ;
+    // - aucun dégât supplémentaire n'est appliqué ;
+    // - aucun système lot 12+ (capture, récompenses, sac, switch) n'est ouvert ;
+    // - le runtime lot 10 peut réutiliser directement cet outcome pour son
+    //   write-back et son retour overworld.
+    if (choice is PlayerBattleChoiceRun) {
+      final finalState = BattleState(
+        phase: BattlePhase.finished,
+        player: state.player,
+        enemy: state.enemy,
+        currentTurn: null,
+        outcome: null,
+      );
+      return BattleSession._(
+        state: BattleState(
+          phase: BattlePhase.finished,
+          player: finalState.player,
+          enemy: finalState.enemy,
+          currentTurn: null,
+          outcome: BattleOutcome(
+            type: BattleOutcomeType.runaway,
+            finalState: finalState,
+          ),
+        ),
+        setup: setup,
+      );
+    }
+
     // Phase 1: Convertir le choix en action
     final playerAction = _choiceToAction(choice);
 
