@@ -313,6 +313,98 @@ void main() {
       isEmpty,
     );
   });
+
+  testWidgets(
+      'does not invent a base form suggestion when the local species detail has none',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => _movesCatalogView,
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, speciesId) async => speciesId == 'bulbasaur'
+              ? _buildDetail(
+                  forms: const PokemonSpeciesForms(
+                    baseFormId: 'bulbasaur',
+                    isBaseForm: true,
+                    formId: '',
+                    otherForms: <String>[],
+                  ),
+                )
+              : (throw EditorNotFoundException('Missing detail: $speciesId')),
+        ),
+        loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+          LoadPokemonItemsCatalogUseCase(
+            readRepository: _FakePokemonReadRepository(
+              catalogByKey: <String, PokemonCatalogFile>{
+                'items': _itemsCatalog,
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_test',
+      project: ProjectManifest(
+        name: 'trainers_panel_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(
+      find.byKey(const Key('trainer-library-add-pokemon-button-misty')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-species-field')),
+      'bulbasaur',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('trainer-library-pokemon-form-field')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Aucune suggestion de forme locale disponible pour cette espèce. La saisie brute reste possible.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('trainer-library-pokemon-form-suggestion-base')),
+      findsNothing,
+    );
+  });
 }
 
 const List<PokemonDatabaseIndexEntry> _speciesEntries =
@@ -373,8 +465,15 @@ final Map<String, PokedexSpeciesDetail> _detailsById =
   'bulbasaur': _buildDetail(),
 };
 
-PokedexSpeciesDetail _buildDetail() {
-  return const PokedexSpeciesDetail(
+PokedexSpeciesDetail _buildDetail({
+  PokemonSpeciesForms forms = const PokemonSpeciesForms(
+    baseFormId: 'bulbasaur',
+    isBaseForm: true,
+    formId: 'base',
+    otherForms: <String>['blossom'],
+  ),
+}) {
+  return PokedexSpeciesDetail(
     species: PokemonSpeciesFile(
       id: 'bulbasaur',
       slug: 'bulbasaur',
@@ -382,8 +481,8 @@ PokedexSpeciesDetail _buildDetail() {
       names: <String, String>{'en': 'Bulbasaur'},
       speciesName: <String, String>{'en': 'Seed Pokemon'},
       genIntroduced: 1,
-      typing: PokemonSpeciesTyping(types: <String>['grass', 'poison']),
-      baseStats: PokemonSpeciesBaseStats(
+      typing: const PokemonSpeciesTyping(types: <String>['grass', 'poison']),
+      baseStats: const PokemonSpeciesBaseStats(
         hp: 45,
         atk: 49,
         def: 49,
@@ -392,51 +491,47 @@ PokedexSpeciesDetail _buildDetail() {
         spe: 45,
         bst: 318,
       ),
-      abilities: PokemonSpeciesAbilities(primary: 'overgrow'),
-      breeding: PokemonSpeciesBreeding(
+      abilities: const PokemonSpeciesAbilities(primary: 'overgrow'),
+      breeding: const PokemonSpeciesBreeding(
         genderRatio: <String, double>{'male': 0.875, 'female': 0.125},
         eggGroups: <String>['monster', 'grass'],
         hatchCycles: 20,
       ),
-      progression: PokemonSpeciesProgression(
+      progression: const PokemonSpeciesProgression(
         growthRateId: 'medium_slow',
         baseExp: 64,
         catchRate: 45,
         baseFriendship: 50,
       ),
-      forms: PokemonSpeciesForms(
-        baseFormId: 'bulbasaur',
-        isBaseForm: true,
-        formId: 'base',
-        otherForms: <String>['blossom'],
-      ),
-      classification: PokemonSpeciesClassification(
+      forms: forms,
+      classification: const PokemonSpeciesClassification(
         isEnabledInProject: true,
         isObtainable: true,
       ),
-      refs: PokemonSpeciesRefs(
+      refs: const PokemonSpeciesRefs(
         learnset: 'bulbasaur',
         evolution: 'bulbasaur',
         media: 'bulbasaur',
       ),
-      dexContent: PokemonSpeciesDexContent(
+      dexContent: const PokemonSpeciesDexContent(
         heightM: 0.7,
         weightKg: 6.9,
         color: 'green',
         flavorText: 'A strange seed was planted on its back at birth.',
       ),
-      gameplayFlags: PokemonSpeciesGameplayFlags(starterEligible: true),
-      sourceMeta: PokemonSpeciesSourceMeta(seededBy: 'test', seedVersion: 1),
+      gameplayFlags: const PokemonSpeciesGameplayFlags(starterEligible: true),
+      sourceMeta:
+          const PokemonSpeciesSourceMeta(seededBy: 'test', seedVersion: 1),
     ),
-    learnset: PokemonLearnsetFile(
+    learnset: const PokemonLearnsetFile(
       speciesId: 'bulbasaur',
       startingMoves: <String>['tackle'],
     ),
-    evolution: PokemonEvolutionFile(
+    evolution: const PokemonEvolutionFile(
       speciesId: 'bulbasaur',
       evolutions: <PokemonEvolutionEntry>[],
     ),
-    media: PokemonMediaFile(
+    media: const PokemonMediaFile(
       speciesId: 'bulbasaur',
       defaultFormId: 'base',
       variants: <String, PokemonMediaVariant>{},
