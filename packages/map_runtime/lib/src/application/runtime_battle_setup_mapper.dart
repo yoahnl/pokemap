@@ -53,6 +53,7 @@ class RuntimeBattleSetupMapper {
     required RuntimeMapBundle bundle,
     required GameState gameState,
     required BattleStartRequest request,
+    int? playerPartyIndex,
   }) async {
     final reader = _RuntimePokemonProjectReader(
       projectRootDirectory: bundle.projectRootDirectory,
@@ -64,6 +65,7 @@ class RuntimeBattleSetupMapper {
       reader: reader,
       movesCatalog: movesCatalog,
       gameState: gameState,
+      playerPartyIndex: playerPartyIndex,
     );
 
     final enemySeed = switch (request) {
@@ -93,8 +95,12 @@ class RuntimeBattleSetupMapper {
     required _RuntimePokemonProjectReader reader,
     required _RuntimeMovesCatalog movesCatalog,
     required GameState gameState,
+    int? playerPartyIndex,
   }) async {
-    final playerPokemon = _selectUsablePartyMember(gameState.party);
+    final playerPokemon = _selectPlayerPartyMember(
+      gameState.party,
+      playerPartyIndex: playerPartyIndex,
+    );
     final species = await reader.readSpeciesById(playerPokemon.speciesId);
     final moveIds = playerPokemon.knownMoveIds.isNotEmpty
         ? playerPokemon.knownMoveIds
@@ -198,10 +204,15 @@ class RuntimeBattleSetupMapper {
     );
   }
 
-  PlayerPokemon _selectUsablePartyMember(PlayerParty party) {
-    for (final member in party.members) {
-      if (!member.isFainted) {
-        return member;
+  /// Retourne l'index du slot réellement utilisé pour le handoff combat.
+  ///
+  /// Le runtime lot 10 doit mémoriser cet index exact pour réécrire les PV du
+  /// bon membre après le combat. On expose donc explicitement cette sélection
+  /// au lieu de forcer [PlayableMapGame] à dupliquer la logique.
+  int selectUsablePartyMemberIndex(PlayerParty party) {
+    for (var i = 0; i < party.members.length; i++) {
+      if (!party.members[i].isFainted) {
+        return i;
       }
     }
 
@@ -214,6 +225,41 @@ class RuntimeBattleSetupMapper {
     throw const RuntimeBattleSetupException(
       'Tous les Pokémon de l’équipe du joueur sont K.O.; combat impossible.',
     );
+  }
+
+  /// Retourne le Pokémon joueur qui doit être injecté dans [BattleSetup].
+  ///
+  /// Deux cas :
+  /// - lot 9 seul : on prend le premier membre jouable ;
+  /// - lot 10 : le runtime fournit [playerPartyIndex] pour garantir que le
+  ///   combat et le write-back visent exactement le même slot.
+  ///
+  /// On refuse explicitement un index invalide ou un slot déjà K.O. pour éviter
+  /// tout glissement silencieux vers un autre membre de la party.
+  PlayerPokemon _selectPlayerPartyMember(
+    PlayerParty party, {
+    int? playerPartyIndex,
+  }) {
+    final resolvedIndex =
+        playerPartyIndex ?? selectUsablePartyMemberIndex(party);
+    if (resolvedIndex < 0 || resolvedIndex >= party.members.length) {
+      throw RuntimeBattleSetupException(
+        'Le slot de party joueur demandé pour le combat est invalide.',
+        debugDetails:
+            'playerPartyIndex=$resolvedIndex, partyLength=${party.members.length}',
+      );
+    }
+
+    final member = party.members[resolvedIndex];
+    if (member.isFainted) {
+      throw RuntimeBattleSetupException(
+        'Le slot de party joueur demandé pour le combat est déjà K.O.',
+        debugDetails:
+            'playerPartyIndex=$resolvedIndex, speciesId=${member.speciesId}',
+      );
+    }
+
+    return member;
   }
 
   ProjectTrainerEntry _findTrainer(ProjectManifest manifest, String trainerId) {

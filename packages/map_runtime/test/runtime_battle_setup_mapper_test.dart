@@ -78,6 +78,53 @@ void main() {
       expect(setup.playerPokemon.speciesId, isNot(equals('pikachu')));
     });
 
+    test('uses the explicit player party index when the runtime provides one',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-player-index',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'hardy',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['growl'],
+                currentHp: 21,
+              ),
+              PlayerPokemon(
+                speciesId: 'aquafi',
+                natureId: 'calm',
+                abilityId: 'torrent',
+                level: 18,
+                knownMoveIds: <String>['water_gun', 'aqua_ring'],
+                currentHp: 17,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+        playerPartyIndex: 1,
+      );
+
+      expect(setup.playerPokemon.speciesId, equals('aquafi'));
+      expect(setup.playerPokemon.currentHp, equals(17));
+      expect(
+        setup.playerPokemon.moves.map((move) => move.id).toList(),
+        equals(<String>['water_gun', 'aqua_ring']),
+      );
+    });
+
     test('maps a wild encounter from real project species and learnset data',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
