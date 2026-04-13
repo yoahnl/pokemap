@@ -651,6 +651,13 @@ Avancement réel à date :
     vivent ensemble dans une surface centrale plus lisible ;
   - les sélecteurs `species` / `moves` / `items` parlent d'abord en noms
     lisibles, avec les IDs bruts conservés comme fallback honnête.
+- lot 8-3 livré :
+  - les moves du `Trainer Studio` sont maintenant guidés par le learnset local
+    de l'espèce sélectionnée et par le niveau courant ;
+  - la façade principale n'expose plus les IDs bruts comme mode dominant :
+    ils restent disponibles dans un fallback avancé ;
+  - les états dégradés restent honnêtes quand le learnset local, le catalogue
+    moves ou les références locales sont indisponibles.
 
 ### Phase D — Bridge runtime -> battle réel
 
@@ -783,6 +790,14 @@ Statut actuel :
   - selectors guidés `species` / `moves` / `items` plus lisibles pour un
     auteur non technique ;
   - IDs bruts toujours possibles, mais plus en façade principale.
+- lot 8-3 livré :
+  - choix des moves contextualisé par espèce + niveau quand le learnset local
+    existe ;
+  - suggestions guidées issues de `startingMoves`, `relearnMoves` et
+    `levelUp <= niveau` ;
+  - wording plus compréhensible quand les suggestions guidées ne peuvent pas
+    être chargées ;
+  - fallback brut maintenu, mais relégué à une zone avancée.
 
 Gate de sortie :
 
@@ -1195,6 +1210,46 @@ Livré concrètement :
 - champs bruts conservés comme fallback honnête au lieu d'être la façade
   principale ;
 - tests widget + smoke shell + non-régressions utiles dédiés ;
+- report de lot présent dans `reports/`.
+
+### Lot 8-3 — Trainer Studio guidé par learnset local
+
+Priorité : `must-have`
+Statut : `livré`
+
+But :
+
+- rendre le `Trainer Studio` réellement no-code-friendly pour l'édition des
+  moves, sans créer de nouveau pipeline trainer.
+
+Done :
+
+- moves guidés par espèce + niveau ;
+- suggestions lisibles pour un auteur ;
+- IDs bruts relégués en fallback secondaire ;
+- wording honnête quand les données locales sont absentes ;
+- aucun nouveau store / notifier / repository trainer.
+
+Livré concrètement :
+
+- suggestions de moves issues du learnset local de l'espèce sélectionnée ;
+- prise en compte au minimum de :
+  - `startingMoves` ;
+  - `relearnMoves` ;
+  - `levelUp` dont le niveau d'apprentissage est inférieur ou égal au niveau
+    courant ;
+- libellés de suggestions lisibles avec :
+  - nom du move en premier ;
+  - id en secondaire ;
+  - source visible (`Start`, `Relearn`, `Lv.X`) ;
+- champs bruts `species` / `moves` / `items` / `forms` conservés dans une zone
+  de fallback avancée au lieu de rester la façade principale ;
+- messages honnêtes quand :
+  - aucune espèce n'est sélectionnée ;
+  - le niveau n'est pas encore exploitable ;
+  - le learnset local n'existe pas ;
+  - le catalogue local des moves est indisponible ;
+- tests widget trainer renforcés ;
 - report de lot présent dans `reports/`.
 
 ### Lot 9 — Mappers runtime réels vers `BattleSetup`

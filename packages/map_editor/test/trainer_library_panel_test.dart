@@ -225,12 +225,14 @@ void main() {
       'growl',
     );
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-move-1-field')),
-      'growl',
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-move-1-suggestion-growl'),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.byKey(const Key('trainer-library-pokemon-item-field')),
+      find.byKey(const Key('trainer-library-pokemon-item-search-field')),
       200,
       scrollable: find
           .descendant(
@@ -240,22 +242,27 @@ void main() {
           .first,
     );
     await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-item-field')),
-      'oran_berry',
+      find.byKey(const Key('trainer-library-pokemon-item-search-field')),
+      'oran',
     );
-    await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-form-field')),
-      'blossom',
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-item-suggestion-oran_berry'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-form-suggestion-blossom'),
+      ),
     );
     await tester.pumpAndSettle();
 
     final savePokemonButton =
         find.byKey(const Key('trainer-library-pokemon-save-button'));
-    await tester.dragUntilVisible(
-      savePokemonButton,
-      find.byKey(const Key('trainer-library-editor-scroll')),
-      const Offset(0, -220),
-    );
+    await tester.ensureVisible(savePokemonButton);
+    await tester.pumpAndSettle();
     await tester.tap(savePokemonButton);
     await tester.pumpAndSettle();
 
@@ -271,6 +278,116 @@ void main() {
     expect(pokemon.shiny, isFalse);
     expect(
       find.byKey(Key('trainer-library-pokemon-row-${trainer.id}-0')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'shows guided move suggestions from the selected learnset and level',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => _movesCatalogView,
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, speciesId) async =>
+              _detailsById[speciesId] ??
+              (throw EditorNotFoundException('Missing detail: $speciesId')),
+        ),
+        loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+          LoadPokemonItemsCatalogUseCase(
+            readRepository: _FakePokemonReadRepository(
+              catalogByKey: <String, PokemonCatalogFile>{
+                'items': _itemsCatalog,
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_test',
+      project: ProjectManifest(
+        name: 'trainers_panel_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(
+      find.byKey(const Key('trainer-library-add-pokemon-button-misty')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-species-search-field')),
+      'bulba',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-species-suggestion-bulbasaur'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-level-field')),
+      '12',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-move-0-search-field')),
+      'vine',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const Key('trainer-library-pokemon-move-0-suggestion-vine_whip'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Lv.7'), findsWidgets);
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-move-0-search-field')),
+      'razor',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const Key('trainer-library-pokemon-move-0-suggestion-razor_leaf'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('trainer-library-pokemon-move-0-search-empty')),
       findsOneWidget,
     );
   });
@@ -335,13 +452,38 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-species-field')),
-      'bulbasaur',
+      find.byKey(const Key('trainer-library-pokemon-species-search-field')),
+      'bulba',
     );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-species-suggestion-bulbasaur'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('trainer-library-pokemon-level-field')),
       '10',
     );
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('trainer-library-pokemon-move-0-field')),
       'missing_move',
@@ -349,11 +491,8 @@ void main() {
 
     final savePokemonButton =
         find.byKey(const Key('trainer-library-pokemon-save-button'));
-    await tester.dragUntilVisible(
-      savePokemonButton,
-      find.byKey(const Key('trainer-library-editor-scroll')),
-      const Offset(0, -220),
-    );
+    await tester.ensureVisible(savePokemonButton);
+    await tester.pumpAndSettle();
     await tester.tap(savePokemonButton);
     await tester.pumpAndSettle();
 
@@ -435,13 +574,21 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-species-field')),
-      'bulbasaur',
+      find.byKey(const Key('trainer-library-pokemon-species-search-field')),
+      'bulba',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-species-suggestion-bulbasaur'),
+      ),
     );
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.byKey(const Key('trainer-library-pokemon-form-field')),
+      find.text(
+        'No local form suggestion is available for this species. The raw fallback remains available.',
+      ),
       200,
       scrollable: find
           .descendant(
@@ -454,7 +601,7 @@ void main() {
 
     expect(
       find.text(
-        'Aucune suggestion de forme locale disponible pour cette espèce. La saisie brute reste possible.',
+        'No local form suggestion is available for this species. The raw fallback remains available.',
       ),
       findsOneWidget,
     );
@@ -529,6 +676,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('trainer-library-pokemon-species-field')),
       'bulbasaur',
@@ -538,7 +703,9 @@ void main() {
       '10',
     );
     await tester.scrollUntilVisible(
-      find.byKey(const Key('trainer-library-pokemon-form-field')),
+      find.text(
+        'Unable to verify local forms for this species right now. The raw fallback remains available.',
+      ),
       200,
       scrollable: find
           .descendant(
@@ -551,7 +718,7 @@ void main() {
 
     expect(
       find.text(
-        'Impossible de vérifier les formes locales pour cette espèce. La saisie brute reste possible.',
+        'Unable to verify local forms for this species right now. The raw fallback remains available.',
       ),
       findsOneWidget,
     );
@@ -661,13 +828,38 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-species-field')),
-      'bulbasaur',
+      find.byKey(const Key('trainer-library-pokemon-species-search-field')),
+      'bulba',
     );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-species-suggestion-bulbasaur'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('trainer-library-pokemon-level-field')),
       '10',
     );
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('trainer-library-pokemon-move-0-field')),
       'missing_move',
@@ -687,14 +879,10 @@ void main() {
       'mystery_item',
     );
 
-    final savePokemonButton =
-        find.byKey(const Key('trainer-library-pokemon-save-button'));
-    await tester.dragUntilVisible(
-      savePokemonButton,
-      find.byKey(const Key('trainer-library-editor-scroll')),
-      const Offset(0, -220),
+    final savePokemonButton = tester.widget<CupertinoButton>(
+      find.byKey(const Key('trainer-library-pokemon-save-button')),
     );
-    await tester.tap(savePokemonButton);
+    savePokemonButton.onPressed!.call();
     await tester.pumpAndSettle();
 
     final savedTrainer =
@@ -704,6 +892,124 @@ void main() {
     expect(pokemon.level, 10);
     expect(pokemon.moves, <String>['missing_move']);
     expect(pokemon.heldItemId, 'mystery_item');
+  });
+
+  testWidgets(
+      'keeps raw move fallback available when the local learnset is unavailable',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => _movesCatalogView,
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, speciesId) async => speciesId == 'bulbasaur'
+              ? _buildDetail(learnset: null)
+              : (throw EditorNotFoundException('Missing detail: $speciesId')),
+        ),
+        loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+          LoadPokemonItemsCatalogUseCase(
+            readRepository: _FakePokemonReadRepository(
+              catalogByKey: <String, PokemonCatalogFile>{
+                'items': _itemsCatalog,
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_test',
+      project: ProjectManifest(
+        name: 'trainers_panel_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(
+      find.byKey(const Key('trainer-library-add-pokemon-button-misty')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-species-search-field')),
+      'bulba',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-species-suggestion-bulbasaur'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-level-field')),
+      '12',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'No local learnset is available for this species. Guided move suggestions are unavailable, but raw IDs stay possible.',
+      ),
+      findsWidgets,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(
+      find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-move-0-field')),
+      'tackle',
+    );
+
+    final savePokemonButton = tester.widget<CupertinoButton>(
+      find.byKey(const Key('trainer-library-pokemon-save-button')),
+    );
+    savePokemonButton.onPressed!.call();
+    await tester.pumpAndSettle();
+
+    final savedTrainer =
+        container.read(editorNotifierProvider).project!.trainers.single;
+    expect(savedTrainer.team.single.moves, <String>['tackle']);
   });
 }
 
@@ -741,6 +1047,22 @@ const PokemonMovesCatalogView _movesCatalogView = PokemonMovesCatalogView(
       power: 40,
       pp: 35,
     ),
+    PokemonMoveCatalogEntryView(
+      id: 'vine_whip',
+      name: 'Vine Whip',
+      type: 'grass',
+      category: 'physical',
+      power: 45,
+      pp: 25,
+    ),
+    PokemonMoveCatalogEntryView(
+      id: 'razor_leaf',
+      name: 'Razor Leaf',
+      type: 'grass',
+      category: 'physical',
+      power: 55,
+      pp: 25,
+    ),
   ],
   isAvailable: true,
   description: 'Catalogue local des attaques.',
@@ -771,6 +1093,25 @@ PokedexSpeciesDetail _buildDetail({
     isBaseForm: true,
     formId: 'base',
     otherForms: <String>['blossom'],
+  ),
+  PokemonLearnsetFile? learnset = const PokemonLearnsetFile(
+    speciesId: 'bulbasaur',
+    startingMoves: <String>['tackle'],
+    relearnMoves: <String>['growl'],
+    levelUp: <PokemonLearnsetLevelUpEntry>[
+      PokemonLearnsetLevelUpEntry(
+        moveId: 'vine_whip',
+        level: 7,
+        source: 'level-up',
+        versionGroup: 'project',
+      ),
+      PokemonLearnsetLevelUpEntry(
+        moveId: 'razor_leaf',
+        level: 20,
+        source: 'level-up',
+        versionGroup: 'project',
+      ),
+    ],
   ),
 }) {
   return PokedexSpeciesDetail(
@@ -823,10 +1164,7 @@ PokedexSpeciesDetail _buildDetail({
       sourceMeta:
           const PokemonSpeciesSourceMeta(seededBy: 'test', seedVersion: 1),
     ),
-    learnset: const PokemonLearnsetFile(
-      speciesId: 'bulbasaur',
-      startingMoves: <String>['tackle'],
-    ),
+    learnset: learnset,
     evolution: const PokemonEvolutionFile(
       speciesId: 'bulbasaur',
       evolutions: <PokemonEvolutionEntry>[],

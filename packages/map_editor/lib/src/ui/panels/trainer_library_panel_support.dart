@@ -72,6 +72,22 @@ class _TrainerPokemonDraft {
   final bool shiny;
 }
 
+class _TrainerGuidedMoveSuggestions {
+  const _TrainerGuidedMoveSuggestions({
+    required this.description,
+    required this.disabledPlaceholder,
+    this.entries = const <PokemonMoveCatalogEntryView>[],
+    this.sourceLabelsByMoveId = const <String, List<String>>{},
+    this.missingCatalogMoveIds = const <String>[],
+  });
+
+  final String description;
+  final String disabledPlaceholder;
+  final List<PokemonMoveCatalogEntryView> entries;
+  final Map<String, List<String>> sourceLabelsByMoveId;
+  final List<String> missingCatalogMoveIds;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers purs
 // ---------------------------------------------------------------------------
@@ -139,4 +155,147 @@ List<String> _buildSpeciesFormSuggestions(PokemonSpeciesFile species) {
     }
   }
   return unique;
+}
+
+String _firstGuidanceLine(String rawMessage) {
+  final trimmed = rawMessage.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  final newlineIndex = trimmed.indexOf('\n');
+  if (newlineIndex < 0) {
+    return trimmed;
+  }
+  return trimmed.substring(0, newlineIndex).trim();
+}
+
+_TrainerGuidedMoveSuggestions _buildTrainerGuidedMoveSuggestions({
+  required String rawSpeciesId,
+  required int? level,
+  required bool isSpeciesCatalogAvailable,
+  required PokemonDatabaseIndexEntry? resolvedSpecies,
+  required PokedexSpeciesDetail? speciesDetail,
+  required PokemonMovesCatalogView movesCatalogView,
+}) {
+  final speciesId = rawSpeciesId.trim();
+  if (speciesId.isEmpty) {
+    return const _TrainerGuidedMoveSuggestions(
+      description:
+          'Choose a species first. Guided move suggestions depend on the selected Pokémon and its current level.',
+      disabledPlaceholder: 'Choose a species first',
+    );
+  }
+
+  if (level == null || level <= 0) {
+    return const _TrainerGuidedMoveSuggestions(
+      description:
+          'Enter a valid level first. Guided move suggestions only show attacks already available at the current level.',
+      disabledPlaceholder: 'Enter a valid level first',
+    );
+  }
+
+  if (!movesCatalogView.isAvailable) {
+    return _TrainerGuidedMoveSuggestions(
+      description:
+          '${_firstGuidanceLine(movesCatalogView.message ?? movesCatalogView.description)} Open the raw ID fallbacks if needed.',
+      disabledPlaceholder: 'Local move data unavailable',
+    );
+  }
+
+  if (resolvedSpecies == null && isSpeciesCatalogAvailable) {
+    return const _TrainerGuidedMoveSuggestions(
+      description:
+          'The selected species is not present in the local Pokédex. Guided move suggestions are unavailable for this entry.',
+      disabledPlaceholder: 'Unknown local species',
+    );
+  }
+
+  if (speciesDetail == null) {
+    return const _TrainerGuidedMoveSuggestions(
+      description:
+          'No local species detail is available for this Pokémon right now. Guided move suggestions are unavailable, but raw IDs stay possible.',
+      disabledPlaceholder: 'Species detail unavailable',
+    );
+  }
+
+  final learnset = speciesDetail.learnset;
+  if (learnset == null) {
+    return const _TrainerGuidedMoveSuggestions(
+      description:
+          'No local learnset is available for this species. Guided move suggestions are unavailable, but raw IDs stay possible.',
+      disabledPlaceholder: 'No local learnset',
+    );
+  }
+
+  final sourceLabelsByMoveId = <String, List<String>>{};
+
+  void addSource(String moveId, String label) {
+    final normalizedMoveId = moveId.trim();
+    if (normalizedMoveId.isEmpty) {
+      return;
+    }
+    final labels = sourceLabelsByMoveId.putIfAbsent(
+      normalizedMoveId,
+      () => <String>[],
+    );
+    if (!labels.contains(label)) {
+      labels.add(label);
+    }
+  }
+
+  for (final moveId in learnset.startingMoves) {
+    addSource(moveId, 'Start');
+  }
+  for (final moveId in learnset.relearnMoves) {
+    addSource(moveId, 'Relearn');
+  }
+  for (final entry in learnset.levelUp) {
+    if (entry.level <= level) {
+      addSource(entry.moveId, 'Lv.${entry.level}');
+    }
+  }
+
+  if (sourceLabelsByMoveId.isEmpty) {
+    return _TrainerGuidedMoveSuggestions(
+      description:
+          'No starting, relearn or level-up moves are available locally for this species at Lv.$level.',
+      disabledPlaceholder: 'No guided move available',
+    );
+  }
+
+  final resolvedEntries = <PokemonMoveCatalogEntryView>[];
+  final missingCatalogMoveIds = <String>[];
+  for (final moveId in sourceLabelsByMoveId.keys) {
+    final entry = _movesLookupService.findById(
+      movesCatalogView.entries,
+      moveId,
+    );
+    if (entry == null) {
+      missingCatalogMoveIds.add(moveId);
+      continue;
+    }
+    resolvedEntries.add(entry);
+  }
+
+  final missingSuffix = missingCatalogMoveIds.isEmpty
+      ? ''
+      : ' Some learnset moves are missing from the local move catalog: ${missingCatalogMoveIds.join(', ')}.';
+
+  if (resolvedEntries.isEmpty) {
+    return _TrainerGuidedMoveSuggestions(
+      description:
+          'The local learnset for this species does not resolve to any move present in the local move catalog.$missingSuffix Raw IDs stay possible.',
+      disabledPlaceholder: 'No guided move available',
+      missingCatalogMoveIds: missingCatalogMoveIds,
+    );
+  }
+
+  return _TrainerGuidedMoveSuggestions(
+    description:
+        'Showing moves available from starting, relearn and level-up data up to Lv.$level.$missingSuffix',
+    disabledPlaceholder: 'Search the moves available now',
+    entries: resolvedEntries,
+    sourceLabelsByMoveId: sourceLabelsByMoveId,
+    missingCatalogMoveIds: missingCatalogMoveIds,
+  );
 }

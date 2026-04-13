@@ -211,6 +211,7 @@ class _TrainerPokemonEditorCard extends StatefulWidget {
 class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
   Future<PokedexSpeciesDetail?>? _speciesDetailFuture;
   String _lastSpeciesId = '';
+  bool _showRawFallbacks = false;
 
   @override
   void initState() {
@@ -297,15 +298,125 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
     _speciesDetailFuture = widget.loadSpeciesDetail(speciesId);
   }
 
+  void _toggleRawFallbacks() {
+    setState(() {
+      _showRawFallbacks = !_showRawFallbacks;
+    });
+  }
+
+  Widget _buildRawFallbackSection(BuildContext context) {
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.accentWarm.withValues(alpha: 0.04),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: EditorChrome.accentWarm.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Advanced raw ID fallbacks',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                PushButton(
+                  key: const Key(
+                    'trainer-library-pokemon-raw-fallback-toggle-button',
+                  ),
+                  controlSize: ControlSize.small,
+                  secondary: _showRawFallbacks,
+                  onPressed: _toggleRawFallbacks,
+                  child: Text(
+                    _showRawFallbacks ? 'Hide raw fields' : 'Show raw fields',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Guided selectors stay primary. Open these raw fields only when local project data cannot suggest the exact value you need.',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+            if (_showRawFallbacks) ...[
+              const SizedBox(height: 10),
+              _TrainerInlineField(
+                label: 'Raw species ID (fallback)',
+                fieldKey: const Key('trainer-library-pokemon-species-field'),
+                controller: widget.speciesController,
+                placeholder: 'pikachu',
+              ),
+              const SizedBox(height: 10),
+              for (var i = 0; i < widget.moveControllers.length; i++) ...[
+                _TrainerInlineField(
+                  label: 'Raw move ID ${i + 1} (fallback)',
+                  fieldKey: Key('trainer-library-pokemon-move-$i-field'),
+                  controller: widget.moveControllers[i],
+                  placeholder: 'move id',
+                ),
+                if (i != widget.moveControllers.length - 1)
+                  const SizedBox(height: 10),
+              ],
+              const SizedBox(height: 10),
+              _TrainerInlineField(
+                label: 'Raw held item ID (fallback)',
+                fieldKey: const Key('trainer-library-pokemon-item-field'),
+                controller: widget.itemController,
+                placeholder: 'oran_berry',
+              ),
+              const SizedBox(height: 10),
+              _TrainerInlineField(
+                label: 'Raw form ID (fallback)',
+                fieldKey: const Key('trainer-library-pokemon-form-field'),
+                controller: widget.formController,
+                placeholder: 'base / alternate form id',
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final speciesId = widget.speciesController.text.trim();
+    final level = int.tryParse(widget.levelController.text.trim());
+    final heldItemId = widget.itemController.text.trim();
+    final formId = widget.formController.text.trim();
     final resolvedSpecies = widget.references.isSpeciesAvailable
         ? _speciesLookupService.findById(
             widget.references.speciesEntries,
-            widget.speciesController.text,
+            speciesId,
           )
         : null;
+    final resolvedItem =
+        widget.references.itemsCatalogView.isAvailable && heldItemId.isNotEmpty
+            ? _itemsLookupService.findById(
+                widget.references.itemsCatalogView.entries,
+                heldItemId,
+              )
+            : null;
     final speciesCatalogReady = widget.references.isSpeciesAvailable;
 
     return DecoratedBox(
@@ -328,13 +439,14 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
             const SizedBox(height: 8),
             _TrainerCatalogAssistField<PokemonDatabaseIndexEntry>(
               keyPrefix: 'trainer-library-pokemon-species',
-              title: 'Search the local Pokédex',
+              title: 'Find a species in the local Pokédex',
               description: speciesCatalogReady
                   ? 'Search by species name, local id or Pokédex number.'
                   : widget.references.speciesMessage,
               entries: widget.references.speciesEntries,
               lookupService: _speciesLookupService,
               enabled: speciesCatalogReady,
+              disabledPlaceholder: 'Local Pokédex unavailable',
               searchPlaceholder: 'Search a project species',
               subtitleBuilder: (entry) => [
                 '#${entry.nationalDex.toString().padLeft(4, '0')}',
@@ -345,19 +457,12 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                 widget.speciesController.text = entry.id;
               },
             ),
-            const SizedBox(height: 8),
-            _TrainerInlineField(
-              label: 'Raw species ID (fallback)',
-              fieldKey: const Key('trainer-library-pokemon-species-field'),
-              controller: widget.speciesController,
-              placeholder: 'pikachu',
-            ),
             const SizedBox(height: 6),
             Text(
               resolvedSpecies == null
                   ? speciesCatalogReady
-                      ? 'Raw species ID not resolved in the local Pokédex.'
-                      : 'La validation d’espèce reste limitée tant que l’index local est indisponible.'
+                      ? 'The current species value is not resolved in the local Pokédex.'
+                      : 'Species validation stays limited while the local Pokédex is unavailable.'
                   : 'Selected species: ${resolvedSpecies.primaryName} • #${resolvedSpecies.nationalDex.toString().padLeft(4, '0')} • ${resolvedSpecies.id}',
               style: TextStyle(
                 color: resolvedSpecies == null
@@ -437,77 +542,136 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
               ],
             ),
             const SizedBox(height: 12),
-            const InspectorEmbeddedSectionLabel('MOVES'),
-            const SizedBox(height: 8),
-            for (var i = 0; i < widget.moveControllers.length; i++) ...[
-              _TrainerMoveSlotEditor(
-                slotIndex: i,
-                controller: widget.moveControllers[i],
-                catalogView: widget.references.movesCatalogView,
-              ),
-              if (i != widget.moveControllers.length - 1)
-                const SizedBox(height: 10),
-            ],
-            const SizedBox(height: 12),
-            const InspectorEmbeddedSectionLabel('ITEM / FORM'),
-            const SizedBox(height: 8),
-            _TrainerCatalogAssistField<PokemonItemCatalogEntryView>(
-              keyPrefix: 'trainer-library-pokemon-item',
-              title: 'Search the local item catalog',
-              description: widget.references.itemsCatalogView.isAvailable
-                  ? 'Search by item name or local id.'
-                  : widget.references.itemsCatalogView.message ??
-                      widget.references.itemsCatalogView.description,
-              entries: widget.references.itemsCatalogView.entries,
-              lookupService: _itemsLookupService,
-              enabled: widget.references.itemsCatalogView.isAvailable,
-              searchPlaceholder: 'Search a project item',
-              subtitleBuilder: (entry) => entry.id,
-              onSelected: (entry) {
-                widget.itemController.text = entry.id;
-              },
-            ),
-            const SizedBox(height: 8),
-            _TrainerInlineField(
-              label: 'Raw held item ID (fallback)',
-              fieldKey: const Key('trainer-library-pokemon-item-field'),
-              controller: widget.itemController,
-              placeholder: 'oran_berry',
-            ),
-            const SizedBox(height: 8),
-            _TrainerInlineField(
-              label: 'Raw form ID (fallback)',
-              fieldKey: const Key('trainer-library-pokemon-form-field'),
-              controller: widget.formController,
-              placeholder: 'base / alternate form id',
-            ),
-            const SizedBox(height: 8),
             FutureBuilder<PokedexSpeciesDetail?>(
               future: _speciesDetailFuture,
               builder: (context, snapshot) {
                 final detail = snapshot.data;
+                final guidedMoves = snapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        speciesId.isNotEmpty
+                    ? const _TrainerGuidedMoveSuggestions(
+                        description:
+                            'Loading the local learnset for this species… Guided move suggestions will appear when the data is ready.',
+                        disabledPlaceholder: 'Loading local learnset…',
+                      )
+                    : _buildTrainerGuidedMoveSuggestions(
+                        rawSpeciesId: speciesId,
+                        level: level,
+                        isSpeciesCatalogAvailable: speciesCatalogReady,
+                        resolvedSpecies: resolvedSpecies,
+                        speciesDetail: detail,
+                        movesCatalogView: widget.references.movesCatalogView,
+                      );
                 final availableForms = detail == null
                     ? const <String>[]
                     : _buildSpeciesFormSuggestions(detail.species);
+                final itemStatus = heldItemId.isEmpty
+                    ? 'No held item selected.'
+                    : resolvedItem == null
+                        ? widget.references.itemsCatalogView.isAvailable
+                            ? 'The current held item value is not resolved in the local item catalog.'
+                            : 'Local item catalog unavailable. The raw value is kept as-is.'
+                        : 'Selected item: ${resolvedItem.name} • ${resolvedItem.id}';
+                final formStatus = formId.isEmpty
+                    ? 'No form override selected.'
+                    : availableForms.contains(formId)
+                        ? 'Selected form: $formId'
+                        : 'Current raw form override: $formId';
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const InspectorEmbeddedSectionLabel('MOVES'),
+                    const SizedBox(height: 8),
+                    // Guided move suggestions stay local to this species draft.
+                    // We deliberately keep them in the widget layer because
+                    // they are a presentational helper over already-loaded
+                    // authoring data, not a second trainer domain service.
+                    for (var i = 0; i < widget.moveControllers.length; i++) ...[
+                      _TrainerMoveSlotEditor(
+                        slotIndex: i,
+                        controller: widget.moveControllers[i],
+                        catalogView: widget.references.movesCatalogView,
+                        guidedMoves: guidedMoves,
+                      ),
+                      if (i != widget.moveControllers.length - 1)
+                        const SizedBox(height: 10),
+                    ],
+                    if (guidedMoves.missingCatalogMoveIds.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Some locally available learnset moves are missing from the local move catalog: ${guidedMoves.missingCatalogMoveIds.join(', ')}.',
+                        style: const TextStyle(
+                          color: EditorChrome.inspectorJoyCoral,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    const InspectorEmbeddedSectionLabel('ITEM / FORM'),
+                    const SizedBox(height: 8),
+                    _TrainerCatalogAssistField<PokemonItemCatalogEntryView>(
+                      keyPrefix: 'trainer-library-pokemon-item',
+                      title: 'Find an item in the local catalog',
+                      description: widget
+                              .references.itemsCatalogView.isAvailable
+                          ? 'Search by item name or local id.'
+                          : widget.references.itemsCatalogView.message ??
+                              widget.references.itemsCatalogView.description,
+                      entries: widget.references.itemsCatalogView.entries,
+                      lookupService: _itemsLookupService,
+                      enabled: widget.references.itemsCatalogView.isAvailable,
+                      disabledPlaceholder: 'Local item catalog unavailable',
+                      searchPlaceholder: 'Search a project item',
+                      subtitleBuilder: (entry) => entry.id,
+                      onSelected: (entry) {
+                        widget.itemController.text = entry.id;
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      itemStatus,
+                      style: TextStyle(
+                        color: heldItemId.isNotEmpty && resolvedItem == null
+                            ? EditorChrome.inspectorJoyCoral
+                            : subtle,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     Text(
                       snapshot.connectionState == ConnectionState.waiting &&
-                              widget.speciesController.text.trim().isNotEmpty
-                          ? 'Chargement des formes locales pour cette espèce…'
-                          : widget.speciesController.text.trim().isEmpty
-                              ? 'Renseignez une espèce pour vérifier les formes locales.'
+                              speciesId.isNotEmpty
+                          ? 'Loading local forms for this species…'
+                          : speciesId.isEmpty
+                              ? 'Choose a species to check local form suggestions.'
                               : detail == null
-                                  ? 'Impossible de vérifier les formes locales pour cette espèce. La saisie brute reste possible.'
+                                  ? 'Unable to verify local forms for this species right now. The raw fallback remains available.'
                                   : availableForms.isEmpty
-                                      ? 'Aucune suggestion de forme locale disponible pour cette espèce. La saisie brute reste possible.'
-                                      : 'Suggestions de formes locales :',
+                                      ? 'No local form suggestion is available for this species. The raw fallback remains available.'
+                                      : 'Local form suggestions:',
                       style: TextStyle(
                         color: subtle,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      formStatus,
+                      style: TextStyle(
+                        color: formId.isNotEmpty &&
+                                availableForms.isNotEmpty &&
+                                !availableForms.contains(formId)
+                            ? EditorChrome.inspectorJoyCoral
+                            : subtle,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                         height: 1.35,
                       ),
                     ),
@@ -545,6 +709,8 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                         ],
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    _buildRawFallbackSection(context),
                   ],
                 );
               },
@@ -598,11 +764,13 @@ class _TrainerMoveSlotEditor extends StatelessWidget {
     required this.slotIndex,
     required this.controller,
     required this.catalogView,
+    required this.guidedMoves,
   });
 
   final int slotIndex;
   final TextEditingController controller;
   final PokemonMovesCatalogView catalogView;
+  final _TrainerGuidedMoveSuggestions guidedMoves;
 
   @override
   Widget build(BuildContext context) {
@@ -617,15 +785,15 @@ class _TrainerMoveSlotEditor extends StatelessWidget {
       children: [
         _TrainerCatalogAssistField<PokemonMoveCatalogEntryView>(
           keyPrefix: 'trainer-library-pokemon-move-$slotIndex',
-          title: 'Search move slot ${slotIndex + 1}',
-          description: catalogView.isAvailable
-              ? 'Search by move name or local id.'
-              : catalogView.message ?? catalogView.description,
-          entries: catalogView.entries,
+          title: 'Move slot ${slotIndex + 1}',
+          description: guidedMoves.description,
+          entries: guidedMoves.entries,
           lookupService: _movesLookupService,
-          enabled: catalogView.isAvailable,
-          searchPlaceholder: 'Search a move',
+          enabled: guidedMoves.entries.isNotEmpty,
+          disabledPlaceholder: guidedMoves.disabledPlaceholder,
+          searchPlaceholder: 'Search an available move',
           subtitleBuilder: (entry) => [
+            ...?guidedMoves.sourceLabelsByMoveId[entry.id],
             if (entry.type != null) entry.type!,
             if (entry.category != null) entry.category!,
             if (entry.power != null) 'Power ${entry.power}',
@@ -634,13 +802,6 @@ class _TrainerMoveSlotEditor extends StatelessWidget {
           onSelected: (entry) {
             controller.text = entry.id;
           },
-        ),
-        const SizedBox(height: 6),
-        _TrainerInlineField(
-          label: 'Raw move ID ${slotIndex + 1} (fallback)',
-          fieldKey: Key('trainer-library-pokemon-move-$slotIndex-field'),
-          controller: controller,
-          placeholder: 'move id',
         ),
         const SizedBox(height: 4),
         Text(
@@ -675,6 +836,7 @@ class _TrainerCatalogAssistField<T> extends StatefulWidget {
     required this.entries,
     required this.lookupService,
     required this.enabled,
+    required this.disabledPlaceholder,
     required this.searchPlaceholder,
     required this.onSelected,
     this.subtitleBuilder,
@@ -686,6 +848,7 @@ class _TrainerCatalogAssistField<T> extends StatefulWidget {
   final List<T> entries;
   final ProgressiveLocalCatalogLookupService<T> lookupService;
   final bool enabled;
+  final String disabledPlaceholder;
   final String searchPlaceholder;
   final ValueChanged<T> onSelected;
   final String Function(T entry)? subtitleBuilder;
@@ -753,7 +916,7 @@ class _TrainerCatalogAssistFieldState<T>
           enabled: canSearch,
           placeholder: widget.enabled
               ? widget.searchPlaceholder
-              : 'Local search unavailable',
+              : widget.disabledPlaceholder,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
         const SizedBox(height: 4),
