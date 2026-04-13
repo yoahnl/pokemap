@@ -1,3 +1,682 @@
+# Phase R1 — Lot 15 — Whiteout-lite minimal après défaite joueur
+
+## 1. Résumé exécutif honnête
+
+Le trou réel confirmé après audit était simple : en cas de `BattleOutcomeType.defeat`, le runtime appliquait seulement le write-back des PV du lot 10 puis refermait l'overlay et revenait à l'overworld. Ce comportement était techniquement cohérent, mais produisait encore un état produit absurde si toute la party finissait K.O. : retour en overworld sans vraie reprise jouable.
+
+Le patch lot 15 reste strictement borné à `map_runtime`.
+
+Ce qui a été fait :
+- ajout d'un helper runtime pur qui évite le softlock total après défaite en relevant à `1 HP` le slot exact combattu si toute la party est K.O. ;
+- ajout d'un whiteout-lite local dans `PlayableMapGame` qui replace le joueur sur un point sûr de la map courante (spawn joueur si disponible, sinon fallback safe déjà existant) ;
+- ajout d'un test runtime stable sur `PlayableMapGame` via un seam de test minimal ;
+- relance des non-régressions utiles lots 10 à 14 côté runtime.
+
+Ce qui n'a pas été fait :
+- aucun centre Pokémon complet ;
+- aucun système d'argent/pénalité ;
+- aucun whiteout multi-map / last heal location persistant ;
+- aucun lot 16+ déguisé ;
+- aucune modification de `map_battle`, `map_core`, `map_editor` ou du host d'exemple.
+
+## 2. État initial audité réel
+
+### 2.1 Constat runtime avant patch
+
+Audit réel du code :
+- `packages/map_battle/lib/src/battle_session.dart` produit bien `BattleOutcomeType.defeat` quand le combattant joueur tombe K.O.
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`, dans `_onBattleFinished(...)`, appelait déjà `applyRuntimeBattleOutcomeToGameState(...)`, puis nettoyait l'overlay et repassait `_flowPhase` à `overworld`.
+- `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart` écrivait correctement les PV du slot exact, gérait victoire trainer et capture, mais n'appliquait aucun comportement spécifique à la défaite.
+- Aucun mécanisme de `lastHealLocation`, de centre Pokémon runtime, de whiteout complet ou de respawn persistant n'existe aujourd'hui dans le code runtime exploitable pour ce lot.
+
+### 2.2 Points de reprise réellement disponibles
+
+L'audit a confirmé l'existence de seams runtime déjà réutilisables :
+- `OverworldReturnContext` dans `battle_start_request.dart` mémorise map / position / facing au moment du handoff combat ;
+- `resolveInitialPlayerSpawn(map)` dans `map_gameplay` sait résoudre le spawn joueur authoré de la map courante ;
+- `_buildSafeWorldState(...)` dans `PlayableMapGame` sait reconstruire un monde jouable sûr à partir d'une map, d'une position préférée et d'un fallback ;
+- `_syncGameStateFromWorld(...)`, `_configureCameraViewport()`, `_syncCameraToPlayer()`, `_preloadActiveMapConnections()`, `_pruneLoadedMapsToActiveNeighborhood()` et `_refreshWorldNpcPresence()` fournissent déjà le minimum pour remettre le runtime dans un état cohérent après repositionnement.
+
+### 2.3 État exact avant patch en cas de défaite
+
+Avant patch lot 15 :
+- le Pokémon actif repassait bien à `0 HP` sur le bon slot ;
+- l'overlay de combat se fermait ;
+- le runtime repassait à `overworld` ;
+- mais si toute la party était K.O., un prochain combat devenait impossible (`RuntimeBattleSetupMapper.selectUsablePartyMemberIndex(...)` échoue si toute la party est K.O.) ;
+- il n'y avait donc pas de vraie stratégie minimale de reprise.
+
+## 3. Problèmes confirmés / non confirmés
+
+### Confirmés
+- `BattleOutcomeType.defeat` ne déclenchait aucun traitement spécifique de reprise.
+- Un état `party entièrement K.O.` après write-back pouvait laisser le runtime dans un état non jouable pour la suite des combats.
+- Aucun point de reprise persistant type centre Pokémon n'existe encore dans l'architecture actuelle.
+
+### Non confirmés
+- Aucun besoin réel de modifier `map_battle` pour fermer ce lot.
+- Aucun besoin réel de modifier `map_core` pour fermer ce lot.
+- Aucun besoin réel d'ouvrir un stockage persistant de checkpoint/respawn.
+- Aucun besoin réel d'ouvrir le host d'exemple.
+
+## 4. Cause racine réelle
+
+La cause racine n'était pas un bug de moteur battle.
+
+La cause racine était une absence de traitement runtime post-défaite :
+- lot 10 a correctement ajouté le write-back fidèle ;
+- mais ce write-back, seul, n'est pas suffisant pour une reprise produit minimale quand l'équipe ne contient plus aucun Pokémon jouable.
+
+Autrement dit :
+- la défaite était techniquement résolue ;
+- elle n'était pas encore productisée de manière minimale et défendable.
+
+## 5. Décisions retenues / rejetées
+
+### Décisions retenues
+- Garder `map_battle` intact.
+- Garder `map_core` intact.
+- Ajouter un helper pur `applyRuntimeDefeatRecoveryToGameState(...)` dans `runtime_battle_outcome_apply.dart`.
+- Appliquer la logique de repositionnement uniquement dans `PlayableMapGame`, là où le runtime connaît la vraie map chargée.
+- Utiliser le spawn joueur de la map courante comme point de reprise principal.
+- Utiliser `OverworldReturnContext` puis `_buildSafeWorldState(...)` comme fallback sûr.
+- Relever uniquement le slot exact combattu à `1 HP` si et seulement si toute la party est K.O.
+
+### Décisions rejetées
+- Ajouter un vrai centre Pokémon runtime.
+- Ajouter un `lastHealLocation` persistant.
+- Ajouter un système d'argent / pénalité.
+- Ajouter un système de full heal de toute la party.
+- Ajouter un service global type `WhiteoutManager` / `RespawnCoordinator`.
+- Modifier le moteur battle pour changer la sémantique de `defeat`.
+- Modifier `map_core` pour stocker un nouveau checkpoint produit.
+
+## 6. Périmètre inclus / exclu
+
+### Inclus
+- `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+- `packages/map_runtime/test/runtime_battle_outcome_apply_test.dart`
+- `packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart`
+- validations runtime ciblées
+- report complet
+
+### Exclus
+- `map_battle`
+- `map_core`
+- host d'exemple
+- editor
+- lots 16+
+- centre Pokémon riche
+- argent / pénalité
+- heal center authoré
+- bag / items supplémentaires
+- rewards / XP / level up
+- whiteout multi-map complet
+
+## 7. Gameplay final du lot 15 en français simple
+
+Quand le joueur perd un combat :
+- le runtime écrit d'abord les PV réels du combat sur le bon slot de party, comme au lot 10 ;
+- si au moins un autre Pokémon est encore jouable dans la party, il n'y a pas de soin supplémentaire ;
+- si toute la party est K.O., le runtime relève uniquement le Pokémon exact qui combattait à `1 HP` pour éviter un softlock total ;
+- le joueur est ensuite replacé sur le spawn joueur de la map courante si la map en a un ;
+- si ce spawn manque ou n'est pas exploitable, le runtime réutilise le contexte overworld mémorisé au handoff puis son fallback safe existant ;
+- le combat se ferme ;
+- le runtime repasse en overworld ;
+- l'état redevient jouable sans ouvrir un vrai centre Pokémon.
+
+Ce qui reste volontairement hors scope :
+- vrai centre Pokémon ;
+- vraie pénalité de défaite ;
+- dernier point de soin persistant ;
+- whiteout multi-map ;
+- soin complet de l'équipe ;
+- tout le lot 16+.
+
+## 8. Liste exacte des fichiers modifiés / créés / supprimés
+
+### Modifiés dans ce lot
+- `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+- `packages/map_runtime/test/runtime_battle_outcome_apply_test.dart`
+
+### Créés dans ce lot
+- `packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart`
+- `reports/phase-r1-lot-15-whiteout-lite-report.md`
+
+### Supprimés
+- aucun
+
+### Note importante sur le worktree
+Le worktree n'était pas propre au début du lot 15. Les fichiers suivants portaient déjà des modifications préexistantes hors scope direct de cette passe (notamment liées au lot 14) :
+- `packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart`
+- `packages/map_runtime/test/file_game_save_repository_test.dart`
+- `packages/map_runtime/test/runtime_battle_setup_mapper_test.dart`
+- `packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart`
+- `reports/phase-r1-lot-14-pokeball-consumption-report.md`
+
+De plus, deux fichiers touchés par le lot 15 portaient déjà des modifications préexistantes du lot 14 :
+- `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+- `packages/map_runtime/test/runtime_battle_outcome_apply_test.dart`
+
+Le lot 15 s'est superposé proprement à cet état sans réécrire ni nettoyer le reste.
+
+## 9. Justification fichier par fichier
+
+### `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+Ajout du helper pur `applyRuntimeDefeatRecoveryToGameState(...)`.
+
+Pourquoi ici :
+- le fichier porte déjà le write-back runtime post-combat ;
+- le whiteout-lite doit d'abord corriger l'état du joueur, avant tout repositionnement visuel/runtime ;
+- le helper reste pur et testable ;
+- il n'ajoute aucune nouvelle architecture.
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+Ajout du traitement runtime concret de la défaite :
+- appel du helper pur de recovery ;
+- repositionnement sur un point sûr ;
+- remise à jour caméra / monde / triggers ;
+- deux seams de test minimaux `@visibleForTesting`.
+
+Pourquoi ici :
+- c'est le seul point honnête qui connaît la map réellement chargée ;
+- c'est déjà le point d'orchestration de fin de combat ;
+- on évite ainsi de polluer `map_core` ou `map_battle` avec une responsabilité runtime.
+
+### `packages/map_runtime/test/runtime_battle_outcome_apply_test.dart`
+Ajout de preuves sur le helper pur de recovery :
+- revival du slot exact quand toute la party est K.O. ;
+- absence de heal si un bench survivor existe déjà.
+
+### `packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart`
+Ajout de la preuve runtime stable :
+- jeu chargé réellement ;
+- joueur placé loin du spawn ;
+- défaite injectée via seam de test minimal ;
+- retour au spawn ;
+- revival à `1 HP` ;
+- retour en phase `overworld`.
+
+## 10. Commandes réellement exécutées
+
+### Audit
+```bash
+git status --short
+git diff --stat
+git ls-files --others --exclude-standard
+find . -name AGENTS.md -print
+rg -n "BattleOutcomeType\.defeat|isDefeat|outcome.isDefeat|whiteout|respawn|spawn|OverworldReturnContext|_onBattleFinished|applyRuntimeBattleOutcomeToGameState|markTrainerDefeated|trainer_defeated|playerPosition|currentMapId|loadMap|warp|teleport|returnContext|BattleOutcomeType" packages/map_runtime packages/map_battle packages/map_core -g'*.dart'
+sed -n '3060,3235p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '4800,4865p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '1700,1815p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '1,220p' packages/map_runtime/lib/src/application/battle_start_request.dart
+sed -n '1,240p' packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart
+rg -n "defaultSpawnId|playerStart|Spawn Start|spawnKey|spawn_start|fromMap\(|GameplayWorldState.fromMap|loadRuntimeMapBundle|currentMapId.*playerPosition|playerFacing|warpPlayer|_gameState = _gameState.copyWith\(|_world = GameplayWorldState.fromMap|respawn|heal" packages/map_runtime packages/map_gameplay packages/map_core -g'*.dart'
+sed -n '1,260p' packages/map_gameplay/lib/src/gameplay_world_state.dart
+sed -n '1,220p' packages/map_gameplay/lib/src/player_spawn_resolver.dart
+sed -n '1,220p' packages/map_gameplay/lib/src/game_state_mutations.dart
+sed -n '4450,4725p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '240,360p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '620,710p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '1,220p' packages/map_runtime/test/playable_map_game_public_getters_test.dart
+sed -n '1,260p' packages/map_core/lib/src/models/game_state.dart
+sed -n '1,280p' packages/map_core/lib/src/models/save_data.dart
+sed -n '1,260p' packages/map_core/lib/src/operations/game_state_persistence.dart
+rg -n "defeat|whiteout|respawn|heal|restore|currentHp|maxHp|party" packages/map_runtime/test packages/map_battle/test packages/map_core/test -g'*.dart'
+sed -n '220,420p' packages/map_core/lib/src/models/save_data.dart
+sed -n '1,220p' packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+sed -n '1,220p' packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+sed -n '220,420p' packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+rg -n "_syncGameStateFromWorld|_syncCameraToPlayer|_configureCameraViewport|_refreshWorldNpcPresence|_pruneLoadedMapsToActiveNeighborhood|_loadMapBundle|loadRuntimeMapBundle|_buildSafeWorldState|GameplayWorldState.initial|GameplayWorldState.fromMap|warp" packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '4140,4705p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '1,220p' packages/map_runtime/test/runtime_battle_outcome_apply_test.dart
+sed -n '220,420p' packages/map_runtime/test/runtime_battle_outcome_apply_test.dart
+sed -n '1,220p' packages/map_runtime/lib/map_runtime.dart
+rg -n "onLoad\(|await game.onLoad|loadGame\(\)" packages/map_runtime/test -g'*.dart'
+sed -n '1,220p' packages/map_battle/lib/src/battle_setup.dart
+rg -n "lastHeal|healLocation|heal point|heal|whiteout|respawn|checkpoint|playerStart|defaultSpawnId" packages/map_runtime packages/map_core packages/map_gameplay examples -g'*.dart'
+sed -n '1,220p' packages/map_battle/lib/src/battle_resolution.dart
+sed -n '380,490p' packages/map_battle/lib/src/battle_session.dart
+sed -n '1,260p' packages/map_core/test/game_state_persistence_test.dart
+rg -n "_selectPlayerPartyMember|first non|non-KO|non KO|isFainted" packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart -g'*.dart'
+sed -n '230,315p' packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+rg -n "GameplayWorldState.initial\(" packages/map_gameplay/lib/src/gameplay_world_state.dart packages/map_gameplay/lib/src/gameplay_player_state.dart -g'*.dart'
+sed -n '1,120p' packages/map_gameplay/lib/src/player_spawn_resolver.dart
+rg -n "validateSelectedChoice|onBattleChoice|ValueChanged<PlayerBattleChoice>|BattleFinished|BattleOutcome" packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart -g'*.dart'
+sed -n '420,490p' packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+sed -n '3110,3235p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+rg -n "withPlayer\(" packages/map_gameplay/lib/src/gameplay_world_state.dart packages/map_gameplay/lib/src/gameplay_player_state.dart -g'*.dart'
+sed -n '450,490p' packages/map_gameplay/lib/src/gameplay_world_state.dart
+sed -n '780,920p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '920,1115p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+```
+
+### Format
+```bash
+/opt/homebrew/bin/dart format packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart packages/map_runtime/test/runtime_battle_outcome_apply_test.dart packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart
+/opt/homebrew/bin/dart format packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart
+/opt/homebrew/bin/dart format packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart
+```
+
+### Analyze
+```bash
+/opt/homebrew/bin/flutter analyze --no-pub lib/src/application/runtime_battle_outcome_apply.dart lib/src/presentation/flame/playable_map_game.dart test/runtime_battle_outcome_apply_test.dart test/playable_map_game_whiteout_lite_test.dart
+/opt/homebrew/bin/flutter analyze --no-pub test/playable_map_game_whiteout_lite_test.dart
+```
+
+### Tests
+```bash
+/opt/homebrew/bin/flutter test test/playable_map_game_whiteout_lite_test.dart test/playable_map_game_public_getters_test.dart test/runtime_battle_outcome_apply_test.dart test/runtime_battle_setup_mapper_test.dart test/wild_battle_end_to_end_flow_test.dart test/file_game_save_repository_test.dart
+/opt/homebrew/bin/flutter test test/playable_map_game_whiteout_lite_test.dart test/playable_map_game_public_getters_test.dart test/runtime_battle_outcome_apply_test.dart test/runtime_battle_setup_mapper_test.dart test/wild_battle_end_to_end_flow_test.dart test/file_game_save_repository_test.dart
+```
+
+## 11. Résultats réels de format / analyze / tests
+
+### Format
+- `dart format` : OK
+- sortie utile : `Formatted 4 files (0 changed) in 0.04 seconds.` puis reruns ciblés `0 changed`
+
+### Analyze
+Premier run analyze : échec local utile, corrigé immédiatement.
+
+Sortie utile du premier run :
+```text
+info • The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'
+error • Undefined name 'Direction'
+error • Invalid constant value
+error • Undefined name 'Direction'
+error • The method 'copyWith' isn't defined for the type 'BattleCombatant'
+```
+
+Après correction :
+```text
+No issues found! (ran in 0.9s)
+No issues found! (ran in 1.1s)
+```
+
+### Tests
+Premier run tests : échec utile sur le nouveau test lot 15.
+
+Cause :
+- le test démarrait `PlayableMapGame` sans vraie save injectée ;
+- `gameState` interne était donc vide côté party ;
+- le write-back lot 10 rejetait logiquement `playerPartyIndex=0` sur une party de longueur `0`.
+
+Sortie utile du premier run :
+```text
+Bad state: RuntimeActiveBattleContext pointe vers un slot party invalide: index=0, partyLength=0
+```
+
+Après correction du test (injection d'une vraie save avec 1 Pokémon) :
+```text
+00:02 +39: All tests passed!
+```
+
+## 12. Incidents rencontrés
+
+1. Le premier `flutter analyze` a échoué sur :
+- un import inutile ;
+- un oubli d'import `Direction` dans le nouveau test ;
+- une utilisation invalide de `copyWith` sur `BattleCombatant`.
+
+2. Le premier `flutter test` a échoué parce que le nouveau test lot 15 créait `PlayableMapGame` avec la save par défaut, donc party vide.
+
+3. Aucun incident bloquant structurel du runtime n'a été rencontré après ces corrections locales.
+
+## 13. État git utile
+
+### `git status --short`
+```text
+ M packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart
+ M packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+ M packages/map_runtime/test/file_game_save_repository_test.dart
+ M packages/map_runtime/test/runtime_battle_outcome_apply_test.dart
+ M packages/map_runtime/test/runtime_battle_setup_mapper_test.dart
+ M packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+?? packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart
+?? reports/phase-r1-lot-14-pokeball-consumption-report.md
+?? reports/phase-r1-lot-15-whiteout-lite-report.md
+```
+
+### `git diff --stat`
+```text
+ .../application/runtime_battle_outcome_apply.dart  | 115 ++++++++++++++-
+ .../application/runtime_battle_setup_mapper.dart   |  35 ++++-
+ .../src/presentation/flame/playable_map_game.dart  | 109 ++++++++++++++
+ .../test/file_game_save_repository_test.dart       |  15 ++
+ .../test/runtime_battle_outcome_apply_test.dart    | 164 +++++++++++++++++++++
+ .../test/runtime_battle_setup_mapper_test.dart     |  48 +++++-
+ .../test/wild_battle_end_to_end_flow_test.dart     |  61 +++++++-
+ 7 files changed, 535 insertions(+), 12 deletions(-)
+```
+
+### Fichiers non suivis
+```text
+packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart
+reports/phase-r1-lot-14-pokeball-consumption-report.md
+reports/phase-r1-lot-15-whiteout-lite-report.md
+```
+
+### Interprétation honnête
+Le diff global inclut encore des modifications préexistantes du lot 14 dans `map_runtime`. Le lot 15 n'a pas tenté de nettoyer ni de re-séparer cet état ; il a simplement ajouté son patch minimal par-dessus le worktree réel.
+
+## 14. Checklist finale
+
+- [x] je me suis basé sur le code réel, pas sur les reports
+- [x] je n’ai créé aucune stack parallèle
+- [x] je n’ai pas touché plus de couches que nécessaire
+- [x] la défaite joueur n’aboutit plus à un état runtime absurde
+- [x] le comportement de reprise est réellement défendable
+- [x] les lots 10 à 14 utiles ne sont pas régressés
+- [x] je n’ai pas ouvert un lot 16+ déguisé
+- [x] j’ai exécuté format
+- [x] j’ai exécuté analyze
+- [x] j’ai exécuté les tests utiles
+- [x] je n’ai fait aucune écriture git interdite
+- [x] mon report markdown est ultra complet
+- [x] mon report contient le contenu complet de tous les fichiers touchés
+- [x] ce que je n’ai pas fait est documenté honnêtement
+
+## 15. Conclusion honnête
+
+Le lot 15 est livré dans un périmètre strict et défendable.
+
+Après une vraie défaite :
+- le write-back lot 10 reste fidèle ;
+- le runtime évite désormais le softlock total ;
+- le joueur est replacé sur un point sûr de la map courante ;
+- le runtime revient bien en overworld.
+
+Le patch ne prétend pas être un vrai système complet de centre Pokémon ou de whiteout canonique. C'est bien un `whiteout-lite` minimal, cohérent avec l'architecture actuelle et sans ouverture de scope vers les lots suivants.
+
+## 16. Annexe — contenu complet de tous les fichiers texte touchés
+
+### `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+
+```dart
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+
+import 'battle_start_request.dart';
+import 'story_flags_manager.dart';
+
+const _runtimeCapturePokeBallItemId = 'poke-ball';
+const _runtimeCapturePokeBallCategoryId = 'items';
+
+/// Contexte runtime strictement nécessaire pour faire le write-back lot 10.
+///
+/// Invariant critique :
+/// - [playerPartyIndex] est l'index exact du slot utilisé au moment du handoff
+///   vers le combat ;
+/// - il ne doit jamais être recalculé à la fin du combat ;
+/// - même si le Pokémon actif finit K.O., on doit réécrire les PV sur ce slot
+///   précis, pas sur "le premier Pokémon encore vivant".
+///
+/// Cette structure reste volontairement petite :
+/// - la requête d'origine pour savoir si le combat était wild ou trainer ;
+/// - l'index du slot joueur utilisé ;
+/// - rien de plus.
+class RuntimeActiveBattleContext {
+  const RuntimeActiveBattleContext({
+    required this.request,
+    required this.playerPartyIndex,
+  });
+
+  final BattleStartRequest request;
+  final int playerPartyIndex;
+}
+
+/// Applique le strict minimum de reprise après une vraie défaite joueur.
+///
+/// Pourquoi ce helper existe :
+/// - le lot 10 écrit honnêtement les PV finaux du combat, y compris `0` ;
+/// - le lot 15 doit éviter l'état absurde "retour overworld + toute la party K.O.
+///   + aucun moyen de rejouer" ;
+/// - on ne veut pourtant pas ouvrir un vrai centre Pokémon, ni un système de
+///   whiteout complet, ni une logique multi-Pokémon.
+///
+/// Contrat volontairement petit :
+/// - si au moins un Pokémon de la party est encore jouable, on ne soigne rien ;
+/// - si toute la party est K.O., on relève uniquement le slot exact qui a servi
+///   au combat à `1 HP` ;
+/// - on garde ainsi la mémoire fidèle du write-back lot 10 sur tous les autres
+///   slots, tout en garantissant qu'un prochain handoff runtime->battle restera
+///   possible sans inventer un heal global.
+///
+/// Ce helper reste pur :
+/// - il ne téléporte pas ;
+/// - il ne touche ni au bag, ni aux flags trainer, ni à seen/caught ;
+/// - le repositionnement runtime "whiteout-lite" reste géré par `PlayableMapGame`,
+///   car lui seul connaît la carte réellement chargée et les seams de respawn.
+GameState applyRuntimeDefeatRecoveryToGameState({
+  required GameState gameState,
+  required int playerPartyIndex,
+}) {
+  if (gameState.party.members.any((member) => !member.isFainted)) {
+    return gameState;
+  }
+
+  final members = gameState.party.members;
+  if (playerPartyIndex < 0 || playerPartyIndex >= members.length) {
+    throw StateError(
+      'Le whiteout-lite runtime pointe vers un slot party invalide: '
+      'index=$playerPartyIndex, partyLength=${members.length}',
+    );
+  }
+
+  final nextMembers = List<PlayerPokemon>.of(members, growable: false);
+  final defeatedMember = nextMembers[playerPartyIndex];
+
+  // Whiteout-lite lot 15 :
+  // - on évite le softlock total après défaite ;
+  // - on ne réanime qu'un seul Pokémon, sur le slot exact qui a combattu ;
+  // - on ne transforme pas ce lot en heal center ou en reset complet de party.
+  nextMembers[playerPartyIndex] = defeatedMember.copyWith(currentHp: 1);
+
+  return gameState.copyWith(
+    party: gameState.party.copyWith(members: nextMembers),
+  );
+}
+
+/// Applique le résultat final du combat à l'état runtime.
+///
+/// Ce helper porte le write-back lot 10 dans un seul chemin explicite :
+/// 1. écrire les PV finaux du Pokémon joueur sur le slot exact mémorisé ;
+/// 2. marquer le trainer battu uniquement en cas de victoire trainer ;
+/// 3. laisser intact tout ce qui appartient aux lots 11+.
+///
+/// Important :
+/// - on ne soigne jamais implicitement le joueur ;
+/// - on ne téléporte jamais ;
+/// - le lot 13/14 ne gère qu'une capture sauvage minimale ;
+/// - le lot 14 consomme exactement une Poké Ball au write-back runtime ;
+/// - aucun bag UI, aucune récompense, aucun switch n'est ouvert ici ;
+/// - on ne recalculera jamais naïvement le slot actif après le combat.
+GameState applyRuntimeBattleOutcomeToGameState({
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required BattleOutcome outcome,
+  StoryFlagsManager storyFlagsManager = const StoryFlagsManager(),
+}) {
+  final stateWithPlayerHp = _writePlayerCurrentHpBackToExactPartySlot(
+    gameState: gameState,
+    partyIndex: context.playerPartyIndex,
+    currentHp: outcome.finalState.player.currentHp,
+  );
+
+  final request = context.request;
+  if (outcome.isCaptured) {
+    if (request is! WildBattleStartRequest) {
+      throw StateError(
+        'BattleOutcomeType.captured est interdit hors combat sauvage.',
+      );
+    }
+
+    // Garde-fou lot 13/14 :
+    // le moteur ne doit normalement jamais proposer Capture si la party est
+    // pleine ou sans Poké Ball, mais on revalide ici pour qu'un call site forcé
+    // ne fasse jamais "disparaître" un Pokémon capturé faute de boîte/PC ou
+    // contourne le coût réel de capture introduit par le lot 14.
+    if (stateWithPlayerHp.party.members.length >= 6) {
+      throw StateError(
+        'Impossible d’ajouter un Pokémon capturé : la party du joueur est pleine.',
+      );
+    }
+
+    final bagAfterConsumption =
+        _consumeOnePokeBallOrThrow(stateWithPlayerHp.bag);
+    final capturedPokemon = _buildCapturedWildPlayerPokemon(
+      enemy: outcome.finalState.enemy,
+    );
+    final nextMembers = List<PlayerPokemon>.of(
+      stateWithPlayerHp.party.members,
+      growable: true,
+    )..add(capturedPokemon);
+
+    // Lot 12 garantit déjà "party -> caught -> seen". On réutilise donc cette
+    // normalisation partagée au lieu d'introduire un deuxième pipeline Pokédex.
+    return normalizeLoadedGameState(
+      stateWithPlayerHp.copyWith(
+        party: stateWithPlayerHp.party.copyWith(members: nextMembers),
+        bag: bagAfterConsumption,
+      ),
+    );
+  }
+
+  if (outcome.isVictory && request is TrainerBattleStartRequest) {
+    return storyFlagsManager.markTrainerDefeated(
+      stateWithPlayerHp,
+      request.trainerId,
+    );
+  }
+
+  return stateWithPlayerHp;
+}
+
+const _capturedPokemonDefaultNatureId = 'hardy';
+const _capturedPokemonFallbackAbilityId = 'unknown';
+
+/// Construit le Pokémon réellement ajouté à la party après une capture sauvage.
+///
+/// Le lot 13 reste volontairement minimal :
+/// - l'espèce, le niveau, l'ability et les moves viennent du vrai combattant
+///   sauvage réellement engagé dans le moteur battle ;
+/// - la nature reste un fallback MVP déterministe (`hardy`) faute de véritable
+///   génération runtime existante ;
+/// - on ne tente pas d'inventer ivs/evs/status/shiny/held item au-delà des
+///   defaults du modèle `PlayerPokemon`.
+///
+/// Invariant important :
+/// - une capture réussie ne doit jamais produire un Pokémon owned déjà K.O. ;
+/// - si un call site forge un outcome capturé incohérent avec `enemyHp <= 0`,
+///   on clamp donc les PV du Pokémon capturé à 1 minimum.
+PlayerPokemon _buildCapturedWildPlayerPokemon({
+  required BattleCombatant enemy,
+}) {
+  final normalizedAbilityId = enemy.abilityId.trim().isEmpty
+      ? _capturedPokemonFallbackAbilityId
+      : enemy.abilityId.trim();
+  final normalizedMoveIds = enemy.moves
+      .map((move) => move.id.trim())
+      .where((moveId) => moveId.isNotEmpty)
+      .toSet()
+      .toList(growable: false);
+
+  return PlayerPokemon(
+    speciesId: enemy.speciesId.trim(),
+    natureId: _capturedPokemonDefaultNatureId,
+    abilityId: normalizedAbilityId,
+    level: enemy.level,
+    knownMoveIds: normalizedMoveIds,
+    currentHp: enemy.currentHp <= 0 ? 1 : enemy.currentHp,
+  );
+}
+
+/// Consomme exactement une Poké Ball du bag runtime.
+///
+/// Pourquoi le coût est appliqué ici :
+/// - le moteur battle n'a pas à connaître le bag réel du joueur ;
+/// - la capture n'est "réelle" qu'au moment où le runtime accepte d'écrire le
+///   résultat dans le `GameState` ;
+/// - cela donne une frontière de sécurité unique contre les appels forcés :
+///   si aucun `poke-ball` n'existe, le write-back échoue explicitement.
+///
+/// Le lot 14 reste volontairement minimal :
+/// - une seule ressource est concernée (`poke-ball` / `items`) ;
+/// - aucune UI d'inventaire n'est ouverte ;
+/// - aucun autre item n'est touché ;
+/// - aucune entrée à quantité 0 ne doit survivre, car `BagEntry` l'interdit.
+Bag _consumeOnePokeBallOrThrow(Bag bag) {
+  final nextEntries = <BagEntry>[];
+  var didConsumePokeBall = false;
+
+  for (final entry in bag.entries) {
+    final isCaptureBall =
+        entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
+            entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId;
+    if (!isCaptureBall || didConsumePokeBall) {
+      nextEntries.add(entry);
+      continue;
+    }
+
+    didConsumePokeBall = true;
+    final nextQuantity = entry.quantity - 1;
+    if (nextQuantity > 0) {
+      nextEntries.add(
+        entry.copyWith(quantity: nextQuantity),
+      );
+    }
+  }
+
+  if (!didConsumePokeBall) {
+    throw StateError(
+      'Impossible d’appliquer BattleOutcomeType.captured sans Poké Ball dans le bag du joueur.',
+    );
+  }
+
+  return Bag(entries: nextEntries).normalized();
+}
+
+/// Réécrit les PV du combattant joueur dans la vraie party runtime.
+///
+/// Ce helper encode la règle produit la plus importante du lot 10 :
+/// l'écriture se fait sur [partyIndex], qui correspond au slot réellement
+/// utilisé pendant le handoff lot 9.
+///
+/// On ne tente surtout pas de retrouver "le Pokémon actif" à partir de l'état
+/// post-combat, car ce recalcul pourrait pointer vers un autre membre si le
+/// combattant actif vient de tomber à 0 HP.
+GameState _writePlayerCurrentHpBackToExactPartySlot({
+  required GameState gameState,
+  required int partyIndex,
+  required int currentHp,
+}) {
+  final members = gameState.party.members;
+  if (partyIndex < 0 || partyIndex >= members.length) {
+    throw StateError(
+      'RuntimeActiveBattleContext pointe vers un slot party invalide: '
+      'index=$partyIndex, partyLength=${members.length}',
+    );
+  }
+
+  final nextMembers = List<PlayerPokemon>.of(members, growable: false);
+  final currentMember = nextMembers[partyIndex];
+  nextMembers[partyIndex] = currentMember.copyWith(
+    currentHp: currentHp < 0 ? 0 : currentHp,
+  );
+
+  return gameState.copyWith(
+    party: gameState.party.copyWith(members: nextMembers),
+  );
+}
+```
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+```dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -6092,3 +6771,685 @@ class _WarpTransitionSpec {
   final Duration fadeOut;
   final Duration fadeIn;
 }
+```
+
+### `packages/map_runtime/test/runtime_battle_outcome_apply_test.dart`
+
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+
+void main() {
+  group('applyRuntimeBattleOutcomeToGameState', () {
+    test('writes back the exact party slot used for the battle handoff', () {
+      const initialState = GameState(
+        saveId: 'save-slot',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'slot_zero',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 40,
+              knownMoveIds: <String>['a'],
+              currentHp: 91,
+            ),
+            PlayerPokemon(
+              speciesId: 'slot_one_active',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 20,
+              knownMoveIds: <String>['b'],
+              currentHp: 35,
+            ),
+            PlayerPokemon(
+              speciesId: 'slot_two_stays_alive',
+              natureId: 'calm',
+              abilityId: 'torrent',
+              level: 22,
+              knownMoveIds: <String>['c'],
+              currentHp: 18,
+            ),
+          ],
+        ),
+      );
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: initialState,
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 1,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.defeat,
+          playerCurrentHp: 0,
+        ),
+      );
+
+      expect(updatedState.party.members[0].currentHp, equals(91));
+      expect(updatedState.party.members[1].currentHp, equals(0));
+      expect(updatedState.party.members[2].currentHp, equals(18));
+    });
+
+    test('trainer victory writes player hp and marks trainer as defeated', () {
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: _baseState(),
+        context: RuntimeActiveBattleContext(
+          request: _trainerRequest(trainerId: 'ace_jules'),
+          playerPartyIndex: 0,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.victory,
+          playerCurrentHp: 14,
+        ),
+      );
+
+      expect(updatedState.party.members[0].currentHp, equals(14));
+      expect(
+        updatedState.storyFlags.activeFlags,
+        contains('trainer_defeated:ace_jules'),
+      );
+    });
+
+    test('trainer defeat writes player hp without marking trainer defeated',
+        () {
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: _baseState(),
+        context: RuntimeActiveBattleContext(
+          request: _trainerRequest(trainerId: 'ace_jules'),
+          playerPartyIndex: 0,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.defeat,
+          playerCurrentHp: 0,
+        ),
+      );
+
+      expect(updatedState.party.members[0].currentHp, equals(0));
+      expect(
+        updatedState.storyFlags.activeFlags,
+        isNot(contains('trainer_defeated:ace_jules')),
+      );
+    });
+
+    test('runaway writes player hp without marking trainer defeated', () {
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: _baseState(),
+        context: RuntimeActiveBattleContext(
+          request: _trainerRequest(trainerId: 'ace_jules'),
+          playerPartyIndex: 0,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.runaway,
+          playerCurrentHp: 11,
+        ),
+      );
+
+      expect(updatedState.party.members[0].currentHp, equals(11));
+      expect(
+        updatedState.storyFlags.activeFlags,
+        isNot(contains('trainer_defeated:ace_jules')),
+      );
+    });
+
+    test('captured wild battle appends the pokemon and syncs caught/seen', () {
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: _baseState(),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.captured,
+          playerCurrentHp: 19,
+          enemySpeciesId: 'wildmon',
+          enemyLevel: 12,
+          enemyCurrentHp: 7,
+          enemyAbilityId: 'intimidate',
+          enemyMoveIds: const <String>['scratch', 'leer'],
+        ),
+      );
+
+      expect(updatedState.party.members[0].currentHp, equals(19));
+      expect(updatedState.party.members, hasLength(3));
+
+      final captured = updatedState.party.members.last;
+      expect(captured.speciesId, equals('wildmon'));
+      expect(captured.level, equals(12));
+      expect(captured.abilityId, equals('intimidate'));
+      expect(captured.natureId, equals('hardy'));
+      expect(captured.knownMoveIds, equals(<String>['scratch', 'leer']));
+      expect(captured.currentHp, equals(7));
+      expect(
+        updatedState.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+      );
+      expect(updatedState.progression.caughtSpeciesIds, contains('wildmon'));
+      expect(updatedState.progression.seenSpeciesIds, contains('wildmon'));
+    });
+
+    test('captured outcome removes the poke-ball entry when quantity reaches 0',
+        () {
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: _baseState().copyWith(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            ],
+          ),
+        ),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.captured,
+          playerCurrentHp: 19,
+          enemySpeciesId: 'wildmon',
+          enemyLevel: 12,
+          enemyCurrentHp: 7,
+          enemyAbilityId: 'intimidate',
+          enemyMoveIds: const <String>['scratch'],
+        ),
+      );
+
+      expect(
+        updatedState.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+      );
+    });
+
+    test('captured outcome is rejected for trainer battles', () {
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: _baseState(),
+          context: RuntimeActiveBattleContext(
+            request: _trainerRequest(trainerId: 'ace_jules'),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+            enemySpeciesId: 'wildmon',
+            enemyLevel: 12,
+            enemyCurrentHp: 7,
+            enemyAbilityId: 'intimidate',
+            enemyMoveIds: const <String>['scratch'],
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('captured outcome is rejected when the party is already full', () {
+      final fullPartyState = _baseState().copyWith(
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            ..._baseState().party.members,
+            const PlayerPokemon(
+              speciesId: 'party_2',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_3',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_4',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_5',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: fullPartyState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+            enemySpeciesId: 'wildmon',
+            enemyLevel: 12,
+            enemyCurrentHp: 7,
+            enemyAbilityId: 'intimidate',
+            enemyMoveIds: const <String>['scratch'],
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('captured outcome is rejected when the bag has no poke-ball', () {
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: _baseState().copyWith(
+            bag: const Bag(
+              entries: <BagEntry>[
+                BagEntry(
+                  itemId: 'potion',
+                  categoryId: 'medicine',
+                  quantity: 3,
+                ),
+              ],
+            ),
+          ),
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+            enemySpeciesId: 'wildmon',
+            enemyLevel: 12,
+            enemyCurrentHp: 7,
+            enemyAbilityId: 'intimidate',
+            enemyMoveIds: const <String>['scratch'],
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+
+  group('applyRuntimeDefeatRecoveryToGameState', () {
+    test(
+        'revives the exact battle slot to 1 HP when the whole party is KO after defeat',
+        () {
+      const defeatedState = GameState(
+        saveId: 'whiteout-lite',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'slot_zero',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 12,
+              knownMoveIds: <String>['growl'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'active_slot',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 18,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'slot_two',
+              natureId: 'calm',
+              abilityId: 'torrent',
+              level: 17,
+              knownMoveIds: <String>['water_gun'],
+              currentHp: 0,
+            ),
+          ],
+        ),
+      );
+
+      final recoveredState = applyRuntimeDefeatRecoveryToGameState(
+        gameState: defeatedState,
+        playerPartyIndex: 1,
+      );
+
+      expect(recoveredState.party.members[0].currentHp, equals(0));
+      expect(recoveredState.party.members[1].currentHp, equals(1));
+      expect(recoveredState.party.members[2].currentHp, equals(0));
+    });
+
+    test('does not heal the party when another member is already usable', () {
+      const defeatedState = GameState(
+        saveId: 'whiteout-lite-benched',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'active_slot',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 18,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'bench_survivor',
+              natureId: 'calm',
+              abilityId: 'torrent',
+              level: 22,
+              knownMoveIds: <String>['water_gun'],
+              currentHp: 9,
+            ),
+          ],
+        ),
+      );
+
+      final recoveredState = applyRuntimeDefeatRecoveryToGameState(
+        gameState: defeatedState,
+        playerPartyIndex: 0,
+      );
+
+      expect(recoveredState.party.members[0].currentHp, equals(0));
+      expect(recoveredState.party.members[1].currentHp, equals(9));
+    });
+  });
+}
+
+GameState _baseState() {
+  return const GameState(
+    saveId: 'save-1',
+    bag: Bag(
+      entries: <BagEntry>[
+        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+        BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+      ],
+    ),
+    party: PlayerParty(
+      members: <PlayerPokemon>[
+        PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['growl', 'vine_whip'],
+          currentHp: 23,
+        ),
+        PlayerPokemon(
+          speciesId: 'benchmon',
+          natureId: 'hardy',
+          abilityId: 'pressure',
+          level: 18,
+          knownMoveIds: <String>['leer'],
+          currentHp: 17,
+        ),
+      ],
+    ),
+  );
+}
+
+BattleOutcome _finishedOutcome({
+  required BattleOutcomeType type,
+  required int playerCurrentHp,
+  String enemySpeciesId = 'aquafi',
+  int enemyLevel = 18,
+  int enemyCurrentHp = 0,
+  String enemyAbilityId = 'torrent',
+  List<String> enemyMoveIds = const <String>['water_gun'],
+}) {
+  final finalState = BattleState(
+    phase: BattlePhase.finished,
+    player: BattleCombatant(
+      speciesId: 'sproutle',
+      level: 12,
+      currentHp: playerCurrentHp,
+      maxHp: 32,
+      moves: const <BattleMove>[
+        BattleMove(id: 'growl', name: 'Growl', power: 0),
+      ],
+    ),
+    enemy: BattleCombatant(
+      speciesId: enemySpeciesId,
+      level: enemyLevel,
+      currentHp: enemyCurrentHp,
+      maxHp: 35,
+      abilityId: enemyAbilityId,
+      moves: enemyMoveIds
+          .map(
+            (moveId) => BattleMove(
+              id: moveId,
+              name: moveId,
+              power: 10,
+            ),
+          )
+          .toList(growable: false),
+    ),
+    currentTurn: null,
+    outcome: null,
+  );
+
+  return BattleOutcome(
+    type: type,
+    finalState: finalState,
+  );
+}
+
+WildBattleStartRequest _wildRequest() {
+  return const WildBattleStartRequest(
+    requestId: 'wild-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.south,
+    ),
+    mapId: 'field_map',
+    zoneId: 'grass',
+    tableId: 'field_grass',
+    encounterKind: EncounterKind.walk,
+    speciesId: 'wildmon',
+    level: 12,
+    minLevel: 12,
+    maxLevel: 12,
+    weight: 30,
+    playerPos: GridPos(x: 1, y: 1),
+  );
+}
+
+TrainerBattleStartRequest _trainerRequest({required String trainerId}) {
+  return TrainerBattleStartRequest(
+    requestId: 'trainer-request',
+    createdAtEpochMs: 1,
+    returnContext: const OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.south,
+    ),
+    trainerId: trainerId,
+    npcEntityId: 'npc_ace',
+    mapId: 'field_map',
+    playerPos: const GridPos(x: 1, y: 1),
+  );
+}
+```
+
+### `packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart`
+
+```dart
+import 'package:flame/components.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('PlayableMapGame whiteout-lite lot 15', () {
+    test(
+        'defeat recovery returns to the current map spawn, revives one pokemon when needed, and restores overworld flow',
+        () async {
+      final game = PlayableMapGame(
+        bundle: _bundle(),
+        projectFilePath: '/tmp/project.json',
+        saveData: saveDataFromGameState(
+          const GameState(
+            saveId: 'whiteout-save',
+            party: PlayerParty(
+              members: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'sproutle',
+                  natureId: 'bold',
+                  abilityId: 'overgrow',
+                  level: 10,
+                  knownMoveIds: <String>['tackle'],
+                  currentHp: 12,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      // On place volontairement le joueur loin du spawn pour prouver que le
+      // whiteout-lite ne "reprend" pas juste sur la dernière case du combat.
+      game.debugSetPlayerStateForTest(
+        position: const GridPos(x: 2, y: 1),
+        facing: Direction.west,
+      );
+
+      game.debugApplyBattleOutcomeForTest(
+        context: _wildContext(),
+        outcome: _defeatOutcome(playerCurrentHp: 0),
+      );
+
+      final snapshot = game.gameStateSnapshot;
+      expect(snapshot.currentMapId, equals('test_field'));
+      expect(snapshot.playerPosition, equals(const GridPos(x: 0, y: 0)));
+      expect(snapshot.playerFacing, equals(EntityFacing.east));
+      expect(snapshot.playerMovementMode, equals(MovementMode.walk));
+      expect(snapshot.party.members.single.currentHp, equals(1));
+      expect(game.debugFlowPhaseName, equals('overworld'));
+    });
+  });
+}
+
+RuntimeMapBundle _bundle() {
+  return RuntimeMapBundle(
+    manifest: const ProjectManifest(
+      name: 'Whiteout Lite Runtime Test',
+      maps: <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'test_field',
+          name: 'Test Field',
+          relativePath: 'maps/test_field.json',
+        ),
+      ],
+      tilesets: <ProjectTilesetEntry>[],
+    ),
+    map: const MapData(
+      id: 'test_field',
+      name: 'Test Field',
+      size: GridSize(width: 4, height: 3),
+      layers: <MapLayer>[
+        MapLayer.object(id: 'objects', name: 'Objects'),
+      ],
+      entities: <MapEntity>[
+        MapEntity(
+          id: 'spawn_start',
+          name: 'Spawn Start',
+          kind: MapEntityKind.spawn,
+          pos: GridPos(x: 0, y: 0),
+          blocksMovement: false,
+          spawn: MapEntitySpawnData(
+            role: EntitySpawnRole.playerStart,
+            facing: EntityFacing.east,
+          ),
+        ),
+      ],
+      mapMetadata: MapMetadata(defaultSpawnId: 'spawn_start'),
+    ),
+    projectRootDirectory: '/tmp/project',
+    tilesetAbsolutePathsById: const <String, String>{},
+  );
+}
+
+RuntimeActiveBattleContext _wildContext() {
+  return const RuntimeActiveBattleContext(
+    request: WildBattleStartRequest(
+      requestId: 'wild-defeat',
+      createdAtEpochMs: 1,
+      returnContext: OverworldReturnContext(
+        mapId: 'test_field',
+        playerPos: GridPos(x: 2, y: 1),
+        playerFacing: Direction.west,
+      ),
+      mapId: 'test_field',
+      zoneId: 'grass',
+      tableId: 'field_grass',
+      encounterKind: EncounterKind.walk,
+      speciesId: 'wildmon',
+      level: 7,
+      minLevel: 7,
+      maxLevel: 7,
+      weight: 1,
+      playerPos: GridPos(x: 2, y: 1),
+    ),
+    playerPartyIndex: 0,
+  );
+}
+
+BattleOutcome _defeatOutcome({
+  required int playerCurrentHp,
+}) {
+  return BattleOutcome(
+    type: BattleOutcomeType.defeat,
+    finalState: BattleState(
+      phase: BattlePhase.finished,
+      player: BattleCombatant(
+        speciesId: 'sproutle',
+        level: 10,
+        currentHp: playerCurrentHp,
+        maxHp: 24,
+        moves: const <BattleMove>[
+          BattleMove(id: 'tackle', name: 'Tackle', power: 10),
+        ],
+      ),
+      enemy: const BattleCombatant(
+        speciesId: 'wildmon',
+        level: 7,
+        currentHp: 9,
+        maxHp: 18,
+        moves: <BattleMove>[
+          BattleMove(id: 'scratch', name: 'Scratch', power: 10),
+        ],
+      ),
+      currentTurn: null,
+      outcome: null,
+    ),
+  );
+}
+```
+
+Le report s'exclut lui-même de sa propre annexe pour éviter la récursion infinie.

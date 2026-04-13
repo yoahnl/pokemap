@@ -157,6 +157,28 @@ void main() {
       expect(setup.enemyPokemon.speciesId, isNot(equals('mew')));
     });
 
+    test('disables capture in wild battles when the bag has no poke-ball',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(
+          bag: const Bag(),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(setup.isTrainerBattle, isFalse);
+      expect(setup.allowCapture, isFalse);
+    });
+
     test('maps a trainer battle from the authored trainer team', () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
@@ -205,6 +227,15 @@ void main() {
       final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
       final fullPartyState = GameState(
         saveId: 'save-full-party',
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'poke-ball',
+              categoryId: 'items',
+              quantity: 2,
+            ),
+          ],
+        ),
         party: PlayerParty(
           members: List<PlayerPokemon>.generate(
             6,
@@ -236,10 +267,21 @@ void main() {
   });
 }
 
-GameState _playerStateForTests() {
-  return const GameState(
+GameState _playerStateForTests({
+  Bag bag = const Bag(
+    entries: <BagEntry>[
+      BagEntry(
+        itemId: 'poke-ball',
+        categoryId: 'items',
+        quantity: 2,
+      ),
+    ],
+  ),
+}) {
+  return GameState(
     saveId: 'save-test',
-    party: PlayerParty(
+    bag: bag,
+    party: const PlayerParty(
       members: <PlayerPokemon>[
         PlayerPokemon(
           speciesId: 'sproutle',

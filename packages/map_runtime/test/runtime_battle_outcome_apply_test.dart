@@ -146,8 +146,53 @@ void main() {
       expect(captured.natureId, equals('hardy'));
       expect(captured.knownMoveIds, equals(<String>['scratch', 'leer']));
       expect(captured.currentHp, equals(7));
+      expect(
+        updatedState.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+      );
       expect(updatedState.progression.caughtSpeciesIds, contains('wildmon'));
       expect(updatedState.progression.seenSpeciesIds, contains('wildmon'));
+    });
+
+    test('captured outcome removes the poke-ball entry when quantity reaches 0',
+        () {
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: _baseState().copyWith(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            ],
+          ),
+        ),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.captured,
+          playerCurrentHp: 19,
+          enemySpeciesId: 'wildmon',
+          enemyLevel: 12,
+          enemyCurrentHp: 7,
+          enemyAbilityId: 'intimidate',
+          enemyMoveIds: const <String>['scratch'],
+        ),
+      );
+
+      expect(
+        updatedState.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+      );
     });
 
     test('captured outcome is rejected for trainer battles', () {
@@ -233,12 +278,131 @@ void main() {
         throwsA(isA<StateError>()),
       );
     });
+
+    test('captured outcome is rejected when the bag has no poke-ball', () {
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: _baseState().copyWith(
+            bag: const Bag(
+              entries: <BagEntry>[
+                BagEntry(
+                  itemId: 'potion',
+                  categoryId: 'medicine',
+                  quantity: 3,
+                ),
+              ],
+            ),
+          ),
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+            enemySpeciesId: 'wildmon',
+            enemyLevel: 12,
+            enemyCurrentHp: 7,
+            enemyAbilityId: 'intimidate',
+            enemyMoveIds: const <String>['scratch'],
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+
+  group('applyRuntimeDefeatRecoveryToGameState', () {
+    test(
+        'revives the exact battle slot to 1 HP when the whole party is KO after defeat',
+        () {
+      const defeatedState = GameState(
+        saveId: 'whiteout-lite',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'slot_zero',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 12,
+              knownMoveIds: <String>['growl'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'active_slot',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 18,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'slot_two',
+              natureId: 'calm',
+              abilityId: 'torrent',
+              level: 17,
+              knownMoveIds: <String>['water_gun'],
+              currentHp: 0,
+            ),
+          ],
+        ),
+      );
+
+      final recoveredState = applyRuntimeDefeatRecoveryToGameState(
+        gameState: defeatedState,
+        playerPartyIndex: 1,
+      );
+
+      expect(recoveredState.party.members[0].currentHp, equals(0));
+      expect(recoveredState.party.members[1].currentHp, equals(1));
+      expect(recoveredState.party.members[2].currentHp, equals(0));
+    });
+
+    test('does not heal the party when another member is already usable', () {
+      const defeatedState = GameState(
+        saveId: 'whiteout-lite-benched',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'active_slot',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 18,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'bench_survivor',
+              natureId: 'calm',
+              abilityId: 'torrent',
+              level: 22,
+              knownMoveIds: <String>['water_gun'],
+              currentHp: 9,
+            ),
+          ],
+        ),
+      );
+
+      final recoveredState = applyRuntimeDefeatRecoveryToGameState(
+        gameState: defeatedState,
+        playerPartyIndex: 0,
+      );
+
+      expect(recoveredState.party.members[0].currentHp, equals(0));
+      expect(recoveredState.party.members[1].currentHp, equals(9));
+    });
   });
 }
 
 GameState _baseState() {
   return const GameState(
     saveId: 'save-1',
+    bag: Bag(
+      entries: <BagEntry>[
+        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+        BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+      ],
+    ),
     party: PlayerParty(
       members: <PlayerPokemon>[
         PlayerPokemon(

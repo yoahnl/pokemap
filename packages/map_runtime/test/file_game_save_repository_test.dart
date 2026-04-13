@@ -133,6 +133,12 @@ void main() {
       const originalState = GameState(
         saveId: 'test_save_capture_001',
         currentMapId: 'field_map',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
         party: PlayerParty(
           members: <PlayerPokemon>[
             PlayerPokemon(
@@ -166,6 +172,15 @@ void main() {
       expect(loadedState!.party.members, hasLength(2));
       expect(loadedState.party.members.last.speciesId, equals('sparkitten'));
       expect(loadedState.party.members.last.abilityId, equals('blaze'));
+      expect(
+        loadedState.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+      );
       expect(
         loadedState.progression.caughtSpeciesIds,
         contains('sparkitten'),

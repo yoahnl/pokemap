@@ -4,6 +4,9 @@ import 'package:map_core/map_core.dart';
 import 'battle_start_request.dart';
 import 'story_flags_manager.dart';
 
+const _runtimeCapturePokeBallItemId = 'poke-ball';
+const _runtimeCapturePokeBallCategoryId = 'items';
+
 /// Contexte runtime strictement nécessaire pour faire le write-back lot 10.
 ///
 /// Invariant critique :
@@ -27,6 +30,58 @@ class RuntimeActiveBattleContext {
   final int playerPartyIndex;
 }
 
+/// Applique le strict minimum de reprise après une vraie défaite joueur.
+///
+/// Pourquoi ce helper existe :
+/// - le lot 10 écrit honnêtement les PV finaux du combat, y compris `0` ;
+/// - le lot 15 doit éviter l'état absurde "retour overworld + toute la party K.O.
+///   + aucun moyen de rejouer" ;
+/// - on ne veut pourtant pas ouvrir un vrai centre Pokémon, ni un système de
+///   whiteout complet, ni une logique multi-Pokémon.
+///
+/// Contrat volontairement petit :
+/// - si au moins un Pokémon de la party est encore jouable, on ne soigne rien ;
+/// - si toute la party est K.O., on relève uniquement le slot exact qui a servi
+///   au combat à `1 HP` ;
+/// - on garde ainsi la mémoire fidèle du write-back lot 10 sur tous les autres
+///   slots, tout en garantissant qu'un prochain handoff runtime->battle restera
+///   possible sans inventer un heal global.
+///
+/// Ce helper reste pur :
+/// - il ne téléporte pas ;
+/// - il ne touche ni au bag, ni aux flags trainer, ni à seen/caught ;
+/// - le repositionnement runtime "whiteout-lite" reste géré par `PlayableMapGame`,
+///   car lui seul connaît la carte réellement chargée et les seams de respawn.
+GameState applyRuntimeDefeatRecoveryToGameState({
+  required GameState gameState,
+  required int playerPartyIndex,
+}) {
+  if (gameState.party.members.any((member) => !member.isFainted)) {
+    return gameState;
+  }
+
+  final members = gameState.party.members;
+  if (playerPartyIndex < 0 || playerPartyIndex >= members.length) {
+    throw StateError(
+      'Le whiteout-lite runtime pointe vers un slot party invalide: '
+      'index=$playerPartyIndex, partyLength=${members.length}',
+    );
+  }
+
+  final nextMembers = List<PlayerPokemon>.of(members, growable: false);
+  final defeatedMember = nextMembers[playerPartyIndex];
+
+  // Whiteout-lite lot 15 :
+  // - on évite le softlock total après défaite ;
+  // - on ne réanime qu'un seul Pokémon, sur le slot exact qui a combattu ;
+  // - on ne transforme pas ce lot en heal center ou en reset complet de party.
+  nextMembers[playerPartyIndex] = defeatedMember.copyWith(currentHp: 1);
+
+  return gameState.copyWith(
+    party: gameState.party.copyWith(members: nextMembers),
+  );
+}
+
 /// Applique le résultat final du combat à l'état runtime.
 ///
 /// Ce helper porte le write-back lot 10 dans un seul chemin explicite :
@@ -37,8 +92,9 @@ class RuntimeActiveBattleContext {
 /// Important :
 /// - on ne soigne jamais implicitement le joueur ;
 /// - on ne téléporte jamais ;
-/// - le lot 13 ne gère que la capture sauvage minimale ;
-/// - aucun sac, aucune récompense, aucun switch n'est ouvert ici ;
+/// - le lot 13/14 ne gère qu'une capture sauvage minimale ;
+/// - le lot 14 consomme exactement une Poké Ball au write-back runtime ;
+/// - aucun bag UI, aucune récompense, aucun switch n'est ouvert ici ;
 /// - on ne recalculera jamais naïvement le slot actif après le combat.
 GameState applyRuntimeBattleOutcomeToGameState({
   required GameState gameState,
@@ -60,16 +116,19 @@ GameState applyRuntimeBattleOutcomeToGameState({
       );
     }
 
-    // Garde-fou lot 13 :
+    // Garde-fou lot 13/14 :
     // le moteur ne doit normalement jamais proposer Capture si la party est
-    // pleine, mais on revalide ici pour qu'un call site forcé ne fasse jamais
-    // "disparaître" un Pokémon capturé faute de boîte/PC implémentés.
+    // pleine ou sans Poké Ball, mais on revalide ici pour qu'un call site forcé
+    // ne fasse jamais "disparaître" un Pokémon capturé faute de boîte/PC ou
+    // contourne le coût réel de capture introduit par le lot 14.
     if (stateWithPlayerHp.party.members.length >= 6) {
       throw StateError(
         'Impossible d’ajouter un Pokémon capturé : la party du joueur est pleine.',
       );
     }
 
+    final bagAfterConsumption =
+        _consumeOnePokeBallOrThrow(stateWithPlayerHp.bag);
     final capturedPokemon = _buildCapturedWildPlayerPokemon(
       enemy: outcome.finalState.enemy,
     );
@@ -83,6 +142,7 @@ GameState applyRuntimeBattleOutcomeToGameState({
     return normalizeLoadedGameState(
       stateWithPlayerHp.copyWith(
         party: stateWithPlayerHp.party.copyWith(members: nextMembers),
+        bag: bagAfterConsumption,
       ),
     );
   }
@@ -134,6 +194,51 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
     knownMoveIds: normalizedMoveIds,
     currentHp: enemy.currentHp <= 0 ? 1 : enemy.currentHp,
   );
+}
+
+/// Consomme exactement une Poké Ball du bag runtime.
+///
+/// Pourquoi le coût est appliqué ici :
+/// - le moteur battle n'a pas à connaître le bag réel du joueur ;
+/// - la capture n'est "réelle" qu'au moment où le runtime accepte d'écrire le
+///   résultat dans le `GameState` ;
+/// - cela donne une frontière de sécurité unique contre les appels forcés :
+///   si aucun `poke-ball` n'existe, le write-back échoue explicitement.
+///
+/// Le lot 14 reste volontairement minimal :
+/// - une seule ressource est concernée (`poke-ball` / `items`) ;
+/// - aucune UI d'inventaire n'est ouverte ;
+/// - aucun autre item n'est touché ;
+/// - aucune entrée à quantité 0 ne doit survivre, car `BagEntry` l'interdit.
+Bag _consumeOnePokeBallOrThrow(Bag bag) {
+  final nextEntries = <BagEntry>[];
+  var didConsumePokeBall = false;
+
+  for (final entry in bag.entries) {
+    final isCaptureBall =
+        entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
+            entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId;
+    if (!isCaptureBall || didConsumePokeBall) {
+      nextEntries.add(entry);
+      continue;
+    }
+
+    didConsumePokeBall = true;
+    final nextQuantity = entry.quantity - 1;
+    if (nextQuantity > 0) {
+      nextEntries.add(
+        entry.copyWith(quantity: nextQuantity),
+      );
+    }
+  }
+
+  if (!didConsumePokeBall) {
+    throw StateError(
+      'Impossible d’appliquer BattleOutcomeType.captured sans Poké Ball dans le bag du joueur.',
+    );
+  }
+
+  return Bag(entries: nextEntries).normalized();
 }
 
 /// Réécrit les PV du combattant joueur dans la vraie party runtime.

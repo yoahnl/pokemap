@@ -197,6 +197,46 @@ void main() {
       expect(updatedState.storyFlags.activeFlags, isEmpty);
     });
 
+    test('wild capture is disabled when the player has no poke-ball', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: _playerState(
+          bag: const Bag(),
+        ),
+        request: request,
+      );
+
+      expect(setup.allowCapture, isFalse);
+    });
+
     test('capture choice produces a persistent captured pokemon', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
@@ -261,6 +301,14 @@ void main() {
       expect(captured.natureId, equals('hardy'));
       expect(captured.knownMoveIds, equals(<String>['scratch']));
       expect(captured.currentHp, equals(outcome.finalState.enemy.currentHp));
+      expect(
+        updatedState.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+          ],
+        ),
+      );
       expect(updatedState.progression.seenSpeciesIds, contains('sparkitten'));
       expect(updatedState.progression.caughtSpeciesIds, contains('sparkitten'));
       expect(updatedState.storyFlags.activeFlags, isEmpty);
@@ -268,10 +316,17 @@ void main() {
   });
 }
 
-GameState _playerState() {
-  return const GameState(
+GameState _playerState({
+  Bag bag = const Bag(
+    entries: <BagEntry>[
+      BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+    ],
+  ),
+}) {
+  return GameState(
     saveId: 'wild-flow-save',
-    party: PlayerParty(
+    bag: bag,
+    party: const PlayerParty(
       members: <PlayerPokemon>[
         PlayerPokemon(
           speciesId: 'sproutle',

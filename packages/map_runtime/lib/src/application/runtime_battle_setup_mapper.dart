@@ -8,6 +8,9 @@ import 'package:path/path.dart' as p;
 import 'battle_start_request.dart';
 import 'runtime_map_bundle.dart';
 
+const _runtimeCapturePokeBallItemId = 'poke-ball';
+const _runtimeCapturePokeBallCategoryId = 'items';
+
 /// Exception levée quand le runtime ne peut pas construire un [BattleSetup]
 /// honnête à partir des vraies données projet/save.
 ///
@@ -88,8 +91,17 @@ class RuntimeBattleSetupMapper {
       isTrainerBattle: request is TrainerBattleStartRequest,
       trainerId:
           request is TrainerBattleStartRequest ? request.trainerId : null,
+      // Le moteur battle ne connaît ni le bag runtime, ni les limites de party.
+      // On garde donc la décision de "peut-on capturer ?" ici, au point où le
+      // runtime possède encore les vraies données save/projet nécessaires.
+      //
+      // Lot 14 reste volontairement borné :
+      // - combat sauvage uniquement ;
+      // - aucune capture si la party est pleine (pas de PC/boxes ici) ;
+      // - aucune capture sans Poké Ball réelle dans le bag du joueur.
       allowCapture: request is WildBattleStartRequest &&
-          gameState.party.members.length < 6,
+          gameState.party.members.length < 6 &&
+          _playerHasAtLeastOnePokeBall(gameState.bag),
     );
   }
 
@@ -398,6 +410,27 @@ class RuntimeBattleSetupMapper {
     }
     return value;
   }
+}
+
+/// Retourne `true` si le bag runtime contient au moins une Poké Ball exploitable.
+///
+/// Le guard vit ici plutôt que dans `map_battle` car :
+/// - le moteur battle ne doit pas dépendre du système de bag ;
+/// - le runtime est déjà la frontière qui décide si `allowCapture` peut être
+///   activé pour une rencontre donnée ;
+/// - le lot 14 n'ouvre pas un inventaire global ni une politique de capture.
+///
+/// On tolère des IDs non normalisés en mémoire (`" poke-ball "`) pour rester
+/// robuste face à un état runtime pas encore passé par le pipeline save/load.
+bool _playerHasAtLeastOnePokeBall(Bag bag) {
+  for (final entry in bag.entries) {
+    if (entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
+        entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId &&
+        entry.quantity > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 class _RuntimeBattleCombatantSeed {
