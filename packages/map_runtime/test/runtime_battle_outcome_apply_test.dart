@@ -117,6 +117,122 @@ void main() {
         isNot(contains('trainer_defeated:ace_jules')),
       );
     });
+
+    test('captured wild battle appends the pokemon and syncs caught/seen', () {
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: _baseState(),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.captured,
+          playerCurrentHp: 19,
+          enemySpeciesId: 'wildmon',
+          enemyLevel: 12,
+          enemyCurrentHp: 7,
+          enemyAbilityId: 'intimidate',
+          enemyMoveIds: const <String>['scratch', 'leer'],
+        ),
+      );
+
+      expect(updatedState.party.members[0].currentHp, equals(19));
+      expect(updatedState.party.members, hasLength(3));
+
+      final captured = updatedState.party.members.last;
+      expect(captured.speciesId, equals('wildmon'));
+      expect(captured.level, equals(12));
+      expect(captured.abilityId, equals('intimidate'));
+      expect(captured.natureId, equals('hardy'));
+      expect(captured.knownMoveIds, equals(<String>['scratch', 'leer']));
+      expect(captured.currentHp, equals(7));
+      expect(updatedState.progression.caughtSpeciesIds, contains('wildmon'));
+      expect(updatedState.progression.seenSpeciesIds, contains('wildmon'));
+    });
+
+    test('captured outcome is rejected for trainer battles', () {
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: _baseState(),
+          context: RuntimeActiveBattleContext(
+            request: _trainerRequest(trainerId: 'ace_jules'),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+            enemySpeciesId: 'wildmon',
+            enemyLevel: 12,
+            enemyCurrentHp: 7,
+            enemyAbilityId: 'intimidate',
+            enemyMoveIds: const <String>['scratch'],
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('captured outcome is rejected when the party is already full', () {
+      final fullPartyState = _baseState().copyWith(
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            ..._baseState().party.members,
+            const PlayerPokemon(
+              speciesId: 'party_2',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_3',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_4',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_5',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: fullPartyState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+            enemySpeciesId: 'wildmon',
+            enemyLevel: 12,
+            enemyCurrentHp: 7,
+            enemyAbilityId: 'intimidate',
+            enemyMoveIds: const <String>['scratch'],
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
   });
 }
 
@@ -149,6 +265,11 @@ GameState _baseState() {
 BattleOutcome _finishedOutcome({
   required BattleOutcomeType type,
   required int playerCurrentHp,
+  String enemySpeciesId = 'aquafi',
+  int enemyLevel = 18,
+  int enemyCurrentHp = 0,
+  String enemyAbilityId = 'torrent',
+  List<String> enemyMoveIds = const <String>['water_gun'],
 }) {
   final finalState = BattleState(
     phase: BattlePhase.finished,
@@ -161,14 +282,21 @@ BattleOutcome _finishedOutcome({
         BattleMove(id: 'growl', name: 'Growl', power: 0),
       ],
     ),
-    enemy: const BattleCombatant(
-      speciesId: 'aquafi',
-      level: 18,
-      currentHp: 0,
+    enemy: BattleCombatant(
+      speciesId: enemySpeciesId,
+      level: enemyLevel,
+      currentHp: enemyCurrentHp,
       maxHp: 35,
-      moves: <BattleMove>[
-        BattleMove(id: 'water_gun', name: 'Water Gun', power: 10),
-      ],
+      abilityId: enemyAbilityId,
+      moves: enemyMoveIds
+          .map(
+            (moveId) => BattleMove(
+              id: moveId,
+              name: moveId,
+              power: 10,
+            ),
+          )
+          .toList(growable: false),
     ),
     currentTurn: null,
     outcome: null,

@@ -91,12 +91,14 @@ class BattleCombatant {
   /// [level] - Le niveau.
   /// [currentHp] - Les PV courants.
   /// [maxHp] - Les PV maximum.
+  /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   /// [moves] - La liste des attaques disponibles.
   const BattleCombatant({
     required this.speciesId,
     required this.level,
     required this.currentHp,
     required this.maxHp,
+    this.abilityId = 'unknown',
     required this.moves,
   });
 
@@ -111,6 +113,13 @@ class BattleCombatant {
 
   /// Les PV maximum.
   final int maxHp;
+
+  /// L'ability réellement résolue pour ce combattant.
+  ///
+  /// Le moteur lot 13 n'en tire toujours aucun calcul de combat. On la transporte
+  /// néanmoins jusqu'à l'issue finale pour permettre au runtime de persister un
+  /// Pokémon capturé à partir du vrai ennemi engagé, sans données inventées.
+  final String abilityId;
 
   /// La liste des attaques disponibles.
   final List<BattleMove> moves;
@@ -132,6 +141,7 @@ class BattleCombatant {
       level: level,
       currentHp: (currentHp - damage).clamp(0, maxHp),
       maxHp: maxHp,
+      abilityId: abilityId,
       moves: moves,
     );
   }
@@ -148,6 +158,7 @@ class BattleCombatant {
       level: level,
       currentHp: (currentHp + healAmount).clamp(0, maxHp),
       maxHp: maxHp,
+      abilityId: abilityId,
       moves: moves,
     );
   }

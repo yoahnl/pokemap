@@ -256,7 +256,8 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     final lines = <String>[];
     for (final execution in turnResult.executions) {
       final attacker = execution.attacker == 'player' ? 'Joueur' : 'Ennemi';
-      lines.add('$attacker utilise ${execution.move.name} → ${execution.damage} dégâts');
+      lines.add(
+          '$attacker utilise ${execution.move.name} → ${execution.damage} dégâts');
     }
 
     if (lines.isEmpty) {
@@ -286,6 +287,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       BattleOutcomeType.victory => 'Victoire !',
       BattleOutcomeType.defeat => 'Défaite...',
       BattleOutcomeType.runaway => 'Fuite réussie !',
+      BattleOutcomeType.captured => 'Capture réussie !',
     };
 
     final outcomeComponent = TextComponent(
@@ -294,7 +296,9 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       position: Vector2(_panel!.size.x / 2, _panel!.size.y / 2 + 50),
       textRenderer: TextPaint(
         style: TextStyle(
-          color: outcome.isVictory ? const Color(0xFF4CAF50) : const Color(0xFFF44336),
+          color: outcome.isVictory || outcome.isCaptured
+              ? const Color(0xFF4CAF50)
+              : const Color(0xFFF44336),
           fontSize: 32,
           fontWeight: FontWeight.w700,
         ),
@@ -344,7 +348,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
           position: Vector2(24, y + 2),
           anchor: Anchor.topLeft,
           paint: Paint()
-            ..color = const Color(0x40FFFFFF)  // Blanc semi-transparent
+            ..color = const Color(0x40FFFFFF) // Blanc semi-transparent
             ..style = PaintingStyle.fill,
           priority: 2,
         );
@@ -363,6 +367,8 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       // Lit les moves depuis _session.state.player.moves — toujours à jour
       final move = _session.state.player.moves[choice.moveIndex];
       return '⚔ ${move.name} (Puissance: ${move.power})';
+    } else if (choice is PlayerBattleChoiceCapture) {
+      return 'Capturer';
     } else if (choice is PlayerBattleChoiceRun) {
       return '🏃 Fuir';
     }
@@ -403,10 +409,11 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     if (_selectedIndex > 0) {
       _selectedIndex--;
       debugPrint('[battle-overlay] moveSelectionUp: new index=$_selectedIndex');
-      _renderChoices();  // Re-render pour mettre à jour la surbrillance
+      _renderChoices(); // Re-render pour mettre à jour la surbrillance
       return true;
     }
-    debugPrint('[battle-overlay] moveSelectionUp: already at first choice (index=$_selectedIndex)');
+    debugPrint(
+        '[battle-overlay] moveSelectionUp: already at first choice (index=$_selectedIndex)');
     return false;
   }
 
@@ -419,11 +426,13 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   bool moveSelectionDown() {
     if (_selectedIndex < _choiceComponents.length - 1) {
       _selectedIndex++;
-      debugPrint('[battle-overlay] moveSelectionDown: new index=$_selectedIndex');
-      _renderChoices();  // Re-render pour mettre à jour la surbrillance
+      debugPrint(
+          '[battle-overlay] moveSelectionDown: new index=$_selectedIndex');
+      _renderChoices(); // Re-render pour mettre à jour la surbrillance
       return true;
     }
-    debugPrint('[battle-overlay] moveSelectionDown: already at last choice (index=$_selectedIndex, max=${_choiceComponents.length - 1})');
+    debugPrint(
+        '[battle-overlay] moveSelectionDown: already at last choice (index=$_selectedIndex, max=${_choiceComponents.length - 1})');
     return false;
   }
 
@@ -431,7 +440,9 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   ///
   /// Retourne null si aucun choix n'est disponible.
   PlayerBattleChoice? getSelectedChoice() {
-    if (_choiceComponents.isEmpty || _selectedIndex < 0 || _selectedIndex >= _choiceComponents.length) {
+    if (_choiceComponents.isEmpty ||
+        _selectedIndex < 0 ||
+        _selectedIndex >= _choiceComponents.length) {
       return null;
     }
     return _choiceComponents[_selectedIndex].choice;
@@ -445,7 +456,8 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   bool validateSelectedChoice() {
     final selectedChoice = getSelectedChoice();
     if (selectedChoice != null) {
-      debugPrint('[battle-overlay] validateSelectedChoice: choice=$selectedChoice');
+      debugPrint(
+          '[battle-overlay] validateSelectedChoice: choice=$selectedChoice');
       onPlayerChoice(selectedChoice);
       return true;
     }
@@ -463,7 +475,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
         // Mettre à jour la sélection visuelle
         _selectedIndex = i;
         _renderChoices();
-        
+
         // Choix cliqué — notifier le runtime
         onPlayerChoice(choiceComponent.choice);
         return;
@@ -505,6 +517,7 @@ class _ChoiceComponent extends PositionComponent {
   final PlayerBattleChoice choice;
 
   /// Vérifie si un point est dans les bounds de ce composant.
+  @override
   bool containsPoint(Vector2 point) {
     return point.x >= position.x &&
         point.x <= position.x + size.x &&

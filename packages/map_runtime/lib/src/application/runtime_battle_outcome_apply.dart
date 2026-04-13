@@ -37,7 +37,8 @@ class RuntimeActiveBattleContext {
 /// Important :
 /// - on ne soigne jamais implicitement le joueur ;
 /// - on ne téléporte jamais ;
-/// - on ne touche ni à la capture, ni au sac, ni à la récompense ;
+/// - le lot 13 ne gère que la capture sauvage minimale ;
+/// - aucun sac, aucune récompense, aucun switch n'est ouvert ici ;
 /// - on ne recalculera jamais naïvement le slot actif après le combat.
 GameState applyRuntimeBattleOutcomeToGameState({
   required GameState gameState,
@@ -52,6 +53,40 @@ GameState applyRuntimeBattleOutcomeToGameState({
   );
 
   final request = context.request;
+  if (outcome.isCaptured) {
+    if (request is! WildBattleStartRequest) {
+      throw StateError(
+        'BattleOutcomeType.captured est interdit hors combat sauvage.',
+      );
+    }
+
+    // Garde-fou lot 13 :
+    // le moteur ne doit normalement jamais proposer Capture si la party est
+    // pleine, mais on revalide ici pour qu'un call site forcé ne fasse jamais
+    // "disparaître" un Pokémon capturé faute de boîte/PC implémentés.
+    if (stateWithPlayerHp.party.members.length >= 6) {
+      throw StateError(
+        'Impossible d’ajouter un Pokémon capturé : la party du joueur est pleine.',
+      );
+    }
+
+    final capturedPokemon = _buildCapturedWildPlayerPokemon(
+      enemy: outcome.finalState.enemy,
+    );
+    final nextMembers = List<PlayerPokemon>.of(
+      stateWithPlayerHp.party.members,
+      growable: true,
+    )..add(capturedPokemon);
+
+    // Lot 12 garantit déjà "party -> caught -> seen". On réutilise donc cette
+    // normalisation partagée au lieu d'introduire un deuxième pipeline Pokédex.
+    return normalizeLoadedGameState(
+      stateWithPlayerHp.copyWith(
+        party: stateWithPlayerHp.party.copyWith(members: nextMembers),
+      ),
+    );
+  }
+
   if (outcome.isVictory && request is TrainerBattleStartRequest) {
     return storyFlagsManager.markTrainerDefeated(
       stateWithPlayerHp,
@@ -60,6 +95,45 @@ GameState applyRuntimeBattleOutcomeToGameState({
   }
 
   return stateWithPlayerHp;
+}
+
+const _capturedPokemonDefaultNatureId = 'hardy';
+const _capturedPokemonFallbackAbilityId = 'unknown';
+
+/// Construit le Pokémon réellement ajouté à la party après une capture sauvage.
+///
+/// Le lot 13 reste volontairement minimal :
+/// - l'espèce, le niveau, l'ability et les moves viennent du vrai combattant
+///   sauvage réellement engagé dans le moteur battle ;
+/// - la nature reste un fallback MVP déterministe (`hardy`) faute de véritable
+///   génération runtime existante ;
+/// - on ne tente pas d'inventer ivs/evs/status/shiny/held item au-delà des
+///   defaults du modèle `PlayerPokemon`.
+///
+/// Invariant important :
+/// - une capture réussie ne doit jamais produire un Pokémon owned déjà K.O. ;
+/// - si un call site forge un outcome capturé incohérent avec `enemyHp <= 0`,
+///   on clamp donc les PV du Pokémon capturé à 1 minimum.
+PlayerPokemon _buildCapturedWildPlayerPokemon({
+  required BattleCombatant enemy,
+}) {
+  final normalizedAbilityId = enemy.abilityId.trim().isEmpty
+      ? _capturedPokemonFallbackAbilityId
+      : enemy.abilityId.trim();
+  final normalizedMoveIds = enemy.moves
+      .map((move) => move.id.trim())
+      .where((moveId) => moveId.isNotEmpty)
+      .toSet()
+      .toList(growable: false);
+
+  return PlayerPokemon(
+    speciesId: enemy.speciesId.trim(),
+    natureId: _capturedPokemonDefaultNatureId,
+    abilityId: normalizedAbilityId,
+    level: enemy.level,
+    knownMoveIds: normalizedMoveIds,
+    currentHp: enemy.currentHp <= 0 ? 1 : enemy.currentHp,
+  );
 }
 
 /// Réécrit les PV du combattant joueur dans la vraie party runtime.

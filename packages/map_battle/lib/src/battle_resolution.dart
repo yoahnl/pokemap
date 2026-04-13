@@ -77,6 +77,15 @@ enum BattleOutcomeType {
 
   /// Le joueur a fui avec succès.
   runaway,
+
+  /// Le joueur a capturé avec succès un Pokémon sauvage.
+  ///
+  /// Le lot 13 garde ce contrat volontairement petit :
+  /// - l'issue termine immédiatement le combat ;
+  /// - elle ne porte pas de formule de capture canonique ;
+  /// - le runtime se charge ensuite d'écrire réellement le Pokémon capturé
+  ///   dans la party/save du joueur.
+  captured,
 }
 
 /// Résultat final d'un combat.
@@ -105,4 +114,7 @@ class BattleOutcome {
 
   /// true si le joueur a fui.
   bool get isRunaway => type == BattleOutcomeType.runaway;
+
+  /// true si le joueur a capturé le Pokémon sauvage.
+  bool get isCaptured => type == BattleOutcomeType.captured;
 }

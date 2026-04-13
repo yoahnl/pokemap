@@ -142,8 +142,10 @@ void main() {
       );
 
       expect(setup.isTrainerBattle, isFalse);
+      expect(setup.allowCapture, isTrue);
       expect(setup.enemyPokemon.speciesId, equals('sparkitten'));
       expect(setup.enemyPokemon.level, equals(10));
+      expect(setup.enemyPokemon.abilityId, equals('blaze'));
       expect(
         setup.enemyPokemon.moves.map((move) => move.id).toList(),
         equals(<String>['scratch', 'tail_whip', 'ember']),
@@ -182,14 +184,54 @@ void main() {
       );
 
       expect(setup.isTrainerBattle, isTrue);
+      expect(setup.allowCapture, isFalse);
       expect(setup.trainerId, equals('trainer_ace'));
       expect(setup.enemyPokemon.speciesId, equals('aquafi'));
       expect(setup.enemyPokemon.level, equals(18));
+      expect(setup.enemyPokemon.abilityId, equals('torrent'));
       expect(
         setup.enemyPokemon.moves.map((move) => move.id).toList(),
         equals(<String>['water_gun', 'aqua_ring']),
       );
       expect(setup.enemyPokemon.speciesId, isNot(equals('lapras')));
+    });
+
+    test('disables capture in wild battles when the party is already full',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final fullPartyState = GameState(
+        saveId: 'save-full-party',
+        party: PlayerParty(
+          members: List<PlayerPokemon>.generate(
+            6,
+            (index) => PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 12 + index,
+              knownMoveIds: const <String>['growl'],
+              currentHp: 20,
+            ),
+            growable: false,
+          ),
+        ),
+      );
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: fullPartyState,
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(setup.isTrainerBattle, isFalse);
+      expect(setup.allowCapture, isFalse);
     });
   });
 }

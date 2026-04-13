@@ -32,6 +32,18 @@ class PlayerBattleChoiceRun extends PlayerBattleChoice {
   const PlayerBattleChoiceRun();
 }
 
+/// Capturer le Pokémon adverse.
+///
+/// Le lot 13 reste volontairement minimal :
+/// - cette action n'est légitime qu'en combat sauvage ;
+/// - elle ne modélise ni sac, ni consommation d'objet, ni formule canonique ;
+/// - elle sert uniquement à produire un outcome explicite que le runtime
+///   pourra écrire honnêtement dans la vraie party du joueur.
+class PlayerBattleChoiceCapture extends PlayerBattleChoice {
+  /// Crée un choix de capture.
+  const PlayerBattleChoiceCapture();
+}
+
 /// Action résolue (interne au moteur de combat).
 ///
 /// Contrairement à [PlayerBattleChoice] qui est un choix UI,

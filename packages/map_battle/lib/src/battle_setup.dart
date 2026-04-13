@@ -12,11 +12,15 @@ class BattleSetup {
   /// [enemyPokemon] - Le Pokémon adverse qui combat.
   /// [isTrainerBattle] - true si c'est un combat contre un dresseur.
   /// [trainerId] - L'identifiant du dresseur (non-null si [isTrainerBattle] est true).
+  /// [allowCapture] - true si le runtime autorise explicitement la capture
+  ///   pour ce combat. Le lot 13 l'utilise uniquement pour les rencontres
+  ///   sauvages quand la party a encore de la place.
   const BattleSetup({
     required this.playerPokemon,
     required this.enemyPokemon,
     required this.isTrainerBattle,
     required this.trainerId,
+    this.allowCapture = false,
   });
 
   /// Le Pokémon du joueur qui combat.
@@ -35,6 +39,15 @@ class BattleSetup {
   /// Non-null si [isTrainerBattle] est true.
   /// Utilisé par le runtime pour marquer `trainer_defeated:{trainerId}` après victoire.
   final String? trainerId;
+
+  /// true si l'action Capture doit être exposée au joueur.
+  ///
+  /// Invariants métier lot 13 :
+  /// - jamais en combat trainer ;
+  /// - seulement si le runtime sait qu'une capture réussie peut être écrite
+  ///   proprement dans l'état joueur ;
+  /// - on évite ainsi toute promesse mensongère quand la party est pleine.
+  final bool allowCapture;
 }
 
 /// Données minimales d'un combattant pour initialiser un combat.
@@ -48,6 +61,7 @@ class BattleCombatantData {
   /// [level] - Le niveau du combattant.
   /// [maxHp] - Les points de vie maximum.
   /// [currentHp] - Les PV courants si le runtime les connaît déjà.
+  /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   ///
   /// Le lot 9 du runtime -> battle handoff doit partir de la vraie party du
   /// joueur. On ajoute donc ce champ optionnel au setup pour éviter de soigner
@@ -58,6 +72,7 @@ class BattleCombatantData {
     required this.level,
     required this.maxHp,
     this.currentHp,
+    this.abilityId = 'unknown',
     required this.moves,
   });
 
@@ -76,6 +91,13 @@ class BattleCombatantData {
   /// comportement historique des tests et call sites qui n'ont pas besoin de
   /// porter cet état.
   final int? currentHp;
+
+  /// L'ability réellement résolue si le runtime la connaît déjà.
+  ///
+  /// Le moteur de combat MVP n'utilise pas encore cette donnée pour ses
+  /// calculs, mais le lot 13 en a besoin pour construire un Pokémon capturé
+  /// sans réinventer un deuxième format intermédiaire.
+  final String abilityId;
 
   /// La liste des attaques disponibles.
   final List<BattleMoveData> moves;

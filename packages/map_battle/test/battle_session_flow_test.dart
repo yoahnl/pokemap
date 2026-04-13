@@ -9,6 +9,8 @@ void main() {
       int enemyHp = 20,
       int playerMovePower = 5,
       int enemyMovePower = 5,
+      bool isTrainerBattle = false,
+      bool allowCapture = false,
     }) {
       final setup = BattleSetup(
         playerPokemon: BattleCombatantData(
@@ -28,8 +30,9 @@ void main() {
             BattleMoveData(id: 'tackle', name: 'Charge', power: enemyMovePower),
           ],
         ),
-        isTrainerBattle: false,
-        trainerId: null,
+        isTrainerBattle: isTrainerBattle,
+        trainerId: isTrainerBattle ? 'trainer_1' : null,
+        allowCapture: allowCapture,
       );
       return createBattleSession(setup);
     }
@@ -97,6 +100,27 @@ void main() {
       expect(sessionAfterRun.state.currentTurn, isNull);
       expect(sessionAfterRun.state.player.currentHp, equals(50));
       expect(sessionAfterRun.state.enemy.currentHp, equals(20));
+    });
+
+    test('capture choice finishes a wild battle immediately', () {
+      final session = createTestSession(
+        playerHp: 50,
+        enemyHp: 18,
+        allowCapture: true,
+      );
+
+      final choices = session.getAvailableChoices();
+      expect(choices.whereType<PlayerBattleChoiceCapture>(), hasLength(1));
+
+      final sessionAfterCapture =
+          session.applyChoice(const PlayerBattleChoiceCapture());
+
+      expect(sessionAfterCapture.state.isFinished, isTrue);
+      expect(sessionAfterCapture.state.outcome, isNotNull);
+      expect(sessionAfterCapture.state.outcome!.isCaptured, isTrue);
+      expect(sessionAfterCapture.state.currentTurn, isNull);
+      expect(sessionAfterCapture.state.player.currentHp, equals(50));
+      expect(sessionAfterCapture.state.enemy.currentHp, equals(18));
     });
 
     test('multiple turns can be played sequentially', () {
@@ -176,6 +200,34 @@ void main() {
       );
       expect(session.state.isFinished, isFalse);
       expect(session.state.outcome, isNull);
+    });
+
+    test('forced capture choice is rejected in trainer battles', () {
+      final session = createTestSession(
+        isTrainerBattle: true,
+        allowCapture: true,
+      );
+
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceCapture()),
+        throwsA(isA<StateError>()),
+      );
+      expect(session.state.isFinished, isFalse);
+      expect(session.state.outcome, isNull);
+    });
+
+    test('capture choice is rejected when capture is not allowed', () {
+      final session = createTestSession(
+        allowCapture: false,
+      );
+
+      expect(
+          session.getAvailableChoices().whereType<PlayerBattleChoiceCapture>(),
+          isEmpty);
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceCapture()),
+        throwsA(isA<StateError>()),
+      );
     });
   });
 
@@ -262,6 +314,39 @@ void main() {
       expect(resultSession.state.outcome!.isDefeat, isFalse);
       expect(resultSession.state.player.currentHp, equals(50));
       expect(resultSession.state.enemy.currentHp, equals(20));
+    });
+
+    test('captured outcome exposes a real capture result', () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 50,
+          moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 20,
+          abilityId: 'water-absorb',
+          moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+        allowCapture: true,
+      );
+
+      final session = createBattleSession(setup);
+      final resultSession =
+          session.applyChoice(const PlayerBattleChoiceCapture());
+
+      expect(resultSession.state.isFinished, isTrue);
+      expect(resultSession.state.outcome, isNotNull);
+      expect(resultSession.state.outcome!.isCaptured, isTrue);
+      expect(resultSession.state.outcome!.isVictory, isFalse);
+      expect(resultSession.state.outcome!.isDefeat, isFalse);
+      expect(resultSession.state.outcome!.isRunaway, isFalse);
+      expect(resultSession.state.enemy.abilityId, equals('water-absorb'));
     });
   });
 }

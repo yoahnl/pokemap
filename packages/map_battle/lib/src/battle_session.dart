@@ -29,6 +29,7 @@ BattleSession createBattleSession(BattleSetup setup) {
     level: setup.playerPokemon.level,
     currentHp: playerCurrentHp,
     maxHp: setup.playerPokemon.maxHp,
+    abilityId: setup.playerPokemon.abilityId,
     moves: setup.playerPokemon.moves
         .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
         .toList(),
@@ -39,6 +40,7 @@ BattleSession createBattleSession(BattleSetup setup) {
     level: setup.enemyPokemon.level,
     currentHp: enemyCurrentHp,
     maxHp: setup.enemyPokemon.maxHp,
+    abilityId: setup.enemyPokemon.abilityId,
     moves: setup.enemyPokemon.moves
         .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
         .toList(),
@@ -107,12 +109,14 @@ class BattleSession {
   ///
   /// Retourne une liste de choix :
   /// - [PlayerBattleChoiceFight] pour chaque attaque disponible (0-3)
+  /// - [PlayerBattleChoiceCapture] pour capturer, uniquement en sauvage quand
+  ///   le runtime a explicitement autorisé cette issue
   /// - [PlayerBattleChoiceRun] pour fuir, uniquement en combat sauvage
   ///
   /// Exemple d'usage :
   /// ```dart
   /// final choices = session.getAvailableChoices();
-  /// // wild: [Fight(0), Fight(1), Fight(2), Fight(3), Run()]
+  /// // wild: [Fight(0), Fight(1), Fight(2), Fight(3), Capture(), Run()]
   /// // trainer: [Fight(0), Fight(1), Fight(2), Fight(3)]
   /// ```
   List<PlayerBattleChoice> getAvailableChoices() {
@@ -122,12 +126,18 @@ class BattleSession {
       fightChoices.add(PlayerBattleChoiceFight(i));
     }
 
-    // Invariant métier important :
+    // Invariants métier lots 11 + 13 :
     // - la fuite est autorisée en sauvage pour garder une vraie boucle jouable ;
-    // - la fuite n'est jamais un choix légitime en trainer battle.
-    //
-    // On filtre donc le choix ici pour que l'UI/runtime n'ait pas de bouton
-    // Run à afficher en trainer battle.
+    // - la capture n'est autorisée qu'en sauvage ;
+    // - la capture n'est proposée que si le runtime a validé qu'elle pourra
+    //   être écrite honnêtement (party avec place, pas de trainer battle) ;
+    // - trainer battle : ni Run ni Capture ne doivent apparaître.
+    if (!setup.isTrainerBattle && setup.allowCapture) {
+      fightChoices.add(const PlayerBattleChoiceCapture());
+    }
+
+    // On filtre donc Run ici pour que l'UI/runtime n'ait pas de bouton
+    // de fuite à afficher en trainer battle.
     if (!setup.isTrainerBattle) {
       fightChoices.add(const PlayerBattleChoiceRun());
     }
@@ -161,13 +171,23 @@ class BattleSession {
   BattleSession applyChoice(PlayerBattleChoice choice) {
     // Frontière métier défensive :
     // même si un call site contourne getAvailableChoices(), un combat trainer
-    // ne doit jamais pouvoir produire un outcome "runaway".
+    // ne doit jamais pouvoir produire ni "runaway", ni "captured".
     //
     // On rejette explicitement ce cas illégal au niveau du moteur, ce qui
     // évite de dépendre d'un filtre UI seulement.
     if (choice is PlayerBattleChoiceRun && setup.isTrainerBattle) {
       throw StateError(
         'PlayerBattleChoiceRun est interdit pendant un trainer battle.',
+      );
+    }
+    if (choice is PlayerBattleChoiceCapture && setup.isTrainerBattle) {
+      throw StateError(
+        'PlayerBattleChoiceCapture est interdit pendant un trainer battle.',
+      );
+    }
+    if (choice is PlayerBattleChoiceCapture && !setup.allowCapture) {
+      throw StateError(
+        'PlayerBattleChoiceCapture est interdit pour ce combat.',
       );
     }
 
@@ -182,7 +202,7 @@ class BattleSession {
     // moteur MVP actuel :
     // - la fuite réussit immédiatement ;
     // - aucun dégât supplémentaire n'est appliqué ;
-    // - aucun système lot 12+ (capture, récompenses, sac, switch) n'est ouvert ;
+    // - aucun système lot 14+ (récompenses, sac, switch, XP, etc.) n'est ouvert ;
     // - le runtime lot 10 peut réutiliser directement cet outcome pour son
     //   write-back et son retour overworld.
     if (choice is PlayerBattleChoiceRun) {
@@ -201,6 +221,37 @@ class BattleSession {
           currentTurn: null,
           outcome: BattleOutcome(
             type: BattleOutcomeType.runaway,
+            finalState: finalState,
+          ),
+        ),
+        setup: setup,
+      );
+    }
+
+    // Lot 13 choisit le plus petit contrat de capture honnête :
+    // - pas de formule canonique de Poké Ball ;
+    // - pas de consommation d'objet ;
+    // - la capture réussit immédiatement quand elle est proposée ;
+    // - le runtime reste responsable du vrai write-back dans la party/save.
+    //
+    // On garde l'ennemi inchangé dans le finalState : il représente le Pokémon
+    // effectivement capturé, avec ses moves/niveau/ability réellement engagés.
+    if (choice is PlayerBattleChoiceCapture) {
+      final finalState = BattleState(
+        phase: BattlePhase.finished,
+        player: state.player,
+        enemy: state.enemy,
+        currentTurn: null,
+        outcome: null,
+      );
+      return BattleSession._(
+        state: BattleState(
+          phase: BattlePhase.finished,
+          player: finalState.player,
+          enemy: finalState.enemy,
+          currentTurn: null,
+          outcome: BattleOutcome(
+            type: BattleOutcomeType.captured,
             finalState: finalState,
           ),
         ),

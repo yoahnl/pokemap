@@ -7,6 +7,7 @@ void main() {
     BattleSetup createTestSetup({
       bool isTrainerBattle = false,
       String? trainerId,
+      bool allowCapture = false,
     }) {
       return BattleSetup(
         playerPokemon: BattleCombatantData(
@@ -28,6 +29,7 @@ void main() {
         ),
         isTrainerBattle: isTrainerBattle,
         trainerId: trainerId,
+        allowCapture: allowCapture,
       );
     }
 
@@ -96,6 +98,19 @@ void main() {
       expect(choices[2], isA<PlayerBattleChoiceRun>());
     });
 
+    test('getAvailableChoices exposes capture in wild battle when allowed', () {
+      final setup = createTestSetup(allowCapture: true);
+      final session = createBattleSession(setup);
+
+      final choices = session.getAvailableChoices();
+
+      expect(choices.length, equals(4));
+      expect(choices[0], isA<PlayerBattleChoiceFight>());
+      expect(choices[1], isA<PlayerBattleChoiceFight>());
+      expect(choices[2], isA<PlayerBattleChoiceCapture>());
+      expect(choices[3], isA<PlayerBattleChoiceRun>());
+    });
+
     test('getAvailableChoices does not expose run in trainer battle', () {
       final setup = createTestSetup(
         isTrainerBattle: true,
@@ -109,6 +124,19 @@ void main() {
       expect(choices[0], isA<PlayerBattleChoiceFight>());
       expect(choices[1], isA<PlayerBattleChoiceFight>());
       expect(choices.whereType<PlayerBattleChoiceRun>(), isEmpty);
+    });
+
+    test('getAvailableChoices does not expose capture in trainer battle', () {
+      final setup = createTestSetup(
+        isTrainerBattle: true,
+        trainerId: 'gym_leader_1',
+        allowCapture: true,
+      );
+      final session = createBattleSession(setup);
+
+      final choices = session.getAvailableChoices();
+
+      expect(choices.whereType<PlayerBattleChoiceCapture>(), isEmpty);
     });
 
     test('applyChoice with fight resolves turn and damages enemy', () {

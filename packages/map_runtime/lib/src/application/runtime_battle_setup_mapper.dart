@@ -88,6 +88,8 @@ class RuntimeBattleSetupMapper {
       isTrainerBattle: request is TrainerBattleStartRequest,
       trainerId:
           request is TrainerBattleStartRequest ? request.trainerId : null,
+      allowCapture: request is WildBattleStartRequest &&
+          gameState.party.members.length < 6,
     );
   }
 
@@ -128,6 +130,9 @@ class RuntimeBattleSetupMapper {
       level: playerPokemon.level,
       maxHp: maxHp,
       currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
+      abilityId: playerPokemon.abilityId.trim().isEmpty
+          ? 'unknown'
+          : playerPokemon.abilityId.trim(),
       moves: moves,
     );
   }
@@ -156,6 +161,9 @@ class RuntimeBattleSetupMapper {
         baseHp: species.baseHp,
         level: request.level,
       ),
+      abilityId: species.primaryAbilityId.isEmpty
+          ? 'unknown'
+          : species.primaryAbilityId,
       moves: moves,
     );
   }
@@ -200,6 +208,9 @@ class RuntimeBattleSetupMapper {
         baseHp: species.baseHp,
         level: teamMember.level,
       ),
+      abilityId: species.primaryAbilityId.isEmpty
+          ? 'unknown'
+          : species.primaryAbilityId,
       moves: moves,
     );
   }
@@ -394,6 +405,7 @@ class _RuntimeBattleCombatantSeed {
     required this.speciesId,
     required this.level,
     required this.maxHp,
+    required this.abilityId,
     required this.moves,
     this.currentHp,
   });
@@ -402,6 +414,7 @@ class _RuntimeBattleCombatantSeed {
   final int level;
   final int maxHp;
   final int? currentHp;
+  final String abilityId;
   final List<BattleMoveData> moves;
 
   BattleCombatantData toBattleCombatantData() {
@@ -410,6 +423,7 @@ class _RuntimeBattleCombatantSeed {
       level: level,
       maxHp: maxHp,
       currentHp: currentHp,
+      abilityId: abilityId,
       moves: moves,
     );
   }
@@ -515,9 +529,13 @@ class _RuntimePokemonProjectReader {
           <String, dynamic>{
             'learnset': (rawJson['learnsetRef'] as String?)?.trim() ?? '',
           };
+      final abilities =
+          (rawJson['abilities'] as Map?)?.cast<String, dynamic>() ??
+              const <String, dynamic>{};
       return _RuntimePokemonSpecies(
         id: declaredId,
         baseHp: (baseStats['hp'] as num?)?.toInt() ?? 1,
+        primaryAbilityId: (abilities['primary'] as String?)?.trim() ?? '',
         learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
       );
     }
@@ -623,11 +641,13 @@ class _RuntimePokemonSpecies {
   const _RuntimePokemonSpecies({
     required this.id,
     required this.baseHp,
+    required this.primaryAbilityId,
     required this.learnsetRef,
   });
 
   final String id;
   final int baseHp;
+  final String primaryAbilityId;
   final String learnsetRef;
 }
 

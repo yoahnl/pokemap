@@ -128,6 +128,55 @@ void main() {
     });
 
     test(
+        'save → load preserves a captured wild pokemon in party and progression',
+        () async {
+      const originalState = GameState(
+        saveId: 'test_save_capture_001',
+        currentMapId: 'field_map',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 12,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 20,
+            ),
+            PlayerPokemon(
+              speciesId: 'sparkitten',
+              natureId: 'hardy',
+              abilityId: 'blaze',
+              level: 6,
+              knownMoveIds: <String>['scratch'],
+              currentHp: 17,
+            ),
+          ],
+        ),
+        progression: PlayerProgression(
+          seenSpeciesIds: <String>['sparkitten'],
+          caughtSpeciesIds: <String>['sparkitten'],
+        ),
+      );
+
+      await repository.save(originalState);
+      final loadedState = await repository.load();
+
+      expect(loadedState, isNotNull);
+      expect(loadedState!.party.members, hasLength(2));
+      expect(loadedState.party.members.last.speciesId, equals('sparkitten'));
+      expect(loadedState.party.members.last.abilityId, equals('blaze'));
+      expect(
+        loadedState.progression.caughtSpeciesIds,
+        contains('sparkitten'),
+      );
+      expect(
+        loadedState.progression.seenSpeciesIds,
+        contains('sparkitten'),
+      );
+    });
+
+    test(
         'load migrates legacy progression.storyFlags into storyFlags.activeFlags',
         () async {
       final filePath = await repository.exposedSaveFilePath();
