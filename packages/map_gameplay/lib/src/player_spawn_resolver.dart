@@ -6,15 +6,29 @@ import 'gameplay_player_state.dart';
 
 const Direction _kDefaultFacing = Direction.south;
 
-GameplayPlayerState resolveInitialPlayerSpawn(MapData map) {
+/// Résout le joueur initial + [playerPositionPx] à partir du spawn carte.
+///
+/// [tileWidthPx] / [tileHeightPx] : taille tuile projet (même repère que le bitmap monde).
+GameplayPlayerState resolveInitialPlayerSpawn(
+  MapData map, {
+  int tileWidthPx = 16,
+  int tileHeightPx = 16,
+}) {
   final spawnId = map.mapMetadata.defaultSpawnId?.trim();
   if (spawnId != null && spawnId.isNotEmpty) {
-    return _resolveBySpawnId(map, spawnId);
+    return _resolveBySpawnId(map, spawnId,
+        tileWidthPx: tileWidthPx, tileHeightPx: tileHeightPx);
   }
-  return _resolveByPlayerStartRole(map);
+  return _resolveByPlayerStartRole(map,
+      tileWidthPx: tileWidthPx, tileHeightPx: tileHeightPx);
 }
 
-GameplayPlayerState _resolveBySpawnId(MapData map, String spawnId) {
+GameplayPlayerState _resolveBySpawnId(
+  MapData map,
+  String spawnId, {
+  required int tileWidthPx,
+  required int tileHeightPx,
+}) {
   final entity = map.entities.where((e) => e.id == spawnId).firstOrNull;
   if (entity == null) {
     throw GameplaySpawnResolutionException(
@@ -26,13 +40,19 @@ GameplayPlayerState _resolveBySpawnId(MapData map, String spawnId) {
       'defaultSpawnId "$spawnId" refers to an entity of kind ${entity.kind}, expected spawn',
     );
   }
-  return GameplayPlayerState(
-    pos: entity.pos,
-    facing: _directionFromEntityFacing(entity.spawn?.facing),
+  return _stateFromSpawnEntity(
+    entity,
+    map,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
   );
 }
 
-GameplayPlayerState _resolveByPlayerStartRole(MapData map) {
+GameplayPlayerState _resolveByPlayerStartRole(
+  MapData map, {
+  required int tileWidthPx,
+  required int tileHeightPx,
+}) {
   final candidates = map.entities
       .where(
         (e) =>
@@ -50,9 +70,53 @@ GameplayPlayerState _resolveByPlayerStartRole(MapData map) {
   }
 
   final entity = candidates.first;
+  return _stateFromSpawnEntity(
+    entity,
+    map,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
+  );
+}
+
+GameplayPlayerState _stateFromSpawnEntity(
+  MapEntity entity,
+  MapData map, {
+  required int tileWidthPx,
+  required int tileHeightPx,
+}) {
+  final facing = _directionFromEntityFacing(entity.spawn?.facing);
+  final tw = tileWidthPx <= 0 ? 16 : tileWidthPx;
+  final th = tileHeightPx <= 0 ? 16 : tileHeightPx;
+  final spriteW = PlayerCollisionConventionsV1.defaultSpriteWidthPx;
+  final spriteH = PlayerCollisionConventionsV1.defaultSpriteHeightPx;
+
+  final topLeft = PlayerCollisionConventionsV1.playerSpriteTopLeftFromSpawnCell(
+    cellX: entity.pos.x,
+    cellY: entity.pos.y,
+    tileWidthPx: tw,
+    tileHeightPx: th,
+    spriteWidthPx: spriteW,
+    spriteHeightPx: spriteH,
+  );
+  final hitbox = PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+    spriteTopLeftPx: topLeft,
+    spriteWidthPx: spriteW,
+    spriteHeightPx: spriteH,
+  );
+  final gridPos = PlayerCollisionConventionsV1.projectFeetAnchorToCell(
+    playerCollisionRectPx: hitbox,
+    tileWidthPx: tw,
+    tileHeightPx: th,
+    mapWidthCells: map.size.width,
+    mapHeightCells: map.size.height,
+  );
+
   return GameplayPlayerState(
-    pos: entity.pos,
-    facing: _directionFromEntityFacing(entity.spawn?.facing),
+    pos: gridPos,
+    playerPositionPx: topLeft,
+    facing: facing,
+    playerSpriteWidthPx: spriteW,
+    playerSpriteHeightPx: spriteH,
   );
 }
 

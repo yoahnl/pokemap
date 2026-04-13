@@ -233,9 +233,17 @@ void main() {
         playerPos: const GridPos(x: 3, y: 5),
       );
 
-      // Move east twice: first to (4,5), then to (5,5) which is the element cell
+      // Simuler la position après un pas : [pos] et [playerPositionPx] doivent
+      // rester cohérents (déplacement pixel-level).
       final movedWorld1 = world.withPlayer(
-        world.player.copyWith(pos: const GridPos(x: 4, y: 5)),
+        GameplayPlayerState.fromGridSpawn(
+          cell: const GridPos(x: 4, y: 5),
+          facing: Direction.east,
+          tileWidthPx: 16,
+          tileHeightPx: 16,
+          mapWidthCells: map.size.width,
+          mapHeightCells: map.size.height,
+        ),
       );
 
       final result = stepGameplayWorld(

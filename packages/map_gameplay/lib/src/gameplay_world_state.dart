@@ -28,7 +28,8 @@ class GameplayWorldState {
   GameplayWorldState._({
     required this.map,
     required this.player,
-    required List<bool> collisionCache,
+    required List<bool> tileCollisionCellCache,
+    required List<bool> pixelCollisionCache,
     required Map<int, MapEntity> blockingEntityByPos,
     required Map<int, List<MapWarp>> warpCandidatesByPos,
     required Map<int, MapEntity> entityByPos,
@@ -48,8 +49,11 @@ class GameplayWorldState {
     required int tileWidth,
     required int tileHeight,
     this.npcMapPresencePredicate,
-  })  : _collisionCache = collisionCache,
+    required ProjectManifest? projectManifest,
+  })  : _tileCollisionCellCache = tileCollisionCellCache,
+        _pixelCollisionCache = pixelCollisionCache,
         _blockingEntityByPos = blockingEntityByPos,
+        _projectManifest = projectManifest,
         _warpCandidatesByPos = warpCandidatesByPos,
         _entityByPos = entityByPos,
         _actionBehaviorByPos = actionBehaviorByPos,
@@ -77,18 +81,30 @@ class GameplayWorldState {
     int tileWidth = 16,
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
-  }) =>
-      GameplayWorldState._(
+  }) {
+    final blockingEntities = _buildBlockingEntityByPos(
+      map,
+      npcPresence: npcMapPresencePredicate,
+    );
+    return GameplayWorldState._(
         map: map,
-        player: GameplayPlayerState(
-          pos: playerPos,
+        player: GameplayPlayerState.fromGridSpawn(
+          cell: playerPos,
           facing: playerFacing,
           movementMode: playerMovementMode,
+          tileWidthPx: tileWidth,
+          tileHeightPx: tileHeight,
+          mapWidthCells: map.size.width,
+          mapHeightCells: map.size.height,
         ),
-        collisionCache: _buildCollisionCache(map, project: project),
-        blockingEntityByPos: _buildBlockingEntityByPos(
+        tileCollisionCellCache: _buildTileCollisionCellCache(map),
+        blockingEntityByPos: blockingEntities,
+        pixelCollisionCache: _buildPixelCollisionCache(
           map,
-          npcPresence: npcMapPresencePredicate,
+          project: project,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          blockingEntityByPos: blockingEntities,
         ),
         warpCandidatesByPos:
             _buildWarpCandidatesByPos(map, tileWidth, tileHeight),
@@ -151,7 +167,9 @@ class GameplayWorldState {
         tileWidth: tileWidth,
         tileHeight: tileHeight,
         npcMapPresencePredicate: npcMapPresencePredicate,
+        projectManifest: project,
       );
+  }
 
   factory GameplayWorldState.fromMap(
     MapData map, {
@@ -160,11 +178,22 @@ class GameplayWorldState {
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
   }) {
-    final player = resolveInitialPlayerSpawn(map);
-    final cache = _buildCollisionCache(map, project: project);
+    final player = resolveInitialPlayerSpawn(
+      map,
+      tileWidthPx: tileWidth,
+      tileHeightPx: tileHeight,
+    );
+    final cache = _buildTileCollisionCellCache(map);
     final blockingEntities = _buildBlockingEntityByPos(
       map,
       npcPresence: npcMapPresencePredicate,
+    );
+    final pixelCache = _buildPixelCollisionCache(
+      map,
+      project: project,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      blockingEntityByPos: blockingEntities,
     );
     final warps = _buildWarpCandidatesByPos(map, tileWidth, tileHeight);
     final entities = _buildEntityByPos(
@@ -174,7 +203,8 @@ class GameplayWorldState {
     final world = GameplayWorldState._(
       map: map,
       player: player,
-      collisionCache: cache,
+      tileCollisionCellCache: cache,
+      pixelCollisionCache: pixelCache,
       blockingEntityByPos: blockingEntities,
       warpCandidatesByPos: warps,
       entityByPos: entities,
@@ -233,10 +263,12 @@ class GameplayWorldState {
       tileWidth: tileWidth,
       tileHeight: tileHeight,
       npcMapPresencePredicate: npcMapPresencePredicate,
+      projectManifest: project,
     );
-    if (world.isBlocked(player.pos.x, player.pos.y)) {
+    if (world.worldStaticObstaclesCollidePlayerCollisionRect()) {
       throw GameplaySpawnResolutionException(
-        'Player spawn at (${player.pos.x}, ${player.pos.y}) is on a blocked cell',
+        'Player spawn collision rect overlaps static obstacles '
+        'at (${player.pos.x}, ${player.pos.y})',
       );
     }
     return world;
@@ -247,7 +279,9 @@ class GameplayWorldState {
 
   /// Filtre optionnel de présence des PNJ sur la grille (voir [NpcMapPresencePredicate]).
   final NpcMapPresencePredicate? npcMapPresencePredicate;
-  final List<bool> _collisionCache;
+  /// Calque collision **tuiles** uniquement (grille auteur). Pas les éléments placés.
+  final List<bool> _tileCollisionCellCache;
+  final List<bool> _pixelCollisionCache;
   final Map<int, MapEntity> _blockingEntityByPos;
   final Map<int, List<MapWarp>> _warpCandidatesByPos;
   final Map<int, MapEntity> _entityByPos;
@@ -267,14 +301,64 @@ class GameplayWorldState {
   final int _tileWidth;
   final int _tileHeight;
 
-  bool isBlocked(int x, int y) {
-    if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+  /// Manifeste projet conservé pour **reconstruire** [_pixelCollisionCache] quand
+  /// [blockingEntityByPos] change (PNJ déplacé, prédicat de présence, etc.).
+  /// Peut être `null` : dans ce cas un rebuild ne peut pas ré-appliquer les
+  /// `pixelMask` d’éléments placés (même comportement qu’à la construction).
+  final ProjectManifest? _projectManifest;
+
+  /// Taille tuile projet (pixels) — nécessaire pour projection pieds / rendu.
+  int get tileWidthPx => _tileWidth;
+  int get tileHeightPx => _tileHeight;
+
+  /// Collision **déplacement** : hitbox joueur vs bitmap statique monde.
+  bool worldStaticObstaclesCollidePlayerCollisionRect() {
+    return worldStaticObstaclesCollidePixelRect(player.playerCollisionRectPx);
+  }
+
+  /// Test pixel-level contre l’union des obstacles statiques (bitmap monde).
+  bool worldStaticObstaclesCollidePixelRect(PixelRect rect) {
+    final widthPx = map.size.width * _tileWidth;
+    final heightPx = map.size.height * _tileHeight;
+    for (var py = 0; py < rect.heightPx; py++) {
+      final y = rect.topPx + py;
+      for (var px = 0; px < rect.widthPx; px++) {
+        final x = rect.leftPx + px;
+        if (x < 0 || y < 0 || x >= widthPx || y >= heightPx) {
+          return true;
+        }
+        final idx = y * widthPx + x;
+        if (idx < 0 || idx >= _pixelCollisionCache.length) {
+          continue;
+        }
+        if (_pixelCollisionCache[idx]) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// PNJ scripté / pathfinding : centre de case → bitmap (pas une primitive joueur).
+  bool isCellCenterBlockedLegacyForGridIndexedSystems(int cellX, int cellY) {
+    if (cellX < 0 ||
+        cellY < 0 ||
+        cellX >= map.size.width ||
+        cellY >= map.size.height) {
       return true;
     }
-    final idx = y * map.size.width + x;
-    if (idx < _collisionCache.length && _collisionCache[idx]) return true;
-    final entity = _blockingEntityByPos[idx];
-    return entity != null && entity.blocksMovement;
+    final cx = cellX * _tileWidth + _tileWidth ~/ 2;
+    final cy = cellY * _tileHeight + _tileHeight ~/ 2;
+    final widthPx = map.size.width * _tileWidth;
+    final heightPx = map.size.height * _tileHeight;
+    if (cx < 0 || cy < 0 || cx >= widthPx || cy >= heightPx) {
+      return true;
+    }
+    final idx = cy * widthPx + cx;
+    if (idx < 0 || idx >= _pixelCollisionCache.length) {
+      return false;
+    }
+    return _pixelCollisionCache[idx];
   }
 
   bool isWaterCell(int x, int y) {
@@ -288,15 +372,17 @@ class GameplayWorldState {
     return _waterCellCache[idx];
   }
 
-  GameplayMovementBlockReason? movementBlockReasonAt({
-    required int x,
-    required int y,
+  /// Eau / surf sur une **cellule** (données grille — pas la collision pixel décor).
+  GameplayMovementBlockReason?
+      movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial({
+    required int cellX,
+    required int cellY,
     required MovementMode movementMode,
   }) {
-    if (isWaterCell(x, y) && movementMode != MovementMode.surf) {
+    if (isWaterCell(cellX, cellY) && movementMode != MovementMode.surf) {
       return GameplayMovementBlockReason.waterRequiresSurf;
     }
-    if (isBlocked(x, y)) {
+    if (isCellCenterBlockedLegacyForGridIndexedSystems(cellX, cellY)) {
       return GameplayMovementBlockReason.solid;
     }
     return null;
@@ -472,7 +558,8 @@ class GameplayWorldState {
       GameplayWorldState._(
         map: map,
         player: player,
-        collisionCache: _collisionCache,
+        tileCollisionCellCache: _tileCollisionCellCache,
+        pixelCollisionCache: _pixelCollisionCache,
         blockingEntityByPos: _blockingEntityByPos,
         warpCandidatesByPos: _warpCandidatesByPos,
         entityByPos: _entityByPos,
@@ -492,20 +579,29 @@ class GameplayWorldState {
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
         npcMapPresencePredicate: npcMapPresencePredicate,
+        projectManifest: _projectManifest,
       );
 
   /// Reconstruit les caches spatiaux PNJ après changement de progression (visibilité).
   GameplayWorldState withNpcMapPresencePredicate(
     NpcMapPresencePredicate? predicate,
   ) {
+    final newBlocking = _buildBlockingEntityByPos(
+      map,
+      npcPresence: predicate,
+    );
     return GameplayWorldState._(
       map: map,
       player: player,
-      collisionCache: _collisionCache,
-      blockingEntityByPos: _buildBlockingEntityByPos(
+      tileCollisionCellCache: _tileCollisionCellCache,
+      pixelCollisionCache: _buildPixelCollisionCache(
         map,
-        npcPresence: predicate,
+        project: _projectManifest,
+        tileWidth: _tileWidth,
+        tileHeight: _tileHeight,
+        blockingEntityByPos: newBlocking,
       ),
+      blockingEntityByPos: newBlocking,
       entityByPos: _buildEntityByPos(map, npcPresence: predicate),
       warpCandidatesByPos: _warpCandidatesByPos,
       actionBehaviorByPos: _actionBehaviorByPos,
@@ -524,6 +620,7 @@ class GameplayWorldState {
       tileWidth: _tileWidth,
       tileHeight: _tileHeight,
       npcMapPresencePredicate: predicate,
+      projectManifest: _projectManifest,
     );
   }
 
@@ -537,7 +634,8 @@ class GameplayWorldState {
   ///
   /// IMPORTANT:
   /// - si l'entité n'existe pas, on retourne `this` (no-op sûr);
-  /// - on ne modifie pas les layers/collisions, uniquement la liste d'entités.
+  /// - on ne modifie pas les layers auteur ; en revanche [_pixelCollisionCache]
+  ///   est **reconstruit** pour refléter le nouveau [blockingEntityByPos].
   GameplayWorldState withEntityPosition(
     String entityId,
     GridPos newPos,
@@ -561,15 +659,23 @@ class GameplayWorldState {
     updatedEntities[index] = entity.copyWith(pos: newPos);
     final updatedMap = map.copyWith(entities: updatedEntities);
 
+    final newBlocking = _buildBlockingEntityByPos(
+      updatedMap,
+      npcPresence: npcMapPresencePredicate,
+    );
     return GameplayWorldState._(
       map: updatedMap,
       player: player,
-      collisionCache: _collisionCache,
-      // Les entités bloquantes et interactives doivent refléter la nouvelle map.
-      blockingEntityByPos: _buildBlockingEntityByPos(
+      tileCollisionCellCache: _tileCollisionCellCache,
+      pixelCollisionCache: _buildPixelCollisionCache(
         updatedMap,
-        npcPresence: npcMapPresencePredicate,
+        project: _projectManifest,
+        tileWidth: _tileWidth,
+        tileHeight: _tileHeight,
+        blockingEntityByPos: newBlocking,
       ),
+      // Les entités bloquantes et interactives doivent refléter la nouvelle map.
+      blockingEntityByPos: newBlocking,
       entityByPos: _buildEntityByPos(
         updatedMap,
         npcPresence: npcMapPresencePredicate,
@@ -593,6 +699,7 @@ class GameplayWorldState {
       tileWidth: _tileWidth,
       tileHeight: _tileHeight,
       npcMapPresencePredicate: npcMapPresencePredicate,
+      projectManifest: _projectManifest,
     );
   }
 
@@ -673,21 +780,121 @@ bool _isSamePathAnimationRuleActivation(
   return a.layerId == b.layerId && a.ruleId == b.ruleId;
 }
 
-List<bool> _buildCollisionCache(
-  MapData map, {
-  ProjectManifest? project,
-}) {
+/// Calque collision **éditeur** uniquement (bool par cellule carte).
+List<bool> _buildTileCollisionCellCache(MapData map) {
   final size = map.size.width * map.size.height;
   final cache = List<bool>.filled(size, false);
   for (final layer in map.layers) {
     layer.whenOrNull(
       collision: (id, name, isVisible, opacity, collisions) {
         for (var i = 0; i < collisions.length && i < size; i++) {
-          if (collisions[i]) cache[i] = true;
+          if (collisions[i]) {
+            cache[i] = true;
+          }
         }
       },
     );
   }
+  return cache;
+}
+
+List<bool> _buildPixelCollisionCache(
+  MapData map, {
+  required ProjectManifest? project,
+  required int tileWidth,
+  required int tileHeight,
+  required Map<int, MapEntity> blockingEntityByPos,
+}) {
+  final safeTileWidth = tileWidth <= 0 ? 16 : tileWidth;
+  final safeTileHeight = tileHeight <= 0 ? 16 : tileHeight;
+  final widthPx = map.size.width * safeTileWidth;
+  final heightPx = map.size.height * safeTileHeight;
+  final cache = List<bool>.filled(widthPx * heightPx, false);
+  if (widthPx <= 0 || heightPx <= 0) {
+    return cache;
+  }
+
+  void stampSolidRect({
+    required int leftPx,
+    required int topPx,
+    required int rectWidthPx,
+    required int rectHeightPx,
+  }) {
+    for (var py = 0; py < rectHeightPx; py++) {
+      final y = topPx + py;
+      if (y < 0 || y >= heightPx) {
+        continue;
+      }
+      for (var px = 0; px < rectWidthPx; px++) {
+        final x = leftPx + px;
+        if (x < 0 || x >= widthPx) {
+          continue;
+        }
+        cache[y * widthPx + x] = true;
+      }
+    }
+  }
+
+  bool stampPackedMask({
+    required int leftPx,
+    required int topPx,
+    required ElementCollisionPixelMask mask,
+  }) {
+    List<bool> decoded;
+    try {
+      decoded = ElementCollisionMaskCodec.decodePackedBits(
+        widthPx: mask.widthPx,
+        heightPx: mask.heightPx,
+        dataBase64: mask.dataBase64,
+      );
+    } catch (_) {
+      return false;
+    }
+    for (var py = 0; py < mask.heightPx; py++) {
+      final y = topPx + py;
+      if (y < 0 || y >= heightPx) {
+        continue;
+      }
+      for (var px = 0; px < mask.widthPx; px++) {
+        final x = leftPx + px;
+        if (x < 0 || x >= widthPx) {
+          continue;
+        }
+        final idx = py * mask.widthPx + px;
+        if (idx < 0 || idx >= decoded.length || !decoded[idx]) {
+          continue;
+        }
+        cache[y * widthPx + x] = true;
+      }
+    }
+    return true;
+  }
+
+  // 1) Calque collision carte: toute cellule true => tile plein.
+  for (final layer in map.layers) {
+    layer.whenOrNull(
+      collision: (id, name, isVisible, opacity, collisions) {
+        for (var i = 0; i < collisions.length; i++) {
+          if (!collisions[i]) {
+            continue;
+          }
+          final x = i % map.size.width;
+          final y = i ~/ map.size.width;
+          if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+            continue;
+          }
+          stampSolidRect(
+            leftPx: x * safeTileWidth,
+            topPx: y * safeTileHeight,
+            rectWidthPx: safeTileWidth,
+            rectHeightPx: safeTileHeight,
+          );
+        }
+      },
+    );
+  }
+
+  // 2) Éléments placés : **uniquement** [ElementCollisionPixelMask] (pas `cells`).
   final elementById = project == null
       ? const <String, ProjectElementEntry>{}
       : {
@@ -698,18 +905,38 @@ List<bool> _buildCollisionCache(
       continue;
     }
     final profile = elementById[instance.elementId]?.collisionProfile;
-    if (profile == null || profile.cells.isEmpty) {
+    // Masque **collision** uniquement (JSON historique : `pixelMask`).
+    final mask = profile?.collisionMask;
+    if (mask == null) {
       continue;
     }
-    for (final localCell in profile.cells) {
-      final x = instance.pos.x + localCell.x;
-      final y = instance.pos.y + localCell.y;
-      if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
-        continue;
-      }
-      cache[y * map.size.width + x] = true;
-    }
+    final worldLeftPx = instance.pos.x * safeTileWidth;
+    final worldTopPx = instance.pos.y * safeTileHeight;
+    stampPackedMask(
+      leftPx: worldLeftPx,
+      topPx: worldTopPx,
+      mask: mask,
+    );
   }
+
+  // 3) Entités bloquantes (PNJ / objets) : tuile pleine par cellule footprint.
+  final w = map.size.width;
+  for (final entry in blockingEntityByPos.entries) {
+    final e = entry.value;
+    if (!e.blocksMovement) {
+      continue;
+    }
+    final idx = entry.key;
+    final cx = idx % w;
+    final cy = idx ~/ w;
+    stampSolidRect(
+      leftPx: cx * safeTileWidth,
+      topPx: cy * safeTileHeight,
+      rectWidthPx: safeTileWidth,
+      rectHeightPx: safeTileHeight,
+    );
+  }
+
   return cache;
 }
 

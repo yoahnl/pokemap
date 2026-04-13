@@ -407,6 +407,17 @@ enum ElementCollisionProfileSource {
   manual,
 }
 
+/// Encodage d'un masque collision pixel-level.
+///
+/// `packed_bits_v1`:
+/// - ordre des pixels: row-major (y puis x), origine en haut-gauche;
+/// - 1 bit par pixel (1 = solide gameplay, 0 = passable);
+/// - sérialisé en base64.
+enum ElementCollisionMaskEncoding {
+  @JsonValue('packed_bits_v1')
+  packedBitsV1,
+}
+
 enum MapPlacedElementAnimationMode {
   @JsonValue('none')
   none,

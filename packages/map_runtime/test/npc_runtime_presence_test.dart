@@ -133,7 +133,7 @@ void main() {
         npcMapPresencePredicate: pred,
       );
       expect(w1.entityAt(3, 3), isNull);
-      expect(w1.isBlocked(3, 3), isFalse);
+      expect(w1.isCellCenterBlockedLegacyForGridIndexedSystems(3, 3), isFalse);
 
       final w2 = GameplayWorldState.initial(
         map: map,

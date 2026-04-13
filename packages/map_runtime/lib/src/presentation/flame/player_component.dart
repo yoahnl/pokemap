@@ -9,6 +9,13 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../../application/runtime_map_bundle.dart';
 import 'overworld_actor_component.dart';
 
+/// Composant joueur : aligne le **rendu** sur [GameplayPlayerState.playerPositionPx]
+/// (monde pixels gameplay), avec mise à l’échelle vers les pixels Flame via
+/// [RuntimeMapBundle.cellWidth] / [ProjectSettings.tileWidth].
+///
+/// Important : le gameplay avance par pas **pixels** ; si ce composant ne fait
+/// qu’aligner sur `pos` grille, l’interpolation et les frames de marche se
+/// désynchronisent (effet saccadé / 3 frames visibles).
 class PlayerComponent extends PositionComponent {
   static const double kDefaultStepSeconds = 0.12;
 
@@ -22,11 +29,15 @@ class PlayerComponent extends PositionComponent {
         _mapOrigin = mapOrigin?.clone() ?? Vector2.zero(),
         super(
           anchor: Anchor.topLeft,
-          position: Vector2(
-            (mapOrigin?.x ?? 0) + state.pos.x * bundle.cellWidth,
-            (mapOrigin?.y ?? 0) + state.pos.y * bundle.cellHeight,
+          position: _computeWorldTopLeft(
+            mapOrigin: mapOrigin,
+            bundle: bundle,
+            state: state,
           ),
-          size: Vector2(bundle.cellWidth, bundle.cellHeight),
+          size: _computeWorldSpriteSize(
+            bundle: bundle,
+            state: state,
+          ),
         );
 
   final RuntimeMapBundle bundle;
@@ -41,27 +52,78 @@ class PlayerComponent extends PositionComponent {
   double _moveRemaining = 0.0;
   double _stepDurationSeconds = kDefaultStepSeconds;
 
+  /// Facteur gameplay px → monde Flame (écran), identique pour X/Y si tuiles carrées.
+  double get _scaleX =>
+      bundle.cellWidth / math.max(1, bundle.manifest.settings.tileWidth);
+  double get _scaleY =>
+      bundle.cellHeight / math.max(1, bundle.manifest.settings.tileHeight);
+
+  static Vector2 _computeWorldTopLeft({
+    required Vector2? mapOrigin,
+    required RuntimeMapBundle bundle,
+    required GameplayPlayerState state,
+  }) {
+    final ox = mapOrigin?.x ?? 0;
+    final oy = mapOrigin?.y ?? 0;
+    final tw = bundle.manifest.settings.tileWidth;
+    final th = bundle.manifest.settings.tileHeight;
+    final sx = bundle.cellWidth / (tw > 0 ? tw : 1);
+    final sy = bundle.cellHeight / (th > 0 ? th : 1);
+    return Vector2(
+      ox + state.playerPositionPx.leftPx * sx,
+      oy + state.playerPositionPx.topPx * sy,
+    );
+  }
+
+  static Vector2 _computeWorldSpriteSize({
+    required RuntimeMapBundle bundle,
+    required GameplayPlayerState state,
+  }) {
+    final tw = bundle.manifest.settings.tileWidth;
+    final th = bundle.manifest.settings.tileHeight;
+    final sx = bundle.cellWidth / (tw > 0 ? tw : 1);
+    final sy = bundle.cellHeight / (th > 0 ? th : 1);
+    return Vector2(
+      state.playerSpriteWidthPx * sx,
+      state.playerSpriteHeightPx * sy,
+    );
+  }
+
   bool get isStepping => _moveTo != null && _moveRemaining > 0;
+
+  /// Centre du sprite (caméra / focus).
   Vector2 get focusPoint => Vector2(
-        position.x + bundle.cellWidth / 2,
-        position.y + bundle.cellHeight / 2,
+        position.x + size.x / 2,
+        position.y + size.y / 2,
       );
-  Vector2 get footPoint => Vector2(
-        position.x + bundle.cellWidth / 2,
-        position.y + bundle.cellHeight,
-      );
+
+  /// Point de pied (ancre profondeur) : centre du bas de la hitbox V1, en monde Flame.
+  Vector2 get footPoint {
+    final hit = PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+      spriteTopLeftPx: _state.playerPositionPx,
+      spriteWidthPx: _state.playerSpriteWidthPx,
+      spriteHeightPx: _state.playerSpriteHeightPx,
+    );
+    final bc = hit.bottomCenterPx;
+    return Vector2(
+      _mapOrigin.x + bc.xPx * _scaleX,
+      _mapOrigin.y + bc.yPx * _scaleY,
+    );
+  }
 
   Vector2 get mapOrigin => _mapOrigin.clone();
 
   void _snapToStatePosition() {
-    final target = Vector2(
-      _mapOrigin.x + _state.pos.x * bundle.cellWidth,
-      _mapOrigin.y + _state.pos.y * bundle.cellHeight,
+    final target = _computeWorldTopLeft(
+      mapOrigin: _mapOrigin,
+      bundle: bundle,
+      state: _state,
     );
     position = Vector2(
       target.x.roundToDouble(),
       target.y.roundToDouble(),
     );
+    size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: _state));
   }
 
   @override
@@ -118,8 +180,8 @@ class PlayerComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     if (_actor != null) return;
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
+    final cw = size.x;
+    final ch = size.y;
     final cx = cw / 2;
     final cy = ch / 2;
     final r = math.min(cw, ch) * 0.28;
@@ -164,9 +226,10 @@ class PlayerComponent extends PositionComponent {
     _state = state;
     _stepDurationSeconds = durationSeconds;
     _moveFrom = position.clone();
-    _moveTo = Vector2(
-      _mapOrigin.x + state.pos.x * bundle.cellWidth,
-      _mapOrigin.y + state.pos.y * bundle.cellHeight,
+    _moveTo = _computeWorldTopLeft(
+      mapOrigin: _mapOrigin,
+      bundle: bundle,
+      state: state,
     );
     _moveRemaining = durationSeconds;
     _actor?.setMotion(

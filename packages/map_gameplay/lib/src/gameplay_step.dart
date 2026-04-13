@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import 'collision/pixel_movement_resolver.dart';
 import 'direction.dart';
 import 'gameplay_intent.dart';
 import 'movement_block_reason.dart';
@@ -11,26 +12,30 @@ GameplayStepResult stepGameplayWorld(
   GameplayIntent intent,
 ) {
   return switch (intent) {
-    MoveIntent(:final direction) => _resolveMove(world, direction),
+    MoveIntent move => _resolveMove(world, move),
     InteractIntent() => _resolveInteract(world),
   };
 }
 
-GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
+/// Déplacement **réellement pixel-level** : [playerPositionPx] + résolveur séparé H/V.
+GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent) {
+  final direction = intent.direction;
+  final step = intent.pixelsPerStep;
   final facingWorld = world.withPlayer(
     world.player.copyWith(facing: direction),
   );
 
-  final tx = world.player.pos.x + direction.dx;
-  final ty = world.player.pos.y + direction.dy;
-  final isOutOfBounds = tx < 0 ||
-      ty < 0 ||
-      tx >= world.map.size.width ||
-      ty >= world.map.size.height;
+  final feet = facingWorld.player.pos;
+  final nextCellX = feet.x + direction.dx;
+  final nextCellY = feet.y + direction.dy;
+  final isOutOfBounds = nextCellX < 0 ||
+      nextCellY < 0 ||
+      nextCellX >= facingWorld.map.size.width ||
+      nextCellY >= facingWorld.map.size.height;
 
   if (isOutOfBounds) {
     final connectionDirection = _connectionDirectionForMove(direction);
-    final connection = findMapConnection(world.map, connectionDirection);
+    final connection = findMapConnection(facingWorld.map, connectionDirection);
     if (connection == null) {
       return Blocked(
         facingWorld,
@@ -43,18 +48,38 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
         direction: connection.direction,
         targetMapId: connection.targetMapId,
         offset: connection.offset,
-        sourcePos: world.player.pos,
+        sourcePos: facingWorld.player.pos,
       ),
     );
   }
 
-  final blockReason = facingWorld.movementBlockReasonAt(
-    x: tx,
-    y: ty,
-    movementMode: facingWorld.player.movementMode,
+  if (facingWorld.isWaterCell(nextCellX, nextCellY) &&
+      facingWorld.player.movementMode != MovementMode.surf) {
+    return Blocked(
+      facingWorld,
+      reason: GameplayMovementBlockReason.waterRequiresSurf,
+    );
+  }
+
+  final dx = direction.dx * step;
+  final dy = direction.dy * step;
+
+  final resolvedTopLeft = PixelMovementResolverV1.resolveSeparateAxis(
+    spriteTopLeftPx: facingWorld.player.playerPositionPx,
+    deltaXPx: dx,
+    deltaYPx: dy,
+    spriteWidthPx: facingWorld.player.playerSpriteWidthPx,
+    spriteHeightPx: facingWorld.player.playerSpriteHeightPx,
+    worldStaticObstaclesCollidePixelRect:
+        facingWorld.worldStaticObstaclesCollidePixelRect,
   );
-  if (blockReason != null) {
-    final bumpWarp = facingWorld.warpOnBumpAt(tx, ty, direction);
+
+  final unchanged = resolvedTopLeft.leftPx ==
+          facingWorld.player.playerPositionPx.leftPx &&
+      resolvedTopLeft.topPx == facingWorld.player.playerPositionPx.topPx;
+
+  if (unchanged) {
+    final bumpWarp = facingWorld.warpOnBumpAt(nextCellX, nextCellY, direction);
     if (bumpWarp != null) {
       return WarpTriggered(
         facingWorld,
@@ -66,7 +91,8 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
         ),
       );
     }
-    final bumpBehavior = facingWorld.placedElementBehaviorOnBumpAt(tx, ty);
+    final bumpBehavior =
+        facingWorld.placedElementBehaviorOnBumpAt(nextCellX, nextCellY);
     if (bumpBehavior != null) {
       return PlacedElementInteracted(
         facingWorld,
@@ -76,25 +102,45 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
       );
     }
     final pathBumpSignal = _buildPathTriggerSignal(
-      activation: facingWorld.pathAnimationRuleOnBumpAt(tx, ty),
-      sourcePos: GridPos(x: tx, y: ty),
+      activation: facingWorld.pathAnimationRuleOnBumpAt(nextCellX, nextCellY),
+      sourcePos: GridPos(x: nextCellX, y: nextCellY),
     );
     return Blocked(
       facingWorld,
-      reason: blockReason,
+      reason: GameplayMovementBlockReason.solid,
       pathAnimationSignals: pathBumpSignal == null
           ? const <PathAnimationSignal>[]
           : <PathAnimationSignal>[pathBumpSignal],
     );
   }
 
+  final newGridPos = PlayerCollisionConventionsV1.projectFeetAnchorToCell(
+    playerCollisionRectPx:
+        PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+      spriteTopLeftPx: resolvedTopLeft,
+      spriteWidthPx: facingWorld.player.playerSpriteWidthPx,
+      spriteHeightPx: facingWorld.player.playerSpriteHeightPx,
+    ),
+    tileWidthPx: facingWorld.tileWidthPx,
+    tileHeightPx: facingWorld.tileHeightPx,
+    mapWidthCells: facingWorld.map.size.width,
+    mapHeightCells: facingWorld.map.size.height,
+  );
+
   final movedWorld = facingWorld.withPlayer(
-    facingWorld.player.copyWith(pos: GridPos(x: tx, y: ty)),
+    facingWorld.player.copyWith(
+      playerPositionPx: resolvedTopLeft,
+      pos: newGridPos,
+    ),
   );
   final previousPos = facingWorld.player.pos;
   final targetPos = movedWorld.player.pos;
 
-  final warp = movedWorld.warpOnEnterAt(tx, ty, direction);
+  final warp = movedWorld.warpOnEnterAt(
+    movedWorld.player.pos.x,
+    movedWorld.player.pos.y,
+    direction,
+  );
   if (warp != null) {
     return WarpTriggered(
       movedWorld,
@@ -115,8 +161,8 @@ GameplayStepResult _resolveMove(GameplayWorldState world, Direction direction) {
 
   final movementBehavior = _resolveMovementTriggeredBehavior(
     world: movedWorld,
-    targetX: tx,
-    targetY: ty,
+    targetX: movedWorld.player.pos.x,
+    targetY: movedWorld.player.pos.y,
     previousPos: previousPos,
   );
   if (movementBehavior != null && movementBehavior is PlacedElementInteracted) {

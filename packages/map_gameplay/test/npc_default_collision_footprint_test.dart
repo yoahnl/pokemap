@@ -32,15 +32,15 @@ void main() {
     );
 
     // Footprint complet attendu: (5,5) (6,5) (5,6) (6,6).
-    expect(world.isBlocked(5, 5), isTrue);
-    expect(world.isBlocked(6, 5), isTrue);
-    expect(world.isBlocked(5, 6), isTrue);
-    expect(world.isBlocked(6, 6), isTrue);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isTrue);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(6, 5), isTrue);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(5, 6), isTrue);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(6, 6), isTrue);
 
     // Les cellules voisines restent libres.
-    expect(world.isBlocked(4, 5), isFalse);
-    expect(world.isBlocked(7, 5), isFalse);
-    expect(world.isBlocked(5, 4), isFalse);
-    expect(world.isBlocked(5, 7), isFalse);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(4, 5), isFalse);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(7, 5), isFalse);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(5, 4), isFalse);
+    expect(world.isCellCenterBlockedLegacyForGridIndexedSystems(5, 7), isFalse);
   });
 }

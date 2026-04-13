@@ -883,14 +883,60 @@ class MapLayersComponent extends PositionComponent {
     final ch = bundle.cellHeight;
     final paint = Paint()..color = const Color.fromRGBO(255, 153, 0, 0.30);
     final elementById = _elementById;
+    final tileWidth = bundle.manifest.settings.tileWidth;
+    final tileHeight = bundle.manifest.settings.tileHeight;
+    final pixelScaleX = tileWidth > 0 ? cw / tileWidth : 1.0;
+    final pixelScaleY = tileHeight > 0 ? ch / tileHeight : 1.0;
+    final mapWidthPx = w * cw;
+    final mapHeightPx = h * ch;
     for (final instance in bundle.map.placedElements) {
       if (!instance.applyCollision) {
         continue;
       }
-      final profile = elementById[instance.elementId]?.collisionProfile;
-      if (profile == null || profile.cells.isEmpty) {
+      final element = elementById[instance.elementId];
+      final profile = element?.collisionProfile;
+      if (profile == null) {
         continue;
       }
+      final worldLeftPx = instance.pos.x * cw;
+      final worldTopPx = instance.pos.y * ch;
+      // Overlay debug : masque **collision** (blocage), pas l’occlusion.
+      final collisionMask = profile.collisionMask;
+      if (collisionMask != null) {
+        List<bool> maskPixels;
+        try {
+          maskPixels = ElementCollisionMaskCodec.decodePackedBits(
+            widthPx: collisionMask.widthPx,
+            heightPx: collisionMask.heightPx,
+            dataBase64: collisionMask.dataBase64,
+          );
+        } catch (_) {
+          continue;
+        }
+        for (var py = 0; py < collisionMask.heightPx; py++) {
+          for (var px = 0; px < collisionMask.widthPx; px++) {
+            final idx = py * collisionMask.widthPx + px;
+            if (idx < 0 || idx >= maskPixels.length || !maskPixels[idx]) {
+              continue;
+            }
+            final dx = worldLeftPx + px * pixelScaleX;
+            final dy = worldTopPx + py * pixelScaleY;
+            if (dx + pixelScaleX <= 0 ||
+                dy + pixelScaleY <= 0 ||
+                dx >= mapWidthPx ||
+                dy >= mapHeightPx) {
+              continue;
+            }
+            canvas.drawRect(
+              Rect.fromLTWH(dx, dy, pixelScaleX, pixelScaleY),
+              paint,
+            );
+          }
+        }
+        continue;
+      }
+
+      // Fallback legacy: profils sans masque collision pixel.
       for (final local in profile.cells) {
         final x = instance.pos.x + local.x;
         final y = instance.pos.y + local.y;

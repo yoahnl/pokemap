@@ -141,7 +141,7 @@ void main() {
         npcMapPresencePredicate: pred(const ['s_done']),
       );
       expect(after.entityAt(3, 3), isNull);
-      expect(after.isBlocked(3, 3), isFalse);
+      expect(after.isCellCenterBlockedLegacyForGridIndexedSystems(3, 3), isFalse);
     });
 
     test('visibleAfterStepCompletion : absent puis présent après step', () {

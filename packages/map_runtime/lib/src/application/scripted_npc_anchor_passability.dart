@@ -95,9 +95,10 @@ ScriptedNpcAnchorPassabilityResult evaluateScriptedNpcAnchorPassability({
       );
     }
 
-    final movementBlockReason = world.movementBlockReasonAt(
-      x: cell.x,
-      y: cell.y,
+    final movementBlockReason =
+        world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+      cellX: cell.x,
+      cellY: cell.y,
       movementMode: movementMode,
     );
     if (movementBlockReason != null) {

@@ -56,11 +56,11 @@ void main() {
       npcMapPresencePredicate: (_, __) => false,
     );
 
-    expect(hidden.isBlocked(5, 5), isFalse);
+    expect(hidden.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isFalse);
     expect(hidden.entityAt(5, 5), isNull);
 
     final visible = hidden.withNpcMapPresencePredicate((_, __) => true);
-    expect(visible.isBlocked(5, 5), isTrue);
+    expect(visible.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isTrue);
     expect(visible.entityAt(5, 5)?.id, 'emma');
   });
 

@@ -23,13 +23,13 @@ void main() {
       map: map,
       playerPos: const GridPos(x: 0, y: 0),
     );
-    expect(initial.isBlocked(1, 1), isTrue);
-    expect(initial.isBlocked(3, 1), isFalse);
+    expect(initial.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1), isTrue);
+    expect(initial.isCellCenterBlockedLegacyForGridIndexedSystems(3, 1), isFalse);
 
     final moved =
         initial.withEntityPosition('npc_1', const GridPos(x: 3, y: 1));
-    expect(moved.isBlocked(1, 1), isFalse);
-    expect(moved.isBlocked(3, 1), isTrue);
+    expect(moved.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1), isFalse);
+    expect(moved.isCellCenterBlockedLegacyForGridIndexedSystems(3, 1), isTrue);
     expect(moved.entityAt(3, 1)?.id, 'npc_1');
     expect(moved.entityAt(1, 1), isNull);
   });

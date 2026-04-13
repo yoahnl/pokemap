@@ -12,7 +12,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 /// - Axe cardinal uniquement (nord/sud/est/ouest)
 /// - Aucune diagonale
 /// - Raycast depuis [npcPos] vers [playerPos]
-/// - Obstacles vérifiés via [world.isBlocked()] sur les cases STRICTEMENT entre
+/// - Obstacles vérifiés via [GameplayWorldState.isCellCenterBlockedLegacyForGridIndexedSystems]
+///   sur les cases STRICTEMENT entre
 ///   le NPC et le joueur (exclut la case du NPC et la case du joueur)
 /// - Si adjacent : pas d'obstacle testé (retourne true si autres critères OK)
 ///
@@ -93,7 +94,9 @@ bool _hasObstacleBetween({
   var y = from.y + stepY;
 
   for (var i = 1; i < distance; i++) {
-    if (world.isBlocked(x, y)) return true;
+    if (world.isCellCenterBlockedLegacyForGridIndexedSystems(x, y)) {
+      return true;
+    }
     x += stepX;
     y += stepY;
   }
