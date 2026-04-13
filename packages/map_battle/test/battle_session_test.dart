@@ -83,7 +83,7 @@ void main() {
       expect(session.state.enemy.currentHp, equals(11));
     });
 
-    test('getAvailableChoices returns fight choices + run', () {
+    test('getAvailableChoices returns fight choices + run in wild battle', () {
       final setup = createTestSetup();
       final session = createBattleSession(setup);
 
@@ -94,6 +94,21 @@ void main() {
       expect(choices[0], isA<PlayerBattleChoiceFight>());
       expect(choices[1], isA<PlayerBattleChoiceFight>());
       expect(choices[2], isA<PlayerBattleChoiceRun>());
+    });
+
+    test('getAvailableChoices does not expose run in trainer battle', () {
+      final setup = createTestSetup(
+        isTrainerBattle: true,
+        trainerId: 'gym_leader_1',
+      );
+      final session = createBattleSession(setup);
+
+      final choices = session.getAvailableChoices();
+
+      expect(choices.length, equals(2));
+      expect(choices[0], isA<PlayerBattleChoiceFight>());
+      expect(choices[1], isA<PlayerBattleChoiceFight>());
+      expect(choices.whereType<PlayerBattleChoiceRun>(), isEmpty);
     });
 
     test('applyChoice with fight resolves turn and damages enemy', () {

@@ -145,6 +145,38 @@ void main() {
       expect(session.setup.isTrainerBattle, isTrue);
       expect(session.setup.trainerId, equals('gym_leader_1'));
     });
+
+    test('forced runaway choice is rejected in trainer battles', () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 20,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: true,
+        trainerId: 'gym_leader_1',
+      );
+
+      final session = createBattleSession(setup);
+
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceRun()),
+        throwsA(isA<StateError>()),
+      );
+      expect(session.state.isFinished, isFalse);
+      expect(session.state.outcome, isNull);
+    });
   });
 
   group('BattleOutcome types', () {

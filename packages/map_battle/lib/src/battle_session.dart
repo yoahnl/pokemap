@@ -107,12 +107,13 @@ class BattleSession {
   ///
   /// Retourne une liste de choix :
   /// - [PlayerBattleChoiceFight] pour chaque attaque disponible (0-3)
-  /// - [PlayerBattleChoiceRun] pour fuir (toujours disponible)
+  /// - [PlayerBattleChoiceRun] pour fuir, uniquement en combat sauvage
   ///
   /// Exemple d'usage :
   /// ```dart
   /// final choices = session.getAvailableChoices();
-  /// // choices = [Fight(0), Fight(1), Fight(2), Fight(3), Run()]
+  /// // wild: [Fight(0), Fight(1), Fight(2), Fight(3), Run()]
+  /// // trainer: [Fight(0), Fight(1), Fight(2), Fight(3)]
   /// ```
   List<PlayerBattleChoice> getAvailableChoices() {
     // Créer un choix Fight pour chaque attaque disponible
@@ -121,8 +122,15 @@ class BattleSession {
       fightChoices.add(PlayerBattleChoiceFight(i));
     }
 
-    // Ajouter le choix Run (toujours disponible pour ce MVP)
-    fightChoices.add(const PlayerBattleChoiceRun());
+    // Invariant métier important :
+    // - la fuite est autorisée en sauvage pour garder une vraie boucle jouable ;
+    // - la fuite n'est jamais un choix légitime en trainer battle.
+    //
+    // On filtre donc le choix ici pour que l'UI/runtime n'ait pas de bouton
+    // Run à afficher en trainer battle.
+    if (!setup.isTrainerBattle) {
+      fightChoices.add(const PlayerBattleChoiceRun());
+    }
 
     return fightChoices;
   }
@@ -151,6 +159,18 @@ class BattleSession {
   /// }
   /// ```
   BattleSession applyChoice(PlayerBattleChoice choice) {
+    // Frontière métier défensive :
+    // même si un call site contourne getAvailableChoices(), un combat trainer
+    // ne doit jamais pouvoir produire un outcome "runaway".
+    //
+    // On rejette explicitement ce cas illégal au niveau du moteur, ce qui
+    // évite de dépendre d'un filtre UI seulement.
+    if (choice is PlayerBattleChoiceRun && setup.isTrainerBattle) {
+      throw StateError(
+        'PlayerBattleChoiceRun est interdit pendant un trainer battle.',
+      );
+    }
+
     // Lot 11 verrouille une boucle sauvage jouable de bout en bout.
     //
     // L'overlay runtime expose déjà explicitement l'action "Run". Si on la
