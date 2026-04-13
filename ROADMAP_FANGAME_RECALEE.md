@@ -637,8 +637,11 @@ Avancement réel à date :
 
 - lot 7 livré :
   - la partie trainers du milestone est atteinte ;
-- lot 8 reste à faire :
-  - encounter tables minimales mais propres.
+- lot 8 livré :
+  - encounter tables minimales mais propres ;
+  - assistance locale `species` branchée sur le Pokédex local ;
+  - validation inline lisible sur species / niveaux / poids ;
+  - surface suffisante pour authorer une table wild sans texte libre fragile.
 
 ### Phase D — Bridge runtime -> battle réel
 

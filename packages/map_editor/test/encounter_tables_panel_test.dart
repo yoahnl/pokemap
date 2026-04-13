@@ -245,6 +245,74 @@ void main() {
     );
   });
 
+  testWidgets('closes the table editor after a successful table update',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/encounter_panel_test',
+      project: ProjectManifest(
+        name: 'encounter_panel_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        encounterTables: <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'grass_patch',
+            name: 'Grass Patch',
+            encounterKind: EncounterKind.walk,
+          ),
+        ],
+      ),
+    );
+
+    await pumpEncounterPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(
+      find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
+      'Tall Grass',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('encounter-tables-save-table-button-grass_patch')),
+    );
+    await tester.pumpAndSettle();
+
+    final savedTable =
+        container.read(editorNotifierProvider).project!.encounterTables.single;
+    expect(savedTable.name, 'Tall Grass');
+    expect(
+      find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
+      findsNothing,
+    );
+    expect(find.text('Tall Grass'), findsOneWidget);
+  });
+
   testWidgets(
       'keeps the panel usable when the local species index is unavailable',
       (tester) async {
