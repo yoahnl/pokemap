@@ -1,3 +1,186 @@
+# Phase R1 — Lot 10 — Defensive hardening de `_clearTransientUiState()`
+
+## 1. Résumé exécutif honnête
+
+Ce mini-fix ajoute le blindage demandé : `_clearTransientUiState()` remet désormais aussi `_activeBattleContext` à `null` dans `PlayableMapGame`.
+
+Le changement est volontairement minimal :
+- aucune refonte du lot 10 ;
+- aucune modification de `map_battle` ou `map_core` ;
+- aucune ouverture du lot 11 ;
+- aucun autre comportement métier modifié.
+
+Je n'ai pas ajouté de test unitaire dédié à `_clearTransientUiState()` lui-même, car cela aurait nécessité d'ouvrir artificiellement une surface de test sur un membre privé de `PlayableMapGame` pour un blindage d'une ligne. J'ai préféré garder le fix strictement local et revalider les tests runtime utiles autour du lot 10.
+
+## 2. Cause du blindage
+
+Le lot 10 a introduit `_activeBattleContext` pour mémoriser explicitement le slot exact de party utilisé lors du handoff vers le combat.
+
+Ce contexte était déjà nettoyé dans :
+- `_cancelBattleHandoff()`
+- `_onBattleFinished()`
+
+Le besoin de blindage supplémentaire est cohérent : `_clearTransientUiState()` sert déjà de reset global défensif pour plusieurs chemins runtime (load, warp, connection). Si un reset global transitoire arrive alors qu'un contexte battle résiduel existe encore, il vaut mieux l'éliminer explicitement pour éviter toute fuite d'état mémoire vers un runtime qui repart sur un autre état overworld.
+
+## 3. Périmètre exact
+
+### Inclus
+
+- ajout du reset `_activeBattleContext = null` dans `_clearTransientUiState()` ;
+- commentaire de maintenance expliquant pourquoi ce reset défensif est cohérent avec le lot 10 ;
+- validations ciblées runtime.
+
+### Exclu
+
+- aucun changement de flux de fin de combat ;
+- aucun changement de write-back lot 10 ;
+- aucun changement de `map_battle` ;
+- aucun changement de `map_core` ;
+- aucun changement de host d'exemple ;
+- aucun sujet du lot 11+.
+
+## 4. Fichiers modifiés
+
+### Modifiés
+
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+- `reports/phase-r1-lot-10-defensive-hardening-report.md`
+
+### Créés
+
+- aucun autre fichier.
+
+### Supprimés
+
+- aucun.
+
+## 5. Justification fichier par fichier
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+C'est l'unique fichier de code touché.
+
+Le reset défensif doit vivre ici parce que :
+- `_clearTransientUiState()` est déjà le point central de nettoyage des overlays et états transitoires runtime ;
+- `_activeBattleContext` est un état transitoire runtime lié au handoff combat ;
+- le remettre à `null` ici renforce la cohérence du runtime sans créer une nouvelle abstraction.
+
+### `reports/phase-r1-lot-10-defensive-hardening-report.md`
+
+Report ultra complet de cette passe de blindage.
+
+## 6. Commandes réellement exécutées
+
+### Audit
+
+```bash
+git status --short
+rg -n "_clearTransientUiState|_activeBattleContext" packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart packages/map_runtime/test -g'*.dart'
+sed -n '330,430p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '1,220p' packages/map_runtime/test/playable_map_game_public_getters_test.dart
+sed -n '4800,4875p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '4235,4275p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '4430,4475p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '4700,4745p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+rg -n "void _clearTransientUiState|_activeBattleContext = null;" packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+git diff --stat
+git status --short && printf '\n-- others --\n' && git ls-files --others --exclude-standard reports packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+```
+
+### Format
+
+```bash
+/opt/homebrew/bin/dart format packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+```
+
+### Analyse
+
+```bash
+/opt/homebrew/bin/flutter analyze --no-pub lib/src/presentation/flame/playable_map_game.dart
+```
+
+### Tests
+
+```bash
+/opt/homebrew/bin/flutter test test/playable_map_game_public_getters_test.dart test/runtime_battle_outcome_apply_test.dart test/runtime_battle_setup_mapper_test.dart
+```
+
+## 7. Résultats réels de format / analyze / tests
+
+### Format
+
+```text
+Formatted 1 file (0 changed) in 0.21 seconds.
+```
+
+### Analyse
+
+```text
+No issues found! (ran in 9.9s)
+```
+
+### Tests
+
+```text
+00:11 +11: All tests passed!
+```
+
+## 8. État git utile
+
+```text
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+?? reports/phase-r1-lot-10-defensive-hardening-report.md
+```
+
+```text
+ .../lib/src/presentation/flame/playable_map_game.dart          | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+```
+
+## 9. Checklist finale
+
+- [x] je n’ai modifié que le strict nécessaire
+- [x] `_activeBattleContext` est bien remis à `null` dans `_clearTransientUiState()`
+- [x] je n’ai pas cassé les flows existants du lot 10
+- [x] je n’ai pas ouvert le lot 11
+- [x] je n’ai touché ni `map_battle` ni `map_core` sans nécessité absolue
+- [x] je n’ai fait aucun refactor cosmétique
+- [x] j’ai exécuté format
+- [x] j’ai exécuté analyze
+- [x] j’ai exécuté les tests utiles
+- [x] je n’ai fait aucune écriture git interdite
+- [x] j’ai créé un rapport markdown ultra complet
+- [x] le rapport contient le contenu complet de tous les fichiers touchés
+- [x] mon rapport est honnête sur ce qui a été fait et pas fait
+
+## 10. Ce qui n’a pas été fait
+
+- Aucun test dédié à l’appel interne de `_clearTransientUiState()` n’a été ajouté.
+
+Raison :
+- `_clearTransientUiState()` est un membre privé ;
+- pour tester ce reset d’une ligne directement, il aurait fallu élargir artificiellement la surface publique ou introduire un seam de test dédié ;
+- pour ce mini-fix, cela aurait été disproportionné par rapport au besoin.
+
+J’ai donc choisi :
+- le changement minimal dans le code ;
+- plus une revalidation ciblée des tests runtime utiles autour du lot 10.
+
+## 11. Conclusion honnête
+
+Le mini-fix demandé est appliqué proprement.
+
+`_clearTransientUiState()` nettoie maintenant aussi `_activeBattleContext`, ce qui renforce la cohérence défensive des resets runtime sans modifier le comportement métier validé du lot 10.
+
+Il n’y a pas eu de dérive de scope.
+
+## 12. Annexe — contenu complet des fichiers touchés
+
+Le report lui-même est exclu de sa propre annexe pour éviter une récursion infinie. Tous les autres fichiers texte touchés sont inclus en entier.
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+```dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -4847,11 +5030,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
     // Blindage défensif lot 10 :
-    // ce reset central est utilisé par plusieurs chemins runtime (load, warp,
-    // connection). Si un contexte battle survivait ici, on garderait en
-    // mémoire un slot party et une requête de combat qui ne correspondent plus
-    // à l'état overworld courant. On l'efface donc explicitement avec le reste
-    // de l'UI transitoire.
+    // quand on fait un reset global de l'UI/runtime transitoire (load, warp,
+    // connection, etc.), il faut aussi éliminer tout contexte battle actif
+    // résiduel. Sinon on risque de conserver en mémoire un slot party et une
+    // requête de combat qui ne correspondent plus à l'état runtime courant.
+    //
+    // Ce reset ne remplace pas les nettoyages normaux de fin de combat ;
+    // il sert uniquement de garde-fou supplémentaire sur les chemins qui
+    // repartent proprement de l'overworld ou rechargent le runtime.
     _activeBattleContext = null;
     _warpTransitionOverlay?.removeFromParent();
     _warpTransitionOverlay = null;
@@ -5970,3 +6156,4 @@ class _WarpTransitionSpec {
   final Duration fadeOut;
   final Duration fadeIn;
 }
+```

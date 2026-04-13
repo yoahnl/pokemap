@@ -1,3 +1,181 @@
+# Phase R1 — Lot 10 — Defensive hardening rerun de `_clearTransientUiState()`
+
+## 1. Résumé exécutif honnête
+
+Cette passe refait proprement le mini-fix défensif demandé après une erreur de manipulation git côté worktree.
+
+Le code réel auditée montrait que le blindage avait disparu : `_clearTransientUiState()` ne remettait plus `_activeBattleContext` à `null`.
+
+Le fix a été réappliqué de manière minimale dans `PlayableMapGame`, puis revalidé avec :
+- format ;
+- analyse ciblée ;
+- tests runtime ciblés autour du lot 10.
+
+Je n’ai volontairement rien rouvert d’autre.
+
+## 2. Cause réelle du rerun
+
+Après vérification du code réel :
+- `_activeBattleContext` était bien encore nettoyé dans `_cancelBattleHandoff()` et `_onBattleFinished()` ;
+- mais le reset défensif dans `_clearTransientUiState()` n’était plus présent.
+
+Le rerun était donc justifié par le code, pas par les anciens reports.
+
+## 3. Périmètre exact
+
+### Inclus
+
+- réapplication du reset `_activeBattleContext = null` dans `_clearTransientUiState()` ;
+- commentaire de maintenance local ;
+- validations ciblées runtime ;
+- nouveau report de rerun.
+
+### Exclu
+
+- aucun changement du lot 10 métier ;
+- aucun changement de `map_battle` ;
+- aucun changement de `map_core` ;
+- aucun changement de tests hors runtime ciblé ;
+- aucun sujet du lot 11.
+
+## 4. Fichiers modifiés / créés
+
+### Modifiés
+
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+### Créés
+
+- `reports/phase-r1-lot-10-defensive-hardening-rerun-report.md`
+
+### Supprimés
+
+- aucun.
+
+## 5. Justification fichier par fichier
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+Le mini-fix devait vivre ici, et uniquement ici, parce que :
+- `_clearTransientUiState()` est déjà le point de nettoyage central des états UI/runtime transitoires ;
+- `_activeBattleContext` est lui aussi un état transitoire runtime ;
+- ajouter ce reset ici renforce la cohérence défensive sans changer le comportement métier validé du lot 10.
+
+### `reports/phase-r1-lot-10-defensive-hardening-rerun-report.md`
+
+Nouveau report de rerun, distinct du précédent, pour documenter honnêtement l’état réel après la manipulation git utilisateur.
+
+## 6. Commandes réellement exécutées
+
+### Audit
+
+```bash
+git status --short
+git diff --stat
+rg -n "void _clearTransientUiState|_activeBattleContext = null;" packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+ls -l reports/phase-r1-lot-10-defensive-hardening-report.md 2>/dev/null || true
+sed -n '4831,4865p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '1,220p' packages/map_runtime/test/playable_map_game_public_getters_test.dart
+git status --short
+git diff --stat
+rg -n "void _clearTransientUiState|_activeBattleContext = null;" packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+cat packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '4831,4865p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+```
+
+### Format
+
+```bash
+/opt/homebrew/bin/dart format packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+```
+
+### Analyse
+
+```bash
+/opt/homebrew/bin/flutter analyze --no-pub lib/src/presentation/flame/playable_map_game.dart
+```
+
+### Tests
+
+```bash
+/opt/homebrew/bin/flutter test test/playable_map_game_public_getters_test.dart test/runtime_battle_outcome_apply_test.dart test/runtime_battle_setup_mapper_test.dart
+```
+
+## 7. Résultats réels
+
+### Format
+
+```text
+Formatted 1 file (0 changed) in 0.04 seconds.
+```
+
+### Analyse
+
+```text
+No issues found! (ran in 1.9s)
+```
+
+### Tests
+
+```text
+00:02 +11: All tests passed!
+```
+
+## 8. État git utile
+
+```text
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+?? reports/phase-r1-lot-10-defensive-hardening-report.md
+?? reports/phase-r1-lot-10-defensive-hardening-rerun-report.md
+```
+
+```text
+ .../map_runtime/lib/src/presentation/flame/playable_map_game.dart  | 7 +++++++
+ 1 file changed, 7 insertions(+)
+```
+
+## 9. Checklist finale
+
+- [x] je n’ai modifié que le strict nécessaire
+- [x] `_activeBattleContext` est bien remis à `null` dans `_clearTransientUiState()`
+- [x] je n’ai pas cassé les flows existants du lot 10
+- [x] je n’ai pas ouvert le lot 11
+- [x] je n’ai touché ni `map_battle` ni `map_core` sans nécessité absolue
+- [x] je n’ai fait aucun refactor cosmétique
+- [x] j’ai exécuté format
+- [x] j’ai exécuté analyze
+- [x] j’ai exécuté les tests utiles
+- [x] je n’ai fait aucune écriture git interdite
+- [x] j’ai créé un rapport markdown ultra complet
+- [x] le rapport contient le contenu complet de tous les fichiers touchés
+- [x] mon rapport est honnête sur ce qui a été fait et pas fait
+
+## 10. Ce qui n’a pas été fait
+
+Je n’ai pas ajouté de test dédié à `_clearTransientUiState()`.
+
+Raison :
+- la méthode est privée ;
+- le besoin est un blindage d’une ligne ;
+- exposer une nouvelle surface de test juste pour cela aurait été disproportionné pour ce rerun.
+
+J’ai préféré garder le correctif minimal et relancer les non-régressions runtime utiles du lot 10.
+
+## 11. Conclusion honnête
+
+Le rerun est propre.
+
+Le blindage défensif demandé est de nouveau présent dans le code réel : `_clearTransientUiState()` efface maintenant aussi `_activeBattleContext`.
+
+Aucune dérive de scope n’a été introduite.
+
+## 12. Annexe — contenu complet des fichiers touchés
+
+Le report lui-même est exclu de sa propre annexe pour éviter une récursion infinie.
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+```dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -5970,3 +6148,4 @@ class _WarpTransitionSpec {
   final Duration fadeOut;
   final Duration fadeIn;
 }
+```
