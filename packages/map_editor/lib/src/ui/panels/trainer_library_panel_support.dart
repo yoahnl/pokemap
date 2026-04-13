@@ -95,6 +95,28 @@ void _clearTextControllers(Iterable<TextEditingController> controllers) {
   }
 }
 
+bool _trainerMatchesSearch(ProjectTrainerEntry trainer, String rawQuery) {
+  final query = rawQuery.trim().toLowerCase();
+  if (query.isEmpty) {
+    return true;
+  }
+
+  final searchTerms = <String>[
+    trainer.id,
+    trainer.name,
+    trainer.trainerClass,
+    ...trainer.tags,
+    ...trainer.team.map((pokemon) => pokemon.speciesId),
+  ].map((value) => value.trim().toLowerCase());
+
+  for (final term in searchTerms) {
+    if (term.contains(query)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 List<String> _buildSpeciesFormSuggestions(PokemonSpeciesFile species) {
   // We only expose forms that truly exist in the local species payload.
   // Earlier code synthesized a `base` value when the data did not provide one,

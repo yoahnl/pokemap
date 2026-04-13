@@ -45,7 +45,7 @@ class _TrainerReferencesBanner extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Local trainer assistance · $speciesState · $moveState · $itemState',
+                    'Trainer Studio references · $speciesState · $moveState · $itemState',
                     style: TextStyle(
                       color: label,
                       fontSize: 12,
@@ -243,7 +243,9 @@ class _TrainerEditorCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             onPressed: onToggleAdvanced,
             child: Text(
-              showAdvanced ? 'Hide optional refs' : 'Show optional refs',
+              showAdvanced
+                  ? 'Hide optional references'
+                  : 'Show optional references',
               style: const TextStyle(fontSize: 12),
             ),
           ),
@@ -256,7 +258,7 @@ class _TrainerEditorCard extends StatelessWidget {
                     : 'trainer-library-edit-portrait-field',
               ),
               controller: portraitController,
-              placeholder: 'Portrait element ID (optional)',
+              placeholder: 'Raw portrait element ID (optional)',
             ),
             if (!portraitIsKnown)
               const Padding(
@@ -278,7 +280,7 @@ class _TrainerEditorCard extends StatelessWidget {
                     : 'trainer-library-edit-battle-theme-field',
               ),
               controller: battleThemeController,
-              placeholder: 'Battle theme ID (optional)',
+              placeholder: 'Raw battle theme ID (optional)',
             ),
             const SizedBox(height: 6),
             CupertinoTextField(
@@ -288,7 +290,7 @@ class _TrainerEditorCard extends StatelessWidget {
                     : 'trainer-library-edit-victory-theme-field',
               ),
               controller: victoryThemeController,
-              placeholder: 'Victory theme ID (optional)',
+              placeholder: 'Raw victory theme ID (optional)',
             ),
             const SizedBox(height: 6),
             CupertinoTextField(

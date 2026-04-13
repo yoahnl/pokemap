@@ -642,6 +642,15 @@ Avancement réel à date :
   - assistance locale `species` branchée sur le Pokédex local ;
   - validation inline lisible sur species / niveaux / poids ;
   - surface suffisante pour authorer une table wild sans texte libre fragile.
+- lot 8-2 livré :
+  - le trainer authoring détaillé vit maintenant dans un vrai workspace
+    principal `Trainer Studio` ;
+  - la sidebar trainer n'est plus la surface d'édition complète, mais un
+    launcher / résumé rapide ;
+  - la liste de trainers, le détail trainer et l'éditeur guidé du Pokémon
+    vivent ensemble dans une surface centrale plus lisible ;
+  - les sélecteurs `species` / `moves` / `items` parlent d'abord en noms
+    lisibles, avec les IDs bruts conservés comme fallback honnête.
 
 ### Phase D — Bridge runtime -> battle réel
 
@@ -767,6 +776,13 @@ Statut actuel :
   - validation inline lisible sur species / niveaux / poids ;
   - poids et parts relatives lisibles pour l'auteur ;
   - états dégradés honnêtes quand le Pokédex local est indisponible.
+- lot 8-2 livré :
+  - `Trainer Studio` promu dans le workspace central ;
+  - roster trainer, détail trainer et édition guidée des Pokémon visibles
+    simultanément ;
+  - selectors guidés `species` / `moves` / `items` plus lisibles pour un
+    auteur non technique ;
+  - IDs bruts toujours possibles, mais plus en façade principale.
 
 Gate de sortie :
 
@@ -1142,6 +1158,43 @@ Livré concrètement :
 - fermeture des formulaires uniquement sur succès réel ;
 - poids totaux et pourcentages dérivés visibles dans la table ;
 - tests applicatifs + widget + non-régressions dédiés ;
+- report de lot présent dans `reports/`.
+
+### Lot 8-2 — Trainer Studio principal + refonte UX/UI du trainer authoring
+
+Priorité : `must-have`
+Statut : `livré`
+
+But :
+
+- faire du trainer authoring un vrai workspace principal lisible, sans créer
+  un second pipeline trainer.
+
+Done :
+
+- trainer studio central ;
+- sidebar trainer réduite à un launcher / résumé ;
+- liste de trainers lisible ;
+- détail trainer visible ;
+- édition guidée des Pokémon avec vrais slots de moves ;
+- sélecteurs lisibles basés sur les noms avant les IDs ;
+- wording produit plus compréhensible ;
+- fallbacks honnêtes quand les données locales sont indisponibles.
+
+Livré concrètement :
+
+- surface principale `TrainerLibraryPanel` réutilisée comme `Trainer Studio`
+  dans le workspace central, sans seconde UI concurrente ;
+- roster trainer à gauche, détail trainer au centre, éditeur guidé du Pokémon
+  à droite ;
+- sélection `species` via le Pokédex local, avec nom, id, numéro Pokédex et
+  types en secondaire ;
+- sélection de moves par slots `Move 1..4` avec recherche guidée dans le
+  catalogue local des attaques ;
+- sélection d'item plus lisible quand le catalogue local existe ;
+- champs bruts conservés comme fallback honnête au lieu d'être la façade
+  principale ;
+- tests widget + smoke shell + non-régressions utiles dédiés ;
 - report de lot présent dans `reports/`.
 
 ### Lot 9 — Mappers runtime réels vers `BattleSetup`

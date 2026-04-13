@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -76,6 +77,27 @@ void main() {
         find.text(
           'Visual library editing for tiles, elements and groups.',
         ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('renders the trainer studio workspace chrome', (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_trainer',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.trainer,
+        ),
+      );
+
+      expect(find.text('Trainer Studio'), findsWidgets);
+      expect(
+        find.textContaining('battle-ready rosters'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('trainer-library-new-trainer-button')),
         findsOneWidget,
       );
     });

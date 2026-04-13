@@ -90,7 +90,8 @@ final editorProjectRootPathProvider = Provider<String?>((ref) {
   return ref.watch(editorNotifierProvider.select((s) => s.projectRootPath));
 });
 
-final editorSelectedTilesetEntryProvider = Provider<ProjectTilesetEntry?>((ref) {
+final editorSelectedTilesetEntryProvider =
+    Provider<ProjectTilesetEntry?>((ref) {
   return ref.watch(
     editorNotifierProvider.select(_resolveSelectedTilesetEntryFromState),
   );
@@ -133,6 +134,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
   final workspaceTitle = switch (workspaceMode) {
     EditorWorkspaceMode.map => activeMap?.name ?? 'Map Workspace',
     EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
+    EditorWorkspaceMode.trainer => 'Trainer Studio',
     EditorWorkspaceMode.pokedex => 'Pokédex',
     EditorWorkspaceMode.globalStory => 'Global Story Workspace',
     EditorWorkspaceMode.step => 'Step Studio',
@@ -147,6 +149,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.tileset => selectedTileset == null
         ? 'Select a tileset to browse and curate your library.'
         : 'Visual library editing for tiles, elements and groups.',
+    EditorWorkspaceMode.trainer =>
+      'Create trainers, teams and battle-ready rosters without editing raw JSON.',
     EditorWorkspaceMode.pokedex =>
       'Simple species list from local project data: number, name, id and types.',
     EditorWorkspaceMode.globalStory =>

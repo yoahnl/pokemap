@@ -7,6 +7,7 @@ import 'map_canvas.dart';
 import 'narrative_workspace_canvas.dart';
 import 'pokedex_workspace.dart';
 import 'tileset_editor_canvas.dart';
+import '../panels/trainer_library_panel.dart';
 
 class EditorCanvasHost extends ConsumerWidget {
   const EditorCanvasHost({super.key});
@@ -18,6 +19,7 @@ class EditorCanvasHost extends ConsumerWidget {
     return switch (workspaceMode) {
       EditorWorkspaceMode.map => const MapCanvas(),
       EditorWorkspaceMode.tileset => const TilesetEditorCanvas(),
+      EditorWorkspaceMode.trainer => const TrainerLibraryPanel(),
       // Lot 13: on remplace le placeholder vide du lot 12 par une première
       // vraie liste simple, toujours en lecture seule et sans logique riche.
       EditorWorkspaceMode.pokedex => const PokedexWorkspace(),

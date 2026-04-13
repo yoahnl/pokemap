@@ -246,7 +246,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                             children: [
                                               _WorkspaceStageHeader(
                                                 title: shell.workspaceTitle,
-                                                subtitle: shell.workspaceSubtitle,
+                                                subtitle:
+                                                    shell.workspaceSubtitle,
                                                 workspaceMode: workspaceMode,
                                                 rightPanelVisible:
                                                     _rightInspectorVisible,
@@ -310,6 +311,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       EditorChrome.islandNeutralTint,
                                     EditorWorkspaceMode.tileset =>
                                       EditorChrome.islandWarmTint,
+                                    EditorWorkspaceMode.trainer =>
+                                      EditorChrome.islandWarmTint,
                                     EditorWorkspaceMode.pokedex =>
                                       EditorChrome.islandWarmTint,
                                     EditorWorkspaceMode.globalStory =>
@@ -326,6 +329,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       const MapInspectorPanel(),
                                     EditorWorkspaceMode.tileset =>
                                       const TilesetPalettePanel(),
+                                    EditorWorkspaceMode.trainer =>
+                                      const _EmptyWorkspaceInspector(),
                                     // Le Pokédex du lot 13 n'a toujours pas de
                                     // panneau d'inspection dédié :
                                     // pas de détail espèce, pas d'édition.
@@ -462,6 +467,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final chipAccent = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyHoney,
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyLilac,
+      EditorWorkspaceMode.trainer => EditorChrome.accentCoral,
       EditorWorkspaceMode.pokedex => EditorChrome.inspectorJoyAmber,
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyCyan,
       EditorWorkspaceMode.step => EditorChrome.inspectorJoyMint,
@@ -471,6 +477,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
     final chipAccent2 = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyApricot,
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyPlum,
+      EditorWorkspaceMode.trainer => EditorChrome.inspectorJoyCoral,
       EditorWorkspaceMode.pokedex => EditorChrome.accentWarm,
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyBlue,
       EditorWorkspaceMode.step => EditorChrome.accentJade,
@@ -503,6 +510,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
             switch (workspaceMode) {
               EditorWorkspaceMode.map => CupertinoIcons.map,
               EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
+              EditorWorkspaceMode.trainer => CupertinoIcons.person_3_fill,
               EditorWorkspaceMode.pokedex => CupertinoIcons.book,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
@@ -580,6 +588,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
             switch (workspaceMode) {
               EditorWorkspaceMode.map => 'Scene',
               EditorWorkspaceMode.tileset => 'Library',
+              EditorWorkspaceMode.trainer => 'Trainer',
               EditorWorkspaceMode.pokedex => 'Pokedex',
               EditorWorkspaceMode.globalStory => 'Global',
               EditorWorkspaceMode.step => 'Step',

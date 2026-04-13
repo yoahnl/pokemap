@@ -19,6 +19,19 @@ void main() {
       expect(next.statusMessage, current.statusMessage);
     });
 
+    test('selectTrainerWorkspace switches mode and clears stale errors', () {
+      const current = EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        errorMessage: 'Old failure',
+      );
+
+      final next = controller.selectTrainerWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.trainer);
+      expect(next.errorMessage, isNull);
+      expect(next.statusMessage, current.statusMessage);
+    });
+
     test('selectDialogueWorkspace keeps project session and only changes mode',
         () {
       const current = EditorState(

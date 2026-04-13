@@ -23,6 +23,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.pokedex);
   }
 
+  EditorState selectTrainerWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.trainer);
+  }
+
   EditorState selectGlobalStoryWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.globalStory);
   }
@@ -48,10 +52,12 @@ class EditorWorkspaceController {
     EditorState current,
     EditorWorkspaceMode workspaceMode,
   ) {
-    return current.copyWithProjectSession(
-      current.projectSession.copyWith(workspaceMode: workspaceMode),
-    ).copyWithDocumentStatus(
-      current.documentStatus.copyWith(errorMessage: null),
-    );
+    return current
+        .copyWithProjectSession(
+          current.projectSession.copyWith(workspaceMode: workspaceMode),
+        )
+        .copyWithDocumentStatus(
+          current.documentStatus.copyWith(errorMessage: null),
+        );
   }
 }

@@ -22,8 +22,9 @@ import 'package:map_editor/src/ui/panels/trainer_library_panel.dart';
 void main() {
   Future<void> pumpTrainerPanel(
     WidgetTester tester,
-    ProviderContainer container,
-  ) async {
+    ProviderContainer container, {
+    bool embedded = false,
+  }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1600, 2200);
     addTearDown(() {
@@ -36,12 +37,14 @@ void main() {
         container: container,
         child: MacosTheme(
           data: MacosThemeData.light(),
-          child: const MaterialApp(
+          child: MaterialApp(
             home: CupertinoPageScaffold(
               child: SizedBox(
-                width: 1280,
+                width: embedded ? 420 : 1280,
                 height: 1800,
-                child: TrainerLibraryPanel(),
+                child: embedded
+                    ? const TrainerLibraryPanel(embedded: true)
+                    : const TrainerLibraryPanel(),
               ),
             ),
           ),
@@ -49,6 +52,51 @@ void main() {
       ),
     );
   }
+
+  testWidgets('embedded mode acts as a launcher for the main Trainer Studio',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_embedded',
+      project: ProjectManifest(
+        name: 'trainers_panel_embedded',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container, embedded: true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byKey(const Key('trainer-library-open-studio-button')),
+        findsOneWidget);
+    expect(find.byKey(const Key('trainer-library-new-trainer-button')),
+        findsNothing);
+    expect(find.text('Trainer Studio'), findsWidgets);
+
+    await tester
+        .tap(find.byKey(const Key('trainer-library-open-studio-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(editorNotifierProvider).workspaceMode,
+      EditorWorkspaceMode.trainer,
+    );
+    expect(
+      container.read(editorNotifierProvider).selectedTrainerId,
+      'misty',
+    );
+  });
 
   testWidgets(
       'creates a trainer and saves a complete team entry with assisted refs',
@@ -111,7 +159,7 @@ void main() {
       find.byKey(const Key('trainer-library-create-class-field')),
       'Gym Leader',
     );
-    await tester.tap(find.text('Show optional refs'));
+    await tester.tap(find.text('Show optional references'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('trainer-library-create-battle-theme-field')),
@@ -184,7 +232,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const Key('trainer-library-pokemon-item-field')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.enterText(
       find.byKey(const Key('trainer-library-pokemon-item-field')),
@@ -200,7 +253,7 @@ void main() {
         find.byKey(const Key('trainer-library-pokemon-save-button'));
     await tester.dragUntilVisible(
       savePokemonButton,
-      find.byType(ListView).first,
+      find.byKey(const Key('trainer-library-editor-scroll')),
       const Offset(0, -220),
     );
     await tester.tap(savePokemonButton);
@@ -298,7 +351,7 @@ void main() {
         find.byKey(const Key('trainer-library-pokemon-save-button'));
     await tester.dragUntilVisible(
       savePokemonButton,
-      find.byType(ListView).first,
+      find.byKey(const Key('trainer-library-editor-scroll')),
       const Offset(0, -220),
     );
     await tester.tap(savePokemonButton);
@@ -390,7 +443,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const Key('trainer-library-pokemon-form-field')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.pumpAndSettle();
 
@@ -482,7 +540,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const Key('trainer-library-pokemon-form-field')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.pumpAndSettle();
 
@@ -495,23 +558,35 @@ void main() {
 
     final savePokemonButton =
         find.byKey(const Key('trainer-library-pokemon-save-button'));
-    await tester.dragUntilVisible(
-      savePokemonButton,
-      find.byType(ListView).first,
-      const Offset(0, -220),
-    );
+    await tester.ensureVisible(savePokemonButton);
+    await tester.pumpAndSettle();
     await tester.tap(savePokemonButton);
+    await tester.pumpAndSettle();
+
+    final savedTrainer =
+        container.read(editorNotifierProvider).project!.trainers.single;
+    expect(savedTrainer.team.single.speciesId, 'bulbasaur');
+
+    await tester.scrollUntilVisible(
+      find.text(
+        'Local species index unavailable. The raw value is kept as-is.',
+      ),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-detail-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
 
     expect(
       find.text(
-        'Index local des espèces indisponible. La valeur brute est conservée.',
+        'Local species index unavailable. The raw value is kept as-is.',
       ),
       findsOneWidget,
     );
-    final savedTrainer =
-        container.read(editorNotifierProvider).project!.trainers.single;
-    expect(savedTrainer.team.single.speciesId, 'bulbasaur');
   });
 
   testWidgets(
@@ -600,7 +675,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const Key('trainer-library-pokemon-item-field')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-editor-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.enterText(
       find.byKey(const Key('trainer-library-pokemon-item-field')),
@@ -611,7 +691,7 @@ void main() {
         find.byKey(const Key('trainer-library-pokemon-save-button'));
     await tester.dragUntilVisible(
       savePokemonButton,
-      find.byType(ListView).first,
+      find.byKey(const Key('trainer-library-editor-scroll')),
       const Offset(0, -220),
     );
     await tester.tap(savePokemonButton);

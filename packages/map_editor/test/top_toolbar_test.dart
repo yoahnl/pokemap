@@ -44,5 +44,19 @@ void main() {
 
       expect(find.text('Map saved'), findsOneWidget);
     });
+
+    testWidgets('shows the trainer studio label for the trainer workspace',
+        (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/top_toolbar_trainer',
+          project: buildShellChromeProject(name: 'Pokemon Map'),
+          workspaceMode: EditorWorkspaceMode.trainer,
+        ),
+      );
+
+      expect(find.text('Pokemon Map  •  Trainer Studio'), findsOneWidget);
+    });
   });
 }

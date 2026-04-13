@@ -1351,6 +1351,17 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectPokedexWorkspace(state);
   }
 
+  /// Ouvre le workspace central "Trainer Studio".
+  ///
+  /// Cette navigation reste volontairement minimale :
+  /// - aucun pipeline trainer parallèle n'est créé ici ;
+  /// - aucune donnée locale n'est préchargée depuis le notifier ;
+  /// - la surface centrale réutilise le même flux trainer que la sidebar,
+  ///   via les méthodes existantes du notifier.
+  void selectTrainerWorkspace() {
+    state = _editorWorkspaceController.selectTrainerWorkspace(state);
+  }
+
   /// Ouvre le workspace central "Global Story".
   ///
   /// Ce changement est purement une navigation d'espace de travail:

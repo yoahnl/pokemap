@@ -7,7 +7,8 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
   group('editor selectors', () {
-    test('editorShellSnapshotProvider derives map title and save affordance', () {
+    test('editorShellSnapshotProvider derives map title and save affordance',
+        () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -36,7 +37,8 @@ void main() {
       expect(shell.canSaveMap, isTrue);
     });
 
-    test('editorToolbarSnapshotProvider resolves selected tileset from layer', () {
+    test('editorToolbarSnapshotProvider resolves selected tileset from layer',
+        () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -73,7 +75,8 @@ void main() {
       expect(toolbar.activeLayer, isA<TileLayer>());
     });
 
-    test('editorProjectExplorerSnapshotProvider exposes active map selection', () {
+    test('editorProjectExplorerSnapshotProvider exposes active map selection',
+        () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -96,6 +99,27 @@ void main() {
       expect(snapshot.workspaceMode, EditorWorkspaceMode.pokedex);
       expect(snapshot.activeMapId, 'town');
       expect(snapshot.project?.name, 'demo');
+    });
+
+    test('editorShellSnapshotProvider exposes trainer studio labels', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.trainer,
+        project: ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+      );
+
+      final shell = container.read(editorShellSnapshotProvider);
+      expect(shell.workspaceTitle, 'Trainer Studio');
+      expect(
+        shell.workspaceSubtitle,
+        contains('battle-ready rosters'),
+      );
     });
 
     test('editorTerrainLibrarySnapshotProvider exposes preset selection inputs',
@@ -127,7 +151,8 @@ void main() {
       expect(snapshot.selectedPathPresetId, 'path.route');
     });
 
-    test('editorTilesetPaletteSnapshotProvider exposes palette panel state', () {
+    test('editorTilesetPaletteSnapshotProvider exposes palette panel state',
+        () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 

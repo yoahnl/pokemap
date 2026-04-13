@@ -222,7 +222,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
     final hPaths = (screenH * 0.36).clamp(280.0, 500.0);
-    final hTrainers = (screenH * 0.35).clamp(260.0, 480.0);
+    final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
     const explorerTileRadius = 28.0;
     final actionIcon = CupertinoColors.white.withValues(alpha: 0.92);
@@ -349,8 +349,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
-          title: 'Trainer Library',
-          subtitle: 'Trainer rosters referenced by NPC entities',
+          title: 'Trainer Studio',
+          subtitle: 'Battle rosters and teams (opens the central workspace)',
           icon: CupertinoIcons.person_2_fill,
           accentColor: EditorChrome.accentCoral,
           badgeText: '${project.trainers.length}',

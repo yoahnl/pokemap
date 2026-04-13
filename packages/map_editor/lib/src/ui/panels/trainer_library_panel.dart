@@ -27,6 +27,7 @@ import '../shared/inspector_embedded_widgets.dart';
 part 'trainer_library_panel_support.dart';
 part 'trainer_library_panel_trainer_widgets.dart';
 part 'trainer_library_panel_pokemon_widgets.dart';
+part 'trainer_library_panel_workspace_widgets.dart';
 
 const PokemonSpeciesLookupService _speciesLookupService =
     PokemonSpeciesLookupService();
@@ -64,6 +65,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _newBattleThemeController = TextEditingController();
   final _newVictoryThemeController = TextEditingController();
   final _newTagsController = TextEditingController();
+  final _trainerSearchController = TextEditingController();
   String? _newCharacterId;
   bool _showCreateForm = false;
   bool _showCreateAdvanced = false;
@@ -113,6 +115,14 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       <String, Future<PokedexSpeciesDetail?>>{};
 
   @override
+  void initState() {
+    super.initState();
+    // The roster filter stays local to the trainer surface. It is not part of
+    // editor-wide state and should never leak into the notifier.
+    _trainerSearchController.addListener(_handleRosterSearchChanged);
+  }
+
+  @override
   void dispose() {
     _newNameController.dispose();
     _newClassController.dispose();
@@ -120,6 +130,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newBattleThemeController.dispose();
     _newVictoryThemeController.dispose();
     _newTagsController.dispose();
+    _trainerSearchController
+      ..removeListener(_handleRosterSearchChanged)
+      ..dispose();
 
     _editNameController.dispose();
     _editClassController.dispose();
@@ -140,6 +153,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     super.dispose();
   }
 
+  void _handleRosterSearchChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editorNotifierProvider);
@@ -147,9 +166,6 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     final project = state.project;
 
     _ensureReferenceDataForState(state);
-
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
-    const accent = EditorChrome.accentCoral;
 
     final content = project == null
         ? Center(
@@ -166,103 +182,21 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
             builder: (context, snapshot) {
               final references =
                   snapshot.data ?? const _TrainerReferenceData.loading();
-              return ListView(
-                padding: widget.embedded
-                    ? kInspectorTileBodyPadding
-                    : const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                children: [
-                  _TrainerReferencesBanner(
-                    references: references,
-                    onRefresh: () => _refreshReferenceData(state),
-                  ),
-                  if ((state.errorMessage ?? '').trim().isNotEmpty ||
-                      (state.statusMessage ?? '').trim().isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 8),
-                      child: _TrainerOperationBanner(
-                        message:
-                            (state.errorMessage?.trim().isNotEmpty ?? false)
-                                ? state.errorMessage!.trim()
-                                : state.statusMessage!.trim(),
-                        isError:
-                            (state.errorMessage?.trim().isNotEmpty ?? false),
-                      ),
-                    ),
-                  if (!_showCreateForm)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: CupertinoButton.filled(
-                        key: const Key('trainer-library-new-trainer-button'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        minimumSize: const Size(1, 28),
-                        onPressed: () => setState(() {
-                          _showCreateForm = true;
-                          _createTrainerValidationMessage = null;
-                          _editingTrainerId = null;
-                          _closePokemonEditor();
-                        }),
-                        child: const Text(
-                          'New Trainer',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _TrainerEditorCard(
-                        key: const Key('trainer-library-create-card'),
-                        title: 'NEW TRAINER',
-                        accent: accent,
-                        nameController: _newNameController,
-                        classController: _newClassController,
-                        portraitController: _newPortraitController,
-                        battleThemeController: _newBattleThemeController,
-                        victoryThemeController: _newVictoryThemeController,
-                        tagsController: _newTagsController,
-                        characters: project.characters,
-                        elements: project.elements,
-                        selectedCharacterId: _newCharacterId,
-                        validationMessage: _createTrainerValidationMessage,
-                        showAdvanced: _showCreateAdvanced,
-                        createMode: true,
-                        onToggleAdvanced: () => setState(() {
-                          _showCreateAdvanced = !_showCreateAdvanced;
-                        }),
-                        onSelectCharacter: (characterId) => setState(() {
-                          _newCharacterId = characterId;
-                        }),
-                        onCancel: () => setState(_resetCreateTrainerDraft),
-                        onSubmit: () => _handleCreateTrainer(
-                          notifier: notifier,
-                          project: project,
-                        ),
-                      ),
-                    ),
-                  if (project.trainers.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: Text(
-                          'No trainers yet',
-                          style: TextStyle(color: subtle, fontSize: 13),
-                        ),
-                      ),
-                    ),
-                  for (final trainer in project.trainers)
-                    _buildTrainerTile(
+              return widget.embedded
+                  ? _buildEmbeddedTrainerLibrary(
                       context: context,
-                      trainer: trainer,
+                      state: state,
                       project: project,
                       notifier: notifier,
                       references: references,
-                      accent: accent,
-                    ),
-                ],
-              );
+                    )
+                  : _buildTrainerStudioWorkspace(
+                      context: context,
+                      state: state,
+                      project: project,
+                      notifier: notifier,
+                      references: references,
+                    );
             },
           );
 
@@ -543,7 +477,68 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newCharacterId = null;
   }
 
+  void _openCreateTrainerForm() {
+    setState(() {
+      _showCreateForm = true;
+      _createTrainerValidationMessage = null;
+      _editingTrainerId = null;
+      _closePokemonEditor();
+    });
+  }
+
+  void _toggleCreateAdvanced() {
+    setState(() {
+      _showCreateAdvanced = !_showCreateAdvanced;
+    });
+  }
+
+  void _setNewCharacterId(String? characterId) {
+    setState(() {
+      _newCharacterId = characterId;
+    });
+  }
+
+  void _cancelCreateTrainerDraft() {
+    setState(_resetCreateTrainerDraft);
+  }
+
+  ProjectTrainerEntry? _selectedTrainerForWorkspace(
+    ProjectManifest project,
+    EditorState state,
+  ) {
+    final selectedTrainerId = state.selectedTrainerId;
+    if (selectedTrainerId != null) {
+      for (final trainer in project.trainers) {
+        if (trainer.id == selectedTrainerId) {
+          return trainer;
+        }
+      }
+    }
+    return project.trainers.isEmpty ? null : project.trainers.first;
+  }
+
+  void _selectTrainerForWorkspace(String? trainerId) {
+    // The central workspace owns the detailed trainer authoring experience.
+    // Switching roster selection should therefore also clean up any draft that
+    // belongs to another trainer, instead of leaving a stale editor visible in
+    // the wrong context.
+    ref.read(editorNotifierProvider.notifier).selectTrainer(trainerId);
+    setState(() {
+      if (_showCreateForm && trainerId != null) {
+        _resetCreateTrainerDraft();
+      }
+      if (_editingTrainerId != null && _editingTrainerId != trainerId) {
+        _closeTrainerEditor();
+      }
+      if (_activePokemonTrainerId != null &&
+          _activePokemonTrainerId != trainerId) {
+        _closePokemonEditor();
+      }
+    });
+  }
+
   void _startEditingTrainer(ProjectTrainerEntry trainer) {
+    ref.read(editorNotifierProvider.notifier).selectTrainer(trainer.id);
     setState(() {
       _editingTrainerId = trainer.id;
       _editNameController.text = trainer.name;
@@ -558,6 +553,22 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _showCreateForm = false;
       _closePokemonEditor();
     });
+  }
+
+  void _toggleEditAdvanced() {
+    setState(() {
+      _showEditAdvanced = !_showEditAdvanced;
+    });
+  }
+
+  void _setEditCharacterId(String? characterId) {
+    setState(() {
+      _editCharacterId = characterId;
+    });
+  }
+
+  void _cancelTrainerEditor() {
+    setState(_closeTrainerEditor);
   }
 
   // -------------------------------------------------------------------------
@@ -581,6 +592,16 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _resetPokemonDraftFields();
   }
 
+  void _cancelPokemonEditor() {
+    setState(_closePokemonEditor);
+  }
+
+  void _setPokemonShiny(bool value) {
+    setState(() {
+      _pokemonShiny = value;
+    });
+  }
+
   // Keeping the shared Pokémon draft reset in one place avoids tiny
   // field-reset mismatches between add/edit/cancel flows.
   void _resetPokemonDraftFields() {
@@ -595,6 +616,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   }
 
   void _startAddingPokemon(String trainerId) {
+    ref.read(editorNotifierProvider.notifier).selectTrainer(trainerId);
     setState(() {
       _activePokemonTrainerId = trainerId;
       _editingPokemonIndex = null;
@@ -609,6 +631,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     int pokemonIndex,
     ProjectTrainerPokemonEntry pokemon,
   ) {
+    ref.read(editorNotifierProvider.notifier).selectTrainer(trainerId);
     setState(() {
       _activePokemonTrainerId = trainerId;
       _editingPokemonIndex = pokemonIndex;
@@ -803,270 +826,5 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _editingTrainerId = null;
     _editTrainerValidationMessage = null;
     _showEditAdvanced = false;
-  }
-
-  Widget _buildTrainerTile({
-    required BuildContext context,
-    required ProjectTrainerEntry trainer,
-    required ProjectManifest project,
-    required EditorNotifier notifier,
-    required _TrainerReferenceData references,
-    required Color accent,
-  }) {
-    final workspace = _workspaceForState(ref.read(editorNotifierProvider));
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final isEditing = _editingTrainerId == trainer.id;
-    final isAddingPokemon =
-        _isAddingPokemon && _activePokemonTrainerId == trainer.id;
-
-    return Container(
-      key: ValueKey(trainer.id),
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(context),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isEditing
-              ? accent.withValues(alpha: 0.5)
-              : CupertinoColors.separator.resolveFrom(context),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        trainer.name,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${trainer.trainerClass} • ${trainer.id}',
-                        style: TextStyle(fontSize: 11, color: subtle),
-                      ),
-                      if (trainer.team.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'No Pokémon assigned yet.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: subtle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(1, 28),
-                  onPressed: () {
-                    if (isEditing) {
-                      setState(_closeTrainerEditor);
-                    } else {
-                      _startEditingTrainer(trainer);
-                    }
-                  },
-                  child: Icon(
-                    isEditing
-                        ? CupertinoIcons.chevron_up
-                        : CupertinoIcons.pencil,
-                    size: 16,
-                  ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(1, 28),
-                  onPressed: () => _handleDeleteTrainer(
-                    notifier: notifier,
-                    trainer: trainer,
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.trash,
-                    size: 16,
-                    color: CupertinoColors.destructiveRed,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isEditing)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-              child: _TrainerEditorCard(
-                key: Key('trainer-library-edit-card-${trainer.id}'),
-                title: 'EDIT TRAINER',
-                accent: accent,
-                nameController: _editNameController,
-                classController: _editClassController,
-                portraitController: _editPortraitController,
-                battleThemeController: _editBattleThemeController,
-                victoryThemeController: _editVictoryThemeController,
-                tagsController: _editTagsController,
-                characters: project.characters,
-                elements: project.elements,
-                selectedCharacterId: _editCharacterId,
-                validationMessage: _editTrainerValidationMessage,
-                showAdvanced: _showEditAdvanced,
-                createMode: false,
-                onToggleAdvanced: () => setState(() {
-                  _showEditAdvanced = !_showEditAdvanced;
-                }),
-                onSelectCharacter: (characterId) => setState(() {
-                  _editCharacterId = characterId;
-                }),
-                onCancel: () => setState(_closeTrainerEditor),
-                onSubmit: () => _handleUpdateTrainer(
-                  notifier: notifier,
-                  project: project,
-                  trainer: trainer,
-                ),
-              ),
-            ),
-          Container(
-            height: 1,
-            color: CupertinoColors.separator.resolveFrom(context),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
-            child: InspectorEmbeddedSectionLabel(
-              'TEAM (${trainer.team.length})',
-            ),
-          ),
-          if (trainer.team.isEmpty && !isAddingPokemon)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
-              child: Text(
-                'You can save this trainer now and add the team later.',
-                style: TextStyle(
-                  color: subtle,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          for (var i = 0; i < trainer.team.length; i++) ...[
-            _TrainerPokemonSummaryRow(
-              key: Key('trainer-library-pokemon-row-${trainer.id}-$i'),
-              pokemon: trainer.team[i],
-              speciesEntry: _speciesLookupService.findById(
-                references.speciesEntries,
-                trainer.team[i].speciesId,
-              ),
-              isSpeciesCatalogAvailable: references.isSpeciesAvailable,
-              moveCatalogView: references.movesCatalogView,
-              itemCatalogView: references.itemsCatalogView,
-              onEdit: () =>
-                  _startEditingPokemon(trainer.id, i, trainer.team[i]),
-              onDelete: () => _handleDeletePokemon(
-                notifier: notifier,
-                trainerId: trainer.id,
-                pokemonIndex: i,
-              ),
-            ),
-            if (_isEditingPokemon(trainer.id, i) && workspace != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
-                child: _TrainerPokemonEditorCard(
-                  key:
-                      Key('trainer-library-edit-pokemon-card-${trainer.id}-$i'),
-                  trainerId: trainer.id,
-                  references: references,
-                  speciesController: _pokemonSpeciesController,
-                  levelController: _pokemonLevelController,
-                  itemController: _pokemonItemController,
-                  formController: _pokemonFormController,
-                  genderController: _pokemonGenderController,
-                  moveControllers: _pokemonMoveControllers,
-                  shiny: _pokemonShiny,
-                  validationMessage: _pokemonValidationMessage,
-                  onToggleShiny: (value) => setState(() {
-                    _pokemonShiny = value;
-                  }),
-                  onCancel: () => setState(_closePokemonEditor),
-                  onSave: () => _handleSavePokemonDraft(
-                    notifier: notifier,
-                    workspace: workspace,
-                    references: references,
-                  ),
-                  loadSpeciesDetail: (speciesId) =>
-                      _loadSpeciesDetailIfPossible(workspace, speciesId),
-                ),
-              ),
-          ],
-          if (isAddingPokemon && workspace != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
-              child: _TrainerPokemonEditorCard(
-                key: Key('trainer-library-add-pokemon-card-${trainer.id}'),
-                trainerId: trainer.id,
-                references: references,
-                speciesController: _pokemonSpeciesController,
-                levelController: _pokemonLevelController,
-                itemController: _pokemonItemController,
-                formController: _pokemonFormController,
-                genderController: _pokemonGenderController,
-                moveControllers: _pokemonMoveControllers,
-                shiny: _pokemonShiny,
-                validationMessage: _pokemonValidationMessage,
-                onToggleShiny: (value) => setState(() {
-                  _pokemonShiny = value;
-                }),
-                onCancel: () => setState(_closePokemonEditor),
-                onSave: () => _handleSavePokemonDraft(
-                  notifier: notifier,
-                  workspace: workspace,
-                  references: references,
-                ),
-                loadSpeciesDetail: (speciesId) =>
-                    _loadSpeciesDetailIfPossible(workspace, speciesId),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
-            child: CupertinoButton(
-              key: Key('trainer-library-add-pokemon-button-${trainer.id}'),
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(1, 28),
-              onPressed: () {
-                if (isAddingPokemon) {
-                  setState(_closePokemonEditor);
-                } else {
-                  _startAddingPokemon(trainer.id);
-                }
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isAddingPokemon
-                        ? CupertinoIcons.minus_circle
-                        : CupertinoIcons.plus_circle,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    isAddingPokemon ? 'Cancel' : 'Add Pokémon',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

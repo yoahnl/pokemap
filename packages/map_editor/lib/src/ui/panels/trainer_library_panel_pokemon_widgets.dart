@@ -60,14 +60,28 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      speciesEntry == null
-                          ? '${pokemon.speciesId} • Lv.${pokemon.level}'
-                          : '${speciesEntry!.primaryName} • ${pokemon.speciesId} • Lv.${pokemon.level}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          speciesEntry?.primaryName ?? pokemon.speciesId,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          speciesEntry == null
+                              ? '${pokemon.speciesId} • Lv.${pokemon.level}'
+                              : '#${speciesEntry!.nationalDex.toString().padLeft(4, '0')} • ${pokemon.speciesId} • ${speciesEntry!.types.join('/')} • Lv.${pokemon.level}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: subtle,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   CupertinoButton(
@@ -96,8 +110,8 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     isSpeciesCatalogAvailable
-                        ? 'Species absente du Pokédex local.'
-                        : 'Index local des espèces indisponible. La valeur brute est conservée.',
+                        ? 'Species absent from the local Pokédex.'
+                        : 'Local species index unavailable. The raw value is kept as-is.',
                     style: const TextStyle(
                       color: EditorChrome.inspectorJoyCoral,
                       fontSize: 11,
@@ -106,15 +120,22 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
                   ),
                 ),
               if (resolvedMoveLabels.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Moves: ${resolvedMoveLabels.join(', ')}',
-                  style: TextStyle(fontSize: 11, color: subtle),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final moveLabel in resolvedMoveLabels)
+                      _TrainerSummaryChip(
+                        label: moveLabel,
+                        accent: EditorChrome.accentWarm,
+                      ),
+                  ],
                 ),
               ],
               if (resolvedItemLabel != null &&
                   resolvedItemLabel.isNotEmpty) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   'Item: $resolvedItemLabel',
                   style: TextStyle(fontSize: 11, color: subtle),
@@ -305,36 +326,39 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
           children: [
             const InspectorEmbeddedSectionLabel('TRAINER POKÉMON'),
             const SizedBox(height: 8),
-            _TrainerInlineField(
-              label: 'Species ID',
-              fieldKey: const Key('trainer-library-pokemon-species-field'),
-              controller: widget.speciesController,
-              placeholder: 'pikachu',
-            ),
-            const SizedBox(height: 8),
             _TrainerCatalogAssistField<PokemonDatabaseIndexEntry>(
               keyPrefix: 'trainer-library-pokemon-species',
-              title: 'Species assist',
+              title: 'Search the local Pokédex',
               description: speciesCatalogReady
-                  ? 'Recherche locale par id, nom ou dex.'
+                  ? 'Search by species name, local id or Pokédex number.'
                   : widget.references.speciesMessage,
               entries: widget.references.speciesEntries,
               lookupService: _speciesLookupService,
               enabled: speciesCatalogReady,
-              searchPlaceholder: 'Chercher une espèce locale',
-              subtitleBuilder: (entry) =>
-                  '#${entry.nationalDex.toString().padLeft(4, '0')} • ${entry.id}',
+              searchPlaceholder: 'Search a project species',
+              subtitleBuilder: (entry) => [
+                '#${entry.nationalDex.toString().padLeft(4, '0')}',
+                entry.types.join('/'),
+                entry.id,
+              ].join(' • '),
               onSelected: (entry) {
                 widget.speciesController.text = entry.id;
               },
+            ),
+            const SizedBox(height: 8),
+            _TrainerInlineField(
+              label: 'Raw species ID (fallback)',
+              fieldKey: const Key('trainer-library-pokemon-species-field'),
+              controller: widget.speciesController,
+              placeholder: 'pikachu',
             ),
             const SizedBox(height: 6),
             Text(
               resolvedSpecies == null
                   ? speciesCatalogReady
-                      ? 'Espèce brute non résolue dans le Pokédex local.'
+                      ? 'Raw species ID not resolved in the local Pokédex.'
                       : 'La validation d’espèce reste limitée tant que l’index local est indisponible.'
-                  : 'Espèce retenue : ${resolvedSpecies.primaryName} • ${resolvedSpecies.id}',
+                  : 'Selected species: ${resolvedSpecies.primaryName} • #${resolvedSpecies.nationalDex.toString().padLeft(4, '0')} • ${resolvedSpecies.id}',
               style: TextStyle(
                 color: resolvedSpecies == null
                     ? EditorChrome.inspectorJoyCoral
@@ -427,24 +451,17 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
             const SizedBox(height: 12),
             const InspectorEmbeddedSectionLabel('ITEM / FORM'),
             const SizedBox(height: 8),
-            _TrainerInlineField(
-              label: 'Held item ID',
-              fieldKey: const Key('trainer-library-pokemon-item-field'),
-              controller: widget.itemController,
-              placeholder: 'oran_berry',
-            ),
-            const SizedBox(height: 8),
             _TrainerCatalogAssistField<PokemonItemCatalogEntryView>(
               keyPrefix: 'trainer-library-pokemon-item',
-              title: 'Item assist',
+              title: 'Search the local item catalog',
               description: widget.references.itemsCatalogView.isAvailable
-                  ? 'Recherche locale par id ou nom.'
+                  ? 'Search by item name or local id.'
                   : widget.references.itemsCatalogView.message ??
                       widget.references.itemsCatalogView.description,
               entries: widget.references.itemsCatalogView.entries,
               lookupService: _itemsLookupService,
               enabled: widget.references.itemsCatalogView.isAvailable,
-              searchPlaceholder: 'Chercher un objet local',
+              searchPlaceholder: 'Search a project item',
               subtitleBuilder: (entry) => entry.id,
               onSelected: (entry) {
                 widget.itemController.text = entry.id;
@@ -452,7 +469,14 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
             ),
             const SizedBox(height: 8),
             _TrainerInlineField(
-              label: 'Form ID',
+              label: 'Raw held item ID (fallback)',
+              fieldKey: const Key('trainer-library-pokemon-item-field'),
+              controller: widget.itemController,
+              placeholder: 'oran_berry',
+            ),
+            const SizedBox(height: 8),
+            _TrainerInlineField(
+              label: 'Raw form ID (fallback)',
               fieldKey: const Key('trainer-library-pokemon-form-field'),
               controller: widget.formController,
               placeholder: 'base / alternate form id',
@@ -591,41 +615,42 @@ class _TrainerMoveSlotEditor extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _TrainerInlineField(
-          label: 'Move ${slotIndex + 1}',
-          fieldKey: Key('trainer-library-pokemon-move-$slotIndex-field'),
-          controller: controller,
-          placeholder: 'move id',
-        ),
-        const SizedBox(height: 6),
         _TrainerCatalogAssistField<PokemonMoveCatalogEntryView>(
           keyPrefix: 'trainer-library-pokemon-move-$slotIndex',
-          title: 'Move ${slotIndex + 1} assist',
+          title: 'Search move slot ${slotIndex + 1}',
           description: catalogView.isAvailable
-              ? 'Recherche locale par id ou nom.'
+              ? 'Search by move name or local id.'
               : catalogView.message ?? catalogView.description,
           entries: catalogView.entries,
           lookupService: _movesLookupService,
           enabled: catalogView.isAvailable,
-          searchPlaceholder: 'Chercher un move local',
+          searchPlaceholder: 'Search a move',
           subtitleBuilder: (entry) => [
             if (entry.type != null) entry.type!,
             if (entry.category != null) entry.category!,
+            if (entry.power != null) 'Power ${entry.power}',
             if (entry.pp != null) 'PP ${entry.pp}',
           ].join(' • '),
           onSelected: (entry) {
             controller.text = entry.id;
           },
         ),
+        const SizedBox(height: 6),
+        _TrainerInlineField(
+          label: 'Raw move ID ${slotIndex + 1} (fallback)',
+          fieldKey: Key('trainer-library-pokemon-move-$slotIndex-field'),
+          controller: controller,
+          placeholder: 'move id',
+        ),
         const SizedBox(height: 4),
         Text(
           moveId.isEmpty
-              ? 'Slot vide.'
+              ? 'Slot empty.'
               : resolvedMove == null
                   ? catalogView.isAvailable
-                      ? 'Move brut non résolu dans le catalogue local.'
-                      : 'Catalogue moves indisponible : la valeur brute reste conservée.'
-                  : 'Move retenu : ${resolvedMove.name} • ${resolvedMove.id}',
+                      ? 'Raw move ID not resolved in the local move catalog.'
+                      : 'Move catalog unavailable: the raw value is kept as-is.'
+                  : 'Selected move: ${resolvedMove.name} • ${resolvedMove.id}',
           style: TextStyle(
             color: moveId.isNotEmpty && resolvedMove == null
                 ? EditorChrome.inspectorJoyCoral
@@ -728,7 +753,7 @@ class _TrainerCatalogAssistFieldState<T>
           enabled: canSearch,
           placeholder: widget.enabled
               ? widget.searchPlaceholder
-              : 'Assistance locale indisponible',
+              : 'Local search unavailable',
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
         const SizedBox(height: 4),
@@ -837,6 +862,38 @@ class _TrainerCatalogAssistFieldState<T>
             ),
         ],
       ],
+    );
+  }
+}
+
+class _TrainerSummaryChip extends StatelessWidget {
+  const _TrainerSummaryChip({
+    required this.label,
+    required this.accent,
+  });
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.22)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: accent,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }

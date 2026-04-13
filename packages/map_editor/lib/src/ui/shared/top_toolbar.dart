@@ -205,6 +205,14 @@ class TopToolbar extends ConsumerWidget {
                 : null,
           ),
           ToolbarCapsuleButton(
+            icon: CupertinoIcons.person_3_fill,
+            tooltip: 'Switch to Trainer Studio',
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.trainer,
+            onPressed: toolbar.project != null
+                ? notifier.selectTrainerWorkspace
+                : null,
+          ),
+          ToolbarCapsuleButton(
             icon: CupertinoIcons.book,
             tooltip: 'Switch to Pokédex species list',
             selected: toolbar.workspaceMode == EditorWorkspaceMode.pokedex,
@@ -429,6 +437,7 @@ class TopToolbar extends ConsumerWidget {
         workspaceLabel: switch (toolbar.workspaceMode) {
           EditorWorkspaceMode.map => 'World Editor',
           EditorWorkspaceMode.tileset => 'Tileset Studio',
+          EditorWorkspaceMode.trainer => 'Trainer Studio',
           EditorWorkspaceMode.pokedex => 'Pokédex',
           EditorWorkspaceMode.globalStory => 'Global Story',
           EditorWorkspaceMode.step => 'Step Studio',
