@@ -155,12 +155,16 @@ void main() {
         unlockedFieldAbilities: [FieldAbility.surf],
         storyFlags: ['badge_cascade', 'rescued_bill'],
         completedStepIds: ['step_intro', 'step_2_1'],
+        seenSpeciesIds: ['lapras', 'pikachu'],
+        caughtSpeciesIds: ['lapras'],
       );
       final json = progression.toJson();
       final restored = PlayerProgression.fromJson(json);
       expect(restored.unlockedFieldAbilities, [FieldAbility.surf]);
       expect(restored.storyFlags, ['badge_cascade', 'rescued_bill']);
       expect(restored.completedStepIds, ['step_intro', 'step_2_1']);
+      expect(restored.seenSpeciesIds, ['lapras', 'pikachu']);
+      expect(restored.caughtSpeciesIds, ['lapras']);
     });
 
     test('defaults are empty', () {
@@ -168,6 +172,23 @@ void main() {
       expect(progression.unlockedFieldAbilities, isEmpty);
       expect(progression.storyFlags, isEmpty);
       expect(progression.completedStepIds, isEmpty);
+      expect(progression.seenSpeciesIds, isEmpty);
+      expect(progression.caughtSpeciesIds, isEmpty);
+    });
+
+    test('normalized keeps caught as subset of seen', () {
+      const progression = PlayerProgression(
+        seenSpeciesIds: ['pikachu'],
+        caughtSpeciesIds: ['bulbasaur'],
+      );
+
+      final normalized = progression.normalized();
+
+      expect(normalized.caughtSpeciesIds, ['bulbasaur']);
+      expect(
+        normalized.seenSpeciesIds,
+        ['bulbasaur', 'pikachu'],
+      );
     });
   });
 

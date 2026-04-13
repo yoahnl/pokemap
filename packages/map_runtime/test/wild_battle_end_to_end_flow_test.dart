@@ -83,6 +83,13 @@ void main() {
         gameState: _playerState(),
         request: request,
       );
+      final stateWithSeen = markSpeciesSeenInGameState(
+          _playerState(), setup.enemyPokemon.speciesId);
+      expect(stateWithSeen.progression.seenSpeciesIds, contains('sparkitten'));
+      expect(
+        stateWithSeen.progression.caughtSpeciesIds,
+        isNot(contains('sparkitten')),
+      );
 
       final session = createBattleSession(setup);
       final afterTurn1 = session.applyChoice(const PlayerBattleChoiceFight(0));
@@ -93,7 +100,7 @@ void main() {
       expect(afterTurn2.state.outcome!.isVictory, isTrue);
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
-        gameState: _playerState(),
+        gameState: stateWithSeen,
         context: const RuntimeActiveBattleContext(
           request: WildBattleStartRequest(
             requestId: 'wild-request',
@@ -120,6 +127,11 @@ void main() {
       );
 
       expect(updatedState.party.members.first.currentHp, equals(15));
+      expect(updatedState.progression.seenSpeciesIds, contains('sparkitten'));
+      expect(
+        updatedState.progression.caughtSpeciesIds,
+        isNot(contains('sparkitten')),
+      );
       expect(updatedState.storyFlags.activeFlags, isEmpty);
     });
 
@@ -158,6 +170,8 @@ void main() {
         gameState: _playerState(),
         request: request,
       );
+      final stateWithSeen = markSpeciesSeenInGameState(
+          _playerState(), setup.enemyPokemon.speciesId);
 
       final outcome = createBattleSession(setup)
           .applyChoice(const PlayerBattleChoiceRun())
@@ -166,7 +180,7 @@ void main() {
       expect(outcome.isRunaway, isTrue);
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
-        gameState: _playerState(),
+        gameState: stateWithSeen,
         context: RuntimeActiveBattleContext(
           request: request,
           playerPartyIndex: 0,
@@ -175,6 +189,11 @@ void main() {
       );
 
       expect(updatedState.party.members.first.currentHp, equals(20));
+      expect(updatedState.progression.seenSpeciesIds, contains('sparkitten'));
+      expect(
+        updatedState.progression.caughtSpeciesIds,
+        isNot(contains('sparkitten')),
+      );
       expect(updatedState.storyFlags.activeFlags, isEmpty);
     });
   });

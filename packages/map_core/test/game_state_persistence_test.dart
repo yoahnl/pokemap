@@ -52,6 +52,8 @@ void main() {
       expect(state.storyFlags.activeFlags,
           containsAll(['met_professor', 'starter_received']));
       expect(state.progression.completedStepIds, ['step_a']);
+      expect(state.progression.caughtSpeciesIds, ['lapras']);
+      expect(state.progression.seenSpeciesIds, ['lapras']);
       expect(state.metadata['legacy'], equals('ok'));
     });
   });
@@ -97,6 +99,41 @@ void main() {
       );
       expect(save.progression.completedStepIds, ['step_done']);
     });
+
+    test('syncs party species into caught and seen for persistence', () {
+      const state = GameState(
+        saveId: 'save_seen_caught',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'bulbasaur',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+            ),
+            PlayerPokemon(
+              speciesId: 'charmander',
+              natureId: 'timid',
+              abilityId: 'blaze',
+            ),
+          ],
+        ),
+        progression: PlayerProgression(
+          seenSpeciesIds: ['pikachu'],
+          caughtSpeciesIds: ['pikachu'],
+        ),
+      );
+
+      final save = saveDataFromGameState(state);
+
+      expect(
+        save.progression.caughtSpeciesIds,
+        containsAll(<String>['bulbasaur', 'charmander', 'pikachu']),
+      );
+      expect(
+        save.progression.seenSpeciesIds,
+        containsAll(<String>['bulbasaur', 'charmander', 'pikachu']),
+      );
+    });
   });
 
   group('normalizeLoadedGameState', () {
@@ -127,6 +164,49 @@ void main() {
       final normalized = normalizeLoadedGameState(state);
 
       expect(normalized.storyFlags.activeFlags, equals({'runtime_flag'}));
+    });
+
+    test('hydrates caught and seen from party for legacy states', () {
+      const state = GameState(
+        saveId: 'save_legacy_seen',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'mew',
+              natureId: 'calm',
+              abilityId: 'synchronize',
+            ),
+          ],
+        ),
+      );
+
+      final normalized = normalizeLoadedGameState(state);
+
+      expect(normalized.progression.caughtSpeciesIds, equals(['mew']));
+      expect(normalized.progression.seenSpeciesIds, equals(['mew']));
+    });
+
+    test('markSpeciesSeenInGameState adds seen without inventing caught', () {
+      const state = GameState(
+        saveId: 'save_seen_only',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'bulbasaur',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+            ),
+          ],
+        ),
+      );
+
+      final updated = markSpeciesSeenInGameState(state, 'zubat');
+
+      expect(updated.progression.caughtSpeciesIds, equals(['bulbasaur']));
+      expect(
+        updated.progression.seenSpeciesIds,
+        equals(['bulbasaur', 'zubat']),
+      );
     });
   });
 }

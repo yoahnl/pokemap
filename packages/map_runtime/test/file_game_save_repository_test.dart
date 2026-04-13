@@ -64,6 +64,8 @@ void main() {
         progression: PlayerProgression(
           unlockedFieldAbilities: [FieldAbility.surf],
           storyFlags: ['intro_done'],
+          seenSpeciesIds: ['pidgey'],
+          caughtSpeciesIds: ['pidgey'],
         ),
         scriptVariables: ScriptVariables(values: {
           'rival_battles_won': ScriptVariableValue.int(3),
@@ -92,6 +94,14 @@ void main() {
       expect(loadedState.bag, equals(originalState.bag));
       expect(loadedState.progression.unlockedFieldAbilities,
           equals(originalState.progression.unlockedFieldAbilities));
+      expect(
+        loadedState.progression.seenSpeciesIds,
+        containsAll(<String>['pidgey', 'squirtle']),
+      );
+      expect(
+        loadedState.progression.caughtSpeciesIds,
+        containsAll(<String>['pidgey', 'squirtle']),
+      );
       expect(loadedState.storyFlags.activeFlags,
           equals(originalState.storyFlags.activeFlags));
       expect(
@@ -307,6 +317,8 @@ void main() {
       expect(loadedState.party.members.single.natureId, 'hardy');
       expect(loadedState.party.members.single.abilityId, 'unknown');
       expect(loadedState.party.members.single.currentHp, 1);
+      expect(loadedState.progression.caughtSpeciesIds, contains('lapras'));
+      expect(loadedState.progression.seenSpeciesIds, contains('lapras'));
       expect(
         loadedState.scriptVariables.values['rival_battles_won'],
         const ScriptVariableValue.int(3),

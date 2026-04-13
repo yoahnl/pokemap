@@ -196,18 +196,32 @@ class PlayerProgression with _$PlayerProgression {
     @Default([]) List<String> storyFlags,
     @Default([]) List<String> completedStepIds,
     @Default([]) List<String> completedCutsceneIds,
+    @Default([]) List<String> seenSpeciesIds,
+    @Default([]) List<String> caughtSpeciesIds,
   }) = _PlayerProgression;
 
   factory PlayerProgression.fromJson(Map<String, dynamic> json) =>
       _$PlayerProgressionFromJson(json);
 
-  PlayerProgression normalized() => copyWith(
-        storyFlags: _normalizeUniqueStringsSorted(storyFlags),
-        completedStepIds:
-            _normalizeUniqueStringsPreserveOrder(completedStepIds),
-        completedCutsceneIds:
-            _normalizeUniqueStringsPreserveOrder(completedCutsceneIds),
-      );
+  PlayerProgression normalized() {
+    final normalizedCaughtSpeciesIds =
+        _normalizeUniqueStringsSorted(caughtSpeciesIds);
+    final normalizedSeenSpeciesIds = _normalizeUniqueStringsSorted(
+      <String>[
+        ...seenSpeciesIds,
+        ...normalizedCaughtSpeciesIds,
+      ],
+    );
+
+    return copyWith(
+      storyFlags: _normalizeUniqueStringsSorted(storyFlags),
+      completedStepIds: _normalizeUniqueStringsPreserveOrder(completedStepIds),
+      completedCutsceneIds:
+          _normalizeUniqueStringsPreserveOrder(completedCutsceneIds),
+      seenSpeciesIds: normalizedSeenSpeciesIds,
+      caughtSpeciesIds: normalizedCaughtSpeciesIds,
+    );
+  }
 }
 
 @freezed

@@ -868,15 +868,10 @@ mixin _$PlayerProgression {
   List<FieldAbility> get unlockedFieldAbilities =>
       throw _privateConstructorUsedError;
   List<String> get storyFlags => throw _privateConstructorUsedError;
-
-  /// Steps du document `authoring.stepStudioDocument` marquées comme
-  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
   List<String> get completedStepIds => throw _privateConstructorUsedError;
-
-  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
-  /// au moins une fois dans cette partie — utilisé pour prédicats
-  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
   List<String> get completedCutsceneIds => throw _privateConstructorUsedError;
+  List<String> get seenSpeciesIds => throw _privateConstructorUsedError;
+  List<String> get caughtSpeciesIds => throw _privateConstructorUsedError;
 
   /// Serializes this PlayerProgression to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -898,7 +893,9 @@ abstract class $PlayerProgressionCopyWith<$Res> {
       {List<FieldAbility> unlockedFieldAbilities,
       List<String> storyFlags,
       List<String> completedStepIds,
-      List<String> completedCutsceneIds});
+      List<String> completedCutsceneIds,
+      List<String> seenSpeciesIds,
+      List<String> caughtSpeciesIds});
 }
 
 /// @nodoc
@@ -920,6 +917,8 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
     Object? storyFlags = null,
     Object? completedStepIds = null,
     Object? completedCutsceneIds = null,
+    Object? seenSpeciesIds = null,
+    Object? caughtSpeciesIds = null,
   }) {
     return _then(_value.copyWith(
       unlockedFieldAbilities: null == unlockedFieldAbilities
@@ -938,6 +937,14 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
           ? _value.completedCutsceneIds
           : completedCutsceneIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      seenSpeciesIds: null == seenSpeciesIds
+          ? _value.seenSpeciesIds
+          : seenSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      caughtSpeciesIds: null == caughtSpeciesIds
+          ? _value.caughtSpeciesIds
+          : caughtSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 }
@@ -954,7 +961,9 @@ abstract class _$$PlayerProgressionImplCopyWith<$Res>
       {List<FieldAbility> unlockedFieldAbilities,
       List<String> storyFlags,
       List<String> completedStepIds,
-      List<String> completedCutsceneIds});
+      List<String> completedCutsceneIds,
+      List<String> seenSpeciesIds,
+      List<String> caughtSpeciesIds});
 }
 
 /// @nodoc
@@ -974,6 +983,8 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
     Object? storyFlags = null,
     Object? completedStepIds = null,
     Object? completedCutsceneIds = null,
+    Object? seenSpeciesIds = null,
+    Object? caughtSpeciesIds = null,
   }) {
     return _then(_$PlayerProgressionImpl(
       unlockedFieldAbilities: null == unlockedFieldAbilities
@@ -992,6 +1003,14 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
           ? _value._completedCutsceneIds
           : completedCutsceneIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      seenSpeciesIds: null == seenSpeciesIds
+          ? _value._seenSpeciesIds
+          : seenSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      caughtSpeciesIds: null == caughtSpeciesIds
+          ? _value._caughtSpeciesIds
+          : caughtSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -1004,11 +1023,15 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
       {final List<FieldAbility> unlockedFieldAbilities = const [],
       final List<String> storyFlags = const [],
       final List<String> completedStepIds = const [],
-      final List<String> completedCutsceneIds = const []})
+      final List<String> completedCutsceneIds = const [],
+      final List<String> seenSpeciesIds = const [],
+      final List<String> caughtSpeciesIds = const []})
       : _unlockedFieldAbilities = unlockedFieldAbilities,
         _storyFlags = storyFlags,
         _completedStepIds = completedStepIds,
         _completedCutsceneIds = completedCutsceneIds,
+        _seenSpeciesIds = seenSpeciesIds,
+        _caughtSpeciesIds = caughtSpeciesIds,
         super._();
 
   factory _$PlayerProgressionImpl.fromJson(Map<String, dynamic> json) =>
@@ -1033,12 +1056,7 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
     return EqualUnmodifiableListView(_storyFlags);
   }
 
-  /// Steps du document `authoring.stepStudioDocument` marquées comme
-  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
   final List<String> _completedStepIds;
-
-  /// Steps du document `authoring.stepStudioDocument` marquées comme
-  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
   @override
   @JsonKey()
   List<String> get completedStepIds {
@@ -1048,14 +1066,7 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
     return EqualUnmodifiableListView(_completedStepIds);
   }
 
-  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
-  /// au moins une fois dans cette partie — utilisé pour prédicats
-  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
   final List<String> _completedCutsceneIds;
-
-  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
-  /// au moins une fois dans cette partie — utilisé pour prédicats
-  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
   @override
   @JsonKey()
   List<String> get completedCutsceneIds {
@@ -1065,9 +1076,28 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
     return EqualUnmodifiableListView(_completedCutsceneIds);
   }
 
+  final List<String> _seenSpeciesIds;
+  @override
+  @JsonKey()
+  List<String> get seenSpeciesIds {
+    if (_seenSpeciesIds is EqualUnmodifiableListView) return _seenSpeciesIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_seenSpeciesIds);
+  }
+
+  final List<String> _caughtSpeciesIds;
+  @override
+  @JsonKey()
+  List<String> get caughtSpeciesIds {
+    if (_caughtSpeciesIds is EqualUnmodifiableListView)
+      return _caughtSpeciesIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_caughtSpeciesIds);
+  }
+
   @override
   String toString() {
-    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, completedStepIds: $completedStepIds, completedCutsceneIds: $completedCutsceneIds)';
+    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, completedStepIds: $completedStepIds, completedCutsceneIds: $completedCutsceneIds, seenSpeciesIds: $seenSpeciesIds, caughtSpeciesIds: $caughtSpeciesIds)';
   }
 
   @override
@@ -1082,7 +1112,11 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
             const DeepCollectionEquality()
                 .equals(other._completedStepIds, _completedStepIds) &&
             const DeepCollectionEquality()
-                .equals(other._completedCutsceneIds, _completedCutsceneIds));
+                .equals(other._completedCutsceneIds, _completedCutsceneIds) &&
+            const DeepCollectionEquality()
+                .equals(other._seenSpeciesIds, _seenSpeciesIds) &&
+            const DeepCollectionEquality()
+                .equals(other._caughtSpeciesIds, _caughtSpeciesIds));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1092,7 +1126,9 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
       const DeepCollectionEquality().hash(_unlockedFieldAbilities),
       const DeepCollectionEquality().hash(_storyFlags),
       const DeepCollectionEquality().hash(_completedStepIds),
-      const DeepCollectionEquality().hash(_completedCutsceneIds));
+      const DeepCollectionEquality().hash(_completedCutsceneIds),
+      const DeepCollectionEquality().hash(_seenSpeciesIds),
+      const DeepCollectionEquality().hash(_caughtSpeciesIds));
 
   /// Create a copy of PlayerProgression
   /// with the given fields replaced by the non-null parameter values.
@@ -1116,7 +1152,9 @@ abstract class _PlayerProgression extends PlayerProgression {
       {final List<FieldAbility> unlockedFieldAbilities,
       final List<String> storyFlags,
       final List<String> completedStepIds,
-      final List<String> completedCutsceneIds}) = _$PlayerProgressionImpl;
+      final List<String> completedCutsceneIds,
+      final List<String> seenSpeciesIds,
+      final List<String> caughtSpeciesIds}) = _$PlayerProgressionImpl;
   const _PlayerProgression._() : super._();
 
   factory _PlayerProgression.fromJson(Map<String, dynamic> json) =
@@ -1126,17 +1164,14 @@ abstract class _PlayerProgression extends PlayerProgression {
   List<FieldAbility> get unlockedFieldAbilities;
   @override
   List<String> get storyFlags;
-
-  /// Steps du document `authoring.stepStudioDocument` marquées comme
-  /// complétées (ordre stable = ordre d’insertion ; dédoublonnage à l’écriture).
   @override
   List<String> get completedStepIds;
-
-  /// Scénarios **locaux** (cutscenes) dont le graphe a atteint un nœud `end`
-  /// au moins une fois dans cette partie — utilisé pour prédicats
-  /// `cutsceneCompleted` sur les PNJ (ids = [ScenarioAsset.id]).
   @override
   List<String> get completedCutsceneIds;
+  @override
+  List<String> get seenSpeciesIds;
+  @override
+  List<String> get caughtSpeciesIds;
 
   /// Create a copy of PlayerProgression
   /// with the given fields replaced by the non-null parameter values.

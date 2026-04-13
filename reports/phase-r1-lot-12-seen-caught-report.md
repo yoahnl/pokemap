@@ -1,3 +1,3860 @@
+# Phase R1 — Lot 12 — Seen/Caught persistants minimaux
+
+## 1. Résumé exécutif honnête
+
+Le lot 12 a été implémenté de manière minimale, réelle et bornée.
+
+Le repo possède maintenant un état persistant `seen/caught` porté par `PlayerProgression`, sérialisé dans le save, relu proprement depuis les saves existantes, et normalisé de façon idempotente.
+
+Le contrat livré est le suivant :
+- les espèces déjà possédées par le joueur via sa party sont synchronisées dans `caughtSpeciesIds` et donc aussi dans `seenSpeciesIds` ;
+- une rencontre sauvage réelle marque l’espèce ennemie comme `seen` au moment où le battle handoff réel a effectivement résolu cette espèce et s’apprête à ouvrir l’overlay de combat ;
+- aucune logique de capture n’est ajoutée ;
+- une simple rencontre sauvage, quel que soit son outcome, ne crée jamais `caught`.
+
+Le scope est resté strictement sur `map_core` et `map_runtime`. Aucun chantier lot 13+ n’a été ouvert.
+
+## 2. État initial audité réel
+
+Audit du code réel avant modification :
+- `GameState` portait déjà un `PlayerProgression` dans `packages/map_core/lib/src/models/game_state.dart`.
+- `SaveData` persistait déjà `progression` dans `packages/map_core/lib/src/models/save_data.dart`.
+- `PlayerProgression` ne portait encore aucun état Pokédex runtime ; seuls `unlockedFieldAbilities`, `storyFlags`, `completedStepIds` et `completedCutsceneIds` existaient.
+- Les bridges canoniques `GameState <-> SaveData` étaient centralisés dans `packages/map_core/lib/src/operations/game_state_persistence.dart` via :
+  - `gameStateFromSaveData(...)`
+  - `saveDataFromGameState(...)`
+  - `normalizeLoadedGameState(...)`
+- `FileGameSaveRepository` charge directement `GameState.fromJson(...)` puis appelle `normalizeLoadedGameState(...)`, ce qui impose de gérer la compatibilité legacy à la fois au niveau JSON et au niveau normalisation.
+- `PlayableMapGame` possédait déjà la boucle sauvage réelle issue des lots 9/10/11. Le point d’écriture runtime le plus honnête pour `seen` était `_openBattleOverlay(...)`, c’est-à-dire après résolution réelle du `BattleSetup` et juste avant l’entrée effective en phase de combat.
+
+Constat important : le vrai plus petit lot 12 n’était pas de créer un nouveau service Pokédex, mais d’étendre `PlayerProgression` puis de normaliser cet état à travers les bridges save/runtime déjà existants.
+
+## 3. Problèmes confirmés / non confirmés
+
+### Problèmes confirmés
+
+- Il n’existait aucun état persistant `seen/caught` dans les modèles runtime/save.
+- Les saves legacy n’avaient donc aucun champ Pokédex runtime à relire ni à normaliser.
+- Une espèce déjà présente dans la party du joueur n’était pas reflétée dans un état `caught/seen` persistant.
+- La boucle sauvage réelle n’écrivait encore aucun `seen` côté runtime, même quand l’espèce ennemie était réellement résolue et engagée dans le battle handoff.
+
+### Problèmes non confirmés
+
+- Aucun besoin de toucher `map_battle` n’a été confirmé.
+- Aucun besoin de toucher le host d’exemple n’a été confirmé.
+- Aucun besoin de créer un nouveau service ou store runtime global n’a été confirmé.
+- Aucun besoin de rouvrir l’editor ni les readers Pokémon n’a été confirmé.
+
+## 4. Cause racine réelle
+
+La cause racine était simple : les modèles core/save avaient déjà un point d’ancrage naturel (`PlayerProgression`) mais aucun champ ni invariant explicites pour `seen/caught`.
+
+Du coup :
+- rien n’était sérialisé ;
+- rien n’était migré pour les saves legacy ;
+- rien n’assurait la cohérence `party -> caught -> seen` ;
+- rien n’écrivait `seen` dans la boucle sauvage réelle.
+
+Le manque n’était pas architectural. Il était local et contractuel.
+
+## 5. Décisions retenues / rejetées
+
+### Décisions retenues
+
+- Porter `seenSpeciesIds` et `caughtSpeciesIds` directement dans `PlayerProgression`.
+- Garder la logique de normalisation dans les bridges existants `GameState <-> SaveData`, pas dans une nouvelle couche.
+- Imposer l’invariant métier `caught => seen` dans `PlayerProgression.normalized()`.
+- Synchroniser les espèces possédées via la `party` du joueur dans `caught`, puis donc dans `seen`, au moment des conversions et de la normalisation.
+- Ajouter un helper runtime minimal `markSpeciesSeenInGameState(...)` dans `game_state_persistence.dart` pour écrire `seen` sans inventer `caught`.
+- Marquer `seen` dans `PlayableMapGame._openBattleOverlay(...)` uniquement après résolution réelle du `BattleSetup` ennemi.
+
+### Décisions rejetées
+
+- Nouveau service Pokédex runtime : rejeté, disproportionné.
+- Nouveau store global runtime : rejeté, stack parallèle.
+- Marquer `caught` lors d’une rencontre sauvage : rejeté, relève du lot 13 capture.
+- Déplacer la logique dans `map_battle` : rejeté, hors besoin réel.
+- Ajouter une UI Pokédex riche : rejeté, hors scope.
+
+## 6. Périmètre inclus / exclu
+
+### Inclus
+
+- persistance de `seen/caught` dans `PlayerProgression`
+- compatibilité des saves legacy
+- normalisation idempotente des saves chargées
+- synchronisation minimale `party -> caught -> seen`
+- marquage runtime minimal de `seen` lors d’une vraie rencontre sauvage engagée
+- tests ciblés core/runtime
+
+### Exclu
+
+- capture
+- seen/caught UI riche
+- rewards / XP / level up
+- bag / objets
+- whiteout-lite
+- heal center
+- refonte runtime
+- refonte combat
+- lot 13+
+
+## 7. Liste exacte des fichiers modifiés / créés / supprimés
+
+### Modifiés
+
+- `packages/map_core/lib/src/models/save_data.dart`
+- `packages/map_core/lib/src/models/save_data.freezed.dart`
+- `packages/map_core/lib/src/models/save_data.g.dart`
+- `packages/map_core/lib/src/operations/game_state_persistence.dart`
+- `packages/map_core/test/game_state_persistence_test.dart`
+- `packages/map_core/test/save_data_test.dart`
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+- `packages/map_runtime/test/file_game_save_repository_test.dart`
+- `packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart`
+
+### Créés
+
+- aucun
+
+### Supprimés
+
+- aucun
+
+## 8. Justification fichier par fichier
+
+### `packages/map_core/lib/src/models/save_data.dart`
+
+Ajout des champs persistants `seenSpeciesIds` et `caughtSpeciesIds` à `PlayerProgression`, avec normalisation dédiée. C’est le point d’atterrissage le plus honnête car `progression` existait déjà et portait déjà l’état persistant runtime du joueur.
+
+### `packages/map_core/lib/src/models/save_data.freezed.dart`
+
+Mise à jour générée nécessaire suite à l’évolution de `PlayerProgression`.
+
+### `packages/map_core/lib/src/models/save_data.g.dart`
+
+Mise à jour générée nécessaire pour sérialiser/désérialiser `seenSpeciesIds` et `caughtSpeciesIds`.
+
+### `packages/map_core/lib/src/operations/game_state_persistence.dart`
+
+Consolidation du vrai contrat lot 12 :
+- normalisation legacy
+- synchronisation `party -> caught -> seen`
+- helper minimal pour marquer `seen` côté runtime sans inventer `caught`
+
+### `packages/map_core/test/game_state_persistence_test.dart`
+
+Preuves ciblées sur :
+- migration legacy
+- sync party -> caught/seen
+- normalisation des saves chargées
+- marquage runtime `seen` sans `caught`
+
+### `packages/map_core/test/save_data_test.dart`
+
+Preuves ciblées sur la sérialisation `PlayerProgression` et l’invariant `caught => seen`.
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+Écriture runtime minimale de `seen` dans la boucle sauvage réelle, au moment produit correct : lorsque le battle handoff réel a effectivement résolu l’espèce ennemie et que l’overlay va s’ouvrir.
+
+### `packages/map_runtime/test/file_game_save_repository_test.dart`
+
+Preuves E2E save/load réelles sur le repository de save runtime, y compris compatibilité legacy.
+
+### `packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart`
+
+Preuve verticale runtime stable : une vraie rencontre sauvage ajoute `seen`, ne crée pas `caught`, puis conserve cet état après application du résultat de combat.
+
+## 9. Commandes réellement exécutées
+
+### Audit
+
+```bash
+git status --short
+git diff --stat
+find . -name AGENTS.md -print
+rg -n "seen|caught|pokedex|PlayerParty|PlayerPokemon|SaveData|GameState|toSaveData|fromSaveData|normalize|load save|storyFlags|party" packages/map_core packages/map_runtime -g'*.dart'
+sed -n '1,260p' packages/map_core/lib/src/models/game_state.dart
+sed -n '1,260p' packages/map_core/lib/src/models/save_data.dart
+rg -n "saveDataFromGameState|gameStateFromSaveData|normalizeLoadedGameState|SaveData\(|fromSaveData|toSaveData" packages/map_core packages/map_runtime -g'*.dart'
+sed -n '1,260p' packages/map_core/test/game_state_persistence_test.dart
+sed -n '1,220p' packages/map_core/lib/src/operations/game_state_persistence.dart
+sed -n '300,420p' packages/map_core/lib/src/models/save_data.dart
+sed -n '1,220p' packages/map_runtime/lib/src/infrastructure/file_game_save_repository.dart
+sed -n '1,180p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+rg -n "class GameStateMutations|setFlag\(|copyWith\(progression|progression\.copyWith" packages/map_runtime packages/map_core -g'*.dart'
+sed -n '1,220p' packages/map_runtime/test/file_game_save_repository_test.dart
+sed -n '220,360p' packages/map_runtime/test/file_game_save_repository_test.dart
+sed -n '1,260p' packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+sed -n '1,220p' packages/map_runtime/test/runtime_battle_outcome_apply_test.dart
+sed -n '1,220p' packages/map_runtime/test/runtime_battle_setup_mapper_test.dart
+sed -n '1,220p' packages/map_core/pubspec.yaml
+sed -n '1,220p' packages/map_runtime/pubspec.yaml
+```
+
+### Génération / format / analyse / tests
+
+```bash
+cd packages/map_core && /opt/homebrew/bin/dart run build_runner build --delete-conflicting-outputs
+/opt/homebrew/bin/dart format \
+  packages/map_core/lib/src/models/save_data.dart \
+  packages/map_core/lib/src/models/save_data.freezed.dart \
+  packages/map_core/lib/src/models/save_data.g.dart \
+  packages/map_core/lib/src/operations/game_state_persistence.dart \
+  packages/map_core/test/game_state_persistence_test.dart \
+  packages/map_core/test/save_data_test.dart \
+  packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart \
+  packages/map_runtime/test/file_game_save_repository_test.dart \
+  packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+cd packages/map_core && /opt/homebrew/bin/dart analyze lib/src/models/save_data.dart lib/src/operations/game_state_persistence.dart test/save_data_test.dart test/game_state_persistence_test.dart
+cd packages/map_runtime && /opt/homebrew/bin/flutter analyze --no-pub lib/src/presentation/flame/playable_map_game.dart test/file_game_save_repository_test.dart test/wild_battle_end_to_end_flow_test.dart
+cd packages/map_core && /opt/homebrew/bin/dart test test/save_data_test.dart test/game_state_persistence_test.dart
+cd packages/map_runtime && /opt/homebrew/bin/flutter test test/file_game_save_repository_test.dart test/wild_battle_end_to_end_flow_test.dart test/runtime_battle_setup_mapper_test.dart test/runtime_battle_outcome_apply_test.dart
+```
+
+### État git final
+
+```bash
+git status --short
+git diff --stat
+git ls-files --others --exclude-standard
+```
+
+## 10. Résultats réels de format / analyze / tests
+
+### Build runner (`packages/map_core`)
+
+Résultat : succès.
+
+Note honnête : la commande a émis des warnings d’environnement déjà présents :
+- version language SDK plus récente que celle du package `analyzer`
+- contrainte `json_annotation` légèrement en retard
+
+Ces warnings n’ont pas bloqué la génération.
+
+### Format
+
+Résultat : succès.
+
+Sortie notable :
+- `Formatted packages/map_core/lib/src/models/save_data.dart`
+- `Formatted packages/map_core/lib/src/operations/game_state_persistence.dart`
+- `Formatted packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart`
+- `Formatted 9 files (3 changed) in 0.09 seconds.`
+
+### Analyze `packages/map_core`
+
+Résultat : succès.
+
+Sortie : `No issues found!`
+
+### Analyze `packages/map_runtime`
+
+Résultat : succès.
+
+Sortie : `Analyzing 3 items... No issues found!`
+
+### Tests `packages/map_core`
+
+Résultat : succès.
+
+Sortie finale : `All tests passed!`
+
+### Tests `packages/map_runtime`
+
+Résultat : succès.
+
+Sortie finale : `All tests passed!`
+
+## 11. Incidents rencontrés
+
+- `build_runner` a émis des warnings d’environnement non bloquants sur `analyzer` et `json_annotation`.
+- Lors du lancement parallèle des validations Flutter, une commande a brièvement attendu le `startup lock` Flutter (`Waiting for another flutter command to release the startup lock...`). Le verrou s’est résolu automatiquement et les commandes ont fini proprement.
+- Un reviewer réutilisé a répondu avec un avis stale hors scope (restes d’un contexte trainer antérieur). Sa conclusion a été explicitement rejetée et n’a pas influencé l’implémentation lot 12.
+
+## 12. État git utile
+
+État final utile observé :
+
+```text
+ M packages/map_core/lib/src/models/save_data.dart
+ M packages/map_core/lib/src/models/save_data.freezed.dart
+ M packages/map_core/lib/src/models/save_data.g.dart
+ M packages/map_core/lib/src/operations/game_state_persistence.dart
+ M packages/map_core/test/game_state_persistence_test.dart
+ M packages/map_core/test/save_data_test.dart
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+ M packages/map_runtime/test/file_game_save_repository_test.dart
+ M packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+```
+
+Aucun fichier non suivi hors report au moment de cette rédaction.
+
+## 13. Checklist finale
+
+- [x] je me suis basé sur le code réel
+- [x] je n’ai créé aucune stack parallèle
+- [x] je n’ai pas ouvert le lot 13+
+- [x] un état seen/caught persistant existe réellement
+- [x] les saves legacy restent lisibles
+- [x] la party du joueur alimente correctement caught et seen
+- [x] une vraie rencontre sauvage ajoute au moins seen
+- [x] rien n’ajoute caught par erreur hors possession réelle
+- [x] les lots 9/10/11 utiles restent verts
+- [x] j’ai exécuté format
+- [x] j’ai exécuté analyze
+- [x] j’ai exécuté les tests utiles
+- [x] je n’ai fait aucune écriture git interdite
+- [x] j’ai créé un report ultra complet
+- [x] le report contient le contenu complet des fichiers touchés
+
+## 14. Conclusion honnête
+
+Le lot 12 est livré dans son plus petit périmètre honnête.
+
+Ce qui est réellement en place :
+- persistance `seen/caught`
+- compatibilité legacy
+- invariant `caught => seen`
+- sync `party -> caught -> seen`
+- write runtime minimal de `seen` sur vraie rencontre sauvage
+- preuves automatiques stables sur core/runtime
+
+Ce qui n’a volontairement pas été fait parce que ce serait le lot 13+ :
+- capture
+- UI Pokédex
+- seen/caught trainer riche
+- rewards / XP / level up
+- inventaire / bag
+
+## 15. Annexe — contenu complet des fichiers touchés
+
+Le report s’exclut lui-même de cette annexe pour éviter la récursion infinie.
+
+
+### /Users/karim/Project/pokemonProject/packages/map_core/lib/src/models/save_data.dart
+
+```dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+import 'enums.dart';
+import 'geometry.dart';
+
+part 'save_data.freezed.dart';
+part 'save_data.g.dart';
+
+List<String> _normalizeUniqueStringsPreserveOrder(List<String> values) {
+  final normalized = <String>[];
+  final seen = <String>{};
+  for (final value in values) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || !seen.add(trimmed)) {
+      continue;
+    }
+    normalized.add(trimmed);
+  }
+  return List.unmodifiable(normalized);
+}
+
+List<String> _normalizeUniqueStringsSorted(List<String> values) {
+  final normalized = _normalizeUniqueStringsPreserveOrder(values).toList()
+    ..sort();
+  return List.unmodifiable(normalized);
+}
+
+Map<String, String> _normalizeStringMap(Map<String, String> values) {
+  final normalizedEntries = values.entries
+      .map(
+        (entry) => MapEntry(entry.key.trim(), entry.value.trim()),
+      )
+      .where((entry) => entry.key.isNotEmpty)
+      .toList(growable: false)
+    ..sort((a, b) => a.key.compareTo(b.key));
+  return Map<String, String>.fromEntries(normalizedEntries);
+}
+
+const _legacyPlayerPokemonNatureId = 'hardy';
+const _legacyPlayerPokemonAbilityId = 'unknown';
+
+Map<String, dynamic> _migrateLegacyPlayerPokemonJson(
+  Map<String, dynamic> json,
+) {
+  final hasLegacyMarkers = json['id'] is String ||
+      json.containsKey('nickname') ||
+      json.containsKey('isFainted');
+  if (!hasLegacyMarkers) {
+    return json;
+  }
+  final migrated = Map<String, dynamic>.from(json);
+  final natureId = migrated['natureId'];
+  if (natureId == null) {
+    migrated['natureId'] = _legacyPlayerPokemonNatureId;
+  }
+  final abilityId = migrated['abilityId'];
+  if (abilityId == null) {
+    migrated['abilityId'] = _legacyPlayerPokemonAbilityId;
+  }
+  final currentHp = migrated['currentHp'];
+  if (currentHp == null && migrated['isFainted'] is bool) {
+    migrated['currentHp'] = (migrated['isFainted'] as bool) ? 0 : 1;
+  }
+  return migrated;
+}
+
+@freezed
+class PokemonStatSpread with _$PokemonStatSpread {
+  const PokemonStatSpread._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonStatSpread({
+    @Default(0) int hp,
+    @Default(0) int attack,
+    @Default(0) int defense,
+    @Default(0) int specialAttack,
+    @Default(0) int specialDefense,
+    @Default(0) int speed,
+  }) = _PokemonStatSpread;
+
+  factory PokemonStatSpread.fromJson(Map<String, dynamic> json) =>
+      _$PokemonStatSpreadFromJson(json);
+
+  PokemonStatSpread normalized() {
+    if (hp < 0 ||
+        attack < 0 ||
+        defense < 0 ||
+        specialAttack < 0 ||
+        specialDefense < 0 ||
+        speed < 0) {
+      throw StateError('Pokemon stat values must be non-negative');
+    }
+    return this;
+  }
+}
+
+@freezed
+class PlayerPokemon with _$PlayerPokemon {
+  const PlayerPokemon._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PlayerPokemon({
+    required String speciesId,
+    required String natureId,
+    required String abilityId,
+    @Default(1) int level,
+    @Default(PokemonStatSpread()) PokemonStatSpread ivs,
+    @Default(PokemonStatSpread()) PokemonStatSpread evs,
+    @Default([]) List<String> knownMoveIds,
+    @Default(1) int currentHp,
+    @Default('') String statusId,
+    @Default(false) bool isShiny,
+    @Default('') String heldItemId,
+  }) = _PlayerPokemon;
+
+  factory PlayerPokemon.fromJson(Map<String, dynamic> json) =>
+      _$PlayerPokemonFromJson(_migrateLegacyPlayerPokemonJson(json));
+
+  bool get isFainted => currentHp <= 0;
+
+  PlayerPokemon normalized() {
+    final normalizedSpeciesId = speciesId.trim();
+    final normalizedNatureId = natureId.trim();
+    final normalizedAbilityId = abilityId.trim();
+    if (knownMoveIds.any((moveId) => moveId.trim().isEmpty)) {
+      throw StateError(
+          'PlayerPokemon knownMoveIds must not contain empty values');
+    }
+    final normalizedMoveIds =
+        _normalizeUniqueStringsPreserveOrder(knownMoveIds);
+    final normalizedStatusId = statusId.trim();
+    final normalizedHeldItemId = heldItemId.trim();
+
+    if (normalizedSpeciesId.isEmpty) {
+      throw StateError('PlayerPokemon speciesId must not be empty');
+    }
+    if (normalizedNatureId.isEmpty) {
+      throw StateError('PlayerPokemon natureId must not be empty');
+    }
+    if (normalizedAbilityId.isEmpty) {
+      throw StateError('PlayerPokemon abilityId must not be empty');
+    }
+    if (level <= 0 || level > 100) {
+      throw StateError('PlayerPokemon level must be between 1 and 100');
+    }
+    if (currentHp < 0) {
+      throw StateError('PlayerPokemon currentHp must be non-negative');
+    }
+    if (normalizedMoveIds.length > 4) {
+      throw StateError(
+          'PlayerPokemon knownMoveIds must contain at most 4 moves');
+    }
+
+    ivs.normalized();
+    evs.normalized();
+
+    return copyWith(
+      speciesId: normalizedSpeciesId,
+      natureId: normalizedNatureId,
+      abilityId: normalizedAbilityId,
+      ivs: ivs.normalized(),
+      evs: evs.normalized(),
+      knownMoveIds: normalizedMoveIds,
+      statusId: normalizedStatusId,
+      heldItemId: normalizedHeldItemId,
+    );
+  }
+}
+
+@freezed
+class PlayerParty with _$PlayerParty {
+  const PlayerParty._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PlayerParty({
+    @Default([]) List<PlayerPokemon> members,
+  }) = _PlayerParty;
+
+  factory PlayerParty.fromJson(Map<String, dynamic> json) =>
+      _$PlayerPartyFromJson(json);
+
+  PlayerParty normalized() => copyWith(
+        members: members
+            .map((member) => member.normalized())
+            .toList(growable: false),
+      );
+}
+
+@freezed
+class PlayerProgression with _$PlayerProgression {
+  const PlayerProgression._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PlayerProgression({
+    @Default([]) List<FieldAbility> unlockedFieldAbilities,
+    @Default([]) List<String> storyFlags,
+    @Default([]) List<String> completedStepIds,
+    @Default([]) List<String> completedCutsceneIds,
+    @Default([]) List<String> seenSpeciesIds,
+    @Default([]) List<String> caughtSpeciesIds,
+  }) = _PlayerProgression;
+
+  factory PlayerProgression.fromJson(Map<String, dynamic> json) =>
+      _$PlayerProgressionFromJson(json);
+
+  PlayerProgression normalized() {
+    final normalizedCaughtSpeciesIds =
+        _normalizeUniqueStringsSorted(caughtSpeciesIds);
+    final normalizedSeenSpeciesIds = _normalizeUniqueStringsSorted(
+      <String>[
+        ...seenSpeciesIds,
+        ...normalizedCaughtSpeciesIds,
+      ],
+    );
+
+    return copyWith(
+      storyFlags: _normalizeUniqueStringsSorted(storyFlags),
+      completedStepIds: _normalizeUniqueStringsPreserveOrder(completedStepIds),
+      completedCutsceneIds:
+          _normalizeUniqueStringsPreserveOrder(completedCutsceneIds),
+      seenSpeciesIds: normalizedSeenSpeciesIds,
+      caughtSpeciesIds: normalizedCaughtSpeciesIds,
+    );
+  }
+}
+
+@freezed
+class TrainerProfile with _$TrainerProfile {
+  const TrainerProfile._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory TrainerProfile({
+    required String name,
+    @Default([]) List<String> badgeIds,
+    @Default(0) int money,
+    @Default(0) int playtimeSeconds,
+  }) = _TrainerProfile;
+
+  factory TrainerProfile.fromJson(Map<String, dynamic> json) =>
+      _$TrainerProfileFromJson(json);
+
+  TrainerProfile normalized() {
+    final normalizedName = name.trim();
+    if (badgeIds.any((badgeId) => badgeId.trim().isEmpty)) {
+      throw StateError('TrainerProfile badgeIds must not contain empty values');
+    }
+    final normalizedBadgeIds = _normalizeUniqueStringsSorted(badgeIds);
+
+    if (normalizedName.isEmpty) {
+      throw StateError('TrainerProfile name must not be empty');
+    }
+    if (money < 0) {
+      throw StateError('TrainerProfile money must be non-negative');
+    }
+    if (playtimeSeconds < 0) {
+      throw StateError('TrainerProfile playtimeSeconds must be non-negative');
+    }
+
+    return copyWith(
+      name: normalizedName,
+      badgeIds: normalizedBadgeIds,
+    );
+  }
+}
+
+@freezed
+class BagEntry with _$BagEntry {
+  const BagEntry._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory BagEntry({
+    required String itemId,
+    required String categoryId,
+    required int quantity,
+  }) = _BagEntry;
+
+  factory BagEntry.fromJson(Map<String, dynamic> json) =>
+      _$BagEntryFromJson(json);
+
+  BagEntry normalized() {
+    final normalizedItemId = itemId.trim();
+    final normalizedCategoryId = categoryId.trim();
+
+    if (normalizedItemId.isEmpty) {
+      throw StateError('BagEntry itemId must not be empty');
+    }
+    if (normalizedCategoryId.isEmpty) {
+      throw StateError('BagEntry categoryId must not be empty');
+    }
+    if (quantity <= 0) {
+      throw StateError('BagEntry quantity must be positive');
+    }
+
+    return copyWith(
+      itemId: normalizedItemId,
+      categoryId: normalizedCategoryId,
+    );
+  }
+}
+
+List<BagEntry> _normalizeBagEntries(List<BagEntry> entries) {
+  final merged = <String, BagEntry>{};
+  for (final entry in entries.map((entry) => entry.normalized())) {
+    final key = '${entry.categoryId}\u0000${entry.itemId}';
+    final current = merged[key];
+    merged[key] = current == null
+        ? entry
+        : current.copyWith(quantity: current.quantity + entry.quantity);
+  }
+  final normalized = merged.values.toList(growable: false)
+    ..sort((a, b) {
+      final byCategory = a.categoryId.compareTo(b.categoryId);
+      if (byCategory != 0) {
+        return byCategory;
+      }
+      return a.itemId.compareTo(b.itemId);
+    });
+  return List.unmodifiable(normalized);
+}
+
+@freezed
+class Bag with _$Bag {
+  const Bag._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory Bag({
+    @Default([]) List<BagEntry> entries,
+  }) = _Bag;
+
+  factory Bag.fromJson(Map<String, dynamic> json) => _$BagFromJson(json);
+
+  Bag normalized() => copyWith(entries: _normalizeBagEntries(entries));
+}
+
+@freezed
+class SaveData with _$SaveData {
+  const SaveData._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory SaveData({
+    required String saveId,
+    @Default('') String currentMapId,
+    @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
+    @Default(EntityFacing.south) EntityFacing playerFacing,
+    @Default(PlayerParty()) PlayerParty party,
+    @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
+    @Default(Bag()) Bag bag,
+    @Default(PlayerProgression()) PlayerProgression progression,
+    @Default({}) Map<String, String> properties,
+  }) = _SaveData;
+
+  factory SaveData.fromJson(Map<String, dynamic> json) =>
+      _$SaveDataFromJson(json);
+
+  SaveData normalized() {
+    final normalizedSaveId = saveId.trim();
+    final normalizedCurrentMapId = currentMapId.trim();
+
+    if (normalizedSaveId.isEmpty) {
+      throw StateError('SaveData saveId must not be empty');
+    }
+
+    return copyWith(
+      saveId: normalizedSaveId,
+      currentMapId: normalizedCurrentMapId,
+      party: party.normalized(),
+      trainerProfile: trainerProfile.normalized(),
+      bag: bag.normalized(),
+      progression: progression.normalized(),
+      properties: _normalizeStringMap(properties),
+    );
+  }
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_core/lib/src/models/save_data.freezed.dart
+
+```dart
+// coverage:ignore-file
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
+
+part of 'save_data.dart';
+
+// **************************************************************************
+// FreezedGenerator
+// **************************************************************************
+
+T _$identity<T>(T value) => value;
+
+final _privateConstructorUsedError = UnsupportedError(
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+
+PokemonStatSpread _$PokemonStatSpreadFromJson(Map<String, dynamic> json) {
+  return _PokemonStatSpread.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PokemonStatSpread {
+  int get hp => throw _privateConstructorUsedError;
+  int get attack => throw _privateConstructorUsedError;
+  int get defense => throw _privateConstructorUsedError;
+  int get specialAttack => throw _privateConstructorUsedError;
+  int get specialDefense => throw _privateConstructorUsedError;
+  int get speed => throw _privateConstructorUsedError;
+
+  /// Serializes this PokemonStatSpread to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PokemonStatSpread
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PokemonStatSpreadCopyWith<PokemonStatSpread> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PokemonStatSpreadCopyWith<$Res> {
+  factory $PokemonStatSpreadCopyWith(
+          PokemonStatSpread value, $Res Function(PokemonStatSpread) then) =
+      _$PokemonStatSpreadCopyWithImpl<$Res, PokemonStatSpread>;
+  @useResult
+  $Res call(
+      {int hp,
+      int attack,
+      int defense,
+      int specialAttack,
+      int specialDefense,
+      int speed});
+}
+
+/// @nodoc
+class _$PokemonStatSpreadCopyWithImpl<$Res, $Val extends PokemonStatSpread>
+    implements $PokemonStatSpreadCopyWith<$Res> {
+  _$PokemonStatSpreadCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PokemonStatSpread
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? hp = null,
+    Object? attack = null,
+    Object? defense = null,
+    Object? specialAttack = null,
+    Object? specialDefense = null,
+    Object? speed = null,
+  }) {
+    return _then(_value.copyWith(
+      hp: null == hp
+          ? _value.hp
+          : hp // ignore: cast_nullable_to_non_nullable
+              as int,
+      attack: null == attack
+          ? _value.attack
+          : attack // ignore: cast_nullable_to_non_nullable
+              as int,
+      defense: null == defense
+          ? _value.defense
+          : defense // ignore: cast_nullable_to_non_nullable
+              as int,
+      specialAttack: null == specialAttack
+          ? _value.specialAttack
+          : specialAttack // ignore: cast_nullable_to_non_nullable
+              as int,
+      specialDefense: null == specialDefense
+          ? _value.specialDefense
+          : specialDefense // ignore: cast_nullable_to_non_nullable
+              as int,
+      speed: null == speed
+          ? _value.speed
+          : speed // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PokemonStatSpreadImplCopyWith<$Res>
+    implements $PokemonStatSpreadCopyWith<$Res> {
+  factory _$$PokemonStatSpreadImplCopyWith(_$PokemonStatSpreadImpl value,
+          $Res Function(_$PokemonStatSpreadImpl) then) =
+      __$$PokemonStatSpreadImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {int hp,
+      int attack,
+      int defense,
+      int specialAttack,
+      int specialDefense,
+      int speed});
+}
+
+/// @nodoc
+class __$$PokemonStatSpreadImplCopyWithImpl<$Res>
+    extends _$PokemonStatSpreadCopyWithImpl<$Res, _$PokemonStatSpreadImpl>
+    implements _$$PokemonStatSpreadImplCopyWith<$Res> {
+  __$$PokemonStatSpreadImplCopyWithImpl(_$PokemonStatSpreadImpl _value,
+      $Res Function(_$PokemonStatSpreadImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PokemonStatSpread
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? hp = null,
+    Object? attack = null,
+    Object? defense = null,
+    Object? specialAttack = null,
+    Object? specialDefense = null,
+    Object? speed = null,
+  }) {
+    return _then(_$PokemonStatSpreadImpl(
+      hp: null == hp
+          ? _value.hp
+          : hp // ignore: cast_nullable_to_non_nullable
+              as int,
+      attack: null == attack
+          ? _value.attack
+          : attack // ignore: cast_nullable_to_non_nullable
+              as int,
+      defense: null == defense
+          ? _value.defense
+          : defense // ignore: cast_nullable_to_non_nullable
+              as int,
+      specialAttack: null == specialAttack
+          ? _value.specialAttack
+          : specialAttack // ignore: cast_nullable_to_non_nullable
+              as int,
+      specialDefense: null == specialDefense
+          ? _value.specialDefense
+          : specialDefense // ignore: cast_nullable_to_non_nullable
+              as int,
+      speed: null == speed
+          ? _value.speed
+          : speed // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$PokemonStatSpreadImpl extends _PokemonStatSpread {
+  const _$PokemonStatSpreadImpl(
+      {this.hp = 0,
+      this.attack = 0,
+      this.defense = 0,
+      this.specialAttack = 0,
+      this.specialDefense = 0,
+      this.speed = 0})
+      : super._();
+
+  factory _$PokemonStatSpreadImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PokemonStatSpreadImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final int hp;
+  @override
+  @JsonKey()
+  final int attack;
+  @override
+  @JsonKey()
+  final int defense;
+  @override
+  @JsonKey()
+  final int specialAttack;
+  @override
+  @JsonKey()
+  final int specialDefense;
+  @override
+  @JsonKey()
+  final int speed;
+
+  @override
+  String toString() {
+    return 'PokemonStatSpread(hp: $hp, attack: $attack, defense: $defense, specialAttack: $specialAttack, specialDefense: $specialDefense, speed: $speed)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PokemonStatSpreadImpl &&
+            (identical(other.hp, hp) || other.hp == hp) &&
+            (identical(other.attack, attack) || other.attack == attack) &&
+            (identical(other.defense, defense) || other.defense == defense) &&
+            (identical(other.specialAttack, specialAttack) ||
+                other.specialAttack == specialAttack) &&
+            (identical(other.specialDefense, specialDefense) ||
+                other.specialDefense == specialDefense) &&
+            (identical(other.speed, speed) || other.speed == speed));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, hp, attack, defense, specialAttack, specialDefense, speed);
+
+  /// Create a copy of PokemonStatSpread
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PokemonStatSpreadImplCopyWith<_$PokemonStatSpreadImpl> get copyWith =>
+      __$$PokemonStatSpreadImplCopyWithImpl<_$PokemonStatSpreadImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PokemonStatSpreadImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PokemonStatSpread extends PokemonStatSpread {
+  const factory _PokemonStatSpread(
+      {final int hp,
+      final int attack,
+      final int defense,
+      final int specialAttack,
+      final int specialDefense,
+      final int speed}) = _$PokemonStatSpreadImpl;
+  const _PokemonStatSpread._() : super._();
+
+  factory _PokemonStatSpread.fromJson(Map<String, dynamic> json) =
+      _$PokemonStatSpreadImpl.fromJson;
+
+  @override
+  int get hp;
+  @override
+  int get attack;
+  @override
+  int get defense;
+  @override
+  int get specialAttack;
+  @override
+  int get specialDefense;
+  @override
+  int get speed;
+
+  /// Create a copy of PokemonStatSpread
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PokemonStatSpreadImplCopyWith<_$PokemonStatSpreadImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) {
+  return _PlayerPokemon.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PlayerPokemon {
+  String get speciesId => throw _privateConstructorUsedError;
+  String get natureId => throw _privateConstructorUsedError;
+  String get abilityId => throw _privateConstructorUsedError;
+  int get level => throw _privateConstructorUsedError;
+  PokemonStatSpread get ivs => throw _privateConstructorUsedError;
+  PokemonStatSpread get evs => throw _privateConstructorUsedError;
+  List<String> get knownMoveIds => throw _privateConstructorUsedError;
+  int get currentHp => throw _privateConstructorUsedError;
+  String get statusId => throw _privateConstructorUsedError;
+  bool get isShiny => throw _privateConstructorUsedError;
+  String get heldItemId => throw _privateConstructorUsedError;
+
+  /// Serializes this PlayerPokemon to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PlayerPokemonCopyWith<PlayerPokemon> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PlayerPokemonCopyWith<$Res> {
+  factory $PlayerPokemonCopyWith(
+          PlayerPokemon value, $Res Function(PlayerPokemon) then) =
+      _$PlayerPokemonCopyWithImpl<$Res, PlayerPokemon>;
+  @useResult
+  $Res call(
+      {String speciesId,
+      String natureId,
+      String abilityId,
+      int level,
+      PokemonStatSpread ivs,
+      PokemonStatSpread evs,
+      List<String> knownMoveIds,
+      int currentHp,
+      String statusId,
+      bool isShiny,
+      String heldItemId});
+
+  $PokemonStatSpreadCopyWith<$Res> get ivs;
+  $PokemonStatSpreadCopyWith<$Res> get evs;
+}
+
+/// @nodoc
+class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
+    implements $PlayerPokemonCopyWith<$Res> {
+  _$PlayerPokemonCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? speciesId = null,
+    Object? natureId = null,
+    Object? abilityId = null,
+    Object? level = null,
+    Object? ivs = null,
+    Object? evs = null,
+    Object? knownMoveIds = null,
+    Object? currentHp = null,
+    Object? statusId = null,
+    Object? isShiny = null,
+    Object? heldItemId = null,
+  }) {
+    return _then(_value.copyWith(
+      speciesId: null == speciesId
+          ? _value.speciesId
+          : speciesId // ignore: cast_nullable_to_non_nullable
+              as String,
+      natureId: null == natureId
+          ? _value.natureId
+          : natureId // ignore: cast_nullable_to_non_nullable
+              as String,
+      abilityId: null == abilityId
+          ? _value.abilityId
+          : abilityId // ignore: cast_nullable_to_non_nullable
+              as String,
+      level: null == level
+          ? _value.level
+          : level // ignore: cast_nullable_to_non_nullable
+              as int,
+      ivs: null == ivs
+          ? _value.ivs
+          : ivs // ignore: cast_nullable_to_non_nullable
+              as PokemonStatSpread,
+      evs: null == evs
+          ? _value.evs
+          : evs // ignore: cast_nullable_to_non_nullable
+              as PokemonStatSpread,
+      knownMoveIds: null == knownMoveIds
+          ? _value.knownMoveIds
+          : knownMoveIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      currentHp: null == currentHp
+          ? _value.currentHp
+          : currentHp // ignore: cast_nullable_to_non_nullable
+              as int,
+      statusId: null == statusId
+          ? _value.statusId
+          : statusId // ignore: cast_nullable_to_non_nullable
+              as String,
+      isShiny: null == isShiny
+          ? _value.isShiny
+          : isShiny // ignore: cast_nullable_to_non_nullable
+              as bool,
+      heldItemId: null == heldItemId
+          ? _value.heldItemId
+          : heldItemId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PokemonStatSpreadCopyWith<$Res> get ivs {
+    return $PokemonStatSpreadCopyWith<$Res>(_value.ivs, (value) {
+      return _then(_value.copyWith(ivs: value) as $Val);
+    });
+  }
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PokemonStatSpreadCopyWith<$Res> get evs {
+    return $PokemonStatSpreadCopyWith<$Res>(_value.evs, (value) {
+      return _then(_value.copyWith(evs: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$PlayerPokemonImplCopyWith<$Res>
+    implements $PlayerPokemonCopyWith<$Res> {
+  factory _$$PlayerPokemonImplCopyWith(
+          _$PlayerPokemonImpl value, $Res Function(_$PlayerPokemonImpl) then) =
+      __$$PlayerPokemonImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String speciesId,
+      String natureId,
+      String abilityId,
+      int level,
+      PokemonStatSpread ivs,
+      PokemonStatSpread evs,
+      List<String> knownMoveIds,
+      int currentHp,
+      String statusId,
+      bool isShiny,
+      String heldItemId});
+
+  @override
+  $PokemonStatSpreadCopyWith<$Res> get ivs;
+  @override
+  $PokemonStatSpreadCopyWith<$Res> get evs;
+}
+
+/// @nodoc
+class __$$PlayerPokemonImplCopyWithImpl<$Res>
+    extends _$PlayerPokemonCopyWithImpl<$Res, _$PlayerPokemonImpl>
+    implements _$$PlayerPokemonImplCopyWith<$Res> {
+  __$$PlayerPokemonImplCopyWithImpl(
+      _$PlayerPokemonImpl _value, $Res Function(_$PlayerPokemonImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? speciesId = null,
+    Object? natureId = null,
+    Object? abilityId = null,
+    Object? level = null,
+    Object? ivs = null,
+    Object? evs = null,
+    Object? knownMoveIds = null,
+    Object? currentHp = null,
+    Object? statusId = null,
+    Object? isShiny = null,
+    Object? heldItemId = null,
+  }) {
+    return _then(_$PlayerPokemonImpl(
+      speciesId: null == speciesId
+          ? _value.speciesId
+          : speciesId // ignore: cast_nullable_to_non_nullable
+              as String,
+      natureId: null == natureId
+          ? _value.natureId
+          : natureId // ignore: cast_nullable_to_non_nullable
+              as String,
+      abilityId: null == abilityId
+          ? _value.abilityId
+          : abilityId // ignore: cast_nullable_to_non_nullable
+              as String,
+      level: null == level
+          ? _value.level
+          : level // ignore: cast_nullable_to_non_nullable
+              as int,
+      ivs: null == ivs
+          ? _value.ivs
+          : ivs // ignore: cast_nullable_to_non_nullable
+              as PokemonStatSpread,
+      evs: null == evs
+          ? _value.evs
+          : evs // ignore: cast_nullable_to_non_nullable
+              as PokemonStatSpread,
+      knownMoveIds: null == knownMoveIds
+          ? _value._knownMoveIds
+          : knownMoveIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      currentHp: null == currentHp
+          ? _value.currentHp
+          : currentHp // ignore: cast_nullable_to_non_nullable
+              as int,
+      statusId: null == statusId
+          ? _value.statusId
+          : statusId // ignore: cast_nullable_to_non_nullable
+              as String,
+      isShiny: null == isShiny
+          ? _value.isShiny
+          : isShiny // ignore: cast_nullable_to_non_nullable
+              as bool,
+      heldItemId: null == heldItemId
+          ? _value.heldItemId
+          : heldItemId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$PlayerPokemonImpl extends _PlayerPokemon {
+  const _$PlayerPokemonImpl(
+      {required this.speciesId,
+      required this.natureId,
+      required this.abilityId,
+      this.level = 1,
+      this.ivs = const PokemonStatSpread(),
+      this.evs = const PokemonStatSpread(),
+      final List<String> knownMoveIds = const [],
+      this.currentHp = 1,
+      this.statusId = '',
+      this.isShiny = false,
+      this.heldItemId = ''})
+      : _knownMoveIds = knownMoveIds,
+        super._();
+
+  factory _$PlayerPokemonImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PlayerPokemonImplFromJson(json);
+
+  @override
+  final String speciesId;
+  @override
+  final String natureId;
+  @override
+  final String abilityId;
+  @override
+  @JsonKey()
+  final int level;
+  @override
+  @JsonKey()
+  final PokemonStatSpread ivs;
+  @override
+  @JsonKey()
+  final PokemonStatSpread evs;
+  final List<String> _knownMoveIds;
+  @override
+  @JsonKey()
+  List<String> get knownMoveIds {
+    if (_knownMoveIds is EqualUnmodifiableListView) return _knownMoveIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_knownMoveIds);
+  }
+
+  @override
+  @JsonKey()
+  final int currentHp;
+  @override
+  @JsonKey()
+  final String statusId;
+  @override
+  @JsonKey()
+  final bool isShiny;
+  @override
+  @JsonKey()
+  final String heldItemId;
+
+  @override
+  String toString() {
+    return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PlayerPokemonImpl &&
+            (identical(other.speciesId, speciesId) ||
+                other.speciesId == speciesId) &&
+            (identical(other.natureId, natureId) ||
+                other.natureId == natureId) &&
+            (identical(other.abilityId, abilityId) ||
+                other.abilityId == abilityId) &&
+            (identical(other.level, level) || other.level == level) &&
+            (identical(other.ivs, ivs) || other.ivs == ivs) &&
+            (identical(other.evs, evs) || other.evs == evs) &&
+            const DeepCollectionEquality()
+                .equals(other._knownMoveIds, _knownMoveIds) &&
+            (identical(other.currentHp, currentHp) ||
+                other.currentHp == currentHp) &&
+            (identical(other.statusId, statusId) ||
+                other.statusId == statusId) &&
+            (identical(other.isShiny, isShiny) || other.isShiny == isShiny) &&
+            (identical(other.heldItemId, heldItemId) ||
+                other.heldItemId == heldItemId));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      speciesId,
+      natureId,
+      abilityId,
+      level,
+      ivs,
+      evs,
+      const DeepCollectionEquality().hash(_knownMoveIds),
+      currentHp,
+      statusId,
+      isShiny,
+      heldItemId);
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PlayerPokemonImplCopyWith<_$PlayerPokemonImpl> get copyWith =>
+      __$$PlayerPokemonImplCopyWithImpl<_$PlayerPokemonImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PlayerPokemonImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PlayerPokemon extends PlayerPokemon {
+  const factory _PlayerPokemon(
+      {required final String speciesId,
+      required final String natureId,
+      required final String abilityId,
+      final int level,
+      final PokemonStatSpread ivs,
+      final PokemonStatSpread evs,
+      final List<String> knownMoveIds,
+      final int currentHp,
+      final String statusId,
+      final bool isShiny,
+      final String heldItemId}) = _$PlayerPokemonImpl;
+  const _PlayerPokemon._() : super._();
+
+  factory _PlayerPokemon.fromJson(Map<String, dynamic> json) =
+      _$PlayerPokemonImpl.fromJson;
+
+  @override
+  String get speciesId;
+  @override
+  String get natureId;
+  @override
+  String get abilityId;
+  @override
+  int get level;
+  @override
+  PokemonStatSpread get ivs;
+  @override
+  PokemonStatSpread get evs;
+  @override
+  List<String> get knownMoveIds;
+  @override
+  int get currentHp;
+  @override
+  String get statusId;
+  @override
+  bool get isShiny;
+  @override
+  String get heldItemId;
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PlayerPokemonImplCopyWith<_$PlayerPokemonImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+PlayerParty _$PlayerPartyFromJson(Map<String, dynamic> json) {
+  return _PlayerParty.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PlayerParty {
+  List<PlayerPokemon> get members => throw _privateConstructorUsedError;
+
+  /// Serializes this PlayerParty to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PlayerParty
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PlayerPartyCopyWith<PlayerParty> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PlayerPartyCopyWith<$Res> {
+  factory $PlayerPartyCopyWith(
+          PlayerParty value, $Res Function(PlayerParty) then) =
+      _$PlayerPartyCopyWithImpl<$Res, PlayerParty>;
+  @useResult
+  $Res call({List<PlayerPokemon> members});
+}
+
+/// @nodoc
+class _$PlayerPartyCopyWithImpl<$Res, $Val extends PlayerParty>
+    implements $PlayerPartyCopyWith<$Res> {
+  _$PlayerPartyCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PlayerParty
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? members = null,
+  }) {
+    return _then(_value.copyWith(
+      members: null == members
+          ? _value.members
+          : members // ignore: cast_nullable_to_non_nullable
+              as List<PlayerPokemon>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PlayerPartyImplCopyWith<$Res>
+    implements $PlayerPartyCopyWith<$Res> {
+  factory _$$PlayerPartyImplCopyWith(
+          _$PlayerPartyImpl value, $Res Function(_$PlayerPartyImpl) then) =
+      __$$PlayerPartyImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({List<PlayerPokemon> members});
+}
+
+/// @nodoc
+class __$$PlayerPartyImplCopyWithImpl<$Res>
+    extends _$PlayerPartyCopyWithImpl<$Res, _$PlayerPartyImpl>
+    implements _$$PlayerPartyImplCopyWith<$Res> {
+  __$$PlayerPartyImplCopyWithImpl(
+      _$PlayerPartyImpl _value, $Res Function(_$PlayerPartyImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PlayerParty
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? members = null,
+  }) {
+    return _then(_$PlayerPartyImpl(
+      members: null == members
+          ? _value._members
+          : members // ignore: cast_nullable_to_non_nullable
+              as List<PlayerPokemon>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$PlayerPartyImpl extends _PlayerParty {
+  const _$PlayerPartyImpl({final List<PlayerPokemon> members = const []})
+      : _members = members,
+        super._();
+
+  factory _$PlayerPartyImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PlayerPartyImplFromJson(json);
+
+  final List<PlayerPokemon> _members;
+  @override
+  @JsonKey()
+  List<PlayerPokemon> get members {
+    if (_members is EqualUnmodifiableListView) return _members;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_members);
+  }
+
+  @override
+  String toString() {
+    return 'PlayerParty(members: $members)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PlayerPartyImpl &&
+            const DeepCollectionEquality().equals(other._members, _members));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(_members));
+
+  /// Create a copy of PlayerParty
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PlayerPartyImplCopyWith<_$PlayerPartyImpl> get copyWith =>
+      __$$PlayerPartyImplCopyWithImpl<_$PlayerPartyImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PlayerPartyImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PlayerParty extends PlayerParty {
+  const factory _PlayerParty({final List<PlayerPokemon> members}) =
+      _$PlayerPartyImpl;
+  const _PlayerParty._() : super._();
+
+  factory _PlayerParty.fromJson(Map<String, dynamic> json) =
+      _$PlayerPartyImpl.fromJson;
+
+  @override
+  List<PlayerPokemon> get members;
+
+  /// Create a copy of PlayerParty
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PlayerPartyImplCopyWith<_$PlayerPartyImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+PlayerProgression _$PlayerProgressionFromJson(Map<String, dynamic> json) {
+  return _PlayerProgression.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PlayerProgression {
+  List<FieldAbility> get unlockedFieldAbilities =>
+      throw _privateConstructorUsedError;
+  List<String> get storyFlags => throw _privateConstructorUsedError;
+  List<String> get completedStepIds => throw _privateConstructorUsedError;
+  List<String> get completedCutsceneIds => throw _privateConstructorUsedError;
+  List<String> get seenSpeciesIds => throw _privateConstructorUsedError;
+  List<String> get caughtSpeciesIds => throw _privateConstructorUsedError;
+
+  /// Serializes this PlayerProgression to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PlayerProgression
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PlayerProgressionCopyWith<PlayerProgression> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PlayerProgressionCopyWith<$Res> {
+  factory $PlayerProgressionCopyWith(
+          PlayerProgression value, $Res Function(PlayerProgression) then) =
+      _$PlayerProgressionCopyWithImpl<$Res, PlayerProgression>;
+  @useResult
+  $Res call(
+      {List<FieldAbility> unlockedFieldAbilities,
+      List<String> storyFlags,
+      List<String> completedStepIds,
+      List<String> completedCutsceneIds,
+      List<String> seenSpeciesIds,
+      List<String> caughtSpeciesIds});
+}
+
+/// @nodoc
+class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
+    implements $PlayerProgressionCopyWith<$Res> {
+  _$PlayerProgressionCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PlayerProgression
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? unlockedFieldAbilities = null,
+    Object? storyFlags = null,
+    Object? completedStepIds = null,
+    Object? completedCutsceneIds = null,
+    Object? seenSpeciesIds = null,
+    Object? caughtSpeciesIds = null,
+  }) {
+    return _then(_value.copyWith(
+      unlockedFieldAbilities: null == unlockedFieldAbilities
+          ? _value.unlockedFieldAbilities
+          : unlockedFieldAbilities // ignore: cast_nullable_to_non_nullable
+              as List<FieldAbility>,
+      storyFlags: null == storyFlags
+          ? _value.storyFlags
+          : storyFlags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      completedStepIds: null == completedStepIds
+          ? _value.completedStepIds
+          : completedStepIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      completedCutsceneIds: null == completedCutsceneIds
+          ? _value.completedCutsceneIds
+          : completedCutsceneIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      seenSpeciesIds: null == seenSpeciesIds
+          ? _value.seenSpeciesIds
+          : seenSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      caughtSpeciesIds: null == caughtSpeciesIds
+          ? _value.caughtSpeciesIds
+          : caughtSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PlayerProgressionImplCopyWith<$Res>
+    implements $PlayerProgressionCopyWith<$Res> {
+  factory _$$PlayerProgressionImplCopyWith(_$PlayerProgressionImpl value,
+          $Res Function(_$PlayerProgressionImpl) then) =
+      __$$PlayerProgressionImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {List<FieldAbility> unlockedFieldAbilities,
+      List<String> storyFlags,
+      List<String> completedStepIds,
+      List<String> completedCutsceneIds,
+      List<String> seenSpeciesIds,
+      List<String> caughtSpeciesIds});
+}
+
+/// @nodoc
+class __$$PlayerProgressionImplCopyWithImpl<$Res>
+    extends _$PlayerProgressionCopyWithImpl<$Res, _$PlayerProgressionImpl>
+    implements _$$PlayerProgressionImplCopyWith<$Res> {
+  __$$PlayerProgressionImplCopyWithImpl(_$PlayerProgressionImpl _value,
+      $Res Function(_$PlayerProgressionImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PlayerProgression
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? unlockedFieldAbilities = null,
+    Object? storyFlags = null,
+    Object? completedStepIds = null,
+    Object? completedCutsceneIds = null,
+    Object? seenSpeciesIds = null,
+    Object? caughtSpeciesIds = null,
+  }) {
+    return _then(_$PlayerProgressionImpl(
+      unlockedFieldAbilities: null == unlockedFieldAbilities
+          ? _value._unlockedFieldAbilities
+          : unlockedFieldAbilities // ignore: cast_nullable_to_non_nullable
+              as List<FieldAbility>,
+      storyFlags: null == storyFlags
+          ? _value._storyFlags
+          : storyFlags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      completedStepIds: null == completedStepIds
+          ? _value._completedStepIds
+          : completedStepIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      completedCutsceneIds: null == completedCutsceneIds
+          ? _value._completedCutsceneIds
+          : completedCutsceneIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      seenSpeciesIds: null == seenSpeciesIds
+          ? _value._seenSpeciesIds
+          : seenSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      caughtSpeciesIds: null == caughtSpeciesIds
+          ? _value._caughtSpeciesIds
+          : caughtSpeciesIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$PlayerProgressionImpl extends _PlayerProgression {
+  const _$PlayerProgressionImpl(
+      {final List<FieldAbility> unlockedFieldAbilities = const [],
+      final List<String> storyFlags = const [],
+      final List<String> completedStepIds = const [],
+      final List<String> completedCutsceneIds = const [],
+      final List<String> seenSpeciesIds = const [],
+      final List<String> caughtSpeciesIds = const []})
+      : _unlockedFieldAbilities = unlockedFieldAbilities,
+        _storyFlags = storyFlags,
+        _completedStepIds = completedStepIds,
+        _completedCutsceneIds = completedCutsceneIds,
+        _seenSpeciesIds = seenSpeciesIds,
+        _caughtSpeciesIds = caughtSpeciesIds,
+        super._();
+
+  factory _$PlayerProgressionImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PlayerProgressionImplFromJson(json);
+
+  final List<FieldAbility> _unlockedFieldAbilities;
+  @override
+  @JsonKey()
+  List<FieldAbility> get unlockedFieldAbilities {
+    if (_unlockedFieldAbilities is EqualUnmodifiableListView)
+      return _unlockedFieldAbilities;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_unlockedFieldAbilities);
+  }
+
+  final List<String> _storyFlags;
+  @override
+  @JsonKey()
+  List<String> get storyFlags {
+    if (_storyFlags is EqualUnmodifiableListView) return _storyFlags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_storyFlags);
+  }
+
+  final List<String> _completedStepIds;
+  @override
+  @JsonKey()
+  List<String> get completedStepIds {
+    if (_completedStepIds is EqualUnmodifiableListView)
+      return _completedStepIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_completedStepIds);
+  }
+
+  final List<String> _completedCutsceneIds;
+  @override
+  @JsonKey()
+  List<String> get completedCutsceneIds {
+    if (_completedCutsceneIds is EqualUnmodifiableListView)
+      return _completedCutsceneIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_completedCutsceneIds);
+  }
+
+  final List<String> _seenSpeciesIds;
+  @override
+  @JsonKey()
+  List<String> get seenSpeciesIds {
+    if (_seenSpeciesIds is EqualUnmodifiableListView) return _seenSpeciesIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_seenSpeciesIds);
+  }
+
+  final List<String> _caughtSpeciesIds;
+  @override
+  @JsonKey()
+  List<String> get caughtSpeciesIds {
+    if (_caughtSpeciesIds is EqualUnmodifiableListView)
+      return _caughtSpeciesIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_caughtSpeciesIds);
+  }
+
+  @override
+  String toString() {
+    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, completedStepIds: $completedStepIds, completedCutsceneIds: $completedCutsceneIds, seenSpeciesIds: $seenSpeciesIds, caughtSpeciesIds: $caughtSpeciesIds)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PlayerProgressionImpl &&
+            const DeepCollectionEquality().equals(
+                other._unlockedFieldAbilities, _unlockedFieldAbilities) &&
+            const DeepCollectionEquality()
+                .equals(other._storyFlags, _storyFlags) &&
+            const DeepCollectionEquality()
+                .equals(other._completedStepIds, _completedStepIds) &&
+            const DeepCollectionEquality()
+                .equals(other._completedCutsceneIds, _completedCutsceneIds) &&
+            const DeepCollectionEquality()
+                .equals(other._seenSpeciesIds, _seenSpeciesIds) &&
+            const DeepCollectionEquality()
+                .equals(other._caughtSpeciesIds, _caughtSpeciesIds));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(_unlockedFieldAbilities),
+      const DeepCollectionEquality().hash(_storyFlags),
+      const DeepCollectionEquality().hash(_completedStepIds),
+      const DeepCollectionEquality().hash(_completedCutsceneIds),
+      const DeepCollectionEquality().hash(_seenSpeciesIds),
+      const DeepCollectionEquality().hash(_caughtSpeciesIds));
+
+  /// Create a copy of PlayerProgression
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PlayerProgressionImplCopyWith<_$PlayerProgressionImpl> get copyWith =>
+      __$$PlayerProgressionImplCopyWithImpl<_$PlayerProgressionImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PlayerProgressionImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PlayerProgression extends PlayerProgression {
+  const factory _PlayerProgression(
+      {final List<FieldAbility> unlockedFieldAbilities,
+      final List<String> storyFlags,
+      final List<String> completedStepIds,
+      final List<String> completedCutsceneIds,
+      final List<String> seenSpeciesIds,
+      final List<String> caughtSpeciesIds}) = _$PlayerProgressionImpl;
+  const _PlayerProgression._() : super._();
+
+  factory _PlayerProgression.fromJson(Map<String, dynamic> json) =
+      _$PlayerProgressionImpl.fromJson;
+
+  @override
+  List<FieldAbility> get unlockedFieldAbilities;
+  @override
+  List<String> get storyFlags;
+  @override
+  List<String> get completedStepIds;
+  @override
+  List<String> get completedCutsceneIds;
+  @override
+  List<String> get seenSpeciesIds;
+  @override
+  List<String> get caughtSpeciesIds;
+
+  /// Create a copy of PlayerProgression
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PlayerProgressionImplCopyWith<_$PlayerProgressionImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+TrainerProfile _$TrainerProfileFromJson(Map<String, dynamic> json) {
+  return _TrainerProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$TrainerProfile {
+  String get name => throw _privateConstructorUsedError;
+  List<String> get badgeIds => throw _privateConstructorUsedError;
+  int get money => throw _privateConstructorUsedError;
+  int get playtimeSeconds => throw _privateConstructorUsedError;
+
+  /// Serializes this TrainerProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of TrainerProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $TrainerProfileCopyWith<TrainerProfile> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $TrainerProfileCopyWith<$Res> {
+  factory $TrainerProfileCopyWith(
+          TrainerProfile value, $Res Function(TrainerProfile) then) =
+      _$TrainerProfileCopyWithImpl<$Res, TrainerProfile>;
+  @useResult
+  $Res call(
+      {String name, List<String> badgeIds, int money, int playtimeSeconds});
+}
+
+/// @nodoc
+class _$TrainerProfileCopyWithImpl<$Res, $Val extends TrainerProfile>
+    implements $TrainerProfileCopyWith<$Res> {
+  _$TrainerProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of TrainerProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? name = null,
+    Object? badgeIds = null,
+    Object? money = null,
+    Object? playtimeSeconds = null,
+  }) {
+    return _then(_value.copyWith(
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      badgeIds: null == badgeIds
+          ? _value.badgeIds
+          : badgeIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      money: null == money
+          ? _value.money
+          : money // ignore: cast_nullable_to_non_nullable
+              as int,
+      playtimeSeconds: null == playtimeSeconds
+          ? _value.playtimeSeconds
+          : playtimeSeconds // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$TrainerProfileImplCopyWith<$Res>
+    implements $TrainerProfileCopyWith<$Res> {
+  factory _$$TrainerProfileImplCopyWith(_$TrainerProfileImpl value,
+          $Res Function(_$TrainerProfileImpl) then) =
+      __$$TrainerProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String name, List<String> badgeIds, int money, int playtimeSeconds});
+}
+
+/// @nodoc
+class __$$TrainerProfileImplCopyWithImpl<$Res>
+    extends _$TrainerProfileCopyWithImpl<$Res, _$TrainerProfileImpl>
+    implements _$$TrainerProfileImplCopyWith<$Res> {
+  __$$TrainerProfileImplCopyWithImpl(
+      _$TrainerProfileImpl _value, $Res Function(_$TrainerProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of TrainerProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? name = null,
+    Object? badgeIds = null,
+    Object? money = null,
+    Object? playtimeSeconds = null,
+  }) {
+    return _then(_$TrainerProfileImpl(
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      badgeIds: null == badgeIds
+          ? _value._badgeIds
+          : badgeIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      money: null == money
+          ? _value.money
+          : money // ignore: cast_nullable_to_non_nullable
+              as int,
+      playtimeSeconds: null == playtimeSeconds
+          ? _value.playtimeSeconds
+          : playtimeSeconds // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$TrainerProfileImpl extends _TrainerProfile {
+  const _$TrainerProfileImpl(
+      {required this.name,
+      final List<String> badgeIds = const [],
+      this.money = 0,
+      this.playtimeSeconds = 0})
+      : _badgeIds = badgeIds,
+        super._();
+
+  factory _$TrainerProfileImpl.fromJson(Map<String, dynamic> json) =>
+      _$$TrainerProfileImplFromJson(json);
+
+  @override
+  final String name;
+  final List<String> _badgeIds;
+  @override
+  @JsonKey()
+  List<String> get badgeIds {
+    if (_badgeIds is EqualUnmodifiableListView) return _badgeIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_badgeIds);
+  }
+
+  @override
+  @JsonKey()
+  final int money;
+  @override
+  @JsonKey()
+  final int playtimeSeconds;
+
+  @override
+  String toString() {
+    return 'TrainerProfile(name: $name, badgeIds: $badgeIds, money: $money, playtimeSeconds: $playtimeSeconds)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TrainerProfileImpl &&
+            (identical(other.name, name) || other.name == name) &&
+            const DeepCollectionEquality().equals(other._badgeIds, _badgeIds) &&
+            (identical(other.money, money) || other.money == money) &&
+            (identical(other.playtimeSeconds, playtimeSeconds) ||
+                other.playtimeSeconds == playtimeSeconds));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, name,
+      const DeepCollectionEquality().hash(_badgeIds), money, playtimeSeconds);
+
+  /// Create a copy of TrainerProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TrainerProfileImplCopyWith<_$TrainerProfileImpl> get copyWith =>
+      __$$TrainerProfileImplCopyWithImpl<_$TrainerProfileImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$TrainerProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _TrainerProfile extends TrainerProfile {
+  const factory _TrainerProfile(
+      {required final String name,
+      final List<String> badgeIds,
+      final int money,
+      final int playtimeSeconds}) = _$TrainerProfileImpl;
+  const _TrainerProfile._() : super._();
+
+  factory _TrainerProfile.fromJson(Map<String, dynamic> json) =
+      _$TrainerProfileImpl.fromJson;
+
+  @override
+  String get name;
+  @override
+  List<String> get badgeIds;
+  @override
+  int get money;
+  @override
+  int get playtimeSeconds;
+
+  /// Create a copy of TrainerProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TrainerProfileImplCopyWith<_$TrainerProfileImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+BagEntry _$BagEntryFromJson(Map<String, dynamic> json) {
+  return _BagEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$BagEntry {
+  String get itemId => throw _privateConstructorUsedError;
+  String get categoryId => throw _privateConstructorUsedError;
+  int get quantity => throw _privateConstructorUsedError;
+
+  /// Serializes this BagEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of BagEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $BagEntryCopyWith<BagEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $BagEntryCopyWith<$Res> {
+  factory $BagEntryCopyWith(BagEntry value, $Res Function(BagEntry) then) =
+      _$BagEntryCopyWithImpl<$Res, BagEntry>;
+  @useResult
+  $Res call({String itemId, String categoryId, int quantity});
+}
+
+/// @nodoc
+class _$BagEntryCopyWithImpl<$Res, $Val extends BagEntry>
+    implements $BagEntryCopyWith<$Res> {
+  _$BagEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of BagEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? itemId = null,
+    Object? categoryId = null,
+    Object? quantity = null,
+  }) {
+    return _then(_value.copyWith(
+      itemId: null == itemId
+          ? _value.itemId
+          : itemId // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      quantity: null == quantity
+          ? _value.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$BagEntryImplCopyWith<$Res>
+    implements $BagEntryCopyWith<$Res> {
+  factory _$$BagEntryImplCopyWith(
+          _$BagEntryImpl value, $Res Function(_$BagEntryImpl) then) =
+      __$$BagEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String itemId, String categoryId, int quantity});
+}
+
+/// @nodoc
+class __$$BagEntryImplCopyWithImpl<$Res>
+    extends _$BagEntryCopyWithImpl<$Res, _$BagEntryImpl>
+    implements _$$BagEntryImplCopyWith<$Res> {
+  __$$BagEntryImplCopyWithImpl(
+      _$BagEntryImpl _value, $Res Function(_$BagEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of BagEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? itemId = null,
+    Object? categoryId = null,
+    Object? quantity = null,
+  }) {
+    return _then(_$BagEntryImpl(
+      itemId: null == itemId
+          ? _value.itemId
+          : itemId // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      quantity: null == quantity
+          ? _value.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$BagEntryImpl extends _BagEntry {
+  const _$BagEntryImpl(
+      {required this.itemId, required this.categoryId, required this.quantity})
+      : super._();
+
+  factory _$BagEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BagEntryImplFromJson(json);
+
+  @override
+  final String itemId;
+  @override
+  final String categoryId;
+  @override
+  final int quantity;
+
+  @override
+  String toString() {
+    return 'BagEntry(itemId: $itemId, categoryId: $categoryId, quantity: $quantity)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BagEntryImpl &&
+            (identical(other.itemId, itemId) || other.itemId == itemId) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
+            (identical(other.quantity, quantity) ||
+                other.quantity == quantity));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, itemId, categoryId, quantity);
+
+  /// Create a copy of BagEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BagEntryImplCopyWith<_$BagEntryImpl> get copyWith =>
+      __$$BagEntryImplCopyWithImpl<_$BagEntryImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BagEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _BagEntry extends BagEntry {
+  const factory _BagEntry(
+      {required final String itemId,
+      required final String categoryId,
+      required final int quantity}) = _$BagEntryImpl;
+  const _BagEntry._() : super._();
+
+  factory _BagEntry.fromJson(Map<String, dynamic> json) =
+      _$BagEntryImpl.fromJson;
+
+  @override
+  String get itemId;
+  @override
+  String get categoryId;
+  @override
+  int get quantity;
+
+  /// Create a copy of BagEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BagEntryImplCopyWith<_$BagEntryImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+Bag _$BagFromJson(Map<String, dynamic> json) {
+  return _Bag.fromJson(json);
+}
+
+/// @nodoc
+mixin _$Bag {
+  List<BagEntry> get entries => throw _privateConstructorUsedError;
+
+  /// Serializes this Bag to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of Bag
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $BagCopyWith<Bag> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $BagCopyWith<$Res> {
+  factory $BagCopyWith(Bag value, $Res Function(Bag) then) =
+      _$BagCopyWithImpl<$Res, Bag>;
+  @useResult
+  $Res call({List<BagEntry> entries});
+}
+
+/// @nodoc
+class _$BagCopyWithImpl<$Res, $Val extends Bag> implements $BagCopyWith<$Res> {
+  _$BagCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of Bag
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? entries = null,
+  }) {
+    return _then(_value.copyWith(
+      entries: null == entries
+          ? _value.entries
+          : entries // ignore: cast_nullable_to_non_nullable
+              as List<BagEntry>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$BagImplCopyWith<$Res> implements $BagCopyWith<$Res> {
+  factory _$$BagImplCopyWith(_$BagImpl value, $Res Function(_$BagImpl) then) =
+      __$$BagImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({List<BagEntry> entries});
+}
+
+/// @nodoc
+class __$$BagImplCopyWithImpl<$Res> extends _$BagCopyWithImpl<$Res, _$BagImpl>
+    implements _$$BagImplCopyWith<$Res> {
+  __$$BagImplCopyWithImpl(_$BagImpl _value, $Res Function(_$BagImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of Bag
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? entries = null,
+  }) {
+    return _then(_$BagImpl(
+      entries: null == entries
+          ? _value._entries
+          : entries // ignore: cast_nullable_to_non_nullable
+              as List<BagEntry>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$BagImpl extends _Bag {
+  const _$BagImpl({final List<BagEntry> entries = const []})
+      : _entries = entries,
+        super._();
+
+  factory _$BagImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BagImplFromJson(json);
+
+  final List<BagEntry> _entries;
+  @override
+  @JsonKey()
+  List<BagEntry> get entries {
+    if (_entries is EqualUnmodifiableListView) return _entries;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_entries);
+  }
+
+  @override
+  String toString() {
+    return 'Bag(entries: $entries)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BagImpl &&
+            const DeepCollectionEquality().equals(other._entries, _entries));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(_entries));
+
+  /// Create a copy of Bag
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BagImplCopyWith<_$BagImpl> get copyWith =>
+      __$$BagImplCopyWithImpl<_$BagImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BagImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _Bag extends Bag {
+  const factory _Bag({final List<BagEntry> entries}) = _$BagImpl;
+  const _Bag._() : super._();
+
+  factory _Bag.fromJson(Map<String, dynamic> json) = _$BagImpl.fromJson;
+
+  @override
+  List<BagEntry> get entries;
+
+  /// Create a copy of Bag
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BagImplCopyWith<_$BagImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+SaveData _$SaveDataFromJson(Map<String, dynamic> json) {
+  return _SaveData.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SaveData {
+  String get saveId => throw _privateConstructorUsedError;
+  String get currentMapId => throw _privateConstructorUsedError;
+  GridPos get playerPosition => throw _privateConstructorUsedError;
+  EntityFacing get playerFacing => throw _privateConstructorUsedError;
+  PlayerParty get party => throw _privateConstructorUsedError;
+  TrainerProfile get trainerProfile => throw _privateConstructorUsedError;
+  Bag get bag => throw _privateConstructorUsedError;
+  PlayerProgression get progression => throw _privateConstructorUsedError;
+  Map<String, String> get properties => throw _privateConstructorUsedError;
+
+  /// Serializes this SaveData to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SaveDataCopyWith<SaveData> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SaveDataCopyWith<$Res> {
+  factory $SaveDataCopyWith(SaveData value, $Res Function(SaveData) then) =
+      _$SaveDataCopyWithImpl<$Res, SaveData>;
+  @useResult
+  $Res call(
+      {String saveId,
+      String currentMapId,
+      GridPos playerPosition,
+      EntityFacing playerFacing,
+      PlayerParty party,
+      TrainerProfile trainerProfile,
+      Bag bag,
+      PlayerProgression progression,
+      Map<String, String> properties});
+
+  $GridPosCopyWith<$Res> get playerPosition;
+  $PlayerPartyCopyWith<$Res> get party;
+  $TrainerProfileCopyWith<$Res> get trainerProfile;
+  $BagCopyWith<$Res> get bag;
+  $PlayerProgressionCopyWith<$Res> get progression;
+}
+
+/// @nodoc
+class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
+    implements $SaveDataCopyWith<$Res> {
+  _$SaveDataCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? saveId = null,
+    Object? currentMapId = null,
+    Object? playerPosition = null,
+    Object? playerFacing = null,
+    Object? party = null,
+    Object? trainerProfile = null,
+    Object? bag = null,
+    Object? progression = null,
+    Object? properties = null,
+  }) {
+    return _then(_value.copyWith(
+      saveId: null == saveId
+          ? _value.saveId
+          : saveId // ignore: cast_nullable_to_non_nullable
+              as String,
+      currentMapId: null == currentMapId
+          ? _value.currentMapId
+          : currentMapId // ignore: cast_nullable_to_non_nullable
+              as String,
+      playerPosition: null == playerPosition
+          ? _value.playerPosition
+          : playerPosition // ignore: cast_nullable_to_non_nullable
+              as GridPos,
+      playerFacing: null == playerFacing
+          ? _value.playerFacing
+          : playerFacing // ignore: cast_nullable_to_non_nullable
+              as EntityFacing,
+      party: null == party
+          ? _value.party
+          : party // ignore: cast_nullable_to_non_nullable
+              as PlayerParty,
+      trainerProfile: null == trainerProfile
+          ? _value.trainerProfile
+          : trainerProfile // ignore: cast_nullable_to_non_nullable
+              as TrainerProfile,
+      bag: null == bag
+          ? _value.bag
+          : bag // ignore: cast_nullable_to_non_nullable
+              as Bag,
+      progression: null == progression
+          ? _value.progression
+          : progression // ignore: cast_nullable_to_non_nullable
+              as PlayerProgression,
+      properties: null == properties
+          ? _value.properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ) as $Val);
+  }
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $GridPosCopyWith<$Res> get playerPosition {
+    return $GridPosCopyWith<$Res>(_value.playerPosition, (value) {
+      return _then(_value.copyWith(playerPosition: value) as $Val);
+    });
+  }
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PlayerPartyCopyWith<$Res> get party {
+    return $PlayerPartyCopyWith<$Res>(_value.party, (value) {
+      return _then(_value.copyWith(party: value) as $Val);
+    });
+  }
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $TrainerProfileCopyWith<$Res> get trainerProfile {
+    return $TrainerProfileCopyWith<$Res>(_value.trainerProfile, (value) {
+      return _then(_value.copyWith(trainerProfile: value) as $Val);
+    });
+  }
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $BagCopyWith<$Res> get bag {
+    return $BagCopyWith<$Res>(_value.bag, (value) {
+      return _then(_value.copyWith(bag: value) as $Val);
+    });
+  }
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PlayerProgressionCopyWith<$Res> get progression {
+    return $PlayerProgressionCopyWith<$Res>(_value.progression, (value) {
+      return _then(_value.copyWith(progression: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$SaveDataImplCopyWith<$Res>
+    implements $SaveDataCopyWith<$Res> {
+  factory _$$SaveDataImplCopyWith(
+          _$SaveDataImpl value, $Res Function(_$SaveDataImpl) then) =
+      __$$SaveDataImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String saveId,
+      String currentMapId,
+      GridPos playerPosition,
+      EntityFacing playerFacing,
+      PlayerParty party,
+      TrainerProfile trainerProfile,
+      Bag bag,
+      PlayerProgression progression,
+      Map<String, String> properties});
+
+  @override
+  $GridPosCopyWith<$Res> get playerPosition;
+  @override
+  $PlayerPartyCopyWith<$Res> get party;
+  @override
+  $TrainerProfileCopyWith<$Res> get trainerProfile;
+  @override
+  $BagCopyWith<$Res> get bag;
+  @override
+  $PlayerProgressionCopyWith<$Res> get progression;
+}
+
+/// @nodoc
+class __$$SaveDataImplCopyWithImpl<$Res>
+    extends _$SaveDataCopyWithImpl<$Res, _$SaveDataImpl>
+    implements _$$SaveDataImplCopyWith<$Res> {
+  __$$SaveDataImplCopyWithImpl(
+      _$SaveDataImpl _value, $Res Function(_$SaveDataImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? saveId = null,
+    Object? currentMapId = null,
+    Object? playerPosition = null,
+    Object? playerFacing = null,
+    Object? party = null,
+    Object? trainerProfile = null,
+    Object? bag = null,
+    Object? progression = null,
+    Object? properties = null,
+  }) {
+    return _then(_$SaveDataImpl(
+      saveId: null == saveId
+          ? _value.saveId
+          : saveId // ignore: cast_nullable_to_non_nullable
+              as String,
+      currentMapId: null == currentMapId
+          ? _value.currentMapId
+          : currentMapId // ignore: cast_nullable_to_non_nullable
+              as String,
+      playerPosition: null == playerPosition
+          ? _value.playerPosition
+          : playerPosition // ignore: cast_nullable_to_non_nullable
+              as GridPos,
+      playerFacing: null == playerFacing
+          ? _value.playerFacing
+          : playerFacing // ignore: cast_nullable_to_non_nullable
+              as EntityFacing,
+      party: null == party
+          ? _value.party
+          : party // ignore: cast_nullable_to_non_nullable
+              as PlayerParty,
+      trainerProfile: null == trainerProfile
+          ? _value.trainerProfile
+          : trainerProfile // ignore: cast_nullable_to_non_nullable
+              as TrainerProfile,
+      bag: null == bag
+          ? _value.bag
+          : bag // ignore: cast_nullable_to_non_nullable
+              as Bag,
+      progression: null == progression
+          ? _value.progression
+          : progression // ignore: cast_nullable_to_non_nullable
+              as PlayerProgression,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SaveDataImpl extends _SaveData {
+  const _$SaveDataImpl(
+      {required this.saveId,
+      this.currentMapId = '',
+      this.playerPosition = const GridPos(x: 0, y: 0),
+      this.playerFacing = EntityFacing.south,
+      this.party = const PlayerParty(),
+      this.trainerProfile = const TrainerProfile(name: 'Player'),
+      this.bag = const Bag(),
+      this.progression = const PlayerProgression(),
+      final Map<String, String> properties = const {}})
+      : _properties = properties,
+        super._();
+
+  factory _$SaveDataImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SaveDataImplFromJson(json);
+
+  @override
+  final String saveId;
+  @override
+  @JsonKey()
+  final String currentMapId;
+  @override
+  @JsonKey()
+  final GridPos playerPosition;
+  @override
+  @JsonKey()
+  final EntityFacing playerFacing;
+  @override
+  @JsonKey()
+  final PlayerParty party;
+  @override
+  @JsonKey()
+  final TrainerProfile trainerProfile;
+  @override
+  @JsonKey()
+  final Bag bag;
+  @override
+  @JsonKey()
+  final PlayerProgression progression;
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @override
+  String toString() {
+    return 'SaveData(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SaveDataImpl &&
+            (identical(other.saveId, saveId) || other.saveId == saveId) &&
+            (identical(other.currentMapId, currentMapId) ||
+                other.currentMapId == currentMapId) &&
+            (identical(other.playerPosition, playerPosition) ||
+                other.playerPosition == playerPosition) &&
+            (identical(other.playerFacing, playerFacing) ||
+                other.playerFacing == playerFacing) &&
+            (identical(other.party, party) || other.party == party) &&
+            (identical(other.trainerProfile, trainerProfile) ||
+                other.trainerProfile == trainerProfile) &&
+            (identical(other.bag, bag) || other.bag == bag) &&
+            (identical(other.progression, progression) ||
+                other.progression == progression) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      saveId,
+      currentMapId,
+      playerPosition,
+      playerFacing,
+      party,
+      trainerProfile,
+      bag,
+      progression,
+      const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SaveDataImplCopyWith<_$SaveDataImpl> get copyWith =>
+      __$$SaveDataImplCopyWithImpl<_$SaveDataImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SaveDataImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SaveData extends SaveData {
+  const factory _SaveData(
+      {required final String saveId,
+      final String currentMapId,
+      final GridPos playerPosition,
+      final EntityFacing playerFacing,
+      final PlayerParty party,
+      final TrainerProfile trainerProfile,
+      final Bag bag,
+      final PlayerProgression progression,
+      final Map<String, String> properties}) = _$SaveDataImpl;
+  const _SaveData._() : super._();
+
+  factory _SaveData.fromJson(Map<String, dynamic> json) =
+      _$SaveDataImpl.fromJson;
+
+  @override
+  String get saveId;
+  @override
+  String get currentMapId;
+  @override
+  GridPos get playerPosition;
+  @override
+  EntityFacing get playerFacing;
+  @override
+  PlayerParty get party;
+  @override
+  TrainerProfile get trainerProfile;
+  @override
+  Bag get bag;
+  @override
+  PlayerProgression get progression;
+  @override
+  Map<String, String> get properties;
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SaveDataImplCopyWith<_$SaveDataImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_core/lib/src/models/save_data.g.dart
+
+```dart
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'save_data.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$PokemonStatSpreadImpl _$$PokemonStatSpreadImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonStatSpreadImpl(
+      hp: (json['hp'] as num?)?.toInt() ?? 0,
+      attack: (json['attack'] as num?)?.toInt() ?? 0,
+      defense: (json['defense'] as num?)?.toInt() ?? 0,
+      specialAttack: (json['specialAttack'] as num?)?.toInt() ?? 0,
+      specialDefense: (json['specialDefense'] as num?)?.toInt() ?? 0,
+      speed: (json['speed'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$PokemonStatSpreadImplToJson(
+        _$PokemonStatSpreadImpl instance) =>
+    <String, dynamic>{
+      'hp': instance.hp,
+      'attack': instance.attack,
+      'defense': instance.defense,
+      'specialAttack': instance.specialAttack,
+      'specialDefense': instance.specialDefense,
+      'speed': instance.speed,
+    };
+
+_$PlayerPokemonImpl _$$PlayerPokemonImplFromJson(Map<String, dynamic> json) =>
+    _$PlayerPokemonImpl(
+      speciesId: json['speciesId'] as String,
+      natureId: json['natureId'] as String,
+      abilityId: json['abilityId'] as String,
+      level: (json['level'] as num?)?.toInt() ?? 1,
+      ivs: json['ivs'] == null
+          ? const PokemonStatSpread()
+          : PokemonStatSpread.fromJson(json['ivs'] as Map<String, dynamic>),
+      evs: json['evs'] == null
+          ? const PokemonStatSpread()
+          : PokemonStatSpread.fromJson(json['evs'] as Map<String, dynamic>),
+      knownMoveIds: (json['knownMoveIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      currentHp: (json['currentHp'] as num?)?.toInt() ?? 1,
+      statusId: json['statusId'] as String? ?? '',
+      isShiny: json['isShiny'] as bool? ?? false,
+      heldItemId: json['heldItemId'] as String? ?? '',
+    );
+
+Map<String, dynamic> _$$PlayerPokemonImplToJson(_$PlayerPokemonImpl instance) =>
+    <String, dynamic>{
+      'speciesId': instance.speciesId,
+      'natureId': instance.natureId,
+      'abilityId': instance.abilityId,
+      'level': instance.level,
+      'ivs': instance.ivs.toJson(),
+      'evs': instance.evs.toJson(),
+      'knownMoveIds': instance.knownMoveIds,
+      'currentHp': instance.currentHp,
+      'statusId': instance.statusId,
+      'isShiny': instance.isShiny,
+      'heldItemId': instance.heldItemId,
+    };
+
+_$PlayerPartyImpl _$$PlayerPartyImplFromJson(Map<String, dynamic> json) =>
+    _$PlayerPartyImpl(
+      members: (json['members'] as List<dynamic>?)
+              ?.map((e) => PlayerPokemon.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$PlayerPartyImplToJson(_$PlayerPartyImpl instance) =>
+    <String, dynamic>{
+      'members': instance.members.map((e) => e.toJson()).toList(),
+    };
+
+_$PlayerProgressionImpl _$$PlayerProgressionImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PlayerProgressionImpl(
+      unlockedFieldAbilities: (json['unlockedFieldAbilities'] as List<dynamic>?)
+              ?.map((e) => $enumDecode(_$FieldAbilityEnumMap, e))
+              .toList() ??
+          const [],
+      storyFlags: (json['storyFlags'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      completedStepIds: (json['completedStepIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      completedCutsceneIds: (json['completedCutsceneIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      seenSpeciesIds: (json['seenSpeciesIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      caughtSpeciesIds: (json['caughtSpeciesIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$PlayerProgressionImplToJson(
+        _$PlayerProgressionImpl instance) =>
+    <String, dynamic>{
+      'unlockedFieldAbilities': instance.unlockedFieldAbilities
+          .map((e) => _$FieldAbilityEnumMap[e]!)
+          .toList(),
+      'storyFlags': instance.storyFlags,
+      'completedStepIds': instance.completedStepIds,
+      'completedCutsceneIds': instance.completedCutsceneIds,
+      'seenSpeciesIds': instance.seenSpeciesIds,
+      'caughtSpeciesIds': instance.caughtSpeciesIds,
+    };
+
+const _$FieldAbilityEnumMap = {
+  FieldAbility.surf: 'surf',
+  FieldAbility.cut: 'cut',
+  FieldAbility.strength: 'strength',
+  FieldAbility.flash: 'flash',
+  FieldAbility.rockSmash: 'rock_smash',
+  FieldAbility.waterfall: 'waterfall',
+  FieldAbility.dive: 'dive',
+};
+
+_$TrainerProfileImpl _$$TrainerProfileImplFromJson(Map<String, dynamic> json) =>
+    _$TrainerProfileImpl(
+      name: json['name'] as String,
+      badgeIds: (json['badgeIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      money: (json['money'] as num?)?.toInt() ?? 0,
+      playtimeSeconds: (json['playtimeSeconds'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$TrainerProfileImplToJson(
+        _$TrainerProfileImpl instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'badgeIds': instance.badgeIds,
+      'money': instance.money,
+      'playtimeSeconds': instance.playtimeSeconds,
+    };
+
+_$BagEntryImpl _$$BagEntryImplFromJson(Map<String, dynamic> json) =>
+    _$BagEntryImpl(
+      itemId: json['itemId'] as String,
+      categoryId: json['categoryId'] as String,
+      quantity: (json['quantity'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$$BagEntryImplToJson(_$BagEntryImpl instance) =>
+    <String, dynamic>{
+      'itemId': instance.itemId,
+      'categoryId': instance.categoryId,
+      'quantity': instance.quantity,
+    };
+
+_$BagImpl _$$BagImplFromJson(Map<String, dynamic> json) => _$BagImpl(
+      entries: (json['entries'] as List<dynamic>?)
+              ?.map((e) => BagEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$BagImplToJson(_$BagImpl instance) => <String, dynamic>{
+      'entries': instance.entries.map((e) => e.toJson()).toList(),
+    };
+
+_$SaveDataImpl _$$SaveDataImplFromJson(Map<String, dynamic> json) =>
+    _$SaveDataImpl(
+      saveId: json['saveId'] as String,
+      currentMapId: json['currentMapId'] as String? ?? '',
+      playerPosition: json['playerPosition'] == null
+          ? const GridPos(x: 0, y: 0)
+          : GridPos.fromJson(json['playerPosition'] as Map<String, dynamic>),
+      playerFacing:
+          $enumDecodeNullable(_$EntityFacingEnumMap, json['playerFacing']) ??
+              EntityFacing.south,
+      party: json['party'] == null
+          ? const PlayerParty()
+          : PlayerParty.fromJson(json['party'] as Map<String, dynamic>),
+      trainerProfile: json['trainerProfile'] == null
+          ? const TrainerProfile(name: 'Player')
+          : TrainerProfile.fromJson(
+              json['trainerProfile'] as Map<String, dynamic>),
+      bag: json['bag'] == null
+          ? const Bag()
+          : Bag.fromJson(json['bag'] as Map<String, dynamic>),
+      progression: json['progression'] == null
+          ? const PlayerProgression()
+          : PlayerProgression.fromJson(
+              json['progression'] as Map<String, dynamic>),
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const {},
+    );
+
+Map<String, dynamic> _$$SaveDataImplToJson(_$SaveDataImpl instance) =>
+    <String, dynamic>{
+      'saveId': instance.saveId,
+      'currentMapId': instance.currentMapId,
+      'playerPosition': instance.playerPosition.toJson(),
+      'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
+      'party': instance.party.toJson(),
+      'trainerProfile': instance.trainerProfile.toJson(),
+      'bag': instance.bag.toJson(),
+      'progression': instance.progression.toJson(),
+      'properties': instance.properties,
+    };
+
+const _$EntityFacingEnumMap = {
+  EntityFacing.north: 'north',
+  EntityFacing.south: 'south',
+  EntityFacing.east: 'east',
+  EntityFacing.west: 'west',
+};
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_core/lib/src/operations/game_state_persistence.dart
+
+```dart
+import '../models/enums.dart';
+import '../models/game_state.dart';
+import '../models/save_data.dart';
+
+GameState gameStateFromSaveData(SaveData saveData) {
+  final normalizedSaveData = saveData.normalized();
+  final normalizedProgression = _normalizePokedexProgression(
+    progression: normalizedSaveData.progression,
+    party: normalizedSaveData.party,
+  );
+  final migratedFlags = normalizedSaveData.progression.storyFlags
+      .map((flag) => flag.trim())
+      .where((flag) => flag.isNotEmpty)
+      .toSet();
+
+  return GameState(
+    saveId: normalizedSaveData.saveId,
+    currentMapId: normalizedSaveData.currentMapId,
+    playerPosition: normalizedSaveData.playerPosition,
+    playerFacing: normalizedSaveData.playerFacing,
+    playerMovementMode: MovementMode.walk,
+    party: normalizedSaveData.party,
+    trainerProfile: normalizedSaveData.trainerProfile,
+    bag: normalizedSaveData.bag,
+    progression: normalizedProgression,
+    storyFlags: StoryFlags(activeFlags: migratedFlags),
+    scriptVariables: const ScriptVariables(),
+    consumedEventIds: const {},
+    metadata: normalizedSaveData.properties,
+  );
+}
+
+SaveData saveDataFromGameState(GameState gameState) {
+  final mergedProgressionFlags = <String>{
+    ...gameState.progression.storyFlags,
+    ...gameState.storyFlags.activeFlags,
+  };
+  final normalizedProgression = _normalizePokedexProgression(
+    progression: gameState.progression.copyWith(
+      storyFlags: mergedProgressionFlags.toList(growable: false),
+    ),
+    party: gameState.party,
+  );
+
+  return SaveData(
+    saveId: gameState.saveId,
+    currentMapId: gameState.currentMapId,
+    playerPosition: gameState.playerPosition,
+    playerFacing: gameState.playerFacing,
+    party: gameState.party,
+    trainerProfile: gameState.trainerProfile,
+    bag: gameState.bag,
+    progression: normalizedProgression,
+    properties: gameState.metadata,
+  ).normalized();
+}
+
+GameState normalizeLoadedGameState(GameState state) {
+  final normalizedProgression = _normalizePokedexProgression(
+    progression: state.progression,
+    party: state.party,
+  );
+  if (state.storyFlags.activeFlags.isNotEmpty ||
+      normalizedProgression.storyFlags.isEmpty) {
+    return state.copyWith(
+      progression: normalizedProgression,
+    );
+  }
+  final migratedFlags = normalizedProgression.storyFlags
+      .map((flag) => flag.trim())
+      .where((flag) => flag.isNotEmpty)
+      .toSet();
+  return state.copyWith(
+    progression: normalizedProgression,
+    storyFlags: state.storyFlags.copyWith(activeFlags: migratedFlags),
+  );
+}
+
+/// Marque une espèce comme vue dans l'état runtime.
+///
+/// Le lot 12 reste volontairement minimal :
+/// - "seen" doit pouvoir être écrit dès qu'un ennemi est réellement engagé ;
+/// - "caught" ne doit jamais être inventé ici ;
+/// - la possession réelle continue d'être déduite de la party du joueur.
+///
+/// Cet helper reste donc borné à une mutation honnête de `seen`, tout en
+/// laissant la normalisation partagée garantir les invariants :
+/// - `caught` implique `seen` ;
+/// - les espèces déjà présentes dans la party finissent toujours dans
+///   `caught`, donc aussi dans `seen`.
+GameState markSpeciesSeenInGameState(
+  GameState state,
+  String speciesId,
+) {
+  final normalizedSpeciesId = speciesId.trim();
+  if (normalizedSpeciesId.isEmpty) {
+    return normalizeLoadedGameState(state);
+  }
+
+  final nextProgression = _normalizePokedexProgression(
+    progression: state.progression.copyWith(
+      seenSpeciesIds: <String>[
+        ...state.progression.seenSpeciesIds,
+        normalizedSpeciesId,
+      ],
+    ),
+    party: state.party,
+  );
+
+  return state.copyWith(
+    progression: nextProgression,
+  );
+}
+
+PlayerProgression _normalizePokedexProgression({
+  required PlayerProgression progression,
+  required PlayerParty party,
+}) {
+  // Invariant métier lot 12 :
+  // - une espèce possédée via la vraie party du joueur est "caught" ;
+  // - tout "caught" doit aussi être "seen" ;
+  // - les saves legacy peuvent ne rien stocker, donc on reconstruit ce socle
+  //   minimal à partir de la party quand nécessaire.
+  final ownedSpeciesIds = party.members
+      .map((member) => member.speciesId.trim())
+      .where((speciesId) => speciesId.isNotEmpty)
+      .toList(growable: false);
+
+  return progression.copyWith(
+    caughtSpeciesIds: <String>[
+      ...progression.caughtSpeciesIds,
+      ...ownedSpeciesIds,
+    ],
+    seenSpeciesIds: <String>[
+      ...progression.seenSpeciesIds,
+      ...progression.caughtSpeciesIds,
+      ...ownedSpeciesIds,
+    ],
+  ).normalized();
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_core/test/game_state_persistence_test.dart
+
+```dart
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('gameStateFromSaveData', () {
+    test('migrates legacy save fields to GameState', () {
+      const save = SaveData(
+        saveId: 'legacy_1',
+        currentMapId: 'vova_center',
+        playerPosition: GridPos(x: 7, y: 9),
+        playerFacing: EntityFacing.west,
+        party: PlayerParty(
+          members: [
+            PlayerPokemon(
+              speciesId: 'lapras',
+              natureId: 'modest',
+              abilityId: 'water-absorb',
+              knownMoveIds: ['surf'],
+            ),
+          ],
+        ),
+        trainerProfile: TrainerProfile(
+          name: 'Red',
+          badgeIds: ['boulder'],
+          money: 1200,
+          playtimeSeconds: 42,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+          ],
+        ),
+        progression: PlayerProgression(
+          unlockedFieldAbilities: [FieldAbility.surf],
+          storyFlags: ['met_professor', 'starter_received'],
+          completedStepIds: ['step_a'],
+        ),
+        properties: {'legacy': 'ok'},
+      );
+
+      final state = gameStateFromSaveData(save);
+
+      expect(state.saveId, equals('legacy_1'));
+      expect(state.currentMapId, equals('vova_center'));
+      expect(state.playerPosition, equals(const GridPos(x: 7, y: 9)));
+      expect(state.playerFacing, equals(EntityFacing.west));
+      expect(state.party.members.length, equals(1));
+      expect(state.trainerProfile.name, equals('Red'));
+      expect(state.bag.entries.single.itemId, equals('poke-ball'));
+      expect(state.progression.unlockedFieldAbilities,
+          contains(FieldAbility.surf));
+      expect(state.storyFlags.activeFlags,
+          containsAll(['met_professor', 'starter_received']));
+      expect(state.progression.completedStepIds, ['step_a']);
+      expect(state.progression.caughtSpeciesIds, ['lapras']);
+      expect(state.progression.seenSpeciesIds, ['lapras']);
+      expect(state.metadata['legacy'], equals('ok'));
+    });
+  });
+
+  group('saveDataFromGameState', () {
+    test('keeps core fields and merges story flags in legacy slot', () {
+      final state = GameState(
+        saveId: 'save_2',
+        currentMapId: 'route_1',
+        playerPosition: const GridPos(x: 3, y: 4),
+        playerFacing: EntityFacing.north,
+        trainerProfile: const TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['cascade', 'boulder'],
+          money: 500,
+          playtimeSeconds: 99,
+        ),
+        bag: const Bag(
+          entries: [
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
+        progression: const PlayerProgression(
+          storyFlags: ['from_progression'],
+          completedStepIds: ['step_done'],
+        ),
+        storyFlags: const StoryFlags(activeFlags: {'from_story_flags'}),
+      );
+
+      final save = saveDataFromGameState(state);
+
+      expect(save.saveId, equals('save_2'));
+      expect(save.currentMapId, equals('route_1'));
+      expect(save.playerPosition, equals(const GridPos(x: 3, y: 4)));
+      expect(save.playerFacing, equals(EntityFacing.north));
+      expect(save.trainerProfile.name, equals('Leaf'));
+      expect(save.trainerProfile.badgeIds, equals(['boulder', 'cascade']));
+      expect(save.bag.entries.length, equals(2));
+      expect(
+        save.progression.storyFlags.toSet(),
+        containsAll(<String>{'from_progression', 'from_story_flags'}),
+      );
+      expect(save.progression.completedStepIds, ['step_done']);
+    });
+
+    test('syncs party species into caught and seen for persistence', () {
+      const state = GameState(
+        saveId: 'save_seen_caught',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'bulbasaur',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+            ),
+            PlayerPokemon(
+              speciesId: 'charmander',
+              natureId: 'timid',
+              abilityId: 'blaze',
+            ),
+          ],
+        ),
+        progression: PlayerProgression(
+          seenSpeciesIds: ['pikachu'],
+          caughtSpeciesIds: ['pikachu'],
+        ),
+      );
+
+      final save = saveDataFromGameState(state);
+
+      expect(
+        save.progression.caughtSpeciesIds,
+        containsAll(<String>['bulbasaur', 'charmander', 'pikachu']),
+      );
+      expect(
+        save.progression.seenSpeciesIds,
+        containsAll(<String>['bulbasaur', 'charmander', 'pikachu']),
+      );
+    });
+  });
+
+  group('normalizeLoadedGameState', () {
+    test('hydrates storyFlags from progression when storyFlags are empty', () {
+      final state = GameState(
+        saveId: 'save_3',
+        progression: const PlayerProgression(
+          storyFlags: ['trainer_defeated:gym_leader_1', 'badge_cascade'],
+        ),
+        storyFlags: const StoryFlags(activeFlags: <String>{}),
+      );
+
+      final normalized = normalizeLoadedGameState(state);
+
+      expect(
+        normalized.storyFlags.activeFlags,
+        containsAll(['trainer_defeated:gym_leader_1', 'badge_cascade']),
+      );
+    });
+
+    test('keeps explicit storyFlags as source of truth when already set', () {
+      final state = GameState(
+        saveId: 'save_4',
+        progression: const PlayerProgression(storyFlags: ['legacy_flag']),
+        storyFlags: const StoryFlags(activeFlags: {'runtime_flag'}),
+      );
+
+      final normalized = normalizeLoadedGameState(state);
+
+      expect(normalized.storyFlags.activeFlags, equals({'runtime_flag'}));
+    });
+
+    test('hydrates caught and seen from party for legacy states', () {
+      const state = GameState(
+        saveId: 'save_legacy_seen',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'mew',
+              natureId: 'calm',
+              abilityId: 'synchronize',
+            ),
+          ],
+        ),
+      );
+
+      final normalized = normalizeLoadedGameState(state);
+
+      expect(normalized.progression.caughtSpeciesIds, equals(['mew']));
+      expect(normalized.progression.seenSpeciesIds, equals(['mew']));
+    });
+
+    test('markSpeciesSeenInGameState adds seen without inventing caught', () {
+      const state = GameState(
+        saveId: 'save_seen_only',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'bulbasaur',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+            ),
+          ],
+        ),
+      );
+
+      final updated = markSpeciesSeenInGameState(state, 'zubat');
+
+      expect(updated.progression.caughtSpeciesIds, equals(['bulbasaur']));
+      expect(
+        updated.progression.seenSpeciesIds,
+        equals(['bulbasaur', 'zubat']),
+      );
+    });
+  });
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_core/test/save_data_test.dart
+
+```dart
+import 'dart:convert';
+
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('PokemonStatSpread', () {
+    test('serialization round-trip', () {
+      const stats = PokemonStatSpread(
+        hp: 31,
+        attack: 30,
+        defense: 29,
+        specialAttack: 28,
+        specialDefense: 27,
+        speed: 26,
+      );
+
+      final json = stats.toJson();
+      final restored = PokemonStatSpread.fromJson(json);
+
+      expect(restored, stats);
+    });
+  });
+
+  group('PlayerPokemon', () {
+    test('serialization round-trip', () {
+      const pokemon = PlayerPokemon(
+        speciesId: 'lapras',
+        natureId: 'modest',
+        abilityId: 'water-absorb',
+        level: 30,
+        ivs: PokemonStatSpread(
+          hp: 31,
+          attack: 12,
+          defense: 22,
+          specialAttack: 31,
+          specialDefense: 25,
+          speed: 18,
+        ),
+        evs: PokemonStatSpread(
+          hp: 0,
+          attack: 0,
+          defense: 4,
+          specialAttack: 252,
+          specialDefense: 0,
+          speed: 252,
+        ),
+        knownMoveIds: ['surf', 'ice_beam'],
+        currentHp: 99,
+        statusId: 'poison',
+        isShiny: true,
+        heldItemId: 'mystic-water',
+      );
+      final json = pokemon.toJson();
+      final restored = PlayerPokemon.fromJson(json);
+      expect(restored, pokemon);
+    });
+
+    test('defaults are coherent', () {
+      const pokemon = PlayerPokemon(
+        speciesId: 'magikarp',
+        natureId: 'hardy',
+        abilityId: 'swift-swim',
+      );
+      expect(pokemon.level, 1);
+      expect(pokemon.knownMoveIds, isEmpty);
+      expect(pokemon.currentHp, 1);
+      expect(pokemon.isFainted, false);
+    });
+
+    test('JSON keys match expected structure', () {
+      const pokemon = PlayerPokemon(
+        speciesId: 'pikachu',
+        natureId: 'jolly',
+        abilityId: 'static',
+        knownMoveIds: ['thunderbolt'],
+      );
+      final json = pokemon.toJson();
+      expect(json['speciesId'], 'pikachu');
+      expect(json['natureId'], 'jolly');
+      expect(json['abilityId'], 'static');
+      expect(json['knownMoveIds'], ['thunderbolt']);
+      expect(json['currentHp'], 1);
+    });
+
+    test('normalized rejects more than four moves', () {
+      const pokemon = PlayerPokemon(
+        speciesId: 'pikachu',
+        natureId: 'jolly',
+        abilityId: 'static',
+        knownMoveIds: ['tackle', 'growl', 'quick_attack', 'slam', 'surf'],
+      );
+
+      expect(() => pokemon.normalized(), throwsStateError);
+    });
+
+    test('legacy JSON migrates missing phase 9 fields', () {
+      final restored = PlayerPokemon.fromJson({
+        'id': 'party_1',
+        'speciesId': 'lapras',
+        'nickname': 'Ferry',
+        'level': 30,
+        'knownMoveIds': ['surf', 'ice_beam'],
+        'isFainted': true,
+      });
+
+      expect(restored.speciesId, 'lapras');
+      expect(restored.natureId, 'hardy');
+      expect(restored.abilityId, 'unknown');
+      expect(restored.currentHp, 0);
+      expect(restored.knownMoveIds, ['surf', 'ice_beam']);
+    });
+
+    test('non legacy JSON missing phase 9 fields still fails', () {
+      expect(
+        () => PlayerPokemon.fromJson({
+          'speciesId': 'lapras',
+          'knownMoveIds': ['surf'],
+        }),
+        throwsA(isA<TypeError>()),
+      );
+    });
+  });
+
+  group('PlayerParty', () {
+    test('serialization round-trip', () {
+      const party = PlayerParty(members: [
+        PlayerPokemon(
+          speciesId: 'lapras',
+          natureId: 'modest',
+          abilityId: 'water-absorb',
+          knownMoveIds: ['surf'],
+        ),
+        PlayerPokemon(
+          speciesId: 'pikachu',
+          natureId: 'timid',
+          abilityId: 'static',
+        ),
+      ]);
+      final json = party.toJson();
+      final restored = PlayerParty.fromJson(json);
+      expect(restored.members.length, 2);
+      expect(restored.members[0].speciesId, 'lapras');
+    });
+
+    test('default is empty party', () {
+      const party = PlayerParty();
+      expect(party.members, isEmpty);
+    });
+  });
+
+  group('PlayerProgression', () {
+    test('serialization round-trip', () {
+      const progression = PlayerProgression(
+        unlockedFieldAbilities: [FieldAbility.surf],
+        storyFlags: ['badge_cascade', 'rescued_bill'],
+        completedStepIds: ['step_intro', 'step_2_1'],
+        seenSpeciesIds: ['lapras', 'pikachu'],
+        caughtSpeciesIds: ['lapras'],
+      );
+      final json = progression.toJson();
+      final restored = PlayerProgression.fromJson(json);
+      expect(restored.unlockedFieldAbilities, [FieldAbility.surf]);
+      expect(restored.storyFlags, ['badge_cascade', 'rescued_bill']);
+      expect(restored.completedStepIds, ['step_intro', 'step_2_1']);
+      expect(restored.seenSpeciesIds, ['lapras', 'pikachu']);
+      expect(restored.caughtSpeciesIds, ['lapras']);
+    });
+
+    test('defaults are empty', () {
+      const progression = PlayerProgression();
+      expect(progression.unlockedFieldAbilities, isEmpty);
+      expect(progression.storyFlags, isEmpty);
+      expect(progression.completedStepIds, isEmpty);
+      expect(progression.seenSpeciesIds, isEmpty);
+      expect(progression.caughtSpeciesIds, isEmpty);
+    });
+
+    test('normalized keeps caught as subset of seen', () {
+      const progression = PlayerProgression(
+        seenSpeciesIds: ['pikachu'],
+        caughtSpeciesIds: ['bulbasaur'],
+      );
+
+      final normalized = progression.normalized();
+
+      expect(normalized.caughtSpeciesIds, ['bulbasaur']);
+      expect(
+        normalized.seenSpeciesIds,
+        ['bulbasaur', 'pikachu'],
+      );
+    });
+  });
+
+  group('TrainerProfile', () {
+    test('serialization round-trip', () {
+      const profile = TrainerProfile(
+        name: 'Red',
+        badgeIds: ['boulder', 'cascade'],
+        money: 4200,
+        playtimeSeconds: 3600,
+      );
+
+      final json = profile.toJson();
+      final restored = TrainerProfile.fromJson(json);
+
+      expect(restored, profile);
+    });
+
+    test('normalized badges are stable', () {
+      const profile = TrainerProfile(
+        name: ' Red ',
+        badgeIds: ['cascade', 'boulder', 'cascade'],
+      );
+
+      final normalized = profile.normalized();
+
+      expect(normalized.name, 'Red');
+      expect(normalized.badgeIds, ['boulder', 'cascade']);
+    });
+
+    test('normalized rejects empty names', () {
+      const profile = TrainerProfile(name: '   ');
+
+      expect(() => profile.normalized(), throwsStateError);
+    });
+  });
+
+  group('Bag', () {
+    test('serialization round-trip', () {
+      const bag = Bag(
+        entries: [
+          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 10),
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+        ],
+      );
+
+      final json = bag.toJson();
+      final restored = Bag.fromJson(json);
+
+      expect(restored, bag);
+    });
+
+    test('normalized entries merge duplicates deterministically', () {
+      const bag = Bag(
+        entries: [
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+        ],
+      );
+
+      final normalized = bag.normalized();
+
+      expect(normalized.entries, [
+        const BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+        const BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 5),
+      ]);
+    });
+
+    test('normalized rejects non-positive quantities', () {
+      const bag = Bag(
+        entries: [
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 0),
+        ],
+      );
+
+      expect(() => bag.normalized(), throwsStateError);
+    });
+  });
+
+  group('SaveData', () {
+    test('serialization round-trip', () {
+      const save = SaveData(
+        saveId: 'save_001',
+        currentMapId: 'pallet_town',
+        playerPosition: GridPos(x: 5, y: 3),
+        playerFacing: EntityFacing.north,
+        party: PlayerParty(members: [
+          PlayerPokemon(
+            speciesId: 'squirtle',
+            natureId: 'bold',
+            abilityId: 'torrent',
+            level: 12,
+            knownMoveIds: ['surf', 'water_gun'],
+          ),
+        ]),
+        trainerProfile: TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['cascade'],
+          money: 1200,
+          playtimeSeconds: 180,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
+        progression: PlayerProgression(
+          unlockedFieldAbilities: [FieldAbility.surf],
+          storyFlags: ['intro_done'],
+        ),
+        properties: {'lastHealLocation': 'pokemon_center_1'},
+      );
+
+      final json = save.toJson();
+      final jsonString = jsonEncode(json);
+      final decoded = jsonDecode(jsonString) as Map<String, dynamic>;
+      final restored = SaveData.fromJson(decoded);
+
+      expect(restored.saveId, 'save_001');
+      expect(restored.currentMapId, 'pallet_town');
+      expect(restored.playerPosition, const GridPos(x: 5, y: 3));
+      expect(restored.playerFacing, EntityFacing.north);
+      expect(restored.party.members.length, 1);
+      expect(restored.party.members.first.speciesId, 'squirtle');
+      expect(restored.trainerProfile.name, 'Leaf');
+      expect(restored.bag.entries.single.itemId, 'poke-ball');
+      expect(restored.progression.unlockedFieldAbilities, [FieldAbility.surf]);
+      expect(restored.properties['lastHealLocation'], 'pokemon_center_1');
+    });
+
+    test('defaults are coherent', () {
+      const save = SaveData(saveId: 'test');
+      expect(save.currentMapId, '');
+      expect(save.playerPosition, const GridPos(x: 0, y: 0));
+      expect(save.playerFacing, EntityFacing.south);
+      expect(save.party.members, isEmpty);
+      expect(save.trainerProfile.name, 'Player');
+      expect(save.bag.entries, isEmpty);
+      expect(save.progression.unlockedFieldAbilities, isEmpty);
+      expect(save.progression.storyFlags, isEmpty);
+      expect(save.progression.completedStepIds, isEmpty);
+      expect(save.properties, isEmpty);
+    });
+
+    test('copyWith preserves unmodified fields', () {
+      const save = SaveData(
+        saveId: 'test',
+        currentMapId: 'route_1',
+        party: PlayerParty(members: [
+          PlayerPokemon(
+            speciesId: 'bulbasaur',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+          ),
+        ]),
+      );
+      final updated = save.copyWith(currentMapId: 'route_2');
+      expect(updated.saveId, 'test');
+      expect(updated.currentMapId, 'route_2');
+      expect(updated.party.members.length, 1);
+    });
+  });
+
+  group('FieldAbility', () {
+    test('JSON values match expected strings', () {
+      const save = SaveData(
+        saveId: 'test',
+        progression: PlayerProgression(
+          unlockedFieldAbilities: [
+            FieldAbility.surf,
+            FieldAbility.cut,
+            FieldAbility.strength,
+          ],
+        ),
+      );
+      final json = save.toJson();
+      final abilities = (json['progression']
+          as Map<String, dynamic>)['unlockedFieldAbilities'] as List;
+      expect(abilities, ['surf', 'cut', 'strength']);
+    });
+  });
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+
+```dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -5983,3 +9840,1031 @@ class _WarpTransitionSpec {
   final Duration fadeOut;
   final Duration fadeIn;
 }
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/test/file_game_save_repository_test.dart
+
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('FileGameSaveRepository E2E', () {
+    late _TestFileGameSaveRepository repository;
+    late Directory testDirectory;
+
+    setUp(() async {
+      testDirectory = await Directory.systemTemp.createTemp('game_save_test_');
+      repository = _TestFileGameSaveRepository(testDirectory);
+    });
+
+    tearDown(() async {
+      if (await testDirectory.exists()) {
+        await testDirectory.delete(recursive: true);
+      }
+    });
+
+    test('save → load → GameState identical', () async {
+      const originalState = GameState(
+        saveId: 'test_save_001',
+        currentMapId: 'pallet_town',
+        playerPosition: GridPos(x: 5, y: 3),
+        playerFacing: EntityFacing.north,
+        playerMovementMode: MovementMode.walk,
+        party: PlayerParty(members: [
+          PlayerPokemon(
+            speciesId: 'squirtle',
+            natureId: 'bold',
+            abilityId: 'torrent',
+            level: 12,
+            ivs: PokemonStatSpread(
+              hp: 31,
+              attack: 30,
+              defense: 29,
+              specialAttack: 28,
+              specialDefense: 27,
+              speed: 26,
+            ),
+            knownMoveIds: ['surf', 'water_gun'],
+            currentHp: 30,
+            heldItemId: 'mystic-water',
+          ),
+        ]),
+        trainerProfile: TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['boulder', 'cascade'],
+          money: 2500,
+          playtimeSeconds: 1800,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 10),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+        progression: PlayerProgression(
+          unlockedFieldAbilities: [FieldAbility.surf],
+          storyFlags: ['intro_done'],
+          seenSpeciesIds: ['pidgey'],
+          caughtSpeciesIds: ['pidgey'],
+        ),
+        scriptVariables: ScriptVariables(values: {
+          'rival_battles_won': ScriptVariableValue.int(3),
+        }),
+        storyFlags: StoryFlags(activeFlags: {
+          'trainer_defeated:gym_leader_1',
+          'badge_cascade',
+        }),
+        consumedEventIds: {'item_potion_route1', 'npc_trainer_route22'},
+        metadata: {'testKey': 'testValue'},
+      );
+
+      await repository.save(originalState);
+      final loadedState = await repository.load();
+
+      expect(loadedState, isNotNull);
+      expect(loadedState!.saveId, equals(originalState.saveId));
+      expect(loadedState.currentMapId, equals(originalState.currentMapId));
+      expect(loadedState.playerPosition, equals(originalState.playerPosition));
+      expect(loadedState.playerFacing, equals(originalState.playerFacing));
+      expect(loadedState.playerMovementMode,
+          equals(originalState.playerMovementMode));
+      expect(loadedState.party.members.length,
+          equals(originalState.party.members.length));
+      expect(loadedState.trainerProfile, equals(originalState.trainerProfile));
+      expect(loadedState.bag, equals(originalState.bag));
+      expect(loadedState.progression.unlockedFieldAbilities,
+          equals(originalState.progression.unlockedFieldAbilities));
+      expect(
+        loadedState.progression.seenSpeciesIds,
+        containsAll(<String>['pidgey', 'squirtle']),
+      );
+      expect(
+        loadedState.progression.caughtSpeciesIds,
+        containsAll(<String>['pidgey', 'squirtle']),
+      );
+      expect(loadedState.storyFlags.activeFlags,
+          equals(originalState.storyFlags.activeFlags));
+      expect(
+          loadedState.consumedEventIds, equals(originalState.consumedEventIds));
+    });
+
+    test('save → load → storyFlags contains trainer_defeated:{id}', () async {
+      const trainerId = 'gym_leader_1';
+      const originalState = GameState(
+        saveId: 'test_save_002',
+        currentMapId: 'pallet_town',
+        storyFlags: StoryFlags(activeFlags: {
+          'trainer_defeated:$trainerId',
+          'intro_done',
+        }),
+      );
+
+      await repository.save(originalState);
+      final loadedState = await repository.load();
+
+      expect(loadedState, isNotNull);
+      expect(loadedState!.storyFlags.activeFlags,
+          contains('trainer_defeated:$trainerId'));
+    });
+
+    test(
+        'load migrates legacy progression.storyFlags into storyFlags.activeFlags',
+        () async {
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      final legacyJson = <String, dynamic>{
+        'saveId': 'legacy_save',
+        'currentMapId': 'vova_center',
+        'progression': <String, dynamic>{
+          'unlockedFieldAbilities': <String>[],
+          'storyFlags': <String>[
+            'met_professor',
+            'trainer_defeated:jean_michel'
+          ],
+        },
+        'storyFlags': <String, dynamic>{
+          'activeFlags': <String>[],
+        },
+      };
+      await file.writeAsString(
+          const JsonEncoder.withIndent('  ').convert(legacyJson));
+
+      final loadedState = await repository.load();
+
+      expect(loadedState, isNotNull);
+      expect(loadedState!.storyFlags.activeFlags, contains('met_professor'));
+      expect(
+        loadedState.storyFlags.activeFlags,
+        contains('trainer_defeated:jean_michel'),
+      );
+    });
+
+    test('load when no save exists → returns null', () async {
+      final loadedState = await repository.load();
+      expect(loadedState, isNull);
+    });
+
+    test('exists() returns true after save', () async {
+      const state = GameState(
+        saveId: 'test_save_003',
+        currentMapId: 'pallet_town',
+      );
+
+      expect(await repository.exists(), isFalse);
+
+      await repository.save(state);
+
+      expect(await repository.exists(), isTrue);
+    });
+
+    test('delete → load → returns null', () async {
+      const state = GameState(
+        saveId: 'test_save_004',
+        currentMapId: 'pallet_town',
+      );
+
+      await repository.save(state);
+      expect(await repository.exists(), isTrue);
+
+      await repository.delete();
+      expect(await repository.exists(), isFalse);
+
+      final loadedState = await repository.load();
+      expect(loadedState, isNull);
+    });
+
+    test('JSON file structure is valid', () async {
+      const trainerId = 'test_trainer';
+      const state = GameState(
+        saveId: 'test_save_005',
+        currentMapId: 'test_map',
+        playerPosition: GridPos(x: 10, y: 5),
+        playerFacing: EntityFacing.east,
+        trainerProfile: TrainerProfile(
+          name: 'Red',
+          badgeIds: ['boulder'],
+          money: 500,
+          playtimeSeconds: 90,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
+        storyFlags: StoryFlags(activeFlags: {
+          'trainer_defeated:$trainerId',
+        }),
+      );
+
+      await repository.save(state);
+
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      final content = await file.readAsString();
+      final json = jsonDecode(content) as Map<String, dynamic>;
+
+      expect(json['saveId'], equals('test_save_005'));
+      expect(json['currentMapId'], equals('test_map'));
+      expect(json['playerPosition'], isA<Map<String, dynamic>>());
+      expect(json['playerFacing'], equals('east'));
+      expect(json['playerMovementMode'], equals('walk'));
+      expect(json['trainerProfile'], isA<Map<String, dynamic>>());
+      expect(json['bag'], isA<Map<String, dynamic>>());
+      expect(json['progression'], isA<Map<String, dynamic>>());
+      expect(json['storyFlags'], isA<Map<String, dynamic>>());
+
+      final storyFlags = json['storyFlags'] as Map<String, dynamic>;
+      expect(storyFlags['activeFlags'], isA<List>());
+      expect(
+          (storyFlags['activeFlags'] as List)
+              .contains('trainer_defeated:$trainerId'),
+          isTrue);
+    });
+
+    test(
+        'load migrates legacy party members and save rewrites normalized phase 9 data',
+        () async {
+      const originalState = GameState(
+        saveId: 'legacy_phase_9',
+        currentMapId: 'vova_center',
+        playerPosition: GridPos(x: 4, y: 7),
+        playerFacing: EntityFacing.west,
+        party: PlayerParty(members: [
+          PlayerPokemon(
+            speciesId: 'lapras',
+            natureId: 'modest',
+            abilityId: 'water-absorb',
+            level: 30,
+            knownMoveIds: ['surf', 'ice_beam'],
+            currentHp: 22,
+          ),
+        ]),
+        trainerProfile: TrainerProfile(
+          name: 'Leaf',
+          badgeIds: ['cascade'],
+          money: 1200,
+          playtimeSeconds: 600,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+          ],
+        ),
+        progression: PlayerProgression(
+          unlockedFieldAbilities: [FieldAbility.surf],
+          storyFlags: ['intro_done'],
+        ),
+        scriptVariables: ScriptVariables(values: {
+          'rival_battles_won': ScriptVariableValue.int(3),
+        }),
+        storyFlags: StoryFlags(activeFlags: {
+          'trainer_defeated:gym_leader_1',
+          'badge_cascade',
+        }),
+        consumedEventIds: {'item_potion_route1', 'npc_trainer_route22'},
+        metadata: {'testKey': 'testValue'},
+      );
+      final legacyJson = originalState.toJson();
+      final party = legacyJson['party'] as Map<String, dynamic>;
+      final members = party['members'] as List<dynamic>;
+      final member = members.single as Map<String, dynamic>;
+      member
+        ..remove('natureId')
+        ..remove('abilityId')
+        ..remove('ivs')
+        ..remove('evs')
+        ..remove('currentHp')
+        ..remove('statusId')
+        ..remove('isShiny')
+        ..remove('heldItemId')
+        ..['id'] = 'party_1'
+        ..['nickname'] = 'Ferry'
+        ..['isFainted'] = false;
+
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(legacyJson),
+      );
+
+      final loadedState = await repository.load();
+
+      expect(loadedState, isNotNull);
+      expect(loadedState!.party.members.single.speciesId, 'lapras');
+      expect(loadedState.party.members.single.natureId, 'hardy');
+      expect(loadedState.party.members.single.abilityId, 'unknown');
+      expect(loadedState.party.members.single.currentHp, 1);
+      expect(loadedState.progression.caughtSpeciesIds, contains('lapras'));
+      expect(loadedState.progression.seenSpeciesIds, contains('lapras'));
+      expect(
+        loadedState.scriptVariables.values['rival_battles_won'],
+        const ScriptVariableValue.int(3),
+      );
+      expect(
+        loadedState.storyFlags.activeFlags,
+        equals(originalState.storyFlags.activeFlags),
+      );
+      expect(
+        loadedState.consumedEventIds,
+        equals(originalState.consumedEventIds),
+      );
+      expect(loadedState.metadata, equals(originalState.metadata));
+
+      await repository.save(loadedState);
+
+      final normalizedJson =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final normalizedParty = normalizedJson['party'] as Map<String, dynamic>;
+      final normalizedMembers = normalizedParty['members'] as List<dynamic>;
+      final normalizedMember = normalizedMembers.single as Map<String, dynamic>;
+
+      expect(normalizedMember['speciesId'], 'lapras');
+      expect(normalizedMember['natureId'], 'hardy');
+      expect(normalizedMember['abilityId'], 'unknown');
+      expect(normalizedMember['currentHp'], 1);
+      expect(normalizedMember.containsKey('id'), isFalse);
+      expect(normalizedMember.containsKey('nickname'), isFalse);
+      expect(normalizedMember.containsKey('isFainted'), isFalse);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+
+    test('save writes normalized phase 9 data', () async {
+      const state = GameState(
+        saveId: ' test_save_005b ',
+        currentMapId: ' test_map ',
+        trainerProfile: TrainerProfile(
+          name: ' Red ',
+          badgeIds: ['cascade', 'boulder', 'cascade'],
+          money: 500,
+          playtimeSeconds: 90,
+        ),
+        bag: Bag(
+          entries: [
+            BagEntry(itemId: ' potion ', categoryId: ' medicine ', quantity: 2),
+            BagEntry(itemId: ' poke-ball ', categoryId: ' items ', quantity: 5),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
+      );
+
+      await repository.save(state);
+
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      final content = await file.readAsString();
+      final json = jsonDecode(content) as Map<String, dynamic>;
+      final trainerProfile = json['trainerProfile'] as Map<String, dynamic>;
+      final bag = json['bag'] as Map<String, dynamic>;
+      final entries = bag['entries'] as List<dynamic>;
+
+      expect(json['saveId'], equals('test_save_005b'));
+      expect(json['currentMapId'], equals('test_map'));
+      expect(trainerProfile['name'], equals('Red'));
+      expect(trainerProfile['badgeIds'], equals(['boulder', 'cascade']));
+      expect(entries, [
+        {
+          'itemId': 'poke-ball',
+          'categoryId': 'items',
+          'quantity': 5,
+        },
+        {
+          'itemId': 'potion',
+          'categoryId': 'medicine',
+          'quantity': 5,
+        },
+      ]);
+    });
+
+    test('save keeps project.json unchanged', () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      const state = GameState(
+        saveId: 'test_save_006',
+        trainerProfile: TrainerProfile(name: 'Blue'),
+      );
+
+      await repository.save(state);
+
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+
+    test('invalid save does not write and keeps project.json unchanged',
+        () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      const invalidState = GameState(saveId: '');
+
+      await expectLater(
+        () => repository.save(invalidState),
+        throwsA(isA<GameSaveException>()),
+      );
+
+      expect(await repository.exists(), isFalse);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+
+    test('corrupt load fails and does not rewrite save or project.json',
+        () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      const corruptContent = '''
+{
+  "saveId": "broken_save",
+  "currentMapId": "vova_center",
+  "party": {
+    "members": [
+      {
+        "speciesId": "lapras",
+        "knownMoveIds": ["surf"]
+      }
+    ]
+  }
+}
+''';
+      await file.writeAsString(corruptContent);
+
+      await expectLater(
+        () => repository.load(),
+        throwsA(isA<GameSaveException>()),
+      );
+
+      expect(await file.readAsString(), corruptContent);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+
+    test(
+        'invalid nested phase 9 data does not write and keeps project.json unchanged',
+        () async {
+      final projectFile = File('${testDirectory.path}/project.json');
+      await projectFile.writeAsString('{"name":"test"}');
+
+      const invalidState = GameState(
+        saveId: 'test_save_007',
+        trainerProfile: TrainerProfile(name: '   '),
+      );
+
+      await expectLater(
+        () => repository.save(invalidState),
+        throwsA(isA<GameSaveException>()),
+      );
+
+      expect(await repository.exists(), isFalse);
+      expect(await projectFile.readAsString(), '{"name":"test"}');
+    });
+  });
+}
+
+class _TestFileGameSaveRepository extends FileGameSaveRepository {
+  _TestFileGameSaveRepository(this._testDirectory);
+
+  final Directory _testDirectory;
+
+  Future<String> exposedSaveFilePath() => getSaveFilePath();
+
+  @override
+  Future<String> getSaveFilePath() async {
+    final saveDir = Directory('${_testDirectory.path}/pokemonProject');
+    if (!await saveDir.exists()) {
+      await saveDir.create(recursive: true);
+    }
+    return '${saveDir.path}/game_save.json';
+  }
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+
+```dart
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/encounter_to_battle_request.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
+import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:path/path.dart' as p;
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('wild battle runtime flow lot 11', () {
+    late Directory tempProjectRoot;
+    const mapper = RuntimeBattleSetupMapper();
+
+    setUp(() async {
+      tempProjectRoot =
+          await Directory.systemTemp.createTemp('wild_battle_flow_');
+    });
+
+    tearDown(() async {
+      if (await tempProjectRoot.exists()) {
+        await tempProjectRoot.delete(recursive: true);
+      }
+    });
+
+    test('real wild encounter chain resolves to victory and writes back hp',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+
+      // On part bien du vrai chemin overworld minimal :
+      // 1. world gameplay avec spawn réel
+      // 2. déplacement d'une case vers une zone de rencontre
+      // 3. check de rencontre sur la case atteinte
+      final initialWorld = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final stepResult = stepGameplayWorld(
+        initialWorld,
+        const MoveIntent(Direction.east),
+      );
+      expect(stepResult, isA<Moved>());
+      final movedWorld = stepResult.world;
+      expect(movedWorld.player.pos, const GridPos(x: 1, y: 0));
+
+      final encounterCheck = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      );
+
+      expect(encounterCheck.triggered, isTrue);
+      final encounter = encounterCheck.encounter!;
+      expect(encounter.speciesId, equals('sparkitten'));
+      expect(encounter.level, equals(6));
+
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+      expect(request.kind, equals(RuntimeBattleKind.wild));
+      expect(request.source, equals(RuntimeBattleSourceKind.encounterZone));
+
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: _playerState(),
+        request: request,
+      );
+      final stateWithSeen = markSpeciesSeenInGameState(
+          _playerState(), setup.enemyPokemon.speciesId);
+      expect(stateWithSeen.progression.seenSpeciesIds, contains('sparkitten'));
+      expect(
+        stateWithSeen.progression.caughtSpeciesIds,
+        isNot(contains('sparkitten')),
+      );
+
+      final session = createBattleSession(setup);
+      final afterTurn1 = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(afterTurn1.state.isFinished, isFalse);
+      final afterTurn2 =
+          afterTurn1.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(afterTurn2.state.outcome, isNotNull);
+      expect(afterTurn2.state.outcome!.isVictory, isTrue);
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: stateWithSeen,
+        context: const RuntimeActiveBattleContext(
+          request: WildBattleStartRequest(
+            requestId: 'wild-request',
+            createdAtEpochMs: 1,
+            returnContext: OverworldReturnContext(
+              mapId: 'field_map',
+              playerPos: GridPos(x: 1, y: 0),
+              playerFacing: Direction.east,
+            ),
+            mapId: 'field_map',
+            zoneId: 'encounter_grass',
+            tableId: 'field_grass',
+            encounterKind: EncounterKind.walk,
+            speciesId: 'sparkitten',
+            level: 6,
+            minLevel: 6,
+            maxLevel: 6,
+            weight: 1,
+            playerPos: GridPos(x: 1, y: 0),
+          ),
+          playerPartyIndex: 0,
+        ),
+        outcome: afterTurn2.state.outcome!,
+      );
+
+      expect(updatedState.party.members.first.currentHp, equals(15));
+      expect(updatedState.progression.seenSpeciesIds, contains('sparkitten'));
+      expect(
+        updatedState.progression.caughtSpeciesIds,
+        isNot(contains('sparkitten')),
+      );
+      expect(updatedState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('run choice produces a real runaway outcome without trainer flags',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: _playerState(),
+        request: request,
+      );
+      final stateWithSeen = markSpeciesSeenInGameState(
+          _playerState(), setup.enemyPokemon.speciesId);
+
+      final outcome = createBattleSession(setup)
+          .applyChoice(const PlayerBattleChoiceRun())
+          .state
+          .outcome!;
+      expect(outcome.isRunaway, isTrue);
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: stateWithSeen,
+        context: RuntimeActiveBattleContext(
+          request: request,
+          playerPartyIndex: 0,
+        ),
+        outcome: outcome,
+      );
+
+      expect(updatedState.party.members.first.currentHp, equals(20));
+      expect(updatedState.progression.seenSpeciesIds, contains('sparkitten'));
+      expect(
+        updatedState.progression.caughtSpeciesIds,
+        isNot(contains('sparkitten')),
+      );
+      expect(updatedState.storyFlags.activeFlags, isEmpty);
+    });
+  });
+}
+
+GameState _playerState() {
+  return const GameState(
+    saveId: 'wild-flow-save',
+    party: PlayerParty(
+      members: <PlayerPokemon>[
+        PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 10,
+          knownMoveIds: <String>['vine_whip'],
+          currentHp: 20,
+        ),
+      ],
+    ),
+  );
+}
+
+MapData _buildMap() {
+  return const MapData(
+    id: 'field_map',
+    name: 'Field Map',
+    size: GridSize(width: 4, height: 3),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_start',
+        name: 'Spawn Start',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    gameplayZones: <MapGameplayZone>[
+      MapGameplayZone(
+        id: 'encounter_grass',
+        name: 'Encounter Grass',
+        kind: GameplayZoneKind.encounter,
+        area: MapRect(
+          pos: GridPos(x: 1, y: 0),
+          size: GridSize(width: 1, height: 1),
+        ),
+        encounter: EncounterZonePayload(
+          encounterTableId: 'field_grass',
+          encounterKind: EncounterKind.walk,
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(
+      defaultSpawnId: 'spawn_start',
+    ),
+  );
+}
+
+RuntimeMapBundle _buildBundle(
+  String projectRootDirectory,
+  ProjectManifest manifest,
+  MapData map,
+) {
+  return RuntimeMapBundle(
+    manifest: manifest,
+    map: map,
+    projectRootDirectory: projectRootDirectory,
+    tilesetAbsolutePathsById: const <String, String>{},
+  );
+}
+
+Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
+  const manifest = ProjectManifest(
+    name: 'Wild Battle Flow Test',
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'field_map',
+        name: 'Field Map',
+        relativePath: 'maps/field_map.json',
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[],
+    encounterTables: <ProjectEncounterTable>[
+      ProjectEncounterTable(
+        id: 'field_grass',
+        name: 'Field Grass',
+        encounterKind: EncounterKind.walk,
+        entries: <ProjectEncounterEntry>[
+          ProjectEncounterEntry(
+            speciesId: 'sparkitten',
+            minLevel: 6,
+            maxLevel: 6,
+            weight: 1,
+          ),
+        ],
+      ),
+    ],
+    pokemon: ProjectPokemonConfig(
+      dataRoot: 'data/pokemon',
+      speciesDir: 'data/pokemon/species',
+      learnsetsDir: 'data/pokemon/learnsets',
+      evolutionsDir: 'data/pokemon/evolutions',
+      mediaDir: 'data/pokemon/media',
+      catalogFiles: <String, String>{
+        'moves': 'data/pokemon/catalogs/moves.json',
+      },
+    ),
+  );
+
+  await File(
+    p.join(projectRoot.path, 'project.json'),
+  ).writeAsString(
+      const JsonEncoder.withIndent('  ').convert(manifest.toJson()));
+  await _writePokemonFixtures(projectRoot);
+  return manifest;
+}
+
+Future<void> _writePokemonFixtures(Directory projectRoot) async {
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'data/pokemon/species/001-sproutle.json',
+    <String, dynamic>{
+      'id': 'sproutle',
+      'slug': 'sproutle',
+      'nationalDex': 1,
+      'names': <String, String>{'en': 'Sproutle'},
+      'speciesName': <String, String>{'en': 'Seedling'},
+      'genIntroduced': 1,
+      'typing': <String, Object>{
+        'types': <String>['grass'],
+      },
+      'baseStats': <String, int>{
+        'hp': 45,
+        'atk': 49,
+        'def': 49,
+        'spa': 65,
+        'spd': 65,
+        'spe': 45,
+        'bst': 318,
+      },
+      'abilities': <String, String>{'primary': 'overgrow'},
+      'breeding': <String, Object>{
+        'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
+        'eggGroups': <String>['monster', 'grass'],
+        'hatchCycles': 20,
+      },
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 64,
+        'catchRate': 45,
+        'baseFriendship': 50,
+      },
+      'refs': <String, String>{
+        'learnset': 'sproutle',
+        'evolution': 'sproutle',
+        'media': 'sproutle',
+      },
+      'dexContent': <String, Object>{
+        'heightM': 0.7,
+        'weightKg': 6.9,
+      },
+      'gameplayFlags': <String, bool>{'starterEligible': true},
+      'sourceMeta': <String, Object>{'seededBy': 'test', 'seedVersion': 1},
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'data/pokemon/species/004-sparkitten.json',
+    <String, dynamic>{
+      'id': 'sparkitten',
+      'slug': 'sparkitten',
+      'nationalDex': 4,
+      'names': <String, String>{'en': 'Sparkitten'},
+      'speciesName': <String, String>{'en': 'Ember Cat'},
+      'genIntroduced': 1,
+      'typing': <String, Object>{
+        'types': <String>['fire'],
+      },
+      'baseStats': <String, int>{
+        'hp': 35,
+        'atk': 52,
+        'def': 43,
+        'spa': 60,
+        'spd': 50,
+        'spe': 65,
+        'bst': 305,
+      },
+      'abilities': <String, String>{'primary': 'blaze'},
+      'breeding': <String, Object>{
+        'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
+        'eggGroups': <String>['field'],
+        'hatchCycles': 20,
+      },
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 62,
+        'catchRate': 45,
+        'baseFriendship': 50,
+      },
+      'refs': <String, String>{
+        'learnset': 'sparkitten',
+        'evolution': 'sparkitten',
+        'media': 'sparkitten',
+      },
+      'dexContent': <String, Object>{
+        'heightM': 0.6,
+        'weightKg': 8.5,
+      },
+      'sourceMeta': <String, Object>{'seededBy': 'test', 'seedVersion': 1},
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'data/pokemon/learnsets/sproutle.json',
+    <String, dynamic>{
+      'startingMoves': <String>['vine_whip'],
+      'relearnMoves': <String>[],
+      'levelUp': <Map<String, Object>>[],
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'data/pokemon/learnsets/sparkitten.json',
+    <String, dynamic>{
+      'startingMoves': <String>['scratch'],
+      'relearnMoves': <String>[],
+      'levelUp': <Map<String, Object>>[],
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'data/pokemon/catalogs/moves.json',
+    <String, dynamic>{
+      'schemaVersion': 1,
+      'kind': 'pokemon_catalog',
+      'catalog': 'moves',
+      'meta': <String, Object>{
+        'description': 'Wild battle flow test move catalog',
+      },
+      'entries': <Map<String, Object?>>[
+        _moveEntry('vine_whip', 'Vine Whip', 12),
+        _moveEntry('scratch', 'Scratch', 5),
+      ],
+    },
+  );
+}
+
+Map<String, Object?> _moveEntry(String id, String name, int power) {
+  return <String, Object?>{
+    'id': id,
+    'name': name,
+    'type': 'normal',
+    'category': power == 0 ? 'status' : 'physical',
+    'power': power == 0 ? null : power,
+    'pp': 35,
+  };
+}
+
+Future<void> _writeProjectRelativeJson(
+  Directory projectRoot,
+  String relativePath,
+  Map<String, dynamic> json,
+) async {
+  final file = File(p.join(projectRoot.path, relativePath));
+  await file.parent.create(recursive: true);
+  await file.writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+}
+
+class _FixedEncounterRandom implements Random {
+  _FixedEncounterRandom({
+    required this.nextDoubleValues,
+    required this.nextIntValues,
+  });
+
+  final List<double> nextDoubleValues;
+  final List<int> nextIntValues;
+  int _doubleIndex = 0;
+  int _intIndex = 0;
+
+  @override
+  bool nextBool() => false;
+
+  @override
+  double nextDouble() {
+    if (nextDoubleValues.isEmpty) {
+      return 0.0;
+    }
+    final index = _doubleIndex < nextDoubleValues.length
+        ? _doubleIndex++
+        : nextDoubleValues.length - 1;
+    return nextDoubleValues[index];
+  }
+
+  @override
+  int nextInt(int max) {
+    if (max <= 0) {
+      throw ArgumentError.value(max, 'max', 'must be > 0');
+    }
+    if (nextIntValues.isEmpty) {
+      return 0;
+    }
+    final index = _intIndex < nextIntValues.length
+        ? _intIndex++
+        : nextIntValues.length - 1;
+    return nextIntValues[index] % max;
+  }
+}
+
+```
