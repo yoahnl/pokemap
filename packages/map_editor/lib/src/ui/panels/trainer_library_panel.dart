@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -35,11 +34,19 @@ const PokemonMovesCatalogLookupService _movesLookupService =
     PokemonMovesCatalogLookupService();
 const PokemonItemsCatalogLookupService _itemsLookupService =
     PokemonItemsCatalogLookupService();
-const List<String> _trainerQuickGenderValues = <String>[
+const String _trainerLevelValidationMessage =
+    'Level must be between 1 and 100.';
+const List<String> _trainerFallbackGenderValues = <String>[
   'male',
   'female',
+  'genderless',
   'any',
 ];
+final List<int> _trainerLevelValues = List<int>.generate(
+  100,
+  (index) => index + 1,
+  growable: false,
+);
 
 class TrainerLibraryPanel extends ConsumerStatefulWidget {
   const TrainerLibraryPanel({
@@ -271,7 +278,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
           : 'Recherche locale active sur ${speciesEntries.length} espèces du projet.';
     } catch (error) {
       speciesMessage =
-          'Impossible de charger les espèces locales. La saisie brute reste possible.\n$error';
+          'Impossible de charger les espèces locales. La saisie brute reste possible.';
     }
 
     late final PokemonMovesCatalogView movesCatalogView;
@@ -281,12 +288,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       // The panel should degrade honestly if a loader blows up unexpectedly.
       // We keep the authoring surface usable with raw IDs instead of leaving
       // the future in an error state that the current builder does not render.
-      movesCatalogView = PokemonMovesCatalogView(
-        entries: const <PokemonMoveCatalogEntryView>[],
+      movesCatalogView = const PokemonMovesCatalogView(
+        entries: <PokemonMoveCatalogEntryView>[],
         isAvailable: false,
         description: 'Catalogue local des attaques indisponible.',
         message:
-            'Impossible de charger le catalogue local des attaques. La saisie brute reste possible.\n$error',
+            'Impossible de charger le catalogue local des attaques. La saisie brute reste possible.',
       );
     }
 
@@ -294,12 +301,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     try {
       itemsCatalogView = await itemsLoader.execute(workspace);
     } catch (error) {
-      itemsCatalogView = PokemonItemsCatalogView(
-        entries: const <PokemonItemCatalogEntryView>[],
+      itemsCatalogView = const PokemonItemsCatalogView(
+        entries: <PokemonItemCatalogEntryView>[],
         isAvailable: false,
         description: 'Catalogue local des objets indisponible.',
         message:
-            'Impossible de charger le catalogue local des objets. La saisie brute reste possible.\n$error',
+            'Impossible de charger le catalogue local des objets. La saisie brute reste possible.',
       );
     }
 
@@ -679,9 +686,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     }
 
     final draft = _buildPokemonDraft();
-    if (draft.level == null) {
+    if (draft.level == null || draft.level! < 1 || draft.level! > 100) {
       setState(() {
-        _pokemonValidationMessage = 'Level must be a positive integer.';
+        _pokemonValidationMessage = _trainerLevelValidationMessage;
       });
       return;
     }
@@ -768,8 +775,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       return 'Species ID cannot be empty.';
     }
 
-    if (draft.level == null || draft.level! <= 0) {
-      return 'Level must be a positive integer.';
+    if (draft.level == null || draft.level! < 1 || draft.level! > 100) {
+      return _trainerLevelValidationMessage;
     }
 
     if (references.isSpeciesAvailable &&
@@ -779,9 +786,18 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       return 'Species "${draft.speciesId}" is not present in the local Pokédex.';
     }
 
-    if (references.movesCatalogView.isAvailable) {
-      for (var i = 0; i < draft.moves.length; i++) {
-        final moveId = draft.moves[i];
+    final seenMoveIds = <String>{};
+    for (var i = 0; i < draft.moves.length; i++) {
+      final moveId = draft.moves[i];
+      final normalizedMoveId = moveId.toLowerCase();
+      if (!seenMoveIds.add(normalizedMoveId)) {
+        // Duplicate move picks make the authoring UI ambiguous and are not
+        // accepted by the trainer contract. The guided dropdown already hides
+        // used moves, but the raw fallback must still respect the same rule
+        // even when the move catalog is temporarily unavailable.
+        return 'Move ${i + 1} duplicates another selected move: $moveId';
+      }
+      if (references.movesCatalogView.isAvailable) {
         if (_movesLookupService.findById(
               references.movesCatalogView.entries,
               moveId,
@@ -811,6 +827,16 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
         draft.formId!.isNotEmpty &&
         !availableForms.contains(draft.formId)) {
       return 'Form "${draft.formId}" does not match the selected species.';
+    }
+
+    final availableGenders = speciesDetail == null
+        ? const <String>[]
+        : _buildTrainerGenderSuggestions(speciesDetail.species);
+    if (availableGenders.isNotEmpty &&
+        draft.gender != null &&
+        draft.gender!.isNotEmpty &&
+        !availableGenders.contains(draft.gender)) {
+      return 'Gender "${draft.gender}" does not match the selected species.';
     }
 
     return null;

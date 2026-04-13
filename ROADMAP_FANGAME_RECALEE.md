@@ -798,6 +798,11 @@ Statut actuel :
   - wording plus compréhensible quand les suggestions guidées ne peuvent pas
     être chargées ;
   - fallback brut maintenu, mais relégué à une zone avancée.
+- lot 8-4 livré :
+  - choix `species` et `moves` via de vrais dropdowns searchables ;
+  - sélection stable et lisible, distincte de la recherche en cours ;
+  - façade principale non centrée sur des champs texte techniques ;
+  - fallback brut conservé, mais strictement secondaire.
 
 Gate de sortie :
 
@@ -1250,6 +1255,43 @@ Livré concrètement :
   - le learnset local n'existe pas ;
   - le catalogue local des moves est indisponible ;
 - tests widget trainer renforcés ;
+- report de lot présent dans `reports/`.
+
+### Lot 8-4 — Trainer Studio avec vrais dropdowns searchables
+
+Priorité : `must-have`
+Statut : `livré`
+
+But :
+
+- remplacer les faux champs assistés restants par de vraies sélections
+  guidées, sans créer de seconde surface trainer.
+
+Done :
+
+- `species` choisi via un vrai dropdown searchable ;
+- chaque slot move choisi via un vrai dropdown searchable ;
+- la recherche reste dans le menu, pas dans la façade principale ;
+- la valeur sélectionnée reste stable et lisible ;
+- les fallbacks bruts restent disponibles uniquement en zone avancée.
+
+Livré concrètement :
+
+- composant local privé de dropdown searchable réutilisé dans le
+  `TrainerLibraryPanel` ;
+- sélecteur `species` fermé/ouvert avec recherche intégrée dans le menu ;
+- sélecteurs `Move 1..4` fermés/ouverts avec recherche intégrée dans le menu ;
+- suggestions guidées de moves toujours calculées via espèce + niveau +
+  learnset local ;
+- moves dupliqués maintenant bloqués dans la façade guidée et rejetés aussi
+  côté fallback brut ;
+- niveau trainer passé d'un champ libre à une vraie sélection `Lv.1..Lv.100` ;
+- genre passé d'un champ libre à des choix guidés tenant compte du Pokédex
+  local, y compris le cas `genderless` ;
+- sélection explicite par clic, clear explicite, pas de confusion entre
+  recherche courante et valeur commitée ;
+- tests widget trainer réalignés sur le vrai contrat dropdown ;
+- preuve réaliste conservée via les tests disque des readers Pokémon ;
 - report de lot présent dans `reports/`.
 
 ### Lot 9 — Mappers runtime réels vers `BattleSetup`

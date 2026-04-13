@@ -222,7 +222,7 @@ void main() {
           isA<EditorNotFoundException>().having(
             (error) => error.message,
             'message',
-            contains('Pokemon catalog not declared in manifest'),
+            contains('Pokemon catalog not declared'),
           ),
         ),
       );

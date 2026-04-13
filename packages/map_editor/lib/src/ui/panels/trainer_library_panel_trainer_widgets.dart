@@ -82,8 +82,12 @@ class _TrainerReferencesBanner extends StatelessWidget {
             Text(
               references.movesCatalogView.isAvailable
                   ? references.movesCatalogView.description
-                  : references.movesCatalogView.message ??
-                      references.movesCatalogView.description,
+                  : _buildAuthorFacingCatalogUnavailableMessage(
+                      subjectLabel: 'move data',
+                      fallbackMessage:
+                          'Guided move suggestions stay unavailable until the local catalog can be read.',
+                      technicalMessage: references.movesCatalogView.message,
+                    ),
               style: TextStyle(
                 color: subtle,
                 fontSize: 11,
@@ -95,8 +99,12 @@ class _TrainerReferencesBanner extends StatelessWidget {
             Text(
               references.itemsCatalogView.isAvailable
                   ? references.itemsCatalogView.description
-                  : references.itemsCatalogView.message ??
-                      references.itemsCatalogView.description,
+                  : _buildAuthorFacingCatalogUnavailableMessage(
+                      subjectLabel: 'item data',
+                      fallbackMessage:
+                          'Raw item IDs stay possible while the local catalog is unavailable.',
+                      technicalMessage: references.itemsCatalogView.message,
+                    ),
               style: TextStyle(
                 color: subtle,
                 fontSize: 11,

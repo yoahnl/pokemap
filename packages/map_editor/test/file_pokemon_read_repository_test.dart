@@ -1,11 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
+import 'package:map_editor/src/application/use_cases/load_pokedex_species_detail_use_case.dart';
+import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
+import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -91,6 +96,209 @@ void main() {
       expect(
         moves.entries.map((entry) => entry['id']),
         containsAll(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
+      );
+    });
+
+    test(
+        'loads species detail and move catalog from project.json-configured paths without pokemon_data_manifest.json',
+        () async {
+      final customProject = _buildConfiguredPokemonProject();
+      await _writeProjectJson(workspace, customProject.toJson());
+      await _writeProjectRelativeTextFile(
+        workspace,
+        'custom/pokemon/species/0001-bulbasaur.json',
+        '''
+{
+  "id": "bulbasaur",
+  "slug": "bulbasaur",
+  "nationalDex": 1,
+  "names": {"en": "Bulbasaur"},
+  "speciesName": {"en": "Seed Pokemon"},
+  "genIntroduced": 1,
+  "typing": {
+    "types": ["grass", "poison"]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 49,
+    "def": 49,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45,
+    "bst": 318
+  },
+  "abilities": {"primary": "overgrow"},
+  "breeding": {
+    "genderRatio": {"male": 0.875, "female": 0.125},
+    "eggGroups": ["monster", "grass"],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "bulbasaur",
+    "isBaseForm": true,
+    "formId": "base",
+    "otherForms": ["blossom"]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true
+  },
+  "refs": {
+    "learnset": "bulbasaur",
+    "evolution": "bulbasaur",
+    "media": "bulbasaur"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 6.9,
+    "color": "green",
+    "flavorText": "A strange seed was planted on its back at birth."
+  },
+  "gameplayFlags": {"starterEligible": true},
+  "sourceMeta": {"seededBy": "test", "seedVersion": 1}
+}
+''',
+      );
+      await _writeProjectRelativeTextFile(
+        workspace,
+        'custom/pokemon/learnsets/bulbasaur.json',
+        '''
+{
+  "speciesId": "bulbasaur",
+  "startingMoves": ["tackle"],
+  "relearnMoves": ["growl"],
+  "levelUp": [
+    {
+      "moveId": "vine_whip",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "project"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "project"
+    }
+  ]
+}
+''',
+      );
+      await _writeProjectRelativeTextFile(
+        workspace,
+        'custom/pokemon/evolutions/bulbasaur.json',
+        '''
+{
+  "speciesId": "bulbasaur",
+  "evolutions": []
+}
+''',
+      );
+      await _writeProjectRelativeTextFile(
+        workspace,
+        'custom/pokemon/media/bulbasaur.json',
+        '''
+{
+  "speciesId": "bulbasaur",
+  "defaultFormId": "base",
+  "variants": {}
+}
+''',
+      );
+      await _writeProjectRelativeTextFile(
+        workspace,
+        'custom/pokemon/catalogs/moves.json',
+        '''
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "moves",
+  "meta": {
+    "description": "Local move catalog."
+  },
+  "entries": [
+    {
+      "id": "tackle",
+      "name": "Tackle",
+      "type": "normal",
+      "category": "physical",
+      "power": 40,
+      "pp": 35
+    },
+    {
+      "id": "growl",
+      "name": "Growl",
+      "type": "normal",
+      "category": "status",
+      "pp": 40
+    },
+    {
+      "id": "vine_whip",
+      "name": "Vine Whip",
+      "type": "grass",
+      "category": "physical",
+      "power": 45,
+      "pp": 25
+    }
+  ]
+}
+''',
+      );
+      await _writeProjectRelativeTextFile(
+        workspace,
+        'custom/pokemon/catalogs/items.json',
+        '''
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "items",
+  "meta": {
+    "description": "Local item catalog."
+  },
+  "entries": [
+    {
+      "id": "oran_berry",
+      "name": "Oran Berry",
+      "aliases": ["oran"]
+    }
+  ]
+}
+''',
+      );
+
+      final detailLoader = LoadPokedexSpeciesDetailUseCase(repository);
+      final movesLoader = LoadPokemonMovesCatalogUseCase(
+        readRepository: repository,
+      );
+      final itemsLoader = LoadPokemonItemsCatalogUseCase(
+        readRepository: repository,
+      );
+
+      final detail = await detailLoader.execute(workspace, 'bulbasaur');
+      final movesCatalog = await movesLoader.execute(workspace);
+      final itemsCatalog = await itemsLoader.execute(workspace);
+
+      expect(detail.species.id, 'bulbasaur');
+      expect(detail.learnset, isNotNull);
+      expect(
+        detail.learnset!.levelUp.map((entry) => entry.moveId),
+        containsAll(<String>['vine_whip', 'razor_leaf']),
+      );
+      expect(movesCatalog.isAvailable, isTrue);
+      expect(
+        movesCatalog.entries.map((entry) => entry.id),
+        containsAll(<String>['tackle', 'growl', 'vine_whip']),
+      );
+      expect(itemsCatalog.isAvailable, isTrue);
+      expect(
+        itemsCatalog.entries.map((entry) => entry.id),
+        contains('oran_berry'),
       );
     });
 
@@ -181,4 +389,44 @@ String _resolveRepositoryRootFromCurrentDirectory() {
     }
     current = parent;
   }
+}
+
+const ProjectManifest _configuredPokemonProject = ProjectManifest(
+  name: 'Configured Pokemon Project',
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[],
+  pokemon: ProjectPokemonConfig(
+    dataRoot: 'custom/pokemon',
+    speciesDir: 'custom/pokemon/species',
+    learnsetsDir: 'custom/pokemon/learnsets',
+    evolutionsDir: 'custom/pokemon/evolutions',
+    mediaDir: 'custom/pokemon/media',
+    catalogFiles: <String, String>{
+      'moves': 'custom/pokemon/catalogs/moves.json',
+      'items': 'custom/pokemon/catalogs/items.json',
+    },
+  ),
+);
+
+ProjectManifest _buildConfiguredPokemonProject() => _configuredPokemonProject;
+
+Future<void> _writeProjectJson(
+  ProjectFileSystem workspace,
+  Map<String, dynamic> json,
+) async {
+  await _writeProjectRelativeTextFile(
+    workspace,
+    'project.json',
+    const JsonEncoder.withIndent('  ').convert(json),
+  );
+}
+
+Future<void> _writeProjectRelativeTextFile(
+  ProjectFileSystem workspace,
+  String relativePath,
+  String contents,
+) async {
+  final file = File(workspace.resolveProjectRelativePath(relativePath));
+  await file.parent.create(recursive: true);
+  await file.writeAsString(contents);
 }

@@ -33,7 +33,7 @@ class _TrainerReferenceData {
       : speciesEntries = const <PokemonDatabaseIndexEntry>[],
         isSpeciesAvailable = false,
         speciesMessage =
-            'Aucun workspace Pokémon exploitable. La saisie brute reste possible, mais sans assistance locale.',
+            'Aucun workspace Pokémon exploitable. La saisie brute reste possible, mais sans suggestions locales guidées.',
         movesCatalogView = const PokemonMovesCatalogView(
           entries: <PokemonMoveCatalogEntryView>[],
           isAvailable: false,
@@ -157,16 +157,64 @@ List<String> _buildSpeciesFormSuggestions(PokemonSpeciesFile species) {
   return unique;
 }
 
-String _firstGuidanceLine(String rawMessage) {
-  final trimmed = rawMessage.trim();
-  if (trimmed.isEmpty) {
-    return '';
+List<String> _buildTrainerGenderSuggestions(PokemonSpeciesFile species) {
+  final ratio = species.breeding.genderRatio;
+  final isGenderless = (ratio['genderless'] ?? 0) > 0;
+  if (isGenderless) {
+    return const <String>['genderless'];
   }
-  final newlineIndex = trimmed.indexOf('\n');
-  if (newlineIndex < 0) {
-    return trimmed;
+
+  final suggestions = <String>[
+    if ((ratio['male'] ?? 0) > 0) 'male',
+    if ((ratio['female'] ?? 0) > 0) 'female',
+  ];
+  if (suggestions.length > 1) {
+    // `any` stays useful as an author-facing shorthand for “leave the final
+    // runtime pick unconstrained between the locally valid sexes”.
+    suggestions.add('any');
   }
-  return trimmed.substring(0, newlineIndex).trim();
+  return suggestions;
+}
+
+String _trainerGenderLabel(String gender) {
+  return switch (gender.trim().toLowerCase()) {
+    'male' => 'Male',
+    'female' => 'Female',
+    'genderless' => 'Genderless',
+    'any' => 'Any',
+    _ => gender,
+  };
+}
+
+String _buildAuthorFacingCatalogUnavailableMessage({
+  required String subjectLabel,
+  required String fallbackMessage,
+  String? technicalMessage,
+}) {
+  final trimmedTechnicalMessage = technicalMessage?.trim() ?? '';
+
+  // The authoring surface should explain the degraded state in product terms
+  // first. Raw file paths or manifest jargon belong in logs/tests, not in the
+  // primary UI copy that blocks someone from finishing a trainer.
+  if (trimmedTechnicalMessage.isEmpty) {
+    return 'Unable to load the local $subjectLabel for this project. '
+        '$fallbackMessage';
+  }
+
+  final normalizedTechnicalMessage = trimmedTechnicalMessage.toLowerCase();
+  if (normalizedTechnicalMessage.contains('manifest') ||
+      normalizedTechnicalMessage.contains('catalog') ||
+      normalizedTechnicalMessage.contains('not found') ||
+      normalizedTechnicalMessage.contains('workspace')) {
+    return 'Unable to load the local $subjectLabel for this project. '
+        '$fallbackMessage';
+  }
+
+  final firstLine = trimmedTechnicalMessage.split('\n').first.trim();
+  return firstLine.isEmpty
+      ? 'Unable to load the local $subjectLabel for this project. '
+          '$fallbackMessage'
+      : '$firstLine $fallbackMessage';
 }
 
 _TrainerGuidedMoveSuggestions _buildTrainerGuidedMoveSuggestions({
@@ -196,9 +244,13 @@ _TrainerGuidedMoveSuggestions _buildTrainerGuidedMoveSuggestions({
 
   if (!movesCatalogView.isAvailable) {
     return _TrainerGuidedMoveSuggestions(
-      description:
-          '${_firstGuidanceLine(movesCatalogView.message ?? movesCatalogView.description)} Open the raw ID fallbacks if needed.',
-      disabledPlaceholder: 'Local move data unavailable',
+      description: _buildAuthorFacingCatalogUnavailableMessage(
+        subjectLabel: 'move data',
+        fallbackMessage:
+            'Guided suggestions are unavailable, but raw move IDs stay possible below.',
+        technicalMessage: movesCatalogView.message,
+      ),
+      disabledPlaceholder: 'Guided move suggestions unavailable',
     );
   }
 

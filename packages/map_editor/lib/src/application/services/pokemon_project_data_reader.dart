@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
@@ -22,7 +23,7 @@ class PokemonProjectDataReader {
   Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) async {
     final json = await _readJsonFile(
       workspace,
-      'data/pokemon/pokemon_data_manifest.json',
+      await _pokemonDataManifestRelativePath(workspace),
       label: 'Pokemon data manifest',
     );
     return PokemonDataManifest.fromJson(json);
@@ -32,16 +33,45 @@ class PokemonProjectDataReader {
     ProjectWorkspace workspace,
     String catalogKey,
   ) async {
-    final manifest = await readManifest(workspace);
-    final relativePath = manifest.catalogFiles[catalogKey];
+    // The local Pokemon bootstrap manifest is useful when it exists, but it is
+    // not the only source of truth in real projects. The editor already uses
+    // `project.json -> pokemon.*` to index species, so guided moves/items must
+    // honor that same config instead of failing just because the optional
+    // bootstrap manifest is absent.
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+
+    String? relativePath;
+    try {
+      final manifest = await readManifest(workspace);
+      final declaredPath = manifest.catalogFiles[catalogKey]?.trim();
+      if (declaredPath != null && declaredPath.isNotEmpty) {
+        relativePath = _resolvePathWithinPokemonDataRoot(
+          pokemonConfig: pokemonConfig,
+          rawRelativePath: declaredPath,
+        );
+      }
+    } on EditorNotFoundException {
+      // Real projects can still be fully authorable with `project.json`
+      // storage paths even when the bootstrap manifest has not been created.
+      relativePath = null;
+    }
+
+    if (relativePath == null) {
+      final configuredPath = pokemonConfig.catalogFiles[catalogKey]?.trim();
+      if (configuredPath != null && configuredPath.isNotEmpty) {
+        relativePath = p.normalize(configuredPath);
+      }
+    }
+
     if (relativePath == null || relativePath.trim().isEmpty) {
       throw EditorNotFoundException(
-        'Pokemon catalog not declared in manifest: $catalogKey',
+        'Pokemon catalog not declared in project manifest or project config: '
+        '$catalogKey',
       );
     }
     final json = await _readJsonFile(
       workspace,
-      'data/pokemon/$relativePath',
+      relativePath,
       label: 'Pokemon catalog "$catalogKey"',
     );
     return PokemonCatalogFile.fromJson(json);
@@ -82,9 +112,10 @@ class PokemonProjectDataReader {
         'Pokemon learnset id cannot be empty',
       );
     }
+    final learnsetsDirectory = await _learnsetsDirectoryRelativePath(workspace);
     final json = await _readJsonFile(
       workspace,
-      'data/pokemon/learnsets/$trimmedId.json',
+      p.join(learnsetsDirectory, '$trimmedId.json'),
       label: 'Pokemon learnset "$trimmedId"',
     );
     return PokemonLearnsetFile.fromJson(json);
@@ -100,9 +131,11 @@ class PokemonProjectDataReader {
         'Pokemon evolution id cannot be empty',
       );
     }
+    final evolutionsDirectory =
+        await _evolutionsDirectoryRelativePath(workspace);
     final json = await _readJsonFile(
       workspace,
-      'data/pokemon/evolutions/$trimmedId.json',
+      p.join(evolutionsDirectory, '$trimmedId.json'),
       label: 'Pokemon evolution "$trimmedId"',
     );
     return PokemonEvolutionFile.fromJson(json);
@@ -118,18 +151,20 @@ class PokemonProjectDataReader {
         'Pokemon media id cannot be empty',
       );
     }
+    final mediaDirectory = await _mediaDirectoryRelativePath(workspace);
     final json = await _readJsonFile(
       workspace,
-      'data/pokemon/media/$trimmedId.json',
+      p.join(mediaDirectory, '$trimmedId.json'),
       label: 'Pokemon media "$trimmedId"',
     );
     return PokemonMediaFile.fromJson(json);
   }
 
   Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) async {
+    final speciesDirectory = await _speciesDirectoryRelativePath(workspace);
     return _listJsonRelativePaths(
       workspace,
-      'data/pokemon/species',
+      speciesDirectory,
       label: 'Pokemon species directory',
     );
   }
@@ -248,25 +283,29 @@ class PokemonProjectDataReader {
   }
 
   Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) async {
+    final learnsetsDirectory = await _learnsetsDirectoryRelativePath(workspace);
     return _listJsonFileStemIds(
       workspace,
-      'data/pokemon/learnsets',
+      learnsetsDirectory,
       label: 'Pokemon learnsets directory',
     );
   }
 
   Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) async {
+    final evolutionsDirectory =
+        await _evolutionsDirectoryRelativePath(workspace);
     return _listJsonFileStemIds(
       workspace,
-      'data/pokemon/evolutions',
+      evolutionsDirectory,
       label: 'Pokemon evolutions directory',
     );
   }
 
   Future<List<String>> listMediaIds(ProjectWorkspace workspace) async {
+    final mediaDirectory = await _mediaDirectoryRelativePath(workspace);
     return _listJsonFileStemIds(
       workspace,
-      'data/pokemon/media',
+      mediaDirectory,
       label: 'Pokemon media directory',
     );
   }
@@ -281,7 +320,7 @@ class PokemonProjectDataReader {
           'Pokemon species id cannot be empty');
     }
 
-    final speciesDir = _speciesDirectory(workspace);
+    final speciesDir = await _speciesDirectory(workspace);
     if (!await speciesDir.exists()) {
       return null;
     }
@@ -440,10 +479,125 @@ class PokemonProjectDataReader {
     return matches.single;
   }
 
-  Directory _speciesDirectory(ProjectWorkspace workspace) {
+  Future<Directory> _speciesDirectory(ProjectWorkspace workspace) async {
+    final speciesDirectory = await _speciesDirectoryRelativePath(workspace);
     return Directory(
-      workspace.resolveProjectRelativePath('data/pokemon/species'),
+      workspace.resolveProjectRelativePath(speciesDirectory),
     );
+  }
+
+  Future<String> _pokemonDataManifestRelativePath(
+    ProjectWorkspace workspace,
+  ) async {
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+    final dataRoot = _normalizeConfiguredRelativePath(
+      pokemonConfig.dataRoot,
+      fallback: 'data/pokemon',
+    );
+    return p.normalize(p.join(dataRoot, 'pokemon_data_manifest.json'));
+  }
+
+  Future<String> _speciesDirectoryRelativePath(
+    ProjectWorkspace workspace,
+  ) async {
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+    return _normalizeConfiguredRelativePath(
+      pokemonConfig.speciesDir,
+      fallback: 'data/pokemon/species',
+    );
+  }
+
+  Future<String> _learnsetsDirectoryRelativePath(
+    ProjectWorkspace workspace,
+  ) async {
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+    return _normalizeConfiguredRelativePath(
+      pokemonConfig.learnsetsDir,
+      fallback: 'data/pokemon/learnsets',
+    );
+  }
+
+  Future<String> _evolutionsDirectoryRelativePath(
+    ProjectWorkspace workspace,
+  ) async {
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+    return _normalizeConfiguredRelativePath(
+      pokemonConfig.evolutionsDir,
+      fallback: 'data/pokemon/evolutions',
+    );
+  }
+
+  Future<String> _mediaDirectoryRelativePath(
+    ProjectWorkspace workspace,
+  ) async {
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+    return _normalizeConfiguredRelativePath(
+      pokemonConfig.mediaDir,
+      fallback: 'data/pokemon/media',
+    );
+  }
+
+  Future<ProjectPokemonConfig> _readProjectPokemonConfig(
+    ProjectWorkspace workspace,
+  ) async {
+    final manifestPath = workspace.projectManifestPath;
+    try {
+      // Real projects always have `project.json`, but a few lightweight tests
+      // and temporary workspaces still seed only the Pokemon files. Falling
+      // back to the historical default layout keeps those fixtures working
+      // while still honoring project-specific paths whenever the manifest is
+      // present.
+      if (!await workspace.fileExists(manifestPath)) {
+        return const ProjectPokemonConfig();
+      }
+
+      final raw = await workspace.readTextFile(manifestPath);
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        throw EditorPersistenceException(
+          'Project manifest is not a JSON object: $manifestPath',
+        );
+      }
+      final project = ProjectManifest.fromJson(decoded);
+      return project.pokemon;
+    } on EditorPersistenceException {
+      rethrow;
+    } on FileSystemException catch (error) {
+      throw EditorPersistenceException(
+        'Failed to read project manifest at $manifestPath: $error',
+      );
+    } on FormatException catch (error) {
+      throw EditorPersistenceException(
+        'Invalid JSON in project manifest at $manifestPath: $error',
+      );
+    } catch (error) {
+      throw EditorPersistenceException(
+        'Invalid project manifest at $manifestPath: $error',
+      );
+    }
+  }
+
+  String _normalizeConfiguredRelativePath(
+    String rawRelativePath, {
+    required String fallback,
+  }) {
+    final trimmed = rawRelativePath.trim();
+    return p.normalize(trimmed.isEmpty ? fallback : trimmed);
+  }
+
+  String _resolvePathWithinPokemonDataRoot({
+    required ProjectPokemonConfig pokemonConfig,
+    required String rawRelativePath,
+  }) {
+    final normalizedPath = p.normalize(rawRelativePath.trim());
+    final dataRoot = _normalizeConfiguredRelativePath(
+      pokemonConfig.dataRoot,
+      fallback: 'data/pokemon',
+    );
+    if (normalizedPath == dataRoot || normalizedPath.startsWith('$dataRoot/')) {
+      return normalizedPath;
+    }
+    return p.normalize(p.join(dataRoot, normalizedPath));
   }
 
   Future<List<String>> _listJsonRelativePaths(
