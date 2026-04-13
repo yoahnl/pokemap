@@ -1,3 +1,1729 @@
+# Phase R1 — Lot 9 — Runtime real mappers to BattleSetup
+
+## 1. Resume executif honnete
+
+Le lot 9 est livre dans son scope.
+
+Le trou reel etait confirme dans le code actuel : `PlayableMapGame._toBattleSetup(...)` construisait encore un `BattleSetup` entierement placeholder, avec des species et des moves hardcodes (`pikachu`, `lapras`, `mew`, `tackle`, `scratch`) au lieu d'utiliser la vraie party runtime/save, la vraie rencontre sauvage resolue et la vraie team trainer authorée.
+
+Le correctif retenu reste local et vertical :
+- ajout d'un mapper runtime unique et local vers `BattleSetup` dans `map_runtime` ;
+- extension minimale de `BattleCombatantData` pour porter `currentHp` quand le runtime le connait deja ;
+- remplacement du handoff placeholder dans `PlayableMapGame` par ce mapper reel ;
+- tests cibles sur les trois cas player / wild / trainer ;
+- aucune ouverture du lot 10.
+
+## 2. Etat initial audite reel
+
+### Point d'entree reel du handoff
+
+Le vrai point d'entree etait dans :
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+Methodes auditees :
+- `_startBattleHandoff(...)`
+- `_openBattleOverlay(...)`
+- `_toBattleSetup(...)`
+
+### Etat reel avant correction
+
+`_toBattleSetup(...)` faisait encore :
+- player species hardcodee `pikachu` ;
+- player level hardcode `5` ;
+- player moves hardcodes `tackle` / `scratch` ;
+- trainer enemy hardcode `lapras` ;
+- fallback enemy hardcode `mew` ;
+- enemy moves hardcodes `tackle` ;
+- PV derives d'une formule artificielle sans partir des vraies donnees save/projet.
+
+### Donnees deja disponibles au moment du handoff
+
+Le code audite a confirme que les vraies donnees etaient deja disponibles :
+- player : `GameState.party.members` via `PlayableMapGame._gameState` ;
+- wild : `WildBattleStartRequest` issu de la vraie resolution runtime encounter ;
+- trainer : `TrainerBattleStartRequest.trainerId` + `ProjectManifest.trainers` ;
+- projet Pokemon : `ProjectManifest.pokemon.*` + `RuntimeMapBundle.projectRootDirectory`.
+
+### Limite structurelle reelle du moteur battle
+
+Le moteur `map_battle` reste MVP mono-combattant :
+- `BattleSetup` ne transporte qu'un seul Pokemon joueur et un seul Pokemon adverse ;
+- pas de switching de party ni de team trainer multi-combattants ;
+- `BattleSession` ne sait pas encore appliquer les outcomes a la save.
+
+Cette limite n'est pas rouverte ici : lot 9 ne fait que le mapping reel vers ce contrat existant.
+
+## 3. Problemes confirmes / non confirmes
+
+### Problemes confirmes
+
+1. Le mapping final vers `BattleSetup` utilisait encore des placeholders hardcodes.
+2. Le joueur n'etait pas mappe depuis la vraie party runtime/save.
+3. Le trainer n'etait pas mappe depuis la vraie team authorée du projet.
+4. Le wild n'etait pas mappe avec de vraies attaques derivees du learnset local.
+5. Le setup battle soignait implicitement le Pokemon joueur au demarrage, car `BattleSetup` ne pouvait pas porter `currentHp`.
+
+### Problemes non confirmes
+
+1. Pas besoin de nouveau notifier/runtime store/repository trainer.
+2. Pas besoin de nouveau pipeline battle.
+3. Pas besoin de toucher `EditorNotifier`, les use cases trainer, encounter, ou les readers editor.
+4. Pas besoin d'ouvrir capture / seen-caught / lot 10.
+
+## 4. Cause racine reelle
+
+La cause racine n'etait pas un manque de donnees runtime.
+
+Le probleme etait que le dernier metre du handoff n'avait jamais converge vers les vraies sources deja disponibles. En pratique :
+- le runtime savait deja declencher un `WildBattleStartRequest` ou un `TrainerBattleStartRequest` reels ;
+- la save runtime contenait deja la vraie party (`GameState.party`) ;
+- le manifest projet contenait deja les trainers authorés ;
+- les chemins Pokemon reels vivaient deja dans `ProjectManifest.pokemon.*`.
+
+Le placeholder etait donc localise au mapper final `_toBattleSetup(...)` dans `PlayableMapGame`.
+
+## 5. Decisions retenues / rejetees
+
+### Decisions retenues
+
+1. Ajouter un petit mapper local `RuntimeBattleSetupMapper` dans `map_runtime`.
+2. Lire localement le strict minimum des JSON Pokemon utiles au combat dans `map_runtime` : species (base HP + learnset ref), learnset, catalogue moves.
+3. Utiliser `ProjectManifest.pokemon.*` et `RuntimeMapBundle.projectRootDirectory` comme source de verite des chemins.
+4. Mapper :
+   - player -> premier membre non K.O. de la vraie party ;
+   - wild -> vraie species + level de la request + moves derives du learnset ;
+   - trainer -> premier Pokemon de la vraie team projet authorée.
+5. Echouer honnetement si une donnee critique manque, au lieu d'inventer un Pokemon ou des moves placeholder.
+6. Etendre minimalement `BattleCombatantData` avec `currentHp` pour ne plus guerir le joueur implicitement au lancement du combat.
+
+### Decisions rejetees
+
+1. Nouveau framework de mapping battle.
+2. Nouveau modele Pokemon runtime concurrent.
+3. Dependance de `map_runtime` vers `map_editor`.
+4. Nouvelle architecture partagee Pokemon cross-package.
+5. Ouverture du lot 10.
+6. Support multi-Pokemon dans `BattleSetup`.
+
+## 6. Perimetre inclus / exclu
+
+### Inclus
+
+- mapping runtime reel vers `BattleSetup` ;
+- player party runtime/save ;
+- wild encounter runtime/projet ;
+- trainer team projet ;
+- moves derives des donnees locales reelles ;
+- preservation de `currentHp` joueur ;
+- tests cibles lot 9.
+
+### Exclu
+
+- application du resultat de combat a `GameState` ;
+- capture ;
+- seen/caught ;
+- multi-combattants / switching ;
+- nouveaux flux authoring ;
+- runtime -> battle v2 ;
+- lot 10.
+
+## 7. Liste exacte des fichiers modifies / crees / supprimes
+
+### Modifies
+
+- `packages/map_battle/lib/src/battle_setup.dart`
+- `packages/map_battle/lib/src/battle_session.dart`
+- `packages/map_battle/test/battle_session_test.dart`
+- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+### Crees
+
+- `packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart`
+- `packages/map_runtime/test/runtime_battle_setup_mapper_test.dart`
+
+### Supprimes
+
+- aucun
+
+## 8. Justification fichier par fichier
+
+### `packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart`
+
+Nouveau mapper local, unique, bien borne au lot 9. Il remplace le dernier placeholder du handoff sans introduire de stack parallele. Il lit seulement ce qu'il faut pour construire un `BattleSetup` reel : species, learnset, catalogue moves.
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+Branchement du runtime existant vers le mapper reel. `_openBattleOverlay(...)` devient asynchrone, attend le vrai setup, et annule proprement le handoff avec notification si les donnees locales ne permettent pas de lancer le combat.
+
+### `packages/map_battle/lib/src/battle_setup.dart`
+
+Extension minimale de `BattleCombatantData` avec `currentHp`. Cette extension est directement justifiee par le lot 9 : sans elle, la vraie party du joueur serait toujours reinitialisee a pleine vie au demarrage du combat.
+
+### `packages/map_battle/lib/src/battle_session.dart`
+
+Utilise maintenant `currentHp` quand il est fourni, sinon garde le fallback historique sur `maxHp`. Cela preserve la compatibilite avec les anciens call sites/tests.
+
+### `packages/map_battle/test/battle_session_test.dart`
+
+Ajout du test qui prouve que `createBattleSession(...)` n'ecrase plus les PV courants fournis par le runtime.
+
+### `packages/map_runtime/test/runtime_battle_setup_mapper_test.dart`
+
+Nouvelle preuve ciblee du lot 9. Le test ecrit un vrai mini-workspace Pokemon sur disque, charge un vrai `project.json`, puis prouve les trois chemins de mapping : player, wild, trainer.
+
+## 9. Commandes reellement executees
+
+### Audit
+
+```bash
+git status --short
+git diff --stat
+git ls-files --others --exclude-standard
+find . -name AGENTS.md -print
+rg -n "BattleSetup|BattleStartRequest|WildBattleStartRequest|TrainerBattleStartRequest|_toBattleSetup|createBattleSession|GameState|PlayerPokemon|ProjectTrainerEntry|encounter|trainer" packages/map_runtime packages/map_battle packages/map_core packages/map_gameplay -g'*.dart'
+sed -n '2940,3175p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+sed -n '1,220p' packages/map_battle/lib/src/battle_setup.dart
+sed -n '1,220p' packages/map_battle/lib/src/battle_session.dart
+sed -n '1,260p' packages/map_runtime/lib/src/application/battle_start_request.dart
+sed -n '1,220p' packages/map_runtime/lib/src/application/encounter_to_battle_request.dart
+sed -n '1,220p' packages/map_runtime/lib/src/application/trainer_battle_request.dart
+sed -n '1,220p' packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart
+sed -n '1,220p' packages/map_core/lib/src/models/game_state.dart
+sed -n '1,260p' packages/map_core/lib/src/models/save_data.dart
+sed -n '1,240p' packages/map_core/lib/src/models/project_trainer.dart
+sed -n '1,220p' packages/map_core/lib/src/models/project_manifest.dart
+sed -n '620,1020p' packages/map_editor/lib/src/application/models/pokemon_project_data_models.dart
+```
+
+### Format
+
+```bash
+/opt/homebrew/bin/dart format packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart packages/map_runtime/test/runtime_battle_setup_mapper_test.dart packages/map_battle/lib/src/battle_setup.dart packages/map_battle/lib/src/battle_session.dart packages/map_battle/test/battle_session_test.dart
+/opt/homebrew/bin/dart format packages/map_runtime/test/runtime_battle_setup_mapper_test.dart packages/map_battle/lib/src/battle_session.dart
+```
+
+### Analyse
+
+```bash
+/opt/homebrew/bin/flutter analyze --no-pub lib/src/application/runtime_battle_setup_mapper.dart lib/src/presentation/flame/playable_map_game.dart test/runtime_battle_setup_mapper_test.dart
+/opt/homebrew/bin/dart analyze lib/src/battle_setup.dart lib/src/battle_session.dart test/battle_session_test.dart
+```
+
+### Tests
+
+```bash
+/opt/homebrew/bin/flutter test test/runtime_battle_setup_mapper_test.dart test/trainer_battle_request_test.dart test/playable_map_game_public_getters_test.dart
+/opt/homebrew/bin/dart test test/battle_session_test.dart
+```
+
+## 10. Resultats reels
+
+### `git status --short`
+
+```text
+ M packages/map_battle/lib/src/battle_session.dart
+ M packages/map_battle/lib/src/battle_setup.dart
+ M packages/map_battle/test/battle_session_test.dart
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+?? packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+?? packages/map_runtime/test/runtime_battle_setup_mapper_test.dart
+```
+
+### `git diff --stat`
+
+```text
+ packages/map_battle/lib/src/battle_session.dart    |  39 +++++-
+ packages/map_battle/lib/src/battle_setup.dart      |  13 ++
+ packages/map_battle/test/battle_session_test.dart  |  56 +++++++--
+ .../src/presentation/flame/playable_map_game.dart  | 135 +++++++++++----------
+ 4 files changed, 160 insertions(+), 83 deletions(-)
+```
+
+### `git ls-files --others --exclude-standard`
+
+```text
+packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+packages/map_runtime/test/runtime_battle_setup_mapper_test.dart
+```
+
+### Format
+
+```text
+Formatted packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+Formatted packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+Formatted packages/map_battle/lib/src/battle_session.dart
+Formatted packages/map_battle/test/battle_session_test.dart
+Formatted 6 files (4 changed) in 0.06 seconds.
+
+Formatted 2 files (0 changed) in 0.01 seconds.
+```
+
+### Analyse
+
+```text
+No issues found! (ran in 1.7s)
+Analyzing battle_setup.dart, battle_session.dart, battle_session_test.dart...
+No issues found!
+```
+
+### Tests
+
+```text
+map_runtime:
+00:01 +13: All tests passed!
+
+map_battle:
+00:00 +11: All tests passed!
+```
+
+## 11. Incidents rencontres
+
+1. Premier passage analyse runtime :
+   - `Direction` manquait dans le test runtime ;
+   - mauvaise constante `EncounterKind.grass` au lieu de `EncounterKind.walk` ;
+   - warning de cast inutile dans `battle_session.dart`.
+2. Correctif applique immediatement :
+   - import `map_gameplay` dans le test runtime ;
+   - correction de l'enum `EncounterKind` ;
+   - remplacement du cast par un helper `_clampHp(...)`.
+
+Aucun incident bloquant persistant apres correction.
+
+## 12. Etat git utile
+
+Worktree touche par ce lot uniquement sur 6 fichiers Dart.
+
+Aucune operation git d'ecriture n'a ete faite.
+
+## 13. Checklist finale
+
+- [x] je me suis base sur le code reel, pas sur les reports
+- [x] je n'ai cree aucune stack parallele
+- [x] je n'ai pas ouvert le lot 10
+- [x] je n'ai pas ouvert capture / seen-caught / save outcome
+- [x] le joueur est mappe depuis la vraie party runtime/save
+- [x] le wild est mappe depuis une vraie resolution runtime/projet
+- [x] le trainer est mappe depuis la vraie team projet
+- [x] il n'y a plus de species hardcodee dans le mapping final
+- [x] il n'y a plus de moves hardcodes dans le mapping final
+- [x] j'ai garde la compatibilite avec le moteur battle actuel
+- [x] j'ai documente honnetement les limites restantes
+- [x] j'ai ajoute les tests reellement utiles
+- [x] j'ai execute format
+- [x] j'ai execute analyze
+- [x] j'ai execute les tests utiles
+- [x] je n'ai fait aucune ecriture git interdite
+- [x] j'ai cree le report markdown ultra complet
+- [x] le report contient le contenu complet de tous les fichiers texte touches
+
+## 14. Conclusion honnete
+
+Lot 9 est livre dans son scope.
+
+Le handoff runtime -> battle n'utilise plus de Pokemon ou de moves hardcodes pour construire `BattleSetup`. Il part maintenant :
+- de la vraie party runtime/save pour le joueur ;
+- de la vraie rencontre sauvage resolue pour le wild ;
+- de la vraie team trainer authorée pour le trainer.
+
+Limites restantes, volontairement non traitees ici :
+- `BattleSetup` / `BattleSession` restent mono-combattant ;
+- le trainer battle prend donc le premier Pokemon de l'equipe authorée ;
+- l'application du resultat de combat au `GameState` reste hors scope lot 10 ;
+- pas de capture / seen-caught / switching.
+
+Conclusion de livraison : **lot 9 reellement livre**.
+
+## 15. Annexe — contenu complet des fichiers touches
+
+Le report s'exclut lui-meme de sa propre annexe pour eviter la recursion infinie. Tous les autres fichiers texte modifies/crees par ce lot sont inclus integralement ci-dessous.
+
+### `packages/map_battle/lib/src/battle_setup.dart`
+
+````dart
+/// Configuration initiale d'un combat.
+///
+/// Modèle pur, sans dépendance runtime.
+/// Construit depuis [BattleStartRequest] par le runtime via un mapper dédié.
+///
+/// Ce modèle contient uniquement les données nécessaires au moteur de combat,
+/// sans aucune référence à l'orchestration runtime (OverworldReturnContext, etc.).
+class BattleSetup {
+  /// Crée une configuration de combat.
+  ///
+  /// [playerPokemon] - Le Pokémon du joueur qui combat.
+  /// [enemyPokemon] - Le Pokémon adverse qui combat.
+  /// [isTrainerBattle] - true si c'est un combat contre un dresseur.
+  /// [trainerId] - L'identifiant du dresseur (non-null si [isTrainerBattle] est true).
+  const BattleSetup({
+    required this.playerPokemon,
+    required this.enemyPokemon,
+    required this.isTrainerBattle,
+    required this.trainerId,
+  });
+
+  /// Le Pokémon du joueur qui combat.
+  final BattleCombatantData playerPokemon;
+
+  /// Le Pokémon adverse qui combat.
+  final BattleCombatantData enemyPokemon;
+
+  /// true si c'est un combat contre un dresseur.
+  ///
+  /// Si false, c'est une rencontre sauvage (wild battle).
+  final bool isTrainerBattle;
+
+  /// L'identifiant du dresseur.
+  ///
+  /// Non-null si [isTrainerBattle] est true.
+  /// Utilisé par le runtime pour marquer `trainer_defeated:{trainerId}` après victoire.
+  final String? trainerId;
+}
+
+/// Données minimales d'un combattant pour initialiser un combat.
+///
+/// Ce modèle est utilisé uniquement pour la configuration initiale.
+/// Une fois le combat démarré, [BattleCombatant] est utilisé à la place.
+class BattleCombatantData {
+  /// Crée les données d'un combattant.
+  ///
+  /// [speciesId] - L'identifiant de l'espèce (ex: "pikachu", "lapras").
+  /// [level] - Le niveau du combattant.
+  /// [maxHp] - Les points de vie maximum.
+  /// [currentHp] - Les PV courants si le runtime les connaît déjà.
+  ///
+  /// Le lot 9 du runtime -> battle handoff doit partir de la vraie party du
+  /// joueur. On ajoute donc ce champ optionnel au setup pour éviter de soigner
+  /// implicitement le Pokémon actif lors de l'ouverture du combat.
+  /// [moves] - La liste des attaques disponibles (4 max).
+  const BattleCombatantData({
+    required this.speciesId,
+    required this.level,
+    required this.maxHp,
+    this.currentHp,
+    required this.moves,
+  });
+
+  /// L'identifiant de l'espèce (ex: "pikachu", "lapras").
+  final String speciesId;
+
+  /// Le niveau du combattant.
+  final int level;
+
+  /// Les points de vie maximum.
+  final int maxHp;
+
+  /// Les points de vie courants si le handoff runtime les fournit déjà.
+  ///
+  /// Si null, le moteur démarre le combat à pleine vie, ce qui conserve le
+  /// comportement historique des tests et call sites qui n'ont pas besoin de
+  /// porter cet état.
+  final int? currentHp;
+
+  /// La liste des attaques disponibles.
+  final List<BattleMoveData> moves;
+}
+
+/// Données minimales d'une attaque pour initialiser un combat.
+///
+/// Ce modèle est utilisé uniquement pour la configuration initiale.
+/// Une fois le combat démarré, [BattleMove] est utilisé à la place.
+class BattleMoveData {
+  /// Crée les données d'une attaque.
+  ///
+  /// [id] - L'identifiant canonique de l'attaque.
+  /// [name] - Le nom affiché de l'attaque.
+  /// [power] - La puissance de l'attaque (dégâts de base).
+  const BattleMoveData({
+    required this.id,
+    required this.name,
+    required this.power,
+  });
+
+  /// L'identifiant canonique de l'attaque.
+  final String id;
+
+  /// Le nom affiché de l'attaque.
+  final String name;
+
+  /// La puissance de l'attaque (dégâts de base).
+  ///
+  /// Pour ce MVP, les dégâts sont calculés simplement :
+  /// `damage = move.power` (pas de calculs complexes de stats).
+  final int power;
+}
+
+````
+
+### `packages/map_battle/lib/src/battle_session.dart`
+
+````dart
+import 'battle_setup.dart';
+import 'battle_state.dart';
+import 'battle_action.dart';
+import 'battle_move.dart';
+import 'battle_resolution.dart';
+
+/// Crée une nouvelle session de combat.
+///
+/// [setup] - La configuration initiale du combat.
+///
+/// Retourne une nouvelle [BattleSession] avec l'état initial.
+/// C'est le point d'entrée principal du moteur de combat.
+BattleSession createBattleSession(BattleSetup setup) {
+  // Le runtime peut maintenant fournir les PV courants réels du Pokémon actif.
+  // On garde néanmoins un fallback explicite sur les PV max pour préserver les
+  // anciens call sites/tests qui n'avaient pas besoin de cet état.
+  final playerCurrentHp = _clampHp(
+    currentHp: setup.playerPokemon.currentHp,
+    maxHp: setup.playerPokemon.maxHp,
+  );
+  final enemyCurrentHp = _clampHp(
+    currentHp: setup.enemyPokemon.currentHp,
+    maxHp: setup.enemyPokemon.maxHp,
+  );
+
+  // Convertir les données de setup en combattants
+  final player = BattleCombatant(
+    speciesId: setup.playerPokemon.speciesId,
+    level: setup.playerPokemon.level,
+    currentHp: playerCurrentHp,
+    maxHp: setup.playerPokemon.maxHp,
+    moves: setup.playerPokemon.moves
+        .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
+        .toList(),
+  );
+
+  final enemy = BattleCombatant(
+    speciesId: setup.enemyPokemon.speciesId,
+    level: setup.enemyPokemon.level,
+    currentHp: enemyCurrentHp,
+    maxHp: setup.enemyPokemon.maxHp,
+    moves: setup.enemyPokemon.moves
+        .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
+        .toList(),
+  );
+
+  // Créer l'état initial
+  final initialState = BattleState(
+    phase: BattlePhase.playerChoice,
+    player: player,
+    enemy: enemy,
+    currentTurn: null,
+    outcome: null,
+  );
+
+  return BattleSession._(
+    state: initialState,
+    setup: setup,
+  );
+}
+
+int _clampHp({
+  required int? currentHp,
+  required int maxHp,
+}) {
+  final value = currentHp ?? maxHp;
+  if (value < 0) {
+    return 0;
+  }
+  if (value > maxHp) {
+    return maxHp;
+  }
+  return value;
+}
+
+/// Session de combat.
+///
+/// Encapsule l'état d'un combat et fournit les méthodes pour interagir avec.
+/// Immutable : toutes les méthodes retournent une nouvelle session.
+///
+/// Cycle de vie :
+/// 1. [createBattleSession] crée la session
+/// 2. [getAvailableChoices] récupère les choix disponibles
+/// 3. [applyChoice] applique un choix et retourne une nouvelle session
+/// 4. Répéter 2-3 jusqu'à ce que [state.isFinished] soit true
+/// 5. Récupérer [state.outcome] pour le résultat final
+class BattleSession {
+  /// Crée une session de combat.
+  ///
+  /// Constructeur privé. Utiliser [createBattleSession] à la place.
+  const BattleSession._({
+    required this.state,
+    required this.setup,
+  });
+
+  /// L'état actuel du combat.
+  final BattleState state;
+
+  /// La configuration initiale du combat.
+  ///
+  /// Gardée pour accéder aux métadonnées (trainerId, etc.).
+  final BattleSetup setup;
+
+  /// Récupère les choix disponibles pour le joueur.
+  ///
+  /// À appeler quand [state.phase] == [BattlePhase.playerChoice].
+  ///
+  /// Retourne une liste de choix :
+  /// - [PlayerBattleChoiceFight] pour chaque attaque disponible (0-3)
+  /// - [PlayerBattleChoiceRun] pour fuir (toujours disponible)
+  ///
+  /// Exemple d'usage :
+  /// ```dart
+  /// final choices = session.getAvailableChoices();
+  /// // choices = [Fight(0), Fight(1), Fight(2), Fight(3), Run()]
+  /// ```
+  List<PlayerBattleChoice> getAvailableChoices() {
+    // Créer un choix Fight pour chaque attaque disponible
+    final fightChoices = <PlayerBattleChoice>[];
+    for (var i = 0; i < state.player.moves.length; i++) {
+      fightChoices.add(PlayerBattleChoiceFight(i));
+    }
+
+    // Ajouter le choix Run (toujours disponible pour ce MVP)
+    fightChoices.add(const PlayerBattleChoiceRun());
+
+    return fightChoices;
+  }
+
+  /// Applique un choix du joueur et retourne une NOUVELLE session.
+  ///
+  /// [choice] - Le choix fait par le joueur.
+  ///
+  /// Cette méthode est immutable : elle ne modifie pas [this],
+  /// mais retourne une nouvelle [BattleSession] avec l'état mis à jour.
+  ///
+  /// Comportement :
+  /// 1. Convertit le [PlayerBattleChoice] en [BattleAction]
+  /// 2. Détermine l'action de l'ennemi (IA simple)
+  /// 3. Résout le tour (ordre d'exécution, dégâts, etc.)
+  /// 4. Vérifie si un combattant est K.O.
+  /// 5. Si combat fini, crée [BattleOutcome]
+  /// 6. Retourne la nouvelle session
+  ///
+  /// Exemple d'usage :
+  /// ```dart
+  /// final newSession = session.applyChoice(PlayerBattleChoiceFight(0));
+  /// if (newSession.state.isFinished) {
+  ///   final outcome = newSession.state.outcome!;
+  ///   // outcome.isVictory, outcome.isDefeat, etc.
+  /// }
+  /// ```
+  BattleSession applyChoice(PlayerBattleChoice choice) {
+    // Phase 1: Convertir le choix en action
+    final playerAction = _choiceToAction(choice);
+
+    // Phase 2: Déterminer l'action de l'ennemi (IA simple)
+    final enemyAction = _chooseEnemyAction();
+
+    // Phase 3: Résoudre le tour
+    final turnResult = _resolveTurn(playerAction, enemyAction);
+
+    // Phase 4: Appliquer les dégâts et vérifier l'état
+    final newPlayer = _applyDamageToCombatant(
+      state.player,
+      turnResult.executions.where((e) => e.target == 'player'),
+    );
+    final newEnemy = _applyDamageToCombatant(
+      state.enemy,
+      turnResult.executions.where((e) => e.target == 'enemy'),
+    );
+
+    // Phase 5: Vérifier si le combat est fini
+    final outcome = _determineOutcome(newPlayer, newEnemy);
+
+    // Phase 6: Créer le nouvel état
+    final newState = BattleState(
+      phase: outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
+      player: newPlayer,
+      enemy: newEnemy,
+      currentTurn: outcome == null ? turnResult : null,
+      outcome: outcome,
+    );
+
+    return BattleSession._(
+      state: newState,
+      setup: setup,
+    );
+  }
+
+  /// Convertit un [PlayerBattleChoice] en [BattleAction].
+  ///
+  /// Cette méthode est interne au moteur de combat.
+  BattleAction _choiceToAction(PlayerBattleChoice choice) {
+    if (choice is PlayerBattleChoiceFight) {
+      // Vérifier que l'index est valide
+      if (choice.moveIndex >= 0 &&
+          choice.moveIndex < state.player.moves.length) {
+        return BattleActionFight(state.player.moves[choice.moveIndex]);
+      }
+      // Fallback: première attaque si index invalide
+      return BattleActionFight(state.player.moves.first);
+    } else if (choice is PlayerBattleChoiceRun) {
+      return const BattleActionRun();
+    }
+    // Fallback: première attaque
+    return BattleActionFight(state.player.moves.first);
+  }
+
+  /// Détermine l'action de l'ennemi (IA simple).
+  ///
+  /// Pour ce MVP, l'IA est très simple :
+  /// - Si l'ennemi peut attaquer, il attaque avec une attaque aléatoire (déterministe : première)
+  /// - L'ennemi ne fuit jamais
+  ///
+  /// Cette méthode est interne au moteur de combat.
+  BattleAction _chooseEnemyAction() {
+    // IA simple : toujours utiliser la première attaque disponible
+    // (pour le déterminisme, pas de random)
+    if (state.enemy.moves.isNotEmpty && !state.enemy.isFainted) {
+      return BattleActionFight(state.enemy.moves.first);
+    }
+    // Si aucune attaque, ne rien faire (cas edge)
+    return const BattleActionRun();
+  }
+
+  /// Résout un tour de combat.
+  ///
+  /// [playerAction] - L'action du joueur.
+  /// [enemyAction] - L'action de l'ennemi.
+  ///
+  /// Retourne un [BattleTurnResult] avec les exécutions.
+  ///
+  /// Ordre de résolution (déterministe, simple) :
+  /// 1. Joueur exécute son attaque (si pas une fuite)
+  /// 2. Ennemi exécute son attaque (si pas une fuite et encore en vie)
+  ///
+  /// Cette méthode est interne au moteur de combat.
+  BattleTurnResult _resolveTurn(
+      BattleAction playerAction, BattleAction enemyAction) {
+    final executions = <BattleMoveExecution>[];
+
+    // 1. Joueur exécute son attaque
+    if (playerAction is BattleActionFight && !state.enemy.isFainted) {
+      final damage = playerAction.move.power;
+      executions.add(BattleMoveExecution(
+        attacker: 'player',
+        move: playerAction.move,
+        target: 'enemy',
+        damage: damage,
+      ));
+    }
+
+    // 2. Ennemi exécute son attaque (seulement si encore en vie après l'attaque du joueur)
+    if (enemyAction is BattleActionFight) {
+      // Vérifier si l'ennemi est encore en vie après l'attaque du joueur
+      var enemyHpAfterPlayerAttack = state.enemy.currentHp;
+      if (executions.isNotEmpty) {
+        enemyHpAfterPlayerAttack -= executions.first.damage;
+      }
+
+      if (enemyHpAfterPlayerAttack > 0) {
+        final damage = enemyAction.move.power;
+        executions.add(BattleMoveExecution(
+          attacker: 'enemy',
+          move: enemyAction.move,
+          target: 'player',
+          damage: damage,
+        ));
+      }
+    }
+
+    return BattleTurnResult(
+      playerAction: playerAction,
+      enemyAction: enemyAction,
+      executions: executions,
+    );
+  }
+
+  /// Applique les dégâts à un combattant.
+  ///
+  /// [combatant] - Le combattant à modifier.
+  /// [executions] - Les exécutions qui ciblent ce combattant.
+  ///
+  /// Retourne un nouveau combattant avec les PV mis à jour.
+  ///
+  /// Cette méthode est interne au moteur de combat.
+  BattleCombatant _applyDamageToCombatant(
+    BattleCombatant combatant,
+    Iterable<BattleMoveExecution> executions,
+  ) {
+    var newCombatant = combatant;
+    for (final execution in executions) {
+      newCombatant = newCombatant.withDamage(execution.damage);
+    }
+    return newCombatant;
+  }
+
+  /// Détermine le résultat final du combat.
+  ///
+  /// [player] - L'état final du joueur.
+  /// [enemy] - L'état final de l'ennemi.
+  ///
+  /// Retourne null si le combat continue, ou un [BattleOutcome] si fini.
+  ///
+  /// Règles :
+  /// - Si enemy.isFainted → victoire
+  /// - Si player.isFainted → défaite
+  /// - Sinon → combat continue (null)
+  ///
+  /// Cette méthode est interne au moteur de combat.
+  BattleOutcome? _determineOutcome(
+      BattleCombatant player, BattleCombatant enemy) {
+    // Vérifier la victoire (ennemi K.O.)
+    if (enemy.isFainted) {
+      final finalState = BattleState(
+        phase: BattlePhase.finished,
+        player: player,
+        enemy: enemy,
+        currentTurn: null,
+        outcome: null, // Sera set dans le BattleOutcome
+      );
+      return BattleOutcome(
+        type: BattleOutcomeType.victory,
+        finalState: finalState,
+      );
+    }
+
+    // Vérifier la défaite (joueur K.O.)
+    if (player.isFainted) {
+      final finalState = BattleState(
+        phase: BattlePhase.finished,
+        player: player,
+        enemy: enemy,
+        currentTurn: null,
+        outcome: null,
+      );
+      return BattleOutcome(
+        type: BattleOutcomeType.defeat,
+        finalState: finalState,
+      );
+    }
+
+    // Combat continue
+    return null;
+  }
+}
+
+````
+
+### `packages/map_battle/test/battle_session_test.dart`
+
+````dart
+import 'package:map_battle/map_battle.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('BattleSession', () {
+    // Helper pour créer un setup de test
+    BattleSetup createTestSetup({
+      bool isTrainerBattle = false,
+      String? trainerId,
+    }) {
+      return BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+            BattleMoveData(id: 'scratch', name: 'Griffe', power: 4),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: isTrainerBattle,
+        trainerId: trainerId,
+      );
+    }
+
+    test('createBattleSession creates session with playerChoice phase', () {
+      final setup = createTestSetup();
+      final session = createBattleSession(setup);
+
+      expect(session.state.phase, equals(BattlePhase.playerChoice));
+      expect(session.state.player.currentHp, equals(20)); // PV pleins
+      expect(session.state.enemy.currentHp, equals(25)); // PV pleins
+      expect(session.state.outcome, isNull);
+      expect(session.state.isFinished, isFalse);
+    });
+
+    test('createBattleSession creates trainer battle with trainerId', () {
+      final setup = createTestSetup(
+        isTrainerBattle: true,
+        trainerId: 'gym_leader_1',
+      );
+      final session = createBattleSession(setup);
+
+      expect(session.setup.isTrainerBattle, isTrue);
+      expect(session.setup.trainerId, equals('gym_leader_1'));
+    });
+
+    test('createBattleSession respects currentHp when provided by runtime', () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          currentHp: 7,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          currentHp: 11,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+
+      final session = createBattleSession(setup);
+
+      expect(session.state.player.currentHp, equals(7));
+      expect(session.state.enemy.currentHp, equals(11));
+    });
+
+    test('getAvailableChoices returns fight choices + run', () {
+      final setup = createTestSetup();
+      final session = createBattleSession(setup);
+
+      final choices = session.getAvailableChoices();
+
+      // 2 attaques + 1 fuite
+      expect(choices.length, equals(3));
+      expect(choices[0], isA<PlayerBattleChoiceFight>());
+      expect(choices[1], isA<PlayerBattleChoiceFight>());
+      expect(choices[2], isA<PlayerBattleChoiceRun>());
+    });
+
+    test('applyChoice with fight resolves turn and damages enemy', () {
+      final setup = createTestSetup();
+      final session = createBattleSession(setup);
+
+      // Joueur utilise la première attaque (power=5)
+      final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      // L'ennemi devrait avoir pris 5 dégâts
+      expect(newSession.state.enemy.currentHp, equals(20)); // 25 - 5 = 20
+      expect(newSession.state.currentTurn, isNotNull);
+      expect(newSession.state.currentTurn!.executions.length, greaterThan(0));
+    });
+
+    test('applyChoice with fight resolves turn and damages player', () {
+      final setup = createTestSetup();
+      final session = createBattleSession(setup);
+
+      // Joueur utilise la première attaque
+      final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      // Le joueur devrait avoir pris des dégâts de la contre-attaque (power=5)
+      expect(newSession.state.player.currentHp, equals(15)); // 20 - 5 = 15
+    });
+
+    test('KO enemy results in victory', () {
+      // Créer un ennemi avec peu de PV
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          moves: const [
+            BattleMoveData(id: 'mega-punch', name: 'Mega-Poing', power: 25),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 20, // PV max = 20, donc 1 hit KO
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+      final session = createBattleSession(setup);
+
+      // Joueur utilise Mega-Punch (power=25, one-shot)
+      final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(newSession.state.isFinished, isTrue);
+      expect(newSession.state.outcome, isNotNull);
+      expect(newSession.state.outcome!.isVictory, isTrue);
+      expect(newSession.state.enemy.isFainted, isTrue);
+    });
+
+    test('KO player results in defeat', () {
+      // Créer un joueur avec peu de PV face à un ennemi puissant
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 5, // Très peu de PV
+          moves: const [
+            BattleMoveData(id: 'growl', name: 'Rugissement', power: 0),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'mewtwo',
+          level: 100,
+          maxHp: 100,
+          moves: const [
+            BattleMoveData(id: 'psychic', name: 'Psyko', power: 10),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+      final session = createBattleSession(setup);
+
+      // Joueur utilise Growl (power=0, ne fait rien)
+      final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(newSession.state.isFinished, isTrue);
+      expect(newSession.state.outcome, isNotNull);
+      expect(newSession.state.outcome!.isDefeat, isTrue);
+      expect(newSession.state.player.isFainted, isTrue);
+    });
+
+    test('trainer battle victory outcome is compatible with marking', () {
+      // Créer un setup où le joueur gagne en 1 coup
+      final oneHitSetup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'mewtwo',
+          level: 100,
+          maxHp: 100,
+          moves: const [
+            BattleMoveData(id: 'psystrike', name: 'Frapp Psy', power: 50),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 20, // One-shot
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: true,
+        trainerId: 'gym_leader_1',
+      );
+      final session = createBattleSession(oneHitSetup);
+
+      final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(newSession.state.isFinished, isTrue);
+      expect(newSession.state.outcome!.isVictory, isTrue);
+      expect(newSession.setup.trainerId, equals('gym_leader_1'));
+      // Le runtime peut maintenant marquer : 'trainer_defeated:gym_leader_1'
+    });
+
+    test('applyChoice returns new session (immutable)', () {
+      final setup = createTestSetup();
+      final session = createBattleSession(setup);
+
+      final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      // Vérifier que c'est une nouvelle instance
+      expect(identical(session, newSession), isFalse);
+      expect(identical(session.state, newSession.state), isFalse);
+    });
+
+    test('multiple turns until one combatant faints', () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 30,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 10),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 30,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 10),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+      var session = createBattleSession(setup);
+
+      // Tour 1
+      session = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(session.state.isFinished, isFalse); // Les deux sont encore vivants
+      expect(session.state.player.currentHp, equals(20)); // 30 - 10
+      expect(session.state.enemy.currentHp, equals(20)); // 30 - 10
+
+      // Tour 2
+      session = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(session.state.isFinished, isFalse);
+      expect(session.state.player.currentHp, equals(10)); // 20 - 10
+      expect(session.state.enemy.currentHp, equals(10)); // 20 - 10
+
+      // Tour 3
+      session = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(session.state.isFinished, isTrue); // Les deux sont à 0 PV
+      // Le joueur joue en premier, donc l'ennemi meurt en premier → victoire
+      expect(session.state.outcome!.isVictory, isTrue);
+    });
+  });
+}
+
+````
+
+### `packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart`
+
+````dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
+
+import 'battle_start_request.dart';
+import 'runtime_map_bundle.dart';
+
+/// Exception levée quand le runtime ne peut pas construire un [BattleSetup]
+/// honnête à partir des vraies données projet/save.
+///
+/// Le lot 9 supprime volontairement les placeholders hardcodés. Quand une
+/// donnée réelle manque (catalogue moves absent, espèce introuvable, équipe
+/// trainer vide, etc.), on préfère donc échouer explicitement plutôt que de
+/// relancer un combat avec un Pokémon inventé.
+class RuntimeBattleSetupException implements Exception {
+  const RuntimeBattleSetupException(
+    this.message, {
+    this.debugDetails,
+  });
+
+  final String message;
+  final String? debugDetails;
+
+  @override
+  String toString() {
+    final details = debugDetails?.trim();
+    if (details == null || details.isEmpty) {
+      return message;
+    }
+    return '$message ($details)';
+  }
+}
+
+/// Mapper runtime unique vers [BattleSetup].
+///
+/// Important :
+/// - cette classe reste locale à `map_runtime` ;
+/// - elle ne réintroduit pas de dépendance vers `map_editor` ;
+/// - elle relit uniquement le strict nécessaire des données Pokémon projet
+///   pour construire le setup de combat réel.
+///
+/// On garde ici un reader JSON minimal parce que :
+/// - la source de vérité des données Pokémon de runtime est le workspace projet ;
+/// - `map_runtime` ne doit pas dépendre des modèles internes de `map_editor` ;
+/// - le lot 9 ne justifie pas une nouvelle architecture partagée.
+class RuntimeBattleSetupMapper {
+  const RuntimeBattleSetupMapper();
+
+  Future<BattleSetup> map({
+    required RuntimeMapBundle bundle,
+    required GameState gameState,
+    required BattleStartRequest request,
+  }) async {
+    final reader = _RuntimePokemonProjectReader(
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
+    );
+    final movesCatalog = await reader.readMovesCatalog();
+
+    final playerSeed = await _buildPlayerCombatantSeed(
+      reader: reader,
+      movesCatalog: movesCatalog,
+      gameState: gameState,
+    );
+
+    final enemySeed = switch (request) {
+      WildBattleStartRequest() => await _buildWildCombatantSeed(
+          reader: reader,
+          movesCatalog: movesCatalog,
+          request: request,
+        ),
+      TrainerBattleStartRequest() => await _buildTrainerCombatantSeed(
+          reader: reader,
+          movesCatalog: movesCatalog,
+          manifest: bundle.manifest,
+          request: request,
+        ),
+    };
+
+    return BattleSetup(
+      playerPokemon: playerSeed.toBattleCombatantData(),
+      enemyPokemon: enemySeed.toBattleCombatantData(),
+      isTrainerBattle: request is TrainerBattleStartRequest,
+      trainerId:
+          request is TrainerBattleStartRequest ? request.trainerId : null,
+    );
+  }
+
+  Future<_RuntimeBattleCombatantSeed> _buildPlayerCombatantSeed({
+    required _RuntimePokemonProjectReader reader,
+    required _RuntimeMovesCatalog movesCatalog,
+    required GameState gameState,
+  }) async {
+    final playerPokemon = _selectUsablePartyMember(gameState.party);
+    final species = await reader.readSpeciesById(playerPokemon.speciesId);
+    final moveIds = playerPokemon.knownMoveIds.isNotEmpty
+        ? playerPokemon.knownMoveIds
+        : await _deriveLearnsetMoveIds(
+            reader: reader,
+            species: species,
+            level: playerPokemon.level,
+          );
+
+    final moves = _resolveBattleMoves(
+      movesCatalog: movesCatalog,
+      moveIds: moveIds,
+      combatantLabel: 'Le Pokémon actif du joueur',
+    );
+
+    final maxHp = _calculateMaxHp(
+      baseHp: species.baseHp,
+      level: playerPokemon.level,
+      ivHp: playerPokemon.ivs.hp,
+      evHp: playerPokemon.evs.hp,
+    );
+
+    return _RuntimeBattleCombatantSeed(
+      speciesId: playerPokemon.speciesId.trim(),
+      level: playerPokemon.level,
+      maxHp: maxHp,
+      currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
+      moves: moves,
+    );
+  }
+
+  Future<_RuntimeBattleCombatantSeed> _buildWildCombatantSeed({
+    required _RuntimePokemonProjectReader reader,
+    required _RuntimeMovesCatalog movesCatalog,
+    required WildBattleStartRequest request,
+  }) async {
+    final species = await reader.readSpeciesById(request.speciesId);
+    final moveIds = await _deriveLearnsetMoveIds(
+      reader: reader,
+      species: species,
+      level: request.level,
+    );
+    final moves = _resolveBattleMoves(
+      movesCatalog: movesCatalog,
+      moveIds: moveIds,
+      combatantLabel: 'Le Pokémon sauvage "${request.speciesId}"',
+    );
+
+    return _RuntimeBattleCombatantSeed(
+      speciesId: request.speciesId.trim(),
+      level: request.level,
+      maxHp: _calculateMaxHp(
+        baseHp: species.baseHp,
+        level: request.level,
+      ),
+      moves: moves,
+    );
+  }
+
+  Future<_RuntimeBattleCombatantSeed> _buildTrainerCombatantSeed({
+    required _RuntimePokemonProjectReader reader,
+    required _RuntimeMovesCatalog movesCatalog,
+    required ProjectManifest manifest,
+    required TrainerBattleStartRequest request,
+  }) async {
+    final trainer = _findTrainer(manifest, request.trainerId);
+    if (trainer.team.isEmpty) {
+      throw RuntimeBattleSetupException(
+        'Le dresseur "${trainer.name}" n’a aucun Pokémon dans son équipe.',
+        debugDetails: 'trainerId=${trainer.id}',
+      );
+    }
+
+    // Le moteur battle MVP reste mono-combattant : on prend donc le premier
+    // Pokémon authoré de l’équipe, sans inventer une seconde logique de party.
+    final teamMember = trainer.team.first;
+    final species = await reader.readSpeciesById(teamMember.speciesId);
+    final moveIds = teamMember.moves.isNotEmpty
+        ? teamMember.moves
+        : await _deriveLearnsetMoveIds(
+            reader: reader,
+            species: species,
+            level: teamMember.level,
+          );
+
+    final moves = _resolveBattleMoves(
+      movesCatalog: movesCatalog,
+      moveIds: moveIds,
+      combatantLabel:
+          'Le Pokémon du dresseur "${trainer.name}" (${teamMember.speciesId})',
+    );
+
+    return _RuntimeBattleCombatantSeed(
+      speciesId: teamMember.speciesId.trim(),
+      level: teamMember.level,
+      maxHp: _calculateMaxHp(
+        baseHp: species.baseHp,
+        level: teamMember.level,
+      ),
+      moves: moves,
+    );
+  }
+
+  PlayerPokemon _selectUsablePartyMember(PlayerParty party) {
+    for (final member in party.members) {
+      if (!member.isFainted) {
+        return member;
+      }
+    }
+
+    if (party.members.isEmpty) {
+      throw const RuntimeBattleSetupException(
+        'Impossible de lancer un combat sans Pokémon dans l’équipe du joueur.',
+      );
+    }
+
+    throw const RuntimeBattleSetupException(
+      'Tous les Pokémon de l’équipe du joueur sont K.O.; combat impossible.',
+    );
+  }
+
+  ProjectTrainerEntry _findTrainer(ProjectManifest manifest, String trainerId) {
+    final normalizedTrainerId = trainerId.trim();
+    for (final trainer in manifest.trainers) {
+      if (trainer.id == normalizedTrainerId) {
+        return trainer;
+      }
+    }
+
+    throw RuntimeBattleSetupException(
+      'Dresseur introuvable pour démarrer le combat.',
+      debugDetails: 'trainerId=$trainerId',
+    );
+  }
+
+  Future<List<String>> _deriveLearnsetMoveIds({
+    required _RuntimePokemonProjectReader reader,
+    required _RuntimePokemonSpecies species,
+    required int level,
+  }) async {
+    final learnset = await reader.readLearnsetByRef(
+      speciesRef: species.learnsetRef,
+      fallbackSpeciesId: species.id,
+    );
+
+    // On construit la liste de moves disponibles en respectant uniquement les
+    // familles déjà exploitées ailleurs dans le projet :
+    // - startingMoves
+    // - relearnMoves
+    // - levelUp <= niveau courant
+    //
+    // Ensuite on garde les 4 derniers IDs uniques. Cela reste simple, lisible
+    // et suffisamment proche d’un move set plausible sans inventer un nouveau
+    // moteur de sélection.
+    final ordered = <String>[
+      ...learnset.startingMoves,
+      ...learnset.relearnMoves,
+      ...learnset.levelUp
+          .where((entry) => entry.level <= level)
+          .map((entry) => entry.moveId),
+    ];
+    final unique = _normalizeUniqueIdsPreserveOrder(ordered);
+    if (unique.length <= 4) {
+      return unique;
+    }
+    return unique.sublist(unique.length - 4);
+  }
+
+  List<BattleMoveData> _resolveBattleMoves({
+    required _RuntimeMovesCatalog movesCatalog,
+    required List<String> moveIds,
+    required String combatantLabel,
+  }) {
+    final normalizedMoveIds = _normalizeUniqueIdsPreserveOrder(moveIds);
+    if (normalizedMoveIds.isEmpty) {
+      throw RuntimeBattleSetupException(
+        '$combatantLabel n’a aucune attaque exploitable pour démarrer le combat.',
+      );
+    }
+
+    final moves = <BattleMoveData>[];
+    for (final moveId in normalizedMoveIds.take(4)) {
+      final move = movesCatalog.lookup(moveId);
+      if (move == null) {
+        throw RuntimeBattleSetupException(
+          'Le catalogue local des attaques ne contient pas "$moveId".',
+          debugDetails: 'combatant=$combatantLabel',
+        );
+      }
+      moves.add(
+        BattleMoveData(
+          id: move.id,
+          name: move.displayName,
+          power: move.power,
+        ),
+      );
+    }
+    return List<BattleMoveData>.unmodifiable(moves);
+  }
+
+  List<String> _normalizeUniqueIdsPreserveOrder(List<String> rawIds) {
+    final out = <String>[];
+    final seen = <String>{};
+    for (final rawId in rawIds) {
+      final normalizedId = rawId.trim();
+      if (normalizedId.isEmpty || !seen.add(normalizedId)) {
+        continue;
+      }
+      out.add(normalizedId);
+    }
+    return List<String>.unmodifiable(out);
+  }
+
+  int _calculateMaxHp({
+    required int baseHp,
+    required int level,
+    int ivHp = 0,
+    int evHp = 0,
+  }) {
+    final safeBaseHp = _clampInt(baseHp, min: 1, max: 255);
+    final safeLevel = _clampInt(level, min: 1, max: 100);
+    final safeIv = _clampInt(ivHp, min: 0, max: 31);
+    final safeEv = _clampInt(evHp, min: 0, max: 252);
+
+    // Formule Pokémon simplifiée mais vraie dans son intention :
+    // elle part bien des stats projet/save au lieu d’une constante hardcodée.
+    final hp =
+        (((2 * safeBaseHp + safeIv + (safeEv ~/ 4)) * safeLevel) ~/ 100) +
+            safeLevel +
+            10;
+    return _clampInt(hp, min: 1, max: 999);
+  }
+
+  int _clampInt(
+    int value, {
+    required int min,
+    required int max,
+  }) {
+    if (value < min) {
+      return min;
+    }
+    if (value > max) {
+      return max;
+    }
+    return value;
+  }
+}
+
+class _RuntimeBattleCombatantSeed {
+  const _RuntimeBattleCombatantSeed({
+    required this.speciesId,
+    required this.level,
+    required this.maxHp,
+    required this.moves,
+    this.currentHp,
+  });
+
+  final String speciesId;
+  final int level;
+  final int maxHp;
+  final int? currentHp;
+  final List<BattleMoveData> moves;
+
+  BattleCombatantData toBattleCombatantData() {
+    return BattleCombatantData(
+      speciesId: speciesId,
+      level: level,
+      maxHp: maxHp,
+      currentHp: currentHp,
+      moves: moves,
+    );
+  }
+}
+
+/// Reader JSON ultra-ciblé pour le runtime battle handoff.
+///
+/// Il relit uniquement ce que le lot 9 doit mapper :
+/// - espèces (id, base HP, ref learnset)
+/// - learnsets
+/// - catalogue moves
+///
+/// Il n’essaie pas de devenir une nouvelle couche Pokémon partagée.
+class _RuntimePokemonProjectReader {
+  const _RuntimePokemonProjectReader({
+    required this.projectRootDirectory,
+    required this.pokemonConfig,
+  });
+
+  final String projectRootDirectory;
+  final ProjectPokemonConfig pokemonConfig;
+
+  Future<_RuntimeMovesCatalog> readMovesCatalog() async {
+    final relativePath = pokemonConfig.catalogFiles['moves']?.trim();
+    if (relativePath == null || relativePath.isEmpty) {
+      throw const RuntimeBattleSetupException(
+        'Impossible de charger le catalogue local des attaques pour démarrer le combat.',
+        debugDetails: 'ProjectPokemonConfig.catalogFiles["moves"] is empty',
+      );
+    }
+
+    final json = await _readJsonAtProjectRelativePath(
+      relativePath,
+      label: 'Moves catalog',
+    );
+    final rawEntries = (json['entries'] as List?) ?? const <Object?>[];
+    final entries = <String, _RuntimeMoveCatalogEntry>{};
+    for (final rawEntry in rawEntries.whereType<Map>()) {
+      final entry = rawEntry.cast<String, dynamic>();
+      final id = (entry['id'] as String?)?.trim() ?? '';
+      if (id.isEmpty) {
+        continue;
+      }
+      entries[id] = _RuntimeMoveCatalogEntry(
+        id: id,
+        displayName: ((entry['name'] as String?)?.trim().isNotEmpty ?? false)
+            ? (entry['name'] as String).trim()
+            : id,
+        power: (entry['power'] as num?)?.toInt() ?? 0,
+      );
+    }
+
+    if (entries.isEmpty) {
+      throw const RuntimeBattleSetupException(
+        'Le catalogue local des attaques est vide; combat impossible.',
+      );
+    }
+
+    return _RuntimeMovesCatalog(entries);
+  }
+
+  Future<_RuntimePokemonSpecies> readSpeciesById(String speciesId) async {
+    final normalizedSpeciesId = speciesId.trim();
+    if (normalizedSpeciesId.isEmpty) {
+      throw const RuntimeBattleSetupException(
+        'Une espèce Pokémon vide ne peut pas être mappée vers le combat.',
+      );
+    }
+
+    final speciesDirectory = Directory(
+      _resolveProjectPath(
+        _normalizeConfiguredRelativePath(
+          pokemonConfig.speciesDir,
+          fallback: 'data/pokemon/species',
+        ),
+      ),
+    );
+    if (!await speciesDirectory.exists()) {
+      throw RuntimeBattleSetupException(
+        'Impossible de charger les espèces Pokémon locales pour démarrer le combat.',
+        debugDetails: 'Missing species directory: ${speciesDirectory.path}',
+      );
+    }
+
+    await for (final entity in speciesDirectory.list(recursive: false)) {
+      if (entity is! File ||
+          p.extension(entity.path).toLowerCase() != '.json') {
+        continue;
+      }
+      final rawJson = await _readJsonFile(
+        entity,
+        label: 'Pokemon species file',
+      );
+      final declaredId = (rawJson['id'] as String?)?.trim() ?? '';
+      if (declaredId != normalizedSpeciesId) {
+        continue;
+      }
+
+      final baseStats =
+          (rawJson['baseStats'] as Map?)?.cast<String, dynamic>() ??
+              const <String, dynamic>{};
+      final refs = (rawJson['refs'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{
+            'learnset': (rawJson['learnsetRef'] as String?)?.trim() ?? '',
+          };
+      return _RuntimePokemonSpecies(
+        id: declaredId,
+        baseHp: (baseStats['hp'] as num?)?.toInt() ?? 1,
+        learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
+      );
+    }
+
+    throw RuntimeBattleSetupException(
+      'Espèce Pokémon introuvable pour démarrer le combat.',
+      debugDetails: 'speciesId=$speciesId',
+    );
+  }
+
+  Future<_RuntimePokemonLearnset> readLearnsetByRef({
+    required String speciesRef,
+    required String fallbackSpeciesId,
+  }) async {
+    final learnsetId =
+        speciesRef.trim().isEmpty ? fallbackSpeciesId : speciesRef;
+    final learnsetsDirectory = _normalizeConfiguredRelativePath(
+      pokemonConfig.learnsetsDir,
+      fallback: 'data/pokemon/learnsets',
+    );
+    final relativePath = p.join(learnsetsDirectory, '$learnsetId.json');
+    final json = await _readJsonAtProjectRelativePath(
+      relativePath,
+      label: 'Pokemon learnset "$learnsetId"',
+    );
+
+    final rawLevelUp = (json['levelUp'] as List?) ?? const <Object?>[];
+    return _RuntimePokemonLearnset(
+      startingMoves: ((json['startingMoves'] as List?) ?? const <Object?>[])
+          .whereType<String>()
+          .toList(growable: false),
+      relearnMoves: ((json['relearnMoves'] as List?) ?? const <Object?>[])
+          .whereType<String>()
+          .toList(growable: false),
+      levelUp: rawLevelUp
+          .whereType<Map>()
+          .map((entry) => entry.cast<String, dynamic>())
+          .map(
+            (entry) => _RuntimePokemonLevelUpMove(
+              moveId: (entry['moveId'] as String?)?.trim() ?? '',
+              level: (entry['level'] as num?)?.toInt() ?? 0,
+            ),
+          )
+          .where((entry) => entry.moveId.isNotEmpty && entry.level > 0)
+          .toList(growable: false),
+    );
+  }
+
+  Future<Map<String, dynamic>> _readJsonAtProjectRelativePath(
+    String relativePath, {
+    required String label,
+  }) {
+    return _readJsonFile(
+      File(_resolveProjectPath(relativePath)),
+      label: label,
+    );
+  }
+
+  Future<Map<String, dynamic>> _readJsonFile(
+    File file, {
+    required String label,
+  }) async {
+    if (!await file.exists()) {
+      throw RuntimeBattleSetupException(
+        'Impossible de charger les données Pokémon locales nécessaires au combat.',
+        debugDetails: '$label file not found: ${file.path}',
+      );
+    }
+
+    try {
+      final decoded = jsonDecode(await file.readAsString());
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Root JSON object expected');
+      }
+      return decoded;
+    } on RuntimeBattleSetupException {
+      rethrow;
+    } catch (error) {
+      throw RuntimeBattleSetupException(
+        'Impossible de lire les données Pokémon locales nécessaires au combat.',
+        debugDetails: '$label parse failed: $error',
+      );
+    }
+  }
+
+  String _normalizeConfiguredRelativePath(
+    String rawPath, {
+    required String fallback,
+  }) {
+    final trimmed = rawPath.trim();
+    return p.normalize(trimmed.isEmpty ? fallback : trimmed);
+  }
+
+  String _resolveProjectPath(String relativeOrAbsolutePath) {
+    if (p.isAbsolute(relativeOrAbsolutePath)) {
+      return p.normalize(relativeOrAbsolutePath);
+    }
+    return p.normalize(p.join(projectRootDirectory, relativeOrAbsolutePath));
+  }
+}
+
+class _RuntimePokemonSpecies {
+  const _RuntimePokemonSpecies({
+    required this.id,
+    required this.baseHp,
+    required this.learnsetRef,
+  });
+
+  final String id;
+  final int baseHp;
+  final String learnsetRef;
+}
+
+class _RuntimePokemonLearnset {
+  const _RuntimePokemonLearnset({
+    required this.startingMoves,
+    required this.relearnMoves,
+    required this.levelUp,
+  });
+
+  final List<String> startingMoves;
+  final List<String> relearnMoves;
+  final List<_RuntimePokemonLevelUpMove> levelUp;
+}
+
+class _RuntimePokemonLevelUpMove {
+  const _RuntimePokemonLevelUpMove({
+    required this.moveId,
+    required this.level,
+  });
+
+  final String moveId;
+  final int level;
+}
+
+class _RuntimeMovesCatalog {
+  const _RuntimeMovesCatalog(this.entriesById);
+
+  final Map<String, _RuntimeMoveCatalogEntry> entriesById;
+
+  _RuntimeMoveCatalogEntry? lookup(String moveId) => entriesById[moveId.trim()];
+}
+
+class _RuntimeMoveCatalogEntry {
+  const _RuntimeMoveCatalogEntry({
+    required this.id,
+    required this.displayName,
+    required this.power,
+  });
+
+  final String id;
+  final String displayName;
+  final int power;
+}
+
+````
+
+### `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+````dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -5918,3 +7644,539 @@ class _WarpTransitionSpec {
   final Duration fadeOut;
   final Duration fadeIn;
 }
+
+````
+
+### `packages/map_runtime/test/runtime_battle_setup_mapper_test.dart`
+
+````dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
+import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:path/path.dart' as p;
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('RuntimeBattleSetupMapper', () {
+    late Directory tempProjectRoot;
+    const mapper = RuntimeBattleSetupMapper();
+
+    setUp(() async {
+      tempProjectRoot =
+          await Directory.systemTemp.createTemp('runtime_battle_mapper_');
+    });
+
+    tearDown(() async {
+      if (await tempProjectRoot.exists()) {
+        await tempProjectRoot.delete(recursive: true);
+      }
+    });
+
+    test('maps the real player party member from runtime save data', () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-player',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              // Ce Pokémon K.O. ne doit jamais être choisi par le mapper.
+              PlayerPokemon(
+                speciesId: 'spentmon',
+                natureId: 'hardy',
+                abilityId: 'pressure',
+                level: 99,
+                knownMoveIds: <String>['do-not-use'],
+                currentHp: 0,
+              ),
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                ivs: PokemonStatSpread(hp: 31),
+                evs: PokemonStatSpread(hp: 8),
+                knownMoveIds: <String>['growl', 'vine_whip'],
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(setup.playerPokemon.speciesId, equals('sproutle'));
+      expect(setup.playerPokemon.level, equals(12));
+      expect(setup.playerPokemon.currentHp, equals(23));
+      expect(
+        setup.playerPokemon.moves.map((move) => move.id).toList(),
+        equals(<String>['growl', 'vine_whip']),
+      );
+      expect(setup.playerPokemon.speciesId, isNot(equals('pikachu')));
+    });
+
+    test('maps a wild encounter from real project species and learnset data',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(setup.isTrainerBattle, isFalse);
+      expect(setup.enemyPokemon.speciesId, equals('sparkitten'));
+      expect(setup.enemyPokemon.level, equals(10));
+      expect(
+        setup.enemyPokemon.moves.map((move) => move.id).toList(),
+        equals(<String>['scratch', 'tail_whip', 'ember']),
+      );
+      expect(
+        setup.enemyPokemon.moves.map((move) => move.id),
+        isNot(contains('flame_wheel')),
+      );
+      expect(setup.enemyPokemon.speciesId, isNot(equals('mew')));
+    });
+
+    test('maps a trainer battle from the authored trainer team', () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_ace',
+            name: 'Ace Jules',
+            trainerClass: 'Ace Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 18,
+                moves: <String>['water_gun', 'aqua_ring'],
+                heldItemId: 'mystic_water',
+              ),
+            ],
+          ),
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(),
+        request: _trainerRequest(),
+      );
+
+      expect(setup.isTrainerBattle, isTrue);
+      expect(setup.trainerId, equals('trainer_ace'));
+      expect(setup.enemyPokemon.speciesId, equals('aquafi'));
+      expect(setup.enemyPokemon.level, equals(18));
+      expect(
+        setup.enemyPokemon.moves.map((move) => move.id).toList(),
+        equals(<String>['water_gun', 'aqua_ring']),
+      );
+      expect(setup.enemyPokemon.speciesId, isNot(equals('lapras')));
+    });
+  });
+}
+
+GameState _playerStateForTests() {
+  return const GameState(
+    saveId: 'save-test',
+    party: PlayerParty(
+      members: <PlayerPokemon>[
+        PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          ivs: PokemonStatSpread(hp: 31),
+          evs: PokemonStatSpread(hp: 8),
+          knownMoveIds: <String>['growl', 'vine_whip'],
+          currentHp: 23,
+        ),
+      ],
+    ),
+  );
+}
+
+RuntimeMapBundle _buildRuntimeBundle(
+  String projectRootDirectory,
+  ProjectManifest manifest,
+) {
+  return RuntimeMapBundle(
+    manifest: manifest,
+    map: const MapData(
+      id: 'field_map',
+      name: 'Field Map',
+      size: GridSize(width: 8, height: 8),
+      layers: <MapLayer>[
+        MapLayer.object(id: 'objects', name: 'Objects'),
+      ],
+    ),
+    projectRootDirectory: projectRootDirectory,
+    tilesetAbsolutePathsById: const <String, String>{},
+  );
+}
+
+WildBattleStartRequest _wildRequest({
+  required String speciesId,
+  required int level,
+}) {
+  return WildBattleStartRequest(
+    requestId: 'wild-request',
+    createdAtEpochMs: 1,
+    returnContext: const OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.south,
+    ),
+    mapId: 'field_map',
+    zoneId: 'grass',
+    tableId: 'field_grass',
+    encounterKind: EncounterKind.walk,
+    speciesId: speciesId,
+    level: level,
+    minLevel: level,
+    maxLevel: level,
+    weight: 30,
+    playerPos: const GridPos(x: 1, y: 1),
+  );
+}
+
+TrainerBattleStartRequest _trainerRequest() {
+  return const TrainerBattleStartRequest(
+    requestId: 'trainer-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.south,
+    ),
+    trainerId: 'trainer_ace',
+    npcEntityId: 'npc_ace',
+    mapId: 'field_map',
+    playerPos: GridPos(x: 1, y: 1),
+  );
+}
+
+Future<ProjectManifest> _writeAndLoadProjectManifest(
+  Directory projectRoot, {
+  required List<ProjectTrainerEntry> trainers,
+}) async {
+  final manifest = ProjectManifest(
+    name: 'Battle Mapper Test',
+    maps: const <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'field_map',
+        name: 'Field Map',
+        relativePath: 'maps/field_map.json',
+      ),
+    ],
+    tilesets: const <ProjectTilesetEntry>[],
+    trainers: trainers,
+    pokemon: const ProjectPokemonConfig(
+      dataRoot: 'custom/pokemon',
+      speciesDir: 'custom/pokemon/species',
+      learnsetsDir: 'custom/pokemon/learnsets',
+      evolutionsDir: 'custom/pokemon/evolutions',
+      mediaDir: 'custom/pokemon/media',
+      catalogFiles: <String, String>{
+        'moves': 'custom/pokemon/catalogs/moves.json',
+      },
+    ),
+  );
+
+  await _writeProjectJson(projectRoot, manifest.toJson());
+  await _writePokemonFixtures(projectRoot);
+
+  return loadProjectManifestFromFile(p.join(projectRoot.path, 'project.json'));
+}
+
+Future<void> _writeProjectJson(
+  Directory projectRoot,
+  Map<String, dynamic> json,
+) async {
+  final file = File(p.join(projectRoot.path, 'project.json'));
+  await file.writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+}
+
+Future<void> _writePokemonFixtures(Directory projectRoot) async {
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/species/001-sproutle.json',
+    <String, dynamic>{
+      'id': 'sproutle',
+      'slug': 'sproutle',
+      'nationalDex': 1,
+      'names': <String, String>{'en': 'Sproutle'},
+      'speciesName': <String, String>{'en': 'Seedling'},
+      'genIntroduced': 1,
+      'typing': <String, Object>{
+        'types': <String>['grass'],
+      },
+      'baseStats': <String, int>{
+        'hp': 45,
+        'atk': 49,
+        'def': 49,
+        'spa': 65,
+        'spd': 65,
+        'spe': 45,
+        'bst': 318,
+      },
+      'abilities': <String, String>{'primary': 'overgrow'},
+      'breeding': <String, Object>{
+        'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
+        'eggGroups': <String>['monster', 'grass'],
+        'hatchCycles': 20,
+      },
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 64,
+        'catchRate': 45,
+        'baseFriendship': 50,
+      },
+      'refs': <String, String>{
+        'learnset': 'sproutle',
+        'evolution': 'sproutle',
+        'media': 'sproutle',
+      },
+      'dexContent': <String, Object>{
+        'heightM': 0.7,
+        'weightKg': 6.9,
+      },
+      'gameplayFlags': <String, bool>{'starterEligible': true},
+      'sourceMeta': <String, Object>{'seededBy': 'test', 'seedVersion': 1},
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/species/004-sparkitten.json',
+    <String, dynamic>{
+      'id': 'sparkitten',
+      'slug': 'sparkitten',
+      'nationalDex': 4,
+      'names': <String, String>{'en': 'Sparkitten'},
+      'speciesName': <String, String>{'en': 'Ember Cat'},
+      'genIntroduced': 1,
+      'typing': <String, Object>{
+        'types': <String>['fire'],
+      },
+      'baseStats': <String, int>{
+        'hp': 39,
+        'atk': 52,
+        'def': 43,
+        'spa': 60,
+        'spd': 50,
+        'spe': 65,
+        'bst': 309,
+      },
+      'abilities': <String, String>{'primary': 'blaze'},
+      'breeding': <String, Object>{
+        'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
+        'eggGroups': <String>['field'],
+        'hatchCycles': 20,
+      },
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 62,
+        'catchRate': 45,
+        'baseFriendship': 50,
+      },
+      'refs': <String, String>{
+        'learnset': 'sparkitten',
+        'evolution': 'sparkitten',
+        'media': 'sparkitten',
+      },
+      'dexContent': <String, Object>{
+        'heightM': 0.6,
+        'weightKg': 8.5,
+      },
+      'gameplayFlags': <String, bool>{'starterEligible': true},
+      'sourceMeta': <String, Object>{'seededBy': 'test', 'seedVersion': 1},
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/species/007-aquafi.json',
+    <String, dynamic>{
+      'id': 'aquafi',
+      'slug': 'aquafi',
+      'nationalDex': 7,
+      'names': <String, String>{'en': 'Aquafi'},
+      'speciesName': <String, String>{'en': 'Tadpole'},
+      'genIntroduced': 1,
+      'typing': <String, Object>{
+        'types': <String>['water'],
+      },
+      'baseStats': <String, int>{
+        'hp': 44,
+        'atk': 48,
+        'def': 65,
+        'spa': 50,
+        'spd': 64,
+        'spe': 43,
+        'bst': 314,
+      },
+      'abilities': <String, String>{'primary': 'torrent'},
+      'breeding': <String, Object>{
+        'genderRatio': <String, double>{'male': 0.5, 'female': 0.5},
+        'eggGroups': <String>['water_1'],
+        'hatchCycles': 20,
+      },
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 63,
+        'catchRate': 45,
+        'baseFriendship': 50,
+      },
+      'refs': <String, String>{
+        'learnset': 'aquafi',
+        'evolution': 'aquafi',
+        'media': 'aquafi',
+      },
+      'dexContent': <String, Object>{
+        'heightM': 0.5,
+        'weightKg': 9.0,
+      },
+      'gameplayFlags': <String, bool>{'starterEligible': false},
+      'sourceMeta': <String, Object>{'seededBy': 'test', 'seedVersion': 1},
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/learnsets/sproutle.json',
+    <String, dynamic>{
+      'speciesId': 'sproutle',
+      'startingMoves': <String>['tackle'],
+      'relearnMoves': <String>['growl'],
+      'levelUp': <Map<String, Object>>[
+        <String, Object>{
+          'moveId': 'vine_whip',
+          'level': 7,
+          'source': 'level_up',
+          'versionGroup': 'project',
+        },
+        <String, Object>{
+          'moveId': 'razor_leaf',
+          'level': 20,
+          'source': 'level_up',
+          'versionGroup': 'project',
+        },
+      ],
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/learnsets/sparkitten.json',
+    <String, dynamic>{
+      'speciesId': 'sparkitten',
+      'startingMoves': <String>['scratch'],
+      'relearnMoves': <String>['tail_whip'],
+      'levelUp': <Map<String, Object>>[
+        <String, Object>{
+          'moveId': 'ember',
+          'level': 7,
+          'source': 'level_up',
+          'versionGroup': 'project',
+        },
+        <String, Object>{
+          'moveId': 'flame_wheel',
+          'level': 20,
+          'source': 'level_up',
+          'versionGroup': 'project',
+        },
+      ],
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/learnsets/aquafi.json',
+    <String, dynamic>{
+      'speciesId': 'aquafi',
+      'startingMoves': <String>['tackle'],
+      'relearnMoves': <String>['water_gun'],
+      'levelUp': <Map<String, Object>>[
+        <String, Object>{
+          'moveId': 'aqua_ring',
+          'level': 18,
+          'source': 'level_up',
+          'versionGroup': 'project',
+        },
+      ],
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/catalogs/moves.json',
+    <String, dynamic>{
+      'schemaVersion': 1,
+      'kind': 'pokemon_catalog',
+      'catalog': 'moves',
+      'meta': <String, Object>{
+        'description': 'Runtime test move catalog',
+      },
+      'entries': <Map<String, Object?>>[
+        _moveEntry('tackle', 'Tackle', 40),
+        _moveEntry('growl', 'Growl', 0),
+        _moveEntry('vine_whip', 'Vine Whip', 45),
+        _moveEntry('razor_leaf', 'Razor Leaf', 55),
+        _moveEntry('scratch', 'Scratch', 40),
+        _moveEntry('tail_whip', 'Tail Whip', 0),
+        _moveEntry('ember', 'Ember', 40),
+        _moveEntry('flame_wheel', 'Flame Wheel', 60),
+        _moveEntry('water_gun', 'Water Gun', 40),
+        _moveEntry('aqua_ring', 'Aqua Ring', 0),
+      ],
+    },
+  );
+}
+
+Map<String, Object?> _moveEntry(String id, String name, int power) {
+  return <String, Object?>{
+    'id': id,
+    'name': name,
+    'type': 'normal',
+    'category': power == 0 ? 'status' : 'special',
+    'power': power == 0 ? null : power,
+    'pp': 35,
+  };
+}
+
+Future<void> _writeProjectRelativeJson(
+  Directory projectRoot,
+  String relativePath,
+  Map<String, dynamic> json,
+) async {
+  final absolutePath = p.join(projectRoot.path, relativePath);
+  final file = File(absolutePath);
+  await file.parent.create(recursive: true);
+  await file.writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+}
+
+````

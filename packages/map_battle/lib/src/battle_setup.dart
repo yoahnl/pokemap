@@ -47,11 +47,17 @@ class BattleCombatantData {
   /// [speciesId] - L'identifiant de l'espèce (ex: "pikachu", "lapras").
   /// [level] - Le niveau du combattant.
   /// [maxHp] - Les points de vie maximum.
+  /// [currentHp] - Les PV courants si le runtime les connaît déjà.
+  ///
+  /// Le lot 9 du runtime -> battle handoff doit partir de la vraie party du
+  /// joueur. On ajoute donc ce champ optionnel au setup pour éviter de soigner
+  /// implicitement le Pokémon actif lors de l'ouverture du combat.
   /// [moves] - La liste des attaques disponibles (4 max).
   const BattleCombatantData({
     required this.speciesId,
     required this.level,
     required this.maxHp,
+    this.currentHp,
     required this.moves,
   });
 
@@ -63,6 +69,13 @@ class BattleCombatantData {
 
   /// Les points de vie maximum.
   final int maxHp;
+
+  /// Les points de vie courants si le handoff runtime les fournit déjà.
+  ///
+  /// Si null, le moteur démarre le combat à pleine vie, ce qui conserve le
+  /// comportement historique des tests et call sites qui n'ont pas besoin de
+  /// porter cet état.
+  final int? currentHp;
 
   /// La liste des attaques disponibles.
   final List<BattleMoveData> moves;

@@ -36,8 +36,8 @@ void main() {
       final session = createBattleSession(setup);
 
       expect(session.state.phase, equals(BattlePhase.playerChoice));
-      expect(session.state.player.currentHp, equals(20));  // PV pleins
-      expect(session.state.enemy.currentHp, equals(25));   // PV pleins
+      expect(session.state.player.currentHp, equals(20)); // PV pleins
+      expect(session.state.enemy.currentHp, equals(25)); // PV pleins
       expect(session.state.outcome, isNull);
       expect(session.state.isFinished, isFalse);
     });
@@ -51,6 +51,36 @@ void main() {
 
       expect(session.setup.isTrainerBattle, isTrue);
       expect(session.setup.trainerId, equals('gym_leader_1'));
+    });
+
+    test('createBattleSession respects currentHp when provided by runtime', () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          currentHp: 7,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          currentHp: 11,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+
+      final session = createBattleSession(setup);
+
+      expect(session.state.player.currentHp, equals(7));
+      expect(session.state.enemy.currentHp, equals(11));
     });
 
     test('getAvailableChoices returns fight choices + run', () {
@@ -74,7 +104,7 @@ void main() {
       final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       // L'ennemi devrait avoir pris 5 dégâts
-      expect(newSession.state.enemy.currentHp, equals(20));  // 25 - 5 = 20
+      expect(newSession.state.enemy.currentHp, equals(20)); // 25 - 5 = 20
       expect(newSession.state.currentTurn, isNotNull);
       expect(newSession.state.currentTurn!.executions.length, greaterThan(0));
     });
@@ -87,7 +117,7 @@ void main() {
       final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       // Le joueur devrait avoir pris des dégâts de la contre-attaque (power=5)
-      expect(newSession.state.player.currentHp, equals(15));  // 20 - 5 = 15
+      expect(newSession.state.player.currentHp, equals(15)); // 20 - 5 = 15
     });
 
     test('KO enemy results in victory', () {
@@ -104,7 +134,7 @@ void main() {
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
-          maxHp: 20,  // PV max = 20, donc 1 hit KO
+          maxHp: 20, // PV max = 20, donc 1 hit KO
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -129,7 +159,7 @@ void main() {
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
-          maxHp: 5,  // Très peu de PV
+          maxHp: 5, // Très peu de PV
           moves: const [
             BattleMoveData(id: 'growl', name: 'Rugissement', power: 0),
           ],
@@ -170,7 +200,7 @@ void main() {
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
-          maxHp: 20,  // One-shot
+          maxHp: 20, // One-shot
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -224,19 +254,19 @@ void main() {
 
       // Tour 1
       session = session.applyChoice(const PlayerBattleChoiceFight(0));
-      expect(session.state.isFinished, isFalse);  // Les deux sont encore vivants
-      expect(session.state.player.currentHp, equals(20));  // 30 - 10
-      expect(session.state.enemy.currentHp, equals(20));   // 30 - 10
+      expect(session.state.isFinished, isFalse); // Les deux sont encore vivants
+      expect(session.state.player.currentHp, equals(20)); // 30 - 10
+      expect(session.state.enemy.currentHp, equals(20)); // 30 - 10
 
       // Tour 2
       session = session.applyChoice(const PlayerBattleChoiceFight(0));
       expect(session.state.isFinished, isFalse);
-      expect(session.state.player.currentHp, equals(10));  // 20 - 10
-      expect(session.state.enemy.currentHp, equals(10));   // 20 - 10
+      expect(session.state.player.currentHp, equals(10)); // 20 - 10
+      expect(session.state.enemy.currentHp, equals(10)); // 20 - 10
 
       // Tour 3
       session = session.applyChoice(const PlayerBattleChoiceFight(0));
-      expect(session.state.isFinished, isTrue);  // Les deux sont à 0 PV
+      expect(session.state.isFinished, isTrue); // Les deux sont à 0 PV
       // Le joueur joue en premier, donc l'ennemi meurt en premier → victoire
       expect(session.state.outcome!.isVictory, isTrue);
     });

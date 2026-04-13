@@ -11,11 +11,23 @@ import 'battle_resolution.dart';
 /// Retourne une nouvelle [BattleSession] avec l'état initial.
 /// C'est le point d'entrée principal du moteur de combat.
 BattleSession createBattleSession(BattleSetup setup) {
+  // Le runtime peut maintenant fournir les PV courants réels du Pokémon actif.
+  // On garde néanmoins un fallback explicite sur les PV max pour préserver les
+  // anciens call sites/tests qui n'avaient pas besoin de cet état.
+  final playerCurrentHp = _clampHp(
+    currentHp: setup.playerPokemon.currentHp,
+    maxHp: setup.playerPokemon.maxHp,
+  );
+  final enemyCurrentHp = _clampHp(
+    currentHp: setup.enemyPokemon.currentHp,
+    maxHp: setup.enemyPokemon.maxHp,
+  );
+
   // Convertir les données de setup en combattants
   final player = BattleCombatant(
     speciesId: setup.playerPokemon.speciesId,
     level: setup.playerPokemon.level,
-    currentHp: setup.playerPokemon.maxHp,  // PV pleins au début
+    currentHp: playerCurrentHp,
     maxHp: setup.playerPokemon.maxHp,
     moves: setup.playerPokemon.moves
         .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
@@ -25,7 +37,7 @@ BattleSession createBattleSession(BattleSetup setup) {
   final enemy = BattleCombatant(
     speciesId: setup.enemyPokemon.speciesId,
     level: setup.enemyPokemon.level,
-    currentHp: setup.enemyPokemon.maxHp,  // PV pleins au début
+    currentHp: enemyCurrentHp,
     maxHp: setup.enemyPokemon.maxHp,
     moves: setup.enemyPokemon.moves
         .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
@@ -45,6 +57,20 @@ BattleSession createBattleSession(BattleSetup setup) {
     state: initialState,
     setup: setup,
   );
+}
+
+int _clampHp({
+  required int? currentHp,
+  required int maxHp,
+}) {
+  final value = currentHp ?? maxHp;
+  if (value < 0) {
+    return 0;
+  }
+  if (value > maxHp) {
+    return maxHp;
+  }
+  return value;
 }
 
 /// Session de combat.
@@ -168,7 +194,8 @@ class BattleSession {
   BattleAction _choiceToAction(PlayerBattleChoice choice) {
     if (choice is PlayerBattleChoiceFight) {
       // Vérifier que l'index est valide
-      if (choice.moveIndex >= 0 && choice.moveIndex < state.player.moves.length) {
+      if (choice.moveIndex >= 0 &&
+          choice.moveIndex < state.player.moves.length) {
         return BattleActionFight(state.player.moves[choice.moveIndex]);
       }
       // Fallback: première attaque si index invalide
@@ -209,7 +236,8 @@ class BattleSession {
   /// 2. Ennemi exécute son attaque (si pas une fuite et encore en vie)
   ///
   /// Cette méthode est interne au moteur de combat.
-  BattleTurnResult _resolveTurn(BattleAction playerAction, BattleAction enemyAction) {
+  BattleTurnResult _resolveTurn(
+      BattleAction playerAction, BattleAction enemyAction) {
     final executions = <BattleMoveExecution>[];
 
     // 1. Joueur exécute son attaque
@@ -281,7 +309,8 @@ class BattleSession {
   /// - Sinon → combat continue (null)
   ///
   /// Cette méthode est interne au moteur de combat.
-  BattleOutcome? _determineOutcome(BattleCombatant player, BattleCombatant enemy) {
+  BattleOutcome? _determineOutcome(
+      BattleCombatant player, BattleCombatant enemy) {
     // Vérifier la victoire (ennemi K.O.)
     if (enemy.isFainted) {
       final finalState = BattleState(
