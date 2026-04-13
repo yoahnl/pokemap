@@ -344,6 +344,47 @@ Artefact de preuve ajouté :
 
 - `reports/phase-r1-lot-7-trainers-minimal-authoring-report.md`
 
+#### Lot 8 — Encounter tables : surface minimale vraiment exploitable
+
+Ce lot existe maintenant dans la surface `EncounterTablesPanel` déjà présente,
+sans créer de deuxième éditeur, de deuxième pipeline encounter ni de nouvelle
+stack de persistance.
+
+Ce qui est désormais livré :
+
+- création / édition / suppression de tables de rencontres depuis l'UI ;
+- ajout / édition / suppression d'entrées de rencontre depuis la même surface ;
+- assistance locale `species` réutilisant l'index Pokédex déjà présent ;
+- validation inline lisible sur :
+  - `species` ;
+  - `minLevel` ;
+  - `maxLevel` ;
+  - `weight` ;
+- distinction honnête entre trois états auteur :
+  - espèce résolue localement ;
+  - espèce absente du Pokédex local ;
+  - vérification impossible parce que les données locales sont indisponibles ;
+- conservation de la saisie brute quand la vérification locale n'est pas
+  possible ;
+- lisibilité réelle des poids avec part relative dérivée de la table courante ;
+- fermeture des formulaires uniquement sur succès réel du pipeline existant ;
+- sauvegarde stable via les use cases encounter déjà présents.
+
+Décisions explicitement retenues :
+
+- aucun reorder n'a été ajouté :
+  - le runtime sélectionne déjà par poids, pas par ordre ;
+  - ce n'était donc pas un prérequis honnête pour franchir le seuil auteur M2 ;
+- aucun provider/use case/repository encounter parallèle n'a été créé ;
+- `EditorNotifier` a seulement été réaligné sur le contrat de succès/échec
+  déjà utilisé côté trainers pour garder les formulaires ouverts en cas d'échec
+  ;
+- le support local reste strictement `species-first` pour les encounters.
+
+Artefact de preuve ajouté :
+
+- `reports/phase-r1-lot-8-encounters-m2-report.md`
+
 ### 3.3. Catalogues locaux et moves catalog
 
 Le repo n'est plus dans un état "catalogues à inventer".
@@ -391,7 +432,8 @@ Conclusion :
 
 - la surface trainers a maintenant franchi le seuil "vraiment exploitable" pour
   un auteur ;
-- la surface encounters reste encore à hisser au même niveau ;
+- la surface encounters a maintenant rejoint ce même seuil minimal
+  d'exploitabilité ;
 - on ne crée pas un second système de trainers ou de rencontres.
 
 ### 3.5. Runtime et battle skeleton
@@ -473,8 +515,10 @@ Le socle n'est plus au même stade des deux côtés :
   - il reste du confort plus tardif, mais le seuil produit du lot 7 est atteint
     ;
 - encounters :
-  - la surface reste encore trop fragile ;
-  - c'est maintenant le prochain manque le plus visible côté authoring combat.
+  - la surface minimale exploitable est maintenant livrée ;
+  - un auteur peut configurer une table wild valide sans JSON manuel fragile ;
+  - il reste du confort plus tardif, mais le seuil produit du lot 8 est
+    atteint.
 
 ### 4.4. Bridge runtime -> battle
 
@@ -500,7 +544,6 @@ Voici les grands blocs qui restent réellement à construire, en distinguant bie
 
 - maintenance Pokédex bulk plus riche
 - extension progressive du socle moves-first aux surfaces suivantes utiles
-- edition encounter tables suffisamment propre
 - bridge runtime -> battle réel
 - combat sauvage réel
 - seen/caught persistant
@@ -707,7 +750,7 @@ Ce que ce milestone prouve :
 
 Statut actuel :
 
-- partiellement livré ;
+- livré ;
 - lot 5 livré :
   - learnsets profitent réellement du catalogue moves local ;
 - lot 6 livré :
@@ -716,7 +759,11 @@ Statut actuel :
 - lot 7 livré :
   - trainers authorables sans JSON manuel ;
   - édition de team assistée là où les données locales existent ;
-- encounter tables restent encore à faire converger.
+- lot 8 livré :
+  - encounter tables authorables sans texte libre fragile ;
+  - validation inline lisible sur species / niveaux / poids ;
+  - poids et parts relatives lisibles pour l'auteur ;
+  - états dégradés honnêtes quand le Pokédex local est indisponible.
 
 Gate de sortie :
 
@@ -1065,7 +1112,7 @@ Livré concrètement :
 ### Lot 8 — Encounter tables : surface minimale vraiment exploitable
 
 Priorité : `must-have`
-Statut : `prochain lot`
+Statut : `livré`
 
 But :
 
@@ -1073,12 +1120,26 @@ But :
 
 Done :
 
-- add/edit/delete/reorder d'entrées ;
+- add/edit/delete d'entrées ;
 - species assistée ;
 - validation niveau/poids ;
 - lisibilité des probabilités ;
 - preview auteur simple si le coût reste faible ;
 - un auteur peut configurer une table wild valide sans texte libre fragile.
+
+Livré concrètement :
+
+- surface `EncounterTablesPanel` enrichie sans second éditeur ;
+- recherche locale `species` par id / nom / numéro Pokédex via l'index local ;
+- distinction explicite :
+  - résolu localement ;
+  - absent du Pokédex local ;
+  - vérification impossible ;
+- validation inline lisible avant save ;
+- fermeture des formulaires uniquement sur succès réel ;
+- poids totaux et pourcentages dérivés visibles dans la table ;
+- tests applicatifs + widget + non-régressions dédiés ;
+- report de lot présent dans `reports/`.
 
 ### Lot 9 — Mappers runtime réels vers `BattleSetup`
 
