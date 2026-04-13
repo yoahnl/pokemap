@@ -405,6 +405,226 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets(
+      'keeps species and form messaging honest when local species assistance is unavailable',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => throw StateError('species loader exploded'),
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => _movesCatalogView,
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, __) async => throw StateError('detail loader exploded'),
+        ),
+        loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+          LoadPokemonItemsCatalogUseCase(
+            readRepository: _FakePokemonReadRepository(
+              catalogByKey: <String, PokemonCatalogFile>{
+                'items': _itemsCatalog,
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_test',
+      project: ProjectManifest(
+        name: 'trainers_panel_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.textContaining(
+        'Impossible de charger les espèces locales. La saisie brute reste possible.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('trainer-library-add-pokemon-button-misty')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-species-field')),
+      'bulbasaur',
+    );
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-level-field')),
+      '10',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('trainer-library-pokemon-form-field')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Impossible de vérifier les formes locales pour cette espèce. La saisie brute reste possible.',
+      ),
+      findsOneWidget,
+    );
+
+    final savePokemonButton =
+        find.byKey(const Key('trainer-library-pokemon-save-button'));
+    await tester.dragUntilVisible(
+      savePokemonButton,
+      find.byType(ListView).first,
+      const Offset(0, -220),
+    );
+    await tester.tap(savePokemonButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Index local des espèces indisponible. La valeur brute est conservée.',
+      ),
+      findsOneWidget,
+    );
+    final savedTrainer =
+        container.read(editorNotifierProvider).project!.trainers.single;
+    expect(savedTrainer.team.single.speciesId, 'bulbasaur');
+  });
+
+  testWidgets(
+      'keeps the trainer surface usable when moves and items lookups fail unexpectedly',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => throw StateError('moves loader exploded'),
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, speciesId) async =>
+              _detailsById[speciesId] ??
+              (throw EditorNotFoundException('Missing detail: $speciesId')),
+        ),
+        loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+          LoadPokemonItemsCatalogUseCase(
+            readRepository: _FakePokemonReadRepository(
+              catalogError: StateError('items loader exploded'),
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_test',
+      project: ProjectManifest(
+        name: 'trainers_panel_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.textContaining(
+        'Impossible de charger le catalogue local des attaques.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        'Impossible de charger le catalogue local des objets.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('trainer-library-add-pokemon-button-misty')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-species-field')),
+      'bulbasaur',
+    );
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-level-field')),
+      '10',
+    );
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-move-0-field')),
+      'missing_move',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('trainer-library-pokemon-item-field')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-pokemon-item-field')),
+      'mystery_item',
+    );
+
+    final savePokemonButton =
+        find.byKey(const Key('trainer-library-pokemon-save-button'));
+    await tester.dragUntilVisible(
+      savePokemonButton,
+      find.byType(ListView).first,
+      const Offset(0, -220),
+    );
+    await tester.tap(savePokemonButton);
+    await tester.pumpAndSettle();
+
+    final savedTrainer =
+        container.read(editorNotifierProvider).project!.trainers.single;
+    final pokemon = savedTrainer.team.single;
+    expect(pokemon.speciesId, 'bulbasaur');
+    expect(pokemon.level, 10);
+    expect(pokemon.moves, <String>['missing_move']);
+    expect(pokemon.heldItemId, 'mystery_item');
+  });
 }
 
 const List<PokemonDatabaseIndexEntry> _speciesEntries =
@@ -629,15 +849,20 @@ class _FakeWorkspace implements ProjectWorkspace {
 class _FakePokemonReadRepository implements PokemonReadRepository {
   _FakePokemonReadRepository({
     this.catalogByKey = const <String, PokemonCatalogFile>{},
+    this.catalogError,
   });
 
   final Map<String, PokemonCatalogFile> catalogByKey;
+  final Object? catalogError;
 
   @override
   Future<PokemonCatalogFile> readCatalogByKey(
     ProjectWorkspace workspace,
     String catalogKey,
   ) async {
+    if (catalogError != null) {
+      throw catalogError!;
+    }
     final catalog = catalogByKey[catalogKey];
     if (catalog == null) {
       throw EditorNotFoundException('Missing catalog: $catalogKey');

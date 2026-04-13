@@ -340,8 +340,34 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
           'Impossible de charger les espèces locales. La saisie brute reste possible.\n$error';
     }
 
-    final movesCatalogView = await movesLoader(workspace);
-    final itemsCatalogView = await itemsLoader.execute(workspace);
+    late final PokemonMovesCatalogView movesCatalogView;
+    try {
+      movesCatalogView = await movesLoader(workspace);
+    } catch (error) {
+      // The panel should degrade honestly if a loader blows up unexpectedly.
+      // We keep the authoring surface usable with raw IDs instead of leaving
+      // the future in an error state that the current builder does not render.
+      movesCatalogView = PokemonMovesCatalogView(
+        entries: const <PokemonMoveCatalogEntryView>[],
+        isAvailable: false,
+        description: 'Catalogue local des attaques indisponible.',
+        message:
+            'Impossible de charger le catalogue local des attaques. La saisie brute reste possible.\n$error',
+      );
+    }
+
+    late final PokemonItemsCatalogView itemsCatalogView;
+    try {
+      itemsCatalogView = await itemsLoader.execute(workspace);
+    } catch (error) {
+      itemsCatalogView = PokemonItemsCatalogView(
+        entries: const <PokemonItemCatalogEntryView>[],
+        isAvailable: false,
+        description: 'Catalogue local des objets indisponible.',
+        message:
+            'Impossible de charger le catalogue local des objets. La saisie brute reste possible.\n$error',
+      );
+    }
 
     return _TrainerReferenceData(
       speciesEntries: speciesEntries,
@@ -939,6 +965,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
                 references.speciesEntries,
                 trainer.team[i].speciesId,
               ),
+              isSpeciesCatalogAvailable: references.isSpeciesAvailable,
               moveCatalogView: references.movesCatalogView,
               itemCatalogView: references.itemsCatalogView,
               onEdit: () =>

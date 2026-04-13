@@ -5,6 +5,7 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
     super.key,
     required this.pokemon,
     required this.speciesEntry,
+    required this.isSpeciesCatalogAvailable,
     required this.moveCatalogView,
     required this.itemCatalogView,
     required this.onEdit,
@@ -13,6 +14,7 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
 
   final ProjectTrainerPokemonEntry pokemon;
   final PokemonDatabaseIndexEntry? speciesEntry;
+  final bool isSpeciesCatalogAvailable;
   final PokemonMovesCatalogView moveCatalogView;
   final PokemonItemsCatalogView itemCatalogView;
   final VoidCallback onEdit;
@@ -90,11 +92,13 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
                 ],
               ),
               if (speciesEntry == null)
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    'Species absente du Pokédex local.',
-                    style: TextStyle(
+                    isSpeciesCatalogAvailable
+                        ? 'Species absente du Pokédex local.'
+                        : 'Index local des espèces indisponible. La valeur brute est conservée.',
+                    style: const TextStyle(
                       color: EditorChrome.inspectorJoyCoral,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -469,9 +473,13 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                       snapshot.connectionState == ConnectionState.waiting &&
                               widget.speciesController.text.trim().isNotEmpty
                           ? 'Chargement des formes locales pour cette espèce…'
-                          : availableForms.isEmpty
-                              ? 'Aucune suggestion de forme locale disponible pour cette espèce. La saisie brute reste possible.'
-                              : 'Suggestions de formes locales :',
+                          : widget.speciesController.text.trim().isEmpty
+                              ? 'Renseignez une espèce pour vérifier les formes locales.'
+                              : detail == null
+                                  ? 'Impossible de vérifier les formes locales pour cette espèce. La saisie brute reste possible.'
+                                  : availableForms.isEmpty
+                                      ? 'Aucune suggestion de forme locale disponible pour cette espèce. La saisie brute reste possible.'
+                                      : 'Suggestions de formes locales :',
                       style: TextStyle(
                         color: subtle,
                         fontSize: 11,
