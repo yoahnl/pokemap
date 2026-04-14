@@ -32,7 +32,7 @@ should_exclude() {
     [[ "$path" == *"/.qwen/"* ]] && return 0
     [[ "$path" == *"/docs/"* ]] && return 0
     [[ "$path" == *"/.review/"* ]] && return 0
-    [[ "$path" == *"/packages/map_runtime/"* ]] && return 0 # ignore example directory
+    [[ "$path" == *"/pokemon-showdown-master/"* ]] && return 0
 
     [[ "$base" == ".DS_Store" ]] && return 0
     [[ "$base" == "pubspec.lock" ]] && return 0
