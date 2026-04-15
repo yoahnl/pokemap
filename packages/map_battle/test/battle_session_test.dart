@@ -98,7 +98,7 @@ void main() {
     });
 
     test(
-        'createBattleSession preserves the additional honest battle contract fields transported by BE1',
+        'createBattleSession preserves the additional honest battle contract fields transported by BE1 and BE3',
         () {
       final setup = BattleSetup(
         playerPokemon: BattleCombatantData(
@@ -115,6 +115,7 @@ void main() {
               category: BattleMoveCategory.physical,
               target: BattleMoveTarget.opponent,
               pp: 25,
+              priority: 1,
             ),
           ],
         ),
@@ -138,6 +139,7 @@ void main() {
       expect(move.category, equals(BattleMoveCategory.physical));
       expect(move.target, equals(BattleMoveTarget.opponent));
       expect(move.pp, equals(25));
+      expect(move.priority, equals(1));
     });
 
     test('getAvailableChoices returns fight choices + run in wild battle', () {

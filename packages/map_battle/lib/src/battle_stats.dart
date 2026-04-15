@@ -10,7 +10,8 @@
 /// - `maxHp` / `currentHp` restent sur le combattant pour éviter toute
 ///   duplication mensongère ;
 /// - on n'ouvre pas accuracy / evasion dans ce lot ;
-/// - on n'utilise pas encore `speed` pour l'ordre d'action.
+/// - BE3 commence ensuite à consommer `speed` pour l'ordre d'action honnête
+///   minimal, sans ouvrir pour autant une queue générique.
 class BattleStatsSnapshot {
   const BattleStatsSnapshot({
     required this.attack,

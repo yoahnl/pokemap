@@ -23,6 +23,12 @@ import 'runtime_battle_setup_exception.dart';
 /// - et on refuse explicitement les dimensions non neutres qui resteraient
 ///   encore mensongères sans nouvelle couche moteur (`priority`, `critRatio`,
 ///   cibles hors 1v1 simple honnête).
+///
+/// BE3 recadre ensuite ce point :
+/// - `priority` n'est plus refusée, parce que `map_battle` sait enfin
+///   ordonner honnêtement deux actions `Fight` ;
+/// - `speed` stage devient également supportée pour ce même besoin ;
+/// - `accuracy`, `critRatio` et le reste restent hors scope et donc refusés.
 class RuntimeBattleMoveBridge {
   const RuntimeBattleMoveBridge();
 
@@ -37,10 +43,6 @@ class RuntimeBattleMoveBridge {
     required String combatantLabel,
   }) {
     _ensureEngineSupportLevelAllowsBridge(
-      move: move,
-      combatantLabel: combatantLabel,
-    );
-    _ensurePriorityIsNeutralEnoughForBattle(
       move: move,
       combatantLabel: combatantLabel,
     );
@@ -238,6 +240,7 @@ class RuntimeBattleMoveBridge {
       category: _translateCategory(move.category),
       target: target,
       pp: move.pp,
+      priority: move.priority,
       selfStatStageChanges:
           List<BattleStatStageChange>.unmodifiable(selfChanges),
       targetStatStageChanges:
@@ -278,23 +281,6 @@ class RuntimeBattleMoveBridge {
         }
       },
       alwaysHits: (_) {},
-    );
-  }
-
-  void _ensurePriorityIsNeutralEnoughForBattle({
-    required PokemonMove move,
-    required String combatantLabel,
-  }) {
-    // Tant que `map_battle` résout encore "joueur puis ennemi" sans queue
-    // d'actions, une priorité non nulle ne serait pas seulement ignorée :
-    // elle deviendrait mensongère. On préfère donc refuser explicitement.
-    if (move.priority == 0) {
-      return;
-    }
-    _rejectMove(
-      move: move,
-      combatantLabel: combatantLabel,
-      bridgeLimit: 'unsupported_priority:${move.priority}',
     );
   }
 
@@ -377,11 +363,12 @@ class RuntimeBattleMoveBridge {
       PokemonMoveStatId.defense => BattleStatId.defense,
       PokemonMoveStatId.specialAttack => BattleStatId.specialAttack,
       PokemonMoveStatId.specialDefense => BattleStatId.specialDefense,
-      PokemonMoveStatId.speed => _rejectUnsupportedStat(
-          move: move,
-          combatantLabel: combatantLabel,
-          stat: change.stat,
-        ),
+      // BE3 ouvre ici la plus petite extension honnête possible :
+      // - `speed` stage devient enfin utile car le moteur ordonne désormais
+      //   les deux actions `Fight` par vitesse effective ;
+      // - on ne profite pas de cette ouverture pour accepter accuracy/evasion,
+      //   qui resteraient mensongères sans hit pipeline réel.
+      PokemonMoveStatId.speed => BattleStatId.speed,
       PokemonMoveStatId.accuracy => _rejectUnsupportedStat(
           move: move,
           combatantLabel: combatantLabel,

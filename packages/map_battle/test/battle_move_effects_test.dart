@@ -26,7 +26,7 @@ BattleStatsSnapshot _stats({
 }
 
 void main() {
-  group('BattleSession BE2 damage contract', () {
+  group('BattleSession BE2/BE3 combat contract', () {
     test('createBattleSession preserves the resolved stats snapshot', () {
       final session = createBattleSession(
         BattleSetup(
@@ -456,7 +456,7 @@ void main() {
       );
     });
 
-    test('status moves still inflict zero damage and speed stays informational',
+    test('status moves still inflict zero damage while speed can affect order',
         () {
       final session = createBattleSession(
         BattleSetup(
@@ -509,6 +509,292 @@ void main() {
         afterTurn.state.currentTurn!.executions.first.attacker,
         equals('player'),
       );
+    });
+
+    test('higher priority acts before a faster opponent', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 20),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'quick_attack',
+                name: 'Quick Attack',
+                power: 40,
+                category: BattleMoveCategory.physical,
+                priority: 1,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'electrode',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 120),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.executions.first.attacker, 'player');
+    });
+
+    test('enemy higher priority acts before a faster player', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 120),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'electrode',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 20),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'quick_attack',
+                name: 'Quick Attack',
+                power: 40,
+                category: BattleMoveCategory.physical,
+                priority: 1,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.executions.first.attacker, 'enemy');
+    });
+
+    test('higher effective speed acts first at equal priority', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 120),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'snorlax',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 20),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.executions.first.attacker, 'player');
+    });
+
+    test(
+        'equal priority and equal speed use the deterministic player tie-break',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 70),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'eevee',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 70),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.executions.first.attacker, 'player');
+    });
+
+    test('a self speed boost changes order only on the following turn', () {
+      var session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 20,
+            maxHp: 70,
+            stats: _stats(speed: 50),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'agility',
+                name: 'Agility',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.self,
+                selfStatStageChanges: <BattleStatStageChange>[
+                  BattleStatStageChange(
+                    stat: BattleStatId.speed,
+                    stages: 2,
+                  ),
+                ],
+              ),
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'electrode',
+            level: 20,
+            maxHp: 70,
+            stats: _stats(speed: 80),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 5,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      session = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(session.state.currentTurn!.executions.first.attacker, 'enemy');
+      expect(session.state.player.statStages.speed, 2);
+
+      session = session.applyChoice(const PlayerBattleChoiceFight(1));
+
+      expect(session.state.currentTurn!.executions.first.attacker, 'player');
+    });
+
+    test('a target speed drop changes order only on the following turn', () {
+      var session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 20,
+            maxHp: 70,
+            stats: _stats(speed: 50),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'scary_face',
+                name: 'Scary Face',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.opponent,
+                targetStatStageChanges: <BattleStatStageChange>[
+                  BattleStatStageChange(
+                    stat: BattleStatId.speed,
+                    stages: -2,
+                  ),
+                ],
+              ),
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'electrode',
+            level: 20,
+            maxHp: 70,
+            stats: _stats(speed: 90),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 5,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      session = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(session.state.currentTurn!.executions.first.attacker, 'enemy');
+      expect(session.state.enemy.statStages.speed, -2);
+
+      session = session.applyChoice(const PlayerBattleChoiceFight(1));
+
+      expect(session.state.currentTurn!.executions.first.attacker, 'player');
     });
   });
 }

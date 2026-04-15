@@ -123,8 +123,11 @@ class BattleCombatant {
   /// BE2 le transporte jusqu'à l'état battle pour que :
   /// - les moves physiques opposent enfin attaque vs défense ;
   /// - les moves spéciaux opposent enfin spécial vs spécial défense ;
-  /// - `speed` survive au handoff jusqu'au moteur, même si elle n'est pas
-  ///   encore consommée.
+  /// - `speed` survive au handoff jusqu'au moteur.
+  ///
+  /// BE3 commence ensuite à la consommer réellement pour l'ordre d'action,
+  /// sans pour autant ouvrir toute une queue générique ni un système de
+  /// précision / critique / résiduels.
   final BattleStatsSnapshot stats;
 
   /// L'ability réellement résolue pour ce combattant.
@@ -142,8 +145,10 @@ class BattleCombatant {
   /// M8 reste volontairement borné :
   /// - on ne porte que les stats utiles au petit sous-ensemble réellement
   ///   exécutable ;
-  /// - les autres mécaniques (status, weather, précision, vitesse, etc.)
-  ///   restent hors scope.
+  /// - BE3 ajoute `speed` parce qu'elle devient enfin une vraie donnée moteur
+  ///   pour l'ordre d'action ;
+  /// - les autres mécaniques (status, weather, précision, ordre d'action
+  ///   complet, etc.) restent hors scope.
   final BattleStatStages statStages;
 
   /// true si le combattant est K.O.
@@ -225,12 +230,14 @@ class BattleStatStages {
     this.defense = 0,
     this.specialAttack = 0,
     this.specialDefense = 0,
+    this.speed = 0,
   });
 
   final int attack;
   final int defense;
   final int specialAttack;
   final int specialDefense;
+  final int speed;
 
   /// Retourne une copie avec les changements demandés appliqués.
   BattleStatStages apply(List<BattleStatStageChange> changes) {
@@ -249,6 +256,7 @@ class BattleStatStages {
           defense: defense,
           specialAttack: specialAttack,
           specialDefense: specialDefense,
+          speed: speed,
         );
       case BattleStatId.defense:
         return BattleStatStages(
@@ -256,6 +264,7 @@ class BattleStatStages {
           defense: _clampStage(defense + change.stages),
           specialAttack: specialAttack,
           specialDefense: specialDefense,
+          speed: speed,
         );
       case BattleStatId.specialAttack:
         return BattleStatStages(
@@ -263,6 +272,7 @@ class BattleStatStages {
           defense: defense,
           specialAttack: _clampStage(specialAttack + change.stages),
           specialDefense: specialDefense,
+          speed: speed,
         );
       case BattleStatId.specialDefense:
         return BattleStatStages(
@@ -270,6 +280,15 @@ class BattleStatStages {
           defense: defense,
           specialAttack: specialAttack,
           specialDefense: _clampStage(specialDefense + change.stages),
+          speed: speed,
+        );
+      case BattleStatId.speed:
+        return BattleStatStages(
+          attack: attack,
+          defense: defense,
+          specialAttack: specialAttack,
+          specialDefense: specialDefense,
+          speed: _clampStage(speed + change.stages),
         );
     }
   }
@@ -291,6 +310,7 @@ class BattleStatStages {
       BattleStatId.defense => defense,
       BattleStatId.specialAttack => specialAttack,
       BattleStatId.specialDefense => specialDefense,
+      BattleStatId.speed => speed,
     };
     if (stage >= 0) {
       return (2 + stage) / 2;

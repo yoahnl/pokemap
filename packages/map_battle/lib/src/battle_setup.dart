@@ -135,6 +135,8 @@ class BattleMoveData {
   /// [category] - La catégorie battle minimale déjà résolue par le runtime.
   /// [target] - La cible battle minimale résolue par le bridge runtime.
   /// [pp] - Le PP canonique transporté sans encore être consommé.
+  /// [priority] - Priorité canonique transportée et consommée par BE3 pour
+  ///   l'ordre d'action minimal honnête.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -152,6 +154,7 @@ class BattleMoveData {
     this.category,
     this.target = BattleMoveTarget.unspecified,
     this.pp = 0,
+    this.priority = 0,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   });
@@ -195,6 +198,15 @@ class BattleMoveData {
   /// Cette donnée est transportée par honnêteté de contrat, même si le moteur
   /// ne décrémente pas encore les PP.
   final int pp;
+
+  /// Priorité battle minimale du move.
+  ///
+  /// BE1 refusait encore `priority != 0` parce que le moteur résolvait
+  /// toujours "joueur puis ennemi". BE3 ouvre enfin ce champ :
+  /// - il est transporté dès le setup ;
+  /// - il est consommé ensuite par `BattleSession` pour l'ordre du tour ;
+  /// - mais il ne crée pas pour autant une vraie queue générique.
+  final int priority;
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

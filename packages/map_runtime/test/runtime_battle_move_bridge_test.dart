@@ -173,7 +173,7 @@ void main() {
     });
 
     test(
-        'rejects a move whose non-zero priority would still be lost by the current battle engine',
+        'projects a move with non-zero priority once battle order consumes it honestly',
         () {
       const move = PokemonMove(
         id: 'quick_attack',
@@ -191,21 +191,59 @@ void main() {
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
       );
 
-      expect(
-        () => bridge.toBattleMoveData(
-          move: move,
-          combatantLabel: 'Le Pokémon actif du joueur',
-        ),
-        throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('moveId=quick_attack'),
-              contains('bridgeLimit=unsupported_priority:1'),
-            ),
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.id, equals('quick_attack'));
+      expect(battleMove.priority, equals(1));
+      expect(battleMove.power, equals(40));
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+    });
+
+    test('projects a deterministic speed boost move honestly', () {
+      const move = PokemonMove(
+        id: 'agility',
+        name: 'Agility',
+        names: <String, String>{'en': 'Agility'},
+        generation: 1,
+        source: 'test',
+        type: 'psychic',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.self,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 30,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.modifyStats(
+            targetScope: PokemonMoveEffectTargetScope.self,
+            stageChanges: <PokemonMoveStatStageChange>[
+              PokemonMoveStatStageChange(
+                stat: PokemonMoveStatId.speed,
+                stages: 2,
+              ),
+            ],
           ),
-        ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.power, equals(0));
+      expect(battleMove.target, equals(BattleMoveTarget.self));
+      expect(battleMove.selfStatStageChanges, hasLength(1));
+      expect(
+        battleMove.selfStatStageChanges.single.stat,
+        equals(BattleStatId.speed),
+      );
+      expect(
+        battleMove.selfStatStageChanges.single.stages,
+        equals(2),
       );
     });
 

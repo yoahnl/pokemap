@@ -36,16 +36,19 @@ enum BattleMoveTarget {
 
 /// Identifiant de stat exploitable par le moteur battle MVP enrichi.
 ///
-/// Décision volontairement bornée pour M8 :
+/// Décision volontairement bornée pour M8 puis BE3 :
 /// - on ne porte que les stats déjà utiles à un effet battle réel ;
-/// - on n'ouvre pas speed / accuracy / evasion, car cela rouvrirait ordre
-///   d'action, précision et d'autres mécaniques hors scope ;
-/// - le bridge runtime refusera donc explicitement ces autres cas.
+/// - BE3 ouvre `speed` parce qu'elle devient enfin consommée pour l'ordre
+///   d'action minimal honnête ;
+/// - on n'ouvre toujours pas accuracy / evasion, car cela rouvrirait la
+///   précision réelle et d'autres mécaniques hors scope ;
+/// - le bridge runtime continue donc de refuser explicitement ces autres cas.
 enum BattleStatId {
   attack,
   defense,
   specialAttack,
   specialDefense,
+  speed,
 }
 
 /// Changement d'étage de stat appliqué pendant le combat.
@@ -79,6 +82,8 @@ class BattleMove {
   /// [category] - La catégorie battle minimale déjà résolue par le runtime.
   /// [target] - La cible battle minimale résolue par le bridge runtime.
   /// [pp] - Le PP canonique transporté sans encore être consommé.
+  /// [priority] - Priorité canonique réellement consommée par BE3 pour
+  ///   l'ordre d'action 1v1 minimal.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -88,6 +93,8 @@ class BattleMove {
   /// - modifications déterministes de stats ;
   /// - transport honnête de quelques dimensions structurantes (`type`,
   ///   `target`, `pp`) pour arrêter leur perte silencieuse au handoff ;
+  /// - puis, en BE3, transport et consommation réelle de `priority` pour
+  ///   sortir du mensonge "joueur puis ennemi" ;
   /// - aucune précision réelle, aucun RNG, aucun status non volatil.
   const BattleMove({
     required this.id,
@@ -97,6 +104,7 @@ class BattleMove {
     this.category,
     this.target = BattleMoveTarget.unspecified,
     this.pp = 0,
+    this.priority = 0,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   });
@@ -152,6 +160,17 @@ class BattleMove {
   ///
   /// Cette donnée reste donc informative jusqu'à un futur lot PP/hit pipeline.
   final int pp;
+
+  /// Priorité battle minimale du move.
+  ///
+  /// BE3 consomme enfin cette donnée pour fermer le trou :
+  /// - priorité d'abord ;
+  /// - puis vitesse effective ;
+  /// - puis tie-break déterministe explicite.
+  ///
+  /// On garde un défaut à `0` pour préserver les anciens call sites/tests qui
+  /// construisent encore des moves battle pauvres à la main.
+  final int priority;
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

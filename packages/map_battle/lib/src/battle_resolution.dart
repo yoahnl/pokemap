@@ -27,7 +27,10 @@ class BattleTurnResult {
   /// La liste des exécutions d'attaques.
   ///
   /// Ordonnées selon l'ordre de résolution (déterministe).
-  /// Pour ce MVP : joueur joue en premier, puis ennemi.
+  /// Depuis BE3 :
+  /// - priorité décroissante ;
+  /// - puis vitesse effective décroissante ;
+  /// - puis tie-break déterministe explicite.
   final List<BattleMoveExecution> executions;
 }
 

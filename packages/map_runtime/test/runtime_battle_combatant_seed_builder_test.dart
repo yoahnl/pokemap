@@ -314,7 +314,7 @@ void main() {
     });
 
     test(
-        'rejects a move whose non-zero priority would still be lost during runtime to battle assembly',
+        'keeps a non-zero priority move once battle order consumes it honestly',
         () async {
       await _writePokemonFixtures(tempProjectRoot);
       final movesCatalog = await moveCatalogLoader.load(
@@ -322,31 +322,23 @@ void main() {
         pokemonConfig: _pokemonConfig(),
       );
 
-      await expectLater(
-        () => builder.buildPlayerCombatantSeed(
-          projectRootDirectory: tempProjectRoot.path,
-          pokemonConfig: _pokemonConfig(),
-          movesCatalog: movesCatalog,
-          playerPokemon: const PlayerPokemon(
-            speciesId: 'sproutle',
-            natureId: 'bold',
-            abilityId: 'overgrow',
-            level: 12,
-            knownMoveIds: <String>['quick_attack'],
-            currentHp: 23,
-          ),
-        ),
-        throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('moveId=quick_attack'),
-              contains('bridgeLimit=unsupported_priority:1'),
-            ),
-          ),
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['quick_attack'],
+          currentHp: 23,
         ),
       );
+
+      expect(seed.moves, hasLength(1));
+      expect(seed.moves.single.id, equals('quick_attack'));
+      expect(seed.moves.single.priority, equals(1));
     });
   });
 }

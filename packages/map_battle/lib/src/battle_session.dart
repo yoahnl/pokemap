@@ -46,6 +46,7 @@ BattleSession createBattleSession(BattleSetup setup) {
             category: m.category,
             target: m.target,
             pp: m.pp,
+            priority: m.priority,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -72,6 +73,7 @@ BattleSession createBattleSession(BattleSetup setup) {
             category: m.category,
             target: m.target,
             pp: m.pp,
+            priority: m.priority,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -300,12 +302,17 @@ class BattleSession {
 
     // Phase 3: Résoudre le tour.
     //
-    // M8 garde volontairement une résolution séquentielle très petite :
-    // - le joueur agit d'abord ;
-    // - l'ennemi agit ensuite seulement s'il est encore capable d'agir ;
-    // - les dégâts standards restent supportés ;
-    // - un petit sous-ensemble `modifyStats` devient réellement exécutable ;
-    // - aucune précision, aucun RNG, aucun status non volatil n'est ouvert ici.
+    // BE3 corrige ici une ancienne approximation mensongère :
+    // - on ne résout plus "joueur puis ennemi quoi qu'il arrive" ;
+    // - on calcule un ordre minimal honnête une seule fois au début du tour ;
+    // - priorité d'abord, puis vitesse effective, puis tie-break déterministe ;
+    // - aucun recalcul rétroactif si un move modifie la vitesse pendant ce tour.
+    //
+    // Frontière volontairement stricte :
+    // - pas de queue générique façon Showdown ;
+    // - pas de PRNG ;
+    // - pas de système de switch / residual / before-turn hooks ;
+    // - juste le plus petit mécanisme honnête pour les deux actions de ce tour.
     final resolvedTurn = _resolveTurn(playerAction, enemyAction);
 
     // Phase 4: Récupérer l'état résultant après dégâts + éventuels boosts.
@@ -376,9 +383,15 @@ class BattleSession {
   /// - l'état joueur après dégâts / boosts ;
   /// - l'état ennemi après dégâts / boosts.
   ///
-  /// Ordre de résolution (déterministe, simple) :
-  /// 1. Joueur exécute son attaque (si pas une fuite)
-  /// 2. Ennemi exécute son attaque (si pas une fuite et encore en vie)
+  /// Ordre de résolution BE3 :
+  /// 1. on capture l'ordre une seule fois au début du tour ;
+  /// 2. pour deux `Fight`, on compare :
+  ///    - priorité décroissante ;
+  ///    - vitesse effective décroissante ;
+  ///    - tie-break déterministe explicite : joueur avant ennemi ;
+  /// 3. une action de vitesse du premier acteur n'altère donc jamais
+  ///    rétroactivement l'ordre du même tour ;
+  /// 4. `Run`/`Capture` restent hors pseudo-queue générique.
   ///
   /// Cette méthode est interne au moteur de combat.
   _ResolvedBattleTurn _resolveTurn(
@@ -386,37 +399,48 @@ class BattleSession {
     final executions = <BattleMoveExecution>[];
     var player = state.player;
     var enemy = state.enemy;
+    final orderedActions = _resolveTurnOrder(
+      playerAction: playerAction,
+      enemyAction: enemyAction,
+      player: player,
+      enemy: enemy,
+    );
 
-    // 1. Joueur exécute son attaque
-    if (playerAction is BattleActionFight && !enemy.isFainted) {
-      final resolution = _resolveMoveExecution(
-        attackerLabel: 'player',
-        move: playerAction.move,
-        attacker: player,
-        defender: enemy,
-        targetLabel: 'enemy',
-      );
-      player = resolution.attacker;
-      enemy = resolution.defender;
-      executions.add(resolution.execution);
-    }
-
-    // 2. Ennemi exécute son attaque seulement s'il est encore capable d'agir
-    // après la résolution du move joueur. Les boosts/débuffs peuvent donc déjà
-    // influencer cette contre-attaque dans le même tour.
-    if (enemyAction is BattleActionFight &&
-        !enemy.isFainted &&
-        !player.isFainted) {
-      final resolution = _resolveMoveExecution(
-        attackerLabel: 'enemy',
-        move: enemyAction.move,
-        attacker: enemy,
-        defender: player,
-        targetLabel: 'player',
-      );
-      enemy = resolution.attacker;
-      player = resolution.defender;
-      executions.add(resolution.execution);
+    for (final orderedAction in orderedActions) {
+      switch (orderedAction.actor) {
+        case _BattleActor.player:
+          if (orderedAction.action case BattleActionFight(:final move)) {
+            if (player.isFainted || enemy.isFainted) {
+              continue;
+            }
+            final resolution = _resolveMoveExecution(
+              attackerLabel: 'player',
+              move: move,
+              attacker: player,
+              defender: enemy,
+              targetLabel: 'enemy',
+            );
+            player = resolution.attacker;
+            enemy = resolution.defender;
+            executions.add(resolution.execution);
+          }
+        case _BattleActor.enemy:
+          if (orderedAction.action case BattleActionFight(:final move)) {
+            if (enemy.isFainted || player.isFainted) {
+              continue;
+            }
+            final resolution = _resolveMoveExecution(
+              attackerLabel: 'enemy',
+              move: move,
+              attacker: enemy,
+              defender: player,
+              targetLabel: 'player',
+            );
+            enemy = resolution.attacker;
+            player = resolution.defender;
+            executions.add(resolution.execution);
+          }
+      }
     }
 
     return _ResolvedBattleTurn(
@@ -430,6 +454,102 @@ class BattleSession {
     );
   }
 
+  List<_OrderedBattleAction> _resolveTurnOrder({
+    required BattleAction playerAction,
+    required BattleAction enemyAction,
+    required BattleCombatant player,
+    required BattleCombatant enemy,
+  }) {
+    // BE3 refuse d'introduire une fausse queue générique.
+    //
+    // Le moteur actuel n'a besoin que d'un ordre honnête pour deux actions :
+    // - si ce sont deux `Fight`, on compare priorité puis vitesse effective ;
+    // - sinon, on conserve l'ordre historique minimal, car les autres actions
+    //   restent déjà gérées explicitement ailleurs (`Run`/`Capture`) ou ne
+    //   sont pas de vrais chemins gameplay du moteur MVP.
+    if (playerAction is! BattleActionFight ||
+        enemyAction is! BattleActionFight) {
+      return <_OrderedBattleAction>[
+        _OrderedBattleAction(
+          actor: _BattleActor.player,
+          action: playerAction,
+        ),
+        _OrderedBattleAction(
+          actor: _BattleActor.enemy,
+          action: enemyAction,
+        ),
+      ];
+    }
+
+    final playerPriority = playerAction.move.priority;
+    final enemyPriority = enemyAction.move.priority;
+    if (playerPriority != enemyPriority) {
+      return playerPriority > enemyPriority
+          ? <_OrderedBattleAction>[
+              _OrderedBattleAction(
+                actor: _BattleActor.player,
+                action: playerAction,
+              ),
+              _OrderedBattleAction(
+                actor: _BattleActor.enemy,
+                action: enemyAction,
+              ),
+            ]
+          : <_OrderedBattleAction>[
+              _OrderedBattleAction(
+                actor: _BattleActor.enemy,
+                action: enemyAction,
+              ),
+              _OrderedBattleAction(
+                actor: _BattleActor.player,
+                action: playerAction,
+              ),
+            ];
+    }
+
+    final playerSpeed = _resolveEffectiveSpeed(player);
+    final enemySpeed = _resolveEffectiveSpeed(enemy);
+    if (playerSpeed != enemySpeed) {
+      return playerSpeed > enemySpeed
+          ? <_OrderedBattleAction>[
+              _OrderedBattleAction(
+                actor: _BattleActor.player,
+                action: playerAction,
+              ),
+              _OrderedBattleAction(
+                actor: _BattleActor.enemy,
+                action: enemyAction,
+              ),
+            ]
+          : <_OrderedBattleAction>[
+              _OrderedBattleAction(
+                actor: _BattleActor.enemy,
+                action: enemyAction,
+              ),
+              _OrderedBattleAction(
+                actor: _BattleActor.player,
+                action: playerAction,
+              ),
+            ];
+    }
+
+    // Tie-break volontairement déterministe et documenté :
+    // - pas de PRNG pour BE3 ;
+    // - pas de Fischer-Yates façon Showdown ;
+    // - on choisit "joueur avant ennemi" parce que c'est stable, testable,
+    //   et cohérent avec l'historique du moteur jusqu'ici.
+    return <_OrderedBattleAction>[
+      _OrderedBattleAction(
+        actor: _BattleActor.player,
+        action: playerAction,
+      ),
+      _OrderedBattleAction(
+        actor: _BattleActor.enemy,
+        action: enemyAction,
+      ),
+    ];
+  }
+
   /// Résout une exécution unique de move.
   ///
   /// M8 garde ici un contrat volontairement petit et honnête :
@@ -438,8 +558,11 @@ class BattleSession {
   /// - moves de statut => dégâts 0 ;
   /// - les changements de stats sont appliqués immédiatement après le move.
   ///
-  /// Cette application immédiate est importante : un `growl` du joueur doit
-  /// déjà réduire la contre-attaque physique ennemie du même tour.
+  /// Cette application immédiate reste importante :
+  /// - un `growl` du joueur peut déjà réduire une contre-attaque physique
+  ///   ennemie plus tard dans le même tour ;
+  /// - mais un changement de `speed` ne réordonne jamais rétroactivement un
+  ///   tour déjà ordonné au début de `_resolveTurn`.
   _ResolvedMoveExecution _resolveMoveExecution({
     required String attackerLabel,
     required BattleMove move,
@@ -502,8 +625,8 @@ class BattleSession {
   /// - les moves physiques utilisent `attack` vs `defense` ;
   /// - les moves spéciaux utilisent `specialAttack` vs `specialDefense` ;
   /// - les stages continuent à s'appliquer, mais sur ces vraies bases ;
-  /// - `speed` reste transportée dans l'état battle sans encore influencer
-  ///   l'ordre d'action.
+  /// - `speed` influence désormais l'ordre d'action dans BE3, mais reste sans
+  ///   rôle direct dans les dégâts.
   ///
   /// Frontière explicitement conservée :
   /// - pas de type chart ;
@@ -560,7 +683,19 @@ class BattleSession {
       BattleStatId.defense => snapshot.defense,
       BattleStatId.specialAttack => snapshot.specialAttack,
       BattleStatId.specialDefense => snapshot.specialDefense,
+      BattleStatId.speed => snapshot.speed,
     };
+  }
+
+  int _resolveEffectiveSpeed(BattleCombatant combatant) {
+    // L'ordre BE3 repose sur une vitesse effective déterministe :
+    // - snapshot de speed résolu par le runtime ;
+    // - multiplicateur de stages battle déjà présent ;
+    // - aucun RNG, aucune nature, aucun weather, aucun trick room.
+    return _resolveEffectiveStat(
+      baseStat: combatant.stats.speed,
+      multiplier: combatant.statStages.multiplierFor(BattleStatId.speed),
+    );
   }
 
   int _resolveEffectiveStat({
@@ -625,6 +760,21 @@ class BattleSession {
     // Combat continue
     return null;
   }
+}
+
+enum _BattleActor {
+  player,
+  enemy,
+}
+
+class _OrderedBattleAction {
+  const _OrderedBattleAction({
+    required this.actor,
+    required this.action,
+  });
+
+  final _BattleActor actor;
+  final BattleAction action;
 }
 
 class _ResolvedBattleTurn {
