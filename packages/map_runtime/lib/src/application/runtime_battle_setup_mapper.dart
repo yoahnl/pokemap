@@ -345,6 +345,10 @@ class RuntimeBattleSetupMapper {
           debugDetails: 'combatant=$combatantLabel',
         );
       }
+      _ensureMoveCanBeProjectedToBattle(
+        move: move,
+        combatantLabel: combatantLabel,
+      );
       moves.add(
         BattleMoveData(
           id: move.id,
@@ -354,10 +358,16 @@ class RuntimeBattleSetupMapper {
           //   support level ;
           // - il consomme uniquement une puissance de base simplifiée.
           //
-          // M5 ne filtre donc pas les moves `catalog_only` ou
-          // `structured_partial` : le loader runtime conserve l'objet canonique
-          // complet, puis le mapper continue le handoff minimal historique vers
-          // `BattleMoveData`.
+          // M5-bis change volontairement la frontière :
+          // - seuls les moves déjà marqués `structuredSupported` arrivent
+          //   jusqu'ici ;
+          // - `catalogOnly` et `structuredPartial` échouent explicitement un
+          //   peu plus haut, avant toute projection vers `BattleMoveData`.
+          //
+          // Ce `power: 0` restant n'est donc plus un downgrade silencieux
+          // d'un move partiellement supporté. Il ne sert plus qu'aux moves
+          // réellement autorisés par le gate runtime, mais qui suivent un flow
+          // de dégâts non standard ou purement status dans le bridge MVP.
           //
           // Conséquence assumée pour ce lot :
           // - si le move suit le flow de dégâts standard, on transmet
@@ -374,6 +384,40 @@ class RuntimeBattleSetupMapper {
       );
     }
     return List<BattleMoveData>.unmodifiable(moves);
+  }
+
+  /// Refuse explicitement les moves déjà marqués comme non projetables vers le
+  /// handoff battle actuel.
+  ///
+  /// Pourquoi le gate vit ici, et pas dans le loader :
+  /// - le loader runtime doit rester un transport strict du canonique ;
+  /// - il doit continuer à charger honnêtement `catalogOnly` et
+  ///   `structuredPartial` pour le runtime au sens large ;
+  /// - c'est seulement ici, au moment précis où l'on s'apprête à écraser le
+  ///   move canonique riche vers le pont MVP `BattleMoveData(id, name, power)`,
+  ///   que l'on sait si cette projection est honnête ou trompeuse.
+  ///
+  /// Conséquence assumée de M5-bis :
+  /// - `structuredSupported` passe ;
+  /// - `structuredPartial` et `catalogOnly` échouent immédiatement ;
+  /// - aucun filtrage silencieux, aucun downgrade vers `power: 0`.
+  void _ensureMoveCanBeProjectedToBattle({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    if (move.engineSupportLevel ==
+        PokemonMoveEngineSupportLevel.structuredSupported) {
+      return;
+    }
+
+    final unsupportedReasons = move.unsupportedReasons.isEmpty
+        ? '[]'
+        : '[${move.unsupportedReasons.join(', ')}]';
+    throw RuntimeBattleSetupException(
+      'Le combat ne peut pas démarrer car "$combatantLabel" utilise une attaque que le handoff battle actuel ne sait pas projeter honnêtement.',
+      debugDetails:
+          'combatant=$combatantLabel, moveId=${move.id}, moveName=${move.name}, engineSupportLevel=${move.engineSupportLevel.name}, unsupportedReasons=$unsupportedReasons',
+    );
   }
 
   List<String> _normalizeUniqueIdsPreserveOrder(List<String> rawIds) {

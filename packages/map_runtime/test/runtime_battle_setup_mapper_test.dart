@@ -318,6 +318,127 @@ void main() {
         ),
       );
     });
+
+    test(
+        'rejects an explicitly known move when its runtime support level is only partial',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'growl',
+        supportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:stat_drop_bridge',
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      await expectLater(
+        () => mapper.map(
+          bundle: bundle,
+          gameState: const GameState(
+            saveId: 'save-unsupported-known-move',
+            party: PlayerParty(
+              members: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'sproutle',
+                  natureId: 'bold',
+                  abilityId: 'overgrow',
+                  level: 12,
+                  knownMoveIds: <String>['growl', 'vine_whip'],
+                  currentHp: 20,
+                ),
+              ],
+            ),
+          ),
+          request: _wildRequest(
+            speciesId: 'sparkitten',
+            level: 10,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains('ne sait pas projeter honnêtement'),
+              )
+              .having(
+                (error) => error.debugDetails,
+                'debugDetails',
+                allOf(
+                  contains('combatant=Le Pokémon actif du joueur'),
+                  contains('moveId=growl'),
+                  contains('moveName=Growl'),
+                  contains('engineSupportLevel=structuredPartial'),
+                  contains(
+                    'unsupportedReasons=[unsupported_mechanic:stat_drop_bridge]',
+                  ),
+                ),
+              ),
+        ),
+      );
+    });
+
+    test(
+        'rejects a learnset-derived move when its runtime support level is catalog only',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'tackle',
+        supportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:legacy_damage_bridge',
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      await expectLater(
+        () => mapper.map(
+          bundle: bundle,
+          gameState: const GameState(
+            saveId: 'save-derived-unsupported-move',
+            party: PlayerParty(
+              members: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'sproutle',
+                  natureId: 'bold',
+                  abilityId: 'overgrow',
+                  level: 12,
+                  currentHp: 20,
+                ),
+              ],
+            ),
+          ),
+          request: _wildRequest(
+            speciesId: 'sparkitten',
+            level: 10,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('combatant=Le Pokémon actif du joueur'),
+              contains('moveId=tackle'),
+              contains('moveName=Tackle'),
+              contains('engineSupportLevel=catalogOnly'),
+              contains(
+                'unsupportedReasons=[unsupported_mechanic:legacy_damage_bridge]',
+              ),
+            ),
+          ),
+        ),
+      );
+    });
   });
 }
 
@@ -690,7 +811,14 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
   );
 }
 
-Map<String, Object?> _moveEntry(String id, String name, int power) {
+Map<String, Object?> _moveEntry(
+  String id,
+  String name,
+  int power, {
+  PokemonMoveEngineSupportLevel engineSupportLevel =
+      PokemonMoveEngineSupportLevel.structuredSupported,
+  List<String> unsupportedReasons = const <String>[],
+}) {
   return PokemonMove(
     id: id,
     name: name,
@@ -706,8 +834,58 @@ Map<String, Object?> _moveEntry(String id, String name, int power) {
         ? const PokemonMoveAccuracy.alwaysHits()
         : const PokemonMoveAccuracy.percent(value: 100),
     pp: 35,
-    engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+    engineSupportLevel: engineSupportLevel,
+    unsupportedReasons: unsupportedReasons,
   ).toJson();
+}
+
+Future<void> _rewriteMoveCatalogEntrySupport(
+  Directory projectRoot, {
+  required String moveId,
+  required PokemonMoveEngineSupportLevel supportLevel,
+  required List<String> unsupportedReasons,
+}) async {
+  final catalogFile =
+      File(p.join(projectRoot.path, 'custom/pokemon/catalogs/moves.json'));
+  final decoded =
+      jsonDecode(await catalogFile.readAsString()) as Map<String, dynamic>;
+  final rawEntries =
+      ((decoded['entries'] as List?) ?? const <Object?>[]).cast<Object?>();
+  final updatedEntries = <Map<String, Object?>>[];
+  var replaced = false;
+
+  // Le helper reste volontairement minimal :
+  // - il ne change que le niveau de support/runtime reasons d'une entrée déjà
+  //   canonique ;
+  // - il évite de dupliquer un second seed de test complet juste pour deux
+  //   cas M5-bis ;
+  // - il garde les fixtures globales existantes lisibles et stables.
+  for (final rawEntry in rawEntries) {
+    final entry = (rawEntry as Map).cast<String, dynamic>();
+    final entryId = (entry['id'] as String?)?.trim() ?? '';
+    if (entryId != moveId) {
+      updatedEntries.add(Map<String, Object?>.from(entry));
+      continue;
+    }
+
+    replaced = true;
+    final move = PokemonMove.fromJson(entry).copyWith(
+      engineSupportLevel: supportLevel,
+      unsupportedReasons: unsupportedReasons,
+    );
+    updatedEntries.add(move.toJson());
+  }
+
+  expect(
+    replaced,
+    isTrue,
+    reason: 'Expected to find move "$moveId" in the canonical runtime fixture.',
+  );
+
+  decoded['entries'] = updatedEntries;
+  await catalogFile.writeAsString(const JsonEncoder.withIndent('  ').convert(
+    decoded,
+  ));
 }
 
 Future<void> _writeProjectRelativeJson(
