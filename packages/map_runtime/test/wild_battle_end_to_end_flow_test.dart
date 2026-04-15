@@ -577,14 +577,23 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
 }
 
 Map<String, Object?> _moveEntry(String id, String name, int power) {
-  return <String, Object?>{
-    'id': id,
-    'name': name,
-    'type': 'normal',
-    'category': power == 0 ? 'status' : 'physical',
-    'power': power == 0 ? null : power,
-    'pp': 35,
-  };
+  return PokemonMove(
+    id: id,
+    name: name,
+    names: <String, String>{'en': name},
+    generation: 1,
+    source: 'test_runtime_fixture',
+    type: 'normal',
+    category:
+        power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.physical,
+    target: PokemonMoveTarget.normal,
+    basePower: power,
+    accuracy: power == 0
+        ? const PokemonMoveAccuracy.alwaysHits()
+        : const PokemonMoveAccuracy.percent(value: 100),
+    pp: 35,
+    engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+  ).toJson();
 }
 
 Future<void> _writeProjectRelativeJson(

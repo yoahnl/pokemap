@@ -6,36 +6,14 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'battle_start_request.dart';
+import 'runtime_battle_setup_exception.dart';
 import 'runtime_map_bundle.dart';
+import 'runtime_move_catalog_loader.dart';
+
+export 'runtime_battle_setup_exception.dart' show RuntimeBattleSetupException;
 
 const _runtimeCapturePokeBallItemId = 'poke-ball';
 const _runtimeCapturePokeBallCategoryId = 'items';
-
-/// Exception levée quand le runtime ne peut pas construire un [BattleSetup]
-/// honnête à partir des vraies données projet/save.
-///
-/// Le lot 9 supprime volontairement les placeholders hardcodés. Quand une
-/// donnée réelle manque (catalogue moves absent, espèce introuvable, équipe
-/// trainer vide, etc.), on préfère donc échouer explicitement plutôt que de
-/// relancer un combat avec un Pokémon inventé.
-class RuntimeBattleSetupException implements Exception {
-  const RuntimeBattleSetupException(
-    this.message, {
-    this.debugDetails,
-  });
-
-  final String message;
-  final String? debugDetails;
-
-  @override
-  String toString() {
-    final details = debugDetails?.trim();
-    if (details == null || details.isEmpty) {
-      return message;
-    }
-    return '$message ($details)';
-  }
-}
 
 /// Mapper runtime unique vers [BattleSetup].
 ///
@@ -45,12 +23,23 @@ class RuntimeBattleSetupException implements Exception {
 /// - elle relit uniquement le strict nécessaire des données Pokémon projet
 ///   pour construire le setup de combat réel.
 ///
-/// On garde ici un reader JSON minimal parce que :
+/// M5 introduit un seam runtime spécialisé pour les moves parce que :
+/// - le catalogue moves est maintenant canonique et beaucoup plus riche ;
+/// - `runtime_battle_setup_mapper.dart` ne doit plus relire `moves.json`
+///   comme un tuple pauvre `id/name/power` ;
+/// - `map_battle` ne doit toujours pas lire le JSON projet brut.
+///
+/// On garde malgré tout ici un reader JSON minimal pour les espèces/learnsets
+/// parce que :
 /// - la source de vérité des données Pokémon de runtime est le workspace projet ;
 /// - `map_runtime` ne doit pas dépendre des modèles internes de `map_editor` ;
-/// - le lot 9 ne justifie pas une nouvelle architecture partagée.
+/// - M5 n'ouvre pas encore un loader spécialisé pour toute la base Pokémon.
 class RuntimeBattleSetupMapper {
-  const RuntimeBattleSetupMapper();
+  const RuntimeBattleSetupMapper({
+    this.moveCatalogLoader = const RuntimeMoveCatalogLoader(),
+  });
+
+  final RuntimeMoveCatalogLoader moveCatalogLoader;
 
   Future<BattleSetup> map({
     required RuntimeMapBundle bundle,
@@ -62,7 +51,10 @@ class RuntimeBattleSetupMapper {
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
     );
-    final movesCatalog = await reader.readMovesCatalog();
+    final movesCatalog = await moveCatalogLoader.load(
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
+    );
 
     final playerSeed = await _buildPlayerCombatantSeed(
       reader: reader,
@@ -107,7 +99,7 @@ class RuntimeBattleSetupMapper {
 
   Future<_RuntimeBattleCombatantSeed> _buildPlayerCombatantSeed({
     required _RuntimePokemonProjectReader reader,
-    required _RuntimeMovesCatalog movesCatalog,
+    required RuntimeMoveCatalog movesCatalog,
     required GameState gameState,
     int? playerPartyIndex,
   }) async {
@@ -151,7 +143,7 @@ class RuntimeBattleSetupMapper {
 
   Future<_RuntimeBattleCombatantSeed> _buildWildCombatantSeed({
     required _RuntimePokemonProjectReader reader,
-    required _RuntimeMovesCatalog movesCatalog,
+    required RuntimeMoveCatalog movesCatalog,
     required WildBattleStartRequest request,
   }) async {
     final species = await reader.readSpeciesById(request.speciesId);
@@ -182,7 +174,7 @@ class RuntimeBattleSetupMapper {
 
   Future<_RuntimeBattleCombatantSeed> _buildTrainerCombatantSeed({
     required _RuntimePokemonProjectReader reader,
-    required _RuntimeMovesCatalog movesCatalog,
+    required RuntimeMoveCatalog movesCatalog,
     required ProjectManifest manifest,
     required TrainerBattleStartRequest request,
   }) async {
@@ -333,7 +325,7 @@ class RuntimeBattleSetupMapper {
   }
 
   List<BattleMoveData> _resolveBattleMoves({
-    required _RuntimeMovesCatalog movesCatalog,
+    required RuntimeMoveCatalog movesCatalog,
     required List<String> moveIds,
     required String combatantLabel,
   }) {
@@ -356,8 +348,28 @@ class RuntimeBattleSetupMapper {
       moves.add(
         BattleMoveData(
           id: move.id,
-          name: move.displayName,
-          power: move.power,
+          name: move.name,
+          // Le moteur battle MVP reste borné :
+          // - il ne connaît encore ni accuracy, ni effets structurés, ni
+          //   support level ;
+          // - il consomme uniquement une puissance de base simplifiée.
+          //
+          // M5 ne filtre donc pas les moves `catalog_only` ou
+          // `structured_partial` : le loader runtime conserve l'objet canonique
+          // complet, puis le mapper continue le handoff minimal historique vers
+          // `BattleMoveData`.
+          //
+          // Conséquence assumée pour ce lot :
+          // - si le move suit le flow de dégâts standard, on transmet
+          //   `basePower` ;
+          // - sinon on garde `0`, exactement comme les vieux status moves du
+          //   MVP battle.
+          //
+          // On documente explicitement cette limite au lieu de l'étendre ici :
+          // décider quels `effects`/support levels deviennent réellement
+          // exécutables appartient au futur pont runtime -> battle (M8), pas
+          // à ce seam de chargement M5.
+          power: move.usesStandardDamageFlow ? move.basePower : 0,
         ),
       );
     }
@@ -467,9 +479,9 @@ class _RuntimeBattleCombatantSeed {
 /// Il relit uniquement ce que le lot 9 doit mapper :
 /// - espèces (id, base HP, ref learnset)
 /// - learnsets
-/// - catalogue moves
 ///
-/// Il n’essaie pas de devenir une nouvelle couche Pokémon partagée.
+/// Le catalogue moves a été extrait dans [RuntimeMoveCatalogLoader] pour
+/// éviter qu'un second parser canonique vive caché dans ce reader local.
 class _RuntimePokemonProjectReader {
   const _RuntimePokemonProjectReader({
     required this.projectRootDirectory,
@@ -478,45 +490,6 @@ class _RuntimePokemonProjectReader {
 
   final String projectRootDirectory;
   final ProjectPokemonConfig pokemonConfig;
-
-  Future<_RuntimeMovesCatalog> readMovesCatalog() async {
-    final relativePath = pokemonConfig.catalogFiles['moves']?.trim();
-    if (relativePath == null || relativePath.isEmpty) {
-      throw const RuntimeBattleSetupException(
-        'Impossible de charger le catalogue local des attaques pour démarrer le combat.',
-        debugDetails: 'ProjectPokemonConfig.catalogFiles["moves"] is empty',
-      );
-    }
-
-    final json = await _readJsonAtProjectRelativePath(
-      relativePath,
-      label: 'Moves catalog',
-    );
-    final rawEntries = (json['entries'] as List?) ?? const <Object?>[];
-    final entries = <String, _RuntimeMoveCatalogEntry>{};
-    for (final rawEntry in rawEntries.whereType<Map>()) {
-      final entry = rawEntry.cast<String, dynamic>();
-      final id = (entry['id'] as String?)?.trim() ?? '';
-      if (id.isEmpty) {
-        continue;
-      }
-      entries[id] = _RuntimeMoveCatalogEntry(
-        id: id,
-        displayName: ((entry['name'] as String?)?.trim().isNotEmpty ?? false)
-            ? (entry['name'] as String).trim()
-            : id,
-        power: (entry['power'] as num?)?.toInt() ?? 0,
-      );
-    }
-
-    if (entries.isEmpty) {
-      throw const RuntimeBattleSetupException(
-        'Le catalogue local des attaques est vide; combat impossible.',
-      );
-    }
-
-    return _RuntimeMovesCatalog(entries);
-  }
 
   Future<_RuntimePokemonSpecies> readSpeciesById(String speciesId) async {
     final normalizedSpeciesId = speciesId.trim();
@@ -704,24 +677,4 @@ class _RuntimePokemonLevelUpMove {
 
   final String moveId;
   final int level;
-}
-
-class _RuntimeMovesCatalog {
-  const _RuntimeMovesCatalog(this.entriesById);
-
-  final Map<String, _RuntimeMoveCatalogEntry> entriesById;
-
-  _RuntimeMoveCatalogEntry? lookup(String moveId) => entriesById[moveId.trim()];
-}
-
-class _RuntimeMoveCatalogEntry {
-  const _RuntimeMoveCatalogEntry({
-    required this.id,
-    required this.displayName,
-    required this.power,
-  });
-
-  final String id;
-  final String displayName;
-  final int power;
 }

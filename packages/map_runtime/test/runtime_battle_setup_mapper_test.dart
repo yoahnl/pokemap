@@ -151,6 +151,18 @@ void main() {
         equals(<String>['scratch', 'tail_whip', 'ember']),
       );
       expect(
+        setup.enemyPokemon.moves
+            .firstWhere((move) => move.id == 'scratch')
+            .power,
+        equals(40),
+      );
+      expect(
+        setup.enemyPokemon.moves
+            .firstWhere((move) => move.id == 'tail_whip')
+            .power,
+        equals(0),
+      );
+      expect(
         setup.enemyPokemon.moves.map((move) => move.id),
         isNot(contains('flame_wheel')),
       );
@@ -263,6 +275,48 @@ void main() {
 
       expect(setup.isTrainerBattle, isFalse);
       expect(setup.allowCapture, isFalse);
+    });
+
+    test(
+        'throws explicitly when a runtime move reference is absent from the canonical catalog',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      await expectLater(
+        () => mapper.map(
+          bundle: bundle,
+          gameState: const GameState(
+            saveId: 'save-missing-move',
+            party: PlayerParty(
+              members: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'sproutle',
+                  natureId: 'bold',
+                  abilityId: 'overgrow',
+                  level: 12,
+                  knownMoveIds: <String>['move_that_does_not_exist'],
+                  currentHp: 20,
+                ),
+              ],
+            ),
+          ),
+          request: _wildRequest(
+            speciesId: 'sparkitten',
+            level: 10,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.message,
+            'message',
+            contains('ne contient pas "move_that_does_not_exist"'),
+          ),
+        ),
+      );
     });
   });
 }
@@ -637,14 +691,23 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
 }
 
 Map<String, Object?> _moveEntry(String id, String name, int power) {
-  return <String, Object?>{
-    'id': id,
-    'name': name,
-    'type': 'normal',
-    'category': power == 0 ? 'status' : 'special',
-    'power': power == 0 ? null : power,
-    'pp': 35,
-  };
+  return PokemonMove(
+    id: id,
+    name: name,
+    names: <String, String>{'en': name},
+    generation: 1,
+    source: 'test_runtime_fixture',
+    type: 'normal',
+    category:
+        power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special,
+    target: PokemonMoveTarget.normal,
+    basePower: power,
+    accuracy: power == 0
+        ? const PokemonMoveAccuracy.alwaysHits()
+        : const PokemonMoveAccuracy.percent(value: 100),
+    pp: 35,
+    engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+  ).toJson();
 }
 
 Future<void> _writeProjectRelativeJson(
