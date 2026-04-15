@@ -35,6 +35,11 @@ void main() {
       expect(battleMove.type, equals('grass'));
       expect(battleMove.category, equals(BattleMoveCategory.physical));
       expect(battleMove.target, equals(BattleMoveTarget.opponent));
+      expect(
+        battleMove.accuracy.kind,
+        equals(BattleMoveAccuracyKind.percent),
+      );
+      expect(battleMove.accuracy.value, equals(100));
       expect(battleMove.pp, equals(25));
       expect(battleMove.selfStatStageChanges, isEmpty);
       expect(battleMove.targetStatStageChanges, isEmpty);
@@ -248,6 +253,38 @@ void main() {
     });
 
     test(
+        'projects a move with non-trivial percent accuracy once battle owns the hit check',
+        () {
+      const move = PokemonMove(
+        id: 'fire_blast',
+        name: 'Fire Blast',
+        names: <String, String>{'en': 'Fire Blast'},
+        generation: 1,
+        source: 'test',
+        type: 'fire',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.normal,
+        basePower: 110,
+        accuracy: PokemonMoveAccuracy.percent(value: 85),
+        pp: 5,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.id, equals('fire_blast'));
+      expect(
+        battleMove.accuracy.kind,
+        equals(BattleMoveAccuracyKind.percent),
+      );
+      expect(battleMove.accuracy.value, equals(85));
+      expect(battleMove.pp, equals(5));
+    });
+
+    test(
         'rejects a move whose non-neutral crit ratio would still be lost by the current battle engine',
         () {
       const move = PokemonMove(
@@ -404,7 +441,7 @@ void main() {
     });
 
     test(
-        'rejects moves that would always hit despite non deterministic accuracy',
+        'still rejects unsupported effect families even when accuracy is now bridgeable',
         () {
       const move = PokemonMove(
         id: 'sleep_powder',
@@ -436,7 +473,7 @@ void main() {
           isA<RuntimeBattleSetupException>().having(
             (error) => error.debugDetails,
             'debugDetails',
-            contains('bridgeLimit=unsupported_accuracy:percent_75'),
+            contains('bridgeLimit=unsupported_effect_kind:apply_status'),
           ),
         ),
       );

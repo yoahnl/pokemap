@@ -44,11 +44,13 @@ class BattleMoveExecution {
   /// [move] - L'attaque utilisée.
   /// [target] - L'identifiant de la cible ("player" ou "enemy").
   /// [damage] - Les dégâts infligés.
+  /// [didHit] - true si le move a réellement touché.
   const BattleMoveExecution({
     required this.attacker,
     required this.move,
     required this.target,
     required this.damage,
+    required this.didHit,
   });
 
   /// L'identifiant de l'attaquant.
@@ -66,13 +68,23 @@ class BattleMoveExecution {
 
   /// Les dégâts infligés.
   ///
-  /// Après M8 :
-  /// - un move de statut peut infliger `0` dégât ;
+  /// Après M8 puis BE4 :
+  /// - un move de statut touché peut infliger `0` dégât ;
+  /// - un move qui miss inflige aussi `0` dégât ;
   /// - un move de dégâts standards part toujours de `move.power` ;
   /// - des multiplicateurs simples issus des étages de stats peuvent modifier
   ///   ce montant ;
   /// - on reste néanmoins très loin d'une formule Pokémon complète.
   final int damage;
+
+  /// true si le move a réellement touché.
+  ///
+  /// BE4 l'ajoute pour arrêter un autre mensonge silencieux :
+  /// - `damage == 0` ne distingue pas un miss d'un move de statut ;
+  /// - la trace d'exécution doit donc porter explicitement le hit/miss ;
+  /// - on évite ainsi de forcer l'UI/runtime à deviner l'issue depuis un
+  ///   contrat trop pauvre.
+  final bool didHit;
 }
 
 /// Type de résultat final d'un combat.

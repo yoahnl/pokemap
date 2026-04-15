@@ -61,6 +61,7 @@ export 'src/battle_setup.dart';
 export 'src/battle_session.dart';
 export 'src/battle_state.dart';
 export 'src/battle_stats.dart';
+export 'src/battle_rng.dart';
 export 'src/battle_action.dart';
 export 'src/battle_move.dart';
 export 'src/battle_resolution.dart';

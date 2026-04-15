@@ -138,6 +138,12 @@ class BattleCombatant {
   final String abilityId;
 
   /// La liste des attaques disponibles.
+  ///
+  /// À partir de BE4, les moves battle transportent aussi leur PP courant :
+  /// - la liste n'est donc plus seulement descriptive ;
+  /// - elle porte un vrai petit état mutable-mais-immutable du point de vue
+  ///   des copies de session ;
+  /// - on n'ouvre toujours pas de write-back runtime des PP hors combat.
   final List<BattleMove> moves;
 
   /// Étages de stats actuellement appliqués à ce combattant.
@@ -214,6 +220,31 @@ class BattleCombatant {
       abilityId: abilityId,
       moves: moves,
       statStages: statStages.apply(changes),
+    );
+  }
+
+  /// Crée une copie avec un slot move remplacé.
+  ///
+  /// BE4 évite ici une sur-architecture :
+  /// - pas de nouveau sous-état `MoveState` parallèle ;
+  /// - pas de map indexée future-proof ;
+  /// - juste le plus petit helper honnête pour décrémenter les PP d'un slot.
+  BattleCombatant withUpdatedMoveAt(int index, BattleMove updatedMove) {
+    if (index < 0 || index >= moves.length) {
+      throw RangeError.index(index, moves, 'index');
+    }
+
+    final updatedMoves = List<BattleMove>.of(moves);
+    updatedMoves[index] = updatedMove;
+    return BattleCombatant(
+      speciesId: speciesId,
+      level: level,
+      currentHp: currentHp,
+      maxHp: maxHp,
+      stats: stats,
+      abilityId: abilityId,
+      moves: List<BattleMove>.unmodifiable(updatedMoves),
+      statStages: statStages,
     );
   }
 }

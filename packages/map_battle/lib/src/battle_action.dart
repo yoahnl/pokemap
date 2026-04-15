@@ -60,10 +60,25 @@ class BattleActionFight extends BattleAction {
   /// Crée une action d'attaque.
   ///
   /// [move] - L'attaque à exécuter.
-  const BattleActionFight(this.move);
+  /// [moveIndex] - L'index du slot move dans le combattant.
+  ///
+  /// BE4 ajoute cet index pour une raison très concrète :
+  /// - les PP vivent désormais dans l'état battle ;
+  /// - le moteur doit savoir quel slot décrémenter honnêtement ;
+  /// - transporter seulement l'objet `BattleMove` ne suffit plus.
+  ///
+  /// Ce n'est pas l'ouverture d'un système de queue plus riche :
+  /// - on garde seulement la donnée minimale nécessaire au hit pipeline.
+  const BattleActionFight(
+    this.move, {
+    required this.moveIndex,
+  });
 
   /// L'attaque à exécuter.
   final BattleMove move;
+
+  /// Le slot du move sur le combattant.
+  final int moveIndex;
 }
 
 /// Fuir (action résolue).

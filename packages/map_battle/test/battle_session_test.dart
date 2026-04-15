@@ -98,7 +98,7 @@ void main() {
     });
 
     test(
-        'createBattleSession preserves the additional honest battle contract fields transported by BE1 and BE3',
+        'createBattleSession preserves the additional honest battle contract fields transported by BE1, BE3 and BE4',
         () {
       final setup = BattleSetup(
         playerPokemon: BattleCombatantData(
@@ -114,7 +114,9 @@ void main() {
               type: 'grass',
               category: BattleMoveCategory.physical,
               target: BattleMoveTarget.opponent,
+              accuracy: BattleMoveAccuracy.percent(value: 95),
               pp: 25,
+              currentPp: 7,
               priority: 1,
             ),
           ],
@@ -138,8 +140,100 @@ void main() {
       expect(move.type, equals('grass'));
       expect(move.category, equals(BattleMoveCategory.physical));
       expect(move.target, equals(BattleMoveTarget.opponent));
+      expect(move.accuracy.kind, equals(BattleMoveAccuracyKind.percent));
+      expect(move.accuracy.value, equals(95));
       expect(move.pp, equals(25));
+      expect(move.currentPp, equals(7));
       expect(move.priority, equals(1));
+    });
+
+    test('getAvailableChoices hides fight choices whose currentPp is zero', () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(
+              id: 'tackle',
+              name: 'Charge',
+              power: 5,
+              pp: 10,
+              currentPp: 0,
+            ),
+            BattleMoveData(
+              id: 'scratch',
+              name: 'Griffe',
+              power: 4,
+              pp: 10,
+              currentPp: 3,
+            ),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+      final session = createBattleSession(setup);
+
+      final choices = session.getAvailableChoices();
+      final fightChoices =
+          choices.whereType<PlayerBattleChoiceFight>().toList();
+
+      expect(fightChoices, hasLength(1));
+      expect(fightChoices.single.moveIndex, equals(1));
+    });
+
+    test('forcing a move with zero PP is rejected explicitly', () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(
+              id: 'tackle',
+              name: 'Charge',
+              power: 5,
+              pp: 10,
+              currentPp: 0,
+            ),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+      final session = createBattleSession(setup);
+
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('n’a plus de PP'),
+          ),
+        ),
+      );
     });
 
     test('getAvailableChoices returns fight choices + run in wild battle', () {

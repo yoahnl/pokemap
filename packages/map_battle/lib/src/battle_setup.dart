@@ -100,7 +100,7 @@ class BattleCombatantData {
   ///   species data, du niveau et des IV/EV disponibles.
   ///
   /// `speed` est déjà transportée pour arrêter sa perte silencieuse, même si
-  /// elle n'est pas encore consommée pour l'ordre d'action.
+  /// elle est maintenant consommée pour l'ordre d'action honnête minimal.
   final BattleStatsSnapshot stats;
 
   /// Les points de vie courants si le handoff runtime les fournit déjà.
@@ -134,7 +134,10 @@ class BattleMoveData {
   /// [type] - Le type canonique transporté sans encore être consommé.
   /// [category] - La catégorie battle minimale déjà résolue par le runtime.
   /// [target] - La cible battle minimale résolue par le bridge runtime.
-  /// [pp] - Le PP canonique transporté sans encore être consommé.
+  /// [accuracy] - La précision battle minimale réellement consommée par BE4.
+  /// [pp] - Le PP max transporté vers le moteur.
+  /// [currentPp] - Le PP courant initial si un call site battle direct veut
+  ///   forcer un état de combat déjà entamé.
   /// [priority] - Priorité canonique transportée et consommée par BE3 pour
   ///   l'ordre d'action minimal honnête.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
@@ -145,7 +148,9 @@ class BattleMoveData {
   /// - il ne prétend pas transporter tous les `effects` canoniques ;
   /// - mais BE1 y ajoute aussi quelques dimensions battle fondamentales
   ///   (`type`, `target`, `pp`) pour arrêter leur perte silencieuse ;
-  /// - le moteur n'utilise pas encore tout cela, et c'est assumé.
+  /// - puis BE3 et BE4 commencent à consommer réellement `priority`,
+  ///   `speed`, `accuracy` et les PP ;
+  /// - le reste reste explicitement hors scope.
   const BattleMoveData({
     required this.id,
     required this.name,
@@ -153,7 +158,9 @@ class BattleMoveData {
     this.type = 'unknown',
     this.category,
     this.target = BattleMoveTarget.unspecified,
-    this.pp = 0,
+    this.accuracy = const BattleMoveAccuracy.percent(value: 100),
+    this.pp = 35,
+    this.currentPp,
     this.priority = 0,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
@@ -193,11 +200,41 @@ class BattleMoveData {
   /// honnête dans le cadre 1v1 actuel.
   final BattleMoveTarget target;
 
-  /// PP canonique du move.
+  /// Contrat minimal de précision battle.
   ///
-  /// Cette donnée est transportée par honnêteté de contrat, même si le moteur
-  /// ne décrémente pas encore les PP.
+  /// BE4 ouvre enfin un vrai hit pipeline honnête :
+  /// - le moteur n'a plus besoin que le runtime neutralise l'accuracy ;
+  /// - `alwaysHits` et `percent` suffisent pour le sous-ensemble supporté ;
+  /// - le reste des mécaniques de précision reste hors scope.
+  final BattleMoveAccuracy accuracy;
+
+  /// PP maximum du move.
+  ///
+  /// `BattleMoveData` reste un contrat de setup :
+  /// - `pp` décrit la capacité max du move ;
+  /// - `currentPp`, si fourni, permet seulement d'initialiser un état battle
+  ///   déjà entamé ;
+  /// - sinon, le moteur démarre à pleine valeur.
+  ///
+  /// Compatibilité volontairement bornée :
+  /// - le chemin runtime -> battle fournit déjà le PP canonique réel ;
+  /// - les anciens call sites `map_battle` directs n'avaient souvent aucun PP
+  ///   explicite et supposaient juste "move utilisable" ;
+  /// - on garde donc un défaut pragmatique à 35 pour ne pas transformer BE4
+  ///   en migration massive hors scope ;
+  /// - ce défaut n'est pas une vérité Pokédex : c'est un garde-fou de
+  ///   compatibilité pour les setups battle locaux, documenté comme tel.
   final int pp;
+
+  /// Valeur courante de PP au démarrage de la session si connue.
+  ///
+  /// Le runtime principal n'en a pas besoin aujourd'hui :
+  /// - les combats commencent encore avec tous les PP pleins ;
+  /// - la write-back des PP reste hors scope.
+  ///
+  /// En revanche, ce champ rend le contrat battle direct plus honnête et
+  /// simplifie les tests ciblés de BE4 sans bricoler l'état après coup.
+  final int? currentPp;
 
   /// Priorité battle minimale du move.
   ///

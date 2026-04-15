@@ -340,6 +340,35 @@ void main() {
       expect(seed.moves.single.id, equals('quick_attack'));
       expect(seed.moves.single.priority, equals(1));
     });
+
+    test('keeps a non-trivial accuracy move once battle owns the hit check',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['mud_slap'],
+          currentHp: 23,
+        ),
+      );
+
+      expect(seed.moves, hasLength(1));
+      expect(seed.moves.single.id, equals('mud_slap'));
+      expect(seed.moves.single.accuracy.kind,
+          equals(BattleMoveAccuracyKind.percent));
+      expect(seed.moves.single.accuracy.value, equals(85));
+    });
   });
 }
 
@@ -492,6 +521,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('razor_leaf', 'Razor Leaf', 55),
         _moveEntry('scratch', 'Scratch', 40),
         _moveEntry('quick_attack', 'Quick Attack', 40, priority: 1),
+        _moveEntry('mud_slap', 'Mud-Slap', 20, accuracy: 85),
         _moveEntry('tail_whip', 'Tail Whip', 0),
         _moveEntry('ember', 'Ember', 40),
         _moveEntry('flame_wheel', 'Flame Wheel', 60),
@@ -509,6 +539,7 @@ Map<String, Object?> _moveEntry(
   String type = 'normal',
   PokemonMoveTarget target = PokemonMoveTarget.normal,
   int pp = 35,
+  int accuracy = 100,
   int priority = 0,
   int critRatio = 1,
   PokemonMoveEngineSupportLevel engineSupportLevel =
@@ -529,7 +560,7 @@ Map<String, Object?> _moveEntry(
     basePower: power,
     accuracy: power == 0
         ? const PokemonMoveAccuracy.alwaysHits()
-        : const PokemonMoveAccuracy.percent(value: 100),
+        : PokemonMoveAccuracy.percent(value: accuracy),
     pp: pp,
     priority: priority,
     critRatio: critRatio,

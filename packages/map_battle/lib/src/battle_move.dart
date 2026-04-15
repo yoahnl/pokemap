@@ -34,6 +34,52 @@ enum BattleMoveTarget {
   self,
 }
 
+/// Contrat minimal de précision réellement exécutable par `map_battle`.
+///
+/// BE4 n'importe pas `PokemonMoveAccuracy` depuis `map_core` :
+/// - `map_battle` doit rester pur et indépendant du modèle projet ;
+/// - le bridge runtime traduit donc vers ce petit contrat local ;
+/// - on ne transporte que ce que le moteur sait réellement consommer.
+///
+/// Frontière volontaire :
+/// - `alwaysHits` pour les moves qui bypassent le hit check ;
+/// - `percent` pour un pourcentage entier simple ;
+/// - pas d'evasion/accuracy stages ;
+/// - pas d'autres variantes exotériques.
+///
+/// Note BE4 :
+/// - `percent(100)` reste distinct de `alwaysHits` dans la donnée transportée ;
+/// - mais le moteur actuel le résout quand même de façon déterministe, faute
+///   de modificateurs accuracy/evasion dans ce lot.
+enum BattleMoveAccuracyKind {
+  alwaysHits,
+  percent,
+}
+
+/// Représentation battle minimale de la précision.
+///
+/// Décision de BE4 :
+/// - ce type vit au plus près de `BattleMove` parce qu'il n'a de sens que
+///   pour le contrat move battle ;
+/// - il reste petit, explicite et testable ;
+/// - il n'ouvre ni une taxonomie canonique parallèle, ni une logique moteur
+///   générique hors de proportion.
+class BattleMoveAccuracy {
+  const BattleMoveAccuracy.alwaysHits()
+      : kind = BattleMoveAccuracyKind.alwaysHits,
+        value = 100;
+
+  const BattleMoveAccuracy.percent({
+    required this.value,
+  })  : assert(value >= 1 && value <= 100),
+        kind = BattleMoveAccuracyKind.percent;
+
+  final BattleMoveAccuracyKind kind;
+  final int value;
+
+  bool get isAlwaysHits => kind == BattleMoveAccuracyKind.alwaysHits;
+}
+
 /// Identifiant de stat exploitable par le moteur battle MVP enrichi.
 ///
 /// Décision volontairement bornée pour M8 puis BE3 :
@@ -81,7 +127,9 @@ class BattleMove {
   /// [type] - Le type canonique transporté sans être encore consommé.
   /// [category] - La catégorie battle minimale déjà résolue par le runtime.
   /// [target] - La cible battle minimale résolue par le bridge runtime.
-  /// [pp] - Le PP canonique transporté sans encore être consommé.
+  /// [accuracy] - La précision minimale réellement consommée par BE4.
+  /// [pp] - Le PP max du move.
+  /// [currentPp] - Le PP courant dans l'état battle.
   /// [priority] - Priorité canonique réellement consommée par BE3 pour
   ///   l'ordre d'action 1v1 minimal.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
@@ -95,7 +143,8 @@ class BattleMove {
   ///   `target`, `pp`) pour arrêter leur perte silencieuse au handoff ;
   /// - puis, en BE3, transport et consommation réelle de `priority` pour
   ///   sortir du mensonge "joueur puis ennemi" ;
-  /// - aucune précision réelle, aucun RNG, aucun status non volatil.
+  /// - puis, en BE4, un vrai hit pipeline minimal avec précision et PP ;
+  /// - toujours aucun crit, aucun status non volatil, aucun scheduler générique.
   const BattleMove({
     required this.id,
     required this.name,
@@ -103,11 +152,13 @@ class BattleMove {
     this.type = 'unknown',
     this.category,
     this.target = BattleMoveTarget.unspecified,
-    this.pp = 0,
+    this.accuracy = const BattleMoveAccuracy.percent(value: 100),
+    this.pp = 35,
+    int? currentPp,
     this.priority = 0,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
-  });
+  }) : currentPp = currentPp ?? pp;
 
   /// L'identifiant canonique de l'attaque.
   final String id;
@@ -150,16 +201,36 @@ class BattleMove {
   ///   par le bridge runtime.
   final BattleMoveTarget target;
 
-  /// PP canonique du move.
+  /// Précision réellement consommée par le moteur battle.
   ///
-  /// BE1 le transporte pour arrêter la perte silencieuse au bridge.
-  /// Le moteur n'en consomme pas encore :
-  /// - pas de décrément ;
-  /// - pas de blocage "plus de PP" ;
-  /// - pas de write-back.
+  /// BE4 garde ici un contrat petit mais honnête :
+  /// - `alwaysHits` bypasse le hit check ;
+  /// - `percent` déclenche un check simple sur 1..100 pour les valeurs
+  ///   réellement non triviales ;
+  /// - `percent(100)` reste déterministe dans le moteur actuel, car BE4
+  ///   n'ouvre toujours ni accuracy stages, ni evasion ;
+  /// - pas d'autres couches de précision, pas d'evasion, pas de modificateurs.
+  final BattleMoveAccuracy accuracy;
+
+  /// PP maximum du move dans l'état battle.
   ///
-  /// Cette donnée reste donc informative jusqu'à un futur lot PP/hit pipeline.
+  /// `pp` reste le contrat de capacité max du move.
+  /// L'état courant vit dans [currentPp].
+  ///
+  /// Compatibilité volontairement bornée :
+  /// - le runtime principal fournit déjà le PP canonique réel ;
+  /// - les anciens call sites battle directs omettaient souvent ce champ ;
+  /// - on garde donc un défaut pragmatique à 35 pour ne pas transformer BE4
+  ///   en migration parasite de tous les setups battle locaux.
   final int pp;
+
+  /// PP courant du move dans l'état battle.
+  ///
+  /// BE4 ouvre enfin cette donnée parce que :
+  /// - les PP cessent d'être décoratifs ;
+  /// - le moteur doit pouvoir filtrer les moves inutilisables ;
+  /// - un miss consomme quand même 1 PP de façon honnête.
+  final int currentPp;
 
   /// Priorité battle minimale du move.
   ///
@@ -178,6 +249,14 @@ class BattleMove {
   /// Changements d'étages de stats appliqués à la cible.
   final List<BattleStatStageChange> targetStatStageChanges;
 
+  /// true si le move peut encore être tenté honnêtement.
+  ///
+  /// BE4 n'ouvre toujours pas Struggle :
+  /// - un move à `currentPp == 0` n'est donc plus utilisable ;
+  /// - `getAvailableChoices()` doit le filtrer ;
+  /// - un forçage direct du moteur doit être refusé explicitement.
+  bool get hasUsablePp => currentPp > 0;
+
   /// Catégorie réellement utilisée par le moteur.
   ///
   /// Le bridge runtime fournit maintenant cette info explicitement, mais ce
@@ -192,5 +271,26 @@ class BattleMove {
       return BattleMoveCategory.status;
     }
     return BattleMoveCategory.physical;
+  }
+
+  /// Retourne une copie avec 1 PP consommé.
+  ///
+  /// Le décrément reste local au move, ce qui évite de réinventer un
+  /// conteneur battle parallèle juste pour les PP.
+  BattleMove withConsumedPp() {
+    return BattleMove(
+      id: id,
+      name: name,
+      power: power,
+      type: type,
+      category: category,
+      target: target,
+      accuracy: accuracy,
+      pp: pp,
+      currentPp: currentPp > 0 ? currentPp - 1 : 0,
+      priority: priority,
+      selfStatStageChanges: selfStatStageChanges,
+      targetStatStageChanges: targetStatStageChanges,
+    );
   }
 }

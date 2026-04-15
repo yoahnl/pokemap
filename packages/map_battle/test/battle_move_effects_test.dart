@@ -26,7 +26,7 @@ BattleStatsSnapshot _stats({
 }
 
 void main() {
-  group('BattleSession BE2/BE3 combat contract', () {
+  group('BattleSession BE2/BE3/BE4 combat contract', () {
     test('createBattleSession preserves the resolved stats snapshot', () {
       final session = createBattleSession(
         BattleSetup(
@@ -795,6 +795,156 @@ void main() {
       session = session.applyChoice(const PlayerBattleChoiceFight(1));
 
       expect(session.state.currentTurn!.executions.first.attacker, 'player');
+    });
+
+    test('an alwaysHits move bypasses the hit check and still applies damage',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'swift',
+                name: 'Swift',
+                power: 40,
+                category: BattleMoveCategory.special,
+                accuracy: BattleMoveAccuracy.alwaysHits(),
+                pp: 20,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'electrode',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[100]),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final execution = afterTurn.state.currentTurn!.executions.first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.damage, greaterThan(0));
+      expect(afterTurn.state.player.moves.single.currentPp, equals(19));
+    });
+
+    test('a percent accuracy move can miss deterministically', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'mud_slap',
+                name: 'Mud-Slap',
+                power: 20,
+                category: BattleMoveCategory.special,
+                accuracy: BattleMoveAccuracy.percent(value: 50),
+                pp: 10,
+                targetStatStageChanges: <BattleStatStageChange>[
+                  BattleStatStageChange(
+                    stat: BattleStatId.specialDefense,
+                    stages: -1,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'electrode',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[100]),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final execution = afterTurn.state.currentTurn!.executions.first;
+
+      expect(execution.didHit, isFalse);
+      expect(execution.damage, equals(0));
+      expect(afterTurn.state.enemy.currentHp, equals(70));
+      expect(afterTurn.state.enemy.statStages.specialDefense, equals(0));
+      expect(afterTurn.state.player.moves.single.currentPp, equals(9));
+    });
+
+    test('a percent accuracy move that hits still consumes one PP', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'ember',
+                name: 'Ember',
+                power: 40,
+                category: BattleMoveCategory.special,
+                accuracy: BattleMoveAccuracy.percent(value: 75),
+                pp: 15,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'electrode',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[1]),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final execution = afterTurn.state.currentTurn!.executions.first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.damage, greaterThan(0));
+      expect(afterTurn.state.player.moves.single.currentPp, equals(14));
     });
   });
 }

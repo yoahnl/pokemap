@@ -2,16 +2,21 @@ import 'battle_setup.dart';
 import 'battle_state.dart';
 import 'battle_action.dart';
 import 'battle_move.dart';
+import 'battle_rng.dart';
 import 'battle_resolution.dart';
 import 'battle_stats.dart';
 
 /// Crée une nouvelle session de combat.
 ///
 /// [setup] - La configuration initiale du combat.
+/// [rng] - Le seam RNG minimal utilisé par le hit pipeline.
 ///
 /// Retourne une nouvelle [BattleSession] avec l'état initial.
 /// C'est le point d'entrée principal du moteur de combat.
-BattleSession createBattleSession(BattleSetup setup) {
+BattleSession createBattleSession(
+  BattleSetup setup, {
+  BattleRng rng = const BattleSeededRng(),
+}) {
   // Le runtime peut maintenant fournir les PV courants réels du Pokémon actif.
   // On garde néanmoins un fallback explicite sur les PV max pour préserver les
   // anciens call sites/tests qui n'avaient pas besoin de cet état.
@@ -32,10 +37,10 @@ BattleSession createBattleSession(BattleSetup setup) {
     maxHp: setup.playerPokemon.maxHp,
     stats: setup.playerPokemon.stats,
     abilityId: setup.playerPokemon.abilityId,
-    // BE1 garde le contrat battle honnête jusqu'à l'état runtime combat :
-    // - `type`, `target` et `pp` ne sont pas encore consommés par le moteur ;
-    // - mais ils ne doivent plus être perdus au tout dernier handoff ;
-    // - cela évite d'avoir à rouvrir le même trou avant même d'attaquer BE2.
+    // Le contrat battle enrichi doit survivre jusqu'à l'état de session :
+    // - `type` et `target` restent surtout descriptifs à ce stade ;
+    // - `priority` est déjà consommée depuis BE3 ;
+    // - `accuracy` et `currentPp` deviennent réellement actives en BE4.
     moves: setup.playerPokemon.moves
         .map(
           (m) => BattleMove(
@@ -45,7 +50,9 @@ BattleSession createBattleSession(BattleSetup setup) {
             type: m.type,
             category: m.category,
             target: m.target,
+            accuracy: m.accuracy,
             pp: m.pp,
+            currentPp: m.currentPp,
             priority: m.priority,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
@@ -61,8 +68,8 @@ BattleSession createBattleSession(BattleSetup setup) {
     maxHp: setup.enemyPokemon.maxHp,
     stats: setup.enemyPokemon.stats,
     abilityId: setup.enemyPokemon.abilityId,
-    // Même règle pour l'adversaire : on transporte le petit supplément de
-    // contrat BE1 sans prétendre pour autant l'exécuter déjà dans `map_battle`.
+    // Même règle pour l'adversaire : on ne reperd aucune dimension déjà jugée
+    // honnête dans le contrat battle minimal.
     moves: setup.enemyPokemon.moves
         .map(
           (m) => BattleMove(
@@ -72,7 +79,9 @@ BattleSession createBattleSession(BattleSetup setup) {
             type: m.type,
             category: m.category,
             target: m.target,
+            accuracy: m.accuracy,
             pp: m.pp,
+            currentPp: m.currentPp,
             priority: m.priority,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
@@ -93,6 +102,7 @@ BattleSession createBattleSession(BattleSetup setup) {
   return BattleSession._(
     state: initialState,
     setup: setup,
+    rng: rng,
   );
 }
 
@@ -128,6 +138,7 @@ class BattleSession {
   const BattleSession._({
     required this.state,
     required this.setup,
+    required this.rng,
   });
 
   /// L'état actuel du combat.
@@ -137,6 +148,14 @@ class BattleSession {
   ///
   /// Gardée pour accéder aux métadonnées (trainerId, etc.).
   final BattleSetup setup;
+
+  /// RNG minimal du moteur battle.
+  ///
+  /// BE4 choisit de le garder sur la session plutôt que dans `BattleState` :
+  /// - l'état observable du combat reste centré sur les combattants / outcomes ;
+  /// - le RNG reste un détail de résolution, pas une donnée UI/runtime ;
+  /// - mais il reste explicitement injectable et immutable.
+  final BattleRng rng;
 
   /// Récupère les choix disponibles pour le joueur.
   ///
@@ -155,10 +174,17 @@ class BattleSession {
   /// // trainer: [Fight(0), Fight(1), Fight(2), Fight(3)]
   /// ```
   List<PlayerBattleChoice> getAvailableChoices() {
-    // Créer un choix Fight pour chaque attaque disponible
+    // BE4 arrête ici un autre mensonge discret :
+    // - un move à 0 PP ne doit plus apparaître comme un choix valide ;
+    // - on conserve néanmoins l'index réel du slot pour que l'UI/runtime
+    //   continue à référencer le vrai move dans la liste du combattant ;
+    // - on n'ouvre toujours pas Struggle, donc un Pokémon peut n'avoir aucun
+    //   choix `Fight` restant.
     final fightChoices = <PlayerBattleChoice>[];
     for (var i = 0; i < state.player.moves.length; i++) {
-      fightChoices.add(PlayerBattleChoiceFight(i));
+      if (state.player.moves[i].hasUsablePp) {
+        fightChoices.add(PlayerBattleChoiceFight(i));
+      }
     }
 
     // Invariants métier lots 11 + 13 :
@@ -194,6 +220,11 @@ class BattleSession {
   /// 4. Vérifie si un combattant est K.O.
   /// 5. Si combat fini, crée [BattleOutcome]
   /// 6. Retourne la nouvelle session
+  ///
+  /// Depuis BE4, la résolution d'un move n'est plus "toujours hit" :
+  /// - la tentative peut consommer 1 PP puis rater ;
+  /// - ce miss n'annule ni l'ordre du tour ni la consommation ;
+  /// - seuls les effets réellement supportés sont alors appliqués sur hit.
   ///
   /// Exemple d'usage :
   /// ```dart
@@ -260,6 +291,7 @@ class BattleSession {
           ),
         ),
         setup: setup,
+        rng: rng,
       );
     }
 
@@ -291,6 +323,7 @@ class BattleSession {
           ),
         ),
         setup: setup,
+        rng: rng,
       );
     }
 
@@ -334,6 +367,7 @@ class BattleSession {
     return BattleSession._(
       state: newState,
       setup: setup,
+      rng: resolvedTurn.rng,
     );
   }
 
@@ -345,15 +379,42 @@ class BattleSession {
       // Vérifier que l'index est valide
       if (choice.moveIndex >= 0 &&
           choice.moveIndex < state.player.moves.length) {
-        return BattleActionFight(state.player.moves[choice.moveIndex]);
+        final move = state.player.moves[choice.moveIndex];
+        if (!move.hasUsablePp) {
+          throw StateError(
+            'Le move "${move.name}" n’a plus de PP et ne peut pas être utilisé.',
+          );
+        }
+        return BattleActionFight(
+          move,
+          moveIndex: choice.moveIndex,
+        );
       }
       // Fallback: première attaque si index invalide
-      return BattleActionFight(state.player.moves.first);
+      final fallbackMove = state.player.moves.first;
+      if (!fallbackMove.hasUsablePp) {
+        throw StateError(
+          'Aucun fallback honnête possible : le move par défaut n’a plus de PP.',
+        );
+      }
+      return BattleActionFight(
+        fallbackMove,
+        moveIndex: 0,
+      );
     } else if (choice is PlayerBattleChoiceRun) {
       return const BattleActionRun();
     }
     // Fallback: première attaque
-    return BattleActionFight(state.player.moves.first);
+    final fallbackMove = state.player.moves.first;
+    if (!fallbackMove.hasUsablePp) {
+      throw StateError(
+        'Aucun fallback honnête possible : le move par défaut n’a plus de PP.',
+      );
+    }
+    return BattleActionFight(
+      fallbackMove,
+      moveIndex: 0,
+    );
   }
 
   /// Détermine l'action de l'ennemi (IA simple).
@@ -364,10 +425,24 @@ class BattleSession {
   ///
   /// Cette méthode est interne au moteur de combat.
   BattleAction _chooseEnemyAction() {
-    // IA simple : toujours utiliser la première attaque disponible
-    // (pour le déterminisme, pas de random)
+    // IA simple : toujours utiliser la première attaque encore utilisable.
+    //
+    // BE4 ne réintroduit pas un comportement mensonger "le move part quand
+    // même sans PP" et n'ouvre pas non plus Struggle :
+    // - si aucun move n'a de PP, on échoue explicitement ;
+    // - cela garde la dette visible au lieu de la maquiller.
     if (state.enemy.moves.isNotEmpty && !state.enemy.isFainted) {
-      return BattleActionFight(state.enemy.moves.first);
+      for (var i = 0; i < state.enemy.moves.length; i++) {
+        if (state.enemy.moves[i].hasUsablePp) {
+          return BattleActionFight(
+            state.enemy.moves[i],
+            moveIndex: i,
+          );
+        }
+      }
+      throw StateError(
+        'Le combattant adverse n’a plus aucun move utilisable et Struggle est hors scope.',
+      );
     }
     // Si aucune attaque, ne rien faire (cas edge)
     return const BattleActionRun();
@@ -399,6 +474,7 @@ class BattleSession {
     final executions = <BattleMoveExecution>[];
     var player = state.player;
     var enemy = state.enemy;
+    var turnRng = rng;
     final orderedActions = _resolveTurnOrder(
       playerAction: playerAction,
       enemyAction: enemyAction,
@@ -409,35 +485,43 @@ class BattleSession {
     for (final orderedAction in orderedActions) {
       switch (orderedAction.actor) {
         case _BattleActor.player:
-          if (orderedAction.action case BattleActionFight(:final move)) {
+          if (orderedAction.action
+              case BattleActionFight(:final move, :final moveIndex)) {
             if (player.isFainted || enemy.isFainted) {
               continue;
             }
             final resolution = _resolveMoveExecution(
               attackerLabel: 'player',
               move: move,
+              moveIndex: moveIndex,
               attacker: player,
               defender: enemy,
               targetLabel: 'enemy',
+              rng: turnRng,
             );
             player = resolution.attacker;
             enemy = resolution.defender;
+            turnRng = resolution.rng;
             executions.add(resolution.execution);
           }
         case _BattleActor.enemy:
-          if (orderedAction.action case BattleActionFight(:final move)) {
+          if (orderedAction.action
+              case BattleActionFight(:final move, :final moveIndex)) {
             if (enemy.isFainted || player.isFainted) {
               continue;
             }
             final resolution = _resolveMoveExecution(
               attackerLabel: 'enemy',
               move: move,
+              moveIndex: moveIndex,
               attacker: enemy,
               defender: player,
               targetLabel: 'player',
+              rng: turnRng,
             );
             enemy = resolution.attacker;
             player = resolution.defender;
+            turnRng = resolution.rng;
             executions.add(resolution.execution);
           }
       }
@@ -446,6 +530,7 @@ class BattleSession {
     return _ResolvedBattleTurn(
       player: player,
       enemy: enemy,
+      rng: turnRng,
       turnResult: BattleTurnResult(
         playerAction: playerAction,
         enemyAction: enemyAction,
@@ -534,7 +619,9 @@ class BattleSession {
     }
 
     // Tie-break volontairement déterministe et documenté :
-    // - pas de PRNG pour BE3 ;
+    // - pas de PRNG pour résoudre les égalités d'ordre ;
+    // - BE4 introduit bien un seam RNG pour le hit pipeline, mais pas pour ce
+    //   tie-break ;
     // - pas de Fischer-Yates façon Showdown ;
     // - on choisit "joueur avant ennemi" parce que c'est stable, testable,
     //   et cohérent avec l'historique du moteur jusqu'ici.
@@ -552,32 +639,75 @@ class BattleSession {
 
   /// Résout une exécution unique de move.
   ///
-  /// M8 garde ici un contrat volontairement petit et honnête :
+  /// M8 puis BE4 gardent ici un contrat volontairement petit et honnête :
   /// - dégâts standards via `power` ;
   /// - influence de `modifyStats` uniquement sur atk/def/spa/spd ;
   /// - moves de statut => dégâts 0 ;
-  /// - les changements de stats sont appliqués immédiatement après le move.
+  /// - hit check minimal et PP réels ;
+  /// - les changements de stats sont appliqués immédiatement après un hit.
   ///
   /// Cette application immédiate reste importante :
   /// - un `growl` du joueur peut déjà réduire une contre-attaque physique
-  ///   ennemie plus tard dans le même tour ;
+  ///   ennemie plus tard dans le même tour s'il touche ;
   /// - mais un changement de `speed` ne réordonne jamais rétroactivement un
   ///   tour déjà ordonné au début de `_resolveTurn`.
   _ResolvedMoveExecution _resolveMoveExecution({
     required String attackerLabel,
     required BattleMove move,
+    required int moveIndex,
     required BattleCombatant attacker,
     required BattleCombatant defender,
     required String targetLabel,
+    required BattleRng rng,
   }) {
+    if (!move.hasUsablePp) {
+      throw StateError(
+        'Le move "${move.name}" n’a plus de PP et ne peut pas être résolu honnêtement.',
+      );
+    }
+
+    // BE4 introduit ici le plus petit hit pipeline honnête :
+    // 1. on valide que le move est encore utilisable ;
+    // 2. on consomme 1 PP immédiatement sur la tentative ;
+    // 3. on résout ensuite le hit check ;
+    // 4. un miss n'applique ni dégâts ni stage changes ;
+    // 5. un hit suit le chemin déjà supporté.
+    final attackerAfterPpUse = attacker.withUpdatedMoveAt(
+      moveIndex,
+      move.withConsumedPp(),
+    );
+    final hitCheck = _resolveHitCheck(
+      move: move,
+      rng: rng,
+    );
+
+    if (!hitCheck.didHit) {
+      return _ResolvedMoveExecution(
+        attacker: attackerAfterPpUse,
+        defender: defender,
+        rng: hitCheck.nextRng,
+        execution: BattleMoveExecution(
+          attacker: attackerLabel,
+          move: attackerAfterPpUse.moves[moveIndex],
+          target: _resolveExecutionTargetLabel(
+            move: move,
+            attackerLabel: attackerLabel,
+            opponentLabel: targetLabel,
+          ),
+          damage: 0,
+          didHit: false,
+        ),
+      );
+    }
+
     final damage = _computeMoveDamage(
       move: move,
-      attacker: attacker,
+      attacker: attackerAfterPpUse,
       defender: defender,
     );
 
     final updatedAttacker =
-        attacker.withAppliedStageChanges(move.selfStatStageChanges);
+        attackerAfterPpUse.withAppliedStageChanges(move.selfStatStageChanges);
     final updatedDefender = defender
         .withDamage(damage)
         .withAppliedStageChanges(move.targetStatStageChanges);
@@ -585,9 +715,10 @@ class BattleSession {
     return _ResolvedMoveExecution(
       attacker: updatedAttacker,
       defender: updatedDefender,
+      rng: hitCheck.nextRng,
       execution: BattleMoveExecution(
         attacker: attackerLabel,
-        move: move,
+        move: updatedAttacker.moves[moveIndex],
         // BE1 ne laisse plus `target` se reperdre au moment de la trace
         // d'exécution :
         // - un move `self` doit apparaître comme ciblant le lanceur ;
@@ -600,7 +731,33 @@ class BattleSession {
           opponentLabel: targetLabel,
         ),
         damage: damage,
+        didHit: true,
       ),
+    );
+  }
+
+  _ResolvedHitCheck _resolveHitCheck({
+    required BattleMove move,
+    required BattleRng rng,
+  }) {
+    if (move.accuracy.isAlwaysHits || move.accuracy.value >= 100) {
+      // Recadrage volontaire de BE4 :
+      // - `alwaysHits` doit évidemment bypasser le hit check ;
+      // - dans le moteur actuel, `percent(100)` est également déterministe,
+      //   car nous n'avons encore ni accuracy stages, ni evasion, ni autres
+      //   modificateurs de précision ;
+      // - consommer du RNG sur 100% n'apporterait donc aucune vérité
+      //   supplémentaire et compliquerait artificiellement les tests.
+      return _ResolvedHitCheck(
+        didHit: true,
+        nextRng: rng,
+      );
+    }
+
+    final roll = rng.nextPercentRoll();
+    return _ResolvedHitCheck(
+      didHit: roll.value <= move.accuracy.value,
+      nextRng: roll.next,
     );
   }
 
@@ -630,9 +787,9 @@ class BattleSession {
   ///
   /// Frontière explicitement conservée :
   /// - pas de type chart ;
-  /// - les critiques ;
-  /// - la précision ;
-  /// - le hasard.
+  /// - pas de critiques ;
+  /// - pas d'accuracy/evasion stages ;
+  /// - le hit check BE4 vit en amont, avant d'entrer dans cette formule.
   int _computeMoveDamage({
     required BattleMove move,
     required BattleCombatant attacker,
@@ -781,11 +938,13 @@ class _ResolvedBattleTurn {
   const _ResolvedBattleTurn({
     required this.player,
     required this.enemy,
+    required this.rng,
     required this.turnResult,
   });
 
   final BattleCombatant player;
   final BattleCombatant enemy;
+  final BattleRng rng;
   final BattleTurnResult turnResult;
 }
 
@@ -793,10 +952,22 @@ class _ResolvedMoveExecution {
   const _ResolvedMoveExecution({
     required this.attacker,
     required this.defender,
+    required this.rng,
     required this.execution,
   });
 
   final BattleCombatant attacker;
   final BattleCombatant defender;
+  final BattleRng rng;
   final BattleMoveExecution execution;
+}
+
+class _ResolvedHitCheck {
+  const _ResolvedHitCheck({
+    required this.didHit,
+    required this.nextRng,
+  });
+
+  final bool didHit;
+  final BattleRng nextRng;
 }

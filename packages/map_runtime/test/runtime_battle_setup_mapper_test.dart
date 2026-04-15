@@ -184,6 +184,57 @@ void main() {
       expect(setup.enemyPokemon.speciesId, isNot(equals('mew')));
     });
 
+    test(
+        'maps a non-trivial accuracy move honestly through to battle, where it can miss deterministically',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-accuracy',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['mud_slap'],
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(setup.playerPokemon.moves, hasLength(1));
+      expect(
+        setup.playerPokemon.moves.single.accuracy.kind,
+        equals(BattleMoveAccuracyKind.percent),
+      );
+      expect(setup.playerPokemon.moves.single.accuracy.value, equals(85));
+
+      final session = createBattleSession(
+        setup,
+        rng: const BattleScriptedRng(<int>[100]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      final execution = session.state.currentTurn!.executions.firstWhere(
+        (execution) => execution.attacker == 'player',
+      );
+      expect(execution.move.id, equals('mud_slap'));
+      expect(execution.didHit, isFalse);
+      expect(session.state.enemy.currentHp, equals(setup.enemyPokemon.maxHp));
+    });
+
     test('falls back to the species id when the species has no learnset ref',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -906,6 +957,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('vine_whip', 'Vine Whip', 45),
         _moveEntry('razor_leaf', 'Razor Leaf', 55),
         _moveEntry('scratch', 'Scratch', 40),
+        _moveEntry('mud_slap', 'Mud-Slap', 20, accuracy: 85),
         _moveEntry('tail_whip', 'Tail Whip', 0),
         _moveEntry('ember', 'Ember', 40),
         _moveEntry('flame_wheel', 'Flame Wheel', 60),
@@ -920,6 +972,7 @@ Map<String, Object?> _moveEntry(
   String id,
   String name,
   int power, {
+  int accuracy = 100,
   PokemonMoveEngineSupportLevel engineSupportLevel =
       PokemonMoveEngineSupportLevel.structuredSupported,
   List<String> unsupportedReasons = const <String>[],
@@ -938,7 +991,7 @@ Map<String, Object?> _moveEntry(
     basePower: power,
     accuracy: power == 0
         ? const PokemonMoveAccuracy.alwaysHits()
-        : const PokemonMoveAccuracy.percent(value: 100),
+        : PokemonMoveAccuracy.percent(value: accuracy),
     pp: 35,
     effects: effects,
     engineSupportLevel: engineSupportLevel,

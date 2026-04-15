@@ -36,6 +36,6 @@ class BattleStatsSnapshot {
   /// Vitesse résolue avant le combat.
   ///
   /// BE2 la transporte déjà pour arrêter sa perte silencieuse au handoff,
-  /// mais l'ordre d'action reste explicitement hors scope.
+  /// puis BE3 la consomme réellement pour l'ordre d'action minimal honnête.
   final int speed;
 }

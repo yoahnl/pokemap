@@ -28,7 +28,8 @@ import 'runtime_battle_setup_exception.dart';
 /// - `priority` n'est plus refusée, parce que `map_battle` sait enfin
 ///   ordonner honnêtement deux actions `Fight` ;
 /// - `speed` stage devient également supportée pour ce même besoin ;
-/// - `accuracy`, `critRatio` et le reste restent hors scope et donc refusés.
+/// - puis BE4 ouvre enfin l'accuracy battle minimale et les PP réels ;
+/// - `critRatio` et le reste restent hors scope et donc refusés.
 class RuntimeBattleMoveBridge {
   const RuntimeBattleMoveBridge();
 
@@ -50,10 +51,6 @@ class RuntimeBattleMoveBridge {
       move: move,
       combatantLabel: combatantLabel,
     );
-    _ensureAccuracyIsDeterministicEnoughForBattle(
-      move: move,
-      combatantLabel: combatantLabel,
-    );
     final target = _translateSupportedTarget(
       move: move,
       combatantLabel: combatantLabel,
@@ -62,6 +59,7 @@ class RuntimeBattleMoveBridge {
       move: move,
       combatantLabel: combatantLabel,
     );
+    final accuracy = _translateAccuracy(move.accuracy);
 
     final selfChanges = <BattleStatStageChange>[];
     final targetChanges = <BattleStatStageChange>[];
@@ -239,6 +237,7 @@ class RuntimeBattleMoveBridge {
       type: type,
       category: _translateCategory(move.category),
       target: target,
+      accuracy: accuracy,
       pp: move.pp,
       priority: move.priority,
       selfStatStageChanges:
@@ -263,24 +262,10 @@ class RuntimeBattleMoveBridge {
     );
   }
 
-  void _ensureAccuracyIsDeterministicEnoughForBattle({
-    required PokemonMove move,
-    required String combatantLabel,
-  }) {
-    move.accuracy.map(
-      percent: (accuracy) {
-        // Tant que le moteur battle MVP n'a pas de seam RNG / précision propre,
-        // laisser passer une précision < 100 reviendrait à mentir : le move
-        // toucherait toujours malgré une donnée canonique contraire.
-        if (accuracy.value != 100) {
-          _rejectMove(
-            move: move,
-            combatantLabel: combatantLabel,
-            bridgeLimit: 'unsupported_accuracy:percent_${accuracy.value}',
-          );
-        }
-      },
-      alwaysHits: (_) {},
+  BattleMoveAccuracy _translateAccuracy(PokemonMoveAccuracy accuracy) {
+    return accuracy.map(
+      percent: (accuracy) => BattleMoveAccuracy.percent(value: accuracy.value),
+      alwaysHits: (_) => const BattleMoveAccuracy.alwaysHits(),
     );
   }
 
