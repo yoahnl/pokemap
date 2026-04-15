@@ -1,3 +1,2137 @@
+# M2-bis — Mini-fix canonique du modèle moves dans `map_core`
+
+## 1. Résumé exécutif honnête
+
+M2-bis a été livré strictement dans `packages/map_core`.
+
+Ce mini-fix a réellement fait quatre choses :
+
+- ajout de `setPseudoWeather` dans les effets structurés ;
+- suppression de l'ambiguïté `basePower` / `dealDamage` en supprimant `dealDamage` et en assumant explicitement que le flow de dégâts standard est porté par les champs natifs du move ;
+- ajout d'une normalisation / validation défensive minimale sur `PokemonMove`, `PokemonMoveAccuracy` et `PokemonMoveEffect` ;
+- renforcement des tests sur les variants peu ou pas couverts.
+
+Correction supplémentaire appliquée après relecture séparée :
+
+- la normalisation n'est plus seulement opt-in ;
+- `fromJson` applique désormais la normalisation sur `PokemonMove`, `PokemonMoveAccuracy` et `PokemonMoveEffect`.
+
+Ce qui n'a pas été fait :
+
+- aucun changement dans `map_editor` ;
+- aucun changement dans `map_runtime` ;
+- aucun changement dans `map_battle` ;
+- aucun enrichissement du convertisseur Showdown ;
+- aucun seed ;
+- aucun bootstrap projet ;
+- aucune logique moteur d'exécution.
+
+## 2. Problèmes confirmés
+
+Les problèmes suivants étaient réels dans l'état précédent du modèle M2 :
+
+- `setPseudoWeather` manquait alors qu'il était explicitement présent dans la spec M1 ;
+- `basePower` et `dealDamage` créaient une semi-duplication sémantique ;
+- la validation défensive existait peu ou pas ;
+- la couverture de tests sur plusieurs variants d'effets restait trop partielle ;
+- après première passe M2-bis, la validation était réelle mais encore opt-in, ce qu'un reviewer séparé a correctement signalé.
+
+## 3. Décisions retenues / rejetées
+
+### Décisions retenues
+
+- ajouter `PokemonMoveEffect.setPseudoWeather` ;
+- supprimer `PokemonMoveEffect.dealDamage` ;
+- faire de `basePower` + `category` le support canonique des dégâts standards ;
+- ajouter un getter explicite `usesStandardDamageFlow` dans `PokemonMove` pour rendre cette décision lisible ;
+- ajouter une validation/normalisation minimale locale ;
+- durcir aussi l'entrée JSON en faisant passer `fromJson` par `normalized()`.
+
+### Décisions rejetées
+
+- ne pas garder `dealDamage` avec une sémantique floue ;
+- ne pas introduire de callbacks sérialisés ;
+- ne pas créer une nouvelle hiérarchie de fichiers ;
+- ne pas ouvrir M3, M4, M5 ou M8 ;
+- ne pas déplacer la validation dans un autre package ;
+- ne pas toucher aux convertisseurs ou loaders existants.
+
+## 4. Périmètre inclus / exclu
+
+### Inclus
+
+- `packages/map_core/lib/src/models/pokemon_move.dart`
+- `packages/map_core/lib/src/models/pokemon_move_accuracy.dart`
+- `packages/map_core/lib/src/models/pokemon_move_effect.dart`
+- fichiers générés Freezed/JSON associés qui ont réellement changé
+- `packages/map_core/test/pokemon_move_test.dart`
+- report markdown de ce lot
+- relecture par agent séparé
+
+### Exclu
+
+- tout `packages/map_editor/...`
+- tout `packages/map_runtime/...`
+- tout `packages/map_battle/...`
+- seed projet
+- bootstrap projet
+- convertisseur Showdown
+- runtime loader
+- exécution moteur battle
+
+## 5. Justification fichier par fichier
+
+### `packages/map_core/lib/src/models/pokemon_move.dart`
+
+Modifié pour :
+
+- supprimer l'ambiguïté conceptuelle autour des dégâts standards ;
+- exposer explicitement `usesStandardDamageFlow` ;
+- ajouter `normalized()` ;
+- faire passer `fromJson` par `normalized()` ;
+- dédupliquer `flags` et `unsupportedReasons` ;
+- valider les champs textuels requis.
+
+### `packages/map_core/lib/src/models/pokemon_move_accuracy.dart`
+
+Modifié pour :
+
+- ajouter `normalized()` ;
+- borner `percent` à une plage raisonnable ;
+- faire passer `fromJson` par `normalized()`.
+
+### `packages/map_core/lib/src/models/pokemon_move_effect.dart`
+
+Modifié pour :
+
+- ajouter `setPseudoWeather` ;
+- supprimer `dealDamage` ;
+- ajouter `normalized()` ;
+- valider `chance`, `multiHit`, `fixedDamage`, fractions, ids requis, etc. ;
+- faire passer `fromJson` par `normalized()`.
+
+### `packages/map_core/lib/src/models/pokemon_move.freezed.dart`
+
+Régénéré pour refléter les ajustements du modèle `PokemonMove`.
+
+### `packages/map_core/lib/src/models/pokemon_move_effect.freezed.dart`
+
+Régénéré pour refléter :
+
+- la suppression de `dealDamage` ;
+- l'ajout de `setPseudoWeather` ;
+- les variantes effectivement présentes après M2-bis.
+
+### `packages/map_core/lib/src/models/pokemon_move_effect.g.dart`
+
+Régénéré pour la sérialisation JSON des variants mis à jour.
+
+### `packages/map_core/test/pokemon_move_test.dart`
+
+Modifié pour :
+
+- retirer les usages de `dealDamage` ;
+- couvrir les nouveaux variants demandés ;
+- tester la normalisation/validation ;
+- tester le durcissement de `fromJson`.
+
+### `reports/phase-moves-m2-bis-model-hardening-report.md`
+
+Nouveau report ultra complet pour tracer honnêtement le mini-fix, la review séparée et les corrections intégrées.
+
+## 6. Commandes réellement exécutées
+
+### Audit
+
+`git status --short`
+`git diff --stat`
+`git ls-files --others --exclude-standard`
+`sed -n '1,260p' 'packages/map_core/lib/src/models/pokemon_move.dart'`
+`sed -n '1,320p' 'packages/map_core/lib/src/models/pokemon_move_effect.dart'`
+`sed -n '1,220p' 'packages/map_core/lib/src/models/pokemon_move_accuracy.dart'`
+`sed -n '1,260p' 'packages/map_core/test/pokemon_move_test.dart'`
+
+### Génération
+
+`/opt/homebrew/bin/dart run build_runner build --delete-conflicting-outputs`
+
+### Format
+
+`/opt/homebrew/bin/dart format lib/src/models/pokemon_move.dart lib/src/models/pokemon_move_accuracy.dart lib/src/models/pokemon_move_effect.dart test/pokemon_move_test.dart`
+
+### Analyze
+
+`/opt/homebrew/bin/dart analyze`
+
+### Tests
+
+`/opt/homebrew/bin/dart test test/pokemon_move_test.dart`
+`/opt/homebrew/bin/dart test`
+
+### Relecture séparée
+
+Outils réellement utilisés :
+
+- `spawn_agent`
+- `wait_agent`
+- `send_input`
+- `wait_agent`
+
+## 7. Résultats réels de format / analyze / tests
+
+### Génération
+
+Résultat : succès.
+
+Sortie utile :
+
+`Built with build_runner in 5s; wrote 9 outputs.`
+
+Warnings non bloquants observés :
+
+- version langage SDK plus récente que la version langage de `analyzer` ;
+- warning `json_annotation` autorisant des versions avant 4.9.0.
+
+### Format
+
+Résultat : succès.
+
+Sortie utile :
+
+`Formatted 4 files (0 changed) in 0.01 seconds.`
+
+### Analyze
+
+Résultat : succès avec 2 infos préexistantes hors scope.
+
+Sortie utile :
+
+`Analyzing map_core...`
+
+Puis :
+
+- `lib/src/models/enums.dart:34:3 - upper_floor - constant_identifier_names`
+- `lib/src/models/enums.dart:44:3 - sub_area - constant_identifier_names`
+
+Aucune erreur ni warning sur le mini-fix M2-bis lui-même.
+
+### Tests ciblés
+
+Résultat : succès.
+
+Sortie utile de fin :
+
+`All tests passed!`
+
+### Tests package complets
+
+Résultat : succès.
+
+Sortie utile de fin :
+
+`All tests passed!`
+
+## 8. Incidents rencontrés
+
+- warning `build_runner` sur la version langage `analyzer` ;
+- warning `json_annotation` non bloquant ;
+- 2 infos de lint préexistantes dans `lib/src/models/enums.dart` ;
+- reviewer séparé a signalé un vrai point faible initial : la validation était encore opt-in ; cette critique a été retenue puis corrigée dans ce lot.
+
+Aucun incident bloquant.
+
+## 9. État git utile
+
+### `git status --short`
+
+```text
+ M packages/map_core/lib/src/models/pokemon_move.dart
+ M packages/map_core/lib/src/models/pokemon_move.freezed.dart
+ M packages/map_core/lib/src/models/pokemon_move_accuracy.dart
+ M packages/map_core/lib/src/models/pokemon_move_effect.dart
+ M packages/map_core/lib/src/models/pokemon_move_effect.freezed.dart
+ M packages/map_core/lib/src/models/pokemon_move_effect.g.dart
+ M packages/map_core/test/pokemon_move_test.dart
+?? .DS_Store
+?? reports/phase-moves-m2-bis-model-hardening-report.md
+```
+
+### `git diff --stat`
+
+```text
+ packages/map_core/lib/src/models/pokemon_move.dart |  118 +-
+ .../lib/src/models/pokemon_move.freezed.dart       |   16 +-
+ .../lib/src/models/pokemon_move_accuracy.dart      |   22 +-
+ .../lib/src/models/pokemon_move_effect.dart        |  242 ++-
+ .../src/models/pokemon_move_effect.freezed.dart    | 1669 +++++++++++---------
+ .../lib/src/models/pokemon_move_effect.g.dart      |   57 +-
+ packages/map_core/test/pokemon_move_test.dart      |  198 ++-
+ 7 files changed, 1483 insertions(+), 839 deletions(-)
+```
+
+Note honnête :
+
+- `git diff --stat` n'affiche pas les fichiers non suivis ;
+- le report lui-même et le fichier `.DS_Store` ne sont donc visibles que dans `git status --short`.
+
+## 10. Checklist finale
+
+- [x] je me suis basé sur le code réel, pas sur les reports précédents
+- [x] je n'ai pas ouvert M3
+- [x] je n'ai touché qu'à `map_core`
+- [x] `setPseudoWeather` est bien ajouté
+- [x] la question `basePower` / `dealDamage` est réellement tranchée
+- [x] la normalisation/validation minimale est réelle
+- [x] la normalisation n'est plus seulement opt-in sur le modèle canonique
+- [x] les tests couvrent les variants demandés
+- [x] j'ai exécuté génération
+- [x] j'ai exécuté format
+- [x] j'ai exécuté analyze
+- [x] j'ai exécuté les tests utiles
+- [x] aucune écriture git interdite n'a été faite
+- [x] le report contient une autocritique du reviewer séparé
+- [x] le report contient les corrections appliquées suite à cette autocritique
+- [x] le report contient le contenu complet de tous les fichiers texte touchés
+
+## 11. Autocritique du reviewer séparé
+
+### Relecture initiale du reviewer
+
+Le reviewer séparé a remonté les points suivants :
+
+1. `setPseudoWeather` était bien ajouté correctement.
+2. La question `basePower` / `dealDamage` était bien tranchée.
+3. La normalisation/validation était réelle et non cosmétique.
+4. Les variants demandés étaient bien couverts par les tests.
+5. Le point faible principal restant était l'ingress `fromJson` : la normalisation restait opt-in.
+6. Le scope était resté strictement borné à `map_core`.
+
+### Revérification après correction
+
+Le reviewer a ensuite confirmé :
+
+1. le point `fromJson` était effectivement corrigé ;
+2. aucun bug concret nouveau n'avait été introduit ;
+3. le comportement devenait volontairement fail-fast sur JSON invalide ;
+4. le scope restait borné ;
+5. la couverture demandée était bien là.
+
+## 12. Corrections appliquées suite à l’autocritique
+
+Suite à la critique du reviewer, j'ai appliqué les corrections suivantes :
+
+- `PokemonMove.fromJson(...)` appelle maintenant `normalized()` ;
+- `PokemonMoveAccuracy.fromJson(...)` appelle maintenant `normalized()` ;
+- `PokemonMoveEffect.fromJson(...)` appelle maintenant `normalized()` ;
+- ajout de tests dédiés pour prouver que `fromJson` rejette désormais :
+  - un `id` vide ;
+  - une accuracy `percent` hors bornes ;
+  - un `multiHit` invalide.
+
+Conséquence assumée :
+
+- le modèle échoue désormais plus tôt sur des données invalides ;
+- c'est un changement volontairement plus strict et jugé correct pour M2-bis.
+
+## 13. Limites restantes
+
+Les limites restantes, volontairement hors scope, sont :
+
+- le convertisseur Showdown n'utilise pas encore ce modèle enrichi ;
+- le seed projet n'est pas encore branché ;
+- le runtime ne charge pas encore ce modèle ;
+- `map_battle` ne consomme pas encore ces structures ;
+- le support moteur reste descriptif, pas exécutable ;
+- la validation n'est toujours pas un validateur projet global : elle est locale au modèle.
+
+## 14. Conclusion honnête
+
+M2-bis est fermé proprement.
+
+Le modèle canonique des moves dans `map_core` est maintenant plus cohérent avec M1, plus strict, mieux couvert, et moins ambigu. Le mini-fix est resté strictement borné à `map_core`, a intégré une vraie autocritique séparée, et n'a rouvert aucun lot voisin.
+
+## 15. Annexe — contenu complet de tous les fichiers texte touchés
+
+Note :
+
+- cette annexe inclut le contenu complet de tous les fichiers texte modifiés
+  par M2-bis ;
+- le report s'exclut lui-même volontairement pour éviter une récursion
+  infinie.
+
+### `packages/map_core/lib/src/models/pokemon_move.dart`
+
+```dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+import 'pokemon_move_accuracy.dart';
+import 'pokemon_move_effect.dart';
+
+part 'pokemon_move.freezed.dart';
+part 'pokemon_move.g.dart';
+
+/// Catégorie de move utilisée par la donnée projet.
+///
+/// On garde ici une projection petite et stable :
+/// - directement sérialisable ;
+/// - alignée avec la distinction battle la plus fondamentale ;
+/// - indépendante de la future implémentation du moteur.
+enum PokemonMoveCategory {
+  @JsonValue('physical')
+  physical,
+  @JsonValue('special')
+  special,
+  @JsonValue('status')
+  status,
+}
+
+/// Target canonique du move projet.
+///
+/// On reprend le vocabulaire structurel de Showdown parce qu'il est déjà
+/// présent dans les données source et qu'il sera relu plus tard par le
+/// convertisseur/runtime loader. Cela évite d'inventer une deuxième taxonomie.
+enum PokemonMoveTarget {
+  @JsonValue('adjacentAlly')
+  adjacentAlly,
+  @JsonValue('adjacentAllyOrSelf')
+  adjacentAllyOrSelf,
+  @JsonValue('adjacentFoe')
+  adjacentFoe,
+  @JsonValue('all')
+  all,
+  @JsonValue('allAdjacent')
+  allAdjacent,
+  @JsonValue('allAdjacentFoes')
+  allAdjacentFoes,
+  @JsonValue('allies')
+  allies,
+  @JsonValue('allySide')
+  allySide,
+  @JsonValue('allyTeam')
+  allyTeam,
+  @JsonValue('any')
+  any,
+  @JsonValue('foeSide')
+  foeSide,
+  @JsonValue('normal')
+  normal,
+  @JsonValue('randomNormal')
+  randomNormal,
+  @JsonValue('scripted')
+  scripted,
+  @JsonValue('self')
+  self,
+}
+
+/// Flag métier de move.
+///
+/// Le modèle n'éparpille pas ces marqueurs en dizaines de booléens sur
+/// `PokemonMove`. On les garde comme une collection d'identifiants typés,
+/// ce qui donne une sérialisation propre et une extension future simple.
+enum PokemonMoveFlag {
+  @JsonValue('allyanim')
+  allyAnim,
+  @JsonValue('bypasssub')
+  bypassSubstitute,
+  @JsonValue('bite')
+  bite,
+  @JsonValue('bullet')
+  bullet,
+  @JsonValue('cantusetwice')
+  cantUseTwice,
+  @JsonValue('charge')
+  charge,
+  @JsonValue('contact')
+  contact,
+  @JsonValue('dance')
+  dance,
+  @JsonValue('defrost')
+  defrost,
+  @JsonValue('distance')
+  distance,
+  @JsonValue('failcopycat')
+  failCopycat,
+  @JsonValue('failencore')
+  failEncore,
+  @JsonValue('failinstruct')
+  failInstruct,
+  @JsonValue('failmefirst')
+  failMeFirst,
+  @JsonValue('failmimic')
+  failMimic,
+  @JsonValue('futuremove')
+  futureMove,
+  @JsonValue('gravity')
+  gravity,
+  @JsonValue('heal')
+  heal,
+  @JsonValue('metronome')
+  metronome,
+  @JsonValue('minimize')
+  minimize,
+  @JsonValue('mirror')
+  mirror,
+  @JsonValue('mustpressure')
+  mustPressure,
+  @JsonValue('noassist')
+  noAssist,
+  @JsonValue('nonsky')
+  nonSky,
+  @JsonValue('noparentalbond')
+  noParentalBond,
+  @JsonValue('nosketch')
+  noSketch,
+  @JsonValue('nosleeptalk')
+  noSleepTalk,
+  @JsonValue('pledgecombo')
+  pledgeCombo,
+  @JsonValue('powder')
+  powder,
+  @JsonValue('protect')
+  protect,
+  @JsonValue('pulse')
+  pulse,
+  @JsonValue('punch')
+  punch,
+  @JsonValue('recharge')
+  recharge,
+  @JsonValue('reflectable')
+  reflectable,
+  @JsonValue('slicing')
+  slicing,
+  @JsonValue('snatch')
+  snatch,
+  @JsonValue('sound')
+  sound,
+  @JsonValue('wind')
+  wind,
+}
+
+/// Niveau de support structurel connu pour le moteur.
+///
+/// Ce champ sert à être honnête :
+/// - un move peut être catalogué sans être prêt pour le moteur ;
+/// - un move peut être partiellement structuré ;
+/// - un move peut être entièrement structuré du point de vue du modèle,
+///   sans pour autant signifier que tout est déjà branché côté `map_battle`.
+enum PokemonMoveEngineSupportLevel {
+  @JsonValue('catalog_only')
+  catalogOnly,
+  @JsonValue('structured_partial')
+  structuredPartial,
+  @JsonValue('structured_supported')
+  structuredSupported,
+}
+
+/// Traçabilité minimale vers la source Showdown.
+///
+/// On garde cette structure locale au modèle de données :
+/// - elle ne transporte pas de callbacks ;
+/// - elle documente uniquement l'origine et les hooks détectés ;
+/// - elle aidera plus tard le convertisseur enrichi, la validation et le debug.
+@freezed
+class PokemonMoveSourceRefs with _$PokemonMoveSourceRefs {
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveSourceRefs({
+    String? showdownMoveId,
+    @Default(<String>[]) List<String> showdownHooksPresent,
+  }) = _PokemonMoveSourceRefs;
+
+  factory PokemonMoveSourceRefs.fromJson(Map<String, dynamic> json) =>
+      _$PokemonMoveSourceRefsFromJson(json);
+
+  const PokemonMoveSourceRefs._();
+
+  PokemonMoveSourceRefs normalized() {
+    final normalizedShowdownMoveId = showdownMoveId?.trim();
+    final normalizedHooks = <String>[];
+    final seen = <String>{};
+    for (final hook in showdownHooksPresent) {
+      final trimmed = hook.trim();
+      if (trimmed.isEmpty || !seen.add(trimmed)) {
+        continue;
+      }
+      normalizedHooks.add(trimmed);
+    }
+    return copyWith(
+      showdownMoveId:
+          normalizedShowdownMoveId == null || normalizedShowdownMoveId.isEmpty
+              ? null
+              : normalizedShowdownMoveId,
+      showdownHooksPresent: normalizedHooks,
+    );
+  }
+}
+
+/// Modèle canonique spécialisé d'un move Pokémon.
+///
+/// Invariants de M2 :
+/// - c'est la structure de vérité sérialisable côté `map_core` ;
+/// - elle sert plus tard à l'éditeur, au runtime et au pont battle ;
+/// - elle ne contient ni code Showdown ni logique d'exécution ;
+/// - les comportements de résolution sont décrits dans `effects`.
+@freezed
+class PokemonMove with _$PokemonMove {
+  const PokemonMove._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMove({
+    required String id,
+    required String name,
+    @Default(<String, String>{}) Map<String, String> names,
+    int? generation,
+
+    /// `showdown`, `seed`, `project_custom`, etc.
+    @Default('') String source,
+    required String type,
+    required PokemonMoveCategory category,
+    @Default(PokemonMoveTarget.normal) PokemonMoveTarget target,
+    @Default(0) int basePower,
+    required PokemonMoveAccuracy accuracy,
+    @Default(0) int pp,
+    @Default(false) bool noPpBoosts,
+    @Default(0) int priority,
+    @Default(1) int critRatio,
+
+    /// Sémantiquement un ensemble, stocké comme liste sérialisable stable.
+    @Default(<PokemonMoveFlag>[]) List<PokemonMoveFlag> flags,
+
+    /// Tous les comportements applicatifs vivent ici.
+    @Default(<PokemonMoveEffect>[]) List<PokemonMoveEffect> effects,
+    @Default('') String shortDescription,
+    @Default('') String description,
+    @Default(PokemonMoveEngineSupportLevel.catalogOnly)
+    PokemonMoveEngineSupportLevel engineSupportLevel,
+    @Default(<String>[]) List<String> unsupportedReasons,
+    @Default(PokemonMoveSourceRefs()) PokemonMoveSourceRefs sourceRefs,
+  }) = _PokemonMove;
+
+  factory PokemonMove.fromJson(Map<String, dynamic> json) =>
+      _$PokemonMoveFromJson(json).normalized();
+
+  /// Sémantique tranchée de M2-bis :
+  ///
+  /// - `basePower` reste le marqueur canonique des dégâts standards ;
+  /// - il n'y a plus d'effet `dealDamage` séparé ;
+  /// - un move suit le flow de dégâts standard quand il n'est pas `status`
+  ///   et qu'il a une `basePower` strictement positive.
+  ///
+  /// Cette décision retire l'ambiguïté du doublon `basePower` + `dealDamage`
+  /// tout en gardant une lecture simple pour les futurs convertisseurs.
+  bool get usesStandardDamageFlow =>
+      category != PokemonMoveCategory.status && basePower > 0;
+
+  /// Normalisation et validation défensive minimale.
+  ///
+  /// Le but n'est pas d'ouvrir un gros chantier de validation, mais de
+  /// protéger le modèle contre les cas absurdes les plus évidents avant M3 :
+  /// - ids et noms vides ;
+  /// - type vide ;
+  /// - accuracy incohérente ;
+  /// - doublons dans `flags` et `unsupportedReasons` ;
+  /// - effets incohérents localement.
+  PokemonMove normalized() {
+    String normalizeRequiredString(String label, String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        throw StateError('$label must not be empty');
+      }
+      return trimmed;
+    }
+
+    List<T> dedupePreserveOrder<T>(List<T> values) {
+      final normalized = <T>[];
+      final seen = <T>{};
+      for (final value in values) {
+        if (!seen.add(value)) {
+          continue;
+        }
+        normalized.add(value);
+      }
+      return List.unmodifiable(normalized);
+    }
+
+    List<String> normalizeStringList(List<String> values) {
+      final normalized = <String>[];
+      final seen = <String>{};
+      for (final value in values) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty || !seen.add(trimmed)) {
+          continue;
+        }
+        normalized.add(trimmed);
+      }
+      return List.unmodifiable(normalized);
+    }
+
+    Map<String, String> normalizeNames(Map<String, String> values) {
+      final entries = values.entries
+          .map((entry) => MapEntry(entry.key.trim(), entry.value.trim()))
+          .where((entry) => entry.key.isNotEmpty && entry.value.isNotEmpty)
+          .toList(growable: false)
+        ..sort((left, right) => left.key.compareTo(right.key));
+      return Map<String, String>.fromEntries(entries);
+    }
+
+    final normalizedBasePower = basePower;
+    if (normalizedBasePower < 0) {
+      throw StateError('PokemonMove basePower must be non-negative');
+    }
+    if (pp < 0) {
+      throw StateError('PokemonMove pp must be non-negative');
+    }
+    if (critRatio <= 0) {
+      throw StateError('PokemonMove critRatio must be strictly positive');
+    }
+
+    return copyWith(
+      id: normalizeRequiredString('PokemonMove id', id),
+      name: normalizeRequiredString('PokemonMove name', name),
+      names: normalizeNames(names),
+      source: source.trim(),
+      type: normalizeRequiredString('PokemonMove type', type),
+      accuracy: accuracy.normalized(),
+      flags: dedupePreserveOrder(flags),
+      effects:
+          effects.map((effect) => effect.normalized()).toList(growable: false),
+      shortDescription: shortDescription.trim(),
+      description: description.trim(),
+      unsupportedReasons: normalizeStringList(unsupportedReasons),
+      sourceRefs: sourceRefs.normalized(),
+    );
+  }
+}
+
+```
+
+### `packages/map_core/lib/src/models/pokemon_move.freezed.dart`
+
+```dart
+// coverage:ignore-file
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
+
+part of 'pokemon_move.dart';
+
+// **************************************************************************
+// FreezedGenerator
+// **************************************************************************
+
+T _$identity<T>(T value) => value;
+
+final _privateConstructorUsedError = UnsupportedError(
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+
+PokemonMoveSourceRefs _$PokemonMoveSourceRefsFromJson(
+    Map<String, dynamic> json) {
+  return _PokemonMoveSourceRefs.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PokemonMoveSourceRefs {
+  String? get showdownMoveId => throw _privateConstructorUsedError;
+  List<String> get showdownHooksPresent => throw _privateConstructorUsedError;
+
+  /// Serializes this PokemonMoveSourceRefs to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PokemonMoveSourceRefs
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PokemonMoveSourceRefsCopyWith<PokemonMoveSourceRefs> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PokemonMoveSourceRefsCopyWith<$Res> {
+  factory $PokemonMoveSourceRefsCopyWith(PokemonMoveSourceRefs value,
+          $Res Function(PokemonMoveSourceRefs) then) =
+      _$PokemonMoveSourceRefsCopyWithImpl<$Res, PokemonMoveSourceRefs>;
+  @useResult
+  $Res call({String? showdownMoveId, List<String> showdownHooksPresent});
+}
+
+/// @nodoc
+class _$PokemonMoveSourceRefsCopyWithImpl<$Res,
+        $Val extends PokemonMoveSourceRefs>
+    implements $PokemonMoveSourceRefsCopyWith<$Res> {
+  _$PokemonMoveSourceRefsCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PokemonMoveSourceRefs
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? showdownMoveId = freezed,
+    Object? showdownHooksPresent = null,
+  }) {
+    return _then(_value.copyWith(
+      showdownMoveId: freezed == showdownMoveId
+          ? _value.showdownMoveId
+          : showdownMoveId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      showdownHooksPresent: null == showdownHooksPresent
+          ? _value.showdownHooksPresent
+          : showdownHooksPresent // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PokemonMoveSourceRefsImplCopyWith<$Res>
+    implements $PokemonMoveSourceRefsCopyWith<$Res> {
+  factory _$$PokemonMoveSourceRefsImplCopyWith(
+          _$PokemonMoveSourceRefsImpl value,
+          $Res Function(_$PokemonMoveSourceRefsImpl) then) =
+      __$$PokemonMoveSourceRefsImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String? showdownMoveId, List<String> showdownHooksPresent});
+}
+
+/// @nodoc
+class __$$PokemonMoveSourceRefsImplCopyWithImpl<$Res>
+    extends _$PokemonMoveSourceRefsCopyWithImpl<$Res,
+        _$PokemonMoveSourceRefsImpl>
+    implements _$$PokemonMoveSourceRefsImplCopyWith<$Res> {
+  __$$PokemonMoveSourceRefsImplCopyWithImpl(_$PokemonMoveSourceRefsImpl _value,
+      $Res Function(_$PokemonMoveSourceRefsImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PokemonMoveSourceRefs
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? showdownMoveId = freezed,
+    Object? showdownHooksPresent = null,
+  }) {
+    return _then(_$PokemonMoveSourceRefsImpl(
+      showdownMoveId: freezed == showdownMoveId
+          ? _value.showdownMoveId
+          : showdownMoveId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      showdownHooksPresent: null == showdownHooksPresent
+          ? _value._showdownHooksPresent
+          : showdownHooksPresent // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$PokemonMoveSourceRefsImpl extends _PokemonMoveSourceRefs {
+  const _$PokemonMoveSourceRefsImpl(
+      {this.showdownMoveId,
+      final List<String> showdownHooksPresent = const <String>[]})
+      : _showdownHooksPresent = showdownHooksPresent,
+        super._();
+
+  factory _$PokemonMoveSourceRefsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PokemonMoveSourceRefsImplFromJson(json);
+
+  @override
+  final String? showdownMoveId;
+  final List<String> _showdownHooksPresent;
+  @override
+  @JsonKey()
+  List<String> get showdownHooksPresent {
+    if (_showdownHooksPresent is EqualUnmodifiableListView)
+      return _showdownHooksPresent;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_showdownHooksPresent);
+  }
+
+  @override
+  String toString() {
+    return 'PokemonMoveSourceRefs(showdownMoveId: $showdownMoveId, showdownHooksPresent: $showdownHooksPresent)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PokemonMoveSourceRefsImpl &&
+            (identical(other.showdownMoveId, showdownMoveId) ||
+                other.showdownMoveId == showdownMoveId) &&
+            const DeepCollectionEquality()
+                .equals(other._showdownHooksPresent, _showdownHooksPresent));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, showdownMoveId,
+      const DeepCollectionEquality().hash(_showdownHooksPresent));
+
+  /// Create a copy of PokemonMoveSourceRefs
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PokemonMoveSourceRefsImplCopyWith<_$PokemonMoveSourceRefsImpl>
+      get copyWith => __$$PokemonMoveSourceRefsImplCopyWithImpl<
+          _$PokemonMoveSourceRefsImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PokemonMoveSourceRefsImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PokemonMoveSourceRefs extends PokemonMoveSourceRefs {
+  const factory _PokemonMoveSourceRefs(
+      {final String? showdownMoveId,
+      final List<String> showdownHooksPresent}) = _$PokemonMoveSourceRefsImpl;
+  const _PokemonMoveSourceRefs._() : super._();
+
+  factory _PokemonMoveSourceRefs.fromJson(Map<String, dynamic> json) =
+      _$PokemonMoveSourceRefsImpl.fromJson;
+
+  @override
+  String? get showdownMoveId;
+  @override
+  List<String> get showdownHooksPresent;
+
+  /// Create a copy of PokemonMoveSourceRefs
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PokemonMoveSourceRefsImplCopyWith<_$PokemonMoveSourceRefsImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+PokemonMove _$PokemonMoveFromJson(Map<String, dynamic> json) {
+  return _PokemonMove.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PokemonMove {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  Map<String, String> get names => throw _privateConstructorUsedError;
+  int? get generation => throw _privateConstructorUsedError;
+
+  /// `showdown`, `seed`, `project_custom`, etc.
+  String get source => throw _privateConstructorUsedError;
+  String get type => throw _privateConstructorUsedError;
+  PokemonMoveCategory get category => throw _privateConstructorUsedError;
+  PokemonMoveTarget get target => throw _privateConstructorUsedError;
+  int get basePower => throw _privateConstructorUsedError;
+  PokemonMoveAccuracy get accuracy => throw _privateConstructorUsedError;
+  int get pp => throw _privateConstructorUsedError;
+  bool get noPpBoosts => throw _privateConstructorUsedError;
+  int get priority => throw _privateConstructorUsedError;
+  int get critRatio => throw _privateConstructorUsedError;
+
+  /// Sémantiquement un ensemble, stocké comme liste sérialisable stable.
+  List<PokemonMoveFlag> get flags => throw _privateConstructorUsedError;
+
+  /// Tous les comportements applicatifs vivent ici.
+  List<PokemonMoveEffect> get effects => throw _privateConstructorUsedError;
+  String get shortDescription => throw _privateConstructorUsedError;
+  String get description => throw _privateConstructorUsedError;
+  PokemonMoveEngineSupportLevel get engineSupportLevel =>
+      throw _privateConstructorUsedError;
+  List<String> get unsupportedReasons => throw _privateConstructorUsedError;
+  PokemonMoveSourceRefs get sourceRefs => throw _privateConstructorUsedError;
+
+  /// Serializes this PokemonMove to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PokemonMove
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PokemonMoveCopyWith<PokemonMove> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PokemonMoveCopyWith<$Res> {
+  factory $PokemonMoveCopyWith(
+          PokemonMove value, $Res Function(PokemonMove) then) =
+      _$PokemonMoveCopyWithImpl<$Res, PokemonMove>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      Map<String, String> names,
+      int? generation,
+      String source,
+      String type,
+      PokemonMoveCategory category,
+      PokemonMoveTarget target,
+      int basePower,
+      PokemonMoveAccuracy accuracy,
+      int pp,
+      bool noPpBoosts,
+      int priority,
+      int critRatio,
+      List<PokemonMoveFlag> flags,
+      List<PokemonMoveEffect> effects,
+      String shortDescription,
+      String description,
+      PokemonMoveEngineSupportLevel engineSupportLevel,
+      List<String> unsupportedReasons,
+      PokemonMoveSourceRefs sourceRefs});
+
+  $PokemonMoveAccuracyCopyWith<$Res> get accuracy;
+  $PokemonMoveSourceRefsCopyWith<$Res> get sourceRefs;
+}
+
+/// @nodoc
+class _$PokemonMoveCopyWithImpl<$Res, $Val extends PokemonMove>
+    implements $PokemonMoveCopyWith<$Res> {
+  _$PokemonMoveCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PokemonMove
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? names = null,
+    Object? generation = freezed,
+    Object? source = null,
+    Object? type = null,
+    Object? category = null,
+    Object? target = null,
+    Object? basePower = null,
+    Object? accuracy = null,
+    Object? pp = null,
+    Object? noPpBoosts = null,
+    Object? priority = null,
+    Object? critRatio = null,
+    Object? flags = null,
+    Object? effects = null,
+    Object? shortDescription = null,
+    Object? description = null,
+    Object? engineSupportLevel = null,
+    Object? unsupportedReasons = null,
+    Object? sourceRefs = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      names: null == names
+          ? _value.names
+          : names // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+      generation: freezed == generation
+          ? _value.generation
+          : generation // ignore: cast_nullable_to_non_nullable
+              as int?,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as String,
+      category: null == category
+          ? _value.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveCategory,
+      target: null == target
+          ? _value.target
+          : target // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveTarget,
+      basePower: null == basePower
+          ? _value.basePower
+          : basePower // ignore: cast_nullable_to_non_nullable
+              as int,
+      accuracy: null == accuracy
+          ? _value.accuracy
+          : accuracy // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveAccuracy,
+      pp: null == pp
+          ? _value.pp
+          : pp // ignore: cast_nullable_to_non_nullable
+              as int,
+      noPpBoosts: null == noPpBoosts
+          ? _value.noPpBoosts
+          : noPpBoosts // ignore: cast_nullable_to_non_nullable
+              as bool,
+      priority: null == priority
+          ? _value.priority
+          : priority // ignore: cast_nullable_to_non_nullable
+              as int,
+      critRatio: null == critRatio
+          ? _value.critRatio
+          : critRatio // ignore: cast_nullable_to_non_nullable
+              as int,
+      flags: null == flags
+          ? _value.flags
+          : flags // ignore: cast_nullable_to_non_nullable
+              as List<PokemonMoveFlag>,
+      effects: null == effects
+          ? _value.effects
+          : effects // ignore: cast_nullable_to_non_nullable
+              as List<PokemonMoveEffect>,
+      shortDescription: null == shortDescription
+          ? _value.shortDescription
+          : shortDescription // ignore: cast_nullable_to_non_nullable
+              as String,
+      description: null == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String,
+      engineSupportLevel: null == engineSupportLevel
+          ? _value.engineSupportLevel
+          : engineSupportLevel // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveEngineSupportLevel,
+      unsupportedReasons: null == unsupportedReasons
+          ? _value.unsupportedReasons
+          : unsupportedReasons // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sourceRefs: null == sourceRefs
+          ? _value.sourceRefs
+          : sourceRefs // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveSourceRefs,
+    ) as $Val);
+  }
+
+  /// Create a copy of PokemonMove
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PokemonMoveAccuracyCopyWith<$Res> get accuracy {
+    return $PokemonMoveAccuracyCopyWith<$Res>(_value.accuracy, (value) {
+      return _then(_value.copyWith(accuracy: value) as $Val);
+    });
+  }
+
+  /// Create a copy of PokemonMove
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PokemonMoveSourceRefsCopyWith<$Res> get sourceRefs {
+    return $PokemonMoveSourceRefsCopyWith<$Res>(_value.sourceRefs, (value) {
+      return _then(_value.copyWith(sourceRefs: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$PokemonMoveImplCopyWith<$Res>
+    implements $PokemonMoveCopyWith<$Res> {
+  factory _$$PokemonMoveImplCopyWith(
+          _$PokemonMoveImpl value, $Res Function(_$PokemonMoveImpl) then) =
+      __$$PokemonMoveImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      Map<String, String> names,
+      int? generation,
+      String source,
+      String type,
+      PokemonMoveCategory category,
+      PokemonMoveTarget target,
+      int basePower,
+      PokemonMoveAccuracy accuracy,
+      int pp,
+      bool noPpBoosts,
+      int priority,
+      int critRatio,
+      List<PokemonMoveFlag> flags,
+      List<PokemonMoveEffect> effects,
+      String shortDescription,
+      String description,
+      PokemonMoveEngineSupportLevel engineSupportLevel,
+      List<String> unsupportedReasons,
+      PokemonMoveSourceRefs sourceRefs});
+
+  @override
+  $PokemonMoveAccuracyCopyWith<$Res> get accuracy;
+  @override
+  $PokemonMoveSourceRefsCopyWith<$Res> get sourceRefs;
+}
+
+/// @nodoc
+class __$$PokemonMoveImplCopyWithImpl<$Res>
+    extends _$PokemonMoveCopyWithImpl<$Res, _$PokemonMoveImpl>
+    implements _$$PokemonMoveImplCopyWith<$Res> {
+  __$$PokemonMoveImplCopyWithImpl(
+      _$PokemonMoveImpl _value, $Res Function(_$PokemonMoveImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PokemonMove
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? names = null,
+    Object? generation = freezed,
+    Object? source = null,
+    Object? type = null,
+    Object? category = null,
+    Object? target = null,
+    Object? basePower = null,
+    Object? accuracy = null,
+    Object? pp = null,
+    Object? noPpBoosts = null,
+    Object? priority = null,
+    Object? critRatio = null,
+    Object? flags = null,
+    Object? effects = null,
+    Object? shortDescription = null,
+    Object? description = null,
+    Object? engineSupportLevel = null,
+    Object? unsupportedReasons = null,
+    Object? sourceRefs = null,
+  }) {
+    return _then(_$PokemonMoveImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      names: null == names
+          ? _value._names
+          : names // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+      generation: freezed == generation
+          ? _value.generation
+          : generation // ignore: cast_nullable_to_non_nullable
+              as int?,
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as String,
+      category: null == category
+          ? _value.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveCategory,
+      target: null == target
+          ? _value.target
+          : target // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveTarget,
+      basePower: null == basePower
+          ? _value.basePower
+          : basePower // ignore: cast_nullable_to_non_nullable
+              as int,
+      accuracy: null == accuracy
+          ? _value.accuracy
+          : accuracy // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveAccuracy,
+      pp: null == pp
+          ? _value.pp
+          : pp // ignore: cast_nullable_to_non_nullable
+              as int,
+      noPpBoosts: null == noPpBoosts
+          ? _value.noPpBoosts
+          : noPpBoosts // ignore: cast_nullable_to_non_nullable
+              as bool,
+      priority: null == priority
+          ? _value.priority
+          : priority // ignore: cast_nullable_to_non_nullable
+              as int,
+      critRatio: null == critRatio
+          ? _value.critRatio
+          : critRatio // ignore: cast_nullable_to_non_nullable
+              as int,
+      flags: null == flags
+          ? _value._flags
+          : flags // ignore: cast_nullable_to_non_nullable
+              as List<PokemonMoveFlag>,
+      effects: null == effects
+          ? _value._effects
+          : effects // ignore: cast_nullable_to_non_nullable
+              as List<PokemonMoveEffect>,
+      shortDescription: null == shortDescription
+          ? _value.shortDescription
+          : shortDescription // ignore: cast_nullable_to_non_nullable
+              as String,
+      description: null == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String,
+      engineSupportLevel: null == engineSupportLevel
+          ? _value.engineSupportLevel
+          : engineSupportLevel // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveEngineSupportLevel,
+      unsupportedReasons: null == unsupportedReasons
+          ? _value._unsupportedReasons
+          : unsupportedReasons // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sourceRefs: null == sourceRefs
+          ? _value.sourceRefs
+          : sourceRefs // ignore: cast_nullable_to_non_nullable
+              as PokemonMoveSourceRefs,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$PokemonMoveImpl extends _PokemonMove {
+  const _$PokemonMoveImpl(
+      {required this.id,
+      required this.name,
+      final Map<String, String> names = const <String, String>{},
+      this.generation,
+      this.source = '',
+      required this.type,
+      required this.category,
+      this.target = PokemonMoveTarget.normal,
+      this.basePower = 0,
+      required this.accuracy,
+      this.pp = 0,
+      this.noPpBoosts = false,
+      this.priority = 0,
+      this.critRatio = 1,
+      final List<PokemonMoveFlag> flags = const <PokemonMoveFlag>[],
+      final List<PokemonMoveEffect> effects = const <PokemonMoveEffect>[],
+      this.shortDescription = '',
+      this.description = '',
+      this.engineSupportLevel = PokemonMoveEngineSupportLevel.catalogOnly,
+      final List<String> unsupportedReasons = const <String>[],
+      this.sourceRefs = const PokemonMoveSourceRefs()})
+      : _names = names,
+        _flags = flags,
+        _effects = effects,
+        _unsupportedReasons = unsupportedReasons,
+        super._();
+
+  factory _$PokemonMoveImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PokemonMoveImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  final Map<String, String> _names;
+  @override
+  @JsonKey()
+  Map<String, String> get names {
+    if (_names is EqualUnmodifiableMapView) return _names;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_names);
+  }
+
+  @override
+  final int? generation;
+
+  /// `showdown`, `seed`, `project_custom`, etc.
+  @override
+  @JsonKey()
+  final String source;
+  @override
+  final String type;
+  @override
+  final PokemonMoveCategory category;
+  @override
+  @JsonKey()
+  final PokemonMoveTarget target;
+  @override
+  @JsonKey()
+  final int basePower;
+  @override
+  final PokemonMoveAccuracy accuracy;
+  @override
+  @JsonKey()
+  final int pp;
+  @override
+  @JsonKey()
+  final bool noPpBoosts;
+  @override
+  @JsonKey()
+  final int priority;
+  @override
+  @JsonKey()
+  final int critRatio;
+
+  /// Sémantiquement un ensemble, stocké comme liste sérialisable stable.
+  final List<PokemonMoveFlag> _flags;
+
+  /// Sémantiquement un ensemble, stocké comme liste sérialisable stable.
+  @override
+  @JsonKey()
+  List<PokemonMoveFlag> get flags {
+    if (_flags is EqualUnmodifiableListView) return _flags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_flags);
+  }
+
+  /// Tous les comportements applicatifs vivent ici.
+  final List<PokemonMoveEffect> _effects;
+
+  /// Tous les comportements applicatifs vivent ici.
+  @override
+  @JsonKey()
+  List<PokemonMoveEffect> get effects {
+    if (_effects is EqualUnmodifiableListView) return _effects;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_effects);
+  }
+
+  @override
+  @JsonKey()
+  final String shortDescription;
+  @override
+  @JsonKey()
+  final String description;
+  @override
+  @JsonKey()
+  final PokemonMoveEngineSupportLevel engineSupportLevel;
+  final List<String> _unsupportedReasons;
+  @override
+  @JsonKey()
+  List<String> get unsupportedReasons {
+    if (_unsupportedReasons is EqualUnmodifiableListView)
+      return _unsupportedReasons;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_unsupportedReasons);
+  }
+
+  @override
+  @JsonKey()
+  final PokemonMoveSourceRefs sourceRefs;
+
+  @override
+  String toString() {
+    return 'PokemonMove(id: $id, name: $name, names: $names, generation: $generation, source: $source, type: $type, category: $category, target: $target, basePower: $basePower, accuracy: $accuracy, pp: $pp, noPpBoosts: $noPpBoosts, priority: $priority, critRatio: $critRatio, flags: $flags, effects: $effects, shortDescription: $shortDescription, description: $description, engineSupportLevel: $engineSupportLevel, unsupportedReasons: $unsupportedReasons, sourceRefs: $sourceRefs)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PokemonMoveImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            const DeepCollectionEquality().equals(other._names, _names) &&
+            (identical(other.generation, generation) ||
+                other.generation == generation) &&
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.category, category) ||
+                other.category == category) &&
+            (identical(other.target, target) || other.target == target) &&
+            (identical(other.basePower, basePower) ||
+                other.basePower == basePower) &&
+            (identical(other.accuracy, accuracy) ||
+                other.accuracy == accuracy) &&
+            (identical(other.pp, pp) || other.pp == pp) &&
+            (identical(other.noPpBoosts, noPpBoosts) ||
+                other.noPpBoosts == noPpBoosts) &&
+            (identical(other.priority, priority) ||
+                other.priority == priority) &&
+            (identical(other.critRatio, critRatio) ||
+                other.critRatio == critRatio) &&
+            const DeepCollectionEquality().equals(other._flags, _flags) &&
+            const DeepCollectionEquality().equals(other._effects, _effects) &&
+            (identical(other.shortDescription, shortDescription) ||
+                other.shortDescription == shortDescription) &&
+            (identical(other.description, description) ||
+                other.description == description) &&
+            (identical(other.engineSupportLevel, engineSupportLevel) ||
+                other.engineSupportLevel == engineSupportLevel) &&
+            const DeepCollectionEquality()
+                .equals(other._unsupportedReasons, _unsupportedReasons) &&
+            (identical(other.sourceRefs, sourceRefs) ||
+                other.sourceRefs == sourceRefs));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        name,
+        const DeepCollectionEquality().hash(_names),
+        generation,
+        source,
+        type,
+        category,
+        target,
+        basePower,
+        accuracy,
+        pp,
+        noPpBoosts,
+        priority,
+        critRatio,
+        const DeepCollectionEquality().hash(_flags),
+        const DeepCollectionEquality().hash(_effects),
+        shortDescription,
+        description,
+        engineSupportLevel,
+        const DeepCollectionEquality().hash(_unsupportedReasons),
+        sourceRefs
+      ]);
+
+  /// Create a copy of PokemonMove
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PokemonMoveImplCopyWith<_$PokemonMoveImpl> get copyWith =>
+      __$$PokemonMoveImplCopyWithImpl<_$PokemonMoveImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PokemonMoveImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PokemonMove extends PokemonMove {
+  const factory _PokemonMove(
+      {required final String id,
+      required final String name,
+      final Map<String, String> names,
+      final int? generation,
+      final String source,
+      required final String type,
+      required final PokemonMoveCategory category,
+      final PokemonMoveTarget target,
+      final int basePower,
+      required final PokemonMoveAccuracy accuracy,
+      final int pp,
+      final bool noPpBoosts,
+      final int priority,
+      final int critRatio,
+      final List<PokemonMoveFlag> flags,
+      final List<PokemonMoveEffect> effects,
+      final String shortDescription,
+      final String description,
+      final PokemonMoveEngineSupportLevel engineSupportLevel,
+      final List<String> unsupportedReasons,
+      final PokemonMoveSourceRefs sourceRefs}) = _$PokemonMoveImpl;
+  const _PokemonMove._() : super._();
+
+  factory _PokemonMove.fromJson(Map<String, dynamic> json) =
+      _$PokemonMoveImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  Map<String, String> get names;
+  @override
+  int? get generation;
+
+  /// `showdown`, `seed`, `project_custom`, etc.
+  @override
+  String get source;
+  @override
+  String get type;
+  @override
+  PokemonMoveCategory get category;
+  @override
+  PokemonMoveTarget get target;
+  @override
+  int get basePower;
+  @override
+  PokemonMoveAccuracy get accuracy;
+  @override
+  int get pp;
+  @override
+  bool get noPpBoosts;
+  @override
+  int get priority;
+  @override
+  int get critRatio;
+
+  /// Sémantiquement un ensemble, stocké comme liste sérialisable stable.
+  @override
+  List<PokemonMoveFlag> get flags;
+
+  /// Tous les comportements applicatifs vivent ici.
+  @override
+  List<PokemonMoveEffect> get effects;
+  @override
+  String get shortDescription;
+  @override
+  String get description;
+  @override
+  PokemonMoveEngineSupportLevel get engineSupportLevel;
+  @override
+  List<String> get unsupportedReasons;
+  @override
+  PokemonMoveSourceRefs get sourceRefs;
+
+  /// Create a copy of PokemonMove
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PokemonMoveImplCopyWith<_$PokemonMoveImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+```
+
+### `packages/map_core/lib/src/models/pokemon_move_accuracy.dart`
+
+```dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'pokemon_move_accuracy.freezed.dart';
+part 'pokemon_move_accuracy.g.dart';
+
+/// Représentation canonique de la précision d'un move.
+///
+/// Le lot M2 tranche explicitement contre l'ancien duo ambigu
+/// `accuracy` + `accuracyText` :
+/// - un move touche soit toujours ;
+/// - soit il utilise une précision en pourcentage.
+///
+/// On garde ce type très petit volontairement :
+/// - il est sérialisable ;
+/// - il est lisible ;
+/// - il suffit pour le futur convertisseur, le seed et le runtime loader ;
+/// - il n'embarque encore aucune logique moteur.
+@Freezed(unionKey: 'kind', unionValueCase: FreezedUnionCase.snake)
+class PokemonMoveAccuracy with _$PokemonMoveAccuracy {
+  const PokemonMoveAccuracy._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveAccuracy.percent({
+    required int value,
+  }) = PokemonMoveAccuracyPercent;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveAccuracy.alwaysHits() =
+      PokemonMoveAccuracyAlwaysHits;
+
+  factory PokemonMoveAccuracy.fromJson(Map<String, dynamic> json) =>
+      _$PokemonMoveAccuracyFromJson(json).normalized();
+
+  /// Validation minimale locale du contrat `accuracy`.
+  ///
+  /// Le modèle de données doit déjà se défendre contre les cas absurdes les
+  /// plus simples avant même tout loader runtime ou bridge battle :
+  /// - `percent` doit rester dans une plage raisonnable ;
+  /// - `alwaysHits` ne porte aucune donnée supplémentaire.
+  PokemonMoveAccuracy normalized() {
+    return map(
+      percent: (accuracy) {
+        if (accuracy.value < 1 || accuracy.value > 100) {
+          throw StateError(
+            'PokemonMoveAccuracy.percent value must be between 1 and 100',
+          );
+        }
+        return accuracy;
+      },
+      alwaysHits: (accuracy) => accuracy,
+    );
+  }
+}
+
+```
+
+### `packages/map_core/lib/src/models/pokemon_move_effect.dart`
+
+```dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'pokemon_move_effect.freezed.dart';
+part 'pokemon_move_effect.g.dart';
+
+/// Portée logique d'un effet structuré.
+///
+/// On ne copie pas ici la totalité du système de targeting Showdown :
+/// - le move lui-même garde déjà son `target` natif ;
+/// - les effets ont seulement besoin d'une portée de résolution lisible ;
+/// - cela suffit pour la donnée projet et pour un futur bridge runtime -> battle.
+enum PokemonMoveEffectTargetScope {
+  @JsonValue('self')
+  self,
+  @JsonValue('target')
+  target,
+  @JsonValue('field')
+  field,
+  @JsonValue('ally_side')
+  allySide,
+  @JsonValue('foe_side')
+  foeSide,
+  @JsonValue('slot')
+  slot,
+}
+
+/// Identifiant de stat utilisé par les effets de boost / baisse de stats.
+///
+/// Le modèle canonique reste volontairement plus lisible que les abréviations
+/// internes de Showdown (`atk`, `spa`, etc.). Le convertisseur futur assumera
+/// la traduction entre les deux représentations.
+enum PokemonMoveStatId {
+  @JsonValue('attack')
+  attack,
+  @JsonValue('defense')
+  defense,
+  @JsonValue('special_attack')
+  specialAttack,
+  @JsonValue('special_defense')
+  specialDefense,
+  @JsonValue('speed')
+  speed,
+  @JsonValue('accuracy')
+  accuracy,
+  @JsonValue('evasion')
+  evasion,
+}
+
+/// Petite structure dédiée pour éviter un payload "Map<String, int>" flou.
+///
+/// Le lot M2 veut un modèle descriptif mais solide :
+/// - un changement de stats doit être typé ;
+/// - il doit rester simple à sérialiser ;
+/// - il ne doit pas dépendre d'une clé texte magique.
+@freezed
+class PokemonMoveStatStageChange with _$PokemonMoveStatStageChange {
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveStatStageChange({
+    required PokemonMoveStatId stat,
+    required int stages,
+  }) = _PokemonMoveStatStageChange;
+
+  factory PokemonMoveStatStageChange.fromJson(Map<String, dynamic> json) =>
+      _$PokemonMoveStatStageChangeFromJson(json);
+}
+
+/// Effet structuré d'un move.
+///
+/// Décision centrale de M2 :
+/// - les comportements de résolution vivent ici ;
+/// - les champs natifs (`type`, `basePower`, `accuracy`, etc.) restent sur
+///   `PokemonMove` ;
+/// - on ne duplique pas une mécanique à la fois en champ natif et en payload
+///   libre concurrent.
+///
+/// Important :
+/// - ceci est une capacité de représentation ;
+/// - ce n'est pas encore un moteur d'exécution ;
+/// - chaque variant embarque seulement le payload nécessaire à la donnée.
+@Freezed(unionKey: 'kind', unionValueCase: FreezedUnionCase.snake)
+class PokemonMoveEffect with _$PokemonMoveEffect {
+  const PokemonMoveEffect._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.fixedDamage({
+    @Default(PokemonMoveEffectTargetScope.target)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+
+    /// Valeur fixe exacte quand le move inflige un montant constant.
+    int? value,
+
+    /// Garde-fou minimal pour les cas "fixed damage = niveau du lanceur".
+    @Default(false) bool usesUserLevel,
+  }) = PokemonMoveEffectFixedDamage;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.multiHit({
+    @Default(PokemonMoveEffectTargetScope.target)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required int minHits,
+    required int maxHits,
+  }) = PokemonMoveEffectMultiHit;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.applyStatus({
+    @Default(PokemonMoveEffectTargetScope.target)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String statusId,
+  }) = PokemonMoveEffectApplyStatus;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.applyVolatileStatus({
+    @Default(PokemonMoveEffectTargetScope.target)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String volatileStatusId,
+  }) = PokemonMoveEffectApplyVolatileStatus;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.modifyStats({
+    @Default(PokemonMoveEffectTargetScope.target)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    @Default(<PokemonMoveStatStageChange>[])
+    List<PokemonMoveStatStageChange> stageChanges,
+  }) = PokemonMoveEffectModifyStats;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.heal({
+    @Default(PokemonMoveEffectTargetScope.self)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required int numerator,
+    required int denominator,
+  }) = PokemonMoveEffectHeal;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.drain({
+    @Default(PokemonMoveEffectTargetScope.self)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required int numerator,
+    required int denominator,
+  }) = PokemonMoveEffectDrain;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.recoil({
+    @Default(PokemonMoveEffectTargetScope.self)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required int numerator,
+    required int denominator,
+  }) = PokemonMoveEffectRecoil;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.setWeather({
+    @Default(PokemonMoveEffectTargetScope.field)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String weatherId,
+  }) = PokemonMoveEffectSetWeather;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.setTerrain({
+    @Default(PokemonMoveEffectTargetScope.field)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String terrainId,
+  }) = PokemonMoveEffectSetTerrain;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.setPseudoWeather({
+    @Default(PokemonMoveEffectTargetScope.field)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String pseudoWeatherId,
+  }) = PokemonMoveEffectSetPseudoWeather;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.selfSwitch({
+    @Default(PokemonMoveEffectTargetScope.self)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+
+    /// Exemples futurs : `copyvolatile`, `shedtail`, `simple`.
+    String? mode,
+  }) = PokemonMoveEffectSelfSwitch;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.forceSwitch({
+    @Default(PokemonMoveEffectTargetScope.target)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+  }) = PokemonMoveEffectForceSwitch;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.breakProtect({
+    @Default(PokemonMoveEffectTargetScope.target)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+  }) = PokemonMoveEffectBreakProtect;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.requireRecharge({
+    @Default(PokemonMoveEffectTargetScope.self)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+  }) = PokemonMoveEffectRequireRecharge;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.chargeThenStrike({
+    @Default(PokemonMoveEffectTargetScope.self)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+
+    /// Permet plus tard d'associer un volatile ou un marqueur de charge.
+    String? chargeStateId,
+  }) = PokemonMoveEffectChargeThenStrike;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.setSideCondition({
+    @Default(PokemonMoveEffectTargetScope.foeSide)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String conditionId,
+  }) = PokemonMoveEffectSetSideCondition;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.setSlotCondition({
+    @Default(PokemonMoveEffectTargetScope.slot)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String conditionId,
+  }) = PokemonMoveEffectSetSlotCondition;
+
+  factory PokemonMoveEffect.fromJson(Map<String, dynamic> json) =>
+      _$PokemonMoveEffectFromJson(json).normalized();
+
+  /// Normalisation et validation défensive minimale.
+  ///
+  /// M2-bis ne transforme pas ce modèle en moteur, mais il doit déjà éviter
+  /// les payloads les plus incohérents :
+  /// - ids et chaînes obligatoires non vides ;
+  /// - `chance` dans une plage raisonnable ;
+  /// - `multiHit` cohérent ;
+  /// - fractions strictement positives ;
+  /// - `fixedDamage` non ambigu.
+  PokemonMoveEffect normalized() {
+    void validateChance(int? chance) {
+      if (chance == null) {
+        return;
+      }
+      if (chance < 1 || chance > 100) {
+        throw StateError('PokemonMoveEffect chance must be between 1 and 100');
+      }
+    }
+
+    int normalizePositivePart(String label, int value) {
+      if (value <= 0) {
+        throw StateError('$label must be strictly positive');
+      }
+      return value;
+    }
+
+    String normalizeRequiredId(String label, String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        throw StateError('$label must not be empty');
+      }
+      return trimmed;
+    }
+
+    return map(
+      fixedDamage: (effect) {
+        validateChance(effect.chance);
+        final normalizedValue = effect.value;
+        if (effect.usesUserLevel) {
+          if (normalizedValue != null) {
+            throw StateError(
+              'PokemonMoveEffect.fixedDamage cannot define both value and usesUserLevel',
+            );
+          }
+          return effect;
+        }
+        final value = normalizedValue;
+        if (value == null || value <= 0) {
+          throw StateError(
+            'PokemonMoveEffect.fixedDamage requires a strictly positive value when usesUserLevel is false',
+          );
+        }
+        return effect.copyWith(value: value);
+      },
+      multiHit: (effect) {
+        validateChance(effect.chance);
+        final minHits = normalizePositivePart(
+            'PokemonMoveEffect.multiHit minHits', effect.minHits);
+        final maxHits = normalizePositivePart(
+            'PokemonMoveEffect.multiHit maxHits', effect.maxHits);
+        if (minHits > maxHits) {
+          throw StateError(
+            'PokemonMoveEffect.multiHit minHits must be less than or equal to maxHits',
+          );
+        }
+        return effect.copyWith(
+          minHits: minHits,
+          maxHits: maxHits,
+        );
+      },
+      applyStatus: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          statusId: normalizeRequiredId(
+            'PokemonMoveEffect.applyStatus statusId',
+            effect.statusId,
+          ),
+        );
+      },
+      applyVolatileStatus: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          volatileStatusId: normalizeRequiredId(
+            'PokemonMoveEffect.applyVolatileStatus volatileStatusId',
+            effect.volatileStatusId,
+          ),
+        );
+      },
+      modifyStats: (effect) {
+        validateChance(effect.chance);
+        final stageChanges = effect.stageChanges;
+        if (stageChanges.isEmpty) {
+          throw StateError(
+            'PokemonMoveEffect.modifyStats stageChanges must not be empty',
+          );
+        }
+        final seen = <PokemonMoveStatId>{};
+        for (final stageChange in stageChanges) {
+          if (stageChange.stages == 0) {
+            throw StateError(
+              'PokemonMoveEffect.modifyStats stageChanges must not contain zero stages',
+            );
+          }
+          if (!seen.add(stageChange.stat)) {
+            throw StateError(
+              'PokemonMoveEffect.modifyStats stageChanges must not contain duplicate stats',
+            );
+          }
+        }
+        return effect;
+      },
+      heal: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          numerator: normalizePositivePart(
+              'PokemonMoveEffect.heal numerator', effect.numerator),
+          denominator: normalizePositivePart(
+            'PokemonMoveEffect.heal denominator',
+            effect.denominator,
+          ),
+        );
+      },
+      drain: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          numerator: normalizePositivePart(
+              'PokemonMoveEffect.drain numerator', effect.numerator),
+          denominator: normalizePositivePart(
+            'PokemonMoveEffect.drain denominator',
+            effect.denominator,
+          ),
+        );
+      },
+      recoil: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          numerator: normalizePositivePart(
+            'PokemonMoveEffect.recoil numerator',
+            effect.numerator,
+          ),
+          denominator: normalizePositivePart(
+            'PokemonMoveEffect.recoil denominator',
+            effect.denominator,
+          ),
+        );
+      },
+      setWeather: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          weatherId: normalizeRequiredId(
+            'PokemonMoveEffect.setWeather weatherId',
+            effect.weatherId,
+          ),
+        );
+      },
+      setTerrain: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          terrainId: normalizeRequiredId(
+            'PokemonMoveEffect.setTerrain terrainId',
+            effect.terrainId,
+          ),
+        );
+      },
+      setPseudoWeather: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          pseudoWeatherId: normalizeRequiredId(
+            'PokemonMoveEffect.setPseudoWeather pseudoWeatherId',
+            effect.pseudoWeatherId,
+          ),
+        );
+      },
+      selfSwitch: (effect) {
+        validateChance(effect.chance);
+        final normalizedMode = effect.mode?.trim();
+        return effect.copyWith(
+          mode: normalizedMode == null || normalizedMode.isEmpty
+              ? null
+              : normalizedMode,
+        );
+      },
+      forceSwitch: (effect) {
+        validateChance(effect.chance);
+        return effect;
+      },
+      breakProtect: (effect) {
+        validateChance(effect.chance);
+        return effect;
+      },
+      requireRecharge: (effect) {
+        validateChance(effect.chance);
+        return effect;
+      },
+      chargeThenStrike: (effect) {
+        validateChance(effect.chance);
+        final normalizedChargeStateId = effect.chargeStateId?.trim();
+        return effect.copyWith(
+          chargeStateId:
+              normalizedChargeStateId == null || normalizedChargeStateId.isEmpty
+                  ? null
+                  : normalizedChargeStateId,
+        );
+      },
+      setSideCondition: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          conditionId: normalizeRequiredId(
+            'PokemonMoveEffect.setSideCondition conditionId',
+            effect.conditionId,
+          ),
+        );
+      },
+      setSlotCondition: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          conditionId: normalizeRequiredId(
+            'PokemonMoveEffect.setSlotCondition conditionId',
+            effect.conditionId,
+          ),
+        );
+      },
+    );
+  }
+}
+
+```
+
+### `packages/map_core/lib/src/models/pokemon_move_effect.freezed.dart`
+
+```dart
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -8035,3 +10169,839 @@ abstract class PokemonMoveEffectSetSlotCondition extends PokemonMoveEffect {
           _$PokemonMoveEffectSetSlotConditionImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
+
+```
+
+### `packages/map_core/lib/src/models/pokemon_move_effect.g.dart`
+
+```dart
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'pokemon_move_effect.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$PokemonMoveStatStageChangeImpl _$$PokemonMoveStatStageChangeImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveStatStageChangeImpl(
+      stat: $enumDecode(_$PokemonMoveStatIdEnumMap, json['stat']),
+      stages: (json['stages'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$$PokemonMoveStatStageChangeImplToJson(
+        _$PokemonMoveStatStageChangeImpl instance) =>
+    <String, dynamic>{
+      'stat': _$PokemonMoveStatIdEnumMap[instance.stat]!,
+      'stages': instance.stages,
+    };
+
+const _$PokemonMoveStatIdEnumMap = {
+  PokemonMoveStatId.attack: 'attack',
+  PokemonMoveStatId.defense: 'defense',
+  PokemonMoveStatId.specialAttack: 'special_attack',
+  PokemonMoveStatId.specialDefense: 'special_defense',
+  PokemonMoveStatId.speed: 'speed',
+  PokemonMoveStatId.accuracy: 'accuracy',
+  PokemonMoveStatId.evasion: 'evasion',
+};
+
+_$PokemonMoveEffectFixedDamageImpl _$$PokemonMoveEffectFixedDamageImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectFixedDamageImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.target,
+      chance: (json['chance'] as num?)?.toInt(),
+      value: (json['value'] as num?)?.toInt(),
+      usesUserLevel: json['usesUserLevel'] as bool? ?? false,
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectFixedDamageImplToJson(
+        _$PokemonMoveEffectFixedDamageImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'value': instance.value,
+      'usesUserLevel': instance.usesUserLevel,
+      'kind': instance.$type,
+    };
+
+const _$PokemonMoveEffectTargetScopeEnumMap = {
+  PokemonMoveEffectTargetScope.self: 'self',
+  PokemonMoveEffectTargetScope.target: 'target',
+  PokemonMoveEffectTargetScope.field: 'field',
+  PokemonMoveEffectTargetScope.allySide: 'ally_side',
+  PokemonMoveEffectTargetScope.foeSide: 'foe_side',
+  PokemonMoveEffectTargetScope.slot: 'slot',
+};
+
+_$PokemonMoveEffectMultiHitImpl _$$PokemonMoveEffectMultiHitImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectMultiHitImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.target,
+      chance: (json['chance'] as num?)?.toInt(),
+      minHits: (json['minHits'] as num).toInt(),
+      maxHits: (json['maxHits'] as num).toInt(),
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectMultiHitImplToJson(
+        _$PokemonMoveEffectMultiHitImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'minHits': instance.minHits,
+      'maxHits': instance.maxHits,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectApplyStatusImpl _$$PokemonMoveEffectApplyStatusImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectApplyStatusImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.target,
+      chance: (json['chance'] as num?)?.toInt(),
+      statusId: json['statusId'] as String,
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectApplyStatusImplToJson(
+        _$PokemonMoveEffectApplyStatusImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'statusId': instance.statusId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectApplyVolatileStatusImpl
+    _$$PokemonMoveEffectApplyVolatileStatusImplFromJson(
+            Map<String, dynamic> json) =>
+        _$PokemonMoveEffectApplyVolatileStatusImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.target,
+          chance: (json['chance'] as num?)?.toInt(),
+          volatileStatusId: json['volatileStatusId'] as String,
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectApplyVolatileStatusImplToJson(
+        _$PokemonMoveEffectApplyVolatileStatusImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'volatileStatusId': instance.volatileStatusId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectModifyStatsImpl _$$PokemonMoveEffectModifyStatsImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectModifyStatsImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.target,
+      chance: (json['chance'] as num?)?.toInt(),
+      stageChanges: (json['stageChanges'] as List<dynamic>?)
+              ?.map((e) => PokemonMoveStatStageChange.fromJson(
+                  e as Map<String, dynamic>))
+              .toList() ??
+          const <PokemonMoveStatStageChange>[],
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectModifyStatsImplToJson(
+        _$PokemonMoveEffectModifyStatsImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'stageChanges': instance.stageChanges.map((e) => e.toJson()).toList(),
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectHealImpl _$$PokemonMoveEffectHealImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectHealImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.self,
+      chance: (json['chance'] as num?)?.toInt(),
+      numerator: (json['numerator'] as num).toInt(),
+      denominator: (json['denominator'] as num).toInt(),
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectHealImplToJson(
+        _$PokemonMoveEffectHealImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'numerator': instance.numerator,
+      'denominator': instance.denominator,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectDrainImpl _$$PokemonMoveEffectDrainImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectDrainImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.self,
+      chance: (json['chance'] as num?)?.toInt(),
+      numerator: (json['numerator'] as num).toInt(),
+      denominator: (json['denominator'] as num).toInt(),
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectDrainImplToJson(
+        _$PokemonMoveEffectDrainImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'numerator': instance.numerator,
+      'denominator': instance.denominator,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectRecoilImpl _$$PokemonMoveEffectRecoilImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectRecoilImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.self,
+      chance: (json['chance'] as num?)?.toInt(),
+      numerator: (json['numerator'] as num).toInt(),
+      denominator: (json['denominator'] as num).toInt(),
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectRecoilImplToJson(
+        _$PokemonMoveEffectRecoilImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'numerator': instance.numerator,
+      'denominator': instance.denominator,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectSetWeatherImpl _$$PokemonMoveEffectSetWeatherImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectSetWeatherImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.field,
+      chance: (json['chance'] as num?)?.toInt(),
+      weatherId: json['weatherId'] as String,
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectSetWeatherImplToJson(
+        _$PokemonMoveEffectSetWeatherImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'weatherId': instance.weatherId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectSetTerrainImpl _$$PokemonMoveEffectSetTerrainImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectSetTerrainImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.field,
+      chance: (json['chance'] as num?)?.toInt(),
+      terrainId: json['terrainId'] as String,
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectSetTerrainImplToJson(
+        _$PokemonMoveEffectSetTerrainImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'terrainId': instance.terrainId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectSetPseudoWeatherImpl
+    _$$PokemonMoveEffectSetPseudoWeatherImplFromJson(
+            Map<String, dynamic> json) =>
+        _$PokemonMoveEffectSetPseudoWeatherImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.field,
+          chance: (json['chance'] as num?)?.toInt(),
+          pseudoWeatherId: json['pseudoWeatherId'] as String,
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectSetPseudoWeatherImplToJson(
+        _$PokemonMoveEffectSetPseudoWeatherImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'pseudoWeatherId': instance.pseudoWeatherId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectSelfSwitchImpl _$$PokemonMoveEffectSelfSwitchImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectSelfSwitchImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.self,
+      chance: (json['chance'] as num?)?.toInt(),
+      mode: json['mode'] as String?,
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectSelfSwitchImplToJson(
+        _$PokemonMoveEffectSelfSwitchImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'mode': instance.mode,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectForceSwitchImpl _$$PokemonMoveEffectForceSwitchImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PokemonMoveEffectForceSwitchImpl(
+      targetScope: $enumDecodeNullable(
+              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+          PokemonMoveEffectTargetScope.target,
+      chance: (json['chance'] as num?)?.toInt(),
+      $type: json['kind'] as String?,
+    );
+
+Map<String, dynamic> _$$PokemonMoveEffectForceSwitchImplToJson(
+        _$PokemonMoveEffectForceSwitchImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectBreakProtectImpl
+    _$$PokemonMoveEffectBreakProtectImplFromJson(Map<String, dynamic> json) =>
+        _$PokemonMoveEffectBreakProtectImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.target,
+          chance: (json['chance'] as num?)?.toInt(),
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectBreakProtectImplToJson(
+        _$PokemonMoveEffectBreakProtectImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectRequireRechargeImpl
+    _$$PokemonMoveEffectRequireRechargeImplFromJson(
+            Map<String, dynamic> json) =>
+        _$PokemonMoveEffectRequireRechargeImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.self,
+          chance: (json['chance'] as num?)?.toInt(),
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectRequireRechargeImplToJson(
+        _$PokemonMoveEffectRequireRechargeImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectChargeThenStrikeImpl
+    _$$PokemonMoveEffectChargeThenStrikeImplFromJson(
+            Map<String, dynamic> json) =>
+        _$PokemonMoveEffectChargeThenStrikeImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.self,
+          chance: (json['chance'] as num?)?.toInt(),
+          chargeStateId: json['chargeStateId'] as String?,
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectChargeThenStrikeImplToJson(
+        _$PokemonMoveEffectChargeThenStrikeImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'chargeStateId': instance.chargeStateId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectSetSideConditionImpl
+    _$$PokemonMoveEffectSetSideConditionImplFromJson(
+            Map<String, dynamic> json) =>
+        _$PokemonMoveEffectSetSideConditionImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.foeSide,
+          chance: (json['chance'] as num?)?.toInt(),
+          conditionId: json['conditionId'] as String,
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectSetSideConditionImplToJson(
+        _$PokemonMoveEffectSetSideConditionImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'conditionId': instance.conditionId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectSetSlotConditionImpl
+    _$$PokemonMoveEffectSetSlotConditionImplFromJson(
+            Map<String, dynamic> json) =>
+        _$PokemonMoveEffectSetSlotConditionImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.slot,
+          chance: (json['chance'] as num?)?.toInt(),
+          conditionId: json['conditionId'] as String,
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectSetSlotConditionImplToJson(
+        _$PokemonMoveEffectSetSlotConditionImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'conditionId': instance.conditionId,
+      'kind': instance.$type,
+    };
+
+```
+
+### `packages/map_core/test/pokemon_move_test.dart`
+
+```dart
+import 'dart:convert';
+
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+PokemonMove _roundTrip(PokemonMove move) {
+  final encoded = jsonEncode(move.toJson());
+  final decoded = jsonDecode(encoded) as Map<String, dynamic>;
+  return PokemonMove.fromJson(decoded);
+}
+
+void main() {
+  group('PokemonMove', () {
+    test('round-trip JSON for a simple damage move', () {
+      const move = PokemonMove(
+        id: 'thunderbolt',
+        name: 'Thunderbolt',
+        names: {'en': 'Thunderbolt', 'fr': 'Tonnerre'},
+        generation: 1,
+        source: 'showdown',
+        type: 'electric',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.normal,
+        basePower: 90,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 15,
+        priority: 0,
+        flags: [
+          PokemonMoveFlag.protect,
+          PokemonMoveFlag.mirror,
+        ],
+        shortDescription: '10% chance to paralyze the target.',
+        description: 'A strong electric blast crashes down on the target.',
+      );
+
+      expect(_roundTrip(move), move);
+      expect(move.usesStandardDamageFlow, isTrue);
+    });
+
+    test('round-trip JSON for a move with a secondary status effect', () {
+      const move = PokemonMove(
+        id: 'thunderbolt',
+        name: 'Thunderbolt',
+        source: 'showdown',
+        type: 'electric',
+        category: PokemonMoveCategory.special,
+        basePower: 90,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 15,
+        effects: [
+          PokemonMoveEffect.applyStatus(
+            chance: 10,
+            statusId: 'par',
+          ),
+        ],
+      );
+
+      expect(_roundTrip(move), move);
+    });
+
+    test('round-trip JSON for a move with drain', () {
+      const move = PokemonMove(
+        id: 'absorb',
+        name: 'Absorb',
+        source: 'showdown',
+        type: 'grass',
+        category: PokemonMoveCategory.special,
+        basePower: 20,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 25,
+        effects: [
+          PokemonMoveEffect.drain(
+            numerator: 1,
+            denominator: 2,
+          ),
+        ],
+      );
+
+      expect(_roundTrip(move), move);
+    });
+
+    test('round-trip JSON for a multi-hit move', () {
+      const move = PokemonMove(
+        id: 'double-slap',
+        name: 'Double Slap',
+        source: 'showdown',
+        type: 'normal',
+        category: PokemonMoveCategory.physical,
+        basePower: 15,
+        accuracy: PokemonMoveAccuracy.percent(value: 85),
+        pp: 10,
+        effects: [
+          PokemonMoveEffect.multiHit(
+            minHits: 2,
+            maxHits: 5,
+          ),
+        ],
+      );
+
+      expect(_roundTrip(move), move);
+    });
+
+    test('round-trip JSON keeps engine support metadata', () {
+      const move = PokemonMove(
+        id: 'acrobatics',
+        name: 'Acrobatics',
+        source: 'showdown',
+        type: 'flying',
+        category: PokemonMoveCategory.physical,
+        basePower: 55,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 15,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: ['showdown_callback:basePowerCallback'],
+        sourceRefs: PokemonMoveSourceRefs(
+          showdownMoveId: 'acrobatics',
+          showdownHooksPresent: ['basePowerCallback'],
+        ),
+      );
+
+      expect(_roundTrip(move), move);
+    });
+
+    test('deserialization works when optional fields are absent', () {
+      final restored = PokemonMove.fromJson({
+        'id': 'swift',
+        'name': 'Swift',
+        'type': 'normal',
+        'category': 'special',
+        'accuracy': {
+          'kind': 'always_hits',
+        },
+        'pp': 20,
+      });
+
+      expect(restored.id, 'swift');
+      expect(restored.names, isEmpty);
+      expect(restored.target, PokemonMoveTarget.normal);
+      expect(restored.basePower, 0);
+      expect(restored.flags, isEmpty);
+      expect(restored.effects, isEmpty);
+      expect(
+        restored.engineSupportLevel,
+        PokemonMoveEngineSupportLevel.catalogOnly,
+      );
+      expect(restored.sourceRefs.showdownMoveId, isNull);
+    });
+
+    test('fromJson enforces normalization for blank ids', () {
+      expect(
+        () => PokemonMove.fromJson({
+          'id': '   ',
+          'name': 'Swift',
+          'type': 'normal',
+          'category': 'special',
+          'accuracy': {
+            'kind': 'always_hits',
+          },
+        }),
+        throwsStateError,
+      );
+    });
+
+    test('can represent a move with stat changes and recoil', () {
+      const move = PokemonMove(
+        id: 'close-combat-plus',
+        name: 'Close Combat Plus',
+        source: 'test',
+        type: 'fighting',
+        category: PokemonMoveCategory.physical,
+        basePower: 120,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 5,
+        effects: [
+          PokemonMoveEffect.modifyStats(
+            targetScope: PokemonMoveEffectTargetScope.self,
+            stageChanges: [
+              PokemonMoveStatStageChange(
+                stat: PokemonMoveStatId.defense,
+                stages: -1,
+              ),
+              PokemonMoveStatStageChange(
+                stat: PokemonMoveStatId.specialDefense,
+                stages: -1,
+              ),
+            ],
+          ),
+          PokemonMoveEffect.recoil(
+            numerator: 1,
+            denominator: 3,
+          ),
+        ],
+      );
+
+      expect(_roundTrip(move), move);
+    });
+
+    test('normalized trims ids and dedupes flags and unsupported reasons', () {
+      const move = PokemonMove(
+        id: '  thunderbolt  ',
+        name: '  Thunderbolt  ',
+        names: {
+          ' fr ': ' Tonnerre ',
+          'en': ' Thunderbolt ',
+          '': 'ignored',
+        },
+        source: ' showdown ',
+        type: ' electric ',
+        category: PokemonMoveCategory.special,
+        basePower: 90,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        flags: [
+          PokemonMoveFlag.protect,
+          PokemonMoveFlag.protect,
+          PokemonMoveFlag.mirror,
+        ],
+        unsupportedReasons: [
+          ' showdown_callback:onHit ',
+          'showdown_callback:onHit',
+          '   ',
+        ],
+        sourceRefs: PokemonMoveSourceRefs(
+          showdownMoveId: ' thunderbolt ',
+          showdownHooksPresent: [
+            ' onHit ',
+            'onHit',
+            '  ',
+          ],
+        ),
+      );
+
+      final normalized = move.normalized();
+
+      expect(normalized.id, 'thunderbolt');
+      expect(normalized.name, 'Thunderbolt');
+      expect(normalized.names, {
+        'en': 'Thunderbolt',
+        'fr': 'Tonnerre',
+      });
+      expect(normalized.source, 'showdown');
+      expect(normalized.type, 'electric');
+      expect(normalized.flags, [
+        PokemonMoveFlag.protect,
+        PokemonMoveFlag.mirror,
+      ]);
+      expect(normalized.unsupportedReasons, ['showdown_callback:onHit']);
+      expect(normalized.sourceRefs.showdownMoveId, 'thunderbolt');
+      expect(normalized.sourceRefs.showdownHooksPresent, ['onHit']);
+    });
+
+    test('normalized rejects blank id', () {
+      const move = PokemonMove(
+        id: '   ',
+        name: 'Move',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+      );
+
+      expect(() => move.normalized(), throwsStateError);
+    });
+
+    test('normalized rejects blank name', () {
+      const move = PokemonMove(
+        id: 'move',
+        name: '   ',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+      );
+
+      expect(() => move.normalized(), throwsStateError);
+    });
+  });
+
+  group('PokemonMoveAccuracy', () {
+    test('serializes percent accuracy', () {
+      const accuracy = PokemonMoveAccuracy.percent(value: 85);
+
+      expect(
+        PokemonMoveAccuracy.fromJson(accuracy.toJson()),
+        accuracy,
+      );
+    });
+
+    test('serializes always hits accuracy', () {
+      const accuracy = PokemonMoveAccuracy.alwaysHits();
+
+      expect(
+        PokemonMoveAccuracy.fromJson(accuracy.toJson()),
+        accuracy,
+      );
+    });
+
+    test('normalized rejects out-of-range percent accuracy', () {
+      const accuracy = PokemonMoveAccuracy.percent(value: 101);
+
+      expect(() => accuracy.normalized(), throwsStateError);
+    });
+
+    test('fromJson rejects out-of-range percent accuracy', () {
+      expect(
+        () => PokemonMoveAccuracy.fromJson({
+          'kind': 'percent',
+          'value': 101,
+        }),
+        throwsStateError,
+      );
+    });
+  });
+
+  group('PokemonMoveEffect', () {
+    PokemonMoveEffect roundTripEffect(PokemonMoveEffect effect) {
+      final encoded = jsonEncode(effect.toJson());
+      final decoded = jsonDecode(encoded) as Map<String, dynamic>;
+      return PokemonMoveEffect.fromJson(decoded);
+    }
+
+    test('round-trip JSON for fixed damage', () {
+      const effect = PokemonMoveEffect.fixedDamage(value: 40);
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setWeather', () {
+      const effect = PokemonMoveEffect.setWeather(weatherId: 'rain-dance');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setTerrain', () {
+      const effect =
+          PokemonMoveEffect.setTerrain(terrainId: 'electric-terrain');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setPseudoWeather', () {
+      const effect =
+          PokemonMoveEffect.setPseudoWeather(pseudoWeatherId: 'trick-room');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setSideCondition', () {
+      const effect = PokemonMoveEffect.setSideCondition(conditionId: 'spikes');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setSlotCondition', () {
+      const effect =
+          PokemonMoveEffect.setSlotCondition(conditionId: 'futuremove');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for forceSwitch', () {
+      const effect = PokemonMoveEffect.forceSwitch();
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for requireRecharge', () {
+      const effect = PokemonMoveEffect.requireRecharge();
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for chargeThenStrike', () {
+      const effect = PokemonMoveEffect.chargeThenStrike(
+        chargeStateId: 'solar-beam-charge',
+      );
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('normalized rejects invalid multiHit range', () {
+      const effect = PokemonMoveEffect.multiHit(
+        minHits: 5,
+        maxHits: 2,
+      );
+
+      expect(() => effect.normalized(), throwsStateError);
+    });
+
+    test('fromJson rejects invalid multiHit range', () {
+      expect(
+        () => PokemonMoveEffect.fromJson({
+          'kind': 'multi_hit',
+          'targetScope': 'target',
+          'minHits': 5,
+          'maxHits': 2,
+        }),
+        throwsStateError,
+      );
+    });
+  });
+}
+
+```

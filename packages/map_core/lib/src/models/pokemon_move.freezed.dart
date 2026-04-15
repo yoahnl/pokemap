@@ -120,11 +120,12 @@ class __$$PokemonMoveSourceRefsImplCopyWithImpl<$Res>
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$PokemonMoveSourceRefsImpl implements _PokemonMoveSourceRefs {
+class _$PokemonMoveSourceRefsImpl extends _PokemonMoveSourceRefs {
   const _$PokemonMoveSourceRefsImpl(
       {this.showdownMoveId,
       final List<String> showdownHooksPresent = const <String>[]})
-      : _showdownHooksPresent = showdownHooksPresent;
+      : _showdownHooksPresent = showdownHooksPresent,
+        super._();
 
   factory _$PokemonMoveSourceRefsImpl.fromJson(Map<String, dynamic> json) =>
       _$$PokemonMoveSourceRefsImplFromJson(json);
@@ -179,10 +180,11 @@ class _$PokemonMoveSourceRefsImpl implements _PokemonMoveSourceRefs {
   }
 }
 
-abstract class _PokemonMoveSourceRefs implements PokemonMoveSourceRefs {
+abstract class _PokemonMoveSourceRefs extends PokemonMoveSourceRefs {
   const factory _PokemonMoveSourceRefs(
       {final String? showdownMoveId,
       final List<String> showdownHooksPresent}) = _$PokemonMoveSourceRefsImpl;
+  const _PokemonMoveSourceRefs._() : super._();
 
   factory _PokemonMoveSourceRefs.fromJson(Map<String, dynamic> json) =
       _$PokemonMoveSourceRefsImpl.fromJson;
@@ -588,7 +590,7 @@ class __$$PokemonMoveImplCopyWithImpl<$Res>
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$PokemonMoveImpl implements _PokemonMove {
+class _$PokemonMoveImpl extends _PokemonMove {
   const _$PokemonMoveImpl(
       {required this.id,
       required this.name,
@@ -614,7 +616,8 @@ class _$PokemonMoveImpl implements _PokemonMove {
       : _names = names,
         _flags = flags,
         _effects = effects,
-        _unsupportedReasons = unsupportedReasons;
+        _unsupportedReasons = unsupportedReasons,
+        super._();
 
   factory _$PokemonMoveImpl.fromJson(Map<String, dynamic> json) =>
       _$$PokemonMoveImplFromJson(json);
@@ -799,7 +802,7 @@ class _$PokemonMoveImpl implements _PokemonMove {
   }
 }
 
-abstract class _PokemonMove implements PokemonMove {
+abstract class _PokemonMove extends PokemonMove {
   const factory _PokemonMove(
       {required final String id,
       required final String name,
@@ -822,6 +825,7 @@ abstract class _PokemonMove implements PokemonMove {
       final PokemonMoveEngineSupportLevel engineSupportLevel,
       final List<String> unsupportedReasons,
       final PokemonMoveSourceRefs sourceRefs}) = _$PokemonMoveImpl;
+  const _PokemonMove._() : super._();
 
   factory _PokemonMove.fromJson(Map<String, dynamic> json) =
       _$PokemonMoveImpl.fromJson;

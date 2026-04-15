@@ -29,5 +29,25 @@ class PokemonMoveAccuracy with _$PokemonMoveAccuracy {
       PokemonMoveAccuracyAlwaysHits;
 
   factory PokemonMoveAccuracy.fromJson(Map<String, dynamic> json) =>
-      _$PokemonMoveAccuracyFromJson(json);
+      _$PokemonMoveAccuracyFromJson(json).normalized();
+
+  /// Validation minimale locale du contrat `accuracy`.
+  ///
+  /// Le modèle de données doit déjà se défendre contre les cas absurdes les
+  /// plus simples avant même tout loader runtime ou bridge battle :
+  /// - `percent` doit rester dans une plage raisonnable ;
+  /// - `alwaysHits` ne porte aucune donnée supplémentaire.
+  PokemonMoveAccuracy normalized() {
+    return map(
+      percent: (accuracy) {
+        if (accuracy.value < 1 || accuracy.value > 100) {
+          throw StateError(
+            'PokemonMoveAccuracy.percent value must be between 1 and 100',
+          );
+        }
+        return accuracy;
+      },
+      alwaysHits: (accuracy) => accuracy,
+    );
+  }
 }

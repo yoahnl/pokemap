@@ -175,6 +175,28 @@ class PokemonMoveSourceRefs with _$PokemonMoveSourceRefs {
 
   factory PokemonMoveSourceRefs.fromJson(Map<String, dynamic> json) =>
       _$PokemonMoveSourceRefsFromJson(json);
+
+  const PokemonMoveSourceRefs._();
+
+  PokemonMoveSourceRefs normalized() {
+    final normalizedShowdownMoveId = showdownMoveId?.trim();
+    final normalizedHooks = <String>[];
+    final seen = <String>{};
+    for (final hook in showdownHooksPresent) {
+      final trimmed = hook.trim();
+      if (trimmed.isEmpty || !seen.add(trimmed)) {
+        continue;
+      }
+      normalizedHooks.add(trimmed);
+    }
+    return copyWith(
+      showdownMoveId:
+          normalizedShowdownMoveId == null || normalizedShowdownMoveId.isEmpty
+              ? null
+              : normalizedShowdownMoveId,
+      showdownHooksPresent: normalizedHooks,
+    );
+  }
 }
 
 /// Modèle canonique spécialisé d'un move Pokémon.
@@ -186,6 +208,8 @@ class PokemonMoveSourceRefs with _$PokemonMoveSourceRefs {
 /// - les comportements de résolution sont décrits dans `effects`.
 @freezed
 class PokemonMove with _$PokemonMove {
+  const PokemonMove._();
+
   @JsonSerializable(explicitToJson: true)
   const factory PokemonMove({
     required String id,
@@ -219,5 +243,97 @@ class PokemonMove with _$PokemonMove {
   }) = _PokemonMove;
 
   factory PokemonMove.fromJson(Map<String, dynamic> json) =>
-      _$PokemonMoveFromJson(json);
+      _$PokemonMoveFromJson(json).normalized();
+
+  /// Sémantique tranchée de M2-bis :
+  ///
+  /// - `basePower` reste le marqueur canonique des dégâts standards ;
+  /// - il n'y a plus d'effet `dealDamage` séparé ;
+  /// - un move suit le flow de dégâts standard quand il n'est pas `status`
+  ///   et qu'il a une `basePower` strictement positive.
+  ///
+  /// Cette décision retire l'ambiguïté du doublon `basePower` + `dealDamage`
+  /// tout en gardant une lecture simple pour les futurs convertisseurs.
+  bool get usesStandardDamageFlow =>
+      category != PokemonMoveCategory.status && basePower > 0;
+
+  /// Normalisation et validation défensive minimale.
+  ///
+  /// Le but n'est pas d'ouvrir un gros chantier de validation, mais de
+  /// protéger le modèle contre les cas absurdes les plus évidents avant M3 :
+  /// - ids et noms vides ;
+  /// - type vide ;
+  /// - accuracy incohérente ;
+  /// - doublons dans `flags` et `unsupportedReasons` ;
+  /// - effets incohérents localement.
+  PokemonMove normalized() {
+    String normalizeRequiredString(String label, String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        throw StateError('$label must not be empty');
+      }
+      return trimmed;
+    }
+
+    List<T> dedupePreserveOrder<T>(List<T> values) {
+      final normalized = <T>[];
+      final seen = <T>{};
+      for (final value in values) {
+        if (!seen.add(value)) {
+          continue;
+        }
+        normalized.add(value);
+      }
+      return List.unmodifiable(normalized);
+    }
+
+    List<String> normalizeStringList(List<String> values) {
+      final normalized = <String>[];
+      final seen = <String>{};
+      for (final value in values) {
+        final trimmed = value.trim();
+        if (trimmed.isEmpty || !seen.add(trimmed)) {
+          continue;
+        }
+        normalized.add(trimmed);
+      }
+      return List.unmodifiable(normalized);
+    }
+
+    Map<String, String> normalizeNames(Map<String, String> values) {
+      final entries = values.entries
+          .map((entry) => MapEntry(entry.key.trim(), entry.value.trim()))
+          .where((entry) => entry.key.isNotEmpty && entry.value.isNotEmpty)
+          .toList(growable: false)
+        ..sort((left, right) => left.key.compareTo(right.key));
+      return Map<String, String>.fromEntries(entries);
+    }
+
+    final normalizedBasePower = basePower;
+    if (normalizedBasePower < 0) {
+      throw StateError('PokemonMove basePower must be non-negative');
+    }
+    if (pp < 0) {
+      throw StateError('PokemonMove pp must be non-negative');
+    }
+    if (critRatio <= 0) {
+      throw StateError('PokemonMove critRatio must be strictly positive');
+    }
+
+    return copyWith(
+      id: normalizeRequiredString('PokemonMove id', id),
+      name: normalizeRequiredString('PokemonMove name', name),
+      names: normalizeNames(names),
+      source: source.trim(),
+      type: normalizeRequiredString('PokemonMove type', type),
+      accuracy: accuracy.normalized(),
+      flags: dedupePreserveOrder(flags),
+      effects:
+          effects.map((effect) => effect.normalized()).toList(growable: false),
+      shortDescription: shortDescription.trim(),
+      description: description.trim(),
+      unsupportedReasons: normalizeStringList(unsupportedReasons),
+      sourceRefs: sourceRefs.normalized(),
+    );
+  }
 }

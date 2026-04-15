@@ -29,14 +29,12 @@ void main() {
           PokemonMoveFlag.protect,
           PokemonMoveFlag.mirror,
         ],
-        effects: [
-          PokemonMoveEffect.dealDamage(),
-        ],
         shortDescription: '10% chance to paralyze the target.',
         description: 'A strong electric blast crashes down on the target.',
       );
 
       expect(_roundTrip(move), move);
+      expect(move.usesStandardDamageFlow, isTrue);
     });
 
     test('round-trip JSON for a move with a secondary status effect', () {
@@ -50,7 +48,6 @@ void main() {
         accuracy: PokemonMoveAccuracy.percent(value: 100),
         pp: 15,
         effects: [
-          PokemonMoveEffect.dealDamage(),
           PokemonMoveEffect.applyStatus(
             chance: 10,
             statusId: 'par',
@@ -72,7 +69,6 @@ void main() {
         accuracy: PokemonMoveAccuracy.percent(value: 100),
         pp: 25,
         effects: [
-          PokemonMoveEffect.dealDamage(),
           PokemonMoveEffect.drain(
             numerator: 1,
             denominator: 2,
@@ -94,7 +90,6 @@ void main() {
         accuracy: PokemonMoveAccuracy.percent(value: 85),
         pp: 10,
         effects: [
-          PokemonMoveEffect.dealDamage(),
           PokemonMoveEffect.multiHit(
             minHits: 2,
             maxHits: 5,
@@ -115,9 +110,6 @@ void main() {
         basePower: 55,
         accuracy: PokemonMoveAccuracy.percent(value: 100),
         pp: 15,
-        effects: [
-          PokemonMoveEffect.dealDamage(),
-        ],
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
         unsupportedReasons: ['showdown_callback:basePowerCallback'],
         sourceRefs: PokemonMoveSourceRefs(
@@ -154,6 +146,21 @@ void main() {
       expect(restored.sourceRefs.showdownMoveId, isNull);
     });
 
+    test('fromJson enforces normalization for blank ids', () {
+      expect(
+        () => PokemonMove.fromJson({
+          'id': '   ',
+          'name': 'Swift',
+          'type': 'normal',
+          'category': 'special',
+          'accuracy': {
+            'kind': 'always_hits',
+          },
+        }),
+        throwsStateError,
+      );
+    });
+
     test('can represent a move with stat changes and recoil', () {
       const move = PokemonMove(
         id: 'close-combat-plus',
@@ -165,7 +172,6 @@ void main() {
         accuracy: PokemonMoveAccuracy.percent(value: 100),
         pp: 5,
         effects: [
-          PokemonMoveEffect.dealDamage(),
           PokemonMoveEffect.modifyStats(
             targetScope: PokemonMoveEffectTargetScope.self,
             stageChanges: [
@@ -188,6 +194,83 @@ void main() {
 
       expect(_roundTrip(move), move);
     });
+
+    test('normalized trims ids and dedupes flags and unsupported reasons', () {
+      const move = PokemonMove(
+        id: '  thunderbolt  ',
+        name: '  Thunderbolt  ',
+        names: {
+          ' fr ': ' Tonnerre ',
+          'en': ' Thunderbolt ',
+          '': 'ignored',
+        },
+        source: ' showdown ',
+        type: ' electric ',
+        category: PokemonMoveCategory.special,
+        basePower: 90,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        flags: [
+          PokemonMoveFlag.protect,
+          PokemonMoveFlag.protect,
+          PokemonMoveFlag.mirror,
+        ],
+        unsupportedReasons: [
+          ' showdown_callback:onHit ',
+          'showdown_callback:onHit',
+          '   ',
+        ],
+        sourceRefs: PokemonMoveSourceRefs(
+          showdownMoveId: ' thunderbolt ',
+          showdownHooksPresent: [
+            ' onHit ',
+            'onHit',
+            '  ',
+          ],
+        ),
+      );
+
+      final normalized = move.normalized();
+
+      expect(normalized.id, 'thunderbolt');
+      expect(normalized.name, 'Thunderbolt');
+      expect(normalized.names, {
+        'en': 'Thunderbolt',
+        'fr': 'Tonnerre',
+      });
+      expect(normalized.source, 'showdown');
+      expect(normalized.type, 'electric');
+      expect(normalized.flags, [
+        PokemonMoveFlag.protect,
+        PokemonMoveFlag.mirror,
+      ]);
+      expect(normalized.unsupportedReasons, ['showdown_callback:onHit']);
+      expect(normalized.sourceRefs.showdownMoveId, 'thunderbolt');
+      expect(normalized.sourceRefs.showdownHooksPresent, ['onHit']);
+    });
+
+    test('normalized rejects blank id', () {
+      const move = PokemonMove(
+        id: '   ',
+        name: 'Move',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+      );
+
+      expect(() => move.normalized(), throwsStateError);
+    });
+
+    test('normalized rejects blank name', () {
+      const move = PokemonMove(
+        id: 'move',
+        name: '   ',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+      );
+
+      expect(() => move.normalized(), throwsStateError);
+    });
   });
 
   group('PokemonMoveAccuracy', () {
@@ -206,6 +289,101 @@ void main() {
       expect(
         PokemonMoveAccuracy.fromJson(accuracy.toJson()),
         accuracy,
+      );
+    });
+
+    test('normalized rejects out-of-range percent accuracy', () {
+      const accuracy = PokemonMoveAccuracy.percent(value: 101);
+
+      expect(() => accuracy.normalized(), throwsStateError);
+    });
+
+    test('fromJson rejects out-of-range percent accuracy', () {
+      expect(
+        () => PokemonMoveAccuracy.fromJson({
+          'kind': 'percent',
+          'value': 101,
+        }),
+        throwsStateError,
+      );
+    });
+  });
+
+  group('PokemonMoveEffect', () {
+    PokemonMoveEffect roundTripEffect(PokemonMoveEffect effect) {
+      final encoded = jsonEncode(effect.toJson());
+      final decoded = jsonDecode(encoded) as Map<String, dynamic>;
+      return PokemonMoveEffect.fromJson(decoded);
+    }
+
+    test('round-trip JSON for fixed damage', () {
+      const effect = PokemonMoveEffect.fixedDamage(value: 40);
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setWeather', () {
+      const effect = PokemonMoveEffect.setWeather(weatherId: 'rain-dance');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setTerrain', () {
+      const effect =
+          PokemonMoveEffect.setTerrain(terrainId: 'electric-terrain');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setPseudoWeather', () {
+      const effect =
+          PokemonMoveEffect.setPseudoWeather(pseudoWeatherId: 'trick-room');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setSideCondition', () {
+      const effect = PokemonMoveEffect.setSideCondition(conditionId: 'spikes');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for setSlotCondition', () {
+      const effect =
+          PokemonMoveEffect.setSlotCondition(conditionId: 'futuremove');
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for forceSwitch', () {
+      const effect = PokemonMoveEffect.forceSwitch();
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for requireRecharge', () {
+      const effect = PokemonMoveEffect.requireRecharge();
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('round-trip JSON for chargeThenStrike', () {
+      const effect = PokemonMoveEffect.chargeThenStrike(
+        chargeStateId: 'solar-beam-charge',
+      );
+      expect(roundTripEffect(effect), effect);
+    });
+
+    test('normalized rejects invalid multiHit range', () {
+      const effect = PokemonMoveEffect.multiHit(
+        minHits: 5,
+        maxHits: 2,
+      );
+
+      expect(() => effect.normalized(), throwsStateError);
+    });
+
+    test('fromJson rejects invalid multiHit range', () {
+      expect(
+        () => PokemonMoveEffect.fromJson({
+          'kind': 'multi_hit',
+          'targetScope': 'target',
+          'minHits': 5,
+          'maxHits': 2,
+        }),
+        throwsStateError,
       );
     });
   });

@@ -30,34 +30,6 @@ const _$PokemonMoveStatIdEnumMap = {
   PokemonMoveStatId.evasion: 'evasion',
 };
 
-_$PokemonMoveEffectDealDamageImpl _$$PokemonMoveEffectDealDamageImplFromJson(
-        Map<String, dynamic> json) =>
-    _$PokemonMoveEffectDealDamageImpl(
-      targetScope: $enumDecodeNullable(
-              _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
-          PokemonMoveEffectTargetScope.target,
-      chance: (json['chance'] as num?)?.toInt(),
-      $type: json['kind'] as String?,
-    );
-
-Map<String, dynamic> _$$PokemonMoveEffectDealDamageImplToJson(
-        _$PokemonMoveEffectDealDamageImpl instance) =>
-    <String, dynamic>{
-      'targetScope':
-          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
-      'chance': instance.chance,
-      'kind': instance.$type,
-    };
-
-const _$PokemonMoveEffectTargetScopeEnumMap = {
-  PokemonMoveEffectTargetScope.self: 'self',
-  PokemonMoveEffectTargetScope.target: 'target',
-  PokemonMoveEffectTargetScope.field: 'field',
-  PokemonMoveEffectTargetScope.allySide: 'ally_side',
-  PokemonMoveEffectTargetScope.foeSide: 'foe_side',
-  PokemonMoveEffectTargetScope.slot: 'slot',
-};
-
 _$PokemonMoveEffectFixedDamageImpl _$$PokemonMoveEffectFixedDamageImplFromJson(
         Map<String, dynamic> json) =>
     _$PokemonMoveEffectFixedDamageImpl(
@@ -80,6 +52,15 @@ Map<String, dynamic> _$$PokemonMoveEffectFixedDamageImplToJson(
       'usesUserLevel': instance.usesUserLevel,
       'kind': instance.$type,
     };
+
+const _$PokemonMoveEffectTargetScopeEnumMap = {
+  PokemonMoveEffectTargetScope.self: 'self',
+  PokemonMoveEffectTargetScope.target: 'target',
+  PokemonMoveEffectTargetScope.field: 'field',
+  PokemonMoveEffectTargetScope.allySide: 'ally_side',
+  PokemonMoveEffectTargetScope.foeSide: 'foe_side',
+  PokemonMoveEffectTargetScope.slot: 'slot',
+};
 
 _$PokemonMoveEffectMultiHitImpl _$$PokemonMoveEffectMultiHitImplFromJson(
         Map<String, dynamic> json) =>
@@ -280,6 +261,28 @@ Map<String, dynamic> _$$PokemonMoveEffectSetTerrainImplToJson(
           _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
       'chance': instance.chance,
       'terrainId': instance.terrainId,
+      'kind': instance.$type,
+    };
+
+_$PokemonMoveEffectSetPseudoWeatherImpl
+    _$$PokemonMoveEffectSetPseudoWeatherImplFromJson(
+            Map<String, dynamic> json) =>
+        _$PokemonMoveEffectSetPseudoWeatherImpl(
+          targetScope: $enumDecodeNullable(
+                  _$PokemonMoveEffectTargetScopeEnumMap, json['targetScope']) ??
+              PokemonMoveEffectTargetScope.field,
+          chance: (json['chance'] as num?)?.toInt(),
+          pseudoWeatherId: json['pseudoWeatherId'] as String,
+          $type: json['kind'] as String?,
+        );
+
+Map<String, dynamic> _$$PokemonMoveEffectSetPseudoWeatherImplToJson(
+        _$PokemonMoveEffectSetPseudoWeatherImpl instance) =>
+    <String, dynamic>{
+      'targetScope':
+          _$PokemonMoveEffectTargetScopeEnumMap[instance.targetScope]!,
+      'chance': instance.chance,
+      'pseudoWeatherId': instance.pseudoWeatherId,
       'kind': instance.$type,
     };
 

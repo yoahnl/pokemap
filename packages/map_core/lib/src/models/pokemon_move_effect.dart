@@ -82,13 +82,6 @@ class PokemonMoveEffect with _$PokemonMoveEffect {
   const PokemonMoveEffect._();
 
   @JsonSerializable(explicitToJson: true)
-  const factory PokemonMoveEffect.dealDamage({
-    @Default(PokemonMoveEffectTargetScope.target)
-    PokemonMoveEffectTargetScope targetScope,
-    int? chance,
-  }) = PokemonMoveEffectDealDamage;
-
-  @JsonSerializable(explicitToJson: true)
   const factory PokemonMoveEffect.fixedDamage({
     @Default(PokemonMoveEffectTargetScope.target)
     PokemonMoveEffectTargetScope targetScope,
@@ -179,6 +172,14 @@ class PokemonMoveEffect with _$PokemonMoveEffect {
   }) = PokemonMoveEffectSetTerrain;
 
   @JsonSerializable(explicitToJson: true)
+  const factory PokemonMoveEffect.setPseudoWeather({
+    @Default(PokemonMoveEffectTargetScope.field)
+    PokemonMoveEffectTargetScope targetScope,
+    int? chance,
+    required String pseudoWeatherId,
+  }) = PokemonMoveEffectSetPseudoWeather;
+
+  @JsonSerializable(explicitToJson: true)
   const factory PokemonMoveEffect.selfSwitch({
     @Default(PokemonMoveEffectTargetScope.self)
     PokemonMoveEffectTargetScope targetScope,
@@ -236,5 +237,230 @@ class PokemonMoveEffect with _$PokemonMoveEffect {
   }) = PokemonMoveEffectSetSlotCondition;
 
   factory PokemonMoveEffect.fromJson(Map<String, dynamic> json) =>
-      _$PokemonMoveEffectFromJson(json);
+      _$PokemonMoveEffectFromJson(json).normalized();
+
+  /// Normalisation et validation défensive minimale.
+  ///
+  /// M2-bis ne transforme pas ce modèle en moteur, mais il doit déjà éviter
+  /// les payloads les plus incohérents :
+  /// - ids et chaînes obligatoires non vides ;
+  /// - `chance` dans une plage raisonnable ;
+  /// - `multiHit` cohérent ;
+  /// - fractions strictement positives ;
+  /// - `fixedDamage` non ambigu.
+  PokemonMoveEffect normalized() {
+    void validateChance(int? chance) {
+      if (chance == null) {
+        return;
+      }
+      if (chance < 1 || chance > 100) {
+        throw StateError('PokemonMoveEffect chance must be between 1 and 100');
+      }
+    }
+
+    int normalizePositivePart(String label, int value) {
+      if (value <= 0) {
+        throw StateError('$label must be strictly positive');
+      }
+      return value;
+    }
+
+    String normalizeRequiredId(String label, String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        throw StateError('$label must not be empty');
+      }
+      return trimmed;
+    }
+
+    return map(
+      fixedDamage: (effect) {
+        validateChance(effect.chance);
+        final normalizedValue = effect.value;
+        if (effect.usesUserLevel) {
+          if (normalizedValue != null) {
+            throw StateError(
+              'PokemonMoveEffect.fixedDamage cannot define both value and usesUserLevel',
+            );
+          }
+          return effect;
+        }
+        final value = normalizedValue;
+        if (value == null || value <= 0) {
+          throw StateError(
+            'PokemonMoveEffect.fixedDamage requires a strictly positive value when usesUserLevel is false',
+          );
+        }
+        return effect.copyWith(value: value);
+      },
+      multiHit: (effect) {
+        validateChance(effect.chance);
+        final minHits = normalizePositivePart(
+            'PokemonMoveEffect.multiHit minHits', effect.minHits);
+        final maxHits = normalizePositivePart(
+            'PokemonMoveEffect.multiHit maxHits', effect.maxHits);
+        if (minHits > maxHits) {
+          throw StateError(
+            'PokemonMoveEffect.multiHit minHits must be less than or equal to maxHits',
+          );
+        }
+        return effect.copyWith(
+          minHits: minHits,
+          maxHits: maxHits,
+        );
+      },
+      applyStatus: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          statusId: normalizeRequiredId(
+            'PokemonMoveEffect.applyStatus statusId',
+            effect.statusId,
+          ),
+        );
+      },
+      applyVolatileStatus: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          volatileStatusId: normalizeRequiredId(
+            'PokemonMoveEffect.applyVolatileStatus volatileStatusId',
+            effect.volatileStatusId,
+          ),
+        );
+      },
+      modifyStats: (effect) {
+        validateChance(effect.chance);
+        final stageChanges = effect.stageChanges;
+        if (stageChanges.isEmpty) {
+          throw StateError(
+            'PokemonMoveEffect.modifyStats stageChanges must not be empty',
+          );
+        }
+        final seen = <PokemonMoveStatId>{};
+        for (final stageChange in stageChanges) {
+          if (stageChange.stages == 0) {
+            throw StateError(
+              'PokemonMoveEffect.modifyStats stageChanges must not contain zero stages',
+            );
+          }
+          if (!seen.add(stageChange.stat)) {
+            throw StateError(
+              'PokemonMoveEffect.modifyStats stageChanges must not contain duplicate stats',
+            );
+          }
+        }
+        return effect;
+      },
+      heal: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          numerator: normalizePositivePart(
+              'PokemonMoveEffect.heal numerator', effect.numerator),
+          denominator: normalizePositivePart(
+            'PokemonMoveEffect.heal denominator',
+            effect.denominator,
+          ),
+        );
+      },
+      drain: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          numerator: normalizePositivePart(
+              'PokemonMoveEffect.drain numerator', effect.numerator),
+          denominator: normalizePositivePart(
+            'PokemonMoveEffect.drain denominator',
+            effect.denominator,
+          ),
+        );
+      },
+      recoil: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          numerator: normalizePositivePart(
+            'PokemonMoveEffect.recoil numerator',
+            effect.numerator,
+          ),
+          denominator: normalizePositivePart(
+            'PokemonMoveEffect.recoil denominator',
+            effect.denominator,
+          ),
+        );
+      },
+      setWeather: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          weatherId: normalizeRequiredId(
+            'PokemonMoveEffect.setWeather weatherId',
+            effect.weatherId,
+          ),
+        );
+      },
+      setTerrain: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          terrainId: normalizeRequiredId(
+            'PokemonMoveEffect.setTerrain terrainId',
+            effect.terrainId,
+          ),
+        );
+      },
+      setPseudoWeather: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          pseudoWeatherId: normalizeRequiredId(
+            'PokemonMoveEffect.setPseudoWeather pseudoWeatherId',
+            effect.pseudoWeatherId,
+          ),
+        );
+      },
+      selfSwitch: (effect) {
+        validateChance(effect.chance);
+        final normalizedMode = effect.mode?.trim();
+        return effect.copyWith(
+          mode: normalizedMode == null || normalizedMode.isEmpty
+              ? null
+              : normalizedMode,
+        );
+      },
+      forceSwitch: (effect) {
+        validateChance(effect.chance);
+        return effect;
+      },
+      breakProtect: (effect) {
+        validateChance(effect.chance);
+        return effect;
+      },
+      requireRecharge: (effect) {
+        validateChance(effect.chance);
+        return effect;
+      },
+      chargeThenStrike: (effect) {
+        validateChance(effect.chance);
+        final normalizedChargeStateId = effect.chargeStateId?.trim();
+        return effect.copyWith(
+          chargeStateId:
+              normalizedChargeStateId == null || normalizedChargeStateId.isEmpty
+                  ? null
+                  : normalizedChargeStateId,
+        );
+      },
+      setSideCondition: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          conditionId: normalizeRequiredId(
+            'PokemonMoveEffect.setSideCondition conditionId',
+            effect.conditionId,
+          ),
+        );
+      },
+      setSlotCondition: (effect) {
+        validateChance(effect.chance);
+        return effect.copyWith(
+          conditionId: normalizeRequiredId(
+            'PokemonMoveEffect.setSlotCondition conditionId',
+            effect.conditionId,
+          ),
+        );
+      },
+    );
+  }
 }
