@@ -46,6 +46,11 @@ void main() {
 
       expect(species.id, equals('sproutle'));
       expect(species.baseHp, equals(45));
+      expect(species.baseAttack, equals(49));
+      expect(species.baseDefense, equals(49));
+      expect(species.baseSpecialAttack, equals(65));
+      expect(species.baseSpecialDefense, equals(65));
+      expect(species.baseSpeed, equals(45));
       expect(species.primaryAbilityId, equals('overgrow'));
       expect(species.learnsetRef, equals('sproutle'));
     });
@@ -198,11 +203,21 @@ Map<String, dynamic> _speciesJson({
   required int baseHp,
   required String primaryAbilityId,
   required String learnsetRef,
+  int baseAttack = 49,
+  int baseDefense = 49,
+  int baseSpecialAttack = 65,
+  int baseSpecialDefense = 65,
+  int baseSpeed = 45,
 }) {
   return <String, dynamic>{
     'id': id,
     'baseStats': <String, int>{
       'hp': baseHp,
+      'atk': baseAttack,
+      'def': baseDefense,
+      'spa': baseSpecialAttack,
+      'spd': baseSpecialDefense,
+      'spe': baseSpeed,
     },
     'abilities': <String, String>{
       'primary': primaryAbilityId,

@@ -1,4 +1,5 @@
 import 'battle_move.dart';
+import 'battle_stats.dart';
 
 /// Configuration initiale d'un combat.
 ///
@@ -63,6 +64,8 @@ class BattleCombatantData {
   /// [level] - Le niveau du combattant.
   /// [maxHp] - Les points de vie maximum.
   /// [currentHp] - Les PV courants si le runtime les connaît déjà.
+  /// [stats] - Snapshot résolu des stats non-HP réellement exploitées par le
+  /// moteur battle.
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   ///
   /// Le lot 9 du runtime -> battle handoff doit partir de la vraie party du
@@ -73,6 +76,7 @@ class BattleCombatantData {
     required this.speciesId,
     required this.level,
     required this.maxHp,
+    required this.stats,
     this.currentHp,
     this.abilityId = 'unknown',
     required this.moves,
@@ -86,6 +90,18 @@ class BattleCombatantData {
 
   /// Les points de vie maximum.
   final int maxHp;
+
+  /// Snapshot résolu des stats non-HP pour ce combattant.
+  ///
+  /// BE2 choisit un vrai contrat typé ici pour deux raisons :
+  /// - le moteur ne doit plus inventer implicitement des valeurs offensives /
+  ///   défensives à partir de rien ;
+  /// - le runtime est la bonne frontière pour résoudre ces stats à partir des
+  ///   species data, du niveau et des IV/EV disponibles.
+  ///
+  /// `speed` est déjà transportée pour arrêter sa perte silencieuse, même si
+  /// elle n'est pas encore consommée pour l'ordre d'action.
+  final BattleStatsSnapshot stats;
 
   /// Les points de vie courants si le handoff runtime les fournit déjà.
   ///
@@ -148,8 +164,11 @@ class BattleMoveData {
 
   /// La puissance de l'attaque (dégâts de base).
   ///
-  /// Pour ce MVP, les dégâts sont calculés simplement :
-  /// `damage = move.power` (pas de calculs complexes de stats).
+  /// Depuis BE2, cette donnée n'est plus utilisée seule :
+  /// - `power` reste bien la base du damage contract ;
+  /// - mais le moteur la combine maintenant avec les vraies stats résolues
+  ///   du combattant et de sa cible ;
+  /// - un move de statut garde `power <= 0` et inflige donc 0 dégât.
   final int power;
 
   /// Type canonique du move.

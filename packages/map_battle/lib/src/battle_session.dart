@@ -3,6 +3,7 @@ import 'battle_state.dart';
 import 'battle_action.dart';
 import 'battle_move.dart';
 import 'battle_resolution.dart';
+import 'battle_stats.dart';
 
 /// Crée une nouvelle session de combat.
 ///
@@ -29,6 +30,7 @@ BattleSession createBattleSession(BattleSetup setup) {
     level: setup.playerPokemon.level,
     currentHp: playerCurrentHp,
     maxHp: setup.playerPokemon.maxHp,
+    stats: setup.playerPokemon.stats,
     abilityId: setup.playerPokemon.abilityId,
     // BE1 garde le contrat battle honnête jusqu'à l'état runtime combat :
     // - `type`, `target` et `pp` ne sont pas encore consommés par le moteur ;
@@ -56,6 +58,7 @@ BattleSession createBattleSession(BattleSetup setup) {
     level: setup.enemyPokemon.level,
     currentHp: enemyCurrentHp,
     maxHp: setup.enemyPokemon.maxHp,
+    stats: setup.enemyPokemon.stats,
     abilityId: setup.enemyPokemon.abilityId,
     // Même règle pour l'adversaire : on transporte le petit supplément de
     // contrat BE1 sans prétendre pour autant l'exécuter déjà dans `map_battle`.
@@ -493,17 +496,20 @@ class BattleSession {
 
   /// Calcule les dégâts standards du moteur battle MVP enrichi.
   ///
-  /// M8 ne bascule pas vers une formule Pokémon complète. Le but est seulement
-  /// de rendre les boosts/débuffs réellement visibles sans ouvrir :
-  /// - les vraies stats détaillées ;
-  /// - le type chart ;
+  /// BE2 ne bascule toujours pas vers une formule Pokémon complète. Le but est
+  /// maintenant plus honnête que l'ancien simple `damage = power` :
+  /// - les dégâts standards reposent enfin sur un vrai snapshot de stats ;
+  /// - les moves physiques utilisent `attack` vs `defense` ;
+  /// - les moves spéciaux utilisent `specialAttack` vs `specialDefense` ;
+  /// - les stages continuent à s'appliquer, mais sur ces vraies bases ;
+  /// - `speed` reste transportée dans l'état battle sans encore influencer
+  ///   l'ordre d'action.
+  ///
+  /// Frontière explicitement conservée :
+  /// - pas de type chart ;
   /// - les critiques ;
   /// - la précision ;
   /// - le hasard.
-  ///
-  /// Invariant important :
-  /// - sans changement d'étage, on conserve le comportement historique
-  ///   `damage = move.power`.
   int _computeMoveDamage({
     required BattleMove move,
     required BattleCombatant attacker,
@@ -513,24 +519,62 @@ class BattleSession {
       return 0;
     }
 
-    final attackMultiplier = switch (move.resolvedCategory) {
-      BattleMoveCategory.physical =>
-        attacker.statStages.multiplierFor(BattleStatId.attack),
-      BattleMoveCategory.special =>
-        attacker.statStages.multiplierFor(BattleStatId.specialAttack),
-      BattleMoveCategory.status => 1.0,
+    final offensiveStatId = switch (move.resolvedCategory) {
+      BattleMoveCategory.physical => BattleStatId.attack,
+      BattleMoveCategory.special => BattleStatId.specialAttack,
+      BattleMoveCategory.status => BattleStatId.attack,
     };
-    final defenseMultiplier = switch (move.resolvedCategory) {
-      BattleMoveCategory.physical =>
-        defender.statStages.multiplierFor(BattleStatId.defense),
-      BattleMoveCategory.special =>
-        defender.statStages.multiplierFor(BattleStatId.specialDefense),
-      BattleMoveCategory.status => 1.0,
+    final defensiveStatId = switch (move.resolvedCategory) {
+      BattleMoveCategory.physical => BattleStatId.defense,
+      BattleMoveCategory.special => BattleStatId.specialDefense,
+      BattleMoveCategory.status => BattleStatId.defense,
     };
 
+    // Ordre de calcul volontairement documenté :
+    // 1. on part du snapshot de stats résolu par le runtime ;
+    // 2. on applique les stages côté attaquant et défenseur ;
+    // 3. on utilise ensuite une formule entière simple, Pokémon-like ;
+    // 4. on garde enfin un minimum de 1 dégât pour tout move non-status
+    //    ayant passé le bridge BE1.
+    final effectiveAttack = _resolveEffectiveStat(
+      baseStat: _statValueFor(attacker.stats, offensiveStatId),
+      multiplier: attacker.statStages.multiplierFor(offensiveStatId),
+    );
+    final effectiveDefense = _resolveEffectiveStat(
+      baseStat: _statValueFor(defender.stats, defensiveStatId),
+      multiplier: defender.statStages.multiplierFor(defensiveStatId),
+    );
+    final safePower = move.power < 0 ? 0 : move.power;
+    final levelFactor = ((2 * attacker.level) ~/ 5) + 2;
     final scaledDamage =
-        (move.power * attackMultiplier / defenseMultiplier).round();
+        ((((levelFactor * safePower * effectiveAttack) ~/ effectiveDefense) ~/
+                    50) +
+                2)
+            .toInt();
     return scaledDamage < 1 ? 1 : scaledDamage;
+  }
+
+  int _statValueFor(BattleStatsSnapshot snapshot, BattleStatId stat) {
+    return switch (stat) {
+      BattleStatId.attack => snapshot.attack,
+      BattleStatId.defense => snapshot.defense,
+      BattleStatId.specialAttack => snapshot.specialAttack,
+      BattleStatId.specialDefense => snapshot.specialDefense,
+    };
+  }
+
+  int _resolveEffectiveStat({
+    required int baseStat,
+    required double multiplier,
+  }) {
+    // BE2 garde ici une règle simple et déterministe :
+    // - pas de fraction stockée ;
+    // - pas de rounding ambigu ;
+    // - on applique les stages par multiplication, puis `floor` ;
+    // - on clamp enfin au minimum 1 pour ne jamais diviser par 0 ni produire
+    //   une stat offensive/défensive absurde.
+    final resolved = (baseStat * multiplier).floor();
+    return resolved < 1 ? 1 : resolved;
   }
 
   /// Détermine le résultat final du combat.

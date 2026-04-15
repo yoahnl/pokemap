@@ -212,6 +212,24 @@ class RuntimeBattleMoveBridge {
       );
     }
 
+    // Le moteur battle actuel sait seulement :
+    // - infliger des dégâts à l'adversaire actif ;
+    // - ou appliquer des boosts/baisses déterministes sur `self` / target.
+    //
+    // Un move auto-ciblé qui ferait malgré tout des dégâts standards serait
+    // donc encore projeté mensongèrement : `map_battle` le résoudrait contre
+    // l'adversaire faute de vrai contrat "self damage".
+    //
+    // On préfère refuser explicitement ce cas tant qu'un lot ultérieur n'ouvre
+    // pas une sémantique battle claire pour ce type d'exécution.
+    if (move.usesStandardDamageFlow && target == BattleMoveTarget.self) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'unsupported_standard_damage_target:self',
+      );
+    }
+
     return BattleMoveData(
       id: move.id,
       name: move.name,

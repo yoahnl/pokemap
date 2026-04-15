@@ -1,5 +1,6 @@
 import 'battle_move.dart';
 import 'battle_resolution.dart';
+import 'battle_stats.dart';
 
 /// Phase du combat.
 ///
@@ -91,6 +92,7 @@ class BattleCombatant {
   /// [level] - Le niveau.
   /// [currentHp] - Les PV courants.
   /// [maxHp] - Les PV maximum.
+  /// [stats] - Snapshot résolu des stats non-HP.
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   /// [moves] - La liste des attaques disponibles.
   const BattleCombatant({
@@ -98,6 +100,7 @@ class BattleCombatant {
     required this.level,
     required this.currentHp,
     required this.maxHp,
+    required this.stats,
     this.abilityId = 'unknown',
     required this.moves,
     this.statStages = const BattleStatStages(),
@@ -114,6 +117,15 @@ class BattleCombatant {
 
   /// Les PV maximum.
   final int maxHp;
+
+  /// Snapshot résolu des stats non-HP.
+  ///
+  /// BE2 le transporte jusqu'à l'état battle pour que :
+  /// - les moves physiques opposent enfin attaque vs défense ;
+  /// - les moves spéciaux opposent enfin spécial vs spécial défense ;
+  /// - `speed` survive au handoff jusqu'au moteur, même si elle n'est pas
+  ///   encore consommée.
+  final BattleStatsSnapshot stats;
 
   /// L'ability réellement résolue pour ce combattant.
   ///
@@ -151,6 +163,7 @@ class BattleCombatant {
       level: level,
       currentHp: (currentHp - damage).clamp(0, maxHp),
       maxHp: maxHp,
+      stats: stats,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -169,6 +182,7 @@ class BattleCombatant {
       level: level,
       currentHp: (currentHp + healAmount).clamp(0, maxHp),
       maxHp: maxHp,
+      stats: stats,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -191,6 +205,7 @@ class BattleCombatant {
       level: level,
       currentHp: currentHp,
       maxHp: maxHp,
+      stats: stats,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages.apply(changes),

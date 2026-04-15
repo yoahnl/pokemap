@@ -91,13 +91,14 @@ void main() {
         isNot(contains('sparkitten')),
       );
 
-      final session = createBattleSession(setup);
-      final afterTurn1 = session.applyChoice(const PlayerBattleChoiceFight(0));
-      expect(afterTurn1.state.isFinished, isFalse);
-      final afterTurn2 =
-          afterTurn1.applyChoice(const PlayerBattleChoiceFight(0));
-      expect(afterTurn2.state.outcome, isNotNull);
-      expect(afterTurn2.state.outcome!.isVictory, isTrue);
+      var session = createBattleSession(setup);
+      var turnCount = 0;
+      while (!session.state.isFinished && turnCount < 10) {
+        session = session.applyChoice(const PlayerBattleChoiceFight(0));
+        turnCount++;
+      }
+      expect(session.state.outcome, isNotNull);
+      expect(session.state.outcome!.isVictory, isTrue);
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
         gameState: stateWithSeen,
@@ -123,10 +124,13 @@ void main() {
           ),
           playerPartyIndex: 0,
         ),
-        outcome: afterTurn2.state.outcome!,
+        outcome: session.state.outcome!,
       );
 
-      expect(updatedState.party.members.first.currentHp, equals(15));
+      expect(
+        updatedState.party.members.first.currentHp,
+        equals(session.state.outcome!.finalState.player.currentHp),
+      );
       expect(updatedState.progression.seenSpeciesIds, contains('sparkitten'));
       expect(
         updatedState.progression.caughtSpeciesIds,

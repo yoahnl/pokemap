@@ -6,6 +6,14 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 
+const _whiteoutTestStats = BattleStatsSnapshot(
+  attack: 10,
+  defense: 10,
+  specialAttack: 10,
+  specialDefense: 10,
+  speed: 10,
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -138,6 +146,7 @@ BattleOutcome _defeatOutcome({
         level: 10,
         currentHp: playerCurrentHp,
         maxHp: 24,
+        stats: _whiteoutTestStats,
         moves: const <BattleMove>[
           BattleMove(id: 'tackle', name: 'Tackle', power: 10),
         ],
@@ -147,6 +156,7 @@ BattleOutcome _defeatOutcome({
         level: 7,
         currentHp: 9,
         maxHp: 18,
+        stats: _whiteoutTestStats,
         moves: <BattleMove>[
           BattleMove(id: 'scratch', name: 'Scratch', power: 10),
         ],

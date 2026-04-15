@@ -1,6 +1,14 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:test/test.dart';
 
+const _flowTestStats = BattleStatsSnapshot(
+  attack: 50,
+  defense: 50,
+  specialAttack: 50,
+  specialDefense: 50,
+  speed: 50,
+);
+
 void main() {
   group('BattleSession flow hardening', () {
     // Helper pour créer une session de test simple
@@ -17,6 +25,7 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: playerHp,
+          stats: _flowTestStats,
           moves: [
             BattleMoveData(
                 id: 'tackle', name: 'Charge', power: playerMovePower),
@@ -26,6 +35,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: enemyHp,
+          stats: _flowTestStats,
           moves: [
             BattleMoveData(id: 'tackle', name: 'Charge', power: enemyMovePower),
           ],
@@ -60,7 +70,7 @@ void main() {
 
     test('battle finishes after enemy faints', () {
       // Créer un ennemi avec très peu de PV
-      final session = createTestSession(enemyHp: 3, playerMovePower: 10);
+      final session = createTestSession(enemyHp: 3, playerMovePower: 100);
 
       // Premier choix du joueur
       final sessionAfterChoice =
@@ -75,7 +85,7 @@ void main() {
 
     test('battle finishes after player faints', () {
       // Créer un joueur avec très peu de PV et un ennemi puissant
-      final session = createTestSession(playerHp: 3, enemyMovePower: 10);
+      final session = createTestSession(playerHp: 3, enemyMovePower: 100);
 
       // Premier choix du joueur
       final sessionAfterChoice =
@@ -125,7 +135,7 @@ void main() {
 
     test('multiple turns can be played sequentially', () {
       final session = createTestSession(
-          playerHp: 50, enemyHp: 50, playerMovePower: 5, enemyMovePower: 5);
+          playerHp: 50, enemyHp: 50, playerMovePower: 100, enemyMovePower: 100);
 
       var currentSession = session;
       var turnCount = 0;
@@ -148,6 +158,7 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _flowTestStats,
           moves: [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -156,6 +167,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _flowTestStats,
           moves: [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -176,6 +188,7 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _flowTestStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -184,6 +197,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _flowTestStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -238,12 +252,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _flowTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 100)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 5,
+          stats: _flowTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: false,
@@ -265,12 +281,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 5,
+          stats: _flowTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'mewtwo',
           level: 100,
           maxHp: 100,
+          stats: _flowTestStats,
           moves: [BattleMoveData(id: 'psychic', name: 'Psyko', power: 100)],
         ),
         isTrainerBattle: false,
@@ -292,12 +310,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 50,
+          stats: _flowTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _flowTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: false,
@@ -322,12 +342,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 50,
+          stats: _flowTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _flowTestStats,
           abilityId: 'water-absorb',
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),

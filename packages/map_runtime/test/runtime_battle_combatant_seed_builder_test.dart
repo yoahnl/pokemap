@@ -46,8 +46,18 @@ void main() {
           natureId: 'bold',
           abilityId: 'overgrow',
           level: 12,
-          ivs: PokemonStatSpread(hp: 31),
-          evs: PokemonStatSpread(hp: 8),
+          ivs: PokemonStatSpread(
+            hp: 31,
+            attack: 31,
+            specialAttack: 15,
+            speed: 7,
+          ),
+          evs: PokemonStatSpread(
+            hp: 8,
+            attack: 12,
+            specialAttack: 20,
+            speed: 16,
+          ),
           knownMoveIds: <String>['growl', 'vine_whip'],
           currentHp: 23,
         ),
@@ -58,6 +68,11 @@ void main() {
       expect(seed.maxHp, equals(36));
       expect(seed.currentHp, equals(23));
       expect(seed.abilityId, equals('overgrow'));
+      expect(seed.stats.attack, equals(20));
+      expect(seed.stats.defense, equals(16));
+      expect(seed.stats.specialAttack, equals(23));
+      expect(seed.stats.specialDefense, equals(20));
+      expect(seed.stats.speed, equals(17));
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['growl', 'vine_whip']),
@@ -135,6 +150,11 @@ void main() {
       expect(seed.currentHp, isNull);
       expect(seed.abilityId, equals('blaze'));
       expect(seed.maxHp, equals(27));
+      expect(seed.stats.attack, equals(15));
+      expect(seed.stats.defense, equals(13));
+      expect(seed.stats.specialAttack, equals(17));
+      expect(seed.stats.specialDefense, equals(15));
+      expect(seed.stats.speed, equals(18));
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['scratch', 'tail_whip', 'ember']),
@@ -165,6 +185,11 @@ void main() {
       expect(seed.speciesId, equals('aquafi'));
       expect(seed.level, equals(18));
       expect(seed.abilityId, equals('torrent'));
+      expect(seed.stats.attack, equals(22));
+      expect(seed.stats.defense, equals(28));
+      expect(seed.stats.specialAttack, equals(23));
+      expect(seed.stats.specialDefense, equals(28));
+      expect(seed.stats.speed, equals(20));
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['water_gun', 'tail_whip']),
@@ -370,7 +395,14 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     'custom/pokemon/species/001-sproutle.json',
     <String, dynamic>{
       'id': 'sproutle',
-      'baseStats': <String, int>{'hp': 45},
+      'baseStats': <String, int>{
+        'hp': 45,
+        'atk': 49,
+        'def': 49,
+        'spa': 65,
+        'spd': 65,
+        'spe': 45,
+      },
       'abilities': <String, String>{'primary': 'overgrow'},
       'refs': <String, String>{'learnset': 'sproutle'},
     },
@@ -380,7 +412,14 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     'custom/pokemon/species/004-sparkitten.json',
     <String, dynamic>{
       'id': 'sparkitten',
-      'baseStats': <String, int>{'hp': 39},
+      'baseStats': <String, int>{
+        'hp': 39,
+        'atk': 52,
+        'def': 43,
+        'spa': 60,
+        'spd': 50,
+        'spe': 65,
+      },
       'abilities': <String, String>{'primary': 'blaze'},
       'refs': <String, String>{'learnset': 'sparkitten'},
     },
@@ -390,7 +429,14 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     'custom/pokemon/species/007-aquafi.json',
     <String, dynamic>{
       'id': 'aquafi',
-      'baseStats': <String, int>{'hp': 44},
+      'baseStats': <String, int>{
+        'hp': 44,
+        'atk': 48,
+        'def': 65,
+        'spa': 50,
+        'spd': 64,
+        'spe': 43,
+      },
       'abilities': <String, String>{'primary': 'torrent'},
       'refs': <String, String>{'learnset': 'aquafi'},
     },
@@ -596,7 +642,14 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
     'custom/pokemon/species/$speciesFileName',
     <String, dynamic>{
       'id': speciesId,
-      'baseStats': <String, int>{'hp': baseHp},
+      'baseStats': <String, int>{
+        'hp': baseHp,
+        'atk': 49,
+        'def': 49,
+        'spa': 65,
+        'spd': 65,
+        'spe': 45,
+      },
       'abilities': <String, String>{'primary': primaryAbilityId},
       // Le test retire volontairement `refs.learnset` pour prouver que le
       // seam M7 conserve bien le fallback historique vers l'id d'espèce.

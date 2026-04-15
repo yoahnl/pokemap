@@ -102,14 +102,42 @@ class RuntimePokemonSpeciesLoader {
     required String filePath,
   }) {
     final baseStats = (rawJson['baseStats'] as Map?)?.cast<String, dynamic>();
-    final baseHp = (baseStats?['hp'] as num?)?.toInt();
-    if (baseHp == null || baseHp <= 0) {
-      throw RuntimeBattleSetupException(
-        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
-        debugDetails:
-            'speciesId=$expectedSpeciesId, file=$filePath, missing or invalid baseStats.hp',
-      );
-    }
+    final baseHp = _readRequiredBaseStat(
+      baseStats,
+      statKey: 'hp',
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
+    final baseAttack = _readRequiredBaseStat(
+      baseStats,
+      statKey: 'atk',
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
+    final baseDefense = _readRequiredBaseStat(
+      baseStats,
+      statKey: 'def',
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
+    final baseSpecialAttack = _readRequiredBaseStat(
+      baseStats,
+      statKey: 'spa',
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
+    final baseSpecialDefense = _readRequiredBaseStat(
+      baseStats,
+      statKey: 'spd',
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
+    final baseSpeed = _readRequiredBaseStat(
+      baseStats,
+      statKey: 'spe',
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
 
     final refs = (rawJson['refs'] as Map?)?.cast<String, dynamic>() ??
         <String, dynamic>{
@@ -121,11 +149,37 @@ class RuntimePokemonSpeciesLoader {
     return RuntimePokemonSpecies(
       id: expectedSpeciesId,
       baseHp: baseHp,
+      baseAttack: baseAttack,
+      baseDefense: baseDefense,
+      baseSpecialAttack: baseSpecialAttack,
+      baseSpecialDefense: baseSpecialDefense,
+      baseSpeed: baseSpeed,
       primaryAbilityId: (abilities['primary'] as String?)?.trim() ?? '',
       // `learnsetRef` peut rester vide : le loader learnset conservera le
       // fallback historique vers l'id de l'espèce.
       learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
     );
+  }
+
+  int _readRequiredBaseStat(
+    Map<String, dynamic>? baseStats, {
+    required String statKey,
+    required String expectedSpeciesId,
+    required String filePath,
+  }) {
+    // BE2 garde le loader species volontairement petit, mais il ne peut plus
+    // se contenter de `hp` seulement : le runtime doit maintenant construire
+    // un vrai snapshot de stats combat, donc chaque base stat non-HP requise
+    // doit être présente ou provoquer une erreur actionnable.
+    final value = (baseStats?[statKey] as num?)?.toInt();
+    if (value == null || value <= 0) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails:
+            'speciesId=$expectedSpeciesId, file=$filePath, missing or invalid baseStats.$statKey',
+      );
+    }
+    return value;
   }
 
   Future<Map<String, dynamic>> _readJsonFile(
@@ -184,12 +238,22 @@ class RuntimePokemonSpecies {
   const RuntimePokemonSpecies({
     required this.id,
     required this.baseHp,
+    required this.baseAttack,
+    required this.baseDefense,
+    required this.baseSpecialAttack,
+    required this.baseSpecialDefense,
+    required this.baseSpeed,
     required this.primaryAbilityId,
     required this.learnsetRef,
   });
 
   final String id;
   final int baseHp;
+  final int baseAttack;
+  final int baseDefense;
+  final int baseSpecialAttack;
+  final int baseSpecialDefense;
+  final int baseSpeed;
   final String primaryAbilityId;
   final String learnsetRef;
 }

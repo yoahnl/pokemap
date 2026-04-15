@@ -12,12 +12,26 @@
 ///     speciesId: 'pikachu',
 ///     level: 5,
 ///     maxHp: 20,
+///     stats: const BattleStatsSnapshot(
+///       attack: 10,
+///       defense: 10,
+///       specialAttack: 10,
+///       specialDefense: 10,
+///       speed: 10,
+///     ),
 ///     moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
 ///   ),
 ///   enemyPokemon: BattleCombatantData(
 ///     speciesId: 'lapras',
 ///     level: 5,
 ///     maxHp: 25,
+///     stats: const BattleStatsSnapshot(
+///       attack: 10,
+///       defense: 10,
+///       specialAttack: 10,
+///       specialDefense: 10,
+///       speed: 10,
+///     ),
 ///     moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
 ///   ),
 ///   isTrainerBattle: true,
@@ -46,6 +60,7 @@ library map_battle;
 export 'src/battle_setup.dart';
 export 'src/battle_session.dart';
 export 'src/battle_state.dart';
+export 'src/battle_stats.dart';
 export 'src/battle_action.dart';
 export 'src/battle_move.dart';
 export 'src/battle_resolution.dart';

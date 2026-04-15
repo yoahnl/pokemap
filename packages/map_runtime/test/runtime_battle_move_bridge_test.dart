@@ -137,6 +137,42 @@ void main() {
     });
 
     test(
+        'rejects a self-target damage move that map_battle would still resolve against the opponent',
+        () {
+      const move = PokemonMove(
+        id: 'mind_blown_self',
+        name: 'Mind Blown Self',
+        names: <String, String>{'en': 'Mind Blown Self'},
+        generation: 9,
+        source: 'test',
+        type: 'fire',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.self,
+        basePower: 50,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 5,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=mind_blown_self'),
+              contains('bridgeLimit=unsupported_standard_damage_target:self'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
         'rejects a move whose non-zero priority would still be lost by the current battle engine',
         () {
       const move = PokemonMove(

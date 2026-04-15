@@ -1,6 +1,14 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:test/test.dart';
 
+const _neutralBattleStats = BattleStatsSnapshot(
+  attack: 50,
+  defense: 50,
+  specialAttack: 50,
+  specialDefense: 50,
+  speed: 50,
+);
+
 void main() {
   group('BattleSession', () {
     // Helper pour créer un setup de test
@@ -14,6 +22,7 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
             BattleMoveData(id: 'scratch', name: 'Griffe', power: 4),
@@ -23,6 +32,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 25,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -62,6 +72,7 @@ void main() {
           level: 5,
           maxHp: 20,
           currentHp: 7,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -71,6 +82,7 @@ void main() {
           level: 5,
           maxHp: 25,
           currentHp: 11,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -93,6 +105,7 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(
               id: 'vine_whip',
@@ -109,6 +122,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 25,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -187,8 +201,9 @@ void main() {
       // Joueur utilise la première attaque (power=5)
       final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
 
-      // L'ennemi devrait avoir pris 5 dégâts
-      expect(newSession.state.enemy.currentHp, equals(20)); // 25 - 5 = 20
+      // Avec le contract de dégâts BE2, le move passe maintenant par les
+      // vraies stats résolues au lieu de faire `damage = power`.
+      expect(newSession.state.enemy.currentHp, equals(23));
       expect(newSession.state.currentTurn, isNotNull);
       expect(newSession.state.currentTurn!.executions.length, greaterThan(0));
     });
@@ -200,8 +215,9 @@ void main() {
       // Joueur utilise la première attaque
       final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
 
-      // Le joueur devrait avoir pris des dégâts de la contre-attaque (power=5)
-      expect(newSession.state.player.currentHp, equals(15)); // 20 - 5 = 15
+      // Même logique pour la contre-attaque : on attend désormais un dégât
+      // déterministe issu de la formule BE2, pas la puissance brute.
+      expect(newSession.state.player.currentHp, equals(18));
     });
 
     test('KO enemy results in victory', () {
@@ -209,8 +225,9 @@ void main() {
       final setup = BattleSetup(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
-          level: 5,
+          level: 100,
           maxHp: 20,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'mega-punch', name: 'Mega-Poing', power: 25),
           ],
@@ -219,6 +236,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 20, // PV max = 20, donc 1 hit KO
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -244,6 +262,7 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 5, // Très peu de PV
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'growl', name: 'Rugissement', power: 0),
           ],
@@ -252,6 +271,7 @@ void main() {
           speciesId: 'mewtwo',
           level: 100,
           maxHp: 100,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'psychic', name: 'Psyko', power: 10),
           ],
@@ -277,6 +297,7 @@ void main() {
           speciesId: 'mewtwo',
           level: 100,
           maxHp: 100,
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'psystrike', name: 'Frapp Psy', power: 50),
           ],
@@ -285,6 +306,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 20, // One-shot
+          stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -319,16 +341,18 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 30,
+          stats: _neutralBattleStats,
           moves: const [
-            BattleMoveData(id: 'tackle', name: 'Charge', power: 10),
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 100),
           ],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 30,
+          stats: _neutralBattleStats,
           moves: const [
-            BattleMoveData(id: 'tackle', name: 'Charge', power: 10),
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 100),
           ],
         ),
         isTrainerBattle: false,

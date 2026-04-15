@@ -5,6 +5,14 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 
+const _outcomeTestStats = BattleStatsSnapshot(
+  attack: 10,
+  defense: 10,
+  specialAttack: 10,
+  specialDefense: 10,
+  speed: 10,
+);
+
 void main() {
   group('applyRuntimeBattleOutcomeToGameState', () {
     test('writes back the exact party slot used for the battle handoff', () {
@@ -442,6 +450,7 @@ BattleOutcome _finishedOutcome({
       level: 12,
       currentHp: playerCurrentHp,
       maxHp: 32,
+      stats: _outcomeTestStats,
       moves: const <BattleMove>[
         BattleMove(id: 'growl', name: 'Growl', power: 0),
       ],
@@ -451,6 +460,7 @@ BattleOutcome _finishedOutcome({
       level: enemyLevel,
       currentHp: enemyCurrentHp,
       maxHp: 35,
+      stats: _outcomeTestStats,
       abilityId: enemyAbilityId,
       moves: enemyMoveIds
           .map(

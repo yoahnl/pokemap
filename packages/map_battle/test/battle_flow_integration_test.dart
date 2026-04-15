@@ -1,6 +1,14 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:test/test.dart';
 
+const _integrationTestStats = BattleStatsSnapshot(
+  attack: 50,
+  defense: 50,
+  specialAttack: 50,
+  specialDefense: 50,
+  speed: 50,
+);
+
 void main() {
   group('Battle flow hardening - runtime integration', () {
     test('BattleSetup creates session with correct initial state', () {
@@ -9,6 +17,7 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -17,6 +26,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -44,12 +54,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: true,
@@ -82,12 +94,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 100)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 5,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: false,
@@ -117,12 +131,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 50)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 15,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: true,
@@ -155,12 +171,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: true,
@@ -172,12 +190,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: true,
@@ -185,10 +205,13 @@ void main() {
       );
 
       // Les deux setups sont identiques (pattern unifié)
-      expect(setupFromLoS.isTrainerBattle, equals(setupFromInteraction.isTrainerBattle));
+      expect(setupFromLoS.isTrainerBattle,
+          equals(setupFromInteraction.isTrainerBattle));
       expect(setupFromLoS.trainerId, equals(setupFromInteraction.trainerId));
-      expect(setupFromLoS.playerPokemon.speciesId, equals(setupFromInteraction.playerPokemon.speciesId));
-      expect(setupFromLoS.enemyPokemon.speciesId, equals(setupFromInteraction.enemyPokemon.speciesId));
+      expect(setupFromLoS.playerPokemon.speciesId,
+          equals(setupFromInteraction.playerPokemon.speciesId));
+      expect(setupFromLoS.enemyPokemon.speciesId,
+          equals(setupFromInteraction.enemyPokemon.speciesId));
     });
 
     test('wild encounter flow: setup → battle → outcome', () {
@@ -198,12 +221,14 @@ void main() {
           speciesId: 'pikachu',
           level: 5,
           maxHp: 20,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         enemyPokemon: BattleCombatantData(
           speciesId: 'pidgey',
           level: 3,
           maxHp: 10,
+          stats: _integrationTestStats,
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 3)],
         ),
         isTrainerBattle: false,

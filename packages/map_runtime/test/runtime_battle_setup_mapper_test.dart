@@ -72,6 +72,9 @@ void main() {
       expect(setup.playerPokemon.speciesId, equals('sproutle'));
       expect(setup.playerPokemon.level, equals(12));
       expect(setup.playerPokemon.currentHp, equals(23));
+      expect(setup.playerPokemon.stats.attack, equals(16));
+      expect(setup.playerPokemon.stats.specialAttack, equals(20));
+      expect(setup.playerPokemon.stats.speed, equals(15));
       expect(
         setup.playerPokemon.moves.map((move) => move.id).toList(),
         equals(<String>['growl', 'vine_whip']),
@@ -147,6 +150,9 @@ void main() {
       expect(setup.enemyPokemon.speciesId, equals('sparkitten'));
       expect(setup.enemyPokemon.level, equals(10));
       expect(setup.enemyPokemon.abilityId, equals('blaze'));
+      expect(setup.enemyPokemon.stats.attack, equals(15));
+      expect(setup.enemyPokemon.stats.specialAttack, equals(17));
+      expect(setup.enemyPokemon.stats.speed, equals(18));
       expect(
         setup.enemyPokemon.moves.map((move) => move.id).toList(),
         equals(<String>['scratch', 'tail_whip', 'ember']),
@@ -1037,6 +1043,11 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
       'id': speciesId,
       'baseStats': <String, int>{
         'hp': baseHp,
+        'atk': 49,
+        'def': 49,
+        'spa': 65,
+        'spd': 65,
+        'spe': 45,
       },
       'abilities': <String, String>{
         'primary': primaryAbilityId,

@@ -68,11 +68,18 @@ class RuntimeBattleCombatantSeedBuilder {
       ivHp: playerPokemon.ivs.hp,
       evHp: playerPokemon.evs.hp,
     );
+    final stats = _calculateStatsSnapshot(
+      species: species,
+      level: playerPokemon.level,
+      ivs: playerPokemon.ivs,
+      evs: playerPokemon.evs,
+    );
 
     return RuntimeBattleCombatantSeed(
       speciesId: playerPokemon.speciesId.trim(),
       level: playerPokemon.level,
       maxHp: maxHp,
+      stats: stats,
       currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
       abilityId: playerPokemon.abilityId.trim().isEmpty
           ? 'unknown'
@@ -109,6 +116,10 @@ class RuntimeBattleCombatantSeedBuilder {
       level: request.level,
       maxHp: _calculateMaxHp(
         baseHp: species.baseHp,
+        level: request.level,
+      ),
+      stats: _calculateStatsSnapshot(
+        species: species,
         level: request.level,
       ),
       abilityId: species.primaryAbilityId.isEmpty
@@ -151,6 +162,10 @@ class RuntimeBattleCombatantSeedBuilder {
       level: teamMember.level,
       maxHp: _calculateMaxHp(
         baseHp: species.baseHp,
+        level: teamMember.level,
+      ),
+      stats: _calculateStatsSnapshot(
+        species: species,
         level: teamMember.level,
       ),
       abilityId: species.primaryAbilityId.isEmpty
@@ -260,6 +275,79 @@ class RuntimeBattleCombatantSeedBuilder {
     return _clampInt(hp, min: 1, max: 999);
   }
 
+  BattleStatsSnapshot _calculateStatsSnapshot({
+    required RuntimePokemonSpecies species,
+    required int level,
+    PokemonStatSpread ivs = const PokemonStatSpread(),
+    PokemonStatSpread evs = const PokemonStatSpread(),
+  }) {
+    // BE2 résout ici les stats battle non-HP pour une raison simple :
+    // - `map_runtime` possède encore la donnée projet (species, niveau, IV/EV) ;
+    // - `map_battle` ne doit jamais relire le JSON projet brut ;
+    // - le handoff battle doit donc déjà recevoir un snapshot typé, prêt à
+    //   l'emploi, au lieu d'un bricolage `power + stages`.
+    //
+    // Politique volontairement bornée :
+    // - joueur : on utilise les IV/EV réellement présents dans la sauvegarde ;
+    // - sauvage / trainer : IV/EV par défaut à 0, déterministes, documentés ;
+    // - nature neutre pour tout le monde dans BE2 ;
+    // - `speed` est déjà transportée pour préparer la suite, sans être
+    //   consommée pour l'ordre d'action dans ce lot.
+    return BattleStatsSnapshot(
+      attack: _calculateResolvedNonHpStat(
+        baseStat: species.baseAttack,
+        level: level,
+        iv: ivs.attack,
+        ev: evs.attack,
+      ),
+      defense: _calculateResolvedNonHpStat(
+        baseStat: species.baseDefense,
+        level: level,
+        iv: ivs.defense,
+        ev: evs.defense,
+      ),
+      specialAttack: _calculateResolvedNonHpStat(
+        baseStat: species.baseSpecialAttack,
+        level: level,
+        iv: ivs.specialAttack,
+        ev: evs.specialAttack,
+      ),
+      specialDefense: _calculateResolvedNonHpStat(
+        baseStat: species.baseSpecialDefense,
+        level: level,
+        iv: ivs.specialDefense,
+        ev: evs.specialDefense,
+      ),
+      speed: _calculateResolvedNonHpStat(
+        baseStat: species.baseSpeed,
+        level: level,
+        iv: ivs.speed,
+        ev: evs.speed,
+      ),
+    );
+  }
+
+  int _calculateResolvedNonHpStat({
+    required int baseStat,
+    required int level,
+    int iv = 0,
+    int ev = 0,
+  }) {
+    final safeBaseStat = _clampInt(baseStat, min: 1, max: 255);
+    final safeLevel = _clampInt(level, min: 1, max: 100);
+    final safeIv = _clampInt(iv, min: 0, max: 31);
+    final safeEv = _clampInt(ev, min: 0, max: 252);
+
+    // Formule volontairement Pokémon-like, mais limitée et déterministe :
+    // floor(((2 * base + iv + floor(ev / 4)) * level) / 100) + 5
+    //
+    // BE2 ne gère pas encore les natures. On garde donc ici un multiplicateur
+    // neutre implicite de 1.0 au lieu d'introduire une mécanique partielle.
+    final resolved =
+        (((2 * safeBaseStat + safeIv + (safeEv ~/ 4)) * safeLevel) ~/ 100) + 5;
+    return _clampInt(resolved, min: 1, max: 999);
+  }
+
   int _clampInt(
     int value, {
     required int min,
@@ -287,6 +375,7 @@ class RuntimeBattleCombatantSeed {
     required this.speciesId,
     required this.level,
     required this.maxHp,
+    required this.stats,
     required this.abilityId,
     required this.moves,
     this.currentHp,
@@ -295,6 +384,7 @@ class RuntimeBattleCombatantSeed {
   final String speciesId;
   final int level;
   final int maxHp;
+  final BattleStatsSnapshot stats;
   final int? currentHp;
   final String abilityId;
   final List<BattleMoveData> moves;
@@ -304,6 +394,7 @@ class RuntimeBattleCombatantSeed {
       speciesId: speciesId,
       level: level,
       maxHp: maxHp,
+      stats: stats,
       currentHp: currentHp,
       abilityId: abilityId,
       moves: moves,
