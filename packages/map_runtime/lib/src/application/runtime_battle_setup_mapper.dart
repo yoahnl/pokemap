@@ -1,14 +1,12 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
-import 'package:path/path.dart' as p;
 
 import 'battle_start_request.dart';
 import 'runtime_battle_setup_exception.dart';
 import 'runtime_map_bundle.dart';
 import 'runtime_move_catalog_loader.dart';
+import 'runtime_pokemon_learnset_loader.dart';
+import 'runtime_pokemon_species_loader.dart';
 
 export 'runtime_battle_setup_exception.dart' show RuntimeBattleSetupException;
 
@@ -29,17 +27,20 @@ const _runtimeCapturePokeBallCategoryId = 'items';
 ///   comme un tuple pauvre `id/name/power` ;
 /// - `map_battle` ne doit toujours pas lire le JSON projet brut.
 ///
-/// On garde malgré tout ici un reader JSON minimal pour les espèces/learnsets
-/// parce que :
-/// - la source de vérité des données Pokémon de runtime est le workspace projet ;
-/// - `map_runtime` ne doit pas dépendre des modèles internes de `map_editor` ;
-/// - M5 n'ouvre pas encore un loader spécialisé pour toute la base Pokémon.
+/// M6 poursuit cette extraction pour les espèces et learnsets :
+/// - le mapper ne relit plus lui-même ces JSON projet ;
+/// - il délègue à de petits loaders runtime spécialisés ;
+/// - il reste centré sur la composition combat, pas sur la plomberie locale.
 class RuntimeBattleSetupMapper {
   const RuntimeBattleSetupMapper({
     this.moveCatalogLoader = const RuntimeMoveCatalogLoader(),
+    this.speciesLoader = const RuntimePokemonSpeciesLoader(),
+    this.learnsetLoader = const RuntimePokemonLearnsetLoader(),
   });
 
   final RuntimeMoveCatalogLoader moveCatalogLoader;
+  final RuntimePokemonSpeciesLoader speciesLoader;
+  final RuntimePokemonLearnsetLoader learnsetLoader;
 
   Future<BattleSetup> map({
     required RuntimeMapBundle bundle,
@@ -47,17 +48,14 @@ class RuntimeBattleSetupMapper {
     required BattleStartRequest request,
     int? playerPartyIndex,
   }) async {
-    final reader = _RuntimePokemonProjectReader(
-      projectRootDirectory: bundle.projectRootDirectory,
-      pokemonConfig: bundle.manifest.pokemon,
-    );
     final movesCatalog = await moveCatalogLoader.load(
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
     );
 
     final playerSeed = await _buildPlayerCombatantSeed(
-      reader: reader,
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
       movesCatalog: movesCatalog,
       gameState: gameState,
       playerPartyIndex: playerPartyIndex,
@@ -65,12 +63,14 @@ class RuntimeBattleSetupMapper {
 
     final enemySeed = switch (request) {
       WildBattleStartRequest() => await _buildWildCombatantSeed(
-          reader: reader,
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
           movesCatalog: movesCatalog,
           request: request,
         ),
       TrainerBattleStartRequest() => await _buildTrainerCombatantSeed(
-          reader: reader,
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
           movesCatalog: movesCatalog,
           manifest: bundle.manifest,
           request: request,
@@ -98,7 +98,8 @@ class RuntimeBattleSetupMapper {
   }
 
   Future<_RuntimeBattleCombatantSeed> _buildPlayerCombatantSeed({
-    required _RuntimePokemonProjectReader reader,
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
     required RuntimeMoveCatalog movesCatalog,
     required GameState gameState,
     int? playerPartyIndex,
@@ -107,11 +108,16 @@ class RuntimeBattleSetupMapper {
       gameState.party,
       playerPartyIndex: playerPartyIndex,
     );
-    final species = await reader.readSpeciesById(playerPokemon.speciesId);
+    final species = await speciesLoader.loadById(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesId: playerPokemon.speciesId,
+    );
     final moveIds = playerPokemon.knownMoveIds.isNotEmpty
         ? playerPokemon.knownMoveIds
         : await _deriveLearnsetMoveIds(
-            reader: reader,
+            projectRootDirectory: projectRootDirectory,
+            pokemonConfig: pokemonConfig,
             species: species,
             level: playerPokemon.level,
           );
@@ -142,13 +148,19 @@ class RuntimeBattleSetupMapper {
   }
 
   Future<_RuntimeBattleCombatantSeed> _buildWildCombatantSeed({
-    required _RuntimePokemonProjectReader reader,
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
     required RuntimeMoveCatalog movesCatalog,
     required WildBattleStartRequest request,
   }) async {
-    final species = await reader.readSpeciesById(request.speciesId);
+    final species = await speciesLoader.loadById(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesId: request.speciesId,
+    );
     final moveIds = await _deriveLearnsetMoveIds(
-      reader: reader,
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
       species: species,
       level: request.level,
     );
@@ -173,7 +185,8 @@ class RuntimeBattleSetupMapper {
   }
 
   Future<_RuntimeBattleCombatantSeed> _buildTrainerCombatantSeed({
-    required _RuntimePokemonProjectReader reader,
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
     required RuntimeMoveCatalog movesCatalog,
     required ProjectManifest manifest,
     required TrainerBattleStartRequest request,
@@ -189,11 +202,16 @@ class RuntimeBattleSetupMapper {
     // Le moteur battle MVP reste mono-combattant : on prend donc le premier
     // Pokémon authoré de l’équipe, sans inventer une seconde logique de party.
     final teamMember = trainer.team.first;
-    final species = await reader.readSpeciesById(teamMember.speciesId);
+    final species = await speciesLoader.loadById(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesId: teamMember.speciesId,
+    );
     final moveIds = teamMember.moves.isNotEmpty
         ? teamMember.moves
         : await _deriveLearnsetMoveIds(
-            reader: reader,
+            projectRootDirectory: projectRootDirectory,
+            pokemonConfig: pokemonConfig,
             species: species,
             level: teamMember.level,
           );
@@ -292,11 +310,14 @@ class RuntimeBattleSetupMapper {
   }
 
   Future<List<String>> _deriveLearnsetMoveIds({
-    required _RuntimePokemonProjectReader reader,
-    required _RuntimePokemonSpecies species,
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required RuntimePokemonSpecies species,
     required int level,
   }) async {
-    final learnset = await reader.readLearnsetByRef(
+    final learnset = await learnsetLoader.loadByRef(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
       speciesRef: species.learnsetRef,
       fallbackSpeciesId: species.id,
     );
@@ -516,209 +537,4 @@ class _RuntimeBattleCombatantSeed {
       moves: moves,
     );
   }
-}
-
-/// Reader JSON ultra-ciblé pour le runtime battle handoff.
-///
-/// Il relit uniquement ce que le lot 9 doit mapper :
-/// - espèces (id, base HP, ref learnset)
-/// - learnsets
-///
-/// Le catalogue moves a été extrait dans [RuntimeMoveCatalogLoader] pour
-/// éviter qu'un second parser canonique vive caché dans ce reader local.
-class _RuntimePokemonProjectReader {
-  const _RuntimePokemonProjectReader({
-    required this.projectRootDirectory,
-    required this.pokemonConfig,
-  });
-
-  final String projectRootDirectory;
-  final ProjectPokemonConfig pokemonConfig;
-
-  Future<_RuntimePokemonSpecies> readSpeciesById(String speciesId) async {
-    final normalizedSpeciesId = speciesId.trim();
-    if (normalizedSpeciesId.isEmpty) {
-      throw const RuntimeBattleSetupException(
-        'Une espèce Pokémon vide ne peut pas être mappée vers le combat.',
-      );
-    }
-
-    final speciesDirectory = Directory(
-      _resolveProjectPath(
-        _normalizeConfiguredRelativePath(
-          pokemonConfig.speciesDir,
-          fallback: 'data/pokemon/species',
-        ),
-      ),
-    );
-    if (!await speciesDirectory.exists()) {
-      throw RuntimeBattleSetupException(
-        'Impossible de charger les espèces Pokémon locales pour démarrer le combat.',
-        debugDetails: 'Missing species directory: ${speciesDirectory.path}',
-      );
-    }
-
-    await for (final entity in speciesDirectory.list(recursive: false)) {
-      if (entity is! File ||
-          p.extension(entity.path).toLowerCase() != '.json') {
-        continue;
-      }
-      final rawJson = await _readJsonFile(
-        entity,
-        label: 'Pokemon species file',
-      );
-      final declaredId = (rawJson['id'] as String?)?.trim() ?? '';
-      if (declaredId != normalizedSpeciesId) {
-        continue;
-      }
-
-      final baseStats =
-          (rawJson['baseStats'] as Map?)?.cast<String, dynamic>() ??
-              const <String, dynamic>{};
-      final refs = (rawJson['refs'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{
-            'learnset': (rawJson['learnsetRef'] as String?)?.trim() ?? '',
-          };
-      final abilities =
-          (rawJson['abilities'] as Map?)?.cast<String, dynamic>() ??
-              const <String, dynamic>{};
-      return _RuntimePokemonSpecies(
-        id: declaredId,
-        baseHp: (baseStats['hp'] as num?)?.toInt() ?? 1,
-        primaryAbilityId: (abilities['primary'] as String?)?.trim() ?? '',
-        learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
-      );
-    }
-
-    throw RuntimeBattleSetupException(
-      'Espèce Pokémon introuvable pour démarrer le combat.',
-      debugDetails: 'speciesId=$speciesId',
-    );
-  }
-
-  Future<_RuntimePokemonLearnset> readLearnsetByRef({
-    required String speciesRef,
-    required String fallbackSpeciesId,
-  }) async {
-    final learnsetId =
-        speciesRef.trim().isEmpty ? fallbackSpeciesId : speciesRef;
-    final learnsetsDirectory = _normalizeConfiguredRelativePath(
-      pokemonConfig.learnsetsDir,
-      fallback: 'data/pokemon/learnsets',
-    );
-    final relativePath = p.join(learnsetsDirectory, '$learnsetId.json');
-    final json = await _readJsonAtProjectRelativePath(
-      relativePath,
-      label: 'Pokemon learnset "$learnsetId"',
-    );
-
-    final rawLevelUp = (json['levelUp'] as List?) ?? const <Object?>[];
-    return _RuntimePokemonLearnset(
-      startingMoves: ((json['startingMoves'] as List?) ?? const <Object?>[])
-          .whereType<String>()
-          .toList(growable: false),
-      relearnMoves: ((json['relearnMoves'] as List?) ?? const <Object?>[])
-          .whereType<String>()
-          .toList(growable: false),
-      levelUp: rawLevelUp
-          .whereType<Map>()
-          .map((entry) => entry.cast<String, dynamic>())
-          .map(
-            (entry) => _RuntimePokemonLevelUpMove(
-              moveId: (entry['moveId'] as String?)?.trim() ?? '',
-              level: (entry['level'] as num?)?.toInt() ?? 0,
-            ),
-          )
-          .where((entry) => entry.moveId.isNotEmpty && entry.level > 0)
-          .toList(growable: false),
-    );
-  }
-
-  Future<Map<String, dynamic>> _readJsonAtProjectRelativePath(
-    String relativePath, {
-    required String label,
-  }) {
-    return _readJsonFile(
-      File(_resolveProjectPath(relativePath)),
-      label: label,
-    );
-  }
-
-  Future<Map<String, dynamic>> _readJsonFile(
-    File file, {
-    required String label,
-  }) async {
-    if (!await file.exists()) {
-      throw RuntimeBattleSetupException(
-        'Impossible de charger les données Pokémon locales nécessaires au combat.',
-        debugDetails: '$label file not found: ${file.path}',
-      );
-    }
-
-    try {
-      final decoded = jsonDecode(await file.readAsString());
-      if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('Root JSON object expected');
-      }
-      return decoded;
-    } on RuntimeBattleSetupException {
-      rethrow;
-    } catch (error) {
-      throw RuntimeBattleSetupException(
-        'Impossible de lire les données Pokémon locales nécessaires au combat.',
-        debugDetails: '$label parse failed: $error',
-      );
-    }
-  }
-
-  String _normalizeConfiguredRelativePath(
-    String rawPath, {
-    required String fallback,
-  }) {
-    final trimmed = rawPath.trim();
-    return p.normalize(trimmed.isEmpty ? fallback : trimmed);
-  }
-
-  String _resolveProjectPath(String relativeOrAbsolutePath) {
-    if (p.isAbsolute(relativeOrAbsolutePath)) {
-      return p.normalize(relativeOrAbsolutePath);
-    }
-    return p.normalize(p.join(projectRootDirectory, relativeOrAbsolutePath));
-  }
-}
-
-class _RuntimePokemonSpecies {
-  const _RuntimePokemonSpecies({
-    required this.id,
-    required this.baseHp,
-    required this.primaryAbilityId,
-    required this.learnsetRef,
-  });
-
-  final String id;
-  final int baseHp;
-  final String primaryAbilityId;
-  final String learnsetRef;
-}
-
-class _RuntimePokemonLearnset {
-  const _RuntimePokemonLearnset({
-    required this.startingMoves,
-    required this.relearnMoves,
-    required this.levelUp,
-  });
-
-  final List<String> startingMoves;
-  final List<String> relearnMoves;
-  final List<_RuntimePokemonLevelUpMove> levelUp;
-}
-
-class _RuntimePokemonLevelUpMove {
-  const _RuntimePokemonLevelUpMove({
-    required this.moveId,
-    required this.level,
-  });
-
-  final String moveId;
-  final int level;
 }

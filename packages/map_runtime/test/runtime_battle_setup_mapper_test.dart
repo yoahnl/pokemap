@@ -169,6 +169,49 @@ void main() {
       expect(setup.enemyPokemon.speciesId, isNot(equals('mew')));
     });
 
+    test('falls back to the species id when the species has no learnset ref',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      await _rewriteSpeciesWithoutLearnsetRef(
+        tempProjectRoot,
+        speciesFileName: '001-sproutle.json',
+        speciesId: 'sproutle',
+        baseHp: 45,
+        primaryAbilityId: 'overgrow',
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-species-id-fallback',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                currentHp: 20,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(
+        setup.playerPokemon.moves.map((move) => move.id).toList(),
+        equals(<String>['tackle', 'growl', 'vine_whip']),
+      );
+    });
+
     test('disables capture in wild battles when the bag has no poke-ball',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -886,6 +929,30 @@ Future<void> _rewriteMoveCatalogEntrySupport(
   await catalogFile.writeAsString(const JsonEncoder.withIndent('  ').convert(
     decoded,
   ));
+}
+
+Future<void> _rewriteSpeciesWithoutLearnsetRef(
+  Directory projectRoot, {
+  required String speciesFileName,
+  required String speciesId,
+  required int baseHp,
+  required String primaryAbilityId,
+}) {
+  return _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/species/$speciesFileName',
+    <String, dynamic>{
+      'id': speciesId,
+      'baseStats': <String, int>{
+        'hp': baseHp,
+      },
+      'abilities': <String, String>{
+        'primary': primaryAbilityId,
+      },
+      // Ce helper retire volontairement `refs.learnset` pour vérifier que le
+      // mapper, via le loader learnset, retombe bien sur l'id de l'espèce.
+    },
+  );
 }
 
 Future<void> _writeProjectRelativeJson(
