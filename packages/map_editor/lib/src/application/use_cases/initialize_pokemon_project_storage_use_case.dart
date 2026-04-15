@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../seeds/pokemon_moves_bootstrap_seed.dart';
 import '../ports/project_workspace.dart';
 
 /// Initialise la structure locale Pokemon dans le workspace d'un projet
@@ -84,22 +85,46 @@ class InitializePokemonProjectStorageUseCase {
     );
 
     for (final entry in _catalogFiles.entries) {
+      // M4 ouvre volontairement un seul seam spécial : `moves`.
+      //
+      // Tous les autres catalogues restent sur le scaffold vide historique.
+      // On évite ainsi de transformer ce lot en framework de seed multi-
+      // catalogues, tout en corrigeant le vrai trou produit : un projet frais
+      // ne doit plus partir avec un `moves.json` vide.
+      final payload = entry.key == 'moves'
+          ? _movesBootstrapPayload()
+          : <String, Object?>{
+              'schemaVersion': 1,
+              'kind': 'pokemon_catalog',
+              'catalog': entry.key,
+              'meta': <String, Object?>{
+                'description': _catalogDescriptions[entry.key]!,
+                'sourcePriority': const <String>['internal'],
+                'notes': const <Object?>[],
+              },
+              'entries': const <Object?>[],
+            };
       await _writeJsonIfAbsent(
         workspace,
         'data/pokemon/${entry.value}',
-        <String, Object?>{
-          'schemaVersion': 1,
-          'kind': 'pokemon_catalog',
-          'catalog': entry.key,
-          'meta': <String, Object?>{
-            'description': _catalogDescriptions[entry.key]!,
-            'sourcePriority': const <String>['internal'],
-            'notes': const <Object?>[],
-          },
-          'entries': const <Object?>[],
-        },
+        payload,
       );
     }
+  }
+
+  /// Construit le payload bootstrap du catalogue moves.
+  ///
+  /// Invariants de M4 :
+  /// - le bootstrap ne parse jamais Showdown à l'exécution ;
+  /// - il ne télécharge rien ;
+  /// - il réutilise un seed versionné localement dans `map_editor` ;
+  /// - il écrit la copie projet uniquement si `moves.json` n'existe pas déjà.
+  ///
+  /// On laisse ici `project.json` totalement hors scope :
+  /// le manifeste pointe déjà vers `data/pokemon/catalogs/moves.json`, et M4
+  /// ne doit pas rouvrir ce contrat.
+  Map<String, Object?> _movesBootstrapPayload() {
+    return buildEmbeddedPokemonMovesBootstrapSeed().toJson();
   }
 
   Future<void> _writeJsonIfAbsent(

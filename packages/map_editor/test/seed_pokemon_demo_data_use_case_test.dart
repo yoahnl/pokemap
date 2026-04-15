@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
@@ -185,7 +186,18 @@ void main() {
         'data/pokemon/catalogs/moves.json',
       );
       final initialMoves = await _readJsonMap(movesPath);
-      expect((initialMoves['entries'] as List<dynamic>).length, 4);
+      final initialEntries = (initialMoves['entries'] as List<dynamic>)
+          .cast<Map>()
+          .map((entry) => entry.cast<String, dynamic>())
+          .toList(growable: false);
+      expect(initialEntries, isNotEmpty);
+      expect(
+        initialEntries.map((entry) => entry['id']),
+        containsAll(<String>{'tackle', 'growl', 'vine_whip', 'razor_leaf'}),
+      );
+      for (final entry in initialEntries) {
+        expect(() => PokemonMove.fromJson(entry), returnsNormally);
+      }
 
       const customPayload = '{\n  "entries": ["keep-me"]\n}';
       await File(movesPath).writeAsString(customPayload);
@@ -193,6 +205,52 @@ void main() {
       await useCase.execute(workspace);
 
       expect(await File(movesPath).readAsString(), customPayload);
+    });
+
+    test(
+        'upgrades an old empty moves scaffold to the shared canonical bootstrap seed',
+        () async {
+      final movesPath = workspace.resolveProjectRelativePath(
+        'data/pokemon/catalogs/moves.json',
+      );
+      final file = File(movesPath);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(
+          <String, Object?>{
+            'schemaVersion': 1,
+            'kind': 'pokemon_catalog',
+            'catalog': 'moves',
+            'meta': <String, Object?>{
+              'description':
+                  'Move catalog for the local Pokemon project database.',
+              'sourcePriority': <String>['internal'],
+              'notes': <Object?>[],
+            },
+            'entries': <Object?>[],
+          },
+        ),
+      );
+
+      await useCase.execute(workspace);
+
+      final upgradedCatalog = await _readJsonMap(movesPath);
+      final entries = (upgradedCatalog['entries'] as List<dynamic>)
+          .cast<Map>()
+          .map((entry) => entry.cast<String, dynamic>())
+          .toList(growable: false);
+
+      expect(entries, isNotEmpty);
+      expect(
+        entries.map((entry) => entry['id']),
+        containsAll(<String>{'tackle', 'growl', 'vine_whip', 'razor_leaf'}),
+      );
+      for (final entry in entries) {
+        expect(() => PokemonMove.fromJson(entry), returnsNormally);
+        expect(entry.containsKey('power'), isFalse);
+        expect(entry.containsKey('accuracyText'), isFalse);
+        expect(entry.containsKey('shortDesc'), isFalse);
+      }
     });
 
     test('leaves project.json strictly unchanged', () async {

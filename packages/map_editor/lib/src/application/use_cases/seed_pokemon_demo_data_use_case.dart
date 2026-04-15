@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../ports/project_workspace.dart';
 import 'initialize_pokemon_project_storage_use_case.dart';
+import '../seeds/pokemon_moves_bootstrap_seed.dart';
 
 /// Seed un mini jeu de donnees Pokemon realiste dans le workspace projet.
 ///
@@ -11,7 +12,7 @@ import 'initialize_pokemon_project_storage_use_case.dart';
 /// - il ne touche jamais a `project.json`
 /// - il ne remplace jamais un fichier metier deja existant
 /// - il n'enrichit un catalogue existant que s'il est encore au format
-///   scaffold vide du lot precedent
+///   scaffold vide du bootstrap precedent
 class SeedPokemonDemoDataUseCase {
   const SeedPokemonDemoDataUseCase({
     this.initializeStorage = const InitializePokemonProjectStorageUseCase(),
@@ -21,6 +22,20 @@ class SeedPokemonDemoDataUseCase {
 
   Future<void> execute(ProjectWorkspace workspace) async {
     await initializeStorage.execute(workspace);
+
+    // M4 change la donne pour `moves.json` :
+    // - le bootstrap projet embarque maintenant deja un seed canonique non vide ;
+    // - on ne veut surtout pas maintenir ici une deuxieme source de verite
+    //   concurrente pour les moves ;
+    // - mais on garde le seam "upgrade old empty scaffold" pour les workspaces
+    //   plus anciens qui auraient encore un `moves.json` vide.
+    await _writeCatalogIfSeedable(
+      workspace,
+      relativePath: 'data/pokemon/catalogs/moves.json',
+      catalogName: 'moves',
+      scaffoldDescription: _catalogScaffoldDescriptions['moves']!,
+      payload: buildEmbeddedPokemonMovesBootstrapSeed().toJson(),
+    );
 
     for (final entry in _catalogSeeds.entries) {
       await _writeCatalogIfSeedable(
@@ -242,89 +257,6 @@ const Map<String, Map<String, Object?>> _catalogSeeds =
         'id': 'medium_slow',
         'name': 'Medium Slow',
         'description': 'Uses the classic medium-slow experience curve.',
-      },
-    ],
-  },
-  'moves': <String, Object?>{
-    'schemaVersion': 1,
-    'kind': 'pokemon_catalog',
-    'catalog': 'moves',
-    'meta': <String, Object?>{
-      'description': 'Move catalog for the local Pokemon project database.',
-      'sourcePriority': <String>['internal'],
-      'notes': <Object?>[
-        'Demo seed data used to validate local Pokemon contracts.',
-      ],
-    },
-    'entries': <Object?>[
-      <String, Object?>{
-        'id': 'tackle',
-        'name': 'Tackle',
-        'names': <String, String>{
-          'fr': 'Charge',
-          'en': 'Tackle',
-        },
-        'type': 'normal',
-        'category': 'physical',
-        'power': 40,
-        'accuracy': 100,
-        'pp': 35,
-        'priority': 0,
-        'target': 'adjacent_opponent',
-        'shortDesc': 'A physical attack in which the user charges and slams.',
-        'generation': 1,
-      },
-      <String, Object?>{
-        'id': 'growl',
-        'name': 'Growl',
-        'names': <String, String>{
-          'fr': 'Rugissement',
-          'en': 'Growl',
-        },
-        'type': 'normal',
-        'category': 'status',
-        'power': null,
-        'accuracy': 100,
-        'pp': 40,
-        'priority': 0,
-        'target': 'adjacent_opponent',
-        'shortDesc': 'Lowers the target Attack by one stage.',
-        'generation': 1,
-      },
-      <String, Object?>{
-        'id': 'vine_whip',
-        'name': 'Vine Whip',
-        'names': <String, String>{
-          'fr': 'Fouet Lianes',
-          'en': 'Vine Whip',
-        },
-        'type': 'grass',
-        'category': 'physical',
-        'power': 45,
-        'accuracy': 100,
-        'pp': 25,
-        'priority': 0,
-        'target': 'adjacent_opponent',
-        'shortDesc': 'Strikes the target with slender, whiplike vines.',
-        'generation': 1,
-      },
-      <String, Object?>{
-        'id': 'razor_leaf',
-        'name': 'Razor Leaf',
-        'names': <String, String>{
-          'fr': 'Tranch’Herbe',
-          'en': 'Razor Leaf',
-        },
-        'type': 'grass',
-        'category': 'physical',
-        'power': 55,
-        'accuracy': 95,
-        'pp': 25,
-        'priority': 0,
-        'target': 'all_adjacent_opponents',
-        'shortDesc':
-            'Sharp-edged leaves are launched to slash at the opposing team.',
-        'generation': 1,
       },
     ],
   },

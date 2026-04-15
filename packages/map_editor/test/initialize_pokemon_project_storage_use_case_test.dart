@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
+import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
@@ -12,12 +14,16 @@ void main() {
   late Directory tempProjectRoot;
   late InitializePokemonProjectStorageUseCase useCase;
   late ProjectFileSystem workspace;
+  late LoadPokemonMovesCatalogUseCase loadMovesCatalogUseCase;
 
   setUp(() async {
     tempProjectRoot =
         await Directory.systemTemp.createTemp('pokemon_project_storage_');
     useCase = const InitializePokemonProjectStorageUseCase();
     workspace = ProjectFileSystem(tempProjectRoot.path);
+    loadMovesCatalogUseCase = const LoadPokemonMovesCatalogUseCase(
+      readRepository: FilePokemonReadRepository(),
+    );
   });
 
   tearDown(() async {
@@ -148,13 +154,62 @@ void main() {
         expect(catalog['schemaVersion'], 1);
         expect(catalog['kind'], 'pokemon_catalog');
         expect(catalog['catalog'], entry.key);
-        expect(catalog['meta'], <String, Object?>{
-          'description': _expectedCatalogDescriptions[entry.key]!,
-          'sourcePriority': <Object?>['internal'],
-          'notes': <Object?>[],
-        });
-        expect(catalog['entries'], isEmpty);
+        if (entry.key == 'moves') {
+          expect(catalog['meta'], <String, Object?>{
+            'description': _expectedCatalogDescriptions[entry.key]!,
+            'sourcePriority': <Object?>['internal'],
+            'notes': <Object?>[
+              'Embedded canonical move seed shipped with map_editor for offline bootstrap.',
+              'Curated from Showdown-backed move data and versioned in the repository.',
+              'bootstrap_seed_version:1',
+            ],
+          });
+          expect(catalog['entries'], isNotEmpty);
+        } else {
+          expect(catalog['meta'], <String, Object?>{
+            'description': _expectedCatalogDescriptions[entry.key]!,
+            'sourcePriority': <Object?>['internal'],
+            'notes': <Object?>[],
+          });
+          expect(catalog['entries'], isEmpty);
+        }
       }
+    });
+
+    test('writes a canonical non-empty moves seed without legacy dead fields',
+        () async {
+      await useCase.execute(workspace);
+
+      final catalog = await _readJsonMap(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/catalogs/moves.json',
+        ),
+      );
+      final entries = (catalog['entries'] as List<dynamic>)
+          .cast<Map>()
+          .map((entry) => entry.cast<String, dynamic>())
+          .toList(growable: false);
+
+      expect(entries, isNotEmpty);
+
+      for (final entry in entries) {
+        expect(() => PokemonMove.fromJson(entry), returnsNormally);
+        expect(entry.containsKey('power'), isFalse);
+        expect(entry.containsKey('accuracyText'), isFalse);
+        expect(entry.containsKey('shortDesc'), isFalse);
+      }
+
+      expect(
+        entries.map((entry) => entry['id']),
+        containsAll(<String>[
+          'tackle',
+          'growl',
+          'vine_whip',
+          'razor_leaf',
+          'thunderbolt',
+          'trick_room',
+        ]),
+      );
     });
 
     test('keeps enriched contract absent from the monorepo root', () async {
@@ -208,6 +263,25 @@ void main() {
 
       final after = await manifestFile.readAsString();
       expect(after, before);
+    });
+
+    test('bootstrapped moves seed is readable by the existing local loader',
+        () async {
+      await useCase.execute(workspace);
+
+      final result = await loadMovesCatalogUseCase.execute(workspace);
+
+      expect(result.isAvailable, isTrue);
+      expect(result.entries, isNotEmpty);
+      expect(
+        result.entries.map((entry) => entry.id),
+        containsAll(<String>[
+          'tackle',
+          'growl',
+          'vine_whip',
+          'razor_leaf',
+        ]),
+      );
     });
 
     test('does not run automatically when a project is created', () async {
