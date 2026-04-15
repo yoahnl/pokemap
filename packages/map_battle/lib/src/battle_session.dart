@@ -30,13 +30,20 @@ BattleSession createBattleSession(BattleSetup setup) {
     currentHp: playerCurrentHp,
     maxHp: setup.playerPokemon.maxHp,
     abilityId: setup.playerPokemon.abilityId,
+    // BE1 garde le contrat battle honnête jusqu'à l'état runtime combat :
+    // - `type`, `target` et `pp` ne sont pas encore consommés par le moteur ;
+    // - mais ils ne doivent plus être perdus au tout dernier handoff ;
+    // - cela évite d'avoir à rouvrir le même trou avant même d'attaquer BE2.
     moves: setup.playerPokemon.moves
         .map(
           (m) => BattleMove(
             id: m.id,
             name: m.name,
             power: m.power,
+            type: m.type,
             category: m.category,
+            target: m.target,
+            pp: m.pp,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -50,13 +57,18 @@ BattleSession createBattleSession(BattleSetup setup) {
     currentHp: enemyCurrentHp,
     maxHp: setup.enemyPokemon.maxHp,
     abilityId: setup.enemyPokemon.abilityId,
+    // Même règle pour l'adversaire : on transporte le petit supplément de
+    // contrat BE1 sans prétendre pour autant l'exécuter déjà dans `map_battle`.
     moves: setup.enemyPokemon.moves
         .map(
           (m) => BattleMove(
             id: m.id,
             name: m.name,
             power: m.power,
+            type: m.type,
             category: m.category,
+            target: m.target,
+            pp: m.pp,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -450,10 +462,33 @@ class BattleSession {
       execution: BattleMoveExecution(
         attacker: attackerLabel,
         move: move,
-        target: targetLabel,
+        // BE1 ne laisse plus `target` se reperdre au moment de la trace
+        // d'exécution :
+        // - un move `self` doit apparaître comme ciblant le lanceur ;
+        // - un move `opponent` garde la cible adverse résolue du tour ;
+        // - `unspecified` reste le fallback de compatibilité des anciens call
+        //   sites qui construisaient des moves battle pauvres à la main.
+        target: _resolveExecutionTargetLabel(
+          move: move,
+          attackerLabel: attackerLabel,
+          opponentLabel: targetLabel,
+        ),
         damage: damage,
       ),
     );
+  }
+
+  String _resolveExecutionTargetLabel({
+    required BattleMove move,
+    required String attackerLabel,
+    required String opponentLabel,
+  }) {
+    return switch (move.target) {
+      BattleMoveTarget.self => attackerLabel,
+      BattleMoveTarget.opponent ||
+      BattleMoveTarget.unspecified =>
+        opponentLabel,
+    };
   }
 
   /// Calcule les dégâts standards du moteur battle MVP enrichi.

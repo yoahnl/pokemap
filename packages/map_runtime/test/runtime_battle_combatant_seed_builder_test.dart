@@ -287,6 +287,42 @@ void main() {
         ),
       );
     });
+
+    test(
+        'rejects a move whose non-zero priority would still be lost during runtime to battle assembly',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      await expectLater(
+        () => builder.buildPlayerCombatantSeed(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          movesCatalog: movesCatalog,
+          playerPokemon: const PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'bold',
+            abilityId: 'overgrow',
+            level: 12,
+            knownMoveIds: <String>['quick_attack'],
+            currentHp: 23,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=quick_attack'),
+              contains('bridgeLimit=unsupported_priority:1'),
+            ),
+          ),
+        ),
+      );
+    });
   });
 }
 
@@ -417,6 +453,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('leer', 'Leer', 0),
         _moveEntry('razor_leaf', 'Razor Leaf', 55),
         _moveEntry('scratch', 'Scratch', 40),
+        _moveEntry('quick_attack', 'Quick Attack', 40, priority: 1),
         _moveEntry('tail_whip', 'Tail Whip', 0),
         _moveEntry('ember', 'Ember', 40),
         _moveEntry('flame_wheel', 'Flame Wheel', 60),
@@ -431,6 +468,11 @@ Map<String, Object?> _moveEntry(
   String id,
   String name,
   int power, {
+  String type = 'normal',
+  PokemonMoveTarget target = PokemonMoveTarget.normal,
+  int pp = 35,
+  int priority = 0,
+  int critRatio = 1,
   PokemonMoveEngineSupportLevel engineSupportLevel =
       PokemonMoveEngineSupportLevel.structuredSupported,
   List<String> unsupportedReasons = const <String>[],
@@ -442,15 +484,17 @@ Map<String, Object?> _moveEntry(
     names: <String, String>{'en': name},
     generation: 1,
     source: 'test_runtime_fixture',
-    type: 'normal',
+    type: type,
     category:
         power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special,
-    target: PokemonMoveTarget.normal,
+    target: target,
     basePower: power,
     accuracy: power == 0
         ? const PokemonMoveAccuracy.alwaysHits()
         : const PokemonMoveAccuracy.percent(value: 100),
-    pp: 35,
+    pp: pp,
+    priority: priority,
+    critRatio: critRatio,
     effects: effects,
     engineSupportLevel: engineSupportLevel,
     unsupportedReasons: unsupportedReasons,

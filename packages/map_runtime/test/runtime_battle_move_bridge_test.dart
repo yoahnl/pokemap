@@ -32,7 +32,10 @@ void main() {
 
       expect(battleMove.id, equals('vine_whip'));
       expect(battleMove.power, equals(45));
+      expect(battleMove.type, equals('grass'));
       expect(battleMove.category, equals(BattleMoveCategory.physical));
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+      expect(battleMove.pp, equals(25));
       expect(battleMove.selfStatStageChanges, isEmpty);
       expect(battleMove.targetStatStageChanges, isEmpty);
     });
@@ -46,7 +49,7 @@ void main() {
         source: 'test',
         type: 'normal',
         category: PokemonMoveCategory.status,
-        target: PokemonMoveTarget.normal,
+        target: PokemonMoveTarget.allAdjacentFoes,
         basePower: 0,
         accuracy: PokemonMoveAccuracy.percent(value: 100),
         pp: 40,
@@ -70,7 +73,10 @@ void main() {
       );
 
       expect(battleMove.power, equals(0));
+      expect(battleMove.type, equals('normal'));
       expect(battleMove.category, equals(BattleMoveCategory.status));
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+      expect(battleMove.pp, equals(40));
       expect(battleMove.selfStatStageChanges, isEmpty);
       expect(battleMove.targetStatStageChanges, hasLength(1));
       expect(
@@ -125,7 +131,119 @@ void main() {
         battleMove.selfStatStageChanges.single.stages,
         equals(2),
       );
+      expect(battleMove.target, equals(BattleMoveTarget.self));
+      expect(battleMove.pp, equals(20));
       expect(battleMove.targetStatStageChanges, isEmpty);
+    });
+
+    test(
+        'rejects a move whose non-zero priority would still be lost by the current battle engine',
+        () {
+      const move = PokemonMove(
+        id: 'quick_attack',
+        name: 'Quick Attack',
+        names: <String, String>{'en': 'Quick Attack'},
+        generation: 1,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.physical,
+        target: PokemonMoveTarget.normal,
+        basePower: 40,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 30,
+        priority: 1,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=quick_attack'),
+              contains('bridgeLimit=unsupported_priority:1'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
+        'rejects a move whose non-neutral crit ratio would still be lost by the current battle engine',
+        () {
+      const move = PokemonMove(
+        id: 'razor_leaf',
+        name: 'Razor Leaf',
+        names: <String, String>{'en': 'Razor Leaf'},
+        generation: 1,
+        source: 'test',
+        type: 'grass',
+        category: PokemonMoveCategory.physical,
+        target: PokemonMoveTarget.allAdjacentFoes,
+        basePower: 55,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 25,
+        critRatio: 2,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=razor_leaf'),
+              contains('bridgeLimit=unsupported_crit_ratio:2'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
+        'rejects a target shape that is still outside the honest 1v1 bridge subset',
+        () {
+      const move = PokemonMove(
+        id: 'stealth_rock',
+        name: 'Stealth Rock',
+        names: <String, String>{'en': 'Stealth Rock'},
+        generation: 4,
+        source: 'test',
+        type: 'rock',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.foeSide,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 20,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=stealth_rock'),
+              contains('bridgeLimit=unsupported_target:foeSide'),
+            ),
+          ),
+        ),
+      );
     });
 
     test('rejects a status move that needs a real battle status system', () {

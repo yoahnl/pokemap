@@ -15,6 +15,14 @@ import 'runtime_battle_setup_exception.dart';
 /// - on garde le standard damage flow ;
 /// - on supporte `modifyStats` déterministe pour un petit sous-ensemble utile ;
 /// - on refuse explicitement le reste.
+///
+/// BE1 durcit ce bridge sur un autre axe :
+/// - certaines dimensions canoniques étaient encore perdues silencieusement ;
+/// - on transporte maintenant le petit supplément de contrat battle qui évite
+///   cette perte (`type`, `target`, `pp`) ;
+/// - et on refuse explicitement les dimensions non neutres qui resteraient
+///   encore mensongères sans nouvelle couche moteur (`priority`, `critRatio`,
+///   cibles hors 1v1 simple honnête).
 class RuntimeBattleMoveBridge {
   const RuntimeBattleMoveBridge();
 
@@ -32,7 +40,23 @@ class RuntimeBattleMoveBridge {
       move: move,
       combatantLabel: combatantLabel,
     );
+    _ensurePriorityIsNeutralEnoughForBattle(
+      move: move,
+      combatantLabel: combatantLabel,
+    );
+    _ensureCritRatioIsNeutralEnoughForBattle(
+      move: move,
+      combatantLabel: combatantLabel,
+    );
     _ensureAccuracyIsDeterministicEnoughForBattle(
+      move: move,
+      combatantLabel: combatantLabel,
+    );
+    final target = _translateSupportedTarget(
+      move: move,
+      combatantLabel: combatantLabel,
+    );
+    final type = _translateType(
       move: move,
       combatantLabel: combatantLabel,
     );
@@ -192,7 +216,10 @@ class RuntimeBattleMoveBridge {
       id: move.id,
       name: move.name,
       power: move.usesStandardDamageFlow ? move.basePower : 0,
+      type: type,
       category: _translateCategory(move.category),
+      target: target,
+      pp: move.pp,
       selfStatStageChanges:
           List<BattleStatStageChange>.unmodifiable(selfChanges),
       targetStatStageChanges:
@@ -236,11 +263,89 @@ class RuntimeBattleMoveBridge {
     );
   }
 
+  void _ensurePriorityIsNeutralEnoughForBattle({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    // Tant que `map_battle` résout encore "joueur puis ennemi" sans queue
+    // d'actions, une priorité non nulle ne serait pas seulement ignorée :
+    // elle deviendrait mensongère. On préfère donc refuser explicitement.
+    if (move.priority == 0) {
+      return;
+    }
+    _rejectMove(
+      move: move,
+      combatantLabel: combatantLabel,
+      bridgeLimit: 'unsupported_priority:${move.priority}',
+    );
+  }
+
+  void _ensureCritRatioIsNeutralEnoughForBattle({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    // Même logique pour le critique :
+    // - tant que le moteur n'a aucun crit réel ;
+    // - un crit ratio non neutre serait perdu silencieusement ;
+    // - on refuse donc le move au bridge au lieu de prétendre le supporter.
+    if (move.critRatio == 1) {
+      return;
+    }
+    _rejectMove(
+      move: move,
+      combatantLabel: combatantLabel,
+      bridgeLimit: 'unsupported_crit_ratio:${move.critRatio}',
+    );
+  }
+
+  String _translateType({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    final type = move.type.trim();
+    if (type.isEmpty) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'invalid_type:empty',
+      );
+    }
+    return type;
+  }
+
   BattleMoveCategory _translateCategory(PokemonMoveCategory category) {
     return switch (category) {
       PokemonMoveCategory.physical => BattleMoveCategory.physical,
       PokemonMoveCategory.special => BattleMoveCategory.special,
       PokemonMoveCategory.status => BattleMoveCategory.status,
+    };
+  }
+
+  BattleMoveTarget _translateSupportedTarget({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    // BE1 ne promet toujours pas un système de targeting complet.
+    // En revanche, on peut déjà arrêter de perdre silencieusement l'intention
+    // canonique quand elle reste honnête en 1v1 simple actif :
+    // - `self` -> self ;
+    // - `normal`, `adjacentFoe`, `allAdjacentFoes`, `randomNormal`
+    //   -> opponent.
+    //
+    // Les autres formes (`all`, `allySide`, `foeSide`, etc.) exigent une
+    // sémantique de terrain/sides/slots ou de multibattle absente aujourd'hui.
+    return switch (move.target) {
+      PokemonMoveTarget.self => BattleMoveTarget.self,
+      PokemonMoveTarget.normal ||
+      PokemonMoveTarget.adjacentFoe ||
+      PokemonMoveTarget.allAdjacentFoes ||
+      PokemonMoveTarget.randomNormal =>
+        BattleMoveTarget.opponent,
+      _ => _rejectMove(
+          move: move,
+          combatantLabel: combatantLabel,
+          bridgeLimit: 'unsupported_target:${move.target.name}',
+        ),
     };
   }
 

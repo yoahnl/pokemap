@@ -115,20 +115,27 @@ class BattleMoveData {
   /// [id] - L'identifiant canonique de l'attaque.
   /// [name] - Le nom affiché de l'attaque.
   /// [power] - La puissance de l'attaque (dégâts de base).
+  /// [type] - Le type canonique transporté sans encore être consommé.
   /// [category] - La catégorie battle minimale déjà résolue par le runtime.
+  /// [target] - La cible battle minimale résolue par le bridge runtime.
+  /// [pp] - Le PP canonique transporté sans encore être consommé.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
   /// Ce contrat reste volontairement petit :
   /// - il ne copie pas `PokemonMove` ;
   /// - il ne prétend pas transporter tous les `effects` canoniques ;
-  /// - il transporte seulement ce que `map_battle` sait vraiment exécuter
-  ///   après M8.
+  /// - mais BE1 y ajoute aussi quelques dimensions battle fondamentales
+  ///   (`type`, `target`, `pp`) pour arrêter leur perte silencieuse ;
+  /// - le moteur n'utilise pas encore tout cela, et c'est assumé.
   const BattleMoveData({
     required this.id,
     required this.name,
     required this.power,
+    this.type = 'unknown',
     this.category,
+    this.target = BattleMoveTarget.unspecified,
+    this.pp = 0,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   });
@@ -145,11 +152,30 @@ class BattleMoveData {
   /// `damage = move.power` (pas de calculs complexes de stats).
   final int power;
 
+  /// Type canonique du move.
+  ///
+  /// Donnée transportée dès BE1 pour éviter sa perte silencieuse au handoff.
+  /// `map_battle` ne la consomme pas encore.
+  final String type;
+
   /// Catégorie battle explicitement résolue par le bridge runtime.
   ///
   /// Ce champ est optionnel pour préserver les anciens call sites/tests qui ne
   /// transportaient encore que `power`.
   final BattleMoveCategory? category;
+
+  /// Cible battle minimale résolue par le bridge runtime.
+  ///
+  /// Le moteur n'en tire pas encore une logique complète de targeting, mais le
+  /// handoff ne doit plus jeter cette information quand elle reste simple et
+  /// honnête dans le cadre 1v1 actuel.
+  final BattleMoveTarget target;
+
+  /// PP canonique du move.
+  ///
+  /// Cette donnée est transportée par honnêteté de contrat, même si le moteur
+  /// ne décrémente pas encore les PP.
+  final int pp;
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

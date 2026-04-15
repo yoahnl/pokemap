@@ -85,6 +85,47 @@ void main() {
       expect(session.state.enemy.currentHp, equals(11));
     });
 
+    test(
+        'createBattleSession preserves the additional honest battle contract fields transported by BE1',
+        () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          moves: const [
+            BattleMoveData(
+              id: 'vine_whip',
+              name: 'Vine Whip',
+              power: 45,
+              type: 'grass',
+              category: BattleMoveCategory.physical,
+              target: BattleMoveTarget.opponent,
+              pp: 25,
+            ),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+
+      final session = createBattleSession(setup);
+      final move = session.state.player.moves.single;
+
+      expect(move.type, equals('grass'));
+      expect(move.category, equals(BattleMoveCategory.physical));
+      expect(move.target, equals(BattleMoveTarget.opponent));
+      expect(move.pp, equals(25));
+    });
+
     test('getAvailableChoices returns fight choices + run in wild battle', () {
       final setup = createTestSetup();
       final session = createBattleSession(setup);

@@ -105,6 +105,7 @@ void main() {
                 name: 'Swords Dance',
                 power: 0,
                 category: BattleMoveCategory.status,
+                target: BattleMoveTarget.self,
                 selfStatStageChanges: <BattleStatStageChange>[
                   BattleStatStageChange(
                     stat: BattleStatId.attack,
@@ -141,6 +142,10 @@ void main() {
       session = session.applyChoice(const PlayerBattleChoiceFight(0));
       expect(session.state.player.statStages.attack, equals(2));
       expect(session.state.enemy.currentHp, equals(40));
+      expect(
+        session.state.currentTurn!.executions.first.target,
+        equals('player'),
+      );
 
       session = session.applyChoice(const PlayerBattleChoiceFight(1));
       expect(session.state.enemy.currentHp, equals(20));
