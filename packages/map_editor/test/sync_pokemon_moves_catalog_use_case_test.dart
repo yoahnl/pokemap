@@ -52,6 +52,17 @@ void main() {
     }
   });
 
+  Future<PokemonMovesCatalogView> loadViewFromCatalog(
+    PokemonCatalogFile catalog,
+  ) async {
+    await writeRepository.saveCatalogByKey(
+      workspace,
+      'moves',
+      catalog,
+    );
+    return loadUseCase.execute(workspace);
+  }
+
   test('dry-run previews the sync without writing the local catalog', () async {
     await writeRepository.saveCatalogByKey(
       workspace,
@@ -149,17 +160,9 @@ void main() {
   test(
       'load use case does not silently downgrade an invalid canonical move to legacy projection',
       () async {
-    await writeRepository.saveCatalogByKey(
-      workspace,
-      'moves',
-      const PokemonCatalogFile(
-        schemaVersion: 1,
-        kind: 'pokemon_catalog',
-        catalog: 'moves',
-        meta: PokemonDataMeta(
-          description: 'Broken canonical move catalog.',
-        ),
-        entries: <Map<String, dynamic>>[
+    final loadedView = await loadViewFromCatalog(
+      _catalogWithEntries(
+        <Map<String, dynamic>>[
           <String, dynamic>{
             'id': 'broken_move',
             'name': 'Broken Move',
@@ -185,10 +188,9 @@ void main() {
             },
           },
         ],
+        description: 'Broken canonical move catalog.',
       ),
     );
-
-    final loadedView = await loadUseCase.execute(workspace);
 
     expect(loadedView.isAvailable, isFalse);
     expect(loadedView.description, 'Catalogue local des attaques illisible.');
@@ -197,7 +199,189 @@ void main() {
       contains('invalid canonical PokemonMove entry'),
     );
   });
+
+  test('load use case reads a valid canonical move entry correctly', () async {
+    final loadedView = await loadViewFromCatalog(
+      _catalogWithEntries(
+        <Map<String, dynamic>>[
+          _canonicalMoveEntry(
+            const PokemonMove(
+              id: 'thunderbolt',
+              name: 'Thunderbolt',
+              names: <String, String>{'en': 'Thunderbolt'},
+              generation: 1,
+              source: 'showdown',
+              type: 'electric',
+              category: PokemonMoveCategory.special,
+              target: PokemonMoveTarget.normal,
+              basePower: 90,
+              accuracy: PokemonMoveAccuracy.percent(value: 100),
+              pp: 15,
+              priority: 0,
+              critRatio: 1,
+              effects: <PokemonMoveEffect>[
+                PokemonMoveEffect.applyStatus(
+                  chance: 10,
+                  statusId: 'par',
+                ),
+              ],
+              shortDescription: 'May paralyze the target.',
+              description:
+                  'A strong electric blast crashes down on the target.',
+              engineSupportLevel:
+                  PokemonMoveEngineSupportLevel.structuredSupported,
+              sourceRefs: PokemonMoveSourceRefs(
+                showdownMoveId: 'thunderbolt',
+              ),
+            ),
+          ),
+        ],
+        description: 'Valid canonical move catalog.',
+      ),
+    );
+
+    expect(loadedView.isAvailable, isTrue);
+    expect(loadedView.entries, hasLength(1));
+    expect(loadedView.entries.single.id, 'thunderbolt');
+    expect(loadedView.entries.single.power, 90);
+    expect(loadedView.entries.single.accuracyLabel, '100');
+    expect(loadedView.entries.single.shortDesc, 'May paralyze the target.');
+  });
+
+  test(
+      'load use case treats basePower plus scalar accuracy as invalid canonical instead of legacy',
+      () async {
+    final loadedView = await loadViewFromCatalog(
+      _catalogWithEntries(
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'broken_base_power_move',
+            'name': 'Broken Base Power Move',
+            'names': <String, String>{'en': 'Broken Base Power Move'},
+            'type': 'normal',
+            'category': 'physical',
+            'target': 'normal',
+            'basePower': 40,
+            'accuracy': 95,
+            'pp': 15,
+            'priority': 0,
+          },
+        ],
+        description: 'Broken canonical candidate by basePower.',
+      ),
+    );
+
+    expect(loadedView.isAvailable, isFalse);
+    expect(
+      loadedView.message,
+      contains('invalid canonical PokemonMove entry'),
+    );
+  });
+
+  test(
+      'load use case treats other canonical markers as invalid canonical instead of legacy',
+      () async {
+    final loadedView = await loadViewFromCatalog(
+      _catalogWithEntries(
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'broken_effects_move',
+            'name': 'Broken Effects Move',
+            'names': <String, String>{'en': 'Broken Effects Move'},
+            'type': 'psychic',
+            'category': 'status',
+            'accuracy': <String, dynamic>{'kind': 'always_hits'},
+            'effects': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'kind': 'set_weather',
+              },
+            ],
+          },
+        ],
+        description: 'Broken canonical candidate by effects.',
+      ),
+    );
+
+    expect(loadedView.isAvailable, isFalse);
+    expect(
+      loadedView.message,
+      contains('invalid canonical PokemonMove entry'),
+    );
+  });
+
+  test('load use case still accepts a true legacy move entry', () async {
+    final loadedView = await loadViewFromCatalog(
+      _catalogWithEntries(
+        const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'legacy_move',
+            'name': 'Legacy Move',
+            'names': <String, String>{'en': 'Legacy Move'},
+            'type': 'normal',
+            'category': 'physical',
+            'power': 50,
+            'accuracy': 95,
+            'pp': 20,
+            'priority': 0,
+            'target': 'normal',
+            'shortDesc': 'A true legacy move entry.',
+            'generation': 3,
+          },
+        ],
+        description: 'Legacy move catalog.',
+      ),
+    );
+
+    expect(loadedView.isAvailable, isTrue);
+    expect(loadedView.entries, hasLength(1));
+    expect(loadedView.entries.single.id, 'legacy_move');
+    expect(loadedView.entries.single.power, 50);
+    expect(loadedView.entries.single.accuracyLabel, '95');
+    expect(loadedView.entries.single.shortDesc, 'A true legacy move entry.');
+  });
+
+  test('load use case rejects an unknown move entry shape explicitly',
+      () async {
+    final loadedView = await loadViewFromCatalog(
+      _catalogWithEntries(
+        const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'unknown_shape_move',
+            'name': 'Unknown Shape Move',
+            'names': <String, String>{'en': 'Unknown Shape Move'},
+            'type': 'normal',
+            'category': 'status',
+            'target': 'normal',
+          },
+        ],
+        description: 'Unknown move catalog shape.',
+      ),
+    );
+
+    expect(loadedView.isAvailable, isFalse);
+    expect(
+      loadedView.message,
+      contains('unknown or unsupported move shape'),
+    );
+  });
 }
+
+PokemonCatalogFile _catalogWithEntries(
+  List<Map<String, dynamic>> entries, {
+  required String description,
+}) {
+  return PokemonCatalogFile(
+    schemaVersion: 1,
+    kind: 'pokemon_catalog',
+    catalog: 'moves',
+    meta: PokemonDataMeta(
+      description: description,
+    ),
+    entries: entries,
+  );
+}
+
+Map<String, dynamic> _canonicalMoveEntry(PokemonMove move) => move.toJson();
 
 class _FakePokemonExternalSourceRepository
     implements PokemonExternalSourceRepository {

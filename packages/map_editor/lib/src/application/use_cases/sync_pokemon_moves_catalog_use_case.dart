@@ -174,11 +174,19 @@ class LoadPokemonMovesCatalogUseCase {
   PokemonMoveCatalogEntryView? _projectEntry(Map<String, dynamic> entry) {
     // M3 introduit des entrées canoniques `PokemonMove.toJson()`, mais le
     // catalogue projet peut encore contenir des entrées legacy locales non
-    // resynchronisées. Cette projection légère doit donc rester tolérante :
-    // - on privilégie la lecture canonique quand elle est possible ;
-    // - on garde un fallback legacy uniquement pour les vraies entrées legacy ;
-    // - on n'introduit aucun modèle parallèle.
-    if (_isCanonicalMoveEntry(entry)) {
+    // resynchronisées.
+    //
+    // M3-bis durcit volontairement la frontière :
+    // - la détection canonique devient large ;
+    // - la détection legacy devient étroite ;
+    // - si une entrée "sent" le canonique, on la traite comme canonique ;
+    // - si le parse canonique échoue, on remonte une erreur explicite ;
+    // - le fallback legacy ne sert plus qu'aux vraies formes legacy.
+    //
+    // Cette asymétrie est voulue :
+    // - mieux vaut échouer tôt sur une entrée canonique cassée ;
+    // - que la dégrader silencieusement vers la vieille projection legacy.
+    if (_looksLikeCanonicalMoveEntry(entry)) {
       try {
         final move = PokemonMove.fromJson(entry);
         return PokemonMoveCatalogEntryView(
@@ -207,6 +215,12 @@ class LoadPokemonMovesCatalogUseCase {
           'Moves catalog contains an invalid canonical PokemonMove entry: $error',
         );
       }
+    }
+
+    if (!_looksLikeLegacyMoveEntry(entry)) {
+      throw const EditorPersistenceException(
+        'Moves catalog contains an entry with an unknown or unsupported move shape.',
+      );
     }
 
     final id = (entry['id'] as String?)?.trim() ?? '';
@@ -424,7 +438,7 @@ class SyncExternalPokemonMovesCatalogUseCase {
     }
 
     for (final localField in localEntry.entries) {
-      if (_isCanonicalMoveEntry(externalEntry) &&
+      if (_looksLikeCanonicalMoveEntry(externalEntry) &&
           _obsoleteLegacyMoveFields.contains(localField.key)) {
         // M3 ne doit pas laisser les anciens alias légers (`power`,
         // `accuracyText`, `shortDesc`) se réinjecter sur une entrée maintenant
@@ -530,11 +544,37 @@ String _encodeTarget(PokemonMoveTarget target) {
   }
 }
 
-bool _isCanonicalMoveEntry(Map<String, dynamic> entry) {
-  return entry['basePower'] is num &&
-      entry['accuracy'] is Map &&
-      entry['effects'] is List &&
-      entry['sourceRefs'] is Map;
+bool _looksLikeCanonicalMoveEntry(Map<String, dynamic> entry) {
+  // Détection volontairement large :
+  // - toute présence d'un vrai marqueur canonique doit suffire ;
+  // - une entrée partiellement migrée ou partiellement cassée doit être
+  //   traitée comme une candidate canonique, puis échouer explicitement ;
+  // - on évite ainsi tout downgrade silencieux vers le fallback legacy.
+  return entry.containsKey('basePower') ||
+      entry.containsKey('effects') ||
+      entry.containsKey('sourceRefs') ||
+      entry.containsKey('engineSupportLevel') ||
+      entry.containsKey('unsupportedReasons') ||
+      entry.containsKey('noPpBoosts') ||
+      entry.containsKey('critRatio') ||
+      entry['accuracy'] is Map;
+}
+
+bool _looksLikeLegacyMoveEntry(Map<String, dynamic> entry) {
+  // Détection volontairement étroite :
+  // - on ne classe legacy que les formes explicitement héritées de l'ancien
+  //   catalogue léger ;
+  // - la présence d'un signal canonique exclut immédiatement le chemin legacy ;
+  // - `accuracy` scalaire seule n'est acceptée en legacy que s'il n'existe
+  //   aucun signal canonique concurrent.
+  if (_looksLikeCanonicalMoveEntry(entry)) {
+    return false;
+  }
+
+  return entry.containsKey('power') ||
+      entry.containsKey('accuracyText') ||
+      entry.containsKey('shortDesc') ||
+      entry['accuracy'] is num;
 }
 
 const Set<String> _obsoleteLegacyMoveFields = <String>{
