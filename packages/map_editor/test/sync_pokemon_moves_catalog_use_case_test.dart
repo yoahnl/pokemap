@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/pokemon_external_source_repository.dart';
 import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
@@ -106,25 +107,95 @@ void main() {
     final vineWhip = syncedCatalog.entries.firstWhere(
       (entry) => entry['id'] == 'vine_whip',
     );
-    expect(vineWhip['name'], 'Vine Whip');
-    expect(vineWhip['type'], 'grass');
-    expect(vineWhip['power'], 45);
-    expect(vineWhip['generation'], 1);
+    final canonicalVineWhip = PokemonMove.fromJson(vineWhip);
+    expect(canonicalVineWhip.name, 'Vine Whip');
+    expect(canonicalVineWhip.type, 'grass');
+    expect(canonicalVineWhip.basePower, 45);
+    expect(canonicalVineWhip.generation, 1);
+    expect(canonicalVineWhip.source, 'showdown');
+    expect(vineWhip.containsKey('power'), isFalse);
+    expect(vineWhip.containsKey('accuracyText'), isFalse);
+    expect(vineWhip.containsKey('shortDesc'), isFalse);
     expect(
       ((vineWhip['names'] as Map<String, dynamic>)['fr'] as String),
       'Fouet Lianes',
     );
+    expect(vineWhip['editorNote'], 'Keep this local-only field after sync.');
 
     final swift = syncedCatalog.entries.firstWhere(
       (entry) => entry['id'] == 'swift',
     );
-    expect(swift['accuracy'], isNull);
-    expect(swift['accuracyText'], 'always');
+    final canonicalSwift = PokemonMove.fromJson(swift);
+    expect(
+      canonicalSwift.accuracy,
+      const PokemonMoveAccuracy.alwaysHits(),
+    );
 
     expect(loadedView.isAvailable, isTrue);
-    expect(
-        loadedView.entries.map((entry) => entry.id), contains('thunderbolt'));
+    final thunderboltView = loadedView.entries.firstWhere(
+      (entry) => entry.id == 'thunderbolt',
+    );
+    expect(thunderboltView.power, 90);
+    expect(thunderboltView.accuracyLabel, '100');
+    expect(thunderboltView.shortDesc, 'May paralyze the target.');
+
+    final swiftView = loadedView.entries.firstWhere(
+      (entry) => entry.id == 'swift',
+    );
+    expect(swiftView.accuracyLabel, 'always');
     expect(await projectFile.readAsString(), beforeProjectJson);
+  });
+
+  test(
+      'load use case does not silently downgrade an invalid canonical move to legacy projection',
+      () async {
+    await writeRepository.saveCatalogByKey(
+      workspace,
+      'moves',
+      const PokemonCatalogFile(
+        schemaVersion: 1,
+        kind: 'pokemon_catalog',
+        catalog: 'moves',
+        meta: PokemonDataMeta(
+          description: 'Broken canonical move catalog.',
+        ),
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'broken_move',
+            'name': 'Broken Move',
+            'names': <String, String>{'en': 'Broken Move'},
+            'source': 'showdown',
+            'type': 'normal',
+            'category': 'physical',
+            'target': 'normal',
+            'basePower': 40,
+            'accuracy': <String, dynamic>{'kind': 'percent', 'value': 0},
+            'pp': 10,
+            'priority': 0,
+            'critRatio': 1,
+            'flags': <String>[],
+            'effects': <Map<String, dynamic>>[],
+            'shortDescription': 'Broken canonical payload.',
+            'description': 'Broken canonical payload.',
+            'engineSupportLevel': 'structured_supported',
+            'unsupportedReasons': <String>[],
+            'sourceRefs': <String, dynamic>{
+              'showdownMoveId': 'brokenmove',
+              'showdownHooksPresent': <String>[],
+            },
+          },
+        ],
+      ),
+    );
+
+    final loadedView = await loadUseCase.execute(workspace);
+
+    expect(loadedView.isAvailable, isFalse);
+    expect(loadedView.description, 'Catalogue local des attaques illisible.');
+    expect(
+      loadedView.message,
+      contains('invalid canonical PokemonMove entry'),
+    );
   });
 }
 
@@ -160,6 +231,10 @@ class _FakePokemonExternalSourceRepository
         'pp': 15,
         'priority': 0,
         'target': 'normal',
+        'secondary': <String, dynamic>{
+          'chance': 10,
+          'status': 'par',
+        },
         'shortDesc': 'May paralyze the target.',
         'desc': 'A strong electric blast crashes down on the target.',
         'gen': 1,

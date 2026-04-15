@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import '../errors/application_errors.dart';
 import '../models/pokemon_project_data_models.dart';
 import '../ports/pokemon_external_source_repository.dart';
@@ -170,6 +172,43 @@ class LoadPokemonMovesCatalogUseCase {
   }
 
   PokemonMoveCatalogEntryView? _projectEntry(Map<String, dynamic> entry) {
+    // M3 introduit des entrées canoniques `PokemonMove.toJson()`, mais le
+    // catalogue projet peut encore contenir des entrées legacy locales non
+    // resynchronisées. Cette projection légère doit donc rester tolérante :
+    // - on privilégie la lecture canonique quand elle est possible ;
+    // - on garde un fallback legacy uniquement pour les vraies entrées legacy ;
+    // - on n'introduit aucun modèle parallèle.
+    if (_isCanonicalMoveEntry(entry)) {
+      try {
+        final move = PokemonMove.fromJson(entry);
+        return PokemonMoveCatalogEntryView(
+          id: move.id,
+          name: move.name,
+          type: move.type,
+          category: move.category.name,
+          power: move.usesStandardDamageFlow ? move.basePower : null,
+          accuracy: move.accuracy.map(
+            percent: (value) => value.value,
+            alwaysHits: (_) => null,
+          ),
+          accuracyText: move.accuracy.maybeMap(
+            alwaysHits: (_) => 'always',
+            orElse: () => null,
+          ),
+          pp: move.pp,
+          priority: move.priority,
+          target: _encodeTarget(move.target),
+          shortDesc:
+              move.shortDescription.isEmpty ? null : move.shortDescription,
+          generation: move.generation,
+        );
+      } on Object catch (error) {
+        throw EditorPersistenceException(
+          'Moves catalog contains an invalid canonical PokemonMove entry: $error',
+        );
+      }
+    }
+
     final id = (entry['id'] as String?)?.trim() ?? '';
     if (id.isEmpty) {
       return null;
@@ -385,6 +424,14 @@ class SyncExternalPokemonMovesCatalogUseCase {
     }
 
     for (final localField in localEntry.entries) {
+      if (_isCanonicalMoveEntry(externalEntry) &&
+          _obsoleteLegacyMoveFields.contains(localField.key)) {
+        // M3 ne doit pas laisser les anciens alias légers (`power`,
+        // `accuracyText`, `shortDesc`) se réinjecter sur une entrée maintenant
+        // canonique. On continue toutefois de préserver les vrais champs
+        // locaux additionnels (`names.fr`, `editorNote`, etc.).
+        continue;
+      }
       merged.putIfAbsent(
           localField.key, () => _deepCopyValue(localField.value));
     }
@@ -447,6 +494,54 @@ class SyncExternalPokemonMovesCatalogUseCase {
     return left == right;
   }
 }
+
+String _encodeTarget(PokemonMoveTarget target) {
+  switch (target) {
+    case PokemonMoveTarget.adjacentAlly:
+      return 'adjacentAlly';
+    case PokemonMoveTarget.adjacentAllyOrSelf:
+      return 'adjacentAllyOrSelf';
+    case PokemonMoveTarget.adjacentFoe:
+      return 'adjacentFoe';
+    case PokemonMoveTarget.all:
+      return 'all';
+    case PokemonMoveTarget.allAdjacent:
+      return 'allAdjacent';
+    case PokemonMoveTarget.allAdjacentFoes:
+      return 'allAdjacentFoes';
+    case PokemonMoveTarget.allies:
+      return 'allies';
+    case PokemonMoveTarget.allySide:
+      return 'allySide';
+    case PokemonMoveTarget.allyTeam:
+      return 'allyTeam';
+    case PokemonMoveTarget.any:
+      return 'any';
+    case PokemonMoveTarget.foeSide:
+      return 'foeSide';
+    case PokemonMoveTarget.normal:
+      return 'normal';
+    case PokemonMoveTarget.randomNormal:
+      return 'randomNormal';
+    case PokemonMoveTarget.scripted:
+      return 'scripted';
+    case PokemonMoveTarget.self:
+      return 'self';
+  }
+}
+
+bool _isCanonicalMoveEntry(Map<String, dynamic> entry) {
+  return entry['basePower'] is num &&
+      entry['accuracy'] is Map &&
+      entry['effects'] is List &&
+      entry['sourceRefs'] is Map;
+}
+
+const Set<String> _obsoleteLegacyMoveFields = <String>{
+  'power',
+  'accuracyText',
+  'shortDesc',
+};
 
 class _MovesCatalogMerge {
   const _MovesCatalogMerge({
