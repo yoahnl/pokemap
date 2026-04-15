@@ -100,6 +100,7 @@ class BattleCombatant {
     required this.maxHp,
     this.abilityId = 'unknown',
     required this.moves,
+    this.statStages = const BattleStatStages(),
   });
 
   /// L'identifiant de l'espèce.
@@ -124,6 +125,15 @@ class BattleCombatant {
   /// La liste des attaques disponibles.
   final List<BattleMove> moves;
 
+  /// Étages de stats actuellement appliqués à ce combattant.
+  ///
+  /// M8 reste volontairement borné :
+  /// - on ne porte que les stats utiles au petit sous-ensemble réellement
+  ///   exécutable ;
+  /// - les autres mécaniques (status, weather, précision, vitesse, etc.)
+  ///   restent hors scope.
+  final BattleStatStages statStages;
+
   /// true si le combattant est K.O.
   ///
   /// Un combattant est K.O. si ses PV courants sont <= 0.
@@ -143,6 +153,7 @@ class BattleCombatant {
       maxHp: maxHp,
       abilityId: abilityId,
       moves: moves,
+      statStages: statStages,
     );
   }
 
@@ -160,6 +171,117 @@ class BattleCombatant {
       maxHp: maxHp,
       abilityId: abilityId,
       moves: moves,
+      statStages: statStages,
     );
   }
+
+  /// Crée une copie de ce combattant avec des changements d'étages appliqués.
+  ///
+  /// Les étages sont toujours clampés dans la plage canonique minimale `[-6, 6]`.
+  /// M8 ne gère ici que le sous-ensemble de stats réellement exploité par le
+  /// moteur battle enrichi.
+  BattleCombatant withAppliedStageChanges(
+    List<BattleStatStageChange> changes,
+  ) {
+    if (changes.isEmpty) {
+      return this;
+    }
+    return BattleCombatant(
+      speciesId: speciesId,
+      level: level,
+      currentHp: currentHp,
+      maxHp: maxHp,
+      abilityId: abilityId,
+      moves: moves,
+      statStages: statStages.apply(changes),
+    );
+  }
+}
+
+/// Étages de stats utilisables par le moteur battle MVP enrichi.
+///
+/// On évite volontairement une structure générique "Map<Stat, int>" :
+/// - le moteur n'a besoin que d'un petit sous-ensemble ;
+/// - cette forme garde des accès simples et des invariants lisibles ;
+/// - elle évite d'ouvrir de faux besoins "future-proof" trop tôt.
+class BattleStatStages {
+  const BattleStatStages({
+    this.attack = 0,
+    this.defense = 0,
+    this.specialAttack = 0,
+    this.specialDefense = 0,
+  });
+
+  final int attack;
+  final int defense;
+  final int specialAttack;
+  final int specialDefense;
+
+  /// Retourne une copie avec les changements demandés appliqués.
+  BattleStatStages apply(List<BattleStatStageChange> changes) {
+    var updated = this;
+    for (final change in changes) {
+      updated = updated._applyOne(change);
+    }
+    return updated;
+  }
+
+  BattleStatStages _applyOne(BattleStatStageChange change) {
+    switch (change.stat) {
+      case BattleStatId.attack:
+        return BattleStatStages(
+          attack: _clampStage(attack + change.stages),
+          defense: defense,
+          specialAttack: specialAttack,
+          specialDefense: specialDefense,
+        );
+      case BattleStatId.defense:
+        return BattleStatStages(
+          attack: attack,
+          defense: _clampStage(defense + change.stages),
+          specialAttack: specialAttack,
+          specialDefense: specialDefense,
+        );
+      case BattleStatId.specialAttack:
+        return BattleStatStages(
+          attack: attack,
+          defense: defense,
+          specialAttack: _clampStage(specialAttack + change.stages),
+          specialDefense: specialDefense,
+        );
+      case BattleStatId.specialDefense:
+        return BattleStatStages(
+          attack: attack,
+          defense: defense,
+          specialAttack: specialAttack,
+          specialDefense: _clampStage(specialDefense + change.stages),
+        );
+    }
+  }
+
+  /// Retourne le multiplicateur utilisé par le calcul de dégâts MVP enrichi.
+  ///
+  /// On reprend la table canonique simplifiée des stages Pokémon :
+  /// - stage 0 => 1.0
+  /// - stage +1 => 1.5
+  /// - stage +2 => 2.0
+  /// - stage -1 => 2/3
+  /// etc.
+  ///
+  /// Cela suffit pour rendre les boosts/débuffs battle réellement visibles,
+  /// sans ouvrir les vraies stats détaillées du moteur complet.
+  double multiplierFor(BattleStatId stat) {
+    final stage = switch (stat) {
+      BattleStatId.attack => attack,
+      BattleStatId.defense => defense,
+      BattleStatId.specialAttack => specialAttack,
+      BattleStatId.specialDefense => specialDefense,
+    };
+    if (stage >= 0) {
+      return (2 + stage) / 2;
+    }
+    return 2 / (2 - stage);
+  }
+
+  int _clampStage(int value) => value.clamp(-6, 6);
 }

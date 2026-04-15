@@ -1,3 +1,5 @@
+import 'battle_move.dart';
+
 /// Configuration initiale d'un combat.
 ///
 /// Modèle pur, sans dépendance runtime.
@@ -113,10 +115,22 @@ class BattleMoveData {
   /// [id] - L'identifiant canonique de l'attaque.
   /// [name] - Le nom affiché de l'attaque.
   /// [power] - La puissance de l'attaque (dégâts de base).
+  /// [category] - La catégorie battle minimale déjà résolue par le runtime.
+  /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
+  /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
+  ///
+  /// Ce contrat reste volontairement petit :
+  /// - il ne copie pas `PokemonMove` ;
+  /// - il ne prétend pas transporter tous les `effects` canoniques ;
+  /// - il transporte seulement ce que `map_battle` sait vraiment exécuter
+  ///   après M8.
   const BattleMoveData({
     required this.id,
     required this.name,
     required this.power,
+    this.category,
+    this.selfStatStageChanges = const <BattleStatStageChange>[],
+    this.targetStatStageChanges = const <BattleStatStageChange>[],
   });
 
   /// L'identifiant canonique de l'attaque.
@@ -130,4 +144,16 @@ class BattleMoveData {
   /// Pour ce MVP, les dégâts sont calculés simplement :
   /// `damage = move.power` (pas de calculs complexes de stats).
   final int power;
+
+  /// Catégorie battle explicitement résolue par le bridge runtime.
+  ///
+  /// Ce champ est optionnel pour préserver les anciens call sites/tests qui ne
+  /// transportaient encore que `power`.
+  final BattleMoveCategory? category;
+
+  /// Changements d'étages de stats appliqués au lanceur.
+  final List<BattleStatStageChange> selfStatStageChanges;
+
+  /// Changements d'étages de stats appliqués à la cible.
+  final List<BattleStatStageChange> targetStatStageChanges;
 }

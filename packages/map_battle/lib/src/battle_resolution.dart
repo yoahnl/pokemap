@@ -63,7 +63,12 @@ class BattleMoveExecution {
 
   /// Les dégâts infligés.
   ///
-  /// Pour ce MVP : `damage = move.power` (calcul simple, pas de stats).
+  /// Après M8 :
+  /// - un move de statut peut infliger `0` dégât ;
+  /// - un move de dégâts standards part toujours de `move.power` ;
+  /// - des multiplicateurs simples issus des étages de stats peuvent modifier
+  ///   ce montant ;
+  /// - on reste néanmoins très loin d'une formule Pokémon complète.
   final int damage;
 }
 

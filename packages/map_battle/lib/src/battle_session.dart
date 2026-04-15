@@ -31,7 +31,16 @@ BattleSession createBattleSession(BattleSetup setup) {
     maxHp: setup.playerPokemon.maxHp,
     abilityId: setup.playerPokemon.abilityId,
     moves: setup.playerPokemon.moves
-        .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
+        .map(
+          (m) => BattleMove(
+            id: m.id,
+            name: m.name,
+            power: m.power,
+            category: m.category,
+            selfStatStageChanges: m.selfStatStageChanges,
+            targetStatStageChanges: m.targetStatStageChanges,
+          ),
+        )
         .toList(),
   );
 
@@ -42,7 +51,16 @@ BattleSession createBattleSession(BattleSetup setup) {
     maxHp: setup.enemyPokemon.maxHp,
     abilityId: setup.enemyPokemon.abilityId,
     moves: setup.enemyPokemon.moves
-        .map((m) => BattleMove(id: m.id, name: m.name, power: m.power))
+        .map(
+          (m) => BattleMove(
+            id: m.id,
+            name: m.name,
+            power: m.power,
+            category: m.category,
+            selfStatStageChanges: m.selfStatStageChanges,
+            targetStatStageChanges: m.targetStatStageChanges,
+          ),
+        )
         .toList(),
   );
 
@@ -265,18 +283,19 @@ class BattleSession {
     // Phase 2: Déterminer l'action de l'ennemi (IA simple)
     final enemyAction = _chooseEnemyAction();
 
-    // Phase 3: Résoudre le tour
-    final turnResult = _resolveTurn(playerAction, enemyAction);
+    // Phase 3: Résoudre le tour.
+    //
+    // M8 garde volontairement une résolution séquentielle très petite :
+    // - le joueur agit d'abord ;
+    // - l'ennemi agit ensuite seulement s'il est encore capable d'agir ;
+    // - les dégâts standards restent supportés ;
+    // - un petit sous-ensemble `modifyStats` devient réellement exécutable ;
+    // - aucune précision, aucun RNG, aucun status non volatil n'est ouvert ici.
+    final resolvedTurn = _resolveTurn(playerAction, enemyAction);
 
-    // Phase 4: Appliquer les dégâts et vérifier l'état
-    final newPlayer = _applyDamageToCombatant(
-      state.player,
-      turnResult.executions.where((e) => e.target == 'player'),
-    );
-    final newEnemy = _applyDamageToCombatant(
-      state.enemy,
-      turnResult.executions.where((e) => e.target == 'enemy'),
-    );
+    // Phase 4: Récupérer l'état résultant après dégâts + éventuels boosts.
+    final newPlayer = resolvedTurn.player;
+    final newEnemy = resolvedTurn.enemy;
 
     // Phase 5: Vérifier si le combat est fini
     final outcome = _determineOutcome(newPlayer, newEnemy);
@@ -286,7 +305,7 @@ class BattleSession {
       phase: outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
       player: newPlayer,
       enemy: newEnemy,
-      currentTurn: outcome == null ? turnResult : null,
+      currentTurn: outcome == null ? resolvedTurn.turnResult : null,
       outcome: outcome,
     );
 
@@ -337,71 +356,146 @@ class BattleSession {
   /// [playerAction] - L'action du joueur.
   /// [enemyAction] - L'action de l'ennemi.
   ///
-  /// Retourne un [BattleTurnResult] avec les exécutions.
+  /// Retourne l'état résolu du tour :
+  /// - les exécutions à afficher ;
+  /// - l'état joueur après dégâts / boosts ;
+  /// - l'état ennemi après dégâts / boosts.
   ///
   /// Ordre de résolution (déterministe, simple) :
   /// 1. Joueur exécute son attaque (si pas une fuite)
   /// 2. Ennemi exécute son attaque (si pas une fuite et encore en vie)
   ///
   /// Cette méthode est interne au moteur de combat.
-  BattleTurnResult _resolveTurn(
+  _ResolvedBattleTurn _resolveTurn(
       BattleAction playerAction, BattleAction enemyAction) {
     final executions = <BattleMoveExecution>[];
+    var player = state.player;
+    var enemy = state.enemy;
 
     // 1. Joueur exécute son attaque
-    if (playerAction is BattleActionFight && !state.enemy.isFainted) {
-      final damage = playerAction.move.power;
-      executions.add(BattleMoveExecution(
-        attacker: 'player',
+    if (playerAction is BattleActionFight && !enemy.isFainted) {
+      final resolution = _resolveMoveExecution(
+        attackerLabel: 'player',
         move: playerAction.move,
-        target: 'enemy',
-        damage: damage,
-      ));
+        attacker: player,
+        defender: enemy,
+        targetLabel: 'enemy',
+      );
+      player = resolution.attacker;
+      enemy = resolution.defender;
+      executions.add(resolution.execution);
     }
 
-    // 2. Ennemi exécute son attaque (seulement si encore en vie après l'attaque du joueur)
-    if (enemyAction is BattleActionFight) {
-      // Vérifier si l'ennemi est encore en vie après l'attaque du joueur
-      var enemyHpAfterPlayerAttack = state.enemy.currentHp;
-      if (executions.isNotEmpty) {
-        enemyHpAfterPlayerAttack -= executions.first.damage;
-      }
-
-      if (enemyHpAfterPlayerAttack > 0) {
-        final damage = enemyAction.move.power;
-        executions.add(BattleMoveExecution(
-          attacker: 'enemy',
-          move: enemyAction.move,
-          target: 'player',
-          damage: damage,
-        ));
-      }
+    // 2. Ennemi exécute son attaque seulement s'il est encore capable d'agir
+    // après la résolution du move joueur. Les boosts/débuffs peuvent donc déjà
+    // influencer cette contre-attaque dans le même tour.
+    if (enemyAction is BattleActionFight &&
+        !enemy.isFainted &&
+        !player.isFainted) {
+      final resolution = _resolveMoveExecution(
+        attackerLabel: 'enemy',
+        move: enemyAction.move,
+        attacker: enemy,
+        defender: player,
+        targetLabel: 'player',
+      );
+      enemy = resolution.attacker;
+      player = resolution.defender;
+      executions.add(resolution.execution);
     }
 
-    return BattleTurnResult(
-      playerAction: playerAction,
-      enemyAction: enemyAction,
-      executions: executions,
+    return _ResolvedBattleTurn(
+      player: player,
+      enemy: enemy,
+      turnResult: BattleTurnResult(
+        playerAction: playerAction,
+        enemyAction: enemyAction,
+        executions: executions,
+      ),
     );
   }
 
-  /// Applique les dégâts à un combattant.
+  /// Résout une exécution unique de move.
   ///
-  /// [combatant] - Le combattant à modifier.
-  /// [executions] - Les exécutions qui ciblent ce combattant.
+  /// M8 garde ici un contrat volontairement petit et honnête :
+  /// - dégâts standards via `power` ;
+  /// - influence de `modifyStats` uniquement sur atk/def/spa/spd ;
+  /// - moves de statut => dégâts 0 ;
+  /// - les changements de stats sont appliqués immédiatement après le move.
   ///
-  /// Retourne un nouveau combattant avec les PV mis à jour.
+  /// Cette application immédiate est importante : un `growl` du joueur doit
+  /// déjà réduire la contre-attaque physique ennemie du même tour.
+  _ResolvedMoveExecution _resolveMoveExecution({
+    required String attackerLabel,
+    required BattleMove move,
+    required BattleCombatant attacker,
+    required BattleCombatant defender,
+    required String targetLabel,
+  }) {
+    final damage = _computeMoveDamage(
+      move: move,
+      attacker: attacker,
+      defender: defender,
+    );
+
+    final updatedAttacker =
+        attacker.withAppliedStageChanges(move.selfStatStageChanges);
+    final updatedDefender = defender
+        .withDamage(damage)
+        .withAppliedStageChanges(move.targetStatStageChanges);
+
+    return _ResolvedMoveExecution(
+      attacker: updatedAttacker,
+      defender: updatedDefender,
+      execution: BattleMoveExecution(
+        attacker: attackerLabel,
+        move: move,
+        target: targetLabel,
+        damage: damage,
+      ),
+    );
+  }
+
+  /// Calcule les dégâts standards du moteur battle MVP enrichi.
   ///
-  /// Cette méthode est interne au moteur de combat.
-  BattleCombatant _applyDamageToCombatant(
-    BattleCombatant combatant,
-    Iterable<BattleMoveExecution> executions,
-  ) {
-    var newCombatant = combatant;
-    for (final execution in executions) {
-      newCombatant = newCombatant.withDamage(execution.damage);
+  /// M8 ne bascule pas vers une formule Pokémon complète. Le but est seulement
+  /// de rendre les boosts/débuffs réellement visibles sans ouvrir :
+  /// - les vraies stats détaillées ;
+  /// - le type chart ;
+  /// - les critiques ;
+  /// - la précision ;
+  /// - le hasard.
+  ///
+  /// Invariant important :
+  /// - sans changement d'étage, on conserve le comportement historique
+  ///   `damage = move.power`.
+  int _computeMoveDamage({
+    required BattleMove move,
+    required BattleCombatant attacker,
+    required BattleCombatant defender,
+  }) {
+    if (move.resolvedCategory == BattleMoveCategory.status || move.power <= 0) {
+      return 0;
     }
-    return newCombatant;
+
+    final attackMultiplier = switch (move.resolvedCategory) {
+      BattleMoveCategory.physical =>
+        attacker.statStages.multiplierFor(BattleStatId.attack),
+      BattleMoveCategory.special =>
+        attacker.statStages.multiplierFor(BattleStatId.specialAttack),
+      BattleMoveCategory.status => 1.0,
+    };
+    final defenseMultiplier = switch (move.resolvedCategory) {
+      BattleMoveCategory.physical =>
+        defender.statStages.multiplierFor(BattleStatId.defense),
+      BattleMoveCategory.special =>
+        defender.statStages.multiplierFor(BattleStatId.specialDefense),
+      BattleMoveCategory.status => 1.0,
+    };
+
+    final scaledDamage =
+        (move.power * attackMultiplier / defenseMultiplier).round();
+    return scaledDamage < 1 ? 1 : scaledDamage;
   }
 
   /// Détermine le résultat final du combat.
@@ -452,4 +546,28 @@ class BattleSession {
     // Combat continue
     return null;
   }
+}
+
+class _ResolvedBattleTurn {
+  const _ResolvedBattleTurn({
+    required this.player,
+    required this.enemy,
+    required this.turnResult,
+  });
+
+  final BattleCombatant player;
+  final BattleCombatant enemy;
+  final BattleTurnResult turnResult;
+}
+
+class _ResolvedMoveExecution {
+  const _ResolvedMoveExecution({
+    required this.attacker,
+    required this.defender,
+    required this.execution,
+  });
+
+  final BattleCombatant attacker;
+  final BattleCombatant defender;
+  final BattleMoveExecution execution;
 }

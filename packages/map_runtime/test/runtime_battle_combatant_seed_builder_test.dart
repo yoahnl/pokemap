@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
@@ -61,6 +62,15 @@ void main() {
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['growl', 'vine_whip']),
       );
+      expect(
+        seed.moves.first.targetStatStageChanges.single.stat,
+        equals(BattleStatId.attack),
+      );
+      expect(
+        seed.moves.first.targetStatStageChanges.single.stages,
+        equals(-1),
+      );
+      expect(seed.moves[1].power, equals(45));
     });
 
     test(
@@ -98,7 +108,7 @@ void main() {
       // - puis conservation des quatre derniers si la liste déborde.
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
-        equals(<String>['growl', 'vine_whip', 'sleep_powder', 'razor_leaf']),
+        equals(<String>['growl', 'vine_whip', 'leer', 'razor_leaf']),
       );
     });
 
@@ -146,7 +156,7 @@ void main() {
         teamMember: const ProjectTrainerPokemonEntry(
           speciesId: 'aquafi',
           level: 18,
-          moves: <String>['water_gun', 'aqua_ring'],
+          moves: <String>['water_gun', 'tail_whip'],
           heldItemId: 'mystic_water',
         ),
         trainerName: 'Ace Jules',
@@ -157,7 +167,7 @@ void main() {
       expect(seed.abilityId, equals('torrent'));
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
-        equals(<String>['water_gun', 'aqua_ring']),
+        equals(<String>['water_gun', 'tail_whip']),
       );
     });
 
@@ -236,6 +246,43 @@ void main() {
             (error) => error.message,
             'message',
             contains('ne contient pas "move_that_does_not_exist"'),
+          ),
+        ),
+      );
+    });
+
+    test(
+        'rejects a structured supported move when the battle bridge cannot execute it honestly',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      await expectLater(
+        () => builder.buildPlayerCombatantSeed(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          movesCatalog: movesCatalog,
+          playerPokemon: const PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'bold',
+            abilityId: 'overgrow',
+            level: 12,
+            knownMoveIds: <String>['thunder_wave'],
+            currentHp: 23,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=thunder_wave'),
+              contains('engineSupportLevel=structuredSupported'),
+              contains('bridgeLimit=unsupported_effect_kind:apply_status'),
+            ),
           ),
         ),
       );
@@ -322,7 +369,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'relearnMoves': <String>['growl', 'vine_whip'],
       'levelUp': <Map<String, Object>>[
         <String, Object>{'moveId': 'vine_whip', 'level': 7},
-        <String, Object>{'moveId': 'sleep_powder', 'level': 13},
+        <String, Object>{'moveId': 'leer', 'level': 13},
         <String, Object>{'moveId': 'razor_leaf', 'level': 20},
       ],
     },
@@ -348,7 +395,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'startingMoves': <String>['tackle'],
       'relearnMoves': <String>['water_gun'],
       'levelUp': <Map<String, Object>>[
-        <String, Object>{'moveId': 'aqua_ring', 'level': 18},
+        <String, Object>{'moveId': 'tail_whip', 'level': 18},
       ],
     },
   );
@@ -367,14 +414,14 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('tackle', 'Tackle', 40),
         _moveEntry('growl', 'Growl', 0),
         _moveEntry('vine_whip', 'Vine Whip', 45),
-        _moveEntry('sleep_powder', 'Sleep Powder', 0),
+        _moveEntry('leer', 'Leer', 0),
         _moveEntry('razor_leaf', 'Razor Leaf', 55),
         _moveEntry('scratch', 'Scratch', 40),
         _moveEntry('tail_whip', 'Tail Whip', 0),
         _moveEntry('ember', 'Ember', 40),
         _moveEntry('flame_wheel', 'Flame Wheel', 60),
         _moveEntry('water_gun', 'Water Gun', 40),
-        _moveEntry('aqua_ring', 'Aqua Ring', 0),
+        _moveEntry('thunder_wave', 'Thunder Wave', 0),
       ],
     },
   );
@@ -388,6 +435,7 @@ Map<String, Object?> _moveEntry(
       PokemonMoveEngineSupportLevel.structuredSupported,
   List<String> unsupportedReasons = const <String>[],
 }) {
+  final effects = _defaultEffectsForMove(id);
   return PokemonMove(
     id: id,
     name: name,
@@ -403,9 +451,49 @@ Map<String, Object?> _moveEntry(
         ? const PokemonMoveAccuracy.alwaysHits()
         : const PokemonMoveAccuracy.percent(value: 100),
     pp: 35,
+    effects: effects,
     engineSupportLevel: engineSupportLevel,
     unsupportedReasons: unsupportedReasons,
   ).toJson();
+}
+
+List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
+  // Ces fixtures runtime doivent rester canoniques :
+  // - `growl` / `tail_whip` / `leer` portent de vrais effets structurés ;
+  // - `thunder_wave` sert explicitement de move chargé mais refusé par M8 ;
+  // - les autres moves restent de simples attaques standard pour garder les
+  //   happy paths lisibles.
+  return switch (moveId) {
+    'growl' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.attack,
+              stages: -1,
+            ),
+          ],
+        ),
+      ],
+    'tail_whip' || 'leer' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: -1,
+            ),
+          ],
+        ),
+      ],
+    'thunder_wave' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyStatus(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          statusId: 'par',
+        ),
+      ],
+    _ => const <PokemonMoveEffect>[],
+  };
 }
 
 Future<void> _rewriteMoveCatalogEntrySupport(

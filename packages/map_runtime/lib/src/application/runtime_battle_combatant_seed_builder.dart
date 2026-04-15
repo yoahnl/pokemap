@@ -2,6 +2,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
 import 'battle_start_request.dart';
+import 'runtime_battle_move_bridge.dart';
 import 'runtime_battle_setup_exception.dart';
 import 'runtime_move_catalog_loader.dart';
 import 'runtime_pokemon_learnset_loader.dart';
@@ -28,10 +29,12 @@ class RuntimeBattleCombatantSeedBuilder {
   const RuntimeBattleCombatantSeedBuilder({
     this.speciesLoader = const RuntimePokemonSpeciesLoader(),
     this.learnsetLoader = const RuntimePokemonLearnsetLoader(),
+    this.battleMoveBridge = const RuntimeBattleMoveBridge(),
   });
 
   final RuntimePokemonSpeciesLoader speciesLoader;
   final RuntimePokemonLearnsetLoader learnsetLoader;
+  final RuntimeBattleMoveBridge battleMoveBridge;
 
   Future<RuntimeBattleCombatantSeed> buildPlayerCombatantSeed({
     required String projectRootDirectory,
@@ -211,42 +214,19 @@ class RuntimeBattleCombatantSeedBuilder {
           debugDetails: 'combatant=$combatantLabel',
         );
       }
-      _ensureMoveCanBeProjectedToBattle(
-        move: move,
-        combatantLabel: combatantLabel,
-      );
+      // M8 sort enfin la policy de projection du builder brut :
+      // - le builder assemble des seeds de combattants ;
+      // - le bridge décide ce qui est réellement exécutable par `map_battle` ;
+      // - cela rend le refus plus honnête que l'ancien simple gate
+      //   `engineSupportLevel == structuredSupported`.
       moves.add(
-        BattleMoveData(
-          id: move.id,
-          name: move.name,
-          // Le bridge battle reste volontairement MVP :
-          // il ne connaît pas encore accuracy, effets structurés ni weather.
-          // M7 n'ouvre pas M8 ; il préserve donc exactement la politique M5-bis
-          // et continue à n'envoyer qu'une puissance simplifiée.
-          power: move.usesStandardDamageFlow ? move.basePower : 0,
+        battleMoveBridge.toBattleMoveData(
+          move: move,
+          combatantLabel: combatantLabel,
         ),
       );
     }
     return List<BattleMoveData>.unmodifiable(moves);
-  }
-
-  void _ensureMoveCanBeProjectedToBattle({
-    required PokemonMove move,
-    required String combatantLabel,
-  }) {
-    if (move.engineSupportLevel ==
-        PokemonMoveEngineSupportLevel.structuredSupported) {
-      return;
-    }
-
-    final unsupportedReasons = move.unsupportedReasons.isEmpty
-        ? '[]'
-        : '[${move.unsupportedReasons.join(', ')}]';
-    throw RuntimeBattleSetupException(
-      'Le combat ne peut pas démarrer car "$combatantLabel" utilise une attaque que le handoff battle actuel ne sait pas projeter honnêtement.',
-      debugDetails:
-          'combatant=$combatantLabel, moveId=${move.id}, moveName=${move.name}, engineSupportLevel=${move.engineSupportLevel.name}, unsupportedReasons=$unsupportedReasons',
-    );
   }
 
   List<String> _normalizeUniqueIdsPreserveOrder(List<String> rawIds) {

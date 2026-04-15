@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
@@ -104,7 +105,7 @@ void main() {
                 natureId: 'calm',
                 abilityId: 'torrent',
                 level: 18,
-                knownMoveIds: <String>['water_gun', 'aqua_ring'],
+                knownMoveIds: <String>['water_gun', 'tail_whip'],
                 currentHp: 17,
               ),
             ],
@@ -121,7 +122,7 @@ void main() {
       expect(setup.playerPokemon.currentHp, equals(17));
       expect(
         setup.playerPokemon.moves.map((move) => move.id).toList(),
-        equals(<String>['water_gun', 'aqua_ring']),
+        equals(<String>['water_gun', 'tail_whip']),
       );
     });
 
@@ -161,6 +162,14 @@ void main() {
             .firstWhere((move) => move.id == 'tail_whip')
             .power,
         equals(0),
+      );
+      expect(
+        setup.enemyPokemon.moves
+            .firstWhere((move) => move.id == 'tail_whip')
+            .targetStatStageChanges
+            .single
+            .stat,
+        equals(BattleStatId.defense),
       );
       expect(
         setup.enemyPokemon.moves.map((move) => move.id),
@@ -246,7 +255,7 @@ void main() {
               ProjectTrainerPokemonEntry(
                 speciesId: 'aquafi',
                 level: 18,
-                moves: <String>['water_gun', 'aqua_ring'],
+                moves: <String>['water_gun', 'tail_whip'],
                 heldItemId: 'mystic_water',
               ),
             ],
@@ -268,7 +277,7 @@ void main() {
       expect(setup.enemyPokemon.abilityId, equals('torrent'));
       expect(
         setup.enemyPokemon.moves.map((move) => move.id).toList(),
-        equals(<String>['water_gun', 'aqua_ring']),
+        equals(<String>['water_gun', 'tail_whip']),
       );
       expect(setup.enemyPokemon.speciesId, isNot(equals('lapras')));
     });
@@ -477,6 +486,53 @@ void main() {
               contains(
                 'unsupportedReasons=[unsupported_mechanic:legacy_damage_bridge]',
               ),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
+        'rejects a structured supported move when the battle bridge cannot execute its effect family',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      await expectLater(
+        () => mapper.map(
+          bundle: bundle,
+          gameState: const GameState(
+            saveId: 'save-unsupported-battle-bridge',
+            party: PlayerParty(
+              members: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'sproutle',
+                  natureId: 'bold',
+                  abilityId: 'overgrow',
+                  level: 12,
+                  knownMoveIds: <String>['thunder_wave'],
+                  currentHp: 20,
+                ),
+              ],
+            ),
+          ),
+          request: _wildRequest(
+            speciesId: 'sparkitten',
+            level: 10,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('combatant=Le Pokémon actif du joueur'),
+              contains('moveId=thunder_wave'),
+              contains('engineSupportLevel=structuredSupported'),
+              contains('bridgeLimit=unsupported_effect_kind:apply_status'),
             ),
           ),
         ),
@@ -819,7 +875,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'relearnMoves': <String>['water_gun'],
       'levelUp': <Map<String, Object>>[
         <String, Object>{
-          'moveId': 'aqua_ring',
+          'moveId': 'tail_whip',
           'level': 18,
           'source': 'level_up',
           'versionGroup': 'project',
@@ -848,7 +904,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('ember', 'Ember', 40),
         _moveEntry('flame_wheel', 'Flame Wheel', 60),
         _moveEntry('water_gun', 'Water Gun', 40),
-        _moveEntry('aqua_ring', 'Aqua Ring', 0),
+        _moveEntry('thunder_wave', 'Thunder Wave', 0),
       ],
     },
   );
@@ -862,6 +918,7 @@ Map<String, Object?> _moveEntry(
       PokemonMoveEngineSupportLevel.structuredSupported,
   List<String> unsupportedReasons = const <String>[],
 }) {
+  final effects = _defaultEffectsForMove(id);
   return PokemonMove(
     id: id,
     name: name,
@@ -877,9 +934,44 @@ Map<String, Object?> _moveEntry(
         ? const PokemonMoveAccuracy.alwaysHits()
         : const PokemonMoveAccuracy.percent(value: 100),
     pp: 35,
+    effects: effects,
     engineSupportLevel: engineSupportLevel,
     unsupportedReasons: unsupportedReasons,
   ).toJson();
+}
+
+List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
+  return switch (moveId) {
+    'growl' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.attack,
+              stages: -1,
+            ),
+          ],
+        ),
+      ],
+    'tail_whip' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: -1,
+            ),
+          ],
+        ),
+      ],
+    'thunder_wave' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyStatus(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          statusId: 'par',
+        ),
+      ],
+    _ => const <PokemonMoveEffect>[],
+  };
 }
 
 Future<void> _rewriteMoveCatalogEntrySupport(
